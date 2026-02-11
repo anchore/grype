@@ -9,7 +9,7 @@ import (
 
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
-	"github.com/anchore/grype/grype/db/internal/tests"
+	"github.com/anchore/grype/grype/db/internal/testutil"
 	"github.com/anchore/grype/grype/db/provider"
 )
 
@@ -25,7 +25,7 @@ func mockOpenVEXProcessorTransform(vulnerability unmarshal.OpenVEXVulnerability,
 func TestV2OpenVEXProcessor_Process(t *testing.T) {
 	f, err := os.Open("test-fixtures/openvex.json")
 	require.NoError(t, err)
-	defer tests.CloseFile(f)
+	defer testutil.CloseFile(f)
 
 	processor := NewV2OpenVEXProcessor(mockOpenVEXProcessorTransform)
 	entries, err := processor.Process(f, provider.State{

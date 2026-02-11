@@ -12,93 +12,93 @@ import (
 
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/provider"
-	grypeDB "github.com/anchore/grype/grype/db/v6"
+	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers"
 )
 
 func TestFillInMissingSeverity(t *testing.T) {
 	tests := []struct {
 		name              string
-		handle            *grypeDB.VulnerabilityHandle
-		severityCache     map[string]grypeDB.Severity
-		expected          []grypeDB.Severity
+		handle            *db.VulnerabilityHandle
+		severityCache     map[string]db.Severity
+		expected          []db.Severity
 		expectCacheUpdate bool
 	}{
 		{
 			name:          "nil handle",
 			handle:        nil,
-			severityCache: map[string]grypeDB.Severity{},
+			severityCache: map[string]db.Severity{},
 			expected:      nil,
 		},
 		{
 			name: "nil metadata",
-			handle: &grypeDB.VulnerabilityHandle{
+			handle: &db.VulnerabilityHandle{
 				BlobValue: nil,
 			},
-			severityCache: map[string]grypeDB.Severity{},
+			severityCache: map[string]db.Severity{},
 			expected:      nil,
 		},
 		{
 			name: "non-CVE ID",
-			handle: &grypeDB.VulnerabilityHandle{
-				BlobValue: &grypeDB.VulnerabilityBlob{
+			handle: &db.VulnerabilityHandle{
+				BlobValue: &db.VulnerabilityBlob{
 					ID: "GHSA-123",
-					Severities: []grypeDB.Severity{
+					Severities: []db.Severity{
 						{Value: "high"},
 					},
 				},
 			},
-			severityCache: map[string]grypeDB.Severity{},
-			expected:      []grypeDB.Severity{{Value: "high"}},
+			severityCache: map[string]db.Severity{},
+			expected:      []db.Severity{{Value: "high"}},
 		},
 		{
 			name: "NVD provider with CVE",
-			handle: &grypeDB.VulnerabilityHandle{
+			handle: &db.VulnerabilityHandle{
 				ProviderID: "nvd",
-				BlobValue: &grypeDB.VulnerabilityBlob{
+				BlobValue: &db.VulnerabilityBlob{
 					ID: "CVE-2023-1234",
-					Severities: []grypeDB.Severity{
+					Severities: []db.Severity{
 						{Value: "critical"},
 					},
 				},
 			},
-			severityCache:     map[string]grypeDB.Severity{},
-			expected:          []grypeDB.Severity{{Value: "critical"}},
+			severityCache:     map[string]db.Severity{},
+			expected:          []db.Severity{{Value: "critical"}},
 			expectCacheUpdate: true,
 		},
 		{
 			name: "CVE with existing severities",
-			handle: &grypeDB.VulnerabilityHandle{
+			handle: &db.VulnerabilityHandle{
 				ProviderID: "github",
-				BlobValue: &grypeDB.VulnerabilityBlob{
+				BlobValue: &db.VulnerabilityBlob{
 					ID: "CVE-2023-5678",
-					Severities: []grypeDB.Severity{
+					Severities: []db.Severity{
 						{Value: "medium"},
 						{Value: "high"},
 					},
 				},
 			},
-			severityCache: map[string]grypeDB.Severity{
+			severityCache: map[string]db.Severity{
 				"cve-2023-5678": {Value: "critical"},
 			},
-			expected: []grypeDB.Severity{
+			expected: []db.Severity{
 				{Value: "medium"},
 				{Value: "high"},
 			},
 		},
 		{
 			name: "CVE with no severities, using cache",
-			handle: &grypeDB.VulnerabilityHandle{
+			handle: &db.VulnerabilityHandle{
 				ProviderID: "github",
-				BlobValue: &grypeDB.VulnerabilityBlob{
+				BlobValue: &db.VulnerabilityBlob{
 					ID:         "CVE-2023-9012",
-					Severities: []grypeDB.Severity{},
+					Severities: []db.Severity{},
 				},
 			},
-			severityCache: map[string]grypeDB.Severity{
+			severityCache: map[string]db.Severity{
 				"cve-2023-9012": {Value: "high"},
 			},
-			expected: []grypeDB.Severity{{Value: "high"}},
+			expected: []db.Severity{{Value: "high"}},
 		},
 	}
 
@@ -137,22 +137,22 @@ func TestFillInMissingSeverity(t *testing.T) {
 func TestFilterUnknownSeverities(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    []grypeDB.Severity
-		expected []grypeDB.Severity
+		input    []db.Severity
+		expected []db.Severity
 	}{
 		{
 			name:     "empty input",
-			input:    []grypeDB.Severity{},
+			input:    []db.Severity{},
 			expected: nil,
 		},
 		{
 			name: "all known severities",
-			input: []grypeDB.Severity{
+			input: []db.Severity{
 				{Value: "critical"},
 				{Value: "high"},
 				{Value: "medium"},
 			},
-			expected: []grypeDB.Severity{
+			expected: []db.Severity{
 				{Value: "critical"},
 				{Value: "high"},
 				{Value: "medium"},
@@ -160,25 +160,25 @@ func TestFilterUnknownSeverities(t *testing.T) {
 		},
 		{
 			name: "mix of known and unknown",
-			input: []grypeDB.Severity{
+			input: []db.Severity{
 				{Value: "high"},
 				{Value: "unknown"},
 				{Value: "medium"},
 				{Value: ""},
 			},
-			expected: []grypeDB.Severity{
+			expected: []db.Severity{
 				{Value: "high"},
 				{Value: "medium"},
 			},
 		},
 		{
 			name: "non-string values",
-			input: []grypeDB.Severity{
+			input: []db.Severity{
 				{Value: 5},
 				{Value: nil},
 				{Value: "high"},
 			},
-			expected: []grypeDB.Severity{
+			expected: []db.Severity{
 				{Value: 5},
 				{Value: "high"},
 			},
@@ -196,37 +196,37 @@ func TestFilterUnknownSeverities(t *testing.T) {
 func TestIsKnownSeverity(t *testing.T) {
 	tests := []struct {
 		name     string
-		severity grypeDB.Severity
+		severity db.Severity
 		expected bool
 	}{
 		{
 			name:     "empty string",
-			severity: grypeDB.Severity{Value: ""},
+			severity: db.Severity{Value: ""},
 			expected: false,
 		},
 		{
 			name:     "unknown string",
-			severity: grypeDB.Severity{Value: "unknown"},
+			severity: db.Severity{Value: "unknown"},
 			expected: false,
 		},
 		{
 			name:     "case insensitive",
-			severity: grypeDB.Severity{Value: "UNKNOWN"},
+			severity: db.Severity{Value: "UNKNOWN"},
 			expected: false,
 		},
 		{
 			name:     "valid string severity",
-			severity: grypeDB.Severity{Value: "high"},
+			severity: db.Severity{Value: "high"},
 			expected: true,
 		},
 		{
 			name:     "nil value",
-			severity: grypeDB.Severity{Value: nil},
+			severity: db.Severity{Value: nil},
 			expected: false,
 		},
 		{
 			name:     "numeric value",
-			severity: grypeDB.Severity{Value: 7},
+			severity: db.Severity{Value: 7},
 			expected: true,
 		},
 	}
@@ -245,28 +245,28 @@ func TestEnsureFixDates(t *testing.T) {
 
 	tests := []struct {
 		name    string
-		row     *grypeDB.AffectedPackageHandle
+		row     *db.AffectedPackageHandle
 		wantErr require.ErrorAssertionFunc
 	}{
 		{
 			name: "nil BlobValue",
-			row: &grypeDB.AffectedPackageHandle{
+			row: &db.AffectedPackageHandle{
 				BlobValue: nil,
 			},
 		},
 		{
 			name: "empty ranges",
-			row: &grypeDB.AffectedPackageHandle{
-				BlobValue: &grypeDB.PackageBlob{
-					Ranges: []grypeDB.Range{},
+			row: &db.AffectedPackageHandle{
+				BlobValue: &db.PackageBlob{
+					Ranges: []db.Range{},
 				},
 			},
 		},
 		{
 			name: "range with nil Fix",
-			row: &grypeDB.AffectedPackageHandle{
-				BlobValue: &grypeDB.PackageBlob{
-					Ranges: []grypeDB.Range{
+			row: &db.AffectedPackageHandle{
+				BlobValue: &db.PackageBlob{
+					Ranges: []db.Range{
 						{Fix: nil},
 					},
 				},
@@ -274,23 +274,23 @@ func TestEnsureFixDates(t *testing.T) {
 		},
 		{
 			name: "range with empty Fix.Version",
-			row: &grypeDB.AffectedPackageHandle{
-				BlobValue: &grypeDB.PackageBlob{
-					Ranges: []grypeDB.Range{
-						{Fix: &grypeDB.Fix{Version: ""}},
+			row: &db.AffectedPackageHandle{
+				BlobValue: &db.PackageBlob{
+					Ranges: []db.Range{
+						{Fix: &db.Fix{Version: ""}},
 					},
 				},
 			},
 		},
 		{
 			name: "range with Fix.Version '0' - skipped by isFixVersion",
-			row: &grypeDB.AffectedPackageHandle{
-				BlobValue: &grypeDB.PackageBlob{
-					Ranges: []grypeDB.Range{
+			row: &db.AffectedPackageHandle{
+				BlobValue: &db.PackageBlob{
+					Ranges: []db.Range{
 						{
-							Fix: &grypeDB.Fix{
+							Fix: &db.Fix{
 								Version: "0", // invalid version - validation skipped
-								State:   grypeDB.FixedStatus,
+								State:   db.FixedStatus,
 								Detail:  nil, // no date but should not error
 							},
 						},
@@ -300,13 +300,13 @@ func TestEnsureFixDates(t *testing.T) {
 		},
 		{
 			name: "range with Fix.Version 'none' - skipped by isFixVersion",
-			row: &grypeDB.AffectedPackageHandle{
-				BlobValue: &grypeDB.PackageBlob{
-					Ranges: []grypeDB.Range{
+			row: &db.AffectedPackageHandle{
+				BlobValue: &db.PackageBlob{
+					Ranges: []db.Range{
 						{
-							Fix: &grypeDB.Fix{
+							Fix: &db.Fix{
 								Version: "none", // invalid version - validation skipped
-								State:   grypeDB.FixedStatus,
+								State:   db.FixedStatus,
 								Detail:  nil, // no date but should not error
 							},
 						},
@@ -316,13 +316,13 @@ func TestEnsureFixDates(t *testing.T) {
 		},
 		{
 			name: "range with Fix.Version 'NONE' (case insensitive) - skipped by isFixVersion",
-			row: &grypeDB.AffectedPackageHandle{
-				BlobValue: &grypeDB.PackageBlob{
-					Ranges: []grypeDB.Range{
+			row: &db.AffectedPackageHandle{
+				BlobValue: &db.PackageBlob{
+					Ranges: []db.Range{
 						{
-							Fix: &grypeDB.Fix{
+							Fix: &db.Fix{
 								Version: "NONE", // invalid version - validation skipped
-								State:   grypeDB.FixedStatus,
+								State:   db.FixedStatus,
 								Detail:  nil, // no date but should not error
 							},
 						},
@@ -332,13 +332,13 @@ func TestEnsureFixDates(t *testing.T) {
 		},
 		{
 			name: "range with Fix.State not FixedStatus",
-			row: &grypeDB.AffectedPackageHandle{
-				BlobValue: &grypeDB.PackageBlob{
-					Ranges: []grypeDB.Range{
+			row: &db.AffectedPackageHandle{
+				BlobValue: &db.PackageBlob{
+					Ranges: []db.Range{
 						{
-							Fix: &grypeDB.Fix{
+							Fix: &db.Fix{
 								Version: "1.2.3",
-								State:   grypeDB.NotAffectedFixStatus,
+								State:   db.NotAffectedFixStatus,
 							},
 						},
 					},
@@ -347,15 +347,15 @@ func TestEnsureFixDates(t *testing.T) {
 		},
 		{
 			name: "valid fix with proper date",
-			row: &grypeDB.AffectedPackageHandle{
-				BlobValue: &grypeDB.PackageBlob{
-					Ranges: []grypeDB.Range{
+			row: &db.AffectedPackageHandle{
+				BlobValue: &db.PackageBlob{
+					Ranges: []db.Range{
 						{
-							Fix: &grypeDB.Fix{
+							Fix: &db.Fix{
 								Version: "1.2.3",
-								State:   grypeDB.FixedStatus,
-								Detail: &grypeDB.FixDetail{
-									Available: &grypeDB.FixAvailability{
+								State:   db.FixedStatus,
+								Detail: &db.FixDetail{
+									Available: &db.FixAvailability{
 										Date: &validDate,
 									},
 								},
@@ -367,13 +367,13 @@ func TestEnsureFixDates(t *testing.T) {
 		},
 		{
 			name: "valid version requires date validation",
-			row: &grypeDB.AffectedPackageHandle{
-				BlobValue: &grypeDB.PackageBlob{
-					Ranges: []grypeDB.Range{
+			row: &db.AffectedPackageHandle{
+				BlobValue: &db.PackageBlob{
+					Ranges: []db.Range{
 						{
-							Fix: &grypeDB.Fix{
+							Fix: &db.Fix{
 								Version: "1.2.3", // valid version - validation required
-								State:   grypeDB.FixedStatus,
+								State:   db.FixedStatus,
 								Detail:  nil, // no date should cause error
 							},
 						},
@@ -384,26 +384,26 @@ func TestEnsureFixDates(t *testing.T) {
 		},
 		{
 			name: "multiple ranges with valid dates",
-			row: &grypeDB.AffectedPackageHandle{
-				BlobValue: &grypeDB.PackageBlob{
-					Ranges: []grypeDB.Range{
+			row: &db.AffectedPackageHandle{
+				BlobValue: &db.PackageBlob{
+					Ranges: []db.Range{
 						{
-							Fix: &grypeDB.Fix{
+							Fix: &db.Fix{
 								Version: "1.2.3",
-								State:   grypeDB.FixedStatus,
-								Detail: &grypeDB.FixDetail{
-									Available: &grypeDB.FixAvailability{
+								State:   db.FixedStatus,
+								Detail: &db.FixDetail{
+									Available: &db.FixAvailability{
 										Date: &validDate,
 									},
 								},
 							},
 						},
 						{
-							Fix: &grypeDB.Fix{
+							Fix: &db.Fix{
 								Version: "2.0.0",
-								State:   grypeDB.FixedStatus,
-								Detail: &grypeDB.FixDetail{
-									Available: &grypeDB.FixAvailability{
+								State:   db.FixedStatus,
+								Detail: &db.FixDetail{
+									Available: &db.FixAvailability{
 										Date: &validDate,
 									},
 								},
@@ -415,35 +415,35 @@ func TestEnsureFixDates(t *testing.T) {
 		},
 		{
 			name: "mix of valid and nil Fix ranges",
-			row: &grypeDB.AffectedPackageHandle{
-				BlobValue: &grypeDB.PackageBlob{
-					Ranges: []grypeDB.Range{
+			row: &db.AffectedPackageHandle{
+				BlobValue: &db.PackageBlob{
+					Ranges: []db.Range{
 						{Fix: nil},
 						{
-							Fix: &grypeDB.Fix{
+							Fix: &db.Fix{
 								Version: "1.2.3",
-								State:   grypeDB.FixedStatus,
-								Detail: &grypeDB.FixDetail{
-									Available: &grypeDB.FixAvailability{
+								State:   db.FixedStatus,
+								Detail: &db.FixDetail{
+									Available: &db.FixAvailability{
 										Date: &validDate,
 									},
 								},
 							},
 						},
-						{Fix: &grypeDB.Fix{Version: ""}},
+						{Fix: &db.Fix{Version: ""}},
 					},
 				},
 			},
 		},
 		{
 			name: "missing Fix.Detail with valid version",
-			row: &grypeDB.AffectedPackageHandle{
-				BlobValue: &grypeDB.PackageBlob{
-					Ranges: []grypeDB.Range{
+			row: &db.AffectedPackageHandle{
+				BlobValue: &db.PackageBlob{
+					Ranges: []db.Range{
 						{
-							Fix: &grypeDB.Fix{
+							Fix: &db.Fix{
 								Version: "1.2.3", // valid version triggers validation
-								State:   grypeDB.FixedStatus,
+								State:   db.FixedStatus,
 								Detail:  nil,
 							},
 						},
@@ -454,14 +454,14 @@ func TestEnsureFixDates(t *testing.T) {
 		},
 		{
 			name: "missing Fix.Detail.Available with valid version",
-			row: &grypeDB.AffectedPackageHandle{
-				BlobValue: &grypeDB.PackageBlob{
-					Ranges: []grypeDB.Range{
+			row: &db.AffectedPackageHandle{
+				BlobValue: &db.PackageBlob{
+					Ranges: []db.Range{
 						{
-							Fix: &grypeDB.Fix{
+							Fix: &db.Fix{
 								Version: "2.0.0", // valid version triggers validation
-								State:   grypeDB.FixedStatus,
-								Detail: &grypeDB.FixDetail{
+								State:   db.FixedStatus,
+								Detail: &db.FixDetail{
 									Available: nil,
 								},
 							},
@@ -473,15 +473,15 @@ func TestEnsureFixDates(t *testing.T) {
 		},
 		{
 			name: "missing Fix.Detail.Available.Date with valid version",
-			row: &grypeDB.AffectedPackageHandle{
-				BlobValue: &grypeDB.PackageBlob{
-					Ranges: []grypeDB.Range{
+			row: &db.AffectedPackageHandle{
+				BlobValue: &db.PackageBlob{
+					Ranges: []db.Range{
 						{
-							Fix: &grypeDB.Fix{
+							Fix: &db.Fix{
 								Version: "v1.0.0", // valid version triggers validation
-								State:   grypeDB.FixedStatus,
-								Detail: &grypeDB.FixDetail{
-									Available: &grypeDB.FixAvailability{
+								State:   db.FixedStatus,
+								Detail: &db.FixDetail{
+									Available: &db.FixAvailability{
 										Date: nil,
 									},
 								},
@@ -494,15 +494,15 @@ func TestEnsureFixDates(t *testing.T) {
 		},
 		{
 			name: "zero Fix.Detail.Available.Date with valid version",
-			row: &grypeDB.AffectedPackageHandle{
-				BlobValue: &grypeDB.PackageBlob{
-					Ranges: []grypeDB.Range{
+			row: &db.AffectedPackageHandle{
+				BlobValue: &db.PackageBlob{
+					Ranges: []db.Range{
 						{
-							Fix: &grypeDB.Fix{
+							Fix: &db.Fix{
 								Version: "3.1.4", // valid version triggers validation
-								State:   grypeDB.FixedStatus,
-								Detail: &grypeDB.FixDetail{
-									Available: &grypeDB.FixAvailability{
+								State:   db.FixedStatus,
+								Detail: &db.FixDetail{
+									Available: &db.FixAvailability{
 										Date: &zeroDate,
 									},
 								},
@@ -515,26 +515,26 @@ func TestEnsureFixDates(t *testing.T) {
 		},
 		{
 			name: "multiple ranges with one missing date and valid versions",
-			row: &grypeDB.AffectedPackageHandle{
-				BlobValue: &grypeDB.PackageBlob{
-					Ranges: []grypeDB.Range{
+			row: &db.AffectedPackageHandle{
+				BlobValue: &db.PackageBlob{
+					Ranges: []db.Range{
 						{
-							Fix: &grypeDB.Fix{
+							Fix: &db.Fix{
 								Version: "1.2.3", // valid version triggers validation
-								State:   grypeDB.FixedStatus,
-								Detail: &grypeDB.FixDetail{
-									Available: &grypeDB.FixAvailability{
+								State:   db.FixedStatus,
+								Detail: &db.FixDetail{
+									Available: &db.FixAvailability{
 										Date: &validDate,
 									},
 								},
 							},
 						},
 						{
-							Fix: &grypeDB.Fix{
+							Fix: &db.Fix{
 								Version: "2.0.0", // valid version triggers validation
-								State:   grypeDB.FixedStatus,
-								Detail: &grypeDB.FixDetail{
-									Available: &grypeDB.FixAvailability{
+								State:   db.FixedStatus,
+								Detail: &db.FixDetail{
+									Available: &db.FixAvailability{
 										Date: nil,
 									},
 								},
@@ -565,25 +565,25 @@ func TestWrite_FailsOnMissingFixDate(t *testing.T) {
 	w := &writer{
 		failOnMissingFixDate: true,
 		store:                nil, // intentionally nil - we should error before reaching store operations
-		severityCache:        make(map[string]grypeDB.Severity),
+		severityCache:        make(map[string]db.Severity),
 	}
 
-	var vulnID grypeDB.ID = 123
+	var vulnID db.ID = 123
 
 	entry := data.Entry{
-		DBSchemaVersion: grypeDB.ModelVersion,
+		DBSchemaVersion: db.ModelVersion,
 		Data: transformers.RelatedEntries{
 			VulnerabilityHandle: nil, // no vulnerability handle to avoid store operations
 			Related: []any{
-				grypeDB.AffectedPackageHandle{
+				db.AffectedPackageHandle{
 					VulnerabilityID: vulnID,
-					Package:         &grypeDB.Package{Name: "test-package"},
-					BlobValue: &grypeDB.PackageBlob{
-						Ranges: []grypeDB.Range{
+					Package:         &db.Package{Name: "test-package"},
+					BlobValue: &db.PackageBlob{
+						Ranges: []db.Range{
 							{
-								Fix: &grypeDB.Fix{
+								Fix: &db.Fix{
 									Version: "1.2.3", // valid version triggers validation
-									State:   grypeDB.FixedStatus,
+									State:   db.FixedStatus,
 									Detail:  nil, // missing fix detail should cause error
 								},
 							},
@@ -713,7 +713,7 @@ func TestBatchedWritesEquivalence(t *testing.T) {
 			require.NoError(t, err, "database file should exist")
 
 			// Open and verify database contents
-			reader, err := grypeDB.NewReader(grypeDB.Config{DBDirPath: tmpDir})
+			reader, err := db.NewReader(db.Config{DBDirPath: tmpDir})
 			require.NoError(t, err)
 			defer reader.Close()
 
@@ -832,21 +832,21 @@ func createTestEntries(count int) []data.Entry {
 
 	for i := 0; i < count; i++ {
 		entries[i] = data.Entry{
-			DBSchemaVersion: grypeDB.ModelVersion,
+			DBSchemaVersion: db.ModelVersion,
 			Data: transformers.RelatedEntries{
-				VulnerabilityHandle: &grypeDB.VulnerabilityHandle{
+				VulnerabilityHandle: &db.VulnerabilityHandle{
 					Name:       "CVE-2023-TEST",
 					ProviderID: "test-provider",
-					Provider: &grypeDB.Provider{
+					Provider: &db.Provider{
 						ID:      "test-provider",
 						Version: "1.0.0",
 					},
-					BlobValue: &grypeDB.VulnerabilityBlob{
+					BlobValue: &db.VulnerabilityBlob{
 						ID: "CVE-2023-TEST",
 					},
 				},
 				Related: []any{
-					grypeDB.CWEHandle{
+					db.CWEHandle{
 						CVE: "CVE-2023-TEST",
 						CWE: "CWE-79",
 					},

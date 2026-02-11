@@ -8,14 +8,14 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
-	testUtils "github.com/anchore/grype/grype/db/internal/tests"
-	grypeDB "github.com/anchore/grype/grype/db/v5"
+	"github.com/anchore/grype/grype/db/internal/testutil"
+	db "github.com/anchore/grype/grype/db/v5"
 )
 
 func TestUnmarshalMsrcVulnerabilities(t *testing.T) {
 	f, err := os.Open("test-fixtures/microsoft-msrc-0.json")
 	require.NoError(t, err)
-	defer testUtils.CloseFile(f)
+	defer testutil.CloseFile(f)
 
 	entries, err := unmarshal.MSRCVulnerabilityEntries(f)
 	require.NoError(t, err)
@@ -25,22 +25,22 @@ func TestUnmarshalMsrcVulnerabilities(t *testing.T) {
 
 func TestParseMSRCEntry(t *testing.T) {
 	expectedVulns := []struct {
-		vulnerability grypeDB.Vulnerability
-		metadata      grypeDB.VulnerabilityMetadata
+		vulnerability db.Vulnerability
+		metadata      db.VulnerabilityMetadata
 	}{
 		{
-			vulnerability: grypeDB.Vulnerability{
+			vulnerability: db.Vulnerability{
 				ID:                "CVE-2019-0671",
 				VersionConstraint: `4480961 || 4483229 || 4487026 || 4489882 || base`,
 				VersionFormat:     "kb",
 				PackageName:       "10852",
 				Namespace:         "msrc:distro:windows:10852",
-				Fix: grypeDB.Fix{
+				Fix: db.Fix{
 					Versions: []string{"4516044"},
-					State:    grypeDB.FixedState,
+					State:    db.FixedState,
 				},
 			},
-			metadata: grypeDB.VulnerabilityMetadata{
+			metadata: db.VulnerabilityMetadata{
 				ID:           "CVE-2019-0671",
 				Severity:     "High",
 				DataSource:   "https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2019-0671",
@@ -48,9 +48,9 @@ func TestParseMSRCEntry(t *testing.T) {
 				Description:  "",
 				RecordSource: "microsoft:msrc:10852",
 				Namespace:    "msrc:distro:windows:10852",
-				Cvss: []grypeDB.Cvss{
+				Cvss: []db.Cvss{
 					{
-						Metrics: grypeDB.CvssMetrics{
+						Metrics: db.CvssMetrics{
 							BaseScore:   7.8,
 							ImpactScore: nil,
 						},
@@ -60,18 +60,18 @@ func TestParseMSRCEntry(t *testing.T) {
 			},
 		},
 		{
-			vulnerability: grypeDB.Vulnerability{
+			vulnerability: db.Vulnerability{
 				ID:                "CVE-2018-8116",
 				VersionConstraint: `3213986 || 4013429 || 4015217 || 4019472 || 4022715 || 4025339 || 4034658 || 4038782 || 4041691 || 4048953 || 4053579 || 4056890 || 4074590 || 4088787 || base`,
 				VersionFormat:     "kb",
 				PackageName:       "10852",
 				Namespace:         "msrc:distro:windows:10852",
-				Fix: grypeDB.Fix{
+				Fix: db.Fix{
 					Versions: []string{"4345418"},
-					State:    grypeDB.FixedState,
+					State:    db.FixedState,
 				},
 			},
-			metadata: grypeDB.VulnerabilityMetadata{
+			metadata: db.VulnerabilityMetadata{
 				ID:           "CVE-2018-8116",
 				Namespace:    "msrc:distro:windows:10852",
 				DataSource:   "https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2018-8116",
@@ -79,9 +79,9 @@ func TestParseMSRCEntry(t *testing.T) {
 				Severity:     "Medium",
 				URLs:         []string{"https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2018-8116"},
 				Description:  "",
-				Cvss: []grypeDB.Cvss{
+				Cvss: []db.Cvss{
 					{
-						Metrics: grypeDB.CvssMetrics{
+						Metrics: db.CvssMetrics{
 							BaseScore:   4.4,
 							ImpactScore: nil,
 						},
@@ -94,7 +94,7 @@ func TestParseMSRCEntry(t *testing.T) {
 
 	f, err := os.Open("test-fixtures/microsoft-msrc-0.json")
 	require.NoError(t, err)
-	defer testUtils.CloseFile(f)
+	defer testutil.CloseFile(f)
 
 	entries, err := unmarshal.MSRCVulnerabilityEntries(f)
 	require.NoError(t, err)
@@ -108,9 +108,9 @@ func TestParseMSRCEntry(t *testing.T) {
 		expected := expectedVulns[idx]
 		for _, entry := range dataEntries {
 			switch vuln := entry.Data.(type) {
-			case grypeDB.Vulnerability:
+			case db.Vulnerability:
 				assert.Equal(t, expected.vulnerability, vuln)
-			case grypeDB.VulnerabilityMetadata:
+			case db.VulnerabilityMetadata:
 				assert.Equal(t, expected.metadata, vuln)
 			default:
 				t.Fatalf("unexpected condition: data entry does not have a vulnerability or a metadata")

@@ -11,8 +11,8 @@ import (
 
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/nvd"
-	testUtils "github.com/anchore/grype/grype/db/internal/tests"
-	grypeDB "github.com/anchore/grype/grype/db/v5"
+	"github.com/anchore/grype/grype/db/internal/testutil"
+	db "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/pkg/qualifier"
 	"github.com/anchore/grype/grype/db/v5/pkg/qualifier/platformcpe"
 	"github.com/anchore/grype/grype/version"
@@ -21,7 +21,7 @@ import (
 func TestUnmarshalNVDVulnerabilitiesEntries(t *testing.T) {
 	f, err := os.Open("test-fixtures/unmarshal-test.json")
 	require.NoError(t, err)
-	defer testUtils.CloseFile(f)
+	defer testutil.CloseFile(f)
 
 	entries, err := unmarshal.NvdVulnerabilityEntries(f)
 	assert.NoError(t, err)
@@ -35,14 +35,14 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 		config     Config
 		numEntries int
 		fixture    string
-		vulns      []grypeDB.Vulnerability
-		metadata   grypeDB.VulnerabilityMetadata
+		vulns      []db.Vulnerability
+		metadata   db.VulnerabilityMetadata
 	}{
 		{
 			name:       "AppVersionRange",
 			numEntries: 1,
 			fixture:    "test-fixtures/version-range.json",
-			vulns: []grypeDB.Vulnerability{
+			vulns: []db.Vulnerability{
 				{
 					ID:          "CVE-2018-5487",
 					PackageName: "oncommand_unified_manager",
@@ -54,12 +54,12 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					VersionFormat:     "unknown", // TODO: this should reference a format, yes? (not a string)
 					Namespace:         "nvd:cpe",
 					CPEs:              []string{"cpe:2.3:a:netapp:oncommand_unified_manager:*:*:*:*:*:*:*:*"},
-					Fix: grypeDB.Fix{
+					Fix: db.Fix{
 						State: "unknown",
 					},
 				},
 			},
-			metadata: grypeDB.VulnerabilityMetadata{
+			metadata: db.VulnerabilityMetadata{
 				ID:           "CVE-2018-5487",
 				DataSource:   "https://nvd.nist.gov/vuln/detail/CVE-2018-5487",
 				Namespace:    "nvd:cpe",
@@ -67,9 +67,9 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 				Severity:     "Critical",
 				URLs:         []string{"https://security.netapp.com/advisory/ntap-20180523-0001/"},
 				Description:  "NetApp OnCommand Unified Manager for Linux versions 7.2 through 7.3 ship with the Java Management Extension Remote Method Invocation (JMX RMI) service bound to the network, and are susceptible to unauthenticated remote code execution.",
-				Cvss: []grypeDB.Cvss{
+				Cvss: []db.Cvss{
 					{
-						Metrics: grypeDB.NewCvssMetrics(
+						Metrics: db.NewCvssMetrics(
 							7.5,
 							10,
 							6.4,
@@ -80,7 +80,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 						Type:    "Primary",
 					},
 					{
-						Metrics: grypeDB.NewCvssMetrics(
+						Metrics: db.NewCvssMetrics(
 							9.8,
 							3.9,
 							5.9,
@@ -97,7 +97,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 			name:       "App+OS",
 			numEntries: 1,
 			fixture:    "test-fixtures/single-package-multi-distro.json",
-			vulns: []grypeDB.Vulnerability{
+			vulns: []db.Vulnerability{
 				{
 					ID:                "CVE-2018-1000222",
 					PackageName:       "libgd",
@@ -105,13 +105,13 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					VersionFormat:     "unknown", // TODO: this should reference a format, yes? (not a string)
 					Namespace:         "nvd:cpe",
 					CPEs:              []string{"cpe:2.3:a:libgd:libgd:2.2.5:*:*:*:*:*:*:*"},
-					Fix: grypeDB.Fix{
+					Fix: db.Fix{
 						State: "unknown",
 					},
 				},
 				// TODO: Question: should this match also the OS's? (as in the vulnerable_cpes list)... this seems wrong!
 			},
-			metadata: grypeDB.VulnerabilityMetadata{
+			metadata: db.VulnerabilityMetadata{
 				ID:           "CVE-2018-1000222",
 				DataSource:   "https://nvd.nist.gov/vuln/detail/CVE-2018-1000222",
 				Namespace:    "nvd:cpe",
@@ -119,9 +119,9 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 				Severity:     "High",
 				URLs:         []string{"https://github.com/libgd/libgd/issues/447", "https://lists.debian.org/debian-lts-announce/2019/01/msg00028.html", "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/3CZ2QADQTKRHTGB2AHD7J4QQNDLBEMM6/", "https://security.gentoo.org/glsa/201903-18", "https://usn.ubuntu.com/3755-1/"},
 				Description:  "Libgd version 2.2.5 contains a Double Free Vulnerability vulnerability in gdImageBmpPtr Function that can result in Remote Code Execution . This attack appear to be exploitable via Specially Crafted Jpeg Image can trigger double free. This vulnerability appears to have been fixed in after commit ac16bdf2d41724b5a65255d4c28fb0ec46bc42f5.",
-				Cvss: []grypeDB.Cvss{
+				Cvss: []db.Cvss{
 					{
-						Metrics: grypeDB.NewCvssMetrics(
+						Metrics: db.NewCvssMetrics(
 							6.8,
 							8.6,
 							6.4,
@@ -132,7 +132,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 						Type:    "Primary",
 					},
 					{
-						Metrics: grypeDB.NewCvssMetrics(
+						Metrics: db.NewCvssMetrics(
 							8.8,
 							2.8,
 							5.9,
@@ -149,7 +149,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 			name:       "AppCompoundVersionRange",
 			numEntries: 1,
 			fixture:    "test-fixtures/compound-pkg.json",
-			vulns: []grypeDB.Vulnerability{
+			vulns: []db.Vulnerability{
 				{
 					ID:                "CVE-2018-10189",
 					PackageName:       "mautic",
@@ -157,13 +157,13 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					VersionFormat:     "unknown",
 					Namespace:         "nvd:cpe",
 					CPEs:              []string{"cpe:2.3:a:mautic:mautic:*:*:*:*:*:*:*:*"}, // note: entry was dedupicated
-					Fix: grypeDB.Fix{
+					Fix: db.Fix{
 						Versions: []string{"2.13.0"},
 						State:    "fixed",
 					},
 				},
 			},
-			metadata: grypeDB.VulnerabilityMetadata{
+			metadata: db.VulnerabilityMetadata{
 				ID:           "CVE-2018-10189",
 				DataSource:   "https://nvd.nist.gov/vuln/detail/CVE-2018-10189",
 				Namespace:    "nvd:cpe",
@@ -171,9 +171,9 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 				Severity:     "High",
 				URLs:         []string{"https://github.com/mautic/mautic/releases/tag/2.13.0"},
 				Description:  "An issue was discovered in Mautic 1.x and 2.x before 2.13.0. It is possible to systematically emulate tracking cookies per contact due to tracking the contact by their auto-incremented ID. Thus, a third party can manipulate the cookie value with +1 to systematically assume being tracked as each contact in Mautic. It is then possible to retrieve information about the contact through forms that have progressive profiling enabled.",
-				Cvss: []grypeDB.Cvss{
+				Cvss: []db.Cvss{
 					{
-						Metrics: grypeDB.NewCvssMetrics(
+						Metrics: db.NewCvssMetrics(
 							5,
 							10,
 							2.9,
@@ -184,7 +184,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 						Type:    "Primary",
 					},
 					{
-						Metrics: grypeDB.NewCvssMetrics(
+						Metrics: db.NewCvssMetrics(
 							7.5,
 							3.9,
 							3.6,
@@ -203,7 +203,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 			numEntries: 1,
 			fixture:    "test-fixtures/invalid_cpe.json",
 			vulns:      nil,
-			metadata: grypeDB.VulnerabilityMetadata{
+			metadata: db.VulnerabilityMetadata{
 				ID:           "CVE-2015-8978",
 				Namespace:    "nvd:cpe",
 				DataSource:   "https://nvd.nist.gov/vuln/detail/CVE-2015-8978",
@@ -214,9 +214,9 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					"http://www.securityfocus.com/bid/94487",
 				},
 				Description: "In Soap Lite (aka the SOAP::Lite extension for Perl) 1.14 and earlier, an example attack consists of defining 10 or more XML entities, each defined as consisting of 10 of the previous entity, with the document consisting of a single instance of the largest entity, which expands to one billion copies of the first entity. The amount of computer memory used for handling an external SOAP call would likely exceed that available to the process parsing the XML.",
-				Cvss: []grypeDB.Cvss{
+				Cvss: []db.Cvss{
 					{
-						Metrics: grypeDB.NewCvssMetrics(
+						Metrics: db.NewCvssMetrics(
 							5,
 							10,
 							2.9,
@@ -227,7 +227,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 						Type:    "Primary",
 					},
 					{
-						Metrics: grypeDB.NewCvssMetrics(
+						Metrics: db.NewCvssMetrics(
 							7.5,
 							3.9,
 							3.6,
@@ -244,7 +244,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 			name:       "With Platform CPE",
 			numEntries: 1,
 			fixture:    "test-fixtures/platform-cpe.json",
-			vulns: []grypeDB.Vulnerability{
+			vulns: []db.Vulnerability{
 				{
 					ID:                "CVE-2022-26488",
 					PackageName:       "active_iq_unified_manager",
@@ -252,7 +252,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					VersionFormat:     "unknown",
 					Namespace:         "nvd:cpe",
 					CPEs:              []string{"cpe:2.3:a:netapp:active_iq_unified_manager:-:*:*:*:*:windows:*:*"},
-					Fix: grypeDB.Fix{
+					Fix: db.Fix{
 						State: "unknown",
 					},
 				},
@@ -263,7 +263,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					VersionFormat:     "unknown",
 					Namespace:         "nvd:cpe",
 					CPEs:              []string{"cpe:2.3:a:netapp:ontap_select_deploy_administration_utility:-:*:*:*:*:*:*:*"},
-					Fix: grypeDB.Fix{
+					Fix: db.Fix{
 						State: "unknown",
 					},
 				},
@@ -286,12 +286,12 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 						"cpe:2.3:a:python:python:3.11.0:alpha5:*:*:*:*:*:*",
 						"cpe:2.3:a:python:python:3.11.0:alpha6:*:*:*:*:*:*",
 					},
-					Fix: grypeDB.Fix{
+					Fix: db.Fix{
 						State: "unknown",
 					},
 				},
 			},
-			metadata: grypeDB.VulnerabilityMetadata{
+			metadata: db.VulnerabilityMetadata{
 				ID:           "CVE-2022-26488",
 				Namespace:    "nvd:cpe",
 				DataSource:   "https://nvd.nist.gov/vuln/detail/CVE-2022-26488",
@@ -302,9 +302,9 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					"https://security.netapp.com/advisory/ntap-20220419-0005/",
 				},
 				Description: "In Python before 3.10.3 on Windows, local users can gain privileges because the search path is inadequately secured. The installer may allow a local attacker to add user-writable directories to the system search path. To exploit, an administrator must have installed Python for all users and enabled PATH entries. A non-administrative user can trigger a repair that incorrectly adds user-writable paths into PATH, enabling search-path hijacking of other users and system services. This affects Python (CPython) through 3.7.12, 3.8.x through 3.8.12, 3.9.x through 3.9.10, and 3.10.x through 3.10.2.",
-				Cvss: []grypeDB.Cvss{
+				Cvss: []db.Cvss{
 					{
-						Metrics: grypeDB.NewCvssMetrics(
+						Metrics: db.NewCvssMetrics(
 							4.4,
 							3.4,
 							6.4,
@@ -315,7 +315,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 						Type:    "Primary",
 					},
 					{
-						Metrics: grypeDB.NewCvssMetrics(
+						Metrics: db.NewCvssMetrics(
 							7,
 							1,
 							5.9,
@@ -332,7 +332,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 			name:       "CVE-2022-0543 multiple platforms",
 			numEntries: 1,
 			fixture:    "test-fixtures/cve-2022-0543.json",
-			vulns: []grypeDB.Vulnerability{
+			vulns: []db.Vulnerability{
 				{
 					ID:          "CVE-2022-0543",
 					PackageName: "redis",
@@ -345,7 +345,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					VersionFormat:          "unknown",
 					CPEs:                   []string{"cpe:2.3:a:redis:redis:-:*:*:*:*:*:*:*"},
 					RelatedVulnerabilities: nil,
-					Fix:                    grypeDB.Fix{State: "unknown"},
+					Fix:                    db.Fix{State: "unknown"},
 					Advisories:             nil,
 				},
 				{
@@ -360,7 +360,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					VersionFormat:          "unknown",
 					CPEs:                   []string{"cpe:2.3:a:redis:redis:-:*:*:*:*:*:*:*"},
 					RelatedVulnerabilities: nil,
-					Fix:                    grypeDB.Fix{State: "unknown"},
+					Fix:                    db.Fix{State: "unknown"},
 					Advisories:             nil,
 				},
 				{
@@ -375,7 +375,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					VersionFormat:          "unknown",
 					CPEs:                   []string{"cpe:2.3:a:redis:redis:-:*:*:*:*:*:*:*"},
 					RelatedVulnerabilities: nil,
-					Fix:                    grypeDB.Fix{State: "unknown"},
+					Fix:                    db.Fix{State: "unknown"},
 					Advisories:             nil,
 				},
 				{
@@ -390,7 +390,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					VersionFormat:          "unknown",
 					CPEs:                   []string{"cpe:2.3:a:redis:redis:-:*:*:*:*:*:*:*"},
 					RelatedVulnerabilities: nil,
-					Fix:                    grypeDB.Fix{State: "unknown"},
+					Fix:                    db.Fix{State: "unknown"},
 					Advisories:             nil,
 				},
 				{
@@ -405,11 +405,11 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					VersionFormat:          "unknown",
 					CPEs:                   []string{"cpe:2.3:a:redis:redis:-:*:*:*:*:*:*:*"},
 					RelatedVulnerabilities: nil,
-					Fix:                    grypeDB.Fix{State: "unknown"},
+					Fix:                    db.Fix{State: "unknown"},
 					Advisories:             nil,
 				},
 			},
-			metadata: grypeDB.VulnerabilityMetadata{
+			metadata: db.VulnerabilityMetadata{
 				ID:           "CVE-2022-0543",
 				Namespace:    "nvd:cpe",
 				DataSource:   "https://nvd.nist.gov/vuln/detail/CVE-2022-0543",
@@ -424,10 +424,10 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					"https://www.ubercomp.com/posts/2022-01-20_redis_on_debian_rce",
 				},
 				Description: "It was discovered, that redis, a persistent key-value database, due to a packaging issue, is prone to a (Debian-specific) Lua sandbox escape, which could result in remote code execution.",
-				Cvss: []grypeDB.Cvss{
+				Cvss: []db.Cvss{
 					{
 						VendorMetadata: nil,
-						Metrics:        grypeDB.NewCvssMetrics(10, 10, 10),
+						Metrics:        db.NewCvssMetrics(10, 10, 10),
 						Vector:         "AV:N/AC:L/Au:N/C:C/I:C/A:C",
 						Version:        "2.0",
 						Source:         "nvd@nist.gov",
@@ -435,7 +435,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					},
 					{
 						VendorMetadata: nil,
-						Metrics:        grypeDB.NewCvssMetrics(10, 3.9, 6),
+						Metrics:        db.NewCvssMetrics(10, 3.9, 6),
 						Vector:         "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
 						Version:        "3.1",
 						Source:         "nvd@nist.gov",
@@ -448,7 +448,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 			name:       "CVE-2020-10729 multiple platforms omitted top level config",
 			numEntries: 1,
 			fixture:    "test-fixtures/cve-2020-10729.json",
-			vulns: []grypeDB.Vulnerability{
+			vulns: []db.Vulnerability{
 				{
 					ID:          "CVE-2020-10729",
 					PackageName: "ansible_engine",
@@ -461,7 +461,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					VersionFormat:          "unknown",
 					CPEs:                   []string{"cpe:2.3:a:redhat:ansible_engine:*:*:*:*:*:*:*:*"},
 					RelatedVulnerabilities: nil,
-					Fix: grypeDB.Fix{
+					Fix: db.Fix{
 						Versions: []string{"2.9.6"},
 						State:    "fixed",
 					},
@@ -479,14 +479,14 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					VersionFormat:          "unknown",
 					CPEs:                   []string{"cpe:2.3:a:redhat:ansible_engine:*:*:*:*:*:*:*:*"},
 					RelatedVulnerabilities: nil,
-					Fix: grypeDB.Fix{
+					Fix: db.Fix{
 						Versions: []string{"2.9.6"},
 						State:    "fixed",
 					},
 					Advisories: nil,
 				},
 			},
-			metadata: grypeDB.VulnerabilityMetadata{
+			metadata: db.VulnerabilityMetadata{
 				ID:           "CVE-2020-10729",
 				Namespace:    "nvd:cpe",
 				DataSource:   "https://nvd.nist.gov/vuln/detail/CVE-2020-10729",
@@ -498,10 +498,10 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					"https://www.debian.org/security/2021/dsa-4950",
 				},
 				Description: "A flaw was found in the use of insufficiently random values in Ansible. Two random password lookups of the same length generate the equal value as the template caching action for the same file since no re-evaluation happens. The highest threat from this vulnerability would be that all passwords are exposed at once for the file. This flaw affects Ansible Engine versions before 2.9.6.",
-				Cvss: []grypeDB.Cvss{
+				Cvss: []db.Cvss{
 					{
 						VendorMetadata: nil,
-						Metrics: grypeDB.NewCvssMetrics(
+						Metrics: db.NewCvssMetrics(
 							2.1,
 							3.9,
 							2.9,
@@ -513,7 +513,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					},
 					{
 						VendorMetadata: nil,
-						Metrics: grypeDB.NewCvssMetrics(
+						Metrics: db.NewCvssMetrics(
 							5.5,
 							1.8,
 							3.6,
@@ -530,7 +530,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 			name:       "multiple platforms some are application",
 			numEntries: 2,
 			fixture:    "test-fixtures/multiple-platforms-with-application-cpe.json",
-			vulns: []grypeDB.Vulnerability{
+			vulns: []db.Vulnerability{
 				{
 					ID:          "CVE-2023-38733",
 					PackageName: "robotic_process_automation",
@@ -543,7 +543,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					VersionFormat:          "unknown",
 					CPEs:                   []string{"cpe:2.3:a:ibm:robotic_process_automation:*:*:*:*:*:*:*:*"},
 					RelatedVulnerabilities: nil,
-					Fix: grypeDB.Fix{
+					Fix: db.Fix{
 						State: "unknown",
 					},
 					Advisories: nil,
@@ -560,13 +560,13 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					VersionFormat:          "unknown",
 					CPEs:                   []string{"cpe:2.3:a:ibm:robotic_process_automation:*:*:*:*:*:*:*:*"},
 					RelatedVulnerabilities: nil,
-					Fix: grypeDB.Fix{
+					Fix: db.Fix{
 						State: "unknown",
 					},
 					Advisories: nil,
 				},
 			},
-			metadata: grypeDB.VulnerabilityMetadata{
+			metadata: db.VulnerabilityMetadata{
 				ID:           "CVE-2023-38733",
 				Namespace:    "nvd:cpe",
 				DataSource:   "https://nvd.nist.gov/vuln/detail/CVE-2023-38733",
@@ -577,10 +577,10 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					"https://www.ibm.com/support/pages/node/7028223",
 				},
 				Description: "\nIBM Robotic Process Automation 21.0.0 through 21.0.7.1 and 23.0.0 through 23.0.1 server could allow an authenticated user to view sensitive information from installation logs.  IBM X-Force Id:  262293.\n\n",
-				Cvss: []grypeDB.Cvss{
+				Cvss: []db.Cvss{
 					{
 						VendorMetadata: nil,
-						Metrics:        grypeDB.NewCvssMetrics(4.3, 2.8, 1.4),
+						Metrics:        db.NewCvssMetrics(4.3, 2.8, 1.4),
 						Vector:         "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N",
 						Version:        "3.1",
 						Source:         "nvd@nist.gov",
@@ -588,7 +588,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					},
 					{
 						VendorMetadata: nil,
-						Metrics:        grypeDB.NewCvssMetrics(4.3, 2.8, 1.4),
+						Metrics:        db.NewCvssMetrics(4.3, 2.8, 1.4),
 						Vector:         "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N",
 						Version:        "3.1",
 						Source:         "psirt@us.ibm.com",
@@ -601,7 +601,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 			name:       "Platform CPE first in CPE config list",
 			numEntries: 1,
 			fixture:    "test-fixtures/CVE-2023-45283-platform-cpe-first.json",
-			vulns: []grypeDB.Vulnerability{
+			vulns: []db.Vulnerability{
 				{
 					ID:          "CVE-2023-45283",
 					PackageName: "go",
@@ -614,14 +614,14 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					VersionFormat:          "unknown",
 					CPEs:                   []string{"cpe:2.3:a:golang:go:*:*:*:*:*:*:*:*"},
 					RelatedVulnerabilities: nil,
-					Fix: grypeDB.Fix{
+					Fix: db.Fix{
 						Versions: []string{"1.20.11", "1.21.4"},
 						State:    "fixed",
 					},
 					Advisories: nil,
 				},
 			},
-			metadata: grypeDB.VulnerabilityMetadata{
+			metadata: db.VulnerabilityMetadata{
 				ID:           "CVE-2023-45283",
 				Namespace:    "nvd:cpe",
 				DataSource:   "https://nvd.nist.gov/vuln/detail/CVE-2023-45283",
@@ -639,10 +639,10 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					"https://security.netapp.com/advisory/ntap-20231214-0008/",
 				},
 				Description: "The filepath package does not recognize paths with a \\??\\ prefix as special. On Windows, a path beginning with \\??\\ is a Root Local Device path equivalent to a path beginning with \\\\?\\. Paths with a \\??\\ prefix may be used to access arbitrary locations on the system. For example, the path \\??\\c:\\x is equivalent to the more common path c:\\x. Before fix, Clean could convert a rooted path such as \\a\\..\\??\\b into the root local device path \\??\\b. Clean will now convert this to .\\??\\b. Similarly, Join(\\, ??, b) could convert a seemingly innocent sequence of path elements into the root local device path \\??\\b. Join will now convert this to \\.\\??\\b. In addition, with fix, IsAbs now correctly reports paths beginning with \\??\\ as absolute, and VolumeName correctly reports the \\??\\ prefix as a volume name. UPDATE: Go 1.20.11 and Go 1.21.4 inadvertently changed the definition of the volume name in Windows paths starting with \\?, resulting in filepath.Clean(\\?\\c:) returning \\?\\c: rather than \\?\\c:\\ (among other effects). The previous behavior has been restored.",
-				Cvss: []grypeDB.Cvss{
+				Cvss: []db.Cvss{
 					{
 						VendorMetadata: nil,
-						Metrics:        grypeDB.NewCvssMetrics(7.5, 3.9, 3.6),
+						Metrics:        db.NewCvssMetrics(7.5, 3.9, 3.6),
 						Vector:         "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
 						Version:        "3.1",
 						Source:         "nvd@nist.gov",
@@ -655,7 +655,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 			name:       "Platform CPE last in CPE config list",
 			numEntries: 1,
 			fixture:    "test-fixtures/CVE-2023-45283-platform-cpe-last.json",
-			vulns: []grypeDB.Vulnerability{
+			vulns: []db.Vulnerability{
 				{
 					ID:          "CVE-2023-45283",
 					PackageName: "go",
@@ -668,14 +668,14 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					VersionFormat:          "unknown",
 					CPEs:                   []string{"cpe:2.3:a:golang:go:*:*:*:*:*:*:*:*"},
 					RelatedVulnerabilities: nil,
-					Fix: grypeDB.Fix{
+					Fix: db.Fix{
 						Versions: []string{"1.20.11", "1.21.4"},
 						State:    "fixed",
 					},
 					Advisories: nil,
 				},
 			},
-			metadata: grypeDB.VulnerabilityMetadata{
+			metadata: db.VulnerabilityMetadata{
 				ID:           "CVE-2023-45283",
 				Namespace:    "nvd:cpe",
 				DataSource:   "https://nvd.nist.gov/vuln/detail/CVE-2023-45283",
@@ -693,10 +693,10 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 					"https://security.netapp.com/advisory/ntap-20231214-0008/",
 				},
 				Description: "The filepath package does not recognize paths with a \\??\\ prefix as special. On Windows, a path beginning with \\??\\ is a Root Local Device path equivalent to a path beginning with \\\\?\\. Paths with a \\??\\ prefix may be used to access arbitrary locations on the system. For example, the path \\??\\c:\\x is equivalent to the more common path c:\\x. Before fix, Clean could convert a rooted path such as \\a\\..\\??\\b into the root local device path \\??\\b. Clean will now convert this to .\\??\\b. Similarly, Join(\\, ??, b) could convert a seemingly innocent sequence of path elements into the root local device path \\??\\b. Join will now convert this to \\.\\??\\b. In addition, with fix, IsAbs now correctly reports paths beginning with \\??\\ as absolute, and VolumeName correctly reports the \\??\\ prefix as a volume name. UPDATE: Go 1.20.11 and Go 1.21.4 inadvertently changed the definition of the volume name in Windows paths starting with \\?, resulting in filepath.Clean(\\?\\c:) returning \\?\\c: rather than \\?\\c:\\ (among other effects). The previous behavior has been restored.",
-				Cvss: []grypeDB.Cvss{
+				Cvss: []db.Cvss{
 					{
 						VendorMetadata: nil,
-						Metrics:        grypeDB.NewCvssMetrics(7.5, 3.9, 3.6),
+						Metrics:        db.NewCvssMetrics(7.5, 3.9, 3.6),
 						Vector:         "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
 						Version:        "3.1",
 						Source:         "nvd@nist.gov",
@@ -721,16 +721,16 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 			entries, err := unmarshal.NvdVulnerabilityEntries(f)
 			require.NoError(t, err)
 
-			var vulns []grypeDB.Vulnerability
+			var vulns []db.Vulnerability
 			for _, entry := range entries {
 				dataEntries, err := transform(test.config, entry.Cve)
 				require.NoError(t, err)
 
 				for _, entry := range dataEntries {
 					switch vuln := entry.Data.(type) {
-					case grypeDB.Vulnerability:
+					case db.Vulnerability:
 						vulns = append(vulns, vuln)
-					case grypeDB.VulnerabilityMetadata:
+					case db.VulnerabilityMetadata:
 						// check metadata
 						if diff := deep.Equal(test.metadata, vuln); diff != nil {
 							for _, d := range diff {
@@ -813,7 +813,7 @@ func TestGetFix(t *testing.T) {
 	tests := []struct {
 		name     string
 		matches  []nvd.CpeMatch
-		expected grypeDB.Fix
+		expected db.Fix
 	}{
 		{
 			name: "Equals",
@@ -823,7 +823,7 @@ func TestGetFix(t *testing.T) {
 					Vulnerable: true,
 				},
 			},
-			expected: grypeDB.Fix{
+			expected: db.Fix{
 				Versions: nil,
 				State:    "unknown",
 			},
@@ -837,7 +837,7 @@ func TestGetFix(t *testing.T) {
 					Vulnerable:          true,
 				},
 			},
-			expected: grypeDB.Fix{
+			expected: db.Fix{
 				Versions: []string{"2.3.0"},
 				State:    "fixed",
 			},
@@ -851,7 +851,7 @@ func TestGetFix(t *testing.T) {
 					Vulnerable:          true,
 				},
 			},
-			expected: grypeDB.Fix{
+			expected: db.Fix{
 				Versions: nil,
 				State:    "unknown",
 			},
@@ -865,7 +865,7 @@ func TestGetFix(t *testing.T) {
 					Vulnerable:            true,
 				},
 			},
-			expected: grypeDB.Fix{
+			expected: db.Fix{
 				Versions: nil,
 				State:    "unknown",
 			},
@@ -879,7 +879,7 @@ func TestGetFix(t *testing.T) {
 					Vulnerable:            true,
 				},
 			},
-			expected: grypeDB.Fix{
+			expected: db.Fix{
 				Versions: nil,
 				State:    "unknown",
 			},
@@ -894,7 +894,7 @@ func TestGetFix(t *testing.T) {
 					Vulnerable:            true,
 				},
 			},
-			expected: grypeDB.Fix{
+			expected: db.Fix{
 				Versions: nil,
 				State:    "unknown",
 			},
@@ -915,7 +915,7 @@ func TestGetFix(t *testing.T) {
 					Vulnerable:            true,
 				},
 			},
-			expected: grypeDB.Fix{
+			expected: db.Fix{
 				Versions: []string{"3.5.0"},
 				State:    "fixed",
 			},
@@ -930,7 +930,7 @@ func TestGetFix(t *testing.T) {
 					Vulnerable:            true,
 				},
 			},
-			expected: grypeDB.Fix{
+			expected: db.Fix{
 				Versions: nil,
 				State:    "unknown",
 			},
@@ -957,7 +957,7 @@ func TestGetFix(t *testing.T) {
 					Vulnerable:            true,
 				},
 			},
-			expected: grypeDB.Fix{
+			expected: db.Fix{
 				Versions: []string{"1.7.0", "3.5.0"},
 				State:    "fixed",
 			},
@@ -978,7 +978,7 @@ func TestGetFix(t *testing.T) {
 					Vulnerable:            true,
 				},
 			},
-			expected: grypeDB.Fix{
+			expected: db.Fix{
 				Versions: []string{"3.5.0"},
 				State:    "fixed",
 			},
@@ -999,7 +999,7 @@ func TestGetFix(t *testing.T) {
 					Vulnerable:            true,
 				},
 			},
-			expected: grypeDB.Fix{
+			expected: db.Fix{
 				Versions: nil,
 				State:    "unknown",
 			},
@@ -1018,7 +1018,7 @@ func TestGetFix(t *testing.T) {
 					Vulnerable: true,
 				},
 			},
-			expected: grypeDB.Fix{
+			expected: db.Fix{
 				Versions: nil,
 				State:    "unknown",
 			},
@@ -1037,7 +1037,7 @@ func TestGetFix(t *testing.T) {
 					Vulnerable: false,
 				},
 			},
-			expected: grypeDB.Fix{
+			expected: db.Fix{
 				Versions: []string{"2.5.0"},
 				State:    "fixed",
 			},
@@ -1052,7 +1052,7 @@ func TestGetFix(t *testing.T) {
 					Vulnerable:            true,
 				},
 			},
-			expected: grypeDB.Fix{
+			expected: db.Fix{
 				Versions: nil,
 				State:    "unknown",
 			},
@@ -1067,7 +1067,7 @@ func TestGetFix(t *testing.T) {
 
 		t.Run(tt.name+" don't infer NVD fixes", func(t *testing.T) {
 			fix := getFix(tt.matches, false)
-			assert.Equal(t, grypeDB.Fix{
+			assert.Equal(t, db.Fix{
 				Versions: nil,
 				State:    "unknown",
 			}, fix)

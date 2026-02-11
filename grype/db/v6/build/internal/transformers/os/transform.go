@@ -13,9 +13,9 @@ import (
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/internal/versionutil"
 	"github.com/anchore/grype/grype/db/provider"
-	grypeDB "github.com/anchore/grype/grype/db/v6"
+	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers"
-	internal2 "github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
+	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
 	"github.com/anchore/grype/grype/db/v6/name"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/internal/log"
@@ -31,14 +31,14 @@ type advisoryKey struct {
 
 func Transform(vulnerability unmarshal.OSVulnerability, state provider.State) ([]data.Entry, error) {
 	in := []any{
-		grypeDB.VulnerabilityHandle{
+		db.VulnerabilityHandle{
 			Name:          vulnerability.Vulnerability.Name,
 			ProviderID:    state.Provider,
-			Provider:      internal2.ProviderModel(state),
-			Status:        grypeDB.VulnerabilityActive,
-			ModifiedDate:  internal2.ParseTime(vulnerability.Vulnerability.Metadata.Updated),
-			PublishedDate: internal2.ParseTime(vulnerability.Vulnerability.Metadata.Issued),
-			BlobValue: &grypeDB.VulnerabilityBlob{
+			Provider:      internal.ProviderModel(state),
+			Status:        db.VulnerabilityActive,
+			ModifiedDate:  internal.ParseTime(vulnerability.Vulnerability.Metadata.Updated),
+			PublishedDate: internal.ParseTime(vulnerability.Vulnerability.Metadata.Issued),
+			BlobValue: &db.VulnerabilityBlob{
 				ID:          vulnerability.Vulnerability.Name,
 				Assigners:   nil,
 				Description: strings.TrimSpace(vulnerability.Vulnerability.Description),
@@ -56,37 +56,37 @@ func Transform(vulnerability unmarshal.OSVulnerability, state provider.State) ([
 	return transformers.NewEntries(in...), nil
 }
 
-func getAffectedPackages(vuln unmarshal.OSVulnerability) []grypeDB.AffectedPackageHandle {
-	var afs []grypeDB.AffectedPackageHandle
+func getAffectedPackages(vuln unmarshal.OSVulnerability) []db.AffectedPackageHandle {
+	var afs []db.AffectedPackageHandle
 	groups := groupFixedIns(vuln)
 	for group, fixedIns := range groups {
 		// we only care about a single qualifier: rpm modules. The important thing to note about this is that
 		// a package with no module vs a package with a module should be detectable in the DB.
-		var qualifiers *grypeDB.PackageQualifiers
+		var qualifiers *db.PackageQualifiers
 		if group.format == "rpm" {
 			module := "" // means the target package must have no module (where as nil means the module has no sway on matching)
 			if group.hasModule {
 				module = group.module
 			}
-			qualifiers = &grypeDB.PackageQualifiers{
+			qualifiers = &db.PackageQualifiers{
 				RpmModularity: &module,
 			}
 		}
 
-		aph := grypeDB.AffectedPackageHandle{
+		aph := db.AffectedPackageHandle{
 			OperatingSystem: getOperatingSystem(group.osName, group.id, group.osVersion, group.osChannel),
 			Package:         getPackage(group),
-			BlobValue: &grypeDB.PackageBlob{
+			BlobValue: &db.PackageBlob{
 				CVEs:       getAliases(vuln),
 				Qualifiers: qualifiers,
 				Ranges:     nil,
 			},
 		}
 
-		var ranges []grypeDB.Range
+		var ranges []db.Range
 		for _, fixedInEntry := range fixedIns {
-			ranges = append(ranges, grypeDB.Range{
-				Version: grypeDB.Version{
+			ranges = append(ranges, db.Range{
+				Version: db.Version{
 					Type:       fixedInEntry.VersionFormat,
 					Constraint: enforceConstraint(fixedInEntry.Version, fixedInEntry.VulnerableRange, fixedInEntry.VersionFormat, vuln.Vulnerability.Name),
 				},
@@ -98,19 +98,19 @@ func getAffectedPackages(vuln unmarshal.OSVulnerability) []grypeDB.AffectedPacka
 	}
 
 	// stable ordering
-	sort.Sort(internal2.ByAffectedPackage(afs))
+	sort.Sort(internal.ByAffectedPackage(afs))
 
 	return afs
 }
 
-func getFix(fixedInEntry unmarshal.OSFixedIn) *grypeDB.Fix {
+func getFix(fixedInEntry unmarshal.OSFixedIn) *db.Fix {
 	fixedInVersion := versionutil.CleanFixedInVersion(fixedInEntry.Version)
 
-	fixState := grypeDB.NotFixedStatus
+	fixState := db.NotFixedStatus
 	if len(fixedInVersion) > 0 {
-		fixState = grypeDB.FixedStatus
+		fixState = db.FixedStatus
 	} else if fixedInEntry.VendorAdvisory.NoAdvisory {
-		fixState = grypeDB.WontFixStatus
+		fixState = db.WontFixStatus
 	}
 
 	var advisoryOrder []advisoryKey
@@ -122,43 +122,43 @@ func getFix(fixedInEntry unmarshal.OSFixedIn) *grypeDB.Fix {
 		}
 	}
 
-	var refs []grypeDB.Reference
+	var refs []db.Reference
 	for _, adv := range advisoryOrder {
-		refs = append(refs, grypeDB.Reference{
+		refs = append(refs, db.Reference{
 			ID:   adv.id,
 			URL:  adv.link,
-			Tags: []string{grypeDB.AdvisoryReferenceTag},
+			Tags: []string{db.AdvisoryReferenceTag},
 		})
 	}
 
-	var detail *grypeDB.FixDetail
+	var detail *db.FixDetail
 	availability := getFixAvailability(fixedInEntry)
 	if len(refs) > 0 || availability != nil {
-		detail = &grypeDB.FixDetail{
+		detail = &db.FixDetail{
 			Available:  availability,
 			References: refs,
 		}
 	}
 
-	return &grypeDB.Fix{
+	return &db.Fix{
 		Version: fixedInVersion,
 		State:   fixState,
 		Detail:  detail,
 	}
 }
 
-func getFixAvailability(fixedInEntry unmarshal.OSFixedIn) *grypeDB.FixAvailability {
+func getFixAvailability(fixedInEntry unmarshal.OSFixedIn) *db.FixAvailability {
 	if fixedInEntry.Available.Date == "" {
 		return nil
 	}
 
-	t := internal2.ParseTime(fixedInEntry.Available.Date)
+	t := internal.ParseTime(fixedInEntry.Available.Date)
 	if t == nil {
 		log.WithFields("date", fixedInEntry.Available.Date).Warn("unable to parse fix availability date")
 		return nil
 	}
 
-	return &grypeDB.FixAvailability{
+	return &db.FixAvailability{
 		Date: t,
 		Kind: fixedInEntry.Available.Kind,
 	}
@@ -253,9 +253,9 @@ func getPackageType(osName string) pkg.Type {
 	return ""
 }
 
-func getPackage(group groupIndex) *grypeDB.Package {
+func getPackage(group groupIndex) *db.Package {
 	t := getPackageType(group.osName)
-	return &grypeDB.Package{
+	return &db.Package{
 		Ecosystem: string(t),
 		Name:      name.Normalize(group.name, t),
 	}
@@ -310,7 +310,7 @@ func normalizeOsName(id string) string {
 	return d.String()
 }
 
-func getOperatingSystem(osName, osID, osVersion, channel string) *grypeDB.OperatingSystem {
+func getOperatingSystem(osName, osID, osVersion, channel string) *db.OperatingSystem {
 	if osName == "" || osVersion == "" {
 		return nil
 	}
@@ -329,7 +329,7 @@ func getOperatingSystem(osName, osID, osVersion, channel string) *grypeDB.Operat
 		}
 	}
 
-	return &grypeDB.OperatingSystem{
+	return &db.OperatingSystem{
 		Name:         osName,
 		ReleaseID:    osID,
 		MajorVersion: majorVersion,
@@ -340,7 +340,7 @@ func getOperatingSystem(osName, osID, osVersion, channel string) *grypeDB.Operat
 	}
 }
 
-func getReferences(vuln unmarshal.OSVulnerability) []grypeDB.Reference {
+func getReferences(vuln unmarshal.OSVulnerability) []db.Reference {
 	clean := strings.TrimSpace(vuln.Vulnerability.Link)
 	if clean == "" {
 		return nil
@@ -358,10 +358,10 @@ func getReferences(vuln unmarshal.OSVulnerability) []grypeDB.Reference {
 		}
 	}
 
-	var refs []grypeDB.Reference
+	var refs []db.Reference
 	for _, l := range linkOrder {
 		refs = append(refs,
-			grypeDB.Reference{
+			db.Reference{
 				URL: l,
 			},
 		)
@@ -380,22 +380,22 @@ func getAliases(vuln unmarshal.OSVulnerability) []string {
 	return aliases
 }
 
-func getSeverities(vuln unmarshal.OSVulnerability) []grypeDB.Severity {
-	var severities []grypeDB.Severity
+func getSeverities(vuln unmarshal.OSVulnerability) []db.Severity {
+	var severities []db.Severity
 
 	// TODO: should we clean this here or not?
 	if vuln.Vulnerability.Severity != "" && strings.ToLower(vuln.Vulnerability.Severity) != "unknown" {
-		severities = append(severities, grypeDB.Severity{
-			Scheme: grypeDB.SeveritySchemeCHMLN,
+		severities = append(severities, db.Severity{
+			Scheme: db.SeveritySchemeCHMLN,
 			Value:  strings.ToLower(vuln.Vulnerability.Severity),
 			Rank:   1, // TODO: enum this
 			// TODO Source?
 		})
 	}
 	for _, vendorSeverity := range vuln.Vulnerability.CVSS {
-		severities = append(severities, grypeDB.Severity{
-			Scheme: grypeDB.SeveritySchemeCVSS,
-			Value: grypeDB.CVSSSeverity{
+		severities = append(severities, db.Severity{
+			Scheme: db.SeveritySchemeCVSS,
+			Value: db.CVSSSeverity{
 				Vector:  vendorSeverity.VectorString,
 				Version: vendorSeverity.Version,
 			},

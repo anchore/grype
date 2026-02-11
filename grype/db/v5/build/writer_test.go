@@ -7,19 +7,19 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/grype/grype/db/data"
-	grypeDB "github.com/anchore/grype/grype/db/v5"
+	db "github.com/anchore/grype/grype/db/v5"
 )
 
-var _ grypeDB.VulnerabilityMetadataStoreReader = (*mockReader)(nil)
+var _ db.VulnerabilityMetadataStoreReader = (*mockReader)(nil)
 
 type mockReader struct {
-	metadata *grypeDB.VulnerabilityMetadata
+	metadata *db.VulnerabilityMetadata
 	err      error
 }
 
 func newMockReader(sev string) *mockReader {
 	return &mockReader{
-		metadata: &grypeDB.VulnerabilityMetadata{
+		metadata: &db.VulnerabilityMetadata{
 			Severity:  sev,
 			Namespace: "nvd",
 		},
@@ -32,11 +32,11 @@ func newDeadMockReader() *mockReader {
 	}
 }
 
-func (m mockReader) GetVulnerabilityMetadata(_, _ string) (*grypeDB.VulnerabilityMetadata, error) {
+func (m mockReader) GetVulnerabilityMetadata(_, _ string) (*db.VulnerabilityMetadata, error) {
 	return m.metadata, m.err
 }
 
-func (m mockReader) GetAllVulnerabilityMetadata() (*[]grypeDB.VulnerabilityMetadata, error) {
+func (m mockReader) GetAllVulnerabilityMetadata() (*[]db.VulnerabilityMetadata, error) {
 	panic("implement me")
 }
 
@@ -47,7 +47,7 @@ func Test_normalizeSeverity(t *testing.T) {
 		initialSeverity string
 		namespace       string
 		cveID           string
-		reader          grypeDB.VulnerabilityMetadataStoreReader
+		reader          db.VulnerabilityMetadataStoreReader
 		expected        data.Severity
 	}{
 		{
@@ -111,7 +111,7 @@ func Test_normalizeSeverity(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			record := &grypeDB.VulnerabilityMetadata{
+			record := &db.VulnerabilityMetadata{
 				ID:        "cve-2020-0000",
 				Severity:  tt.initialSeverity,
 				Namespace: tt.namespace,

@@ -1,5 +1,5 @@
 package db
 
-import grypeDB "github.com/anchore/grype/grype/db/v6"
+import db "github.com/anchore/grype/grype/db/v6"
 
-const DefaultSchemaVersion = grypeDB.ModelVersion
+const DefaultSchemaVersion = db.ModelVersion

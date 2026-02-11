@@ -9,7 +9,7 @@ import (
 	"github.com/anchore/go-logger"
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/provider"
-	grypeDB "github.com/anchore/grype/grype/db/v6"
+	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers"
 	"github.com/anchore/grype/internal/log"
 )
@@ -19,10 +19,10 @@ var _ data.Writer = (*writer)(nil)
 type writer struct {
 	dbPath               string
 	failOnMissingFixDate bool
-	store                grypeDB.ReadWriter
-	providerCache        map[string]grypeDB.Provider
+	store                db.ReadWriter
+	providerCache        map[string]db.Provider
 	states               provider.States
-	severityCache        map[string]grypeDB.Severity
+	severityCache        map[string]db.Severity
 
 	// Two-tier batching: parent records (vulnerabilities + providers) and child records (related entries)
 	// This maintains FK integrity while maximizing batch sizes
@@ -47,10 +47,10 @@ type Provider struct {
 }
 
 func NewWriter(directory string, states provider.States, failOnMissingFixDate bool, batchSize int) (data.Writer, error) {
-	cfg := grypeDB.Config{
+	cfg := db.Config{
 		DBDirPath: directory,
 	}
-	s, err := grypeDB.NewWriter(cfg)
+	s, err := db.NewWriter(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create store: %w", err)
 	}
@@ -67,10 +67,10 @@ func NewWriter(directory string, states provider.States, failOnMissingFixDate bo
 	return &writer{
 		dbPath:               cfg.DBFilePath(),
 		failOnMissingFixDate: failOnMissingFixDate,
-		providerCache:        make(map[string]grypeDB.Provider),
+		providerCache:        make(map[string]db.Provider),
 		store:                s,
 		states:               states,
-		severityCache:        make(map[string]grypeDB.Severity),
+		severityCache:        make(map[string]db.Severity),
 		parentBatchSize:      batchSize,
 		childBatchSize:       batchSize,
 		parentBuffer:         make([]func() error, 0, batchSize),
@@ -80,8 +80,8 @@ func NewWriter(directory string, states provider.States, failOnMissingFixDate bo
 
 func (w *writer) Write(entries ...data.Entry) error {
 	for _, entry := range entries {
-		if entry.DBSchemaVersion != grypeDB.ModelVersion {
-			return fmt.Errorf("wrong schema version: want %+v got %+v", grypeDB.ModelVersion, entry.DBSchemaVersion)
+		if entry.DBSchemaVersion != db.ModelVersion {
+			return fmt.Errorf("wrong schema version: want %+v got %+v", db.ModelVersion, entry.DBSchemaVersion)
 		}
 
 		switch row := entry.Data.(type) {
@@ -136,38 +136,38 @@ func (w *writer) writeEntry(entry transformers.RelatedEntries) error {
 	return nil
 }
 
-func (w *writer) writeRelatedEntry(vulnHandle *grypeDB.VulnerabilityHandle, related any) error {
+func (w *writer) writeRelatedEntry(vulnHandle *db.VulnerabilityHandle, related any) error {
 	switch row := related.(type) {
-	case grypeDB.AffectedPackageHandle:
+	case db.AffectedPackageHandle:
 		return w.writeAffectedPackage(vulnHandle, row)
-	case grypeDB.AffectedCPEHandle:
+	case db.AffectedCPEHandle:
 		return w.writeAffectedCPE(vulnHandle, row)
-	case grypeDB.KnownExploitedVulnerabilityHandle:
+	case db.KnownExploitedVulnerabilityHandle:
 		// Add KEV to child batch - copy to avoid pointer reuse
 		kevHandle := row
 		return w.addToChildBatch(func() error {
 			handleCopy := kevHandle
 			return w.store.AddKnownExploitedVulnerabilities(&handleCopy)
 		})
-	case grypeDB.UnaffectedPackageHandle:
+	case db.UnaffectedPackageHandle:
 		return w.writeUnaffectedPackage(vulnHandle, row)
-	case grypeDB.UnaffectedCPEHandle:
+	case db.UnaffectedCPEHandle:
 		return w.writeUnaffectedCPE(vulnHandle, row)
-	case grypeDB.EpssHandle:
+	case db.EpssHandle:
 		// Add EPSS to child batch - copy to avoid pointer reuse
 		epssHandle := row
 		return w.addToChildBatch(func() error {
 			handleCopy := epssHandle
 			return w.store.AddEpss(&handleCopy)
 		})
-	case grypeDB.CWEHandle:
+	case db.CWEHandle:
 		// Add CWE to child batch - copy to avoid pointer reuse
 		cweHandle := row
 		return w.addToChildBatch(func() error {
 			handleCopy := cweHandle
 			return w.store.AddCWE(&handleCopy)
 		})
-	case grypeDB.OperatingSystemEOLHandle:
+	case db.OperatingSystemEOLHandle:
 		// Add OS EOL to child batch - copy to avoid pointer reuse
 		eolHandle := row
 		return w.addToChildBatch(func() error {
@@ -179,7 +179,7 @@ func (w *writer) writeRelatedEntry(vulnHandle *grypeDB.VulnerabilityHandle, rela
 	}
 }
 
-func (w *writer) writeAffectedPackage(vulnHandle *grypeDB.VulnerabilityHandle, row grypeDB.AffectedPackageHandle) error {
+func (w *writer) writeAffectedPackage(vulnHandle *db.VulnerabilityHandle, row db.AffectedPackageHandle) error {
 	if w.failOnMissingFixDate {
 		if err := ensureFixDates(&row); err != nil {
 			fields := logger.Fields{
@@ -212,7 +212,7 @@ func (w *writer) writeAffectedPackage(vulnHandle *grypeDB.VulnerabilityHandle, r
 	})
 }
 
-func (w *writer) writeAffectedCPE(vulnHandle *grypeDB.VulnerabilityHandle, row grypeDB.AffectedCPEHandle) error {
+func (w *writer) writeAffectedCPE(vulnHandle *db.VulnerabilityHandle, row db.AffectedCPEHandle) error {
 	// Add affected CPE to child batch - defer VulnerabilityID assignment until flush
 	// when the parent vulnerability has been written and ID is assigned
 	cpeHandle := row
@@ -227,7 +227,7 @@ func (w *writer) writeAffectedCPE(vulnHandle *grypeDB.VulnerabilityHandle, row g
 	})
 }
 
-func (w *writer) writeUnaffectedPackage(vulnHandle *grypeDB.VulnerabilityHandle, row grypeDB.UnaffectedPackageHandle) error {
+func (w *writer) writeUnaffectedPackage(vulnHandle *db.VulnerabilityHandle, row db.UnaffectedPackageHandle) error {
 	// Add unaffected package to child batch - defer VulnerabilityID assignment until flush
 	pkgHandle := row
 	return w.addToChildBatch(func() error {
@@ -241,7 +241,7 @@ func (w *writer) writeUnaffectedPackage(vulnHandle *grypeDB.VulnerabilityHandle,
 	})
 }
 
-func (w *writer) writeUnaffectedCPE(vulnHandle *grypeDB.VulnerabilityHandle, row grypeDB.UnaffectedCPEHandle) error {
+func (w *writer) writeUnaffectedCPE(vulnHandle *db.VulnerabilityHandle, row db.UnaffectedCPEHandle) error {
 	// Add unaffected CPE to child batch - defer VulnerabilityID assignment until flush
 	cpeHandle := row
 	return w.addToChildBatch(func() error {
@@ -258,7 +258,7 @@ func (w *writer) writeUnaffectedCPE(vulnHandle *grypeDB.VulnerabilityHandle, row
 // fillInMissingSeverity will add a severity entry to the vulnerability record if it is missing, empty, or "unknown".
 // The upstream NVD record is used to fill in these missing values. Note that the NVD provider is always guaranteed
 // to be processed first before other providers.
-func (w *writer) fillInMissingSeverity(handle *grypeDB.VulnerabilityHandle) {
+func (w *writer) fillInMissingSeverity(handle *db.VulnerabilityHandle) {
 	if handle == nil {
 		return
 	}
@@ -308,7 +308,7 @@ func (w *writer) fillInMissingSeverity(handle *grypeDB.VulnerabilityHandle) {
 	}
 
 	log.WithFields("id", blob.ID, "provider", handle.Provider, "sev-from", topSevStr, "sev-to", nvdSev).Trace("overriding irrelevant severity with data from NVD record")
-	sevs = append([]grypeDB.Severity{nvdSev}, sevs...)
+	sevs = append([]db.Severity{nvdSev}, sevs...)
 	handle.BlobValue.Severities = sevs
 }
 
@@ -421,8 +421,8 @@ func (w *writer) Close() error {
 	return nil
 }
 
-func filterUnknownSeverities(sevs []grypeDB.Severity) []grypeDB.Severity {
-	var out []grypeDB.Severity
+func filterUnknownSeverities(sevs []db.Severity) []db.Severity {
+	var out []db.Severity
 	for _, s := range sevs {
 		if isKnownSeverity(s) {
 			out = append(out, s)
@@ -431,7 +431,7 @@ func filterUnknownSeverities(sevs []grypeDB.Severity) []grypeDB.Severity {
 	return out
 }
 
-func isKnownSeverity(s grypeDB.Severity) bool {
+func isKnownSeverity(s db.Severity) bool {
 	switch v := s.Value.(type) {
 	case string:
 		return v != "" && strings.ToLower(v) != "unknown"
@@ -440,7 +440,7 @@ func isKnownSeverity(s grypeDB.Severity) bool {
 	}
 }
 
-func ensureFixDates(row *grypeDB.AffectedPackageHandle) error {
+func ensureFixDates(row *db.AffectedPackageHandle) error {
 	if row.BlobValue == nil {
 		return nil
 	}
@@ -449,7 +449,7 @@ func ensureFixDates(row *grypeDB.AffectedPackageHandle) error {
 		if r.Fix == nil {
 			continue
 		}
-		if !isFixVersion(r.Fix.Version) || r.Fix.State != grypeDB.FixedStatus {
+		if !isFixVersion(r.Fix.Version) || r.Fix.State != db.FixedStatus {
 			continue
 		}
 		if r.Fix.Detail == nil || r.Fix.Detail.Available == nil || r.Fix.Detail.Available.Date == nil {
@@ -466,8 +466,8 @@ func isFixVersion(v string) bool {
 	return v != "" && v != "0" && strings.ToLower(v) != "none"
 }
 
-func (w *writer) writeOperatingSystemEOL(row grypeDB.OperatingSystemEOLHandle) error {
-	spec := grypeDB.OSSpecifier{
+func (w *writer) writeOperatingSystemEOL(row db.OperatingSystemEOLHandle) error {
+	spec := db.OSSpecifier{
 		Name:         row.Name,
 		MajorVersion: row.MajorVersion,
 		MinorVersion: row.MinorVersion,

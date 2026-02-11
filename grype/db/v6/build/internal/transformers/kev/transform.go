@@ -9,26 +9,26 @@ import (
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/provider"
-	grypeDB "github.com/anchore/grype/grype/db/v6"
+	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers"
-	internal2 "github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
+	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
 )
 
 func Transform(kev unmarshal.KnownExploitedVulnerability, state provider.State) ([]data.Entry, error) {
-	return transformers.NewEntries(*internal2.ProviderModel(state), getKev(kev)), nil
+	return transformers.NewEntries(*internal.ProviderModel(state), getKev(kev)), nil
 }
 
-func getKev(kev unmarshal.KnownExploitedVulnerability) grypeDB.KnownExploitedVulnerabilityHandle {
+func getKev(kev unmarshal.KnownExploitedVulnerability) db.KnownExploitedVulnerabilityHandle {
 	urls, notes := getURLs([]string{kev.ShortDescription, kev.RequiredAction}, kev.Notes)
-	return grypeDB.KnownExploitedVulnerabilityHandle{
+	return db.KnownExploitedVulnerabilityHandle{
 		Cve: kev.CveID,
-		BlobValue: &grypeDB.KnownExploitedVulnerabilityBlob{
+		BlobValue: &db.KnownExploitedVulnerabilityBlob{
 			Cve:                        kev.CveID,
 			VendorProject:              kev.VendorProject,
 			Product:                    kev.Product,
-			DateAdded:                  internal2.ParseTime(kev.DateAdded),
+			DateAdded:                  internal.ParseTime(kev.DateAdded),
 			RequiredAction:             kev.RequiredAction,
-			DueDate:                    internal2.ParseTime(kev.DueDate),
+			DueDate:                    internal.ParseTime(kev.DueDate),
 			KnownRansomwareCampaignUse: strings.ToLower(kev.KnownRansomwareCampaignUse),
 			Notes:                      notes,
 			CWEs:                       kev.CWEs,

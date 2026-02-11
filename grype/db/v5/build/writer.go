@@ -15,9 +15,9 @@ import (
 
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/provider"
-	grypeDB "github.com/anchore/grype/grype/db/v5"
+	db "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/distribution"
-	grypeDBStore "github.com/anchore/grype/grype/db/v5/store"
+	"github.com/anchore/grype/grype/db/v5/store"
 	"github.com/anchore/grype/internal/file"
 	"github.com/anchore/grype/internal/log"
 )
@@ -32,7 +32,7 @@ var _ data.Writer = (*writer)(nil)
 
 type writer struct {
 	dbPath string
-	store  grypeDB.Store
+	store  db.Store
 	states provider.States
 
 	// Batching infrastructure
@@ -54,13 +54,13 @@ type Provider struct {
 }
 
 func NewWriter(directory string, dataAge time.Time, states provider.States, batchSize int) (data.Writer, error) {
-	dbPath := path.Join(directory, grypeDB.VulnerabilityStoreFileName)
-	theStore, err := grypeDBStore.New(dbPath, true)
+	dbPath := path.Join(directory, db.VulnerabilityStoreFileName)
+	theStore, err := store.New(dbPath, true)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create store: %w", err)
 	}
 
-	if err := theStore.SetID(grypeDB.NewID(dataAge)); err != nil {
+	if err := theStore.SetID(db.NewID(dataAge)); err != nil {
 		return nil, fmt.Errorf("unable to set DB ID: %w", err)
 	}
 
@@ -81,12 +81,12 @@ func NewWriter(directory string, dataAge time.Time, states provider.States, batc
 func (w *writer) Write(entries ...data.Entry) error {
 	log.WithFields("records", len(entries)).Trace("writing records to DB")
 	for _, entry := range entries {
-		if entry.DBSchemaVersion != grypeDB.SchemaVersion {
-			return fmt.Errorf("wrong schema version: want %+v got %+v", grypeDB.SchemaVersion, entry.DBSchemaVersion)
+		if entry.DBSchemaVersion != db.SchemaVersion {
+			return fmt.Errorf("wrong schema version: want %+v got %+v", db.SchemaVersion, entry.DBSchemaVersion)
 		}
 
 		switch row := entry.Data.(type) {
-		case grypeDB.Vulnerability:
+		case db.Vulnerability:
 			// Batch the vulnerability write
 			vuln := row
 			if err := w.addToBatch(func() error {
@@ -94,7 +94,7 @@ func (w *writer) Write(entries ...data.Entry) error {
 			}); err != nil {
 				return fmt.Errorf("unable to batch vulnerability write: %w", err)
 			}
-		case grypeDB.VulnerabilityMetadata:
+		case db.VulnerabilityMetadata:
 			// Normalize severity before batching
 			normalizeSeverity(&row, w.store)
 			metadata := row
@@ -103,7 +103,7 @@ func (w *writer) Write(entries ...data.Entry) error {
 			}); err != nil {
 				return fmt.Errorf("unable to batch vulnerability metadata write: %w", err)
 			}
-		case grypeDB.VulnerabilityMatchExclusion:
+		case db.VulnerabilityMatchExclusion:
 			// Batch the exclusion write
 			exclusion := row
 			if err := w.addToBatch(func() error {
@@ -233,7 +233,7 @@ func (w *writer) Close() error {
 	return nil
 }
 
-func normalizeSeverity(metadata *grypeDB.VulnerabilityMetadata, reader grypeDB.VulnerabilityMetadataStoreReader) {
+func normalizeSeverity(metadata *db.VulnerabilityMetadata, reader db.VulnerabilityMetadataStoreReader) {
 	metadata.Severity = string(data.ParseSeverity(metadata.Severity))
 	if metadata.Severity != "" && strings.ToLower(metadata.Severity) != "unknown" {
 		return

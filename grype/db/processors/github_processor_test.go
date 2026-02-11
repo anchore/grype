@@ -9,7 +9,7 @@ import (
 
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
-	"github.com/anchore/grype/grype/db/internal/tests"
+	"github.com/anchore/grype/grype/db/internal/testutil"
 	"github.com/anchore/grype/grype/db/provider"
 )
 
@@ -25,7 +25,7 @@ func mockGithubProcessorTransform(vulnerability unmarshal.GitHubAdvisory) ([]dat
 func TestGitHubProcessor_Process(t *testing.T) {
 	f, err := os.Open("test-fixtures/github.json")
 	require.NoError(t, err)
-	defer tests.CloseFile(f)
+	defer testutil.CloseFile(f)
 
 	processor := NewGitHubProcessor(mockGithubProcessorTransform)
 	entries, err := processor.Process(f, provider.State{

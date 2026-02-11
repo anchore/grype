@@ -9,7 +9,7 @@ import (
 
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
-	"github.com/anchore/grype/grype/db/internal/tests"
+	"github.com/anchore/grype/grype/db/internal/testutil"
 	"github.com/anchore/grype/grype/db/provider"
 )
 
@@ -25,7 +25,7 @@ func mockOSProcessorTransform(vulnerability unmarshal.OSVulnerability) ([]data.E
 func TestOSProcessor_Process(t *testing.T) {
 	f, err := os.Open("test-fixtures/os.json")
 	require.NoError(t, err)
-	defer tests.CloseFile(f)
+	defer testutil.CloseFile(f)
 
 	processor := NewOSProcessor(mockOSProcessorTransform)
 	entries, err := processor.Process(f, provider.State{

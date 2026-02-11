@@ -9,7 +9,7 @@ import (
 
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
-	"github.com/anchore/grype/grype/db/internal/tests"
+	"github.com/anchore/grype/grype/db/internal/testutil"
 	"github.com/anchore/grype/grype/db/provider"
 )
 
@@ -25,7 +25,7 @@ func mockMSRCProcessorTransform(vulnerability unmarshal.MSRCVulnerability) ([]da
 func TestMSRCProcessor_Process(t *testing.T) {
 	f, err := os.Open("test-fixtures/msrc.json")
 	require.NoError(t, err)
-	defer tests.CloseFile(f)
+	defer testutil.CloseFile(f)
 
 	processor := NewMSRCProcessor(mockMSRCProcessorTransform)
 	entries, err := processor.Process(f, provider.State{

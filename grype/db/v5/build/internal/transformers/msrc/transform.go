@@ -6,7 +6,7 @@ import (
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/internal/versionutil"
-	grypeDB "github.com/anchore/grype/grype/db/v5"
+	db "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/build/internal/transformers"
 	"github.com/anchore/grype/grype/db/v5/namespace"
 	"github.com/anchore/grype/grype/distro"
@@ -31,7 +31,7 @@ func Transform(vulnerability unmarshal.MSRCVulnerability) ([]data.Entry, error) 
 	//nolint:gocritic
 	versionConstraint := append(vulnerability.Vulnerable, "base")
 
-	allVulns := []grypeDB.Vulnerability{
+	allVulns := []db.Vulnerability{
 		{
 			ID:                vulnerability.ID,
 			VersionConstraint: versionutil.OrConstraints(versionConstraint...),
@@ -43,7 +43,7 @@ func Transform(vulnerability unmarshal.MSRCVulnerability) ([]data.Entry, error) 
 	}
 
 	// create vulnerability metadata entry (a single entry keyed off of the vulnerability ID)
-	metadata := grypeDB.VulnerabilityMetadata{
+	metadata := db.VulnerabilityMetadata{
 		ID:           vulnerability.ID,
 		DataSource:   vulnerability.Link,
 		Namespace:    entryNamespace,
@@ -53,9 +53,9 @@ func Transform(vulnerability unmarshal.MSRCVulnerability) ([]data.Entry, error) 
 		// There is no description for vulnerabilities from the feed service
 		// summary gives something like "windows information disclosure vulnerability"
 		//Description:  vulnerability.Summary,
-		Cvss: []grypeDB.Cvss{
+		Cvss: []db.Cvss{
 			{
-				Metrics: grypeDB.CvssMetrics{BaseScore: vulnerability.Cvss.BaseScore},
+				Metrics: db.CvssMetrics{BaseScore: vulnerability.Cvss.BaseScore},
 				Vector:  vulnerability.Cvss.Vector,
 			},
 		},
@@ -64,15 +64,15 @@ func Transform(vulnerability unmarshal.MSRCVulnerability) ([]data.Entry, error) 
 	return transformers.NewEntries(allVulns, metadata), nil
 }
 
-func getFix(entry unmarshal.MSRCVulnerability) grypeDB.Fix {
+func getFix(entry unmarshal.MSRCVulnerability) db.Fix {
 	fixedInVersion := fixedInKB(entry)
-	fixState := grypeDB.FixedState
+	fixState := db.FixedState
 
 	if fixedInVersion == "" {
-		fixState = grypeDB.NotFixedState
+		fixState = db.NotFixedState
 	}
 
-	return grypeDB.Fix{
+	return db.Fix{
 		Versions: []string{fixedInVersion},
 		State:    fixState,
 	}

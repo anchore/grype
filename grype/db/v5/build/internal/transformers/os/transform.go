@@ -7,8 +7,8 @@ import (
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/internal/versionutil"
-	grypeDB "github.com/anchore/grype/grype/db/v5"
-	transformers2 "github.com/anchore/grype/grype/db/v5/build/internal/transformers"
+	db "github.com/anchore/grype/grype/db/v5"
+	"github.com/anchore/grype/grype/db/v5/build/internal/transformers"
 	"github.com/anchore/grype/grype/db/v5/namespace"
 	"github.com/anchore/grype/grype/db/v5/pkg/qualifier"
 	"github.com/anchore/grype/grype/db/v5/pkg/qualifier/rpmmodularity"
@@ -81,7 +81,7 @@ func buildPackageQualifiers(fixedInEntry unmarshal.OSFixedIn) (qualifiers []qual
 }
 
 func Transform(vulnerability unmarshal.OSVulnerability) ([]data.Entry, error) {
-	var allVulns []grypeDB.Vulnerability
+	var allVulns []db.Vulnerability
 
 	// TODO: stop capturing record source in the vulnerability metadata record (now that feed groups are not real)
 	recordSource := fmt.Sprintf("vulnerabilities:%s", vulnerability.Vulnerability.NamespaceName)
@@ -102,7 +102,7 @@ func Transform(vulnerability unmarshal.OSVulnerability) ([]data.Entry, error) {
 	// constraint ranges as they are found.
 	for idx, fixedInEntry := range vulnerability.Vulnerability.FixedIn {
 		// create vulnerability entry
-		allVulns = append(allVulns, grypeDB.Vulnerability{
+		allVulns = append(allVulns, db.Vulnerability{
 			ID:                     vulnerability.Vulnerability.Name,
 			PackageQualifiers:      buildPackageQualifiers(fixedInEntry),
 			VersionConstraint:      enforceConstraint(fixedInEntry.Version, fixedInEntry.VulnerableRange, fixedInEntry.VersionFormat, vulnerability.Vulnerability.Name),
@@ -116,7 +116,7 @@ func Transform(vulnerability unmarshal.OSVulnerability) ([]data.Entry, error) {
 	}
 
 	// create vulnerability metadata entry (a single entry keyed off of the vulnerability ID)
-	metadata := grypeDB.VulnerabilityMetadata{
+	metadata := db.VulnerabilityMetadata{
 		ID:           vulnerability.Vulnerability.Name,
 		Namespace:    entryNamespace,
 		DataSource:   vulnerability.Vulnerability.Link,
@@ -127,7 +127,7 @@ func Transform(vulnerability unmarshal.OSVulnerability) ([]data.Entry, error) {
 		Cvss:         getCvss(vulnerability),
 	}
 
-	return transformers2.NewEntries(allVulns, metadata), nil
+	return transformers.NewEntries(allVulns, metadata), nil
 }
 
 func getLinks(entry unmarshal.OSVulnerability) []string {
@@ -143,17 +143,17 @@ func getLinks(entry unmarshal.OSVulnerability) []string {
 	return links
 }
 
-func getCvss(entry unmarshal.OSVulnerability) (cvss []grypeDB.Cvss) {
+func getCvss(entry unmarshal.OSVulnerability) (cvss []db.Cvss) {
 	for _, vendorCvss := range entry.Vulnerability.CVSS {
-		cvss = append(cvss, grypeDB.Cvss{
+		cvss = append(cvss, db.Cvss{
 			Version: vendorCvss.Version,
 			Vector:  vendorCvss.VectorString,
-			Metrics: grypeDB.NewCvssMetrics(
+			Metrics: db.NewCvssMetrics(
 				vendorCvss.BaseMetrics.BaseScore,
 				vendorCvss.BaseMetrics.ExploitabilityScore,
 				vendorCvss.BaseMetrics.ImpactScore,
 			),
-			VendorMetadata: transformers2.VendorBaseMetrics{
+			VendorMetadata: transformers.VendorBaseMetrics{
 				BaseSeverity: vendorCvss.BaseMetrics.BaseSeverity,
 				Status:       vendorCvss.Status,
 			},
@@ -162,11 +162,11 @@ func getCvss(entry unmarshal.OSVulnerability) (cvss []grypeDB.Cvss) {
 	return cvss
 }
 
-func getAdvisories(entry unmarshal.OSVulnerability, idx int) (advisories []grypeDB.Advisory) {
+func getAdvisories(entry unmarshal.OSVulnerability, idx int) (advisories []db.Advisory) {
 	fixedInEntry := entry.Vulnerability.FixedIn[idx]
 
 	for _, advisory := range fixedInEntry.VendorAdvisory.AdvisorySummary {
-		advisories = append(advisories, grypeDB.Advisory{
+		advisories = append(advisories, db.Advisory{
 			ID:   advisory.ID,
 			Link: advisory.Link,
 		})
@@ -174,7 +174,7 @@ func getAdvisories(entry unmarshal.OSVulnerability, idx int) (advisories []grype
 	return advisories
 }
 
-func getFix(entry unmarshal.OSVulnerability, idx int) grypeDB.Fix {
+func getFix(entry unmarshal.OSVulnerability, idx int) db.Fix {
 	fixedInEntry := entry.Vulnerability.FixedIn[idx]
 
 	var fixedInVersions []string
@@ -183,23 +183,23 @@ func getFix(entry unmarshal.OSVulnerability, idx int) grypeDB.Fix {
 		fixedInVersions = append(fixedInVersions, fixedInVersion)
 	}
 
-	fixState := grypeDB.NotFixedState
+	fixState := db.NotFixedState
 	if len(fixedInVersions) > 0 {
-		fixState = grypeDB.FixedState
+		fixState = db.FixedState
 	} else if fixedInEntry.VendorAdvisory.NoAdvisory {
-		fixState = grypeDB.WontFixState
+		fixState = db.WontFixState
 	}
 
-	return grypeDB.Fix{
+	return db.Fix{
 		Versions: fixedInVersions,
 		State:    fixState,
 	}
 }
 
-func getRelatedVulnerabilities(entry unmarshal.OSVulnerability) (vulns []grypeDB.VulnerabilityReference) {
+func getRelatedVulnerabilities(entry unmarshal.OSVulnerability) (vulns []db.VulnerabilityReference) {
 	// associate related vulnerabilities from the NVD namespace
 	if strings.HasPrefix(entry.Vulnerability.Name, "CVE") {
-		vulns = append(vulns, grypeDB.VulnerabilityReference{
+		vulns = append(vulns, db.VulnerabilityReference{
 			ID:        entry.Vulnerability.Name,
 			Namespace: "nvd:cpe",
 		})
@@ -207,7 +207,7 @@ func getRelatedVulnerabilities(entry unmarshal.OSVulnerability) (vulns []grypeDB
 
 	// note: an example of multiple CVEs for a record is centos:5 RHSA-2007:0055 which maps to CVE-2007-0002 and CVE-2007-1466
 	for _, ref := range entry.Vulnerability.Metadata.CVE {
-		vulns = append(vulns, grypeDB.VulnerabilityReference{
+		vulns = append(vulns, db.VulnerabilityReference{
 			ID:        ref.Name,
 			Namespace: "nvd:cpe",
 		})

@@ -9,12 +9,12 @@ import (
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/provider"
-	grypeDB "github.com/anchore/grype/grype/db/v6"
+	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers"
-	internal2 "github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
+	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/packageurl-go"
-	syft "github.com/anchore/syft/syft/pkg"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 func AnnotatedTransform(wrapper unmarshal.AnnotatedOpenVEXVulnerability, state provider.State) ([]data.Entry, error) {
@@ -27,14 +27,14 @@ func Transform(vulnerability unmarshal.OpenVEXVulnerability, state provider.Stat
 
 func transform(vulnerability unmarshal.OpenVEXVulnerability, state provider.State, fixes []unmarshal.AnnotatedOpenVEXFix) ([]data.Entry, error) {
 	name := getName(&vulnerability)
-	vulnHandle := grypeDB.VulnerabilityHandle{
+	vulnHandle := db.VulnerabilityHandle{
 		Name:          name,
-		Status:        grypeDB.VulnerabilityActive,
+		Status:        db.VulnerabilityActive,
 		PublishedDate: vulnerability.Timestamp,
 		ModifiedDate:  vulnerability.LastUpdated,
 		ProviderID:    state.Provider,
-		Provider:      internal2.ProviderModel(state),
-		BlobValue: &grypeDB.VulnerabilityBlob{
+		Provider:      internal.ProviderModel(state),
+		BlobValue: &db.VulnerabilityBlob{
 			ID:          name,
 			Assigners:   nil,
 			Description: vulnerability.Vulnerability.Description,
@@ -62,8 +62,8 @@ func getPackageHandles(vuln *unmarshal.OpenVEXVulnerability, fixes []unmarshal.A
 		fixesByProduct[fix.Product] = append(fixesByProduct[fix.Product], fix)
 	}
 
-	var aphs []grypeDB.AffectedPackageHandle
-	var uaphs []grypeDB.UnaffectedPackageHandle
+	var aphs []db.AffectedPackageHandle
+	var uaphs []db.UnaffectedPackageHandle
 	for _, product := range vuln.Products {
 		aph, uph, err := getPackageHandle(&product, vuln, fixesByProduct[product.Identifiers[govex.PURL]])
 		if err != nil {
@@ -73,8 +73,8 @@ func getPackageHandles(vuln *unmarshal.OpenVEXVulnerability, fixes []unmarshal.A
 		uaphs = append(uaphs, uph...)
 	}
 
-	sort.Sort(internal2.ByAffectedPackage(aphs))
-	sort.Sort(internal2.ByUnaffectedPackage(uaphs))
+	sort.Sort(internal.ByAffectedPackage(aphs))
+	sort.Sort(internal.ByUnaffectedPackage(uaphs))
 
 	var all []any
 	for i := range aphs {
@@ -96,7 +96,7 @@ func getPackageHandles(vuln *unmarshal.OpenVEXVulnerability, fixes []unmarshal.A
 //	    PURLIdentifierType: pkg:type/name@version
 //	  }
 //	}
-func getPackageHandle(product *govex.Product, vuln *unmarshal.OpenVEXVulnerability, fixes []unmarshal.AnnotatedOpenVEXFix) (aphs []grypeDB.AffectedPackageHandle, uphs []grypeDB.UnaffectedPackageHandle, err error) {
+func getPackageHandle(product *govex.Product, vuln *unmarshal.OpenVEXVulnerability, fixes []unmarshal.AnnotatedOpenVEXFix) (aphs []db.AffectedPackageHandle, uphs []db.UnaffectedPackageHandle, err error) {
 	if product == nil || vuln == nil {
 		return nil, nil, fmt.Errorf("getAffectedPackage params cannot be nil")
 	}
@@ -105,8 +105,8 @@ func getPackageHandle(product *govex.Product, vuln *unmarshal.OpenVEXVulnerabili
 		return nil, nil, fmt.Errorf("failed to parse purl %s: %w", purl, err)
 	}
 
-	pkg := &grypeDB.Package{
-		Ecosystem: string(syft.TypeFromPURL(purl.String())),
+	pkg := &db.Package{
+		Ecosystem: string(syftPkg.TypeFromPURL(purl.String())),
 		Name:      purl.Name,
 	}
 
@@ -115,19 +115,19 @@ func getPackageHandle(product *govex.Product, vuln *unmarshal.OpenVEXVulnerabili
 
 	switch vuln.Status {
 	case govex.StatusAffected:
-		aphs = append(aphs, grypeDB.AffectedPackageHandle{
+		aphs = append(aphs, db.AffectedPackageHandle{
 			Package:   pkg,
 			BlobValue: getPackageBlob(aliases, purl.Version, purl.Type, "", fixes),
 		})
 	case govex.StatusNotAffected:
-		uphs = append(uphs, grypeDB.UnaffectedPackageHandle{
+		uphs = append(uphs, db.UnaffectedPackageHandle{
 			Package:   pkg,
-			BlobValue: getPackageBlob(aliases, purl.Version, purl.Type, grypeDB.NotAffectedFixStatus, fixes),
+			BlobValue: getPackageBlob(aliases, purl.Version, purl.Type, db.NotAffectedFixStatus, fixes),
 		})
 	case govex.StatusFixed:
-		uphs = append(uphs, grypeDB.UnaffectedPackageHandle{
+		uphs = append(uphs, db.UnaffectedPackageHandle{
 			Package:   pkg,
-			BlobValue: getPackageBlob(aliases, purl.Version, purl.Type, grypeDB.FixedStatus, fixes),
+			BlobValue: getPackageBlob(aliases, purl.Version, purl.Type, db.FixedStatus, fixes),
 		})
 	default:
 		err = fmt.Errorf("invalid vuln states %s", vuln.Status)
@@ -166,8 +166,8 @@ func getName(vuln *unmarshal.OpenVEXVulnerability) string {
 	return string(vuln.Vulnerability.Name)
 }
 
-func getReferences(vuln *unmarshal.OpenVEXVulnerability) []grypeDB.Reference {
-	refs := []grypeDB.Reference{
+func getReferences(vuln *unmarshal.OpenVEXVulnerability) []db.Reference {
+	refs := []db.Reference{
 		{
 			URL: getName(vuln),
 		},
@@ -175,26 +175,26 @@ func getReferences(vuln *unmarshal.OpenVEXVulnerability) []grypeDB.Reference {
 	return refs
 }
 
-func getPackageBlob(aliases []string, ver string, ty string, fixState grypeDB.FixStatus, fixes []unmarshal.AnnotatedOpenVEXFix) *grypeDB.PackageBlob {
-	var fix *grypeDB.Fix
+func getPackageBlob(aliases []string, ver string, ty string, fixState db.FixStatus, fixes []unmarshal.AnnotatedOpenVEXFix) *db.PackageBlob {
+	var fix *db.Fix
 	if fixState != "" {
-		fix = &grypeDB.Fix{
+		fix = &db.Fix{
 			State: fixState,
 		}
 
-		canExpressFixVersion := ver != "" && fixState == grypeDB.FixedStatus
+		canExpressFixVersion := ver != "" && fixState == db.FixedStatus
 		if canExpressFixVersion {
 			// only express a fix version if we have a version and the state is "fixed"
 			fix.Version = ver
 		}
 
 		canExpressFixDetail := len(fixes) > 0 && canExpressFixVersion
-		var detail *grypeDB.FixDetail
+		var detail *db.FixDetail
 		if canExpressFixDetail {
-			time := internal2.ParseTime(fixes[0].Available.Date)
+			time := internal.ParseTime(fixes[0].Available.Date)
 			if time != nil && !time.IsZero() {
-				detail = &grypeDB.FixDetail{
-					Available: &grypeDB.FixAvailability{
+				detail = &db.FixDetail{
+					Available: &db.FixAvailability{
 						Date: time,
 						Kind: fixes[0].Available.Kind,
 					},
@@ -205,11 +205,11 @@ func getPackageBlob(aliases []string, ver string, ty string, fixState grypeDB.Fi
 		fix.Detail = detail
 	}
 
-	return &grypeDB.PackageBlob{
+	return &db.PackageBlob{
 		CVEs: aliases,
-		Ranges: []grypeDB.Range{
+		Ranges: []db.Range{
 			{
-				Version: grypeDB.Version{
+				Version: db.Version{
 					Type:       version.ParseFormat(ty).String(),
 					Constraint: fmt.Sprintf("= %s", ver),
 				},

@@ -3,23 +3,23 @@ package matchexclusions
 import (
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
-	grypeDB "github.com/anchore/grype/grype/db/v5"
+	db "github.com/anchore/grype/grype/db/v5"
 )
 
 func Transform(matchExclusion unmarshal.MatchExclusion) ([]data.Entry, error) {
-	exclusion := grypeDB.VulnerabilityMatchExclusion{
+	exclusion := db.VulnerabilityMatchExclusion{
 		ID:            matchExclusion.ID,
 		Constraints:   nil,
 		Justification: matchExclusion.Justification,
 	}
 
 	for _, c := range matchExclusion.Constraints {
-		constraint := &grypeDB.VulnerabilityMatchExclusionConstraint{
-			Vulnerability: grypeDB.VulnerabilityExclusionConstraint{
+		constraint := &db.VulnerabilityMatchExclusionConstraint{
+			Vulnerability: db.VulnerabilityExclusionConstraint{
 				Namespace: c.Vulnerability.Namespace,
-				FixState:  grypeDB.FixState(c.Vulnerability.FixState),
+				FixState:  db.FixState(c.Vulnerability.FixState),
 			},
-			Package: grypeDB.PackageExclusionConstraint{
+			Package: db.PackageExclusionConstraint{
 				Name:     c.Package.Name,
 				Language: c.Package.Language,
 				Type:     c.Package.Type,
@@ -33,7 +33,7 @@ func Transform(matchExclusion unmarshal.MatchExclusion) ([]data.Entry, error) {
 
 	entries := []data.Entry{
 		{
-			DBSchemaVersion: grypeDB.SchemaVersion,
+			DBSchemaVersion: db.SchemaVersion,
 			Data:            exclusion,
 		},
 	}

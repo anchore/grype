@@ -7,9 +7,9 @@ import (
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/internal/versionutil"
 	"github.com/anchore/grype/grype/db/provider"
-	grypeDB "github.com/anchore/grype/grype/db/v6"
+	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers"
-	internal2 "github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
+	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
 	"github.com/anchore/grype/grype/db/v6/name"
 	"github.com/anchore/syft/syft/pkg"
 )
@@ -24,13 +24,13 @@ func Transform(vulnerability unmarshal.MSRCVulnerability, state provider.State) 
 	return transformers.NewEntries(ins...), nil
 }
 
-func getVulnerability(vuln unmarshal.MSRCVulnerability, state provider.State) grypeDB.VulnerabilityHandle {
-	return grypeDB.VulnerabilityHandle{
+func getVulnerability(vuln unmarshal.MSRCVulnerability, state provider.State) db.VulnerabilityHandle {
+	return db.VulnerabilityHandle{
 		Name:       vuln.ID,
 		ProviderID: state.Provider,
-		Provider:   internal2.ProviderModel(state),
-		Status:     grypeDB.VulnerabilityActive,
-		BlobValue: &grypeDB.VulnerabilityBlob{
+		Provider:   internal.ProviderModel(state),
+		Status:     db.VulnerabilityActive,
+		BlobValue: &db.VulnerabilityBlob{
 			ID:          vuln.ID,
 			Description: strings.TrimSpace(vuln.Summary),
 			References:  getReferences(vuln),
@@ -39,31 +39,31 @@ func getVulnerability(vuln unmarshal.MSRCVulnerability, state provider.State) gr
 	}
 }
 
-func getAffectedPackage(vuln unmarshal.MSRCVulnerability) grypeDB.AffectedPackageHandle {
-	return grypeDB.AffectedPackageHandle{
+func getAffectedPackage(vuln unmarshal.MSRCVulnerability) db.AffectedPackageHandle {
+	return db.AffectedPackageHandle{
 		Package: getPackage(vuln),
-		BlobValue: &grypeDB.PackageBlob{
+		BlobValue: &db.PackageBlob{
 			Ranges: getRanges(vuln),
 		},
 	}
 }
 
-func getPackage(vuln unmarshal.MSRCVulnerability) *grypeDB.Package {
-	return &grypeDB.Package{
+func getPackage(vuln unmarshal.MSRCVulnerability) *db.Package {
+	return &db.Package{
 		Name:      name.Normalize(vuln.Product.ID, pkg.KbPkg),
 		Ecosystem: string(pkg.KbPkg),
 	}
 }
 
-func getRanges(vuln unmarshal.MSRCVulnerability) []grypeDB.Range {
+func getRanges(vuln unmarshal.MSRCVulnerability) []db.Range {
 	// In anchore-enterprise windows analyzer, "base" represents unpatched windows images (images with no KBs)
 	// If a vulnerability exists for a Microsoft Product ID and the image has no KBs (which are patches),
 	// then the image must be vulnerable to the image.
 	vuln.Vulnerable = append(vuln.Vulnerable, "base")
 
-	return []grypeDB.Range{
+	return []db.Range{
 		{
-			Version: grypeDB.Version{
+			Version: db.Version{
 				Type:       "kb",
 				Constraint: versionutil.OrConstraints(vuln.Vulnerable...),
 			},
@@ -72,15 +72,15 @@ func getRanges(vuln unmarshal.MSRCVulnerability) []grypeDB.Range {
 	}
 }
 
-func getFix(vuln unmarshal.MSRCVulnerability) *grypeDB.Fix {
+func getFix(vuln unmarshal.MSRCVulnerability) *db.Fix {
 	fixedInVersion, fixDetail := fixedInKB(vuln)
 
-	fixState := grypeDB.FixedStatus
+	fixState := db.FixedStatus
 	if fixedInVersion == "" {
-		fixState = grypeDB.NotFixedStatus
+		fixState = db.NotFixedStatus
 	}
 
-	return &grypeDB.Fix{
+	return &db.Fix{
 		Version: fixedInVersion,
 		State:   fixState,
 		Detail:  fixDetail,
@@ -89,14 +89,14 @@ func getFix(vuln unmarshal.MSRCVulnerability) *grypeDB.Fix {
 
 // fixedInKB finds the "latest" patch (KB id) amongst the available microsoft patches and returns it
 // if the "latest" patch cannot be found, an empty string is returned
-func fixedInKB(vulnerability unmarshal.MSRCVulnerability) (string, *grypeDB.FixDetail) {
+func fixedInKB(vulnerability unmarshal.MSRCVulnerability) (string, *db.FixDetail) {
 	for _, fixedIn := range vulnerability.FixedIn {
 		if fixedIn.IsLatest {
-			var detail *grypeDB.FixDetail
+			var detail *db.FixDetail
 			if fixedIn.Available.Date != "" {
-				detail = &grypeDB.FixDetail{
-					Available: &grypeDB.FixAvailability{
-						Date: internal2.ParseTime(fixedIn.Available.Date),
+				detail = &db.FixDetail{
+					Available: &db.FixAvailability{
+						Date: internal.ParseTime(fixedIn.Available.Date),
 						Kind: fixedIn.Available.Kind,
 					},
 				}
@@ -107,8 +107,8 @@ func fixedInKB(vulnerability unmarshal.MSRCVulnerability) (string, *grypeDB.FixD
 	return "", nil
 }
 
-func getReferences(vuln unmarshal.MSRCVulnerability) []grypeDB.Reference {
-	refs := []grypeDB.Reference{
+func getReferences(vuln unmarshal.MSRCVulnerability) []db.Reference {
+	refs := []db.Reference{
 		{
 			URL: vuln.Link,
 		},
@@ -117,21 +117,21 @@ func getReferences(vuln unmarshal.MSRCVulnerability) []grypeDB.Reference {
 	return refs
 }
 
-func getSeverities(vuln unmarshal.MSRCVulnerability) []grypeDB.Severity {
-	var severities []grypeDB.Severity
+func getSeverities(vuln unmarshal.MSRCVulnerability) []db.Severity {
+	var severities []db.Severity
 
 	cleanSeverity := strings.ToLower(strings.TrimSpace(vuln.Severity))
 	if cleanSeverity != "" {
-		severities = append(severities, grypeDB.Severity{
-			Scheme: grypeDB.SeveritySchemeCHML,
+		severities = append(severities, db.Severity{
+			Scheme: db.SeveritySchemeCHML,
 			Value:  cleanSeverity,
 		})
 	}
 
 	if vuln.Cvss.Vector != "" {
-		severities = append(severities, grypeDB.Severity{
-			Scheme: grypeDB.SeveritySchemeCVSS,
-			Value: grypeDB.CVSSSeverity{
+		severities = append(severities, db.Severity{
+			Scheme: db.SeveritySchemeCVSS,
+			Value: db.CVSSSeverity{
 				Vector:  vuln.Cvss.Vector,
 				Version: "3.0", // TODO: assuming CVSS v3, update if different
 			},

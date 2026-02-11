@@ -5,12 +5,12 @@ import (
 	"strings"
 
 	"github.com/anchore/grype/grype/db/data"
-	grypeDB "github.com/anchore/grype/grype/db/v6"
+	db "github.com/anchore/grype/grype/db/v6"
 )
 
 type RelatedEntries struct {
-	VulnerabilityHandle *grypeDB.VulnerabilityHandle
-	Provider            *grypeDB.Provider
+	VulnerabilityHandle *db.VulnerabilityHandle
+	Provider            *db.Provider
 	Related             []any
 }
 
@@ -20,13 +20,13 @@ func NewEntries(models ...any) []data.Entry {
 	for i := range models {
 		model := models[i]
 		switch m := model.(type) {
-		case grypeDB.VulnerabilityHandle:
+		case db.VulnerabilityHandle:
 			entry.VulnerabilityHandle = &m
-		case grypeDB.AffectedPackageHandle, grypeDB.UnaffectedPackageHandle, grypeDB.AffectedCPEHandle,
-			grypeDB.UnaffectedCPEHandle, grypeDB.KnownExploitedVulnerabilityHandle, grypeDB.EpssHandle, grypeDB.CWEHandle,
-			grypeDB.OperatingSystemEOLHandle:
+		case db.AffectedPackageHandle, db.UnaffectedPackageHandle, db.AffectedCPEHandle,
+			db.UnaffectedCPEHandle, db.KnownExploitedVulnerabilityHandle, db.EpssHandle, db.CWEHandle,
+			db.OperatingSystemEOLHandle:
 			entry.Related = append(entry.Related, m)
-		case grypeDB.Provider:
+		case db.Provider:
 			entry.Provider = &m
 		default:
 			panic(fmt.Sprintf("unsupported model type: %T", m))
@@ -35,7 +35,7 @@ func NewEntries(models ...any) []data.Entry {
 
 	return []data.Entry{
 		{
-			DBSchemaVersion: grypeDB.ModelVersion,
+			DBSchemaVersion: db.ModelVersion,
 			Data:            entry,
 		},
 	}
@@ -45,11 +45,11 @@ func (re RelatedEntries) String() string {
 	var pkgs []string
 	for _, r := range re.Related {
 		switch v := r.(type) {
-		case grypeDB.AffectedPackageHandle:
+		case db.AffectedPackageHandle:
 			pkgs = append(pkgs, v.Package.String())
-		case grypeDB.AffectedCPEHandle:
+		case db.AffectedCPEHandle:
 			pkgs = append(pkgs, fmt.Sprintf("%s/%s", v.CPE.Vendor, v.CPE.Product))
-		case grypeDB.KnownExploitedVulnerabilityHandle:
+		case db.KnownExploitedVulnerabilityHandle:
 			pkgs = append(pkgs, "kev="+v.Cve)
 		}
 	}

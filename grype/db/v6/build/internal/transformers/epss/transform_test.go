@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
-	"github.com/anchore/grype/grype/db/internal/tests"
+	"github.com/anchore/grype/grype/db/internal/testutil"
 	"github.com/anchore/grype/grype/db/provider"
-	grypeDB "github.com/anchore/grype/grype/db/v6"
+	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
 )
@@ -33,7 +33,7 @@ func TestTransform(t *testing.T) {
 			name: "test-fixtures/go-case.json",
 			want: []transformers.RelatedEntries{
 				{
-					Provider: &grypeDB.Provider{
+					Provider: &db.Provider{
 						ID:           "epss",
 						Version:      "12",
 						Processor:    "vunnel@1.2.3",
@@ -41,7 +41,7 @@ func TestTransform(t *testing.T) {
 						InputDigest:  "sha256:123456",
 					},
 					Related: epssSlice(
-						grypeDB.EpssHandle{
+						db.EpssHandle{
 							Cve:        "CVE-2025-0108",
 							Epss:       0.328,
 							Percentile: 0.9929,
@@ -81,7 +81,7 @@ func TestTransform(t *testing.T) {
 	}
 }
 
-func epssSlice(a ...grypeDB.EpssHandle) []any {
+func epssSlice(a ...db.EpssHandle) []any {
 	var r []any
 	for _, v := range a {
 		r = append(r, v)
@@ -94,7 +94,7 @@ func loadFixture(t *testing.T, fixturePath string) []unmarshal.EPSS {
 
 	f, err := os.Open(fixturePath)
 	require.NoError(t, err)
-	defer tests.CloseFile(f)
+	defer testutil.CloseFile(f)
 
 	entries, err := unmarshal.EPSSEntries(f)
 	require.NoError(t, err)

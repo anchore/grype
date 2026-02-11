@@ -8,7 +8,7 @@ import (
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/provider"
-	grypeDB "github.com/anchore/grype/grype/db/v6"
+	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
 	"github.com/anchore/grype/internal/log"
@@ -74,7 +74,7 @@ func translateProductName(product string) string {
 }
 
 // getOperatingSystemEOL creates an OperatingSystemEOLHandle from an EOL record.
-func getOperatingSystemEOL(entry unmarshal.EndOfLifeDateRelease, distroName string) *grypeDB.OperatingSystemEOLHandle {
+func getOperatingSystemEOL(entry unmarshal.EndOfLifeDateRelease, distroName string) *db.OperatingSystemEOLHandle {
 	// Parse version from name (e.g., "12", "22.04", "8.5")
 	majorVersion, minorVersion := parseVersion(entry.Name)
 
@@ -95,7 +95,7 @@ func getOperatingSystemEOL(entry unmarshal.EndOfLifeDateRelease, distroName stri
 	// Note: We intentionally don't include codename in the handle because
 	// endoflife.date uses full names like "Noble Numbat" while the DB uses
 	// short lowercase names like "noble". Version matching is sufficient.
-	return &grypeDB.OperatingSystemEOLHandle{
+	return &db.OperatingSystemEOLHandle{
 		Name:         distroName,
 		MajorVersion: majorVersion,
 		MinorVersion: minorVersion,

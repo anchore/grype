@@ -11,9 +11,9 @@ import (
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/nvd"
 	"github.com/anchore/grype/grype/db/provider"
-	grypeDB "github.com/anchore/grype/grype/db/v6"
+	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers"
-	internal2 "github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
+	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/cpe"
@@ -51,14 +51,14 @@ func Transformer(cfg Config) data.NVDTransformerV2 {
 
 func transform(cfg Config, vulnerability unmarshal.NVDVulnerability, state provider.State) ([]data.Entry, error) {
 	in := []any{
-		grypeDB.VulnerabilityHandle{
+		db.VulnerabilityHandle{
 			Name:          vulnerability.ID,
 			ProviderID:    state.Provider,
-			Provider:      internal2.ProviderModel(state),
-			ModifiedDate:  internal2.ParseTime(vulnerability.LastModified),
-			PublishedDate: internal2.ParseTime(vulnerability.Published),
+			Provider:      internal.ProviderModel(state),
+			ModifiedDate:  internal.ParseTime(vulnerability.LastModified),
+			PublishedDate: internal.ParseTime(vulnerability.Published),
 			Status:        getVulnStatus(vulnerability),
-			BlobValue: &grypeDB.VulnerabilityBlob{
+			BlobValue: &db.VulnerabilityBlob{
 				ID:          vulnerability.ID,
 				Assigners:   getAssigner(vulnerability),
 				Description: strings.TrimSpace(vulnerability.Description()),
@@ -93,9 +93,9 @@ func getAssigner(vuln unmarshal.NVDVulnerability) []string {
 	return []string{assigner}
 }
 
-func getVulnStatus(vuln unmarshal.NVDVulnerability) grypeDB.VulnerabilityStatus {
+func getVulnStatus(vuln unmarshal.NVDVulnerability) db.VulnerabilityStatus {
 	if vuln.VulnStatus == nil {
-		return grypeDB.UnknownVulnerabilityStatus
+		return db.UnknownVulnerabilityStatus
 	}
 
 	// TODO: there is no path for withdrawn?
@@ -111,13 +111,13 @@ func getVulnStatus(vuln unmarshal.NVDVulnerability) grypeDB.VulnerabilityStatus 
 		//
 		// received (NVD): CVE has been recently published to the CVE List and has been received by the NVD.
 		//
-		return grypeDB.UnknownVulnerabilityStatus
+		return db.UnknownVulnerabilityStatus
 	case "awaitinganalysis", "undergoinganalysis":
 		// awaiting analysis (NVD): CVE has been marked for Analysis. Normally once in this state the CVE will be analyzed by NVD staff within 24 hours.
 		//
 		// undergoing analysis (NVD): CVE has been marked for Analysis. Normally once in this state the CVE will be analyzed by NVD staff within 24 hours.
 		//
-		return grypeDB.VulnerabilityAnalyzing
+		return db.VulnerabilityAnalyzing
 	case "disputed":
 		// disputed (CVE list): When one party disagrees with another party's assertion that a particular issue in software is a vulnerability, a CVE Entry assigned
 		//    to that issue may be designated as being "DISPUTED". In these cases, CVE is making no determination as to which party is correct. Instead, we make
@@ -125,7 +125,7 @@ func getVulnStatus(vuln unmarshal.NVDVulnerability) grypeDB.VulnerabilityStatus 
 		//    When you see a CVE Entry that is "DISPUTED", we encourage you to research the issue through the references or by contacting the affected
 		//    vendor or developer for more information.
 		//
-		return grypeDB.VulnerabilityDisputed
+		return db.VulnerabilityDisputed
 	case "rejected", "reject":
 		// reject (CVE list): A CVE Entry listed as "REJECT" is a CVE Entry that is not accepted as a CVE Entry. The reason a CVE Entry is marked
 		//    REJECT will most often be stated in the description of the CVE Entry. Possible examples include it being a duplicate CVE Entry, it being
@@ -133,7 +133,7 @@ func getVulnStatus(vuln unmarshal.NVDVulnerability) grypeDB.VulnerabilityStatus 
 		//    As a rule, REJECT CVE Entries should be ignored.
 		//
 		// rejected (NVD): CVE has been marked as "**REJECT**" in the CVE List. These CVEs are stored in the NVD, but do not show up in search results.
-		return grypeDB.VulnerabilityRejected
+		return db.VulnerabilityRejected
 	case "modified", "analyzed", "published":
 		// modified (NVD): CVE has been amended by a source (CVE Primary CNA or another CNA). Analysis data supplied by the NVD may be no longer be accurate due to these changes.
 		//
@@ -144,20 +144,20 @@ func getVulnStatus(vuln unmarshal.NVDVulnerability) grypeDB.VulnerabilityStatus 
 		//
 		// published (CVE list): The CVE Entry is populated with details. These are a CVE Description and reference link[s] regarding details of the CVE.
 		//
-		return grypeDB.VulnerabilityActive
+		return db.VulnerabilityActive
 	}
 
-	return grypeDB.UnknownVulnerabilityStatus
+	return db.UnknownVulnerabilityStatus
 }
 
-func getAffected(cfg Config, vulnerability unmarshal.NVDVulnerability) []grypeDB.AffectedCPEHandle {
+func getAffected(cfg Config, vulnerability unmarshal.NVDVulnerability) []db.AffectedCPEHandle {
 	candidates, err := allCandidates(vulnerability.ID, vulnerability.Configurations, cfg)
 	if err != nil {
 		log.WithFields("error", err).Warn("failed to process affected NVD CPEs")
 		return nil
 	}
 
-	var affs []grypeDB.AffectedCPEHandle
+	var affs []db.AffectedCPEHandle
 	for _, candidate := range candidates {
 		affs = append(affs, affectedApplicationPackage(cfg, vulnerability, candidate)...)
 	}
@@ -165,14 +165,14 @@ func getAffected(cfg Config, vulnerability unmarshal.NVDVulnerability) []grypeDB
 	return affs
 }
 
-func getCWEs(vulnerability unmarshal.NVDVulnerability) []grypeDB.CWEHandle {
-	var cwes []grypeDB.CWEHandle
+func getCWEs(vulnerability unmarshal.NVDVulnerability) []db.CWEHandle {
+	var cwes []db.CWEHandle
 	for _, w := range vulnerability.Weaknesses {
 		for _, d := range w.Description {
 			if !isValidCWE(d.Value) {
 				continue
 			}
-			cwes = append(cwes, grypeDB.CWEHandle{
+			cwes = append(cwes, db.CWEHandle{
 				CVE:    vulnerability.ID,
 				CWE:    d.Value,
 				Source: w.Source,
@@ -204,19 +204,19 @@ func encodeCPEs(cpes []cpe.Attributes) []string {
 	return results
 }
 
-func affectedApplicationPackage(cfg Config, vulnerability unmarshal.NVDVulnerability, p affectedPackageCandidate) []grypeDB.AffectedCPEHandle {
-	var affs []grypeDB.AffectedCPEHandle
+func affectedApplicationPackage(cfg Config, vulnerability unmarshal.NVDVulnerability, p affectedPackageCandidate) []db.AffectedCPEHandle {
+	var affs []db.AffectedCPEHandle
 
-	var qualifiers *grypeDB.PackageQualifiers
+	var qualifiers *db.PackageQualifiers
 	if len(p.PlatformCPEs) > 0 {
-		qualifiers = &grypeDB.PackageQualifiers{
+		qualifiers = &db.PackageQualifiers{
 			PlatformCPEs: encodeCPEs(p.PlatformCPEs),
 		}
 	}
 
-	affs = append(affs, grypeDB.AffectedCPEHandle{
+	affs = append(affs, db.AffectedCPEHandle{
 		CPE: getCPEFromAttributes(p.VulnerableCPE),
-		BlobValue: &grypeDB.PackageBlob{
+		BlobValue: &db.PackageBlob{
 			CVEs:       []string{vulnerability.ID},
 			Qualifiers: qualifiers,
 			Ranges:     getRanges(cfg, p.VulnerableCPE, p.Ranges.toSlice(), vulnerability.ID),
@@ -226,8 +226,8 @@ func affectedApplicationPackage(cfg Config, vulnerability unmarshal.NVDVulnerabi
 	return affs
 }
 
-func getRanges(cfg Config, c cpe.Attributes, ras []affectedCPERange, vulnID string) []grypeDB.Range {
-	var ranges []grypeDB.Range
+func getRanges(cfg Config, c cpe.Attributes, ras []affectedCPERange, vulnID string) []db.Range {
+	var ranges []db.Range
 	for _, ra := range ras {
 		r := getRange(cfg, c, ra, vulnID)
 		if r != nil {
@@ -238,9 +238,9 @@ func getRanges(cfg Config, c cpe.Attributes, ras []affectedCPERange, vulnID stri
 	return ranges
 }
 
-func getRange(cfg Config, c cpe.Attributes, ra affectedCPERange, vulnID string) *grypeDB.Range {
-	return &grypeDB.Range{
-		Version: grypeDB.Version{
+func getRange(cfg Config, c cpe.Attributes, ra affectedCPERange, vulnID string) *db.Range {
+	return &db.Range{
+		Version: db.Version{
 			Type:       getVersionFormat(c.Product),
 			Constraint: ra.String(),
 		},
@@ -248,7 +248,7 @@ func getRange(cfg Config, c cpe.Attributes, ra affectedCPERange, vulnID string) 
 	}
 }
 
-func getFix(cfg Config, vulnCPE cpe.Attributes, ra affectedCPERange, vulnID string) *grypeDB.Fix {
+func getFix(cfg Config, vulnCPE cpe.Attributes, ra affectedCPERange, vulnID string) *db.Fix {
 	if !cfg.InferNVDFixVersions {
 		return nil
 	}
@@ -282,12 +282,12 @@ func getFix(cfg Config, vulnCPE cpe.Attributes, ra affectedCPERange, vulnID stri
 	fixVersion := possiblyFixed.List()[0]
 
 	// only include fix details if we have a date and kind that matches the inferred fix version
-	var detail *grypeDB.FixDetail
+	var detail *db.FixDetail
 	if ra.FixInfo != nil {
 		if fixVersion == ra.FixInfo.Version {
-			detail = &grypeDB.FixDetail{
-				Available: &grypeDB.FixAvailability{
-					Date: internal2.ParseTime(ra.FixInfo.Date),
+			detail = &db.FixDetail{
+				Available: &db.FixAvailability{
+					Date: internal.ParseTime(ra.FixInfo.Date),
 					Kind: ra.FixInfo.Kind,
 				},
 			}
@@ -295,15 +295,15 @@ func getFix(cfg Config, vulnCPE cpe.Attributes, ra affectedCPERange, vulnID stri
 			log.WithFields("cpe", vulnCPE, "vuln", vulnID, "range", ra, "fix", ra.FixInfo.Version).Debug("skipping fix detail because it does not match inferred fix version")
 		}
 	}
-	return &grypeDB.Fix{
+	return &db.Fix{
 		Version: fixVersion,
-		State:   grypeDB.FixedStatus,
+		State:   db.FixedStatus,
 		Detail:  detail,
 	}
 }
 
-func getCPEFromAttributes(atts cpe.Attributes) *grypeDB.Cpe {
-	return &grypeDB.Cpe{
+func getCPEFromAttributes(atts cpe.Attributes) *db.Cpe {
+	return &db.Cpe{
 		Part:            atts.Part,
 		Vendor:          atts.Vendor,
 		Product:         atts.Product,
@@ -316,17 +316,17 @@ func getCPEFromAttributes(atts cpe.Attributes) *grypeDB.Cpe {
 	}
 }
 
-func getSeverities(vuln unmarshal.NVDVulnerability) []grypeDB.Severity {
+func getSeverities(vuln unmarshal.NVDVulnerability) []db.Severity {
 	sevs := nvd.CvssSummaries(vuln.CVSS()).Sorted()
-	var results []grypeDB.Severity
+	var results []db.Severity
 	for _, sev := range sevs {
 		priority := 2
 		if sev.Type == nvd.Primary {
 			priority = 1
 		}
-		results = append(results, grypeDB.Severity{
-			Scheme: grypeDB.SeveritySchemeCVSS,
-			Value: grypeDB.CVSSSeverity{
+		results = append(results, db.Severity{
+			Scheme: db.SeveritySchemeCVSS,
+			Value: db.CVSSSeverity{
 				Vector:  sev.Vector,
 				Version: sev.Version,
 			},
@@ -338,8 +338,8 @@ func getSeverities(vuln unmarshal.NVDVulnerability) []grypeDB.Severity {
 	return results
 }
 
-func getReferences(vuln unmarshal.NVDVulnerability) []grypeDB.Reference {
-	references := []grypeDB.Reference{
+func getReferences(vuln unmarshal.NVDVulnerability) []db.Reference {
+	references := []db.Reference{
 		{
 			URL: "https://nvd.nist.gov/vuln/detail/" + vuln.ID,
 		},
@@ -348,10 +348,10 @@ func getReferences(vuln unmarshal.NVDVulnerability) []grypeDB.Reference {
 		if reference.URL == "" {
 			continue
 		}
-		tags := grypeDB.NormalizeReferenceTags(reference.Tags)
+		tags := db.NormalizeReferenceTags(reference.Tags)
 		sort.Strings(tags)
 		// TODO there is other info we could be capturing too (source)
-		references = append(references, grypeDB.Reference{
+		references = append(references, db.Reference{
 			URL:  reference.URL,
 			Tags: tags,
 		})

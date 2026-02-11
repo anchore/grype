@@ -12,8 +12,8 @@ import (
 
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/provider"
-	grypeDB "github.com/anchore/grype/grype/db/v6"
-	"github.com/anchore/grype/grype/db/v6/build/internal/tests"
+	db "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/grype/db/v6/build/internal/testutil"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers"
 )
 
@@ -34,8 +34,8 @@ func inputProviderState() provider.State {
 	}
 }
 
-func expectedProvider() *grypeDB.Provider {
-	return &grypeDB.Provider{
+func expectedProvider() *db.Provider {
+	return &db.Provider{
 		ID:           "osv",
 		Version:      "12",
 		Processor:    "vunnel@1.2.3",
@@ -53,14 +53,14 @@ func loadFixture(t *testing.T, fixturePath string) []unmarshal.OSVVulnerability 
 
 	f, err := os.Open(fixturePath)
 	require.NoError(t, err)
-	defer tests.CloseFile(f)
+	defer testutil.CloseFile(f)
 
 	entries, err := unmarshal.OSVVulnerabilityEntries(f)
 	require.NoError(t, err)
 	return entries
 }
 
-func affectedPkgSlice(a ...grypeDB.AffectedPackageHandle) []any {
+func affectedPkgSlice(a ...db.AffectedPackageHandle) []any {
 	var r []any
 	for _, v := range a {
 		r = append(r, v)
@@ -68,7 +68,7 @@ func affectedPkgSlice(a ...grypeDB.AffectedPackageHandle) []any {
 	return r
 }
 
-func unaffectedPkgSlice(u ...grypeDB.UnaffectedPackageHandle) []any {
+func unaffectedPkgSlice(u ...db.UnaffectedPackageHandle) []any {
 	var r []any
 	for _, v := range u {
 		r = append(r, v)
@@ -86,17 +86,17 @@ func TestTransform(t *testing.T) {
 			name:        "Apache 2020-11984",
 			fixturePath: "test-fixtures/BIT-apache-2020-11984.json",
 			want: []transformers.RelatedEntries{{
-				VulnerabilityHandle: &grypeDB.VulnerabilityHandle{
+				VulnerabilityHandle: &db.VulnerabilityHandle{
 					Name:          "BIT-apache-2020-11984",
-					Status:        grypeDB.VulnerabilityActive,
+					Status:        db.VulnerabilityActive,
 					ProviderID:    "osv",
 					Provider:      expectedProvider(),
 					ModifiedDate:  timeRef(time.Date(2025, time.January, 17, 15, 26, 01, 971000000, time.UTC)),
 					PublishedDate: timeRef(time.Date(2024, time.March, 6, 10, 57, 57, 770000000, time.UTC)),
-					BlobValue: &grypeDB.VulnerabilityBlob{
+					BlobValue: &db.VulnerabilityBlob{
 						ID:          "BIT-apache-2020-11984",
 						Description: "Apache HTTP server 2.4.32 to 2.4.44 mod_proxy_uwsgi info disclosure and possible RCE",
-						References: []grypeDB.Reference{{
+						References: []db.Reference{{
 							URL:  "http://www.openwall.com/lists/oss-security/2020/08/08/1",
 							Tags: []string{"WEB"},
 						}, {
@@ -104,9 +104,9 @@ func TestTransform(t *testing.T) {
 							Tags: []string{"WEB"},
 						}},
 						Aliases: []string{"CVE-2020-11984"},
-						Severities: []grypeDB.Severity{{
-							Scheme: grypeDB.SeveritySchemeCVSS,
-							Value: grypeDB.CVSSSeverity{
+						Severities: []db.Severity{{
+							Scheme: db.SeveritySchemeCVSS,
+							Value: db.CVSSSeverity{
 								Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
 								Version: "3.1",
 							},
@@ -114,15 +114,15 @@ func TestTransform(t *testing.T) {
 					},
 				},
 				Related: affectedPkgSlice(
-					grypeDB.AffectedPackageHandle{
-						Package: &grypeDB.Package{
+					db.AffectedPackageHandle{
+						Package: &db.Package{
 							Name:      "apache",
 							Ecosystem: "Bitnami",
 						},
-						BlobValue: &grypeDB.PackageBlob{
+						BlobValue: &db.PackageBlob{
 							CVEs: []string{"CVE-2020-11984"},
-							Ranges: []grypeDB.Range{{
-								Version: grypeDB.Version{
+							Ranges: []db.Range{{
+								Version: db.Version{
 									Type:       "bitnami",
 									Constraint: ">=2.4.32,<=2.4.43",
 								},
@@ -136,17 +136,17 @@ func TestTransform(t *testing.T) {
 			name:        "Node 2020-8201",
 			fixturePath: "test-fixtures/BIT-node-2020-8201.json",
 			want: []transformers.RelatedEntries{{
-				VulnerabilityHandle: &grypeDB.VulnerabilityHandle{
+				VulnerabilityHandle: &db.VulnerabilityHandle{
 					Name:          "BIT-node-2020-8201",
-					Status:        grypeDB.VulnerabilityActive,
+					Status:        db.VulnerabilityActive,
 					ProviderID:    "osv",
 					Provider:      expectedProvider(),
 					ModifiedDate:  timeRef(time.Date(2024, time.March, 6, 11, 25, 28, 861000000, time.UTC)),
 					PublishedDate: timeRef(time.Date(2024, time.March, 6, 11, 8, 9, 371000000, time.UTC)),
-					BlobValue: &grypeDB.VulnerabilityBlob{
+					BlobValue: &db.VulnerabilityBlob{
 						ID:          "BIT-node-2020-8201",
 						Description: "Node.js < 12.18.4 and < 14.11 can be exploited to perform HTTP desync attacks and deliver malicious payloads to unsuspecting users. The payloads can be crafted by an attacker to hijack user sessions, poison cookies, perform clickjacking, and a multitude of other attacks depending on the architecture of the underlying system. The attack was possible due to a bug in processing of carrier-return symbols in the HTTP header names.",
-						References: []grypeDB.Reference{{
+						References: []db.Reference{{
 							URL:  "https://nodejs.org/en/blog/vulnerability/september-2020-security-releases/",
 							Tags: []string{"WEB"},
 						}, {
@@ -154,9 +154,9 @@ func TestTransform(t *testing.T) {
 							Tags: []string{"WEB"},
 						}},
 						Aliases: []string{"CVE-2020-8201"},
-						Severities: []grypeDB.Severity{{
-							Scheme: grypeDB.SeveritySchemeCVSS,
-							Value: grypeDB.CVSSSeverity{
+						Severities: []db.Severity{{
+							Scheme: db.SeveritySchemeCVSS,
+							Value: db.CVSSSeverity{
 								Vector:  "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N",
 								Version: "3.1",
 							},
@@ -164,38 +164,38 @@ func TestTransform(t *testing.T) {
 					},
 				},
 				Related: affectedPkgSlice(
-					grypeDB.AffectedPackageHandle{
-						Package: &grypeDB.Package{
+					db.AffectedPackageHandle{
+						Package: &db.Package{
 							Name:      "node",
 							Ecosystem: "Bitnami",
 						},
-						BlobValue: &grypeDB.PackageBlob{
+						BlobValue: &db.PackageBlob{
 							CVEs: []string{"CVE-2020-8201"},
-							Ranges: []grypeDB.Range{{
-								Version: grypeDB.Version{
+							Ranges: []db.Range{{
+								Version: db.Version{
 									Type:       "bitnami",
 									Constraint: ">=12.0.0,<12.18.4",
 								},
-								Fix: &grypeDB.Fix{
+								Fix: &db.Fix{
 									Version: "12.18.4",
-									State:   grypeDB.FixedStatus,
-									Detail: &grypeDB.FixDetail{
-										Available: &grypeDB.FixAvailability{
+									State:   db.FixedStatus,
+									Detail: &db.FixDetail{
+										Available: &db.FixAvailability{
 											Date: timeRef(time.Date(2020, time.September, 15, 0, 0, 0, 0, time.UTC)),
 											Kind: "first-observed",
 										},
 									},
 								},
 							}, {
-								Version: grypeDB.Version{
+								Version: db.Version{
 									Type:       "bitnami",
 									Constraint: ">=14.0.0,<14.11.0",
 								},
-								Fix: &grypeDB.Fix{
+								Fix: &db.Fix{
 									Version: "14.11.0",
-									State:   grypeDB.FixedStatus,
-									Detail: &grypeDB.FixDetail{
-										Available: &grypeDB.FixAvailability{
+									State:   db.FixedStatus,
+									Detail: &db.FixDetail{
+										Available: &db.FixAvailability{
 											Date: timeRef(time.Date(2020, time.September, 15, 0, 0, 0, 0, time.UTC)),
 											Kind: "first-observed",
 										},
@@ -211,17 +211,17 @@ func TestTransform(t *testing.T) {
 			name:        "AlmaLinux Advisory",
 			fixturePath: "test-fixtures/ALSA-2025-7467.json",
 			want: []transformers.RelatedEntries{{
-				VulnerabilityHandle: &grypeDB.VulnerabilityHandle{
+				VulnerabilityHandle: &db.VulnerabilityHandle{
 					Name:          "ALSA-2025:7467",
-					Status:        grypeDB.VulnerabilityActive,
+					Status:        db.VulnerabilityActive,
 					ProviderID:    "osv",
 					Provider:      expectedProvider(),
 					ModifiedDate:  timeRef(time.Date(2025, time.July, 2, 12, 50, 6, 0, time.UTC)),
 					PublishedDate: timeRef(time.Date(2025, time.May, 13, 0, 0, 0, 0, time.UTC)),
-					BlobValue: &grypeDB.VulnerabilityBlob{
+					BlobValue: &db.VulnerabilityBlob{
 						ID:          "ALSA-2025:7467",
 						Description: "The skopeo command lets you inspect images from container image registries.",
-						References: []grypeDB.Reference{{
+						References: []db.Reference{{
 							ID:   "ALSA-2025:7467",
 							URL:  "https://errata.almalinux.org/10/ALSA-2025-7467.html",
 							Tags: []string{"ADVISORY"},
@@ -231,48 +231,48 @@ func TestTransform(t *testing.T) {
 					},
 				},
 				Related: unaffectedPkgSlice(
-					grypeDB.UnaffectedPackageHandle{
-						Package: &grypeDB.Package{
+					db.UnaffectedPackageHandle{
+						Package: &db.Package{
 							Name:      "skopeo",
 							Ecosystem: "rpm",
 						},
-						OperatingSystem: &grypeDB.OperatingSystem{
+						OperatingSystem: &db.OperatingSystem{
 							Name:         "almalinux",
 							MajorVersion: "10",
 						},
-						BlobValue: &grypeDB.PackageBlob{
+						BlobValue: &db.PackageBlob{
 							CVEs: []string{"CVE-2025-27144"},
-							Ranges: []grypeDB.Range{{
-								Version: grypeDB.Version{
+							Ranges: []db.Range{{
+								Version: db.Version{
 									Type:       "ecosystem",
 									Constraint: ">= 2:1.18.1-1.el10_0",
 								},
-								Fix: &grypeDB.Fix{
+								Fix: &db.Fix{
 									Version: "2:1.18.1-1.el10_0",
-									State:   grypeDB.FixedStatus,
+									State:   db.FixedStatus,
 								},
 							}},
 						},
 					},
-					grypeDB.UnaffectedPackageHandle{
-						Package: &grypeDB.Package{
+					db.UnaffectedPackageHandle{
+						Package: &db.Package{
 							Name:      "skopeo-tests",
 							Ecosystem: "rpm",
 						},
-						OperatingSystem: &grypeDB.OperatingSystem{
+						OperatingSystem: &db.OperatingSystem{
 							Name:         "almalinux",
 							MajorVersion: "10",
 						},
-						BlobValue: &grypeDB.PackageBlob{
+						BlobValue: &db.PackageBlob{
 							CVEs: []string{"CVE-2025-27144"},
-							Ranges: []grypeDB.Range{{
-								Version: grypeDB.Version{
+							Ranges: []db.Range{{
+								Version: db.Version{
 									Type:       "ecosystem",
 									Constraint: ">= 2:1.18.1-1.el10_0",
 								},
-								Fix: &grypeDB.Fix{
+								Fix: &db.Fix{
 									Version: "2:1.18.1-1.el10_0",
-									State:   grypeDB.FixedStatus,
+									State:   db.FixedStatus,
 								},
 							}},
 						},
@@ -309,7 +309,7 @@ func Test_getGrypeRangesFromRange(t *testing.T) {
 		name      string
 		rnge      models.Range
 		ecosystem string
-		want      []grypeDB.Range
+		want      []db.Range
 	}{
 		{
 			name:      "single range with 'fixed' status",
@@ -322,14 +322,14 @@ func Test_getGrypeRangesFromRange(t *testing.T) {
 					Fixed: "0.0.5",
 				}},
 			},
-			want: []grypeDB.Range{{
-				Version: grypeDB.Version{
+			want: []db.Range{{
+				Version: db.Version{
 					Type:       "semver",
 					Constraint: ">=0.0.1,<0.0.5",
 				},
-				Fix: &grypeDB.Fix{
+				Fix: &db.Fix{
 					Version: "0.0.5",
-					State:   grypeDB.FixedStatus,
+					State:   db.FixedStatus,
 				},
 			}},
 		},
@@ -344,8 +344,8 @@ func Test_getGrypeRangesFromRange(t *testing.T) {
 					LastAffected: "0.0.5",
 				}},
 			},
-			want: []grypeDB.Range{{
-				Version: grypeDB.Version{
+			want: []db.Range{{
+				Version: db.Version{
 					Type:       "semver",
 					Constraint: ">=0.0.1,<=0.0.5",
 				},
@@ -360,8 +360,8 @@ func Test_getGrypeRangesFromRange(t *testing.T) {
 					Introduced: "0.0.1",
 				}},
 			},
-			want: []grypeDB.Range{{
-				Version: grypeDB.Version{
+			want: []db.Range{{
+				Version: db.Version{
 					Type:       "semver",
 					Constraint: ">=0.0.1",
 				},
@@ -378,8 +378,8 @@ func Test_getGrypeRangesFromRange(t *testing.T) {
 					LastAffected: "0.0.5",
 				}},
 			},
-			want: []grypeDB.Range{{
-				Version: grypeDB.Version{
+			want: []db.Range{{
+				Version: db.Version{
 					Type:       "semver",
 					Constraint: "<=0.0.5",
 				},
@@ -400,23 +400,23 @@ func Test_getGrypeRangesFromRange(t *testing.T) {
 					Fixed: "1.0.5",
 				}},
 			},
-			want: []grypeDB.Range{{
-				Version: grypeDB.Version{
+			want: []db.Range{{
+				Version: db.Version{
 					Type:       "semver",
 					Constraint: ">=0.0.1,<0.0.5",
 				},
-				Fix: &grypeDB.Fix{
+				Fix: &db.Fix{
 					Version: "0.0.5",
-					State:   grypeDB.FixedStatus,
+					State:   db.FixedStatus,
 				},
 			}, {
-				Version: grypeDB.Version{
+				Version: db.Version{
 					Type:       "semver",
 					Constraint: ">=1.0.1,<1.0.5",
 				},
-				Fix: &grypeDB.Fix{
+				Fix: &db.Fix{
 					Version: "1.0.5",
-					State:   grypeDB.FixedStatus,
+					State:   db.FixedStatus,
 				},
 			},
 			},
@@ -443,16 +443,16 @@ func Test_getGrypeRangesFromRange(t *testing.T) {
 					},
 				},
 			},
-			want: []grypeDB.Range{{
-				Version: grypeDB.Version{
+			want: []db.Range{{
+				Version: db.Version{
 					Type:       "semver",
 					Constraint: ">=1.0.0,<1.2.3",
 				},
-				Fix: &grypeDB.Fix{
+				Fix: &db.Fix{
 					Version: "1.2.3",
-					State:   grypeDB.FixedStatus,
-					Detail: &grypeDB.FixDetail{
-						Available: &grypeDB.FixAvailability{
+					State:   db.FixedStatus,
+					Detail: &db.FixDetail{
+						Available: &db.FixAvailability{
 							Date: timeRef(time.Date(2023, time.June, 15, 0, 0, 0, 0, time.UTC)),
 							Kind: "first-observed",
 						},
@@ -477,7 +477,7 @@ func Test_getPackage(t *testing.T) {
 	tests := []struct {
 		name string
 		pkg  models.Package
-		want *grypeDB.Package
+		want *db.Package
 	}{
 		{
 			name: "valid package",
@@ -486,7 +486,7 @@ func Test_getPackage(t *testing.T) {
 				Name:      "apache",
 				Purl:      "pkg:bitnami/apache",
 			},
-			want: &grypeDB.Package{
+			want: &db.Package{
 				Name:      "apache",
 				Ecosystem: "Bitnami",
 			},
@@ -498,7 +498,7 @@ func Test_getPackage(t *testing.T) {
 				Name:      "apache",
 				Purl:      "",
 			},
-			want: &grypeDB.Package{
+			want: &db.Package{
 				Name:      "apache",
 				Ecosystem: "Bitnami",
 			},
@@ -510,7 +510,7 @@ func Test_getPackage(t *testing.T) {
 				Name:      "apache",
 				Purl:      "pkg:bitnami/apache",
 			},
-			want: &grypeDB.Package{
+			want: &db.Package{
 				Name:      "apache",
 				Ecosystem: "",
 			},
@@ -657,7 +657,7 @@ func Test_getPackageQualifiers(t *testing.T) {
 		affected models.Affected
 		cpes     any
 		withCPE  bool
-		want     *grypeDB.PackageQualifiers
+		want     *db.PackageQualifiers
 	}{
 		{
 			name: "with rpm_modularity only",
@@ -668,7 +668,7 @@ func Test_getPackageQualifiers(t *testing.T) {
 			},
 			cpes:    nil,
 			withCPE: false,
-			want: &grypeDB.PackageQualifiers{
+			want: &db.PackageQualifiers{
 				RpmModularity: stringRef("mariadb:10.3"),
 			},
 		},
@@ -679,7 +679,7 @@ func Test_getPackageQualifiers(t *testing.T) {
 			},
 			cpes:    []string{"cpe:2.3:a:vendor:product:*:*:*:*:*:*:*:*"},
 			withCPE: true,
-			want: &grypeDB.PackageQualifiers{
+			want: &db.PackageQualifiers{
 				PlatformCPEs: []string{"cpe:2.3:a:vendor:product:*:*:*:*:*:*:*:*"},
 			},
 		},
@@ -692,7 +692,7 @@ func Test_getPackageQualifiers(t *testing.T) {
 			},
 			cpes:    []string{"cpe:2.3:a:nodejs:nodejs:*:*:*:*:*:*:*:*"},
 			withCPE: true,
-			want: &grypeDB.PackageQualifiers{
+			want: &db.PackageQualifiers{
 				PlatformCPEs:  []string{"cpe:2.3:a:nodejs:nodejs:*:*:*:*:*:*:*:*"},
 				RpmModularity: stringRef("nodejs:16"),
 			},

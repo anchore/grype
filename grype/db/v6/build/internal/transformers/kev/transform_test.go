@@ -10,8 +10,8 @@ import (
 
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/provider"
-	grypeDB "github.com/anchore/grype/grype/db/v6"
-	"github.com/anchore/grype/grype/db/v6/build/internal/tests"
+	db "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/grype/db/v6/build/internal/testutil"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
 )
@@ -33,7 +33,7 @@ func TestTransform(t *testing.T) {
 			name: "test-fixtures/go-case.json",
 			want: []transformers.RelatedEntries{
 				{
-					Provider: &grypeDB.Provider{
+					Provider: &db.Provider{
 						ID:           "kev",
 						Version:      "12",
 						Processor:    "vunnel@1.2.3",
@@ -41,9 +41,9 @@ func TestTransform(t *testing.T) {
 						InputDigest:  "sha256:123456",
 					},
 					Related: kevSlice(
-						grypeDB.KnownExploitedVulnerabilityHandle{
+						db.KnownExploitedVulnerabilityHandle{
 							Cve: "CVE-2025-0108",
-							BlobValue: &grypeDB.KnownExploitedVulnerabilityBlob{
+							BlobValue: &db.KnownExploitedVulnerabilityBlob{
 								Cve:                        "CVE-2025-0108",
 								VendorProject:              "Palo Alto Networks",
 								Product:                    "PAN-OS",
@@ -95,7 +95,7 @@ func TestTransform(t *testing.T) {
 	}
 }
 
-func kevSlice(a ...grypeDB.KnownExploitedVulnerabilityHandle) []any {
+func kevSlice(a ...db.KnownExploitedVulnerabilityHandle) []any {
 	var r []any
 	for _, v := range a {
 		r = append(r, v)
@@ -108,7 +108,7 @@ func loadFixture(t *testing.T, fixturePath string) []unmarshal.KnownExploitedVul
 
 	f, err := os.Open(fixturePath)
 	require.NoError(t, err)
-	defer tests.CloseFile(f)
+	defer testutil.CloseFile(f)
 
 	entries, err := unmarshal.KnownExploitedVulnerabilityEntries(f)
 	require.NoError(t, err)

@@ -8,8 +8,8 @@ import (
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/internal/versionutil"
-	grypeDB "github.com/anchore/grype/grype/db/v5"
-	transformers2 "github.com/anchore/grype/grype/db/v5/build/internal/transformers"
+	db "github.com/anchore/grype/grype/db/v5"
+	"github.com/anchore/grype/grype/db/v5/build/internal/transformers"
 	"github.com/anchore/grype/grype/db/v5/namespace"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -48,7 +48,7 @@ func buildGrypeNamespace(group string) (namespace.Namespace, error) {
 }
 
 func Transform(vulnerability unmarshal.GitHubAdvisory) ([]data.Entry, error) {
-	var allVulns []grypeDB.Vulnerability
+	var allVulns []db.Vulnerability
 
 	// Exclude entries marked as withdrawn
 	if vulnerability.Advisory.Withdrawn != "" {
@@ -83,7 +83,7 @@ func Transform(vulnerability unmarshal.GitHubAdvisory) ([]data.Entry, error) {
 		}
 
 		// create vulnerability entry
-		allVulns = append(allVulns, grypeDB.Vulnerability{
+		allVulns = append(allVulns, db.Vulnerability{
 			ID:                     vulnerability.Advisory.GhsaID,
 			VersionConstraint:      constraint,
 			VersionFormat:          versionFormat,
@@ -95,7 +95,7 @@ func Transform(vulnerability unmarshal.GitHubAdvisory) ([]data.Entry, error) {
 	}
 
 	// create vulnerability metadata entry (a single entry keyed off of the vulnerability ID)
-	metadata := grypeDB.VulnerabilityMetadata{
+	metadata := db.VulnerabilityMetadata{
 		ID:           vulnerability.Advisory.GhsaID,
 		DataSource:   vulnerability.Advisory.URL,
 		Namespace:    entryNamespace,
@@ -106,10 +106,10 @@ func Transform(vulnerability unmarshal.GitHubAdvisory) ([]data.Entry, error) {
 		Cvss:         getCvss(vulnerability),
 	}
 
-	return transformers2.NewEntries(allVulns, metadata), nil
+	return transformers.NewEntries(allVulns, metadata), nil
 }
 
-func getFix(entry unmarshal.GitHubAdvisory, idx int) grypeDB.Fix {
+func getFix(entry unmarshal.GitHubAdvisory, idx int) db.Fix {
 	fixedInEntry := entry.Advisory.FixedIn[idx]
 
 	var fixedInVersions []string
@@ -118,21 +118,21 @@ func getFix(entry unmarshal.GitHubAdvisory, idx int) grypeDB.Fix {
 		fixedInVersions = append(fixedInVersions, fixedInVersion)
 	}
 
-	fixState := grypeDB.NotFixedState
+	fixState := db.NotFixedState
 	if len(fixedInVersions) > 0 {
-		fixState = grypeDB.FixedState
+		fixState = db.FixedState
 	}
 
-	return grypeDB.Fix{
+	return db.Fix{
 		Versions: fixedInVersions,
 		State:    fixState,
 	}
 }
 
-func getRelatedVulnerabilities(entry unmarshal.GitHubAdvisory) []grypeDB.VulnerabilityReference {
-	vulns := make([]grypeDB.VulnerabilityReference, len(entry.Advisory.CVE))
+func getRelatedVulnerabilities(entry unmarshal.GitHubAdvisory) []db.VulnerabilityReference {
+	vulns := make([]db.VulnerabilityReference, len(entry.Advisory.CVE))
 	for idx, cve := range entry.Advisory.CVE {
-		vulns[idx] = grypeDB.VulnerabilityReference{
+		vulns[idx] = db.VulnerabilityReference{
 			ID:        cve,
 			Namespace: "nvd:cpe",
 		}
@@ -140,20 +140,20 @@ func getRelatedVulnerabilities(entry unmarshal.GitHubAdvisory) []grypeDB.Vulnera
 	return vulns
 }
 
-func getCvss(entry unmarshal.GitHubAdvisory) (cvss []grypeDB.Cvss) {
+func getCvss(entry unmarshal.GitHubAdvisory) (cvss []db.Cvss) {
 	if entry.Advisory.CVSS == nil {
 		return cvss
 	}
 
-	cvss = append(cvss, grypeDB.Cvss{
+	cvss = append(cvss, db.Cvss{
 		Version: entry.Advisory.CVSS.Version,
 		Vector:  entry.Advisory.CVSS.VectorString,
-		Metrics: grypeDB.NewCvssMetrics(
+		Metrics: db.NewCvssMetrics(
 			entry.Advisory.CVSS.BaseMetrics.BaseScore,
 			entry.Advisory.CVSS.BaseMetrics.ExploitabilityScore,
 			entry.Advisory.CVSS.BaseMetrics.ImpactScore,
 		),
-		VendorMetadata: transformers2.VendorBaseMetrics{
+		VendorMetadata: transformers.VendorBaseMetrics{
 			BaseSeverity: entry.Advisory.CVSS.BaseMetrics.BaseSeverity,
 			Status:       entry.Advisory.CVSS.Status,
 		},

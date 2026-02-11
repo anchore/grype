@@ -10,7 +10,7 @@ import (
 
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/provider"
-	grypeDB "github.com/anchore/grype/grype/db/v6"
+	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
 	"github.com/anchore/syft/syft/pkg"
@@ -73,15 +73,15 @@ func TestGetVulnerability(t *testing.T) {
 	now := time.Date(2024, 03, 01, 12, 0, 0, 0, time.UTC)
 	tests := []struct {
 		name     string
-		expected []grypeDB.VulnerabilityHandle
+		expected []db.VulnerabilityHandle
 	}{
 		{
 			name: "test-fixtures/GHSA-2wgc-48g2-cj5w.json",
-			expected: []grypeDB.VulnerabilityHandle{
+			expected: []db.VulnerabilityHandle{
 				{
 					Name:       "GHSA-2wgc-48g2-cj5w",
 					ProviderID: "github",
-					Provider: &grypeDB.Provider{
+					Provider: &db.Provider{
 						ID:           "github",
 						Version:      "1",
 						DateCaptured: &now,
@@ -89,24 +89,24 @@ func TestGetVulnerability(t *testing.T) {
 					ModifiedDate:  internal.ParseTime("2024-02-08T22:48:31Z"),
 					PublishedDate: internal.ParseTime("2024-01-30T20:56:46Z"),
 					WithdrawnDate: nil,
-					Status:        grypeDB.VulnerabilityActive,
-					BlobValue: &grypeDB.VulnerabilityBlob{
+					Status:        db.VulnerabilityActive,
+					BlobValue: &db.VulnerabilityBlob{
 						ID:          "GHSA-2wgc-48g2-cj5w",
 						Description: "vantage6 has insecure SSH configuration for node and server containers",
-						References: []grypeDB.Reference{
+						References: []db.Reference{
 							{
 								URL: "https://github.com/advisories/GHSA-2wgc-48g2-cj5w",
 							},
 						},
 						Aliases: []string{"CVE-2024-21653"},
-						Severities: []grypeDB.Severity{
+						Severities: []db.Severity{
 							{
-								Scheme: grypeDB.SeveritySchemeCHML,
+								Scheme: db.SeveritySchemeCHML,
 								Value:  "medium",
 							},
 							{
-								Scheme: grypeDB.SeveritySchemeCVSS,
-								Value: grypeDB.CVSSSeverity{
+								Scheme: db.SeveritySchemeCVSS,
+								Value: db.CVSSSeverity{
 									Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N",
 									Version: "3.1",
 								},
@@ -118,11 +118,11 @@ func TestGetVulnerability(t *testing.T) {
 		},
 		{
 			name: "test-fixtures/GHSA-3x74-v64j-qc3f.json",
-			expected: []grypeDB.VulnerabilityHandle{
+			expected: []db.VulnerabilityHandle{
 				{
 					Name:       "GHSA-3x74-v64j-qc3f",
 					ProviderID: "github",
-					Provider: &grypeDB.Provider{
+					Provider: &db.Provider{
 						ID:           "github",
 						Version:      "1",
 						DateCaptured: &now,
@@ -130,24 +130,24 @@ func TestGetVulnerability(t *testing.T) {
 					ModifiedDate:  internal.ParseTime("2024-03-21T17:48:19Z"),
 					PublishedDate: internal.ParseTime("2023-06-13T18:30:39Z"),
 					WithdrawnDate: internal.ParseTime("2023-06-28T23:54:39Z"),
-					Status:        grypeDB.VulnerabilityRejected,
-					BlobValue: &grypeDB.VulnerabilityBlob{
+					Status:        db.VulnerabilityRejected,
+					BlobValue: &db.VulnerabilityBlob{
 						ID:          "GHSA-3x74-v64j-qc3f",
 						Description: "Withdrawn Advisory: CraftCMS Server-Side Template Injection vulnerability",
-						References: []grypeDB.Reference{
+						References: []db.Reference{
 							{
 								URL: "https://github.com/advisories/GHSA-3x74-v64j-qc3f",
 							},
 						},
 						Aliases: []string{"CVE-2023-30179"},
-						Severities: []grypeDB.Severity{
+						Severities: []db.Severity{
 							{
-								Scheme: grypeDB.SeveritySchemeCHML,
+								Scheme: db.SeveritySchemeCHML,
 								Value:  "high",
 							},
 							{
-								Scheme: grypeDB.SeveritySchemeCVSS,
-								Value: grypeDB.CVSSSeverity{
+								Scheme: db.SeveritySchemeCVSS,
+								Value: db.CVSSSeverity{
 									Vector:  "CVSS:3.1/AV:N/AC:L/PR:H/UI:N/S:U/C:H/I:H/A:H",
 									Version: "3.1",
 								},
@@ -159,11 +159,11 @@ func TestGetVulnerability(t *testing.T) {
 		},
 		{
 			name: "test-fixtures/github-github-npm-0.json",
-			expected: []grypeDB.VulnerabilityHandle{
+			expected: []db.VulnerabilityHandle{
 				{
 					Name:       "GHSA-vc9j-fhvv-8vrf",
 					ProviderID: "github",
-					Provider: &grypeDB.Provider{
+					Provider: &db.Provider{
 						ID:           "github",
 						Version:      "1",
 						DateCaptured: &now,
@@ -171,24 +171,24 @@ func TestGetVulnerability(t *testing.T) {
 					ModifiedDate:  internal.ParseTime("2023-01-09T05:03:39Z"),
 					PublishedDate: internal.ParseTime("2020-07-27T19:55:52Z"),
 					WithdrawnDate: nil,
-					Status:        grypeDB.VulnerabilityActive,
-					BlobValue: &grypeDB.VulnerabilityBlob{
+					Status:        db.VulnerabilityActive,
+					BlobValue: &db.VulnerabilityBlob{
 						ID:          "GHSA-vc9j-fhvv-8vrf",
 						Description: "Remote Code Execution in scratch-vm",
-						References: []grypeDB.Reference{
+						References: []db.Reference{
 							{
 								URL: "https://github.com/advisories/GHSA-vc9j-fhvv-8vrf",
 							},
 						},
 						Aliases: []string{"CVE-2020-14000"},
-						Severities: []grypeDB.Severity{
+						Severities: []db.Severity{
 							{
-								Scheme: grypeDB.SeveritySchemeCHML,
+								Scheme: db.SeveritySchemeCHML,
 								Value:  "critical",
 							},
 							{
-								Scheme: grypeDB.SeveritySchemeCVSS,
-								Value: grypeDB.CVSSSeverity{
+								Scheme: db.SeveritySchemeCVSS,
+								Value: db.CVSSSeverity{
 									Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
 									Version: "3.1",
 								},
@@ -200,20 +200,20 @@ func TestGetVulnerability(t *testing.T) {
 		},
 		{
 			name: "test-fixtures/github-github-python-0.json",
-			expected: []grypeDB.VulnerabilityHandle{
+			expected: []db.VulnerabilityHandle{
 				{
 					Name:       "GHSA-6cwv-x26c-w2q4",
 					ProviderID: "github",
-					Provider: &grypeDB.Provider{
+					Provider: &db.Provider{
 						ID:           "github",
 						Version:      "1",
 						DateCaptured: &now,
 					},
 					Status: "active",
-					BlobValue: &grypeDB.VulnerabilityBlob{
+					BlobValue: &db.VulnerabilityBlob{
 						ID:          "GHSA-6cwv-x26c-w2q4",
 						Description: "Low severity vulnerability that affects notebook",
-						References: []grypeDB.Reference{
+						References: []db.Reference{
 							{
 								URL: "https://github.com/advisories/GHSA-6cwv-x26c-w2q4",
 							},
@@ -221,9 +221,9 @@ func TestGetVulnerability(t *testing.T) {
 
 						Aliases: []string{"CVE-2018-8768"},
 
-						Severities: []grypeDB.Severity{
+						Severities: []db.Severity{
 							{
-								Scheme: grypeDB.SeveritySchemeCHML,
+								Scheme: db.SeveritySchemeCHML,
 								Value:  "low",
 							},
 						},
@@ -232,24 +232,24 @@ func TestGetVulnerability(t *testing.T) {
 				{
 					Name:       "GHSA-p5wr-vp8g-q5p4",
 					ProviderID: "github",
-					Provider: &grypeDB.Provider{
+					Provider: &db.Provider{
 						ID:           "github",
 						Version:      "1",
 						DateCaptured: &now,
 					},
 					Status: "active",
-					BlobValue: &grypeDB.VulnerabilityBlob{
+					BlobValue: &db.VulnerabilityBlob{
 						ID:          "GHSA-p5wr-vp8g-q5p4",
 						Description: "Moderate severity vulnerability that affects Plone",
-						References: []grypeDB.Reference{
+						References: []db.Reference{
 							{
 								URL: "https://github.com/advisories/GHSA-p5wr-vp8g-q5p4",
 							},
 						},
 						Aliases: []string{"CVE-2017-5524"},
-						Severities: []grypeDB.Severity{
+						Severities: []db.Severity{
 							{
-								Scheme: grypeDB.SeveritySchemeCHML,
+								Scheme: db.SeveritySchemeCHML,
 								Value:  "medium",
 							},
 						},
@@ -259,11 +259,11 @@ func TestGetVulnerability(t *testing.T) {
 		},
 		{
 			name: "test-fixtures/github-withdrawn.json",
-			expected: []grypeDB.VulnerabilityHandle{
+			expected: []db.VulnerabilityHandle{
 				{
 					Name:       "GHSA-6cwv-x26c-w2q4",
 					ProviderID: "github",
-					Provider: &grypeDB.Provider{
+					Provider: &db.Provider{
 						ID:           "github",
 						Version:      "1",
 						DateCaptured: &now,
@@ -271,19 +271,19 @@ func TestGetVulnerability(t *testing.T) {
 					ModifiedDate:  nil,
 					PublishedDate: nil,
 					WithdrawnDate: internal.ParseTime("2022-01-31T14:32:09Z"),
-					Status:        grypeDB.VulnerabilityRejected,
-					BlobValue: &grypeDB.VulnerabilityBlob{
+					Status:        db.VulnerabilityRejected,
+					BlobValue: &db.VulnerabilityBlob{
 						ID:          "GHSA-6cwv-x26c-w2q4",
 						Description: "Low severity vulnerability that affects notebook",
-						References: []grypeDB.Reference{
+						References: []db.Reference{
 							{
 								URL: "https://github.com/advisories/GHSA-6cwv-x26c-w2q4",
 							},
 						},
 						Aliases: []string{"CVE-2018-8768"},
-						Severities: []grypeDB.Severity{
+						Severities: []db.Severity{
 							{
-								Scheme: grypeDB.SeveritySchemeCHML,
+								Scheme: db.SeveritySchemeCHML,
 								Value:  "low",
 							},
 						},
@@ -293,28 +293,28 @@ func TestGetVulnerability(t *testing.T) {
 		},
 		{
 			name: "test-fixtures/multiple-fixed-in-names.json",
-			expected: []grypeDB.VulnerabilityHandle{
+			expected: []db.VulnerabilityHandle{
 				{
 					Name:       "GHSA-p5wr-vp8g-q5p4",
 					ProviderID: "github",
-					Provider: &grypeDB.Provider{
+					Provider: &db.Provider{
 						ID:           "github",
 						Version:      "1",
 						DateCaptured: &now,
 					},
-					Status: grypeDB.VulnerabilityActive,
-					BlobValue: &grypeDB.VulnerabilityBlob{
+					Status: db.VulnerabilityActive,
+					BlobValue: &db.VulnerabilityBlob{
 						ID:          "GHSA-p5wr-vp8g-q5p4",
 						Description: "Moderate severity vulnerability that affects Plone",
-						References: []grypeDB.Reference{
+						References: []db.Reference{
 							{
 								URL: "https://github.com/advisories/GHSA-p5wr-vp8g-q5p4",
 							},
 						},
 						Aliases: []string{"CVE-2017-5524"},
-						Severities: []grypeDB.Severity{
+						Severities: []db.Severity{
 							{
-								Scheme: grypeDB.SeveritySchemeCHML,
+								Scheme: db.SeveritySchemeCHML,
 								Value:  "medium",
 							},
 						},
@@ -324,11 +324,11 @@ func TestGetVulnerability(t *testing.T) {
 		},
 		{
 			name: "test-fixtures/GHSA-qc55-vm3j-74gp.json",
-			expected: []grypeDB.VulnerabilityHandle{
+			expected: []db.VulnerabilityHandle{
 				{
 					Name:       "GHSA-qc55-vm3j-74gp",
 					ProviderID: "github",
-					Provider: &grypeDB.Provider{
+					Provider: &db.Provider{
 						ID:           "github",
 						Version:      "1",
 						DateCaptured: &now,
@@ -336,11 +336,11 @@ func TestGetVulnerability(t *testing.T) {
 					ModifiedDate:  internal.ParseTime("2024-09-24T21:02:13Z"),
 					PublishedDate: internal.ParseTime("2018-07-12T20:30:36Z"),
 					WithdrawnDate: nil,
-					Status:        grypeDB.VulnerabilityActive,
-					BlobValue: &grypeDB.VulnerabilityBlob{
+					Status:        db.VulnerabilityActive,
+					BlobValue: &db.VulnerabilityBlob{
 						ID:          "GHSA-qc55-vm3j-74gp",
 						Description: "JSNAPy allows unprivileged local users to alter files under the directory",
-						References: []grypeDB.Reference{
+						References: []db.Reference{
 							{
 								URL: "https://github.com/advisories/GHSA-qc55-vm3j-74gp",
 							},
@@ -358,21 +358,21 @@ func TestGetVulnerability(t *testing.T) {
 							},
 						},
 						Aliases: []string{"CVE-2018-0023"},
-						Severities: []grypeDB.Severity{
+						Severities: []db.Severity{
 							{
-								Scheme: grypeDB.SeveritySchemeCHML,
+								Scheme: db.SeveritySchemeCHML,
 								Value:  "high",
 							},
 							{
-								Scheme: grypeDB.SeveritySchemeCVSS,
-								Value: grypeDB.CVSSSeverity{
+								Scheme: db.SeveritySchemeCVSS,
+								Value: db.CVSSSeverity{
 									Vector:  "CVSS:3.0/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:N",
 									Version: "3.0",
 								},
 							},
 							{
-								Scheme: grypeDB.SeveritySchemeCVSS,
-								Value: grypeDB.CVSSSeverity{
+								Scheme: db.SeveritySchemeCVSS,
+								Value: db.CVSSSeverity{
 									Vector:  "CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:N/VI:H/VA:N/SC:N/SI:N/SA:N",
 									Version: "4.0",
 								},
@@ -387,7 +387,7 @@ func TestGetVulnerability(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			advisories := loadFixture(t, tt.name)
-			var results []grypeDB.VulnerabilityHandle
+			var results []db.VulnerabilityHandle
 
 			for _, advisory := range advisories {
 				result := getVulnerability(advisory, provider.State{Provider: "github", Version: 1, Timestamp: now})
@@ -403,29 +403,29 @@ func TestGetVulnerability(t *testing.T) {
 func TestGetAffectedPackage(t *testing.T) {
 	tests := []struct {
 		name     string
-		expected []grypeDB.AffectedPackageHandle
+		expected []db.AffectedPackageHandle
 	}{
 		{
 			name: "test-fixtures/GHSA-2wgc-48g2-cj5w.json",
-			expected: []grypeDB.AffectedPackageHandle{
+			expected: []db.AffectedPackageHandle{
 				{
-					Package: &grypeDB.Package{
+					Package: &db.Package{
 						Name:      "vantage6",
 						Ecosystem: "python",
 					},
-					BlobValue: &grypeDB.PackageBlob{
+					BlobValue: &db.PackageBlob{
 						CVEs: []string{"CVE-2024-21653"},
-						Ranges: []grypeDB.Range{
+						Ranges: []db.Range{
 							{
-								Version: grypeDB.Version{
+								Version: db.Version{
 									Type:       "python",
 									Constraint: "<4.2.0",
 								},
-								Fix: &grypeDB.Fix{
+								Fix: &db.Fix{
 									Version: "4.2.0",
-									State:   grypeDB.FixedStatus,
-									Detail: &grypeDB.FixDetail{
-										Available: &grypeDB.FixAvailability{
+									State:   db.FixedStatus,
+									Detail: &db.FixDetail{
+										Available: &db.FixAvailability{
 											Date: internal.ParseTime("2024-01-30T15:00:00Z"),
 											Kind: "advisory",
 										},
@@ -439,23 +439,23 @@ func TestGetAffectedPackage(t *testing.T) {
 		},
 		{
 			name: "test-fixtures/GHSA-3x74-v64j-qc3f.json",
-			expected: []grypeDB.AffectedPackageHandle{
+			expected: []db.AffectedPackageHandle{
 				{
-					Package: &grypeDB.Package{
+					Package: &db.Package{
 						Name:      "craftcms/cms",
 						Ecosystem: "packagist",
 					},
-					BlobValue: &grypeDB.PackageBlob{
+					BlobValue: &db.PackageBlob{
 						CVEs: []string{"CVE-2023-30179"},
-						Ranges: []grypeDB.Range{
+						Ranges: []db.Range{
 							{
-								Version: grypeDB.Version{
+								Version: db.Version{
 									Type:       "packagist",
 									Constraint: "<4.4.2",
 								},
-								Fix: &grypeDB.Fix{
+								Fix: &db.Fix{
 									Version: "4.4.2",
-									State:   grypeDB.FixedStatus,
+									State:   db.FixedStatus,
 								},
 							},
 						},
@@ -465,23 +465,23 @@ func TestGetAffectedPackage(t *testing.T) {
 		},
 		{
 			name: "test-fixtures/github-github-npm-0.json",
-			expected: []grypeDB.AffectedPackageHandle{
+			expected: []db.AffectedPackageHandle{
 				{
-					Package: &grypeDB.Package{
+					Package: &db.Package{
 						Name:      "scratch-vm",
 						Ecosystem: "npm",
 					},
-					BlobValue: &grypeDB.PackageBlob{
+					BlobValue: &db.PackageBlob{
 						CVEs: []string{"CVE-2020-14000"},
-						Ranges: []grypeDB.Range{
+						Ranges: []db.Range{
 							{
-								Version: grypeDB.Version{
+								Version: db.Version{
 									Type:       "npm",
 									Constraint: "<=0.2.0-prerelease.20200709173451",
 								},
-								Fix: &grypeDB.Fix{
+								Fix: &db.Fix{
 									Version: "0.2.0-prerelease.20200714185213",
-									State:   grypeDB.FixedStatus,
+									State:   db.FixedStatus,
 								},
 							},
 						},
@@ -491,34 +491,34 @@ func TestGetAffectedPackage(t *testing.T) {
 		},
 		{
 			name: "test-fixtures/github-github-python-0.json",
-			expected: []grypeDB.AffectedPackageHandle{
+			expected: []db.AffectedPackageHandle{
 				{
-					Package: &grypeDB.Package{
+					Package: &db.Package{
 						Ecosystem: "python",
 						Name:      "notebook",
 					},
-					BlobValue: &grypeDB.PackageBlob{
+					BlobValue: &db.PackageBlob{
 						CVEs:       []string{"CVE-2018-8768"},
 						Qualifiers: nil,
-						Ranges: []grypeDB.Range{
+						Ranges: []db.Range{
 							{
-								Version: grypeDB.Version{Type: "python", Constraint: "<5.4.1"},
-								Fix:     &grypeDB.Fix{Version: "5.4.1", State: grypeDB.FixedStatus},
+								Version: db.Version{Type: "python", Constraint: "<5.4.1"},
+								Fix:     &db.Fix{Version: "5.4.1", State: db.FixedStatus},
 							},
 						},
 					},
 				},
 				{
-					Package: &grypeDB.Package{
+					Package: &db.Package{
 						Ecosystem: "python",
 						Name:      "Plone",
 					},
-					BlobValue: &grypeDB.PackageBlob{
+					BlobValue: &db.PackageBlob{
 						CVEs: []string{"CVE-2017-5524"},
-						Ranges: []grypeDB.Range{
+						Ranges: []db.Range{
 							{
-								Version: grypeDB.Version{Type: "python", Constraint: ">=4.0,<4.3.12"},
-								Fix:     &grypeDB.Fix{Version: "4.3.12", State: grypeDB.FixedStatus},
+								Version: db.Version{Type: "python", Constraint: ">=4.0,<4.3.12"},
+								Fix:     &db.Fix{Version: "4.3.12", State: db.FixedStatus},
 							},
 						},
 					},
@@ -527,25 +527,25 @@ func TestGetAffectedPackage(t *testing.T) {
 		},
 		{
 			name: "test-fixtures/multiple-fixed-in-names.json",
-			expected: []grypeDB.AffectedPackageHandle{
+			expected: []db.AffectedPackageHandle{
 				{
-					Package: &grypeDB.Package{
+					Package: &db.Package{
 						Name:      "Plone",
 						Ecosystem: "python",
 					},
-					BlobValue: &grypeDB.PackageBlob{
+					BlobValue: &db.PackageBlob{
 						CVEs: []string{"CVE-2017-5524"},
-						Ranges: []grypeDB.Range{
+						Ranges: []db.Range{
 							{
-								Version: grypeDB.Version{
+								Version: db.Version{
 									Type:       "python",
 									Constraint: ">=4.0,<4.3.12",
 								},
-								Fix: &grypeDB.Fix{
+								Fix: &db.Fix{
 									Version: "4.3.12",
-									State:   grypeDB.FixedStatus,
-									Detail: &grypeDB.FixDetail{
-										Available: &grypeDB.FixAvailability{
+									State:   db.FixedStatus,
+									Detail: &db.FixDetail{
+										Available: &db.FixAvailability{
 											Date: internal.ParseTime("2017-05-20T10:30:45Z"),
 											Kind: "release",
 										},
@@ -556,23 +556,23 @@ func TestGetAffectedPackage(t *testing.T) {
 					},
 				},
 				{
-					Package: &grypeDB.Package{
+					Package: &db.Package{
 						Name:      "Plone",
 						Ecosystem: "python",
 					},
-					BlobValue: &grypeDB.PackageBlob{
+					BlobValue: &db.PackageBlob{
 						CVEs: []string{"CVE-2017-5524"},
-						Ranges: []grypeDB.Range{
+						Ranges: []db.Range{
 							{
-								Version: grypeDB.Version{
+								Version: db.Version{
 									Type:       "python",
 									Constraint: ">=5.1a1,<5.1b1",
 								},
-								Fix: &grypeDB.Fix{
+								Fix: &db.Fix{
 									Version: "5.1b1",
-									State:   grypeDB.FixedStatus,
-									Detail: &grypeDB.FixDetail{
-										Available: &grypeDB.FixAvailability{
+									State:   db.FixedStatus,
+									Detail: &db.FixDetail{
+										Available: &db.FixAvailability{
 											Date: internal.ParseTime("2017-06-15T14:22:33Z"),
 											Kind: "commit",
 										},
@@ -583,21 +583,21 @@ func TestGetAffectedPackage(t *testing.T) {
 					},
 				},
 				{
-					Package: &grypeDB.Package{
+					Package: &db.Package{
 						Name:      "Plone-debug",
 						Ecosystem: "python",
 					},
-					BlobValue: &grypeDB.PackageBlob{
+					BlobValue: &db.PackageBlob{
 						CVEs: []string{"CVE-2017-5524"},
-						Ranges: []grypeDB.Range{
+						Ranges: []db.Range{
 							{
-								Version: grypeDB.Version{
+								Version: db.Version{
 									Type:       "python",
 									Constraint: ">=5.0rc1,<5.0.7",
 								},
-								Fix: &grypeDB.Fix{
+								Fix: &db.Fix{
 									Version: "5.0.7",
-									State:   grypeDB.FixedStatus,
+									State:   db.FixedStatus,
 								},
 							},
 						},
@@ -610,7 +610,7 @@ func TestGetAffectedPackage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			advisories := loadFixture(t, tt.name)
-			var results []grypeDB.AffectedPackageHandle
+			var results []db.AffectedPackageHandle
 			for _, advisor := range advisories {
 				result := getAffectedPackage(advisor)
 				results = append(results, result...)
@@ -671,39 +671,39 @@ func TestGetRanges(t *testing.T) {
 	advisories := loadFixture(t, "test-fixtures/GHSA-92cp-5422-2mw7.json")
 	require.Len(t, advisories, 1)
 	advisory := advisories[0]
-	var ranges []grypeDB.Range
-	expectedRanges := []grypeDB.Range{
+	var ranges []db.Range
+	expectedRanges := []db.Range{
 		{
-			Version: grypeDB.Version{
+			Version: db.Version{
 				Type:       "go",
 				Constraint: ">=9.7.0-beta.1,<9.7.3",
 			},
-			Fix: &grypeDB.Fix{
+			Fix: &db.Fix{
 				Version: "9.7.3",
-				State:   grypeDB.FixedStatus,
+				State:   db.FixedStatus,
 			},
 		},
 		{
-			Version: grypeDB.Version{
+			Version: db.Version{
 				// important: this emits an unknown constraint type,
 				// triggering fuzzy matching when the input is not
 				// valid semver
 				Type:       "Unknown",
 				Constraint: ">=9.6.0b1,<9.6.3",
 			},
-			Fix: &grypeDB.Fix{
+			Fix: &db.Fix{
 				Version: "9.6.3",
-				State:   grypeDB.FixedStatus,
+				State:   db.FixedStatus,
 			},
 		},
 		{
-			Version: grypeDB.Version{
+			Version: db.Version{
 				Type:       "go",
 				Constraint: ">=9.5.1,<9.5.5",
 			},
-			Fix: &grypeDB.Fix{
+			Fix: &db.Fix{
 				Version: "9.5.5",
-				State:   grypeDB.FixedStatus,
+				State:   db.FixedStatus,
 			},
 		},
 	}
@@ -726,12 +726,12 @@ func TestGetFixAvailability(t *testing.T) {
 	tests := []struct {
 		name     string
 		fixture  string
-		expected map[string]*grypeDB.FixAvailability // keyed by package identifier for fixture-based testing
+		expected map[string]*db.FixAvailability // keyed by package identifier for fixture-based testing
 	}{
 		{
 			name:    "GHSA-2wgc-48g2-cj5w with advisory availability",
 			fixture: "test-fixtures/GHSA-2wgc-48g2-cj5w.json",
-			expected: map[string]*grypeDB.FixAvailability{
+			expected: map[string]*db.FixAvailability{
 				"4.2.0": {
 					Date: internal.ParseTime("2024-01-30T15:00:00Z"),
 					Kind: "advisory",
@@ -741,7 +741,7 @@ func TestGetFixAvailability(t *testing.T) {
 		{
 			name:    "multiple-fixed-in-names with mixed availability",
 			fixture: "test-fixtures/multiple-fixed-in-names.json",
-			expected: map[string]*grypeDB.FixAvailability{
+			expected: map[string]*db.FixAvailability{
 				"4.3.12": {
 					Date: internal.ParseTime("2017-05-20T10:30:45Z"),
 					Kind: "release",
@@ -796,17 +796,17 @@ func TestGetFix(t *testing.T) {
 	tests := []struct {
 		name     string
 		fixture  string
-		expected map[string]*grypeDB.Fix // keyed by package identifier
+		expected map[string]*db.Fix // keyed by package identifier
 	}{
 		{
 			name:    "GHSA-2wgc-48g2-cj5w with availability",
 			fixture: "test-fixtures/GHSA-2wgc-48g2-cj5w.json",
-			expected: map[string]*grypeDB.Fix{
+			expected: map[string]*db.Fix{
 				"4.2.0": {
 					Version: "4.2.0",
-					State:   grypeDB.FixedStatus,
-					Detail: &grypeDB.FixDetail{
-						Available: &grypeDB.FixAvailability{
+					State:   db.FixedStatus,
+					Detail: &db.FixDetail{
+						Available: &db.FixAvailability{
 							Date: internal.ParseTime("2024-01-30T15:00:00Z"),
 							Kind: "advisory",
 						},
@@ -817,12 +817,12 @@ func TestGetFix(t *testing.T) {
 		{
 			name:    "multiple-fixed-in-names with mixed availability",
 			fixture: "test-fixtures/multiple-fixed-in-names.json",
-			expected: map[string]*grypeDB.Fix{
+			expected: map[string]*db.Fix{
 				"4.3.12": {
 					Version: "4.3.12",
-					State:   grypeDB.FixedStatus,
-					Detail: &grypeDB.FixDetail{
-						Available: &grypeDB.FixAvailability{
+					State:   db.FixedStatus,
+					Detail: &db.FixDetail{
+						Available: &db.FixAvailability{
 							Date: internal.ParseTime("2017-05-20T10:30:45Z"),
 							Kind: "release",
 						},
@@ -830,9 +830,9 @@ func TestGetFix(t *testing.T) {
 				},
 				"5.1b1": {
 					Version: "5.1b1",
-					State:   grypeDB.FixedStatus,
-					Detail: &grypeDB.FixDetail{
-						Available: &grypeDB.FixAvailability{
+					State:   db.FixedStatus,
+					Detail: &db.FixDetail{
+						Available: &db.FixAvailability{
 							Date: internal.ParseTime("2017-06-15T14:22:33Z"),
 							Kind: "commit",
 						},
@@ -840,7 +840,7 @@ func TestGetFix(t *testing.T) {
 				},
 				"5.0.7": {
 					Version: "5.0.7",
-					State:   grypeDB.FixedStatus,
+					State:   db.FixedStatus,
 					Detail:  nil, // no availability data
 				},
 			},
@@ -873,9 +873,9 @@ func TestGetFix(t *testing.T) {
 				Kind string `json:"kind,omitempty"`
 			}{},
 		}
-		expected := &grypeDB.Fix{
+		expected := &db.Fix{
 			Version: "",
-			State:   grypeDB.NotFixedStatus,
+			State:   db.NotFixedStatus,
 			Detail:  nil,
 		}
 		result := getFix(fixedIn)

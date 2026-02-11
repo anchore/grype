@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
-	testUtils "github.com/anchore/grype/grype/db/internal/tests"
-	grypeDB "github.com/anchore/grype/grype/db/v5"
+	"github.com/anchore/grype/grype/db/internal/testutil"
+	db "github.com/anchore/grype/grype/db/v5"
 	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/build/internal/transformers"
 	"github.com/anchore/grype/grype/db/v5/namespace"
@@ -77,7 +77,7 @@ func TestBuildGrypeNamespace(t *testing.T) {
 func TestUnmarshalGitHubEntries(t *testing.T) {
 	f, err := os.Open("test-fixtures/github-github-python-0.json")
 	require.NoError(t, err)
-	defer testUtils.CloseFile(f)
+	defer testutil.CloseFile(f)
 
 	entries, err := unmarshal.GitHubAdvisoryEntries(f)
 	require.NoError(t, err)
@@ -87,12 +87,12 @@ func TestUnmarshalGitHubEntries(t *testing.T) {
 }
 
 func TestParseGitHubEntry(t *testing.T) {
-	expectedVulns := []grypeDB.Vulnerability{
+	expectedVulns := []db.Vulnerability{
 		{
 			ID:                "GHSA-p5wr-vp8g-q5p4",
 			VersionConstraint: ">=4.0,<4.3.12",
 			VersionFormat:     "python",
-			RelatedVulnerabilities: []grypeDB.VulnerabilityReference{
+			RelatedVulnerabilities: []db.VulnerabilityReference{
 				{
 					ID:        "CVE-2017-5524",
 					Namespace: "nvd:cpe",
@@ -100,8 +100,8 @@ func TestParseGitHubEntry(t *testing.T) {
 			},
 			PackageName: "plone",
 			Namespace:   "github:language:python",
-			Fix: grypeDB.Fix{
-				State:    grypeDB.FixedState,
+			Fix: db.Fix{
+				State:    db.FixedState,
 				Versions: []string{"4.3.12"},
 			},
 		},
@@ -109,7 +109,7 @@ func TestParseGitHubEntry(t *testing.T) {
 			ID:                "GHSA-p5wr-vp8g-q5p4",
 			VersionConstraint: ">=5.1a1,<5.1b1",
 			VersionFormat:     "python",
-			RelatedVulnerabilities: []grypeDB.VulnerabilityReference{
+			RelatedVulnerabilities: []db.VulnerabilityReference{
 				{
 					ID:        "CVE-2017-5524",
 					Namespace: "nvd:cpe",
@@ -117,16 +117,16 @@ func TestParseGitHubEntry(t *testing.T) {
 			},
 			PackageName: "plone",
 			Namespace:   "github:language:python",
-			Fix: grypeDB.Fix{
+			Fix: db.Fix{
 				Versions: []string{"5.1b1"},
-				State:    grypeDB.FixedState,
+				State:    db.FixedState,
 			},
 		},
 		{
 			ID:                "GHSA-p5wr-vp8g-q5p4",
 			VersionConstraint: ">=5.0rc1,<5.0.7",
 			VersionFormat:     "python",
-			RelatedVulnerabilities: []grypeDB.VulnerabilityReference{
+			RelatedVulnerabilities: []db.VulnerabilityReference{
 				{
 					ID:        "CVE-2017-5524",
 					Namespace: "nvd:cpe",
@@ -134,14 +134,14 @@ func TestParseGitHubEntry(t *testing.T) {
 			},
 			PackageName: "plone",
 			Namespace:   "github:language:python",
-			Fix: grypeDB.Fix{
+			Fix: db.Fix{
 				Versions: []string{"5.0.7"},
-				State:    grypeDB.FixedState,
+				State:    db.FixedState,
 			},
 		},
 	}
 
-	expectedMetadata := grypeDB.VulnerabilityMetadata{
+	expectedMetadata := db.VulnerabilityMetadata{
 		ID:           "GHSA-p5wr-vp8g-q5p4",
 		Namespace:    "github:language:python",
 		RecordSource: "github:github:python",
@@ -153,7 +153,7 @@ func TestParseGitHubEntry(t *testing.T) {
 
 	f, err := os.Open("test-fixtures/github-github-python-1.json")
 	require.NoError(t, err)
-	defer testUtils.CloseFile(f)
+	defer testutil.CloseFile(f)
 
 	entries, err := unmarshal.GitHubAdvisoryEntries(f)
 	require.NoError(t, err)
@@ -165,12 +165,12 @@ func TestParseGitHubEntry(t *testing.T) {
 	dataEntries, err := Transform(entry)
 	require.NoError(t, err)
 
-	var vulns []grypeDB.Vulnerability
+	var vulns []db.Vulnerability
 	for _, entry := range dataEntries {
 		switch vuln := entry.Data.(type) {
-		case grypeDB.Vulnerability:
+		case db.Vulnerability:
 			vulns = append(vulns, vuln)
-		case grypeDB.VulnerabilityMetadata:
+		case db.VulnerabilityMetadata:
 			assert.Equal(t, expectedMetadata, vuln)
 		default:
 			t.Fatalf("unexpected condition: data entry does not have a vulnerability or a metadata")
@@ -186,11 +186,11 @@ func TestParseGitHubEntry(t *testing.T) {
 }
 
 func TestDefaultVersionFormatNpmGitHubEntry(t *testing.T) {
-	expectedVuln := grypeDB.Vulnerability{
+	expectedVuln := db.Vulnerability{
 		ID:                "GHSA-vc9j-fhvv-8vrf",
 		VersionConstraint: "<=0.2.0-prerelease.20200709173451",
 		VersionFormat:     "unknown", // TODO: this should reference a format, yes? (not a string)
-		RelatedVulnerabilities: []grypeDB.VulnerabilityReference{
+		RelatedVulnerabilities: []db.VulnerabilityReference{
 			{
 				ID:        "CVE-2020-14000",
 				Namespace: "nvd:cpe",
@@ -198,13 +198,13 @@ func TestDefaultVersionFormatNpmGitHubEntry(t *testing.T) {
 		},
 		PackageName: "scratch-vm",
 		Namespace:   "github:language:javascript",
-		Fix: grypeDB.Fix{
+		Fix: db.Fix{
 			Versions: []string{"0.2.0-prerelease.20200714185213"},
-			State:    grypeDB.FixedState,
+			State:    db.FixedState,
 		},
 	}
 
-	expectedMetadata := grypeDB.VulnerabilityMetadata{
+	expectedMetadata := db.VulnerabilityMetadata{
 		ID:           "GHSA-vc9j-fhvv-8vrf",
 		Namespace:    "github:language:javascript",
 		RecordSource: "github:github:npm",
@@ -212,7 +212,7 @@ func TestDefaultVersionFormatNpmGitHubEntry(t *testing.T) {
 		Severity:     "Critical",
 		URLs:         []string{"https://github.com/advisories/GHSA-vc9j-fhvv-8vrf"},
 		Description:  "Remote Code Execution in scratch-vm",
-		Cvss: []grypeDB.Cvss{
+		Cvss: []db.Cvss{
 			{
 				VendorMetadata: transformers.VendorBaseMetrics{
 					BaseSeverity: "Critical",
@@ -227,7 +227,7 @@ func TestDefaultVersionFormatNpmGitHubEntry(t *testing.T) {
 
 	f, err := os.Open("test-fixtures/github-github-npm-0.json")
 	require.NoError(t, err)
-	defer testUtils.CloseFile(f)
+	defer testutil.CloseFile(f)
 
 	entries, err := unmarshal.GitHubAdvisoryEntries(f)
 	require.NoError(t, err)
@@ -241,9 +241,9 @@ func TestDefaultVersionFormatNpmGitHubEntry(t *testing.T) {
 
 	for _, entry := range dataEntries {
 		switch vuln := entry.Data.(type) {
-		case grypeDB.Vulnerability:
+		case db.Vulnerability:
 			assert.Equal(t, expectedVuln, vuln)
-		case grypeDB.VulnerabilityMetadata:
+		case db.VulnerabilityMetadata:
 			assert.Equal(t, expectedMetadata, vuln)
 		default:
 			t.Fatalf("unexpected condition: data entry does not have a vulnerability or a metadata")
@@ -257,7 +257,7 @@ func TestDefaultVersionFormatNpmGitHubEntry(t *testing.T) {
 func TestFilterWithdrawnEntries(t *testing.T) {
 	f, err := os.Open("test-fixtures/github-withdrawn.json")
 	require.NoError(t, err)
-	defer testUtils.CloseFile(f)
+	defer testutil.CloseFile(f)
 
 	entries, err := unmarshal.GitHubAdvisoryEntries(f)
 	require.NoError(t, err)

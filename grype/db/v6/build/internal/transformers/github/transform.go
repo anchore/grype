@@ -8,9 +8,9 @@ import (
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/internal/versionutil"
 	"github.com/anchore/grype/grype/db/provider"
-	grypeDB "github.com/anchore/grype/grype/db/v6"
+	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers"
-	internal2 "github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
+	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
 	"github.com/anchore/grype/grype/db/v6/name"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/internal/log"
@@ -29,16 +29,16 @@ func Transform(vulnerability unmarshal.GitHubAdvisory, state provider.State) ([]
 	return transformers.NewEntries(ins...), nil
 }
 
-func getVulnerability(vuln unmarshal.GitHubAdvisory, state provider.State) grypeDB.VulnerabilityHandle {
-	return grypeDB.VulnerabilityHandle{
+func getVulnerability(vuln unmarshal.GitHubAdvisory, state provider.State) db.VulnerabilityHandle {
+	return db.VulnerabilityHandle{
 		Name:          vuln.Advisory.GhsaID,
 		ProviderID:    state.Provider,
-		Provider:      internal2.ProviderModel(state),
-		ModifiedDate:  internal2.ParseTime(vuln.Advisory.Updated),
-		PublishedDate: internal2.ParseTime(vuln.Advisory.Published),
-		WithdrawnDate: internal2.ParseTime(vuln.Advisory.Withdrawn),
+		Provider:      internal.ProviderModel(state),
+		ModifiedDate:  internal.ParseTime(vuln.Advisory.Updated),
+		PublishedDate: internal.ParseTime(vuln.Advisory.Published),
+		WithdrawnDate: internal.ParseTime(vuln.Advisory.Withdrawn),
 		Status:        getVulnStatus(vuln),
-		BlobValue: &grypeDB.VulnerabilityBlob{
+		BlobValue: &db.VulnerabilityBlob{
 			ID: vuln.Advisory.GhsaID,
 			// it does not appear to be possible to get "credits" or any user information from the graphql API
 			// for security advisories (see https://docs.github.com/en/graphql/reference/queries#securityadvisories),
@@ -52,16 +52,16 @@ func getVulnerability(vuln unmarshal.GitHubAdvisory, state provider.State) grype
 	}
 }
 
-func getVulnStatus(vuln unmarshal.GitHubAdvisory) grypeDB.VulnerabilityStatus {
+func getVulnStatus(vuln unmarshal.GitHubAdvisory) db.VulnerabilityStatus {
 	if vuln.Advisory.Withdrawn == "" {
-		return grypeDB.VulnerabilityActive
+		return db.VulnerabilityActive
 	}
 
-	return grypeDB.VulnerabilityRejected
+	return db.VulnerabilityRejected
 }
 
-func getAffectedPackage(vuln unmarshal.GitHubAdvisory) []grypeDB.AffectedPackageHandle {
-	var afs []grypeDB.AffectedPackageHandle
+func getAffectedPackage(vuln unmarshal.GitHubAdvisory) []db.AffectedPackageHandle {
+	var afs []db.AffectedPackageHandle
 	groups := groupFixedIns(vuln)
 	hasRangeErr := false
 	for group, fixedIns := range groups {
@@ -70,9 +70,9 @@ func getAffectedPackage(vuln unmarshal.GitHubAdvisory) []grypeDB.AffectedPackage
 			if rangeErr != nil {
 				hasRangeErr = true
 			}
-			afs = append(afs, grypeDB.AffectedPackageHandle{
+			afs = append(afs, db.AffectedPackageHandle{
 				Package: getPackage(group),
-				BlobValue: &grypeDB.PackageBlob{
+				BlobValue: &db.PackageBlob{
 					CVEs:   getAliases(vuln),
 					Ranges: ranges,
 				},
@@ -81,7 +81,7 @@ func getAffectedPackage(vuln unmarshal.GitHubAdvisory) []grypeDB.AffectedPackage
 	}
 
 	// stable ordering
-	sort.Sort(internal2.ByAffectedPackage(afs))
+	sort.Sort(internal.ByAffectedPackage(afs))
 
 	if hasRangeErr {
 		log.Warnf("for %s falling back to fuzzy matching on at least one constraint range", vuln.Advisory.GhsaID)
@@ -89,8 +89,8 @@ func getAffectedPackage(vuln unmarshal.GitHubAdvisory) []grypeDB.AffectedPackage
 	return afs
 }
 
-func getRanges(fixedInEntry unmarshal.GithubFixedIn) ([]grypeDB.Range, error) {
-	fixedVersion := grypeDB.Version{
+func getRanges(fixedInEntry unmarshal.GithubFixedIn) ([]db.Range, error) {
+	fixedVersion := db.Version{
 		Type:       getAffectedVersionFormat(fixedInEntry),
 		Constraint: versionutil.EnforceSemVerConstraint(fixedInEntry.Range),
 	}
@@ -99,7 +99,7 @@ func getRanges(fixedInEntry unmarshal.GithubFixedIn) ([]grypeDB.Range, error) {
 		log.Warnf("failed to validate affected version: %v", err)
 		fixedVersion.Type = version.UnknownFormat.String()
 	}
-	return []grypeDB.Range{
+	return []db.Range{
 		{
 			Version: fixedVersion,
 			Fix:     getFix(fixedInEntry),
@@ -107,7 +107,7 @@ func getRanges(fixedInEntry unmarshal.GithubFixedIn) ([]grypeDB.Range, error) {
 	}, err
 }
 
-func validateAffectedVersion(v grypeDB.Version) error {
+func validateAffectedVersion(v db.Version) error {
 	versionFormat := version.ParseFormat(v.Type)
 	c, err := version.GetConstraint(v.Constraint, versionFormat)
 	if err != nil {
@@ -137,41 +137,41 @@ func getAffectedVersionFormat(fixedInEntry unmarshal.GithubFixedIn) string {
 	return versionFormat
 }
 
-func getFix(fixedInEntry unmarshal.GithubFixedIn) *grypeDB.Fix {
+func getFix(fixedInEntry unmarshal.GithubFixedIn) *db.Fix {
 	fixedInVersion := versionutil.CleanFixedInVersion(fixedInEntry.Identifier)
 
-	fixState := grypeDB.NotFixedStatus
+	fixState := db.NotFixedStatus
 	if len(fixedInVersion) > 0 {
-		fixState = grypeDB.FixedStatus
+		fixState = db.FixedStatus
 	}
 
-	var detail *grypeDB.FixDetail
+	var detail *db.FixDetail
 	availability := getFixAvailability(fixedInEntry)
 	if availability != nil {
-		detail = &grypeDB.FixDetail{
+		detail = &db.FixDetail{
 			Available: availability,
 		}
 	}
 
-	return &grypeDB.Fix{
+	return &db.Fix{
 		Version: fixedInVersion,
 		State:   fixState,
 		Detail:  detail,
 	}
 }
 
-func getFixAvailability(fixedInEntry unmarshal.GithubFixedIn) *grypeDB.FixAvailability {
+func getFixAvailability(fixedInEntry unmarshal.GithubFixedIn) *db.FixAvailability {
 	if fixedInEntry.Available.Date == "" {
 		return nil
 	}
 
-	t := internal2.ParseTime(fixedInEntry.Available.Date)
+	t := internal.ParseTime(fixedInEntry.Available.Date)
 	if t == nil {
 		log.WithFields("date", fixedInEntry.Available.Date).Warn("unable to parse fix availability date")
 		return nil
 	}
 
-	return &grypeDB.FixAvailability{
+	return &db.FixAvailability{
 		Date: t,
 		Kind: fixedInEntry.Available.Kind,
 	}
@@ -240,44 +240,44 @@ func getPackageType(ecosystem string) pkg.Type {
 	return pkg.Type(ecosystem)
 }
 
-func getPackage(group groupIndex) *grypeDB.Package {
+func getPackage(group groupIndex) *db.Package {
 	t := getPackageType(group.ecosystem)
-	return &grypeDB.Package{
+	return &db.Package{
 		Name:      name.Normalize(group.name, t),
 		Ecosystem: string(t),
 	}
 }
 
-func getSeverities(vulnerability unmarshal.GitHubAdvisory) []grypeDB.Severity {
-	var severities []grypeDB.Severity
+func getSeverities(vulnerability unmarshal.GitHubAdvisory) []db.Severity {
+	var severities []db.Severity
 
 	// the string severity and CVSS is not necessarily correlated (nor is CVSS guaranteed to be provided
 	// at all... see https://github.com/advisories/GHSA-xwg4-93c6-3h42 for example), so we need to keep them separate
 	cleanSeverity := strings.ToLower(strings.TrimSpace(vulnerability.Advisory.Severity))
 
 	if cleanSeverity != "" {
-		severities = append(severities, grypeDB.Severity{
+		severities = append(severities, db.Severity{
 			// This is the string severity based off of CVSS v3
 			// see https://docs.github.com/en/code-security/security-advisories/working-with-global-security-advisories-from-the-github-advisory-database/about-the-github-advisory-database?learn=security_advisories&learnProduct=code-security#about-cvss-levels
-			Scheme: grypeDB.SeveritySchemeCHML,
+			Scheme: db.SeveritySchemeCHML,
 			Value:  cleanSeverity,
 		})
 	}
 
 	// If the new CVSSSeverities field isn't populated, fallback to the old CVSS property
 	if len(vulnerability.Advisory.CVSSSeverities) == 0 && vulnerability.Advisory.CVSS != nil {
-		severities = append(severities, grypeDB.Severity{
-			Scheme: grypeDB.SeveritySchemeCVSS,
-			Value: grypeDB.CVSSSeverity{
+		severities = append(severities, db.Severity{
+			Scheme: db.SeveritySchemeCVSS,
+			Value: db.CVSSSeverity{
 				Vector:  vulnerability.Advisory.CVSS.VectorString,
 				Version: vulnerability.Advisory.CVSS.Version,
 			},
 		})
 	} else {
 		for _, cvss := range vulnerability.Advisory.CVSSSeverities {
-			severities = append(severities, grypeDB.Severity{
-				Scheme: grypeDB.SeveritySchemeCVSS,
-				Value: grypeDB.CVSSSeverity{
+			severities = append(severities, db.Severity{
+				Scheme: db.SeveritySchemeCVSS,
+				Value: db.CVSSSeverity{
 					Vector:  cvss.Vector,
 					Version: cvss.Version,
 				},
@@ -293,9 +293,9 @@ func getAliases(vulnerability unmarshal.GitHubAdvisory) (aliases []string) {
 	return
 }
 
-func getReferences(vulnerability unmarshal.GitHubAdvisory) []grypeDB.Reference {
+func getReferences(vulnerability unmarshal.GitHubAdvisory) []db.Reference {
 	// Capture the GitHub Advisory URL as the first reference
-	refs := []grypeDB.Reference{
+	refs := []db.Reference{
 		{
 			URL: vulnerability.Advisory.URL,
 		},
@@ -307,7 +307,7 @@ func getReferences(vulnerability unmarshal.GitHubAdvisory) []grypeDB.Reference {
 			continue
 		}
 		// TODO there is other info we could be capturing too (source)
-		refs = append(refs, grypeDB.Reference{
+		refs = append(refs, db.Reference{
 			URL: clean,
 		})
 	}

@@ -10,7 +10,7 @@ import (
 
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/provider"
-	grypeDB "github.com/anchore/grype/grype/db/v6"
+	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
 	"github.com/anchore/grype/grype/version"
@@ -63,21 +63,21 @@ func TestOpenVEXTransform(t *testing.T) {
 				},
 			},
 			want: transformers.RelatedEntries{
-				VulnerabilityHandle: &grypeDB.VulnerabilityHandle{
+				VulnerabilityHandle: &db.VulnerabilityHandle{
 					Name:       "cve-2023-43804",
-					Status:     grypeDB.VulnerabilityActive,
+					Status:     db.VulnerabilityActive,
 					ProviderID: "openvex",
-					Provider: &grypeDB.Provider{
+					Provider: &db.Provider{
 						ID:           "openvex",
 						Version:      "1",
 						Processor:    "vunnel@1.2.3",
 						DateCaptured: &timeVal,
 						InputDigest:  "sha256:123456",
 					},
-					BlobValue: &grypeDB.VulnerabilityBlob{
+					BlobValue: &db.VulnerabilityBlob{
 						ID:          "cve-2023-43804",
 						Description: "urllib3 HTTP Request Smuggling vulnerability",
-						References: []grypeDB.Reference{
+						References: []db.Reference{
 							{
 								URL: "cve-2023-43804",
 							},
@@ -86,17 +86,17 @@ func TestOpenVEXTransform(t *testing.T) {
 					},
 				},
 				Related: []any{
-					grypeDB.AffectedPackageHandle{
-						Package: &grypeDB.Package{
+					db.AffectedPackageHandle{
+						Package: &db.Package{
 							// convert pypi -> python
 							Ecosystem: "python",
 							Name:      "urllib3",
 						},
-						BlobValue: &grypeDB.PackageBlob{
+						BlobValue: &db.PackageBlob{
 							CVEs: []string{"cve-2023-43804", "ghsa-v845-jxx5-vc9f"},
-							Ranges: []grypeDB.Range{
+							Ranges: []db.Range{
 								{
-									Version: grypeDB.Version{
+									Version: db.Version{
 										Type:       version.PythonFormat.String(),
 										Constraint: "= 1.26.16",
 									},
@@ -136,21 +136,21 @@ func TestOpenVEXTransform(t *testing.T) {
 				},
 			},
 			want: transformers.RelatedEntries{
-				VulnerabilityHandle: &grypeDB.VulnerabilityHandle{
+				VulnerabilityHandle: &db.VulnerabilityHandle{
 					Name:       "cve-2023-43804",
-					Status:     grypeDB.VulnerabilityActive,
+					Status:     db.VulnerabilityActive,
 					ProviderID: "openvex",
-					Provider: &grypeDB.Provider{
+					Provider: &db.Provider{
 						ID:           "openvex",
 						Version:      "1",
 						Processor:    "vunnel@1.2.3",
 						DateCaptured: &timeVal,
 						InputDigest:  "sha256:123456",
 					},
-					BlobValue: &grypeDB.VulnerabilityBlob{
+					BlobValue: &db.VulnerabilityBlob{
 						ID:          "cve-2023-43804",
 						Description: "Test vulnerability affecting multiple packages",
-						References: []grypeDB.Reference{
+						References: []db.Reference{
 							{
 								URL: "cve-2023-43804",
 							},
@@ -159,42 +159,42 @@ func TestOpenVEXTransform(t *testing.T) {
 					},
 				},
 				Related: []any{
-					grypeDB.UnaffectedPackageHandle{
-						Package: &grypeDB.Package{
+					db.UnaffectedPackageHandle{
+						Package: &db.Package{
 							Ecosystem: "npm",
 							Name:      "express",
 						},
-						BlobValue: &grypeDB.PackageBlob{
+						BlobValue: &db.PackageBlob{
 							CVEs: []string{"cve-2023-43804", "ghsa-v845-jxx5-vc9f"},
-							Ranges: []grypeDB.Range{
+							Ranges: []db.Range{
 								{
-									Version: grypeDB.Version{
+									Version: db.Version{
 										Type:       version.SemanticFormat.String(),
 										Constraint: "= 4.18.2",
 									},
-									Fix: &grypeDB.Fix{
-										State: grypeDB.NotAffectedFixStatus,
+									Fix: &db.Fix{
+										State: db.NotAffectedFixStatus,
 									},
 								},
 							},
 						},
 					},
-					grypeDB.UnaffectedPackageHandle{
-						Package: &grypeDB.Package{
+					db.UnaffectedPackageHandle{
+						Package: &db.Package{
 							// convert pypi -> python
 							Ecosystem: "python",
 							Name:      "urllib3",
 						},
-						BlobValue: &grypeDB.PackageBlob{
+						BlobValue: &db.PackageBlob{
 							CVEs: []string{"cve-2023-43804", "ghsa-v845-jxx5-vc9f"},
-							Ranges: []grypeDB.Range{
+							Ranges: []db.Range{
 								{
-									Version: grypeDB.Version{
+									Version: db.Version{
 										Type:       version.PythonFormat.String(),
 										Constraint: "= 1.26.16",
 									},
-									Fix: &grypeDB.Fix{
-										State: grypeDB.NotAffectedFixStatus,
+									Fix: &db.Fix{
+										State: db.NotAffectedFixStatus,
 									},
 								},
 							},
@@ -216,21 +216,21 @@ func TestOpenVEXTransform(t *testing.T) {
 				},
 			},
 			want: transformers.RelatedEntries{
-				VulnerabilityHandle: &grypeDB.VulnerabilityHandle{
+				VulnerabilityHandle: &db.VulnerabilityHandle{
 					Name:       "cve-2023-43804",
-					Status:     grypeDB.VulnerabilityActive,
+					Status:     db.VulnerabilityActive,
 					ProviderID: "openvex",
-					Provider: &grypeDB.Provider{
+					Provider: &db.Provider{
 						ID:           "openvex",
 						Version:      "1",
 						Processor:    "vunnel@1.2.3",
 						DateCaptured: &timeVal,
 						InputDigest:  "sha256:123456",
 					},
-					BlobValue: &grypeDB.VulnerabilityBlob{
+					BlobValue: &db.VulnerabilityBlob{
 						ID:          "cve-2023-43804",
 						Description: "Test vulnerability with no products",
-						References: []grypeDB.Reference{
+						References: []db.Reference{
 							{
 								URL: "cve-2023-43804",
 							},
@@ -336,17 +336,17 @@ func Test_GetPackageHandles(t *testing.T) {
 				},
 			},
 			want: []any{
-				grypeDB.AffectedPackageHandle{
-					Package: &grypeDB.Package{
+				db.AffectedPackageHandle{
+					Package: &db.Package{
 						// converts pypi -> python
 						Ecosystem: "python",
 						Name:      "urllib3",
 					},
-					BlobValue: &grypeDB.PackageBlob{
+					BlobValue: &db.PackageBlob{
 						CVEs: []string{"cve-2023-43804", "ghsa-v845-jxx5-vc9f"},
-						Ranges: []grypeDB.Range{
+						Ranges: []db.Range{
 							{
-								Version: grypeDB.Version{
+								Version: db.Version{
 									Type:       version.PythonFormat.String(),
 									Constraint: "= 1.26.16",
 								},
@@ -386,25 +386,25 @@ func Test_GetPackageHandles(t *testing.T) {
 				},
 			},
 			want: []any{
-				grypeDB.UnaffectedPackageHandle{
-					Package: &grypeDB.Package{
+				db.UnaffectedPackageHandle{
+					Package: &db.Package{
 						// converts pypi -> python
 						Ecosystem: "python",
 						Name:      "urllib3",
 					},
-					BlobValue: &grypeDB.PackageBlob{
+					BlobValue: &db.PackageBlob{
 						CVEs: []string{"cve-2023-43804", "ghsa-v845-jxx5-vc9f"},
-						Ranges: []grypeDB.Range{
+						Ranges: []db.Range{
 							{
-								Version: grypeDB.Version{
+								Version: db.Version{
 									Type:       version.PythonFormat.String(),
 									Constraint: "= 1.26.16",
 								},
-								Fix: &grypeDB.Fix{
+								Fix: &db.Fix{
 									Version: "1.26.16",
-									State:   grypeDB.FixedStatus,
-									Detail: &grypeDB.FixDetail{
-										Available: &grypeDB.FixAvailability{
+									State:   db.FixedStatus,
+									Detail: &db.FixDetail{
+										Available: &db.FixAvailability{
 											Date: internal.ParseTime("2025-01-01"),
 											Kind: "advisory",
 										},
@@ -446,23 +446,23 @@ func Test_GetPackageHandles(t *testing.T) {
 				},
 			},
 			want: []any{
-				grypeDB.UnaffectedPackageHandle{
-					Package: &grypeDB.Package{
+				db.UnaffectedPackageHandle{
+					Package: &db.Package{
 						// converts pypi -> python
 						Ecosystem: "python",
 						Name:      "urllib3",
 					},
-					BlobValue: &grypeDB.PackageBlob{
+					BlobValue: &db.PackageBlob{
 						CVEs: []string{"cve-2023-43804", "ghsa-v845-jxx5-vc9f"},
-						Ranges: []grypeDB.Range{
+						Ranges: []db.Range{
 							{
-								Version: grypeDB.Version{
+								Version: db.Version{
 									Type:       version.PythonFormat.String(),
 									Constraint: "= 1.26.16",
 								},
-								Fix: &grypeDB.Fix{
+								Fix: &db.Fix{
 									Version: "", // important! no version because the status is not "fixed"
-									State:   grypeDB.NotAffectedFixStatus,
+									State:   db.NotAffectedFixStatus,
 									Detail:  nil, // important! no detail because the status is not "fixed"
 								},
 							},
@@ -499,42 +499,42 @@ func Test_GetPackageHandles(t *testing.T) {
 				},
 			},
 			want: []any{
-				grypeDB.UnaffectedPackageHandle{
-					Package: &grypeDB.Package{
+				db.UnaffectedPackageHandle{
+					Package: &db.Package{
 						Ecosystem: "npm",
 						Name:      "express",
 					},
-					BlobValue: &grypeDB.PackageBlob{
+					BlobValue: &db.PackageBlob{
 						CVEs: []string{"cve-2023-43804", "ghsa-v845-jxx5-vc9f"},
-						Ranges: []grypeDB.Range{
+						Ranges: []db.Range{
 							{
-								Version: grypeDB.Version{
+								Version: db.Version{
 									Type:       version.SemanticFormat.String(),
 									Constraint: "= 4.18.2",
 								},
-								Fix: &grypeDB.Fix{
-									State: grypeDB.NotAffectedFixStatus,
+								Fix: &db.Fix{
+									State: db.NotAffectedFixStatus,
 								},
 							},
 						},
 					},
 				},
-				grypeDB.UnaffectedPackageHandle{
-					Package: &grypeDB.Package{
+				db.UnaffectedPackageHandle{
+					Package: &db.Package{
 						// converts pypi -> python
 						Ecosystem: "python",
 						Name:      "urllib3",
 					},
-					BlobValue: &grypeDB.PackageBlob{
+					BlobValue: &db.PackageBlob{
 						CVEs: []string{"cve-2023-43804", "ghsa-v845-jxx5-vc9f"},
-						Ranges: []grypeDB.Range{
+						Ranges: []db.Range{
 							{
-								Version: grypeDB.Version{
+								Version: db.Version{
 									Type:       version.PythonFormat.String(),
 									Constraint: "= 1.26.16",
 								},
-								Fix: &grypeDB.Fix{
-									State: grypeDB.NotAffectedFixStatus,
+								Fix: &db.Fix{
+									State: db.NotAffectedFixStatus,
 								},
 							},
 						},
@@ -563,23 +563,23 @@ func Test_GetPackageHandles(t *testing.T) {
 				},
 			},
 			want: []any{
-				grypeDB.UnaffectedPackageHandle{
-					Package: &grypeDB.Package{
+				db.UnaffectedPackageHandle{
+					Package: &db.Package{
 						// converts pypi -> python
 						Ecosystem: "python",
 						Name:      "urllib3",
 					},
-					BlobValue: &grypeDB.PackageBlob{
+					BlobValue: &db.PackageBlob{
 						CVEs: []string{"cve-2023-43804", "ghsa-v845-jxx5-vc9f"},
-						Ranges: []grypeDB.Range{
+						Ranges: []db.Range{
 							{
-								Version: grypeDB.Version{
+								Version: db.Version{
 									Type:       version.PythonFormat.String(),
 									Constraint: "= 2.0.7",
 								},
-								Fix: &grypeDB.Fix{
+								Fix: &db.Fix{
 									Version: "2.0.7",
-									State:   grypeDB.FixedStatus,
+									State:   db.FixedStatus,
 								},
 							},
 						},

@@ -14,9 +14,9 @@ import (
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/internal/versionutil"
 	"github.com/anchore/grype/grype/db/provider"
-	grypeDB "github.com/anchore/grype/grype/db/v6"
+	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/internal/transformers"
-	internal2 "github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
+	"github.com/anchore/grype/grype/db/v6/build/internal/transformers/internal"
 	"github.com/anchore/grype/grype/db/v6/name"
 	"github.com/anchore/syft/syft/pkg"
 )
@@ -39,14 +39,14 @@ func Transform(vulnerability unmarshal.OSVVulnerability, state provider.State) (
 	}
 
 	in := []any{
-		grypeDB.VulnerabilityHandle{
+		db.VulnerabilityHandle{
 			Name:          vulnerability.ID,
 			ProviderID:    state.Provider,
-			Provider:      internal2.ProviderModel(state),
-			Status:        grypeDB.VulnerabilityActive,
+			Provider:      internal.ProviderModel(state),
+			Status:        db.VulnerabilityActive,
 			ModifiedDate:  &vulnerability.Modified,
 			PublishedDate: &vulnerability.Published,
-			BlobValue: &grypeDB.VulnerabilityBlob{
+			BlobValue: &db.VulnerabilityBlob{
 				ID:          vulnerability.ID,
 				Assigners:   nil,
 				Description: vulnerability.Details,
@@ -73,7 +73,7 @@ func Transform(vulnerability unmarshal.OSVVulnerability, state provider.State) (
 	return transformers.NewEntries(in...), nil
 }
 
-func getAffectedPackages(vuln unmarshal.OSVVulnerability) []grypeDB.AffectedPackageHandle {
+func getAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHandle {
 	if len(vuln.Affected) == 0 {
 		return nil
 	}
@@ -86,12 +86,12 @@ func getAffectedPackages(vuln unmarshal.OSVVulnerability) []grypeDB.AffectedPack
 		}
 	}
 
-	var aphs []grypeDB.AffectedPackageHandle
+	var aphs []db.AffectedPackageHandle
 	for _, affected := range vuln.Affected {
-		aph := grypeDB.AffectedPackageHandle{
+		aph := db.AffectedPackageHandle{
 			Package:         getPackage(affected.Package),
 			OperatingSystem: getOperatingSystemFromEcosystem(string(affected.Package.Ecosystem)),
-			BlobValue:       &grypeDB.PackageBlob{CVEs: vuln.Aliases},
+			BlobValue:       &db.PackageBlob{CVEs: vuln.Aliases},
 		}
 
 		// Extract qualifiers (CPE and RPM modularity)
@@ -100,7 +100,7 @@ func getAffectedPackages(vuln unmarshal.OSVVulnerability) []grypeDB.AffectedPack
 			aph.BlobValue.Qualifiers = qualifiers
 		}
 
-		var ranges []grypeDB.Range
+		var ranges []db.Range
 		for _, r := range affected.Ranges {
 			ranges = append(ranges, getGrypeRangesFromRange(r, string(affected.Package.Ecosystem))...)
 		}
@@ -109,19 +109,19 @@ func getAffectedPackages(vuln unmarshal.OSVVulnerability) []grypeDB.AffectedPack
 	}
 
 	// stable ordering
-	sort.Sort(internal2.ByAffectedPackage(aphs))
+	sort.Sort(internal.ByAffectedPackage(aphs))
 
 	return aphs
 }
 
 // getPackageQualifiers extracts package qualifiers from affected package data
 // including CPE information and RPM modularity
-func getPackageQualifiers(affected models.Affected, cpes any, withCPE bool) *grypeDB.PackageQualifiers {
-	var qualifiers *grypeDB.PackageQualifiers
+func getPackageQualifiers(affected models.Affected, cpes any, withCPE bool) *db.PackageQualifiers {
+	var qualifiers *db.PackageQualifiers
 
 	// Handle CPE qualifiers (existing logic)
 	if withCPE {
-		qualifiers = &grypeDB.PackageQualifiers{
+		qualifiers = &db.PackageQualifiers{
 			PlatformCPEs: cpes.([]string),
 		}
 	}
@@ -130,7 +130,7 @@ func getPackageQualifiers(affected models.Affected, cpes any, withCPE bool) *gry
 	rpmModularity := extractRpmModularity(affected)
 	if rpmModularity != "" {
 		if qualifiers == nil {
-			qualifiers = &grypeDB.PackageQualifiers{}
+			qualifiers = &db.PackageQualifiers{}
 		}
 		qualifiers.RpmModularity = &rpmModularity
 	}
@@ -205,8 +205,8 @@ func extractRpmModularity(affected models.Affected) string {
 //	}
 //
 // ]
-func getGrypeRangesFromRange(r models.Range, ecosystem string) []grypeDB.Range { // nolint: gocognit,funlen
-	var ranges []grypeDB.Range
+func getGrypeRangesFromRange(r models.Range, ecosystem string) []db.Range { // nolint: gocognit,funlen
+	var ranges []db.Range
 	if len(r.Events) == 0 {
 		return nil
 	}
@@ -220,7 +220,7 @@ func getGrypeRangesFromRange(r models.Range, ecosystem string) []grypeDB.Range {
 		}
 	}
 
-	fixByVersion := make(map[string]grypeDB.FixAvailability)
+	fixByVersion := make(map[string]db.FixAvailability)
 	// check r.DatabaseSpecific for "anchore" key which has
 	// {"fixes": [{
 	//   "version": "v1.2.3",
@@ -238,8 +238,8 @@ func getGrypeRangesFromRange(r models.Range, ecosystem string) []grypeDB.Range {
 							kind, kOk := fixMap["kind"].(string)
 							date, dOk := fixMap["date"].(string)
 							if vOk && kOk && dOk {
-								fixByVersion[version] = grypeDB.FixAvailability{
-									Date: internal2.ParseTime(date),
+								fixByVersion[version] = db.FixAvailability{
+									Date: internal.ParseTime(date),
 									Kind: kind,
 								}
 							}
@@ -258,8 +258,8 @@ func getGrypeRangesFromRange(r models.Range, ecosystem string) []grypeDB.Range {
 		case e.LastAffected != "":
 			updateConstraint(fmt.Sprintf("<= %s", e.LastAffected))
 			// We don't know the fix if last affected is set
-			ranges = append(ranges, grypeDB.Range{
-				Version: grypeDB.Version{
+			ranges = append(ranges, db.Range{
+				Version: db.Version{
 					Type:       rangeType,
 					Constraint: normalizeConstraint(constraint, rangeType),
 				},
@@ -267,16 +267,16 @@ func getGrypeRangesFromRange(r models.Range, ecosystem string) []grypeDB.Range {
 			// Reset the constraint
 			constraint = ""
 		case e.Fixed != "":
-			var detail *grypeDB.FixDetail
+			var detail *db.FixDetail
 			if f, ok := fixByVersion[e.Fixed]; ok {
-				detail = &grypeDB.FixDetail{
+				detail = &db.FixDetail{
 					Available: &f,
 				}
 			}
 			updateConstraint(fmt.Sprintf("< %s", e.Fixed))
-			ranges = append(ranges, grypeDB.Range{
+			ranges = append(ranges, db.Range{
 				Fix: normalizeFix(e.Fixed, detail),
-				Version: grypeDB.Version{
+				Version: db.Version{
 					Type:       rangeType,
 					Constraint: normalizeConstraint(constraint, rangeType),
 				},
@@ -288,8 +288,8 @@ func getGrypeRangesFromRange(r models.Range, ecosystem string) []grypeDB.Range {
 
 	// Check if there's an event that "introduced" but never had a "fixed" or "last affected" event
 	if constraint != "" {
-		ranges = append(ranges, grypeDB.Range{
-			Version: grypeDB.Version{
+		ranges = append(ranges, db.Range{
+			Version: db.Version{
 				Type:       rangeType,
 				Constraint: normalizeConstraint(constraint, rangeType),
 			},
@@ -306,14 +306,14 @@ func normalizeConstraint(constraint string, rangeType string) string {
 	return constraint
 }
 
-func normalizeFix(fix string, detail *grypeDB.FixDetail) *grypeDB.Fix {
+func normalizeFix(fix string, detail *db.FixDetail) *db.Fix {
 	fixedInVersion := versionutil.CleanFixedInVersion(fix)
-	fixState := grypeDB.NotFixedStatus
+	fixState := db.NotFixedStatus
 	if len(fixedInVersion) > 0 {
-		fixState = grypeDB.FixedStatus
+		fixState = db.FixedStatus
 	}
 
-	return &grypeDB.Fix{
+	return &db.Fix{
 		State:   fixState,
 		Version: fixedInVersion,
 		Detail:  detail,
@@ -334,7 +334,7 @@ func normalizeRangeType(t models.RangeType, ecosystem string) string {
 	}
 }
 
-func getPackage(p models.Package) *grypeDB.Package {
+func getPackage(p models.Package) *db.Package {
 	// Try to determine package type from ecosystem or PURL
 	var pkgType pkg.Type
 	var ecosystem string
@@ -352,7 +352,7 @@ func getPackage(p models.Package) *grypeDB.Package {
 		}
 	}
 
-	return &grypeDB.Package{
+	return &db.Package{
 		Ecosystem: ecosystem,
 		Name:      name.Normalize(p.Name, pkgType),
 	}
@@ -379,8 +379,8 @@ func getPackageTypeFromEcosystem(ecosystem string) pkg.Type {
 	return ""
 }
 
-func getReferences(vuln unmarshal.OSVVulnerability) []grypeDB.Reference {
-	var refs []grypeDB.Reference
+func getReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
+	var refs []db.Reference
 	for _, ref := range vuln.References {
 		// For advisory references, use the vulnerability ID as the advisory ID
 		// This allows tools consuming the data to link back to the specific advisory
@@ -390,7 +390,7 @@ func getReferences(vuln unmarshal.OSVVulnerability) []grypeDB.Reference {
 		}
 
 		refs = append(refs,
-			grypeDB.Reference{
+			db.Reference{
 				ID:   refID,
 				URL:  ref.URL,
 				Tags: []string{string(ref.Type)},
@@ -413,31 +413,31 @@ func extractCVSSInfo(cvss string) (string, string, error) {
 	return matches[1], matches[0], nil
 }
 
-func normalizeSeverity(severity models.Severity) (grypeDB.Severity, error) {
+func normalizeSeverity(severity models.Severity) (db.Severity, error) {
 	switch severity.Type {
 	case models.SeverityCVSSV2, models.SeverityCVSSV3, models.SeverityCVSSV4:
 		version, vector, err := extractCVSSInfo(severity.Score)
 		if err != nil {
-			return grypeDB.Severity{}, err
+			return db.Severity{}, err
 		}
 
-		return grypeDB.Severity{
-			Scheme: grypeDB.SeveritySchemeCVSS,
-			Value: grypeDB.CVSSSeverity{
+		return db.Severity{
+			Scheme: db.SeveritySchemeCVSS,
+			Value: db.CVSSSeverity{
 				Vector:  vector,
 				Version: version,
 			},
 		}, nil
 	default:
-		return grypeDB.Severity{
-			Scheme: grypeDB.UnknownSeverityScheme,
+		return db.Severity{
+			Scheme: db.UnknownSeverityScheme,
 			Value:  severity.Score,
 		}, nil
 	}
 }
 
-func getSeverities(vuln unmarshal.OSVVulnerability) ([]grypeDB.Severity, error) {
-	var severities []grypeDB.Severity
+func getSeverities(vuln unmarshal.OSVVulnerability) ([]db.Severity, error) {
+	var severities []db.Severity
 	for _, sev := range vuln.Severity {
 		severity, err := normalizeSeverity(sev)
 		if err != nil {
@@ -462,7 +462,7 @@ func getSeverities(vuln unmarshal.OSVVulnerability) ([]grypeDB.Severity, error) 
 // getOperatingSystemFromEcosystem extracts operating system information from OSV ecosystem field
 // Currently only supports AlmaLinux ecosystems
 // Example: "AlmaLinux:8" -> almalinux 8
-func getOperatingSystemFromEcosystem(ecosystem string) *grypeDB.OperatingSystem {
+func getOperatingSystemFromEcosystem(ecosystem string) *db.OperatingSystem {
 	if ecosystem == "" {
 		return nil
 	}
@@ -490,7 +490,7 @@ func getOperatingSystemFromEcosystem(ecosystem string) *grypeDB.OperatingSystem 
 		// Check if the first field is actually a number
 		if _, err := strconv.Atoi(majorVersion[0:1]); err != nil {
 			// If not numeric, treat the whole thing as a label version
-			return &grypeDB.OperatingSystem{
+			return &db.OperatingSystem{
 				Name:         normalizeOSName(osName),
 				LabelVersion: osVersion,
 				Codename:     codename.LookupOS(normalizeOSName(osName), "", ""),
@@ -501,7 +501,7 @@ func getOperatingSystemFromEcosystem(ecosystem string) *grypeDB.OperatingSystem 
 		}
 	}
 
-	return &grypeDB.OperatingSystem{
+	return &db.OperatingSystem{
 		Name:         normalizeOSName(osName),
 		MajorVersion: majorVersion,
 		MinorVersion: minorVersion,
@@ -552,14 +552,14 @@ func isAdvisoryRecord(vuln unmarshal.OSVVulnerability) bool {
 }
 
 // getUnaffectedPackages creates UnaffectedPackageHandle entries for advisory records
-func getUnaffectedPackages(vuln unmarshal.OSVVulnerability) []grypeDB.UnaffectedPackageHandle {
+func getUnaffectedPackages(vuln unmarshal.OSVVulnerability) []db.UnaffectedPackageHandle {
 	if len(vuln.Affected) == 0 {
 		return nil
 	}
 
-	var uphs []grypeDB.UnaffectedPackageHandle
+	var uphs []db.UnaffectedPackageHandle
 	for _, affected := range vuln.Affected {
-		uph := grypeDB.UnaffectedPackageHandle{
+		uph := db.UnaffectedPackageHandle{
 			Package:         getPackage(affected.Package),
 			OperatingSystem: getOperatingSystemFromEcosystem(string(affected.Package.Ecosystem)),
 			BlobValue:       getUnaffectedBlob(vuln.Aliases, affected.Ranges, affected),
@@ -568,15 +568,15 @@ func getUnaffectedPackages(vuln unmarshal.OSVVulnerability) []grypeDB.Unaffected
 	}
 
 	// stable ordering
-	sort.Sort(internal2.ByUnaffectedPackage(uphs))
+	sort.Sort(internal.ByUnaffectedPackage(uphs))
 
 	return uphs
 }
 
 // getUnaffectedBlob creates a package blob for unaffected packages (advisories)
 // For advisories, we need to invert the ranges to represent unaffected versions
-func getUnaffectedBlob(aliases []string, ranges []models.Range, affected models.Affected) *grypeDB.PackageBlob {
-	var grypeRanges []grypeDB.Range
+func getUnaffectedBlob(aliases []string, ranges []models.Range, affected models.Affected) *db.PackageBlob {
+	var grypeRanges []db.Range
 	ecosystem := string(affected.Package.Ecosystem)
 	for _, r := range ranges {
 		grypeRanges = append(grypeRanges, getGrypeUnaffectedRangesFromRange(r, ecosystem)...)
@@ -585,7 +585,7 @@ func getUnaffectedBlob(aliases []string, ranges []models.Range, affected models.
 	// Extract qualifiers including RPM modularity
 	qualifiers := getPackageQualifiers(affected, nil, false)
 
-	return &grypeDB.PackageBlob{
+	return &db.PackageBlob{
 		CVEs:       aliases,
 		Ranges:     grypeRanges,
 		Qualifiers: qualifiers,
@@ -594,7 +594,7 @@ func getUnaffectedBlob(aliases []string, ranges []models.Range, affected models.
 
 // getGrypeUnaffectedRangesFromRange converts OSV ranges to unaffected version ranges for unaffected packages
 // This inverts the logic: instead of "< fix_version" (affected), we create ">= fix_version" (unaffected)
-func getGrypeUnaffectedRangesFromRange(r models.Range, ecosystem string) []grypeDB.Range {
+func getGrypeUnaffectedRangesFromRange(r models.Range, ecosystem string) []db.Range {
 	if len(r.Events) == 0 {
 		return nil
 	}
@@ -606,8 +606,8 @@ func getGrypeUnaffectedRangesFromRange(r models.Range, ecosystem string) []grype
 }
 
 // extractFixAvailability extracts fix availability information from DatabaseSpecific
-func extractFixAvailability(r models.Range) map[string]grypeDB.FixAvailability {
-	fixByVersion := make(map[string]grypeDB.FixAvailability)
+func extractFixAvailability(r models.Range) map[string]db.FixAvailability {
+	fixByVersion := make(map[string]db.FixAvailability)
 
 	dbSpecific, hasDBSpecific := r.DatabaseSpecific["anchore"]
 	if !hasDBSpecific {
@@ -637,7 +637,7 @@ func extractFixAvailability(r models.Range) map[string]grypeDB.FixAvailability {
 }
 
 // parseSingleFixEntry parses a single fix entry and adds it to the fixByVersion map
-func parseSingleFixEntry(fixEntry any, fixByVersion map[string]grypeDB.FixAvailability) {
+func parseSingleFixEntry(fixEntry any, fixByVersion map[string]db.FixAvailability) {
 	fixMap, isMap := fixEntry.(map[string]any)
 	if !isMap {
 		return
@@ -648,16 +648,16 @@ func parseSingleFixEntry(fixEntry any, fixByVersion map[string]grypeDB.FixAvaila
 	date, dOk := fixMap["date"].(string)
 
 	if vOk && kOk && dOk {
-		fixByVersion[version] = grypeDB.FixAvailability{
-			Date: internal2.ParseTime(date),
+		fixByVersion[version] = db.FixAvailability{
+			Date: internal.ParseTime(date),
 			Kind: kind,
 		}
 	}
 }
 
 // buildUnaffectedRangesFromEvents processes events to create unaffected version ranges
-func buildUnaffectedRangesFromEvents(events []models.Event, fixByVersion map[string]grypeDB.FixAvailability, rangeType string) []grypeDB.Range {
-	var ranges []grypeDB.Range
+func buildUnaffectedRangesFromEvents(events []models.Event, fixByVersion map[string]db.FixAvailability, rangeType string) []db.Range {
+	var ranges []db.Range
 
 	for _, e := range events {
 		if e.Fixed != "" {
@@ -670,18 +670,18 @@ func buildUnaffectedRangesFromEvents(events []models.Event, fixByVersion map[str
 }
 
 // createUnaffectedRange creates a single safe range for a fixed version
-func createUnaffectedRange(fixedVersion string, fixByVersion map[string]grypeDB.FixAvailability, rangeType string) grypeDB.Range {
-	var detail *grypeDB.FixDetail
+func createUnaffectedRange(fixedVersion string, fixByVersion map[string]db.FixAvailability, rangeType string) db.Range {
+	var detail *db.FixDetail
 	if f, ok := fixByVersion[fixedVersion]; ok {
-		detail = &grypeDB.FixDetail{
+		detail = &db.FixDetail{
 			Available: &f,
 		}
 	}
 
 	constraint := fmt.Sprintf(">= %s", fixedVersion)
-	return grypeDB.Range{
+	return db.Range{
 		Fix: normalizeFix(fixedVersion, detail),
-		Version: grypeDB.Version{
+		Version: db.Version{
 			Type:       rangeType,
 			Constraint: normalizeConstraint(constraint, rangeType),
 		},

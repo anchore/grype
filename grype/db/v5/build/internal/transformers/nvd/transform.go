@@ -10,7 +10,7 @@ import (
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/nvd"
-	grypeDB "github.com/anchore/grype/grype/db/v5"
+	db "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/build/internal/transformers"
 	"github.com/anchore/grype/grype/db/v5/namespace"
 	"github.com/anchore/grype/grype/db/v5/pkg/qualifier"
@@ -64,7 +64,7 @@ func transform(cfg Config, vulnerability unmarshal.NVDVulnerability) ([]data.Ent
 	}
 
 	// duplicate the vulnerabilities based on the set of unique packages the vulnerability is for
-	var allVulns []grypeDB.Vulnerability
+	var allVulns []db.Vulnerability
 	for _, p := range uniquePkgs.All() {
 		var qualifiers []qualifier.Qualifier
 		matches := uniquePkgs.Matches(p)
@@ -84,7 +84,7 @@ func transform(cfg Config, vulnerability unmarshal.NVDVulnerability) ([]data.Ent
 		sort.Strings(orderedCPEs)
 
 		// create vulnerability entry
-		allVulns = append(allVulns, grypeDB.Vulnerability{
+		allVulns = append(allVulns, db.Vulnerability{
 			ID:                vulnerability.ID,
 			PackageQualifiers: qualifiers,
 			VersionConstraint: buildConstraints(matches),
@@ -98,7 +98,7 @@ func transform(cfg Config, vulnerability unmarshal.NVDVulnerability) ([]data.Ent
 
 	// create vulnerability metadata entry (a single entry keyed off of the vulnerability ID)
 	allCVSS := vulnerability.CVSS()
-	metadata := grypeDB.VulnerabilityMetadata{
+	metadata := db.VulnerabilityMetadata{
 		ID:           vulnerability.ID,
 		DataSource:   "https://nvd.nist.gov/vuln/detail/" + vulnerability.ID,
 		Namespace:    entryNamespace,
@@ -128,10 +128,10 @@ func getVersionFormat(name string, cpes []string) version.Format {
 	return version.UnknownFormat
 }
 
-func getFix(matches []nvd.CpeMatch, inferNVDFixVersions bool) grypeDB.Fix {
+func getFix(matches []nvd.CpeMatch, inferNVDFixVersions bool) db.Fix {
 	if !inferNVDFixVersions {
-		return grypeDB.Fix{
-			State: grypeDB.UnknownFixState,
+		return db.Fix{
+			State: db.UnknownFixState,
 		}
 	}
 
@@ -169,28 +169,28 @@ func getFix(matches []nvd.CpeMatch, inferNVDFixVersions bool) grypeDB.Fix {
 	possiblyFixed.Remove(knownAffected.List()...)
 
 	var fixes []string
-	fixState := grypeDB.UnknownFixState
+	fixState := db.UnknownFixState
 	if possiblyFixed.Size() > 0 {
-		fixState = grypeDB.FixedState
+		fixState = db.FixedState
 		fixes = possiblyFixed.List()
 		slices.Sort(fixes)
 	}
 
-	return grypeDB.Fix{
+	return db.Fix{
 		Versions: fixes,
 		State:    fixState,
 	}
 }
 
-func getCvss(cvss ...nvd.CvssSummary) []grypeDB.Cvss {
-	var results []grypeDB.Cvss
+func getCvss(cvss ...nvd.CvssSummary) []db.Cvss {
+	var results []db.Cvss
 	for _, c := range cvss {
-		results = append(results, grypeDB.Cvss{
+		results = append(results, db.Cvss{
 			Source:  c.Source,
 			Type:    string(c.Type),
 			Version: c.Version,
 			Vector:  c.Vector,
-			Metrics: grypeDB.CvssMetrics{
+			Metrics: db.CvssMetrics{
 				BaseScore:           c.BaseScore,
 				ExploitabilityScore: c.ExploitabilityScore,
 				ImpactScore:         c.ImpactScore,
