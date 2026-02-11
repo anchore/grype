@@ -37,6 +37,7 @@ const (
 	Scientific   Type = "scientific"
 	SecureOS     Type = "secureos"
 	PostmarketOS Type = "postmarketos"
+	OpenEuler    Type = "openeuler"
 )
 
 // All contains all Linux distribution options
@@ -68,6 +69,7 @@ var All = []Type{
 	Scientific,
 	SecureOS,
 	PostmarketOS,
+	OpenEuler,
 }
 
 // IDMapping maps a distro ID from the /etc/os-release (e.g. like "ubuntu") to a Distro type.
@@ -98,6 +100,7 @@ var IDMapping = map[string]Type{
 	"scientific":    Scientific,
 	"secureos":      SecureOS,
 	"postmarketos":  PostmarketOS,
+	"openEuler":     OpenEuler,
 }
 
 // aliasTypes maps common aliases to their corresponding Type.

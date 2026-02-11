@@ -513,6 +513,11 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Version:      "edge",
 			LabelVersion: "edge",
 		},
+		{
+			Name:    "test-fixtures/os/openeuler",
+			Type:    OpenEuler,
+			Version: "22.03-LTS",
+		},
 	}
 
 	for _, tt := range tests {

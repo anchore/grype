@@ -1,0 +1,6 @@
+NAME="openEuler"
+VERSION="22.03 (LTS)"
+ID="openEuler"
+VERSION_ID="22.03"
+PRETTY_NAME="openEuler 22.03 (LTS)"
+ANSI_COLOR="0;31"

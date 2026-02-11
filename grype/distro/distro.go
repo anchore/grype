@@ -2,6 +2,7 @@ package distro
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/anchore/grype/grype/version"
@@ -166,32 +167,48 @@ func NewFromRelease(release linux.Release, channels []FixChannel) (*Distro, erro
 		return nil, fmt.Errorf("unable to determine distro type")
 	}
 
-	var (
-		selectedVersion    string
-		selectedVersionObj *version.Version
-	)
-
-	for _, ver := range []string{release.VersionID, release.Version} {
-		if ver == "" {
-			continue
-		}
-
-		selectedVersionObj = version.New(ver, version.SemanticFormat)
-
-		if selectedVersionObj.Validate() == nil {
-			selectedVersion = ver
-			break
-		}
-	}
-
-	if selectedVersion == "" {
-		selectedVersion = release.VersionID
-	}
+	selectedVersion, selectedVersionObj := selectVersion(release)
 
 	d := New(t, selectedVersion, release.VersionCodename, release.IDLike...)
 	d.Channels = applyChannels(release, selectedVersionObj, d.Channels, channels)
 
 	return d, nil
+}
+
+// selectVersion determines the appropriate version string and version object from a linux release.
+// Some distros require special handling to extract a usable version string.
+func selectVersion(release linux.Release) (string, *version.Version) {
+	if release.ID == "openEuler" {
+		return selectOpenEulerVersion(release), nil
+	}
+	return selectSemanticVersion(release)
+}
+
+var openEulerVersionPattern = regexp.MustCompile(`\(|\)`)
+
+// selectOpenEulerVersion extracts a version string formatted for openEuler CVE data matching.
+// In the CVE data released by openEuler, the version information matches the `Version` field
+// with parentheses removed and spaces replaced with dashes.
+func selectOpenEulerVersion(release linux.Release) string {
+	return strings.ReplaceAll(openEulerVersionPattern.ReplaceAllString(strings.Trim(release.Version, `"'`), ""), " ", "-")
+}
+
+// selectSemanticVersion attempts to find a valid semantic version from the release,
+// preferring VersionID over Version. Falls back to VersionID if no valid version is found.
+func selectSemanticVersion(release linux.Release) (string, *version.Version) {
+	for _, ver := range []string{release.VersionID, release.Version} {
+		if ver == "" {
+			continue
+		}
+
+		verObj := version.New(ver, version.SemanticFormat)
+		if verObj.Validate() == nil {
+			return ver, verObj
+		}
+	}
+
+	// fallback to VersionID even if it doesn't validate as semantic
+	return release.VersionID, nil
 }
 
 func (d Distro) Name() string {
