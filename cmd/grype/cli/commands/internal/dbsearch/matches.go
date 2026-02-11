@@ -48,7 +48,7 @@ func newMatchesRows(affectedPkgs []affectedPackageWithDecorations, affectedCPEs 
 
 	for i := range affectedPkgs {
 		pkg := affectedPkgs[i]
-		var detail v6.AffectedPackageBlob
+		var detail v6.PackageBlob
 		if pkg.BlobValue != nil {
 			detail = *pkg.BlobValue
 		}
@@ -73,7 +73,7 @@ func newMatchesRows(affectedPkgs []affectedPackageWithDecorations, affectedCPEs 
 	}
 
 	for _, ac := range affectedCPEs {
-		var detail v6.AffectedPackageBlob
+		var detail v6.PackageBlob
 		if ac.BlobValue != nil {
 			detail = *ac.BlobValue
 		}
@@ -128,6 +128,11 @@ func FindMatches(reader interface {
 		if !errors.Is(fetchErr, v6.ErrLimitReached) {
 			return nil, fetchErr
 		}
+	}
+
+	if len(criteria.FixedStates) > 0 {
+		allAffectedPkgs = filterByFixedStateForPackages(allAffectedPkgs, criteria.FixedStates)
+		allAffectedCPEs = filterByFixedStateForCPEs(allAffectedCPEs, criteria.FixedStates)
 	}
 
 	rows, presErr := newMatchesRows(allAffectedPkgs, allAffectedCPEs)

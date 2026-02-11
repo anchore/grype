@@ -25,6 +25,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vex"
+	vexStatus "github.com/anchore/grype/grype/vex/status"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/stereoscope/pkg/imagetest"
@@ -89,7 +90,7 @@ func addAlpineMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 				},
 				Found: match.DistroResult{
 					VersionConstraint: "< 0.9.10 (unknown)",
-					VulnerabilityID:   "CVE-alpine-libvncserver",
+					VulnerabilityID:   "CVE-2024-0000",
 				},
 				Matcher:    match.ApkMatcher,
 				Confidence: 1,
@@ -161,7 +162,7 @@ func addPythonMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Co
 					Language:  "python",
 					Namespace: "github:language:python",
 					Package: match.PackageParameter{
-						Name:    thePkg.Name,
+						Name:    provider.PackageSearchNames(thePkg)[0], // there is normalization that should be accounted for
 						Version: thePkg.Version,
 					},
 				},
@@ -358,7 +359,7 @@ func addJavaMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 					Language:  "java",
 					Namespace: "github:language:java",
 					Package: match.PackageParameter{
-						Name:    thePkg.Name,
+						Name:    provider.PackageSearchNames(thePkg)[0], // there is normalization that should be accounted for
 						Version: thePkg.Version,
 					},
 				},
@@ -535,6 +536,46 @@ func addSlesMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Coll
 	})
 }
 
+func addArchMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, provider vulnerability.Provider, theResult *match.Matches) {
+	packages := catalog.PackagesByPath("/var/lib/pacman/local/xz-5.2.4-1/desc")
+	if len(packages) != 1 {
+		t.Logf("Arch Packages: %+v", packages)
+		t.Fatalf("problem with upstream syft cataloger (pacman)")
+	}
+	thePkg := pkg.New(packages[0])
+	vulns, err := provider.FindVulnerabilities(byNamespace("arch:distro:arch:rolling"), search.ByPackageName(thePkg.Name))
+	require.NoError(t, err)
+	require.NotEmpty(t, vulns)
+	vulnObj := vulns[0]
+
+	theResult.Add(match.Match{
+		Vulnerability: vulnObj,
+		Package:       thePkg,
+		Details: []match.Detail{
+			{
+				Type:       match.ExactDirectMatch,
+				Confidence: 1.0,
+				SearchedBy: match.DistroParameters{
+					Distro: match.DistroIdentification{
+						Type:    "archlinux",
+						Version: "",
+					},
+					Namespace: "arch:distro:arch:rolling",
+					Package: match.PackageParameter{
+						Name:    "xz",
+						Version: "5.2.4-1",
+					},
+				},
+				Found: match.DistroResult{
+					VersionConstraint: "< 5.6.1-2 (pacman)",
+					VulnerabilityID:   vulnObj.ID,
+				},
+				Matcher: match.PacmanMatcher,
+			},
+		},
+	})
+}
+
 func addHaskellMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, provider vulnerability.Provider, theResult *match.Matches) {
 	packages := catalog.PackagesByPath("/haskell/stack.yaml")
 	if len(packages) < 1 {
@@ -567,6 +608,43 @@ func addHaskellMatches(t *testing.T, theSource source.Source, catalog *syftPkg.C
 					VulnerabilityID:   "CVE-haskell-sample",
 				},
 				Matcher: match.StockMatcher,
+			},
+		},
+	})
+}
+
+func addHexMatches(t *testing.T, theSource source.Source, catalog *syftPkg.Collection, provider vulnerability.Provider, theResult *match.Matches) {
+	packages := catalog.PackagesByPath("/hex/mix.lock")
+	if len(packages) < 1 {
+		t.Logf("Hex Packages: %+v", packages)
+		t.Fatalf("problem with upstream syft cataloger (elixir-mix-lock)")
+	}
+	thePkg := pkg.New(packages[0])
+	vulns, err := provider.FindVulnerabilities(byNamespace("github:language:elixir"), search.ByPackageName(thePkg.Name))
+	require.NoError(t, err)
+	require.NotEmpty(t, vulns)
+	vulnObj := vulns[0]
+
+	theResult.Add(match.Match{
+		Vulnerability: vulnObj,
+		Package:       thePkg,
+		Details: []match.Detail{
+			{
+				Type:       match.ExactDirectMatch,
+				Confidence: 1.0,
+				SearchedBy: match.EcosystemParameters{
+					Language:  "elixir",
+					Namespace: "github:language:elixir",
+					Package: match.PackageParameter{
+						Name:    thePkg.Name,
+						Version: thePkg.Version,
+					},
+				},
+				Found: match.EcosystemResult{
+					VersionConstraint: "< 1.12.0 (unknown)",
+					VulnerabilityID:   "CVE-hex-plug",
+				},
+				Matcher: match.HexMatcher,
 			},
 		},
 	})
@@ -682,6 +760,7 @@ func TestMatchByImage(t *testing.T) {
 				addDotnetMatches(t, theSource, catalog, provider, &expectedMatches)
 				addGolangMatches(t, theSource, catalog, provider, &expectedMatches)
 				addHaskellMatches(t, theSource, catalog, provider, &expectedMatches)
+				addHexMatches(t, theSource, catalog, provider, &expectedMatches)
 				return expectedMatches
 			},
 		},
@@ -706,6 +785,14 @@ func TestMatchByImage(t *testing.T) {
 			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, provider vulnerability.Provider) match.Matches {
 				expectedMatches := match.NewMatches()
 				addSlesMatches(t, theSource, catalog, provider, &expectedMatches)
+				return expectedMatches
+			},
+		},
+		{
+			name: "image-arch-match-coverage",
+			expectedFn: func(theSource source.Source, catalog *syftPkg.Collection, provider vulnerability.Provider) match.Matches {
+				expectedMatches := match.NewMatches()
+				addArchMatches(t, theSource, catalog, provider, &expectedMatches)
 				return expectedMatches
 			},
 		},
@@ -806,13 +893,15 @@ func TestMatchByImage(t *testing.T) {
 	}
 
 	// Test that VEX matchers produce matches when fed documents with "affected"
-	// statuses.
+	// or "under investigation" statuses.
 	for n, tc := range map[string]struct {
-		vexStatus    vex.Status
+		vexStatus    vexStatus.Status
 		vexDocuments []string
 	}{
-		"openvex-affected":            {vex.StatusAffected, []string{"test-fixtures/vex/openvex/affected.openvex.json"}},
-		"openvex-under_investigation": {vex.StatusUnderInvestigation, []string{"test-fixtures/vex/openvex/under_investigation.openvex.json"}},
+		"csaf-affected":               {vexStatus.Affected, []string{"test-fixtures/vex/csaf/affected.csaf.json"}},
+		"csaf-under_investigation":    {vexStatus.UnderInvestigation, []string{"test-fixtures/vex/csaf/under_investigation.csaf.json"}},
+		"openvex-affected":            {vexStatus.Affected, []string{"test-fixtures/vex/openvex/affected.openvex.json"}},
+		"openvex-under_investigation": {vexStatus.UnderInvestigation, []string{"test-fixtures/vex/openvex/under_investigation.openvex.json"}},
 	} {
 		t.Run(n, func(t *testing.T) {
 			ignoredMatches := testIgnoredMatches()
@@ -822,7 +911,6 @@ func TestMatchByImage(t *testing.T) {
 			}
 
 			expectedMatches := match.NewMatches()
-
 			// The single match in the actual results is the same in ignoredMatched
 			// but must the details of the VEX matcher appended
 			if len(vexedResults.Sorted()) < 1 {
@@ -880,7 +968,7 @@ func testIgnoredMatches() []match.IgnoredMatch {
 			Match: match.Match{
 				Vulnerability: vulnerability.Vulnerability{
 					Reference: vulnerability.Reference{
-						ID:        "CVE-alpine-libvncserver",
+						ID:        "CVE-2024-0000",
 						Namespace: "alpine:distro:alpine:3.12",
 					},
 				},
@@ -919,7 +1007,7 @@ func testIgnoredMatches() []match.IgnoredMatch {
 						},
 						Found: match.DistroResult{
 							VersionConstraint: "< 0.9.10 (unknown)",
-							VulnerabilityID:   "CVE-alpine-libvncserver",
+							VulnerabilityID:   "CVE-2024-0000",
 						},
 						Matcher:    match.ApkMatcher,
 						Confidence: 1,
@@ -933,14 +1021,17 @@ func testIgnoredMatches() []match.IgnoredMatch {
 
 // vexMatches moves the first match of a matches list to an ignore list and
 // applies a VEX "affected" document to it to move it to the matches list.
-func vexMatches(t *testing.T, ignoredMatches []match.IgnoredMatch, vexStatus vex.Status, vexDocuments []string) match.Matches {
+func vexMatches(t *testing.T, ignoredMatches []match.IgnoredMatch, vexStatus vexStatus.Status, vexDocuments []string) match.Matches {
 	matches := match.NewMatches()
-	vexMatcher := vex.NewProcessor(vex.ProcessorOptions{
+	vexMatcher, err := vex.NewProcessor(vex.ProcessorOptions{
 		Documents: vexDocuments,
 		IgnoreRules: []match.IgnoreRule{
 			{VexStatus: string(vexStatus)},
 		},
 	})
+	if err != nil {
+		t.Errorf("creating VEX processor: %s", err)
+	}
 
 	pctx := &pkg.Context{
 		Source: &source.Description{

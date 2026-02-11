@@ -33,6 +33,10 @@ const (
 	Wolfi        Type = "wolfi"
 	Chainguard   Type = "chainguard"
 	MinimOS      Type = "minimos"
+	Raspbian     Type = "raspbian"
+	Scientific   Type = "scientific"
+	SecureOS     Type = "secureos"
+	PostmarketOS Type = "postmarketos"
 	OpenEuler    Type = "openeuler"
 )
 
@@ -61,6 +65,10 @@ var All = []Type{
 	Wolfi,
 	Chainguard,
 	MinimOS,
+	Raspbian,
+	Scientific,
+	SecureOS,
+	PostmarketOS,
 	OpenEuler,
 }
 
@@ -88,13 +96,18 @@ var IDMapping = map[string]Type{
 	"wolfi":         Wolfi,
 	"chainguard":    Chainguard,
 	"minimos":       MinimOS,
+	"raspbian":      Raspbian,
+	"scientific":    Scientific,
+	"secureos":      SecureOS,
+	"postmarketos":  PostmarketOS,
 	"openEuler":     OpenEuler,
 }
 
 // aliasTypes maps common aliases to their corresponding Type.
 var aliasTypes = map[string]Type{
-	"Alpine Linux": Alpine, // needed for CPE matching (see #2039)
-	"windows":      Windows,
+	"Alpine Linux":     Alpine, // needed for CPE matching (see #2039)
+	"windows":          Windows,
+	"scientific linux": Scientific, // Scientific linux prior to v7 didn't have an os-release file and syft raises up "scientific linux" as the release id as parsed from /etc/redhat-release
 }
 
 var typeToIDMapping = map[Type]string{}

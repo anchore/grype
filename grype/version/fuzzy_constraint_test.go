@@ -59,6 +59,15 @@ func TestFuzzyVersionComparison(t *testing.T) {
 		{"8.0.456", "8.0.457", -1},
 		{"8.0.456+1", "8.0.456+2", -1},
 		{"8.0.456", "8.0.456+1", -1},
+		// Test case for fuzzy version comparison bug with patch numbers
+		// This should pass: 4.2.8p9 < 4.2.8p15 (p9 comes before p15 numerically)
+		// But currently fails due to lexicographic fallback where "p9" > "p15" (string comparison)
+		{"4.2.8p9", "4.2.8p15", -1},
+		// douple check openssl's unusual versioning
+		// 1.0.2k is an earlier patch release than 1.0.2l
+		{"1.0.2k", "1.0.2l", -1},
+		// 1.1.1w is a later patch on 1.1.1
+		{"1.1.1", "1.1.1w", -1},
 	}
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%q vs %q", c.v1, c.v2), func(t *testing.T) {

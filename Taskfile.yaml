@@ -63,6 +63,7 @@ tasks:
       - task: check-licenses
       - task: lint
       - task: check-json-schema-drift
+      - task: check-db-schema-drift
 # TODO: while developing v6, we need to disable this check (since v5 and v6 are imported in the same codebase)
 #      - task: validate-grype-db-schema
 
@@ -110,7 +111,7 @@ tasks:
   update-quality-gate-db:
     desc: Update pinned version of quality gate database
     cmds:
-      - cmd: "go run cmd/grype/main.go db list -o json | jq -r '.[0].path' > test/quality/test-db"
+      - cmd: "go run cmd/grype/main.go db list -o json | jq -r '\"https://grype.anchore.io/databases/v6/\" + .[0].path' > test/quality/test-db"
         silent: true
 
   list-tools:
@@ -182,6 +183,11 @@ tasks:
     cmds:
       - .github/scripts/json-schema-drift-check.sh
 
+  check-db-schema-drift:
+    desc: Ensure there is no drift between the database blob schemas and the code
+    cmds:
+      - .github/scripts/db-schema-drift-check.sh
+
   validate-grype-db-schema:
     desc: Ensure the codebase is only referencing a single grype-db schema version (multiple is not allowed)
     cmds:
@@ -209,15 +215,26 @@ tasks:
     desc: Run integration tests
     cmds:
       - "go test -v ./test/integration"
-      # exercise most of the CLI with the data race detector
+      # update database outside race detector, since doing so with
+      # race detector on is very slow
+      - "go run cmd/{{ .PROJECT }}/main.go db update"
+      # exercise most of the CLI with the data race detector enabled
       - "go run -race cmd/{{ .PROJECT }}/main.go alpine:latest"
+
+  _ensure-snapshot:
+    # Ensure the snapshot binary is available, building only if needed.
+    # In CI, set GRYPE_SNAPSHOT_PREBUILT=true to skip the rebuild when the binary was restored from cache.
+    # Locally, this falls through to the snapshot task which uses checksum-based staleness detection
+    # so that code changes always produce a fresh binary.
+    internal: true
+    status:
+      - test -n "$GRYPE_SNAPSHOT_PREBUILT" -a -f "{{ .SNAPSHOT_BIN }}"
+    cmds:
+      - task: snapshot
 
   cli:
     desc: Run CLI tests
-    # note: we don't want to regenerate the snapshot unless we have to. In CI it's probable
-    # that the cache being restored with the correct binary will be rebuilt since the timestamps
-    # and local checksums will not line up.
-    deps: [tools, snapshot]
+    deps: [tools, _ensure-snapshot]
     sources:
       - "{{ .SNAPSHOT_BIN }}"
       - ./test/cli/**
@@ -322,6 +339,8 @@ tasks:
     desc: Run code and data generation tasks
     cmds:
       - task: generate-json-schema
+      - task: generate-db-schema
+      - task: generate-codename-data
 
   generate-json-schema:
     desc: Generate a new JSON schema
@@ -330,6 +349,18 @@ tasks:
       - "cd grype/internal && go generate"
       # generate the JSON schema for the CLI output
       - "cd cmd/grype/cli/commands/internal/jsonschema && go run ."
+
+  generate-db-schema:
+    desc: Generate database blob JSON schemas
+    cmds:
+      # generate the JSON schema for database blob types
+      - "cd grype/db/v6/schema && go run ."
+
+  generate-codename-data:
+    desc: Generate OS codename lookup data
+    cmds:
+      - "go generate ./grype/db"
+      - task: format
 
 
   ## Build-related targets #################################

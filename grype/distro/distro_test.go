@@ -270,6 +270,32 @@ func Test_NewDistroFromRelease(t *testing.T) {
 			major: "9",
 			minor: "4",
 		},
+		{
+			name: "v versionID prefix postmarketos",
+			release: linux.Release{
+				ID:        "postmarketos",
+				VersionID: "v24.06",
+			},
+			expected: &Distro{
+				Type:    PostmarketOS,
+				Version: "v24.06",
+			},
+			major: "24",
+			minor: "06",
+		},
+		{
+			name: "edge as versionID prefix postmarketos",
+			release: linux.Release{
+				ID:        "postmarketos",
+				VersionID: "edge",
+			},
+			expected: &Distro{
+				Type:    PostmarketOS,
+				Version: "edge",
+			},
+			major: "",
+			minor: "",
+		},
 	}
 
 	for _, tt := range tests {
@@ -370,7 +396,7 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 		},
 		{
 			Name:    "test-fixtures/os/custom",
-			Type:    RedHat,
+			Type:    Scientific,
 			Version: "8",
 		},
 		{
@@ -457,6 +483,37 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Version: "20241031",
 		},
 		{
+			Name:    "test-fixtures/os/raspbian",
+			Type:    Raspbian,
+			Version: "9",
+		},
+		{
+			Name:    "test-fixtures/os/scientific",
+			Type:    Scientific,
+			Version: "7.5",
+		},
+		{
+			Name:    "test-fixtures/os/scientific6",
+			Type:    Scientific,
+			Version: "6.10",
+		},
+		{
+			Name:    "test-fixtures/os/secureos",
+			Type:    SecureOS,
+			Version: "2025.09.09",
+		},
+		{
+			Name:    "test-fixtures/os/postmarketos",
+			Type:    PostmarketOS,
+			Version: "v25.06",
+		},
+		{
+			Name:         "test-fixtures/os/postmarketos-edge",
+			Type:         PostmarketOS,
+			Version:      "edge",
+			LabelVersion: "edge",
+		},
+		{
 			Name:    "test-fixtures/os/openeuler",
 			Type:    OpenEuler,
 			Version: "22.03-LTS",
@@ -482,7 +539,7 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			observedDistros.Add(d.Type.String())
 
 			assert.Equal(t, tt.Type, d.Type, "unexpected distro type")
-			assert.Equal(t, tt.LabelVersion, d.Codename, "unexpected label version")
+			assert.Equal(t, tt.LabelVersion, d.LabelVersion(), "unexpected label version")
 			assert.Equal(t, tt.Version, d.Version, "unexpected version")
 		})
 	}
@@ -576,4 +633,130 @@ func TestDistro_MajorVersion(t *testing.T) {
 
 func names(ns ...string) []string {
 	return ns
+}
+
+func TestParseDistroString(t *testing.T) {
+	tests := []struct {
+		name            string
+		input           string
+		expectedName    string
+		expectedVersion string
+	}{
+		{
+			name:            "hyphen separator",
+			input:           "debian-11",
+			expectedName:    "debian",
+			expectedVersion: "11",
+		},
+		{
+			name:            "colon separator",
+			input:           "debian:11",
+			expectedName:    "debian",
+			expectedVersion: "11",
+		},
+		{
+			name:            "at separator",
+			input:           "debian@11",
+			expectedName:    "debian",
+			expectedVersion: "11",
+		},
+		{
+			name:            "no separator",
+			input:           "debian",
+			expectedName:    "debian",
+			expectedVersion: "",
+		},
+		{
+			name:            "with major.minor version",
+			input:           "ubuntu-20.04",
+			expectedName:    "ubuntu",
+			expectedVersion: "20.04",
+		},
+		{
+			name:            "with codename",
+			input:           "ubuntu@focal",
+			expectedName:    "ubuntu",
+			expectedVersion: "focal",
+		},
+		{
+			name:            "with channels",
+			input:           "rhel:9.4+eus",
+			expectedName:    "rhel",
+			expectedVersion: "9.4+eus",
+		},
+		{
+			name:            "opensuse-leap with hyphen separator",
+			input:           "opensuse-leap-15.2",
+			expectedName:    "opensuse-leap",
+			expectedVersion: "15.2",
+		},
+		{
+			name:            "opensuse-leap with colon separator",
+			input:           "opensuse-leap:15.2",
+			expectedName:    "opensuse-leap",
+			expectedVersion: "15.2",
+		},
+		{
+			name:            "opensuse-leap with at separator",
+			input:           "opensuse-leap@15.2",
+			expectedName:    "opensuse-leap",
+			expectedVersion: "15.2",
+		},
+		{
+			name:            "opensuse-leap without version",
+			input:           "opensuse-leap",
+			expectedName:    "opensuse-leap",
+			expectedVersion: "",
+		},
+		{
+			name:            "opensuse-leap with mixed case",
+			input:           "OpenSUSE-Leap-15.2",
+			expectedName:    "opensuse-leap",
+			expectedVersion: "15.2",
+		},
+		{
+			name:            "empty string",
+			input:           "",
+			expectedName:    "",
+			expectedVersion: "",
+		},
+		{
+			name:            "with whitespace",
+			input:           "  debian : 11  ",
+			expectedName:    "debian",
+			expectedVersion: "11",
+		},
+		{
+			name:            "multiple separators uses first",
+			input:           "debian-11:test",
+			expectedName:    "debian",
+			expectedVersion: "11:test",
+		},
+		{
+			name:            "rhel with hyphen",
+			input:           "rhel-8",
+			expectedName:    "rhel",
+			expectedVersion: "8",
+		},
+		{
+			name:            "centos with colon",
+			input:           "centos:7",
+			expectedName:    "centos",
+			expectedVersion: "7",
+		},
+		{
+			name:            "alpine with at",
+			input:           "alpine@3.11",
+			expectedName:    "alpine",
+			expectedVersion: "3.11",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			name, version := ParseDistroString(tt.input)
+			assert.Equal(t, tt.expectedName, name, "unexpected name")
+			assert.Equal(t, tt.expectedVersion, version, "unexpected version")
+		})
+	}
 }

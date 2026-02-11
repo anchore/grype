@@ -22,13 +22,14 @@ func TestOperatingSystemStore_ResolveOperatingSystem(t *testing.T) {
 	rhel8 := &OperatingSystem{Name: "rhel", ReleaseID: "rhel", MajorVersion: "8"}
 	rhel81 := &OperatingSystem{Name: "rhel", ReleaseID: "rhel", MajorVersion: "8", MinorVersion: "1"}
 	debian10 := &OperatingSystem{Name: "debian", ReleaseID: "debian", MajorVersion: "10"}
+	debian13 := &OperatingSystem{Name: "debian", ReleaseID: "debian", MajorVersion: "13", Codename: "trixie"}
 	echo := &OperatingSystem{Name: "echo", ReleaseID: "echo", MajorVersion: "1"}
 	alpine318 := &OperatingSystem{Name: "alpine", ReleaseID: "alpine", MajorVersion: "3", MinorVersion: "18"}
 	alpineEdge := &OperatingSystem{Name: "alpine", ReleaseID: "alpine", LabelVersion: "edge"}
 	debianUnstable := &OperatingSystem{Name: "debian", ReleaseID: "debian", LabelVersion: "unstable"}
 	debian7 := &OperatingSystem{Name: "debian", ReleaseID: "debian", MajorVersion: "7", LabelVersion: "wheezy"}
 	wolfi := &OperatingSystem{Name: "wolfi", ReleaseID: "wolfi", MajorVersion: "20230201"}
-	arch := &OperatingSystem{Name: "arch", ReleaseID: "arch", MajorVersion: "20241110", MinorVersion: "0"}
+	arch := &OperatingSystem{Name: "archlinux", ReleaseID: "arch", MajorVersion: "20241110", MinorVersion: "0"}
 	oracle5 := &OperatingSystem{Name: "oracle", ReleaseID: "ol", MajorVersion: "5"}
 	oracle6 := &OperatingSystem{Name: "oracle", ReleaseID: "ol", MajorVersion: "6"}
 	amazon2 := &OperatingSystem{Name: "amazon", ReleaseID: "amzn", MajorVersion: "2"}
@@ -42,6 +43,7 @@ func TestOperatingSystemStore_ResolveOperatingSystem(t *testing.T) {
 		rhel8,
 		rhel81,
 		debian10,
+		debian13,
 		alpine318,
 		alpineEdge,
 		debianUnstable,
@@ -165,6 +167,15 @@ func TestOperatingSystemStore_ResolveOperatingSystem(t *testing.T) {
 				Name:         "debian",
 				MajorVersion: "13",
 				LabelVersion: "trixie",
+			},
+			expected: []OperatingSystem{*debian13},
+		},
+		{
+			name: "debian by codename for rolling alias",
+			os: OSSpecifier{
+				Name:         "debian",
+				MajorVersion: "14",
+				LabelVersion: "forky",
 			},
 			expected: []OperatingSystem{*debianUnstable},
 		},
@@ -302,6 +313,53 @@ func TestOperatingSystemStore_ResolveOperatingSystem(t *testing.T) {
 				Name: "minimos",
 			},
 			expected: []OperatingSystem{*minimos},
+		},
+		{
+			name: "nonexistent minor version falls back to major by default",
+			os: OSSpecifier{
+				Name:         "alpine",
+				MajorVersion: "3",
+				MinorVersion: "99", // doesn't exist, should fall back to 3.18
+			},
+			expected: []OperatingSystem{*alpine318},
+		},
+		{
+			name: "nonexistent minor version with DisableFallback returns nothing",
+			os: OSSpecifier{
+				Name:            "alpine",
+				MajorVersion:    "3",
+				MinorVersion:    "99", // doesn't exist
+				DisableFallback: true, // should NOT fall back
+			},
+			expected: nil,
+		},
+		{
+			name: "major-only distro with DisableFallback finds exact match (Debian EOL lookup)",
+			os: OSSpecifier{
+				Name:            "debian",
+				MajorVersion:    "10",
+				MinorVersion:    "", // Debian uses major-only versions
+				DisableFallback: true,
+			},
+			expected: []OperatingSystem{*debian10},
+		},
+		{
+			name: "RHEL major-only lookup finds major-only record (vuln matching)",
+			os: OSSpecifier{
+				Name:         "rhel",
+				MajorVersion: "8",
+				MinorVersion: "", // empty minor should find rhel8 directly
+			},
+			expected: []OperatingSystem{*rhel8},
+		},
+		{
+			name: "RHEL nonexistent minor falls back to major-only record (vuln matching)",
+			os: OSSpecifier{
+				Name:         "rhel",
+				MajorVersion: "8",
+				MinorVersion: "5", // 8.5 doesn't exist, should fall back to 8
+			},
+			expected: []OperatingSystem{*rhel8},
 		},
 	}
 

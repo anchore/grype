@@ -1,6 +1,7 @@
 package dbsearch
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -350,6 +351,66 @@ func TestVulnerabilities(t *testing.T) {
 	}
 }
 
+func TestFindVulnerabilities_DecorationErrors(t *testing.T) {
+	tests := []struct {
+		name    string
+		kevErr  error
+		epssErr error
+	}{
+		{
+			name:    "EPSS error is not fatal",
+			epssErr: fmt.Errorf("unable to fetch EPSS metadata: record not found"),
+		},
+		{
+			name:   "KEV error is not fatal",
+			kevErr: fmt.Errorf("unable to fetch KEV records: record not found"),
+		},
+		{
+			name:    "both EPSS and KEV errors are not fatal",
+			kevErr:  fmt.Errorf("unable to fetch KEV records: record not found"),
+			epssErr: fmt.Errorf("unable to fetch EPSS metadata: record not found"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockReader := new(mockVulnReader)
+
+			mockReader.On("GetVulnerabilities", mock.Anything, mock.Anything).Return([]v6.VulnerabilityHandle{
+				{
+					ID:       1,
+					Name:     "CVE-2021-22947",
+					Status:   "active",
+					Provider: &v6.Provider{ID: "nvd"},
+					BlobValue: &v6.VulnerabilityBlob{
+						Description: "Test vuln",
+					},
+				},
+			}, nil)
+
+			mockReader.On("GetAffectedPackages", mock.Anything, mock.Anything).Return([]v6.AffectedPackageHandle{}, nil)
+
+			mockReader.On("GetKnownExploitedVulnerabilities", "CVE-2021-22947").Return(
+				[]v6.KnownExploitedVulnerabilityHandle{}, tt.kevErr,
+			)
+
+			mockReader.On("GetEpss", "CVE-2021-22947").Return(
+				[]v6.EpssHandle{}, tt.epssErr,
+			)
+
+			results, err := FindVulnerabilities(mockReader, VulnerabilitiesOptions{
+				Vulnerability: v6.VulnerabilitySpecifiers{{Name: "CVE-2021-22947"}},
+			})
+
+			require.NoError(t, err, "decoration errors should not propagate as fatal errors")
+			require.Len(t, results, 1)
+			require.Equal(t, "Test vuln", results[0].VulnerabilityBlob.Description)
+			require.Empty(t, results[0].KnownExploited)
+			require.Empty(t, results[0].EPSS)
+		})
+	}
+}
+
 type mockVulnReader struct {
 	mock.Mock
 }
@@ -359,7 +420,7 @@ func (m *mockVulnReader) GetVulnerabilities(vuln *v6.VulnerabilitySpecifier, con
 	return args.Get(0).([]v6.VulnerabilityHandle), args.Error(1)
 }
 
-func (m *mockVulnReader) GetAffectedPackages(pkg *v6.PackageSpecifier, config *v6.GetAffectedPackageOptions) ([]v6.AffectedPackageHandle, error) {
+func (m *mockVulnReader) GetAffectedPackages(pkg *v6.PackageSpecifier, config *v6.GetPackageOptions) ([]v6.AffectedPackageHandle, error) {
 	args := m.Called(pkg, config)
 	return args.Get(0).([]v6.AffectedPackageHandle), args.Error(1)
 }
@@ -372,6 +433,11 @@ func (m *mockVulnReader) GetKnownExploitedVulnerabilities(cve string) ([]v6.Know
 func (m *mockVulnReader) GetEpss(cve string) ([]v6.EpssHandle, error) {
 	args := m.Called(cve)
 	return args.Get(0).([]v6.EpssHandle), args.Error(1)
+}
+
+func (m *mockVulnReader) GetCWEs(cve string) ([]v6.CWEHandle, error) {
+	args := m.Called(cve)
+	return args.Get(0).([]v6.CWEHandle), args.Error(1)
 }
 
 func cmpOpts() []cmp.Option {

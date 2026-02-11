@@ -1,0 +1,115 @@
+{
+  "cve": {
+    "id": "CVE-2018-10189",
+    "sourceIdentifier": "cve@mitre.org",
+    "published": "2018-04-17T20:29:00.410",
+    "lastModified": "2018-05-23T14:41:49.073",
+    "vulnStatus": "Analyzed",
+    "descriptions": [
+      {
+        "lang": "en",
+        "value": "An issue was discovered in Mautic 1.x and 2.x before 2.13.0. It is possible to systematically emulate tracking cookies per contact due to tracking the contact by their auto-incremented ID. Thus, a third party can manipulate the cookie value with +1 to systematically assume being tracked as each contact in Mautic. It is then possible to retrieve information about the contact through forms that have progressive profiling enabled."
+      },
+      {
+        "lang": "es",
+        "value": "Se ha descubierto un problema en Mautic, en versiones 1.x y 2.x anteriores a la 2.13.0. Es posible emular de forma sistemática el rastreo de cookies por contacto debido al rastreo de contacto por su ID autoincrementada. Por lo tanto, un tercero puede manipular el valor de la cookie con un +1 para asumir sistemáticamente que se está rastreando como cada contacto en Mautic. Así, sería posible recuperar información sobre el contacto a través de formularios que tengan habilitada la generación de perfiles progresiva."
+      }
+    ],
+    "metrics": {
+      "cvssMetricV30": [
+        {
+          "source": "nvd@nist.gov",
+          "type": "Primary",
+          "cvssData": {
+            "version": "3.0",
+            "vectorString": "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "NONE",
+            "baseScore": 7.5,
+            "baseSeverity": "HIGH"
+          },
+          "exploitabilityScore": 3.9,
+          "impactScore": 3.6
+        }
+      ],
+      "cvssMetricV2": [
+        {
+          "source": "nvd@nist.gov",
+          "type": "Primary",
+          "cvssData": {
+            "version": "2.0",
+            "vectorString": "AV:N/AC:L/Au:N/C:P/I:N/A:N",
+            "accessVector": "NETWORK",
+            "accessComplexity": "LOW",
+            "authentication": "NONE",
+            "confidentialityImpact": "PARTIAL",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "NONE",
+            "baseScore": 5.0
+          },
+          "baseSeverity": "MEDIUM",
+          "exploitabilityScore": 10.0,
+          "impactScore": 2.9,
+          "acInsufInfo": false,
+          "obtainAllPrivilege": false,
+          "obtainUserPrivilege": false,
+          "obtainOtherPrivilege": false,
+          "userInteractionRequired": false
+        }
+      ]
+    },
+    "weaknesses": [
+      {
+        "source": "nvd@nist.gov",
+        "type": "Primary",
+        "description": [
+          {
+            "lang": "en",
+            "value": "CWE-200"
+          }
+        ]
+      }
+    ],
+    "configurations": [
+      {
+        "nodes": [
+          {
+            "operator": "OR",
+            "negate": false,
+            "cpeMatch": [
+              {
+                "vulnerable": true,
+                "criteria": "cpe:2.3:a:mautic:mautic:*:*:*:*:*:*:*:*",
+                "versionStartIncluding": "1.0.0",
+                "versionEndIncluding": "1.4.1",
+                "matchCriteriaId": "5779710D-099E-40EE-8DF3-55BD3179A50C"
+              },
+              {
+                "vulnerable": true,
+                "criteria": "cpe:2.3:a:mautic:mautic:*:*:*:*:*:*:*:*",
+                "versionStartIncluding": "2.0.0",
+                "versionEndExcluding": "2.13.0",
+                "matchCriteriaId": "4EFAEE48-4AEF-4F8C-95E0-6E8D848D900F"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "references": [
+      {
+        "url": "https://github.com/mautic/mautic/releases/tag/2.13.0",
+        "source": "cve@mitre.org",
+        "tags": [
+          "Third Party Advisory"
+        ]
+      }
+    ]
+  }
+}

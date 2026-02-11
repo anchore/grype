@@ -66,6 +66,10 @@ func TestSarifPresenter(t *testing.T) {
 }
 
 func Test_SarifIsValid(t *testing.T) {
+	if _, err := exec.LookPath("docker"); err != nil {
+		t.Skip("docker not available")
+	}
+
 	tests := []struct {
 		name   string
 		scheme internal.SyftSource

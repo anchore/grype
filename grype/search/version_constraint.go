@@ -38,7 +38,9 @@ func (v VersionCriteria) MatchesConstraint(constraint version.Constraint) (bool,
 }
 
 func (v VersionCriteria) criteria(constraint version.Constraint) (bool, error) {
+	// The config is now embedded in the version itself, so just call Satisfied
 	satisfied, err := constraint.Satisfied(&v.Version)
+
 	if err != nil {
 		var unsupportedError *version.UnsupportedComparisonError
 		if errors.As(err, &unsupportedError) {
@@ -99,6 +101,10 @@ func (f *constraintFuncCriteria) MatchesConstraint(constraint version.Constraint
 }
 
 func (f *constraintFuncCriteria) MatchesVulnerability(value vulnerability.Vulnerability) (bool, string, error) {
+	if value.Constraint == nil {
+		// if there is no constraint, then we cannot match against it
+		return false, "no version constraint", nil
+	}
 	matches, err := f.fn(value.Constraint)
 	// TODO: should we do something about this?
 	return matches, "", err

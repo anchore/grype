@@ -1,0 +1,32 @@
+[
+  {
+    "Vulnerability": {
+      "CVSS": [],
+      "Description": "",
+      "FixedIn": [
+        {
+          "Name": "xen",
+          "NamespaceName": "alpine:3.9",
+          "Version": "4.11.1-r0",
+          "VersionFormat": "apk",
+          "Available": {
+            "Date": "2018-12-01T09:15:30Z",
+            "Kind": "package"
+          }
+        }
+      ],
+      "Link": "http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-19967",
+      "Metadata": {
+        "NVD": {
+          "CVSSv2": {
+            "Score": 4.9,
+            "Vectors": "AV:L/AC:L/Au:N/C:N/I:N/A:C"
+          }
+        }
+      },
+      "Name": "CVE-2018-19967",
+      "NamespaceName": "alpine:3.9",
+      "Severity": "Medium"
+    }
+  }
+]

@@ -2,6 +2,7 @@ package options
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/match"
@@ -34,10 +35,13 @@ type Grype struct {
 	SortBy                     SortBy             `yaml:",inline" json:",inline" mapstructure:",squash"`
 	Name                       string             `yaml:"name" json:"name" mapstructure:"name"`
 	DefaultImagePullSource     string             `yaml:"default-image-pull-source" json:"default-image-pull-source" mapstructure:"default-image-pull-source"`
+	From                       []string           `yaml:"from" json:"from" mapstructure:"from"`
 	VexDocuments               []string           `yaml:"vex-documents" json:"vex-documents" mapstructure:"vex-documents"`
 	VexAdd                     []string           `yaml:"vex-add" json:"vex-add" mapstructure:"vex-add"`                                                                   // GRYPE_VEX_ADD
 	MatchUpstreamKernelHeaders bool               `yaml:"match-upstream-kernel-headers" json:"match-upstream-kernel-headers" mapstructure:"match-upstream-kernel-headers"` // Show matches on kernel-headers packages where the match is on kernel upstream instead of marking them as ignored, default=false
 	FixChannel                 FixChannels        `yaml:"fix-channel" json:"fix-channel" mapstructure:"fix-channel"`                                                       // the fix channels to apply to the distro when matching
+	Timestamp                  bool               `yaml:"timestamp" json:"timestamp" mapstructure:"timestamp"`
+	Alerts                     Alerts             `yaml:"alerts" json:"alerts" mapstructure:"alerts"`
 	DatabaseCommand            `yaml:",inline" json:",inline" mapstructure:",squash"`
 }
 
@@ -68,6 +72,8 @@ func DefaultGrype(id clio.Identification) *Grype {
 		VexAdd:                     []string{},
 		MatchUpstreamKernelHeaders: false,
 		SortBy:                     defaultSortBy(),
+		Timestamp:                  true,
+		Alerts:                     defaultAlerts(),
 	}
 }
 
@@ -95,7 +101,7 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 
 	flags.StringVarP(&o.Distro,
 		"distro", "",
-		"distro to match against in the format: <distro>:<version>",
+		"distro to match against in the format: <distro>[-:@]<version>",
 	)
 
 	flags.BoolVarP(&o.GenerateMissingCPEs,
@@ -109,7 +115,7 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 
 	flags.StringVarP(&o.FailOn,
 		"fail-on", "f",
-		fmt.Sprintf("set the return code to 1 if a vulnerability is found with a severity >= the given severity, options=%v", vulnerability.AllSeverities()),
+		fmt.Sprintf("set the return code to 2 if a vulnerability is found with a severity >= the given severity, options=%v", vulnerability.AllSeverities()),
 	)
 
 	flags.BoolVarP(&o.OnlyFixed,
@@ -147,6 +153,11 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 		"an optional platform specifier for container image sources (e.g. 'linux/arm64', 'linux/arm64/v8', 'arm64', 'linux')",
 	)
 
+	flags.StringArrayVarP(&o.From,
+		"from", "",
+		"specify the source behavior to use (e.g. docker, registry, podman, oci-dir, ...)",
+	)
+
 	flags.StringArrayVarP(&o.VexDocuments,
 		"vex", "",
 		"a list of VEX documents to consider when producing scanning results",
@@ -154,6 +165,8 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 }
 
 func (o *Grype) PostLoad() error {
+	o.From = flatten(o.From)
+
 	if o.FailOn != "" {
 		failOnSeverity := *o.FailOnSeverity()
 		if failOnSeverity == vulnerability.UnknownSeverity {
@@ -204,4 +217,15 @@ VEX fields apply when Grype reads vex data:
 func (o Grype) FailOnSeverity() *vulnerability.Severity {
 	severity := vulnerability.ParseSeverity(o.FailOn)
 	return &severity
+}
+
+// flatten takes a list of comma-separated entries and returns a flattened list of trimmed values (preserving order)
+func flatten(commaSeparatedEntries []string) []string {
+	var out []string
+	for _, v := range commaSeparatedEntries {
+		for _, s := range strings.Split(v, ",") {
+			out = append(out, strings.TrimSpace(s))
+		}
+	}
+	return out
 }

@@ -1,6 +1,10 @@
 package version
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/anchore/packageurl-go"
+)
 
 const (
 	UnknownFormat Format = iota
@@ -16,6 +20,7 @@ const (
 	GolangFormat
 	JVMFormat
 	BitnamiFormat
+	PacmanFormat
 )
 
 type Format int
@@ -34,6 +39,7 @@ var formatStr = []string{
 	"Go",
 	"JVM",
 	"Bitnami",
+	"Pacman",
 }
 
 var Formats = []Format{
@@ -49,25 +55,27 @@ var Formats = []Format{
 	GolangFormat,
 	JVMFormat,
 	BitnamiFormat,
+	PacmanFormat,
 }
 
 func ParseFormat(userStr string) Format {
 	switch strings.ToLower(userStr) {
-	case strings.ToLower(SemanticFormat.String()), "semver":
+	// sever includes known ecosystem types that use semver or a very semver-like schemes
+	case strings.ToLower(SemanticFormat.String()), "semver", packageurl.TypeNPM, packageurl.TypeNuget, packageurl.TypeComposer, packageurl.TypeHex, packageurl.TypePub, packageurl.TypeSwift, packageurl.TypeConan, packageurl.TypeCocoapods, packageurl.TypeHackage:
 		return SemanticFormat
 	case strings.ToLower(ApkFormat.String()), "apk":
 		return ApkFormat
 	case strings.ToLower(BitnamiFormat.String()), "bitnami":
 		return BitnamiFormat
-	case strings.ToLower(DebFormat.String()), "dpkg":
+	case strings.ToLower(DebFormat.String()), "dpkg", packageurl.TypeDebian:
 		return DebFormat
-	case strings.ToLower(GolangFormat.String()), "go":
+	case strings.ToLower(GolangFormat.String()), "go", packageurl.TypeGolang:
 		return GolangFormat
 	case strings.ToLower(MavenFormat.String()), "maven":
 		return MavenFormat
 	case strings.ToLower(RpmFormat.String()), "rpm":
 		return RpmFormat
-	case strings.ToLower(PythonFormat.String()), "python":
+	case strings.ToLower(PythonFormat.String()), "python", packageurl.TypePyPi, "pep440":
 		return PythonFormat
 	case strings.ToLower(KBFormat.String()), "kb":
 		return KBFormat
@@ -77,6 +85,8 @@ func ParseFormat(userStr string) Format {
 		return PortageFormat
 	case strings.ToLower(JVMFormat.String()), "jvm", "jre", "jdk", "openjdk", "jep223":
 		return JVMFormat
+	case strings.ToLower(PacmanFormat.String()), "pacman":
+		return PacmanFormat
 	}
 	return UnknownFormat
 }

@@ -869,6 +869,93 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "conda meta package metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.CondaMetaPackage{
+					Name:        "numpy",
+					Version:     "1.21.0",
+					Build:       "py39h20b1b1c_0",
+					BuildNumber: 0,
+					Channel:     "conda-forge",
+				},
+			},
+		},
+		{
+			name: "golang source entry metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.GolangSourceEntry{
+					H1Digest:        "h1:some-hash-value",
+					OperatingSystem: "linux",
+					Architecture:    "amd64",
+					BuildTags:       "release",
+					CgoEnabled:      true,
+				},
+			},
+			metadata: GolangSourceMetadata{
+				H1Digest:        "h1:some-hash-value",
+				OperatingSystem: "linux",
+				Architecture:    "amd64",
+				BuildTags:       "release",
+				CgoEnabled:      true,
+			},
+		},
+		{
+			name: "snap-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.SnapEntry{
+					SnapType:     "app",
+					Base:         "core22",
+					SnapName:     "test-snap",
+					SnapVersion:  "1.0.0",
+					Architecture: "amd64",
+				},
+			},
+		},
+		{
+			name: "python-pdm-lock-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PythonPdmLockEntry{
+					Summary: "Test package",
+					Files: []syftPkg.PythonPdmFileEntry{
+						{
+							URL: "test/file.py",
+						},
+					},
+					Dependencies: []string{"dependency1", "dependency2"},
+				},
+			},
+		},
+		{
+			name: "javascript-pnpm-lock-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.PnpmLockEntry{
+					Resolution: syftPkg.PnpmLockResolution{
+						Integrity: "",
+					},
+					Dependencies: map[string]string{
+						"dependency1": "1.2.3",
+						"dependency2": "4.5.6"},
+				},
+			},
+		},
+		{
+			name: "gguf-file-header",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.GGUFFileHeader{
+					GGUFVersion:  1,
+					FileSize:     2,
+					Architecture: "arch",
+					Quantization: "quant",
+					Parameters:   3,
+					TensorCount:  4,
+					RemainingKeyValues: map[string]any{
+						"key1": "value1",
+					},
+					MetadataKeyValuesHash: "f00bar123",
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing

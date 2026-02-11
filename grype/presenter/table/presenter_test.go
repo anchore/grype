@@ -149,7 +149,7 @@ func TestEmptyTablePresenter(t *testing.T) {
 
 	var buffer bytes.Buffer
 
-	doc, err := models.NewDocument(clio.Identification{}, nil, pkg.Context{}, match.NewMatches(), nil, nil, nil, nil, models.SortByPackage)
+	doc, err := models.NewDocument(clio.Identification{}, nil, pkg.Context{}, match.NewMatches(), nil, nil, nil, nil, models.SortByPackage, true, nil)
 	require.NoError(t, err)
 	pb := models.PresenterConfig{
 		Document: doc,

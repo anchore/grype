@@ -43,6 +43,13 @@ func TestVersionFormat(t *testing.T) {
 			format: version.GemFormat,
 		},
 		{
+			name: "alpm (arch linux)",
+			p: Package{
+				Type: syftPkg.AlpmPkg,
+			},
+			format: version.PacmanFormat,
+		},
+		{
 			name: "jvm by metadata",
 			p: Package{
 				Metadata: JavaVMInstallationMetadata{},

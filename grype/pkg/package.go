@@ -205,6 +205,7 @@ func distroFeedIsComprehensive(dst *distro.Distro) bool {
 // sqlite3 vulnerability.db 'select distinct namespace from vulnerability where fix_state in ("wont-fix", "not-fixed") order by namespace;' | cut -d ':' -f 1 | sort | uniq
 // then removing 'github'
 var comprehensiveDistros = []distro.Type{
+	distro.ArchLinux,
 	distro.Azure,
 	distro.Debian,
 	distro.Mariner,
@@ -227,7 +228,7 @@ func dataFromPkg(p syftPkg.Package) (any, []UpstreamPackage) {
 
 	// use the metadata to determine the type of package
 	switch p.Metadata.(type) {
-	case syftPkg.GolangModuleEntry, syftPkg.GolangBinaryBuildinfoEntry:
+	case syftPkg.GolangModuleEntry, syftPkg.GolangBinaryBuildinfoEntry, syftPkg.GolangSourceEntry:
 		metadata = golangMetadataFromPkg(p)
 	case syftPkg.DpkgDBEntry:
 		upstreams = dpkgDataFromPkg(p)
@@ -308,6 +309,14 @@ func golangMetadataFromPkg(p syftPkg.Package) interface{} {
 	case syftPkg.GolangModuleEntry:
 		metadata := GolangModMetadata{}
 		metadata.H1Digest = value.H1Digest
+		return metadata
+	case syftPkg.GolangSourceEntry:
+		metadata := GolangSourceMetadata{}
+		metadata.H1Digest = value.H1Digest
+		metadata.OperatingSystem = value.OperatingSystem
+		metadata.Architecture = value.Architecture
+		metadata.BuildTags = value.BuildTags
+		metadata.CgoEnabled = value.CgoEnabled
 		return metadata
 	}
 	return nil

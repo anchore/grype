@@ -2,6 +2,8 @@ package rpm
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/anchore/grype/grype/distro"
@@ -14,6 +16,105 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
 )
+
+// elVersionPattern matches patterns like "el9_5", "el8_10", "el7" in RPM release strings
+var elVersionPattern = regexp.MustCompile(`\.el(\d+)(?:_(\d+))?`)
+
+// extractRHELVersionFromRelease parses RHEL major/minor from release string.
+// Examples:
+//
+//	"503.11.1.el9_5" -> (9, 5, true)
+//	"82.el8_10.2" -> (8, 10, true)
+//	"1.el7" -> (7, 0, true)  // missing minor treated as 0
+//	"1.0.0" -> (0, 0, false)
+func extractRHELVersionFromRelease(release string) (major, minor int, found bool) {
+	matches := elVersionPattern.FindStringSubmatch(release)
+	if matches == nil {
+		return 0, 0, false
+	}
+
+	major, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return 0, 0, false
+	}
+
+	// If no minor version captured, treat as 0 (base version)
+	if matches[2] == "" {
+		return major, 0, true
+	}
+
+	minor, err = strconv.Atoi(matches[2])
+	if err != nil {
+		return major, 0, true
+	}
+
+	return major, minor, true
+}
+
+// extractReleaseFromRPMVersion extracts release portion from full RPM version.
+// Examples:
+//
+//	"5.14.0-503.11.1.el9_5" -> "503.11.1.el9_5"
+//	"0:5.14.0-503.11.1.el9_5" -> "503.11.1.el9_5" (handles epoch)
+func extractReleaseFromRPMVersion(rpmVersion string) string {
+	// Strip epoch if present (e.g., "0:5.14.0-..." -> "5.14.0-...")
+	if idx := strings.Index(rpmVersion, ":"); idx != -1 {
+		rpmVersion = rpmVersion[idx+1:]
+	}
+
+	// Extract release portion after the hyphen
+	if idx := strings.LastIndex(rpmVersion, "-"); idx != -1 {
+		return rpmVersion[idx+1:]
+	}
+
+	return rpmVersion
+}
+
+// isFixReachableForEUS returns true if fix version is reachable for EUS distro.
+// A fix is reachable if:
+//  1. The fix's RHEL version cannot be determined (fail-open)
+//  2. The fix's major version matches AND minor version <= EUS minor version
+func isFixReachableForEUS(fixVersion string, eusDistro *distro.Distro) bool {
+	if eusDistro == nil {
+		return true
+	}
+
+	// Parse EUS distro version (e.g., "9.4" -> major=9, minor=4)
+	eusMajor, eusMinor := eusDistro.MajorVersion(), eusDistro.MinorVersion()
+
+	if eusMajor == "" {
+		// Cannot determine EUS version, fail-open
+		return true
+	}
+
+	eusMajorInt, err := strconv.Atoi(eusMajor)
+	if err != nil {
+		return true
+	}
+
+	// Treat missing minor version as 0 (e.g., "9+eus" means "9.0+eus")
+	eusMinorInt := 0
+	if eusMinor != "" {
+		eusMinorInt, _ = strconv.Atoi(eusMinor)
+	}
+
+	// Extract release from fix version and parse RHEL version from it
+	release := extractReleaseFromRPMVersion(fixVersion)
+	fixMajor, fixMinor, found := extractRHELVersionFromRelease(release)
+	if !found {
+		// Cannot determine fix's RHEL version, fail-open (assume reachable)
+		return true
+	}
+
+	// Different major version is not reachable
+	if fixMajor != eusMajorInt {
+		return false
+	}
+
+	// Fix is reachable only if fix's minor version <= EUS minor version
+	// (missing minor is treated as 0, so ".el9" is reachable by any EUS version)
+	return fixMinor <= eusMinorInt
+}
 
 func shouldUseRedhatEUSMatching(d *distro.Distro) bool {
 	if d == nil {
@@ -62,10 +163,18 @@ func shouldUseRedhatEUSMatching(d *distro.Distro) bool {
 // Any disclosure that does not apply to the original package version (e.g. a fix was found) at this point has been removed.
 //
 // The final step is to render the final matches from the merged collection.
-func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
+func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package, missingEpochStrategy version.MissingEpochStrategy) ([]match.Match, error) {
 	distroWithoutEUS := *searchPkg.Distro
 	distroWithoutEUS.Channels = nil // clear the EUS channel so that we can search for the base distro
-	pkgVersion := version.New(searchPkg.Version, pkg.VersionFormat(searchPkg))
+
+	// Create version with config embedded
+	pkgVersion := version.NewWithConfig(
+		searchPkg.Version,
+		pkg.VersionFormat(searchPkg),
+		version.ComparisonConfig{
+			MissingEpochStrategy: missingEpochStrategy,
+		},
+	)
 
 	// find all disclosures for the package in the base distro (e.g. '>= 9.0 && < 10')
 	disclosures, err := provider.FindResults(
@@ -106,40 +215,22 @@ func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package) ([]match.
 	// b. disclosures that have EUS fixes that resolve the disclosure for future versions of the package (thus we're vulnerable) are kept.
 	// c. all fixes from the incoming resolutions are patched onto the disclosures in the returned collection, so the
 	//    final set of vulnerabilities is a fused set of disclosures and fixes together.
-	remaining = remaining.Merge(resolutions, mergeEUSAdvisoriesIntoMainDisclosures(pkgVersion, false))
+	// Note: we pass searchPkg.Distro (the EUS distro) to filter out fixes not reachable for this EUS version
+	remaining = remaining.Merge(resolutions, mergeEUSAdvisoriesIntoMainDisclosures(pkgVersion, searchPkg.Distro))
 
 	return remaining.ToMatches(), err
 }
 
 // mergeEUSAdvisoriesIntoMainDisclosures returns a function that will filter disclosures based on the provided advisory information (by fix version only).
 // Additionally, this will merge applicable fixes into one vulnerability record, so that the final result contains only one vulnerability record per disclosure.
-func mergeEUSAdvisoriesIntoMainDisclosures(v *version.Version, treatResolutionsAsDisclosures bool) func(disclosures, advisoryOverlays []result.Result) []result.Result {
+func mergeEUSAdvisoriesIntoMainDisclosures(v *version.Version, eusDistro *distro.Distro) func(disclosures, advisoryOverlays []result.Result) []result.Result {
 	return func(disclosures, advisoryOverlays []result.Result) []result.Result {
 		var out []result.Result
 
 		for _, ds := range disclosures {
-			processedResult := mergeEUSAdvisoryIntoMainDisclosure(v, ds, advisoryOverlays)
+			processedResult := mergeEUSAdvisoryIntoMainDisclosure(v, ds, advisoryOverlays, eusDistro)
 			if len(processedResult.Vulnerabilities) > 0 {
 				out = append(out, processedResult)
-			}
-		}
-
-		if treatResolutionsAsDisclosures {
-			// add any incoming results that don't have corresponding existing results
-			for _, advisory := range advisoryOverlays {
-				hasCorrespondingExisting := false
-				for _, e := range disclosures {
-					if e.ID == advisory.ID {
-						hasCorrespondingExisting = true
-						break
-					}
-				}
-				if !hasCorrespondingExisting {
-					// this advisory doesn't have a corresponding disclosure, include it as-is
-					// note: we are presuming that the original disclosure has already been verified to be vulnerable
-					// against the original package.
-					out = append(out, advisory)
-				}
 			}
 		}
 
@@ -148,7 +239,7 @@ func mergeEUSAdvisoriesIntoMainDisclosures(v *version.Version, treatResolutionsA
 }
 
 // mergeEUSAdvisoryIntoMainDisclosure processes a single disclosure Result against its corresponding advisory overlay Results
-func mergeEUSAdvisoryIntoMainDisclosure(v *version.Version, disclosures result.Result, advisoryOverlays []result.Result) result.Result {
+func mergeEUSAdvisoryIntoMainDisclosure(v *version.Version, disclosures result.Result, advisoryOverlays []result.Result, eusDistro *distro.Distro) result.Result {
 	processedResult := result.Result{
 		ID:      disclosures.ID,
 		Package: disclosures.Package,
@@ -156,7 +247,7 @@ func mergeEUSAdvisoryIntoMainDisclosure(v *version.Version, disclosures result.R
 
 	// process each disclosure vulnerability against advisory overlays
 	for _, disclosure := range disclosures.Vulnerabilities {
-		processedVuln, advisoryDetails := mergeEUSAdvisoryIntoSingleDisclosure(v, disclosure, advisoryOverlays)
+		processedVuln, advisoryDetails := mergeEUSAdvisoryIntoSingleDisclosure(v, disclosure, advisoryOverlays, eusDistro)
 		if processedVuln != nil {
 			processedResult.Vulnerabilities = append(processedResult.Vulnerabilities, *processedVuln)
 			processedResult.Details = append(processedResult.Details, advisoryDetails...)
@@ -168,7 +259,7 @@ func mergeEUSAdvisoryIntoMainDisclosure(v *version.Version, disclosures result.R
 }
 
 // mergeEUSAdvisoryIntoSingleDisclosure processes a single vulnerability against advisory overlays
-func mergeEUSAdvisoryIntoSingleDisclosure(v *version.Version, disclosure vulnerability.Vulnerability, advisoryOverlays []result.Result) (*vulnerability.Vulnerability, match.Details) {
+func mergeEUSAdvisoryIntoSingleDisclosure(v *version.Version, disclosure vulnerability.Vulnerability, advisoryOverlays []result.Result, eusDistro *distro.Distro) (*vulnerability.Vulnerability, match.Details) {
 	fixVersions := version.NewSet(true)
 	var constraints []version.Constraint
 	var state vulnerability.FixState
@@ -181,7 +272,7 @@ func mergeEUSAdvisoryIntoSingleDisclosure(v *version.Version, disclosure vulnera
 
 	// process advisory overlays, incorporating new fix versions and updating the version constraints
 	for _, advisoryOverlay := range advisoryOverlays {
-		collectMatchingConstraintsDetailsAndFixState(v, advisoryOverlay, fixVersions, &constraints, &state, &allAdvisoryDetails)
+		collectMatchingConstraintsDetailsAndFixState(v, advisoryOverlay, fixVersions, &constraints, &state, &allAdvisoryDetails, eusDistro)
 	}
 
 	if len(constraints) == 0 {
@@ -194,7 +285,7 @@ func mergeEUSAdvisoryIntoSingleDisclosure(v *version.Version, disclosure vulnera
 }
 
 // collectMatchingConstraintsDetailsAndFixState processes vulnerabilities from advisory overlays, applying any new fix versions and updating the given fix state / constraints.
-func collectMatchingConstraintsDetailsAndFixState(v *version.Version, advisoryResult result.Result, fixVersions *version.Set, constraints *[]version.Constraint, state *vulnerability.FixState, allAdvisoryDetails *match.Details) {
+func collectMatchingConstraintsDetailsAndFixState(v *version.Version, advisoryResult result.Result, fixVersions *version.Set, constraints *[]version.Constraint, state *vulnerability.FixState, allAdvisoryDetails *match.Details, eusDistro *distro.Distro) {
 	advisories := advisoryResult.Vulnerabilities
 	var keepDetails bool
 	for _, advisory := range advisories {
@@ -202,9 +293,21 @@ func collectMatchingConstraintsDetailsAndFixState(v *version.Version, advisoryRe
 			*state = advisory.Fix.State
 		}
 
-		applicableFixes := neededFixes(v, advisory.Fix.Versions, advisory.Constraint.Format(), advisory.ID)
+		// Get all fixes greater than current version (parses versions once)
+		allFixes := neededFixes(v, advisory.Fix.Versions, advisory.Constraint.Format(), advisory.ID)
+
+		// Filter to only those reachable for EUS (quick string-based check)
+		applicableFixes := filterFixesForEUS(allFixes, eusDistro, advisory.ID)
+
 		if len(applicableFixes) == 0 {
-			// none of the fixes on this advisory are greater than the current version, so we can skip this advisory
+			// If there were fixes but none are reachable for EUS, mark as NotFixed
+			if len(allFixes) > 0 && eusDistro != nil && *state != vulnerability.FixStateFixed {
+				*state = vulnerability.FixStateNotFixed
+				// Still add the constraint since the user is vulnerable
+				*constraints = append(*constraints, advisory.Constraint)
+				keepDetails = true
+			}
+			// none of the fixes on this advisory are greater than the current version (or reachable for EUS), so we can skip adding fixes
 			continue
 		}
 
@@ -253,7 +356,7 @@ func finalizeMatchDetails(processedResult *result.Result, originalDetails match.
 
 	// keep details around only if we have vulnerabilities they describe
 	processedResult.Details = append(processedResult.Details, originalDetails...)
-	processedResult.Details = internal.NewMatchDetailsSet(processedResult.Details...).ToSlice()
+	processedResult.Details = result.NewMatchDetailsSet(processedResult.Details...).ToSlice()
 
 	// patch the version in the details if it is missing
 	for idx := range processedResult.Details {
@@ -309,6 +412,23 @@ func neededFixes(v *version.Version, fixVersions []string, format version.Format
 	}
 
 	return needed
+}
+
+// filterFixesForEUS filters a list of fix versions to only those reachable for the given EUS distro.
+func filterFixesForEUS(fixes []*version.Version, eusDistro *distro.Distro, id string) []*version.Version {
+	if eusDistro == nil {
+		return fixes
+	}
+
+	var reachable []*version.Version
+	for _, fix := range fixes {
+		if isFixReachableForEUS(fix.Raw, eusDistro) {
+			reachable = append(reachable, fix)
+		} else {
+			log.WithFields("vulnerability", id, "fixVersion", fix.Raw, "eusDistro", eusDistro.String()).Trace("skipping fix not reachable for EUS version")
+		}
+	}
+	return reachable
 }
 
 func finalizeFixState(record vulnerability.Vulnerability, state vulnerability.FixState) vulnerability.FixState {

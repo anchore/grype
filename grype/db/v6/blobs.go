@@ -37,6 +37,9 @@ type Reference struct {
 	// URL is the external resource
 	URL string `json:"url"`
 
+	// ID is an optional identifier for the reference (e.g., advisory ID like "RHSA-2023:5455")
+	ID string `json:"id,omitempty"`
+
 	// Tags is a free-form organizational field to convey additional information about the reference
 	Tags []string `json:"tags,omitempty"`
 }
@@ -106,19 +109,19 @@ func (c CVSSSeverity) String() string {
 	return vector
 }
 
-// AffectedPackageBlob represents a package affected by a vulnerability.
-type AffectedPackageBlob struct {
+// PackageBlob represents a package that is affected by a vulnerability.
+type PackageBlob struct {
 	// CVEs is a list of Common Vulnerabilities and Exposures (CVE) identifiers related to this vulnerability.
 	CVEs []string `json:"cves,omitempty"`
 
 	// Qualifiers are package attributes that confirm the package is affected by the vulnerability.
-	Qualifiers *AffectedPackageQualifiers `json:"qualifiers,omitempty"`
+	Qualifiers *PackageQualifiers `json:"qualifiers,omitempty"`
 
 	// Ranges specifies the affected version ranges and fixes if available.
-	Ranges []AffectedRange `json:"ranges,omitempty"`
+	Ranges []Range `json:"ranges,omitempty"`
 }
 
-func (a AffectedPackageBlob) String() string {
+func (a PackageBlob) String() string {
 	var fields []string
 
 	if len(a.Ranges) > 0 {
@@ -136,8 +139,8 @@ func (a AffectedPackageBlob) String() string {
 	return strings.Join(fields, ", ")
 }
 
-// AffectedPackageQualifiers contains package attributes that confirm the package is affected by the vulnerability.
-type AffectedPackageQualifiers struct {
+// PackageQualifiers contains package attributes that should hold true to associate a vulnerablity to that package.
+type PackageQualifiers struct {
 	// RpmModularity indicates if the package follows RPM modularity for versioning.
 	RpmModularity *string `json:"rpm_modularity,omitempty"`
 
@@ -145,16 +148,16 @@ type AffectedPackageQualifiers struct {
 	PlatformCPEs []string `json:"platform_cpes,omitempty"`
 }
 
-// AffectedRange defines a specific range of versions affected by a vulnerability.
-type AffectedRange struct {
+// Range defines a specific range of package versions pertaining to a vulnerability.
+type Range struct {
 	// Version defines the version constraints for affected software.
-	Version AffectedVersion `json:"version,omitempty"`
+	Version Version `json:"version,omitempty"`
 
 	// Fix provides details on the fix version and its state if available.
 	Fix *Fix `json:"fix,omitempty"`
 }
 
-func (a AffectedRange) String() string {
+func (a Range) String() string {
 	return fmt.Sprintf("%s (%s)", a.Version, a.Fix)
 }
 
@@ -182,18 +185,71 @@ func (f Fix) String() string {
 
 // FixDetail is additional information about a fix, such as commit details and patch URLs.
 type FixDetail struct {
-	// GitCommit is the identifier for the Git commit associated with the fix.
-	GitCommit string `json:"git_commit,omitempty"`
-
-	// Timestamp is the date and time when the fix was committed.
-	Timestamp *time.Time `json:"timestamp,omitempty"`
+	// Available indicates when the fix information became available and how it was obtained.
+	Available *FixAvailability `json:"available,omitempty"`
 
 	// References contains URLs or identifiers for additional resources on the fix.
 	References []Reference `json:"references,omitempty"`
 }
 
-// AffectedVersion defines the versioning format and constraints.
-type AffectedVersion struct {
+type FixAvailability struct {
+	// Date is the date and time when fix information became available. Note: this might not be when the fix was created, committed or merged.
+	Date *time.Time `json:"date,omitempty"`
+
+	// Kind describes how this date was obtained (e.g. advisory, release, commit, PR, issue, first-observed-record)
+	Kind string `json:"kind,omitempty"`
+}
+
+func (f FixAvailability) MarshalJSON() ([]byte, error) {
+	type Alias FixAvailability
+	aux := &struct {
+		Date *string `json:"date,omitempty"`
+		*Alias
+	}{
+		Alias: (*Alias)(&f),
+	}
+
+	// the JSON marshaller should interpret the time.Time as a Date, not a timestamp
+	if f.Date != nil {
+		dateStr := f.Date.Format("2006-01-02")
+		aux.Date = &dateStr
+	}
+
+	return json.Marshal(aux)
+}
+
+func (f *FixAvailability) UnmarshalJSON(data []byte) error {
+	type Alias FixAvailability
+	aux := &struct {
+		Date *string `json:"date,omitempty"`
+		*Alias
+	}{
+		Alias: (*Alias)(f),
+	}
+
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	if aux.Date != nil {
+		if t, err := time.Parse("2006-01-02", *aux.Date); err == nil {
+			f.Date = &t
+			return nil
+		}
+
+		if t, err := time.Parse(time.RFC3339, *aux.Date); err == nil {
+			f.Date = &t
+			return nil
+		}
+
+		return fmt.Errorf("unable to parse date %q: expected format YYYY-MM-DD or RFC3339", *aux.Date)
+	}
+
+	return nil
+}
+
+// Version defines the versioning format and constraints.
+type Version struct {
 	// Type specifies the versioning system used (e.g., "semver", "rpm").
 	Type string `json:"type,omitempty"`
 

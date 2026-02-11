@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -19,16 +20,20 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/matcher/dotnet"
+	"github.com/anchore/grype/grype/matcher/dpkg"
 	"github.com/anchore/grype/grype/matcher/golang"
+	"github.com/anchore/grype/grype/matcher/hex"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
 	"github.com/anchore/grype/grype/matcher/python"
+	"github.com/anchore/grype/grype/matcher/rpm"
 	"github.com/anchore/grype/grype/matcher/ruby"
 	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vex"
+	vexStatus "github.com/anchore/grype/grype/vex/status"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/bus"
@@ -77,12 +82,12 @@ You can also pipe in Syft JSON directly:
 		Args:          validateRootArgs,
 		SilenceUsage:  true,
 		SilenceErrors: true,
-		RunE: func(_ *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			userInput := ""
 			if len(args) > 0 {
 				userInput = args[0]
 			}
-			return runGrype(app, opts, userInput)
+			return runGrype(cmd.Context(), app, opts, userInput)
 		},
 		ValidArgsFunction: dockerImageValidArgsFunction,
 	}, opts)
@@ -99,8 +104,8 @@ var ignoreFixedMatches = []match.IgnoreRule{
 }
 
 var ignoreVEXFixedNotAffected = []match.IgnoreRule{
-	{VexStatus: string(vex.StatusNotAffected)},
-	{VexStatus: string(vex.StatusFixed)},
+	{VexStatus: string(vexStatus.NotAffected)},
+	{VexStatus: string(vexStatus.Fixed)},
 }
 
 var ignoreLinuxKernelHeaders = []match.IgnoreRule{
@@ -110,7 +115,7 @@ var ignoreLinuxKernelHeaders = []match.IgnoreRule{
 }
 
 //nolint:funlen
-func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs error) {
+func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, userInput string) (errs error) {
 	writer, err := format.MakeScanResultWriter(opts.Outputs, opts.File, format.PresentationConfig{
 		TemplateFilePath: opts.OutputTemplateFile,
 		ShowSuppressed:   opts.ShowSuppressed,
@@ -207,19 +212,27 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 
 	startTime := time.Now()
 
+	vexProcessor, err := vex.NewProcessor(vex.ProcessorOptions{
+		Documents:   opts.VexDocuments,
+		IgnoreRules: opts.Ignore,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create VEX processor: %w", err)
+	}
+
 	vulnMatcher := grype.VulnerabilityMatcher{
 		VulnerabilityProvider: vp,
 		IgnoreRules:           opts.Ignore,
 		NormalizeByCVE:        opts.ByCVE,
 		FailSeverity:          opts.FailOnSeverity(),
 		Matchers:              getMatchers(opts),
-		VexProcessor: vex.NewProcessor(vex.ProcessorOptions{
-			Documents:   opts.VexDocuments,
-			IgnoreRules: opts.Ignore,
-		}),
+		VexProcessor:          vexProcessor,
+		Alerts: grype.AlertsConfig{
+			EnableEOLDistroWarnings: opts.Alerts.EnableEOLDistroWarnings,
+		},
 	}
 
-	remainingMatches, ignoredMatches, err := vulnMatcher.FindMatches(packages, pkgContext)
+	remainingMatches, ignoredMatches, err := vulnMatcher.FindMatchesContext(ctx, packages, pkgContext)
 	if err != nil {
 		if !errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
 			return err
@@ -230,7 +243,19 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	log.WithFields("time", time.Since(startTime)).Info("found vulnerability matches")
 	startTime = time.Now()
 
-	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, dbInfo(status, vp), models.SortStrategy(opts.SortBy.Criteria))
+	// clear out the registry auth information to avoid including possibly sensitive information in the report
+	opts.Registry.Auth = nil
+
+	// collect distro alert data from the vulnerability matcher (if enabled)
+	var distroAlertData *models.DistroAlertData
+	if opts.Alerts.EnableEOLDistroWarnings {
+		distroAlertData = &models.DistroAlertData{
+			EOLDistroPackages: vulnMatcher.EOLDistroPackages(),
+		}
+		warnDistroAlerts(distroAlertData)
+	}
+
+	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, dbInfo(status, vp), models.SortStrategy(opts.SortBy.Criteria), opts.Timestamp, distroAlertData)
 	if err != nil {
 		return fmt.Errorf("failed to create document: %w", err)
 	}
@@ -265,6 +290,30 @@ func warnWhenDistroHintNeeded(pkgs []pkg.Package, context *pkg.Context) {
 		log.Warnf("Unable to determine the OS distribution of some packages. This may result in missing vulnerabilities. " +
 			"You may specify a distro using: --distro <distro>:<version>")
 	}
+}
+
+func warnDistroAlerts(data *models.DistroAlertData) {
+	if data == nil {
+		return
+	}
+
+	// warn about EOL distro packages
+	for distroName, count := range countPackagesByDistro(data.EOLDistroPackages) {
+		msg := fmt.Sprintf("%d packages from EOL distro %q - vulnerability data may be incomplete or outdated; consider upgrading to a supported version", count, distroName)
+		bus.Notify(msg)
+	}
+}
+
+func countPackagesByDistro(packages []pkg.Package) map[string]int {
+	counts := make(map[string]int)
+	for _, p := range packages {
+		distroName := "unknown"
+		if p.Distro != nil {
+			distroName = p.Distro.String()
+		}
+		counts[distroName]++
+	}
+	return counts
 }
 
 func dbInfo(status *vulnerability.ProviderStatus, vp vulnerability.Provider) any {
@@ -314,25 +363,36 @@ func checkForAppUpdate(id clio.Identification, opts *options.Grype) {
 	}
 }
 
-func getMatchers(opts *options.Grype) []match.Matcher {
-	return matcher.NewDefaultMatchers(
-		matcher.Config{
-			Java: java.MatcherConfig{
-				ExternalSearchConfig: opts.ExternalSources.ToJavaMatcherConfig(),
-				UseCPEs:              opts.Match.Java.UseCPEs,
-			},
-			Ruby:       ruby.MatcherConfig(opts.Match.Ruby),
-			Python:     python.MatcherConfig(opts.Match.Python),
-			Dotnet:     dotnet.MatcherConfig(opts.Match.Dotnet),
-			Javascript: javascript.MatcherConfig(opts.Match.Javascript),
-			Golang: golang.MatcherConfig{
-				UseCPEs:                                opts.Match.Golang.UseCPEs,
-				AlwaysUseCPEForStdlib:                  opts.Match.Golang.AlwaysUseCPEForStdlib,
-				AllowMainModulePseudoVersionComparison: opts.Match.Golang.AllowMainModulePseudoVersionComparison,
-			},
-			Stock: stock.MatcherConfig(opts.Match.Stock),
+func getMatcherConfig(opts *options.Grype) matcher.Config {
+	return matcher.Config{
+		Java: java.MatcherConfig{
+			ExternalSearchConfig: opts.ExternalSources.ToJavaMatcherConfig(),
+			UseCPEs:              opts.Match.Java.UseCPEs,
 		},
-	)
+		Ruby:       ruby.MatcherConfig(opts.Match.Ruby),
+		Python:     python.MatcherConfig(opts.Match.Python),
+		Dotnet:     dotnet.MatcherConfig(opts.Match.Dotnet),
+		Javascript: javascript.MatcherConfig(opts.Match.Javascript),
+		Golang: golang.MatcherConfig{
+			UseCPEs:                                opts.Match.Golang.UseCPEs,
+			AlwaysUseCPEForStdlib:                  opts.Match.Golang.AlwaysUseCPEForStdlib,
+			AllowMainModulePseudoVersionComparison: opts.Match.Golang.AllowMainModulePseudoVersionComparison,
+		},
+		Hex:   hex.MatcherConfig(opts.Match.Hex),
+		Stock: stock.MatcherConfig(opts.Match.Stock),
+		Dpkg: dpkg.MatcherConfig{
+			MissingEpochStrategy: opts.Match.Dpkg.MissingEpochStrategy,
+			UseCPEsForEOL:        opts.Match.Dpkg.UseCPEsForEOL,
+		},
+		Rpm: rpm.MatcherConfig{
+			MissingEpochStrategy: opts.Match.Rpm.MissingEpochStrategy,
+			UseCPEsForEOL:        opts.Match.Rpm.UseCPEsForEOL,
+		},
+	}
+}
+
+func getMatchers(opts *options.Grype) []match.Matcher {
+	return matcher.NewDefaultMatchers(getMatcherConfig(opts))
 }
 
 func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
@@ -353,6 +413,7 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 			Platform:               opts.Platform,
 			Name:                   opts.Name,
 			DefaultImagePullSource: opts.DefaultImagePullSource,
+			Sources:                opts.From,
 		},
 		SynthesisConfig: pkg.SynthesisConfig{
 			GenerateMissingCPEs: opts.GenerateMissingCPEs,
@@ -395,7 +456,8 @@ func applyDistroHint(hint string) *distro.Distro {
 		return nil
 	}
 
-	return distro.NewFromNameVersion(stringutil.SplitOnFirstString(hint, ":", "@"))
+	name, version := distro.ParseDistroString(hint)
+	return distro.NewFromNameVersion(name, version)
 }
 
 func validateDBLoad(loadErr error, status *vulnerability.ProviderStatus) error {
@@ -451,18 +513,18 @@ func applyVexRules(opts *options.Grype) error {
 		opts.Ignore = append(opts.Ignore, ignoreVEXFixedNotAffected...)
 	}
 
-	for _, vexStatus := range opts.VexAdd {
-		switch vexStatus {
-		case string(vex.StatusAffected):
+	for _, status := range opts.VexAdd {
+		switch status {
+		case string(vexStatus.Affected):
 			opts.Ignore = append(
-				opts.Ignore, match.IgnoreRule{VexStatus: string(vex.StatusAffected)},
+				opts.Ignore, match.IgnoreRule{VexStatus: string(vexStatus.Affected)},
 			)
-		case string(vex.StatusUnderInvestigation):
+		case string(vexStatus.UnderInvestigation):
 			opts.Ignore = append(
-				opts.Ignore, match.IgnoreRule{VexStatus: string(vex.StatusUnderInvestigation)},
+				opts.Ignore, match.IgnoreRule{VexStatus: string(vexStatus.UnderInvestigation)},
 			)
 		default:
-			return fmt.Errorf("invalid VEX status in vex-add setting: %s", vexStatus)
+			return fmt.Errorf("invalid VEX status in vex-add setting: %s", status)
 		}
 	}
 

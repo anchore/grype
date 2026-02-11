@@ -15,8 +15,11 @@ const (
 	PortageMatcher     MatcherType = "portage-matcher"
 	GoModuleMatcher    MatcherType = "go-module-matcher"
 	OpenVexMatcher     MatcherType = "openvex-matcher"
+	CsafVexMatcher     MatcherType = "csafvex-matcher"
 	RustMatcher        MatcherType = "rust-matcher"
 	BitnamiMatcher     MatcherType = "bitnami-matcher"
+	PacmanMatcher      MatcherType = "pacman-matcher"
+	HexMatcher         MatcherType = "hex-matcher"
 )
 
 var AllMatcherTypes = []MatcherType{
@@ -32,8 +35,11 @@ var AllMatcherTypes = []MatcherType{
 	PortageMatcher,
 	GoModuleMatcher,
 	OpenVexMatcher,
+	CsafVexMatcher,
 	RustMatcher,
 	BitnamiMatcher,
+	PacmanMatcher,
+	HexMatcher,
 }
 
 type MatcherType string

@@ -1,6 +1,7 @@
 package rpm
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -15,7 +16,20 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-type Matcher struct{}
+type Matcher struct {
+	cfg MatcherConfig
+}
+
+type MatcherConfig struct {
+	MissingEpochStrategy version.MissingEpochStrategy
+	UseCPEsForEOL        bool
+}
+
+func NewRpmMatcher(cfg MatcherConfig) *Matcher {
+	return &Matcher{
+		cfg: cfg,
+	}
+}
 
 func (m *Matcher) PackageTypes() []syftPkg.Type {
 	return []syftPkg.Type{syftPkg.RpmPkg}
@@ -29,20 +43,68 @@ func (m *Matcher) Type() match.MatcherType {
 func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	var matches []match.Match
 
-	exactMatches, err := m.matchPackage(vp, p)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
+	// Handle AlmaLinux matching at the top level before the binary/upstream split
+	// AlmaLinux matching needs to handle both binary and upstream packages internally
+	if p.Distro != nil && shouldUseAlmaLinuxMatching(p.Distro) {
+		almaMatches, err := m.matchAlmaLinux(vp, p)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to match AlmaLinux: %w", err)
+		}
+		matches = append(matches, almaMatches...)
+	} else {
+		// For non-AlmaLinux distros, use the standard binary/upstream split
+		exactMatches, err := m.matchPackage(vp, p)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
+		}
+
+		matches = append(matches, exactMatches...)
+
+		sourceMatches, err := m.matchUpstreamPackages(vp, p)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to match by source indirection: %w", err)
+		}
+		matches = append(matches, sourceMatches...)
 	}
 
-	matches = append(matches, exactMatches...)
-
-	sourceMatches, err := m.matchUpstreamPackages(vp, p)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to match by source indirection: %w", err)
+	// if configured, also search by CPEs for packages from EOL distros
+	if m.cfg.UseCPEsForEOL && internal.IsDistroEOL(vp, p.Distro) {
+		log.WithFields("package", p.Name, "distro", p.Distro).Debug("distro is EOL, searching by CPEs")
+		cpeMatches, err := internal.MatchPackageByCPEs(vp, p, m.Type())
+		switch {
+		case errors.Is(err, internal.ErrEmptyCPEMatch):
+			log.WithFields("package", p.Name).Debug("package has no CPEs for EOL fallback matching")
+		case err != nil:
+			log.WithFields("package", p.Name, "error", err).Debug("failed to match by CPEs for EOL distro")
+		default:
+			matches = append(matches, cpeMatches...)
+		}
 	}
-	matches = append(matches, sourceMatches...)
 
 	return matches, nil, nil
+}
+
+// matchAlmaLinux handles AlmaLinux-specific matching logic that considers both binary and upstream packages
+// This must be called at the top level (before the binary/upstream split) because AlmaLinux matching
+// needs to search for RHEL disclosures for both the binary package and its upstreams, then filter
+// using AlmaLinux unaffected records for both the binary package and related packages
+func (m *Matcher) matchAlmaLinux(vp vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+	if p.Distro == nil {
+		return nil, nil
+	}
+	if isUnknownVersion(p.Version) {
+		log.WithFields("package", p.Name).Trace("skipping package with unknown version")
+		return nil, nil
+	}
+
+	provider := result.NewProvider(vp, p, m.Type())
+
+	// Add epoch if applicable for the binary package
+	binaryPkg := p
+	addEpochIfApplicable(&binaryPkg)
+
+	// Call almaLinuxMatches with both the binary package and its upstreams
+	return almaLinuxMatchesWithUpstreams(provider, binaryPkg)
 }
 
 // matchPackage matches the given package against the vulnerability provider (direct match).
@@ -145,18 +207,27 @@ func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) (
 
 	switch {
 	case shouldUseRedhatEUSMatching(searchPkg.Distro):
-		return redhatEUSMatches(provider, searchPkg)
+		return redhatEUSMatches(provider, searchPkg, m.cfg.MissingEpochStrategy)
 	default:
-		return standardMatches(provider, searchPkg)
+		return m.standardMatches(provider, searchPkg)
 	}
 }
 
-func standardMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
+func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
+	// Create version with config embedded
+	pkgVersion := version.NewWithConfig(
+		searchPkg.Version,
+		pkg.VersionFormat(searchPkg),
+		version.ComparisonConfig{
+			MissingEpochStrategy: m.cfg.MissingEpochStrategy,
+		},
+	)
+
 	disclosures, err := provider.FindResults(
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
 		internal.OnlyQualifiedPackages(searchPkg),
-		internal.OnlyVulnerableVersions(version.New(searchPkg.Version, pkg.VersionFormat(searchPkg))),
+		internal.OnlyVulnerableVersions(pkgVersion),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)

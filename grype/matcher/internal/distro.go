@@ -12,7 +12,7 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package, catalogPkg *pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
+func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package, catalogPkg *pkg.Package, upstreamMatcher match.MatcherType, cfg *version.ComparisonConfig) ([]match.Match, []match.IgnoreFilter, error) {
 	if searchPkg.Distro == nil {
 		return nil, nil, nil
 	}
@@ -23,11 +23,22 @@ func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package
 	}
 
 	var matches []match.Match
+
+	// Create version with config embedded if provided
+	var pkgVersion *version.Version
+	if cfg != nil {
+		pkgVersion = version.NewWithConfig(searchPkg.Version, pkg.VersionFormat(searchPkg), *cfg)
+	} else {
+		pkgVersion = version.New(searchPkg.Version, pkg.VersionFormat(searchPkg))
+	}
+
+	versionCriteria := OnlyVulnerableVersions(pkgVersion)
+
 	vulns, err := provider.FindVulnerabilities(
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
 		OnlyQualifiedPackages(searchPkg),
-		OnlyVulnerableVersions(version.New(searchPkg.Version, pkg.VersionFormat(searchPkg))),
+		versionCriteria,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)

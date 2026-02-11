@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/mholt/archives"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -913,6 +914,36 @@ func TestCurator_Import_URL_UsesDBRootDirForDownloadTempBaseAndCleansUp(t *testi
 		_, statErr := c.fs.Stat(downloadedContentPath)
 		require.True(t, os.IsNotExist(statErr), "expected temp import directory to be cleaned up")
 	})
+}
+
+func Test_unarchive(t *testing.T) {
+	testFile := filepath.Join(t.TempDir(), "vulnerability.db")
+	f, err := os.Create(testFile)
+	require.NoError(t, err)
+	f.Close()
+
+	files, err := archives.FilesFromDisk(t.Context(), nil, map[string]string{
+		testFile: "",
+	})
+	require.NoError(t, err)
+
+	source := filepath.Join(t.TempDir(), "archive.tar.zst")
+	out, err := os.Create(source)
+	require.NoError(t, err)
+
+	format := archives.CompressedArchive{
+		Compression: archives.Zstd{},
+		Archival:    archives.Tar{},
+	}
+	err = format.Archive(t.Context(), out, files)
+	require.NoError(t, err)
+
+	destination := t.TempDir()
+	err = unarchive(source, destination)
+	require.NoError(t, err)
+
+	expectFile := filepath.Join(destination, "vulnerability.db")
+	require.FileExists(t, expectFile)
 }
 
 func setupTestDB(t *testing.T, dbDir string) db.ReadWriter {

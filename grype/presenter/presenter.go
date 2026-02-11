@@ -8,6 +8,7 @@ import (
 )
 
 // GetPresenter retrieves a Presenter that matches a CLI option.
+//
 // Deprecated: this will be removed in v1.0
 func GetPresenter(f string, templatePath string, showSuppressed bool, pb models.PresenterConfig) presenter.Presenter {
 	return format.GetPresenter(format.Parse(f), format.PresentationConfig{

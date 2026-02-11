@@ -28,21 +28,19 @@ func Parse(s string) (SchemaVer, error) {
 		return SchemaVer{}, fmt.Errorf("invalid schema version format: %s", s)
 	}
 	// check that all parts are integers
-	var values [3]int
-	for i, part := range parts {
-		if i == 0 {
-			part = strings.TrimPrefix(part, "v")
-		}
-		v, err := strconv.Atoi(part)
-		if err != nil || v < 0 {
-			return SchemaVer{}, fmt.Errorf("invalid schema version format: %s", s)
-		}
-		values[i] = v
+	model, err := strconv.Atoi(strings.TrimPrefix(parts[0], "v"))
+	if err != nil || model < 1 {
+		return SchemaVer{}, fmt.Errorf("invalid schema version format: %s", s)
 	}
-	if values[0] < 1 {
-		return SchemaVer{}, fmt.Errorf("model value must be greater than 0: %s", s)
+	revision, err := strconv.Atoi(parts[1])
+	if err != nil || revision < 0 {
+		return SchemaVer{}, fmt.Errorf("invalid schema version format: %s", s)
 	}
-	return New(values[0], values[1], values[2]), nil
+	addition, err := strconv.Atoi(parts[2])
+	if err != nil || addition < 0 {
+		return SchemaVer{}, fmt.Errorf("invalid schema version format: %s", s)
+	}
+	return New(model, revision, addition), nil
 }
 
 func (s SchemaVer) Valid() bool {

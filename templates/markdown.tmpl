@@ -1,0 +1,21 @@
+# Vulnerability Report
+
+- Name: {{- if eq (.Source.Type) "image" }} {{ .Source.Target.UserInput }}
+{{ else if eq (.Source.Type) "directory" }} {{ .Source.Target }}
+{{ else if eq (.Source.Type) "file" }} {{ .Source.Target }}
+{{ else if eq (.Source.Type) "sbom-file" }} {{ .Source.Target }}
+{{ else }} unknown
+{{ end -}}
+- Type: {{ .Source.Type }}
+{{- if eq .Source.Type "image" }}
+{{ with .Source.Target.ID }}
+- Checksum: {{ . }}
+{{- end -}}
+{{- end}}
+- Date: {{ .Descriptor.Timestamp }}
+
+| Package | Version Installed | Vulnerability ID | Severity |
+|---------|-------------------|------------------|----------|
+{{- range .Matches }}
+| {{ .Artifact.Name }} | {{ .Artifact.Version }} | {{ .Vulnerability.ID }} | {{ .Vulnerability.Severity }} |
+{{- end }}

@@ -14,6 +14,22 @@ import (
 	"github.com/anchore/grype/internal/schemaver"
 )
 
+var (
+	// ensure that the generic packageHandleStore will function when type asserting
+	_ blobable              = (*packageHandle)(nil)
+	_ blobable              = (*AffectedPackageHandle)(nil)
+	_ blobable              = (*UnaffectedPackageHandle)(nil)
+	_ packageHandleAccessor = (*AffectedPackageHandle)(nil)
+	_ packageHandleAccessor = (*UnaffectedPackageHandle)(nil)
+
+	// ensure that the generic cpeHandleStore will function when type asserting
+	_ blobable          = (*cpeHandle)(nil)
+	_ blobable          = (*AffectedCPEHandle)(nil)
+	_ blobable          = (*UnaffectedCPEHandle)(nil)
+	_ cpeHandleAccessor = (*AffectedCPEHandle)(nil)
+	_ cpeHandleAccessor = (*UnaffectedCPEHandle)(nil)
+)
+
 func Models() []any {
 	return []any{
 		// core data store
@@ -30,20 +46,23 @@ func Models() []any {
 		&VulnerabilityAlias{},
 
 		// package related search tables
-		&AffectedPackageHandle{}, // join on package, operating system
+		&AffectedPackageHandle{},   // join on package, operating system
+		&UnaffectedPackageHandle{}, // join on package, operating system
 		&OperatingSystem{},
 		&OperatingSystemSpecifierOverride{},
 		&Package{},
 		&PackageSpecifierOverride{},
 
 		// CPE related search tables
-		&AffectedCPEHandle{}, // join on CPE
+		&AffectedCPEHandle{},   // join on CPE
+		&UnaffectedCPEHandle{}, // join on CPE
 		&Cpe{},
 
 		// decorations to vulnerability records
 		&KnownExploitedVulnerabilityHandle{},
 		&EpssHandle{},
 		&EpssMetadata{},
+		&CWEHandle{},
 	}
 }
 
@@ -251,12 +270,9 @@ type VulnerabilityAlias struct {
 
 // package related search tables //////////////////////////////////////////////////////
 
-// AffectedPackageHandle represents a single package affected by the specified vulnerability. A package here is a
-// name within a known ecosystem, such as "python" or "golang". It is important to note that this table relates
-// vulnerabilities to resolved packages. There are cases when we have package identifiers but are not resolved to
-// packages; for example, when we have a CPE but not a clear understanding of the package ecosystem and authoritative
-// name (which might or might not be the product name in the CPE), in which case AffectedCPEHandle should be used.
-type AffectedPackageHandle struct {
+// packageHandle represents a single package affected or unaffected by the specified vulnerability.
+// This is a shared struct used by both AffectedPackageHandle and UnaffectedPackageHandle. This is not a table itself.
+type packageHandle struct {
 	ID              ID                   `gorm:"column:id;primaryKey"`
 	VulnerabilityID ID                   `gorm:"column:vulnerability_id;index;not null"`
 	Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
@@ -267,75 +283,143 @@ type AffectedPackageHandle struct {
 	PackageID ID       `gorm:"column:package_id;index"`
 	Package   *Package `gorm:"foreignKey:PackageID"`
 
-	BlobID    ID                   `gorm:"column:blob_id"`
-	BlobValue *AffectedPackageBlob `gorm:"-"`
+	BlobID    ID           `gorm:"column:blob_id"`
+	BlobValue *PackageBlob `gorm:"-"`
 }
 
-func (aph AffectedPackageHandle) vulnerability() string {
-	if aph.Vulnerability != nil {
-		return aph.Vulnerability.Name
+func (ph packageHandle) vulnerability() string {
+	if ph.Vulnerability != nil {
+		return ph.Vulnerability.Name
 	}
-	if aph.BlobValue != nil {
-		if len(aph.BlobValue.CVEs) > 0 {
-			return aph.BlobValue.CVEs[0]
+	if ph.BlobValue != nil {
+		if len(ph.BlobValue.CVEs) > 0 {
+			return ph.BlobValue.CVEs[0]
 		}
 	}
 	return ""
 }
 
-func (aph AffectedPackageHandle) String() string {
+func (ph packageHandle) String() string {
 	var fields []string
 
-	if aph.BlobValue != nil {
-		v := aph.BlobValue.String()
+	if ph.BlobValue != nil {
+		v := ph.BlobValue.String()
 		if v != "" {
 			fields = append(fields, v)
 		}
 	}
-	if aph.OperatingSystem != nil {
-		fields = append(fields, fmt.Sprintf("os=%q", aph.OperatingSystem.String()))
+	if ph.OperatingSystem != nil {
+		fields = append(fields, fmt.Sprintf("os=%q", ph.OperatingSystem.String()))
 	} else {
-		fields = append(fields, fmt.Sprintf("os=%d", aph.OperatingSystemID))
+		fields = append(fields, fmt.Sprintf("os=%d", ph.OperatingSystemID))
 	}
 
-	if aph.Package != nil {
-		fields = append(fields, fmt.Sprintf("pkg=%q", aph.Package.String()))
+	if ph.Package != nil {
+		fields = append(fields, fmt.Sprintf("pkg=%q", ph.Package.String()))
 	} else {
-		fields = append(fields, fmt.Sprintf("pkg=%d", aph.PackageID))
+		fields = append(fields, fmt.Sprintf("pkg=%d", ph.PackageID))
 	}
 
-	if aph.Vulnerability != nil {
-		fields = append(fields, fmt.Sprintf("vuln=%q", aph.Vulnerability.String()))
+	if ph.Vulnerability != nil {
+		fields = append(fields, fmt.Sprintf("vuln=%q", ph.Vulnerability.String()))
 	} else {
-		fields = append(fields, fmt.Sprintf("vuln=%d", aph.VulnerabilityID))
+		fields = append(fields, fmt.Sprintf("vuln=%d", ph.VulnerabilityID))
 	}
 
-	return fmt.Sprintf("affectedPackage(%s)", strings.Join(fields, ", "))
+	return fmt.Sprintf("package(%s)", strings.Join(fields, ", "))
 }
 
-func (aph AffectedPackageHandle) getBlobValue() any {
-	if aph.BlobValue == nil {
+func (ph packageHandle) getBlobValue() any {
+	if ph.BlobValue == nil {
 		return nil // must return untyped nil or getBlobValue() == nil will always be false
 	}
-	return aph.BlobValue
+	return ph.BlobValue
 }
 
-func (aph *AffectedPackageHandle) setBlobID(id ID) {
-	aph.BlobID = id
+func (ph *packageHandle) setBlobID(id ID) {
+	ph.BlobID = id
 }
 
-func (aph AffectedPackageHandle) getBlobID() ID {
-	return aph.BlobID
+func (ph packageHandle) getBlobID() ID {
+	return ph.BlobID
 }
 
-func (aph *AffectedPackageHandle) setBlob(rawBlobValue []byte) error {
-	var blobValue AffectedPackageBlob
+func (ph *packageHandle) setBlob(rawBlobValue []byte) error {
+	var blobValue PackageBlob
 	if err := json.Unmarshal(rawBlobValue, &blobValue); err != nil {
 		return fmt.Errorf("unable to unmarshal affected package blob value: %w", err)
 	}
 
-	aph.BlobValue = &blobValue
+	ph.BlobValue = &blobValue
 	return nil
+}
+
+// AffectedPackageHandle represents a single package affected by the specified vulnerability.
+//
+// A package here is a name within a known ecosystem, such as "python" or "golang". It is important to note that this
+// table relates vulnerabilities to resolved packages. There are cases when we have package identifiers but are not
+// resolved to packages; for example, when we have a CPE but not a clear understanding of the package ecosystem and
+// authoritative name (which might or might not be the product name in the CPE), in which case AffectedCPEHandle
+// should be used.
+type AffectedPackageHandle packageHandle
+
+func (ph *AffectedPackageHandle) getPackageHandle() *packageHandle {
+	return (*packageHandle)(ph)
+}
+
+func (ph AffectedPackageHandle) vulnerability() string { // nolint:unused // when implementing filter functions in the future this will be needed
+	return (packageHandle)(ph).vulnerability()
+}
+
+func (ph AffectedPackageHandle) String() string {
+	return (packageHandle)(ph).String()
+}
+
+func (ph AffectedPackageHandle) getBlobValue() any {
+	return (packageHandle)(ph).getBlobValue()
+}
+
+func (ph *AffectedPackageHandle) setBlobID(id ID) {
+	(*packageHandle)(ph).setBlobID(id)
+}
+
+func (ph AffectedPackageHandle) getBlobID() ID {
+	return (packageHandle)(ph).getBlobID()
+}
+
+func (ph *AffectedPackageHandle) setBlob(rawBlobValue []byte) error {
+	return (*packageHandle)(ph).setBlob(rawBlobValue)
+}
+
+// UnaffectedPackageHandle represents a single package that is explicitly NOT affected by the specified vulnerability.
+type UnaffectedPackageHandle packageHandle
+
+func (ph *UnaffectedPackageHandle) getPackageHandle() *packageHandle {
+	return (*packageHandle)(ph)
+}
+
+func (ph UnaffectedPackageHandle) vulnerability() string { // nolint:unused // when implementing filter functions in the future this will be needed
+	return (packageHandle)(ph).vulnerability()
+}
+
+func (ph UnaffectedPackageHandle) String() string {
+	return (packageHandle)(ph).String()
+}
+
+func (ph UnaffectedPackageHandle) getBlobValue() any {
+	return (packageHandle)(ph).getBlobValue()
+}
+
+func (ph *UnaffectedPackageHandle) setBlobID(id ID) {
+	(*packageHandle)(ph).setBlobID(id)
+}
+
+func (ph UnaffectedPackageHandle) getBlobID() ID {
+	return (packageHandle)(ph).getBlobID()
+}
+
+func (ph *UnaffectedPackageHandle) setBlob(rawBlobValue []byte) error {
+	return (*packageHandle)(ph).setBlob(rawBlobValue)
 }
 
 // Package represents a package name within a known ecosystem, such as "python" or "golang".
@@ -474,6 +558,12 @@ type OperatingSystem struct {
 	// Channel is a string used to distinguish between fix and vulnerability data for the same OS release.
 	// such as RHEL-9.4+EUS vs RHEL-9
 	Channel string `gorm:"column:channel;index:os_idx,unique;index,collate:NOCASE"`
+
+	// EOLDate is when this OS release reaches end-of-life (no more security updates)
+	EOLDate *time.Time `gorm:"column:eol_date;index"`
+
+	// EOASDate is when this OS release reaches end-of-active-support (reduced support, before full EOL)
+	EOASDate *time.Time `gorm:"column:eoas_date"`
 }
 
 func (o *OperatingSystem) VersionNumber() string {
@@ -595,11 +685,9 @@ func (os *OperatingSystemSpecifierOverride) BeforeCreate(_ *gorm.DB) (err error)
 
 // CPE related search tables //////////////////////////////////////////////////////
 
-// AffectedCPEHandle represents a single CPE affected by the specified vulnerability. Note the CPEs in this table
-// must NOT be resolvable to Packages (use AffectedPackageHandle for that). This table is used when the CPE is known,
-// but we do not have a clear understanding of the package ecosystem or authoritative name, so we can still
-// find vulnerabilities by these identifiers but not assert they are related to an entry in the Packages table.
-type AffectedCPEHandle struct {
+// AffectedCPEHandle represents a single CPE affected by the specified vulnerability.
+// This is a shared struct used by both AffectedCPEHandle and UnaffectedCPEHandle. This is not a table itself.
+type cpeHandle struct {
 	ID              ID                   `gorm:"column:id;primaryKey"`
 	VulnerabilityID ID                   `gorm:"column:vulnerability_id;not null"`
 	Vulnerability   *VulnerabilityHandle `gorm:"foreignKey:VulnerabilityID"`
@@ -607,70 +695,136 @@ type AffectedCPEHandle struct {
 	CpeID ID   `gorm:"column:cpe_id;index"`
 	CPE   *Cpe `gorm:"foreignKey:CpeID"`
 
-	BlobID    ID                   `gorm:"column:blob_id"`
-	BlobValue *AffectedPackageBlob `gorm:"-"`
+	BlobID    ID           `gorm:"column:blob_id"`
+	BlobValue *PackageBlob `gorm:"-"`
 }
 
-func (ach AffectedCPEHandle) vulnerability() string {
-	if ach.Vulnerability != nil {
-		return ach.Vulnerability.Name
+func (ch cpeHandle) vulnerability() string {
+	if ch.Vulnerability != nil {
+		return ch.Vulnerability.Name
 	}
-	if ach.BlobValue != nil {
-		if len(ach.BlobValue.CVEs) > 0 {
-			return ach.BlobValue.CVEs[0]
+	if ch.BlobValue != nil {
+		if len(ch.BlobValue.CVEs) > 0 {
+			return ch.BlobValue.CVEs[0]
 		}
 	}
 	return ""
 }
 
-func (ach AffectedCPEHandle) String() string {
+func (ch cpeHandle) String() string {
 	var fields []string
 
-	if ach.BlobValue != nil {
-		v := ach.BlobValue.String()
+	if ch.BlobValue != nil {
+		v := ch.BlobValue.String()
 		if v != "" {
 			fields = append(fields, v)
 		}
 	}
 
-	if ach.CPE != nil {
-		fields = append(fields, fmt.Sprintf("cpe=%q", ach.CPE.String()))
+	if ch.CPE != nil {
+		fields = append(fields, fmt.Sprintf("cpe=%q", ch.CPE.String()))
 	} else {
-		fields = append(fields, fmt.Sprintf("cpe=%d", ach.CpeID))
+		fields = append(fields, fmt.Sprintf("cpe=%d", ch.CpeID))
 	}
 
-	if ach.Vulnerability != nil {
-		fields = append(fields, fmt.Sprintf("vuln=%q", ach.Vulnerability.String()))
+	if ch.Vulnerability != nil {
+		fields = append(fields, fmt.Sprintf("vuln=%q", ch.Vulnerability.String()))
 	} else {
-		fields = append(fields, fmt.Sprintf("vuln=%d", ach.VulnerabilityID))
+		fields = append(fields, fmt.Sprintf("vuln=%d", ch.VulnerabilityID))
 	}
 
-	return fmt.Sprintf("affectedCPE(%s)", strings.Join(fields, ", "))
+	return fmt.Sprintf("cpe(%s)", strings.Join(fields, ", "))
 }
 
-func (ach AffectedCPEHandle) getBlobID() ID {
-	return ach.BlobID
+func (ch cpeHandle) getBlobID() ID {
+	return ch.BlobID
 }
 
-func (ach AffectedCPEHandle) getBlobValue() any {
-	if ach.BlobValue == nil {
+func (ch cpeHandle) getBlobValue() any {
+	if ch.BlobValue == nil {
 		return nil // must return untyped nil or getBlobValue() == nil will always be false
 	}
-	return ach.BlobValue
+	return ch.BlobValue
 }
 
-func (ach *AffectedCPEHandle) setBlobID(id ID) {
-	ach.BlobID = id
+func (ch *cpeHandle) setBlobID(id ID) {
+	ch.BlobID = id
 }
 
-func (ach *AffectedCPEHandle) setBlob(rawBlobValue []byte) error {
-	var blobValue AffectedPackageBlob
+func (ch *cpeHandle) setBlob(rawBlobValue []byte) error {
+	var blobValue PackageBlob
 	if err := json.Unmarshal(rawBlobValue, &blobValue); err != nil {
 		return fmt.Errorf("unable to unmarshal affected cpe blob value: %w", err)
 	}
 
-	ach.BlobValue = &blobValue
+	ch.BlobValue = &blobValue
 	return nil
+}
+
+// AffectedCPEHandle represents a single CPE affected by the specified vulnerability.
+//
+// Note the CPEs in this table must NOT be resolvable to Packages (use AffectedPackageHandle for that). This table is
+// used when the CPE is known, but we do not have a clear understanding of the package ecosystem or authoritative
+// name, so we can still find vulnerabilities by these identifiers but not assert they are related to an entry in
+// the AffectedPackages table.
+type AffectedCPEHandle cpeHandle
+
+func (ch *AffectedCPEHandle) getCPEHandle() *cpeHandle {
+	return (*cpeHandle)(ch)
+}
+
+func (ch AffectedCPEHandle) vulnerability() string {
+	return (cpeHandle)(ch).vulnerability()
+}
+
+func (ch AffectedCPEHandle) String() string {
+	return (cpeHandle)(ch).String()
+}
+
+func (ch AffectedCPEHandle) getBlobID() ID {
+	return (cpeHandle)(ch).getBlobID()
+}
+
+func (ch AffectedCPEHandle) getBlobValue() any {
+	return (cpeHandle)(ch).getBlobValue()
+}
+
+func (ch *AffectedCPEHandle) setBlobID(id ID) {
+	(*cpeHandle)(ch).setBlobID(id)
+}
+
+func (ch *AffectedCPEHandle) setBlob(rawBlobValue []byte) error {
+	return (*cpeHandle)(ch).setBlob(rawBlobValue)
+}
+
+type UnaffectedCPEHandle cpeHandle
+
+func (ch *UnaffectedCPEHandle) getCPEHandle() *cpeHandle {
+	return (*cpeHandle)(ch)
+}
+
+func (ch UnaffectedCPEHandle) vulnerability() string { // nolint:unused // when implementing filter functions in the future this will be needed
+	return (cpeHandle)(ch).vulnerability()
+}
+
+func (ch UnaffectedCPEHandle) String() string {
+	return (cpeHandle)(ch).String()
+}
+
+func (ch UnaffectedCPEHandle) getBlobID() ID {
+	return (cpeHandle)(ch).getBlobID()
+}
+
+func (ch UnaffectedCPEHandle) getBlobValue() any {
+	return (cpeHandle)(ch).getBlobValue()
+}
+
+func (ch *UnaffectedCPEHandle) setBlobID(id ID) {
+	(*cpeHandle)(ch).setBlobID(id)
+}
+
+func (ch *UnaffectedCPEHandle) setBlob(rawBlobValue []byte) error {
+	return (*cpeHandle)(ch).setBlob(rawBlobValue)
 }
 
 type Cpe struct {
@@ -798,4 +952,35 @@ type EpssHandle struct {
 	Epss       float64   `gorm:"column:epss;not null"`
 	Percentile float64   `gorm:"column:percentile;not null"`
 	Date       time.Time `gorm:"-"` // note we do not store the date in this table since it is expected to be the same for all records, that is what EpssMetadata is for
+}
+
+type CWEHandle struct {
+	ID     int64  `gorm:"primaryKey"`
+	CVE    string `gorm:"column:cve;not null;index:cwes_cve_idx,collate:NOCASE"`
+	CWE    string `gorm:"column:cwe;not null;"`
+	Source string `gorm:"column:source;"`
+	Type   string `gorm:"column:type;"`
+}
+
+func (c CWEHandle) String() string {
+	return fmt.Sprintf("CWE(%s: %s, source=%s, type=%s)", c.CVE, c.CWE, c.Source, c.Type)
+}
+
+// OperatingSystemEOLHandle carries end-of-life data for an operating system.
+// This is not a GORM model - it's used to update existing OperatingSystem records.
+type OperatingSystemEOLHandle struct {
+	Name         string     // distro name (e.g., "debian", "ubuntu")
+	MajorVersion string     // major version (e.g., "12")
+	MinorVersion string     // minor version (e.g., "04" for ubuntu)
+	Codename     string     // optional codename
+	EOLDate      *time.Time // end-of-life date
+	EOASDate     *time.Time // end-of-active-support date
+}
+
+func (o OperatingSystemEOLHandle) String() string {
+	eol := "nil"
+	if o.EOLDate != nil {
+		eol = o.EOLDate.Format("2006-01-02")
+	}
+	return fmt.Sprintf("OSEol(%s %s.%s, eol=%s)", o.Name, o.MajorVersion, o.MinorVersion, eol)
 }

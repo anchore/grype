@@ -64,6 +64,8 @@ func parseVersion(version string) (major, minor, remaining, versionWithoutSuffix
 		channelStr = vParts[1]
 	}
 
+	version = strings.TrimPrefix(version, "v")
+
 	// if starts with a digit, then assume it's a version and extract the major, minor, and remaining versions
 	if version[0] >= '0' && version[0] <= '9' {
 		// extract the major, minor, and remaining versions
@@ -80,6 +82,52 @@ func parseVersion(version string) (major, minor, remaining, versionWithoutSuffix
 	}
 
 	return major, minor, remaining, versionWithoutSuffix, stringutil.SplitOnAny(strings.TrimSpace(channelStr), ",", "+")
+}
+
+// ParseDistroString parses a user-provided distro string in the format "name<separator>version"
+// where separator can be "-", ":", or "@". It handles the special case of opensuse-leap
+// which contains a hyphen in its distro ID. Returns the distro name and version parts.
+func ParseDistroString(s string) (name, version string) {
+	if s == "" {
+		return "", ""
+	}
+
+	s = strings.TrimSpace(s)
+
+	// Special handling for opensuse-leap which has a hyphen in its ID
+	// Check if it starts with "opensuse-leap" and handle accordingly
+	const opensuseLeap = "opensuse-leap"
+	if strings.HasPrefix(strings.ToLower(s), opensuseLeap) {
+		// Check if there's a separator after "opensuse-leap"
+		remaining := s[len(opensuseLeap):]
+		if len(remaining) == 0 {
+			return opensuseLeap, ""
+		}
+		// If the next character is a separator, split there
+		if remaining[0] == '-' || remaining[0] == ':' || remaining[0] == '@' {
+			return opensuseLeap, strings.TrimSpace(remaining[1:])
+		}
+		// Otherwise, treat the whole thing as the name
+		return s, ""
+	}
+
+	// Find the first occurrence of any separator
+	separators := []string{"-", ":", "@"}
+	minIdx := len(s)
+	foundSep := ""
+
+	for _, sep := range separators {
+		if idx := strings.Index(s, sep); idx != -1 && idx < minIdx {
+			minIdx = idx
+			foundSep = sep
+		}
+	}
+
+	if foundSep == "" {
+		return s, ""
+	}
+
+	return strings.TrimSpace(s[:minIdx]), strings.TrimSpace(s[minIdx+len(foundSep):])
 }
 
 // NewFromNameVersion creates a new Distro object derived from the provided name and version
@@ -197,14 +245,16 @@ func (d Distro) VersionString() string {
 	return versionStr
 }
 
-// Disabled is a way to convey if a Linux distribution is not supported by Grype.
-func (d Distro) Disabled() bool {
-	switch d.Type {
-	case ArchLinux:
-		return true
-	default:
-		return false
+func (d Distro) LabelVersion() string {
+	if d.Codename != "" {
+		return d.Codename
 	}
+
+	if d.major == "" && d.minor == "" && d.remaining == "" {
+		return d.Version
+	}
+
+	return ""
 }
 
 func nonEmptyStrings(ss ...string) (res []string) {

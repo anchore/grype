@@ -1,8 +1,12 @@
 package cli
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestRegistryAuth(t *testing.T) {
@@ -90,6 +94,95 @@ func TestRegistryAuth(t *testing.T) {
 				traitAssertionFn(t, stdout, stderr, cmd.ProcessState.ExitCode())
 			}
 			if t.Failed() {
+				t.Log("STDOUT:\n", stdout)
+				t.Log("STDERR:\n", stderr)
+				t.Log("COMMAND:", strings.Join(cmd.Args, " "))
+			}
+		})
+	}
+}
+
+func TestRegistryAuthRedactions(t *testing.T) {
+	tmp := filepath.Join(t.TempDir(), "output.json")
+
+	assertNotInFile := func(text string) traitAssertion {
+		return func(tb testing.TB, stdout, stderr string, rc int) {
+			contents, err := os.ReadFile(tmp)
+			require.NoError(tb, err)
+			require.NotEmpty(tb, contents)
+			require.NotContains(tb, string(contents), text)
+		}
+	}
+
+	tests := []struct {
+		name       string
+		args       []string
+		env        map[string]string
+		assertions []traitAssertion
+	}{
+		{
+			name: "use creds",
+			args: []string{"-vv", "sbom:test-fixtures/sbom-grype-source.json", "-o", "json"},
+			env: map[string]string{
+				"GRYPE_REGISTRY_AUTH_USERNAME": "foobar-username",
+				"GRYPE_REGISTRY_AUTH_PASSWORD": "foobar-password",
+			},
+			assertions: []traitAssertion{
+				assertSucceedingReturnCode,
+				assertNotInOutput("foobar-username"),
+				assertNotInOutput("foobar-password"),
+			},
+		},
+		{
+			name: "use token",
+			args: []string{"-vv", "sbom:test-fixtures/sbom-grype-source.json", "-o", "json"},
+			env: map[string]string{
+				"GRYPE_REGISTRY_AUTH_TOKEN": "foobar-token",
+			},
+			assertions: []traitAssertion{
+				assertSucceedingReturnCode,
+				assertNotInOutput("foobar-token"),
+			},
+		},
+		{
+			name: "use creds file",
+			args: []string{"-vv", "sbom:test-fixtures/sbom-grype-source.json", "-o", "json", "--file", tmp},
+			env: map[string]string{
+				"GRYPE_REGISTRY_AUTH_USERNAME": "foobar-username",
+				"GRYPE_REGISTRY_AUTH_PASSWORD": "foobar-password",
+			},
+			assertions: []traitAssertion{
+				assertSucceedingReturnCode,
+				assertNotInFile("foobar-username"),
+				assertNotInFile("foobar-password"),
+				assertNotInOutput("foobar-username"),
+				assertNotInOutput("foobar-password"),
+			},
+		},
+		{
+			name: "use token file",
+			args: []string{"-vv", "sbom:test-fixtures/sbom-grype-source.json", "-o", "json", "--file", tmp},
+			env: map[string]string{
+				"GRYPE_REGISTRY_AUTH_TOKEN": "foobar-token",
+			},
+			assertions: []traitAssertion{
+				assertSucceedingReturnCode,
+				assertNotInFile("foobar-token"),
+				assertNotInOutput("foobar-token"),
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_ = os.Remove(tmp) // ok to fail
+			cmd, stdout, stderr := runGrype(t, test.env, test.args...)
+			for _, traitAssertionFn := range test.assertions {
+				traitAssertionFn(t, stdout, stderr, cmd.ProcessState.ExitCode())
+			}
+			if t.Failed() {
+				fileContents, _ := os.ReadFile(tmp)
+				t.Log("FILE:\n", string(fileContents))
 				t.Log("STDOUT:\n", stdout)
 				t.Log("STDERR:\n", stderr)
 				t.Log("COMMAND:", strings.Join(cmd.Args, " "))

@@ -1,7 +1,9 @@
 package models
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/anchore/clio"
@@ -13,18 +15,21 @@ import (
 
 // Document represents the JSON document to be presented
 type Document struct {
-	Matches        []Match        `json:"matches"`
-	IgnoredMatches []IgnoredMatch `json:"ignoredMatches,omitempty"`
-	Source         *source        `json:"source"`
-	Distro         distribution   `json:"distro"`
-	Descriptor     descriptor     `json:"descriptor"`
+	Matches         []Match         `json:"matches"`
+	IgnoredMatches  []IgnoredMatch  `json:"ignoredMatches,omitempty"`
+	AlertsByPackage []PackageAlerts `json:"alertsByPackage,omitempty"`
+	Source          *source         `json:"source"`
+	Distro          distribution    `json:"distro"`
+	Descriptor      descriptor      `json:"descriptor"`
 }
 
 // NewDocument creates and populates a new Document struct, representing the populated JSON document.
-func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Context, matches match.Matches, ignoredMatches []match.IgnoredMatch, metadataProvider vulnerability.MetadataProvider, appConfig any, dbInfo any, strategy SortStrategy) (Document, error) {
-	timestamp, timestampErr := time.Now().Local().MarshalText()
-	if timestampErr != nil {
-		return Document{}, timestampErr
+//
+//nolint:staticcheck // MetadataProvider is deprecated but still used internally
+func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Context, matches match.Matches, ignoredMatches []match.IgnoredMatch, metadataProvider vulnerability.MetadataProvider, appConfig any, dbInfo any, strategy SortStrategy, outputTimestamp bool, distroAlerts *DistroAlertData) (Document, error) {
+	timestamp, err := createTimestamp(outputTimestamp)
+	if err != nil {
+		return Document{}, err
 	}
 
 	// we must preallocate the findings to ensure the JSON document does not show "null" when no matches are found
@@ -74,18 +79,99 @@ func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Con
 	}
 
 	return Document{
-		Matches:        findings,
-		IgnoredMatches: ignoredMatchModels,
-		Source:         src,
-		Distro:         newDistribution(context, selectMostCommonDistro(packages)),
+		Matches:         findings,
+		IgnoredMatches:  ignoredMatchModels,
+		AlertsByPackage: buildPackageAlerts(distroAlerts),
+		Source:          src,
+		Distro:          newDistribution(context, selectMostCommonDistro(packages)),
 		Descriptor: descriptor{
 			Name:          id.Name,
 			Version:       id.Version,
 			Configuration: appConfig,
 			DB:            dbInfo,
-			Timestamp:     string(timestamp),
+			Timestamp:     timestamp,
 		},
 	}, nil
+}
+
+// createTimestamp creates a timestamp string for the document descriptor.
+func createTimestamp(outputTimestamp bool) (string, error) {
+	if !outputTimestamp {
+		return "", nil
+	}
+	timestamp, err := time.Now().Local().MarshalText()
+	if err != nil {
+		return "", err
+	}
+	return string(timestamp), nil
+}
+
+// distroString returns the distro string representation, or "unknown" if nil.
+func distroString(p pkg.Package) string {
+	if p.Distro != nil {
+		return p.Distro.String()
+	}
+	return "unknown"
+}
+
+// buildPackageAlerts creates PackageAlerts from distro tracking data.
+func buildPackageAlerts(data *DistroAlertData) []PackageAlerts {
+	if data == nil {
+		return nil
+	}
+
+	// map package ID to alerts for deduplication
+	alertsByPkg := make(map[string]*PackageAlerts)
+
+	// helper to add an alert for a package
+	addAlert := func(p pkg.Package, alertType AlertType, message string, metadata any) {
+		pkgID := string(p.ID)
+		alert := Alert{
+			Type:     alertType,
+			Message:  message,
+			Metadata: metadata,
+		}
+		if existing, ok := alertsByPkg[pkgID]; ok {
+			existing.Alerts = append(existing.Alerts, alert)
+		} else {
+			alertsByPkg[pkgID] = &PackageAlerts{
+				Package: newPackage(p),
+				Alerts:  []Alert{alert},
+			}
+		}
+	}
+
+	// helper to extract distro metadata
+	distroMetadata := func(p pkg.Package) DistroAlertMetadata {
+		if p.Distro != nil {
+			return DistroAlertMetadata{
+				Name:    p.Distro.Name(),
+				Version: p.Distro.VersionString(),
+			}
+		}
+		return DistroAlertMetadata{Name: "unknown"}
+	}
+
+	// add alerts for EOL distro packages
+	for _, p := range data.EOLDistroPackages {
+		addAlert(p, AlertTypeDistroEOL, fmt.Sprintf("Package is from end-of-life distro: %s", distroString(p)), distroMetadata(p))
+	}
+
+	// convert map to slice
+	if len(alertsByPkg) == 0 {
+		return nil
+	}
+
+	result := make([]PackageAlerts, 0, len(alertsByPkg))
+	for _, pa := range alertsByPkg {
+		result = append(result, *pa)
+	}
+
+	slices.SortFunc(result, func(a, b PackageAlerts) int {
+		return cmp.Compare(a.Package.ID, b.Package.ID)
+	})
+
+	return result
 }
 
 // selectMostCommonDistro selects the most common distro from the provided packages.

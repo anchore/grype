@@ -14,3 +14,11 @@ type GolangBinMetadata struct {
 type GolangModMetadata struct {
 	H1Digest string `json:"h1Digest,omitempty"`
 }
+
+type GolangSourceMetadata struct {
+	H1Digest        string `json:"h1Digest,omitempty"`
+	OperatingSystem string `json:"os,omitempty"`
+	Architecture    string `json:"architecture,omitempty"`
+	BuildTags       string `json:"buildTags,omitempty"`
+	CgoEnabled      bool   `json:"cgoEnabled"`
+}
