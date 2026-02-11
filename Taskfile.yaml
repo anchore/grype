@@ -221,12 +221,20 @@ tasks:
       # exercise most of the CLI with the data race detector enabled
       - "go run -race cmd/{{ .PROJECT }}/main.go alpine:latest"
 
+  _ensure-snapshot:
+    # Ensure the snapshot binary is available, building only if needed.
+    # In CI, set GRYPE_SNAPSHOT_PREBUILT=true to skip the rebuild when the binary was restored from cache.
+    # Locally, this falls through to the snapshot task which uses checksum-based staleness detection
+    # so that code changes always produce a fresh binary.
+    internal: true
+    status:
+      - test -n "$GRYPE_SNAPSHOT_PREBUILT" -a -f "{{ .SNAPSHOT_BIN }}"
+    cmds:
+      - task: snapshot
+
   cli:
     desc: Run CLI tests
-    # note: we don't want to regenerate the snapshot unless we have to. In CI it's probable
-    # that the cache being restored with the correct binary will be rebuilt since the timestamps
-    # and local checksums will not line up.
-    deps: [tools, snapshot]
+    deps: [tools, _ensure-snapshot]
     sources:
       - "{{ .SNAPSHOT_BIN }}"
       - ./test/cli/**
