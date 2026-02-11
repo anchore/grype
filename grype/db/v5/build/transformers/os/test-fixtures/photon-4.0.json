@@ -1,0 +1,22 @@
+[
+  {
+    "Vulnerability": {
+      "Description": "",
+      "FixedIn": [
+        {
+          "Name": "curl",
+          "NamespaceName": "photon:4.0",
+          "Version": "7.88.1-4.ph4",
+          "VersionFormat": "rpm",
+          "VulnerableRange": "< 7.88.1-4.ph4"
+        }
+      ],
+      "Link": "https://nvd.nist.gov/vuln/detail/CVE-2023-38545",
+      "Metadata": {},
+      "Name": "CVE-2023-38545",
+      "NamespaceName": "photon:4.0",
+      "Severity": "Critical",
+      "CVSS": []
+    }
+  }
+]

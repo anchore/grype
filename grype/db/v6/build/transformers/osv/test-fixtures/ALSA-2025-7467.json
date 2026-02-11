@@ -1,0 +1,61 @@
+{
+  "id": "ALSA-2025:7467",
+  "summary": "Moderate: skopeo security update",
+  "aliases": [
+    "CVE-2025-27144"
+  ],
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "AlmaLinux:10",
+        "name": "skopeo"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "2:1.18.1-1.el10_0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "package": {
+        "ecosystem": "AlmaLinux:10",
+        "name": "skopeo-tests"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "2:1.18.1-1.el10_0"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "published": "2025-05-13T00:00:00Z",
+  "modified": "2025-07-02T12:50:06Z",
+  "details": "The skopeo command lets you inspect images from container image registries.",
+  "references": [
+    {
+      "url": "https://errata.almalinux.org/10/ALSA-2025-7467.html",
+      "type": "ADVISORY"
+    }
+  ],
+  "database_specific": {
+    "anchore": {
+      "record_type": "advisory"
+    }
+  }
+}

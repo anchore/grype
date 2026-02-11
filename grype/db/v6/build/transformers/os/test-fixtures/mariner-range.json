@@ -1,0 +1,27 @@
+[
+  {
+      "Vulnerability": {
+        "Name": "CVE-2023-29404",
+        "NamespaceName": "mariner:2.0",
+        "Description": "CVE-2023-29404 affecting package golang for versions less than 1.20.7-1. A patched version of the package is available.",
+        "Severity": "Critical",
+        "Link": "https://nvd.nist.gov/vuln/detail/CVE-2023-29404",
+        "CVSS": [],
+        "FixedIn": [
+          {
+            "Name": "golang",
+            "NamespaceName": "mariner:2.0",
+            "VersionFormat": "rpm",
+            "Version": "0:1.20.7-1.cm2",
+            "Module": "",
+            "VendorAdvisory": {
+              "NoAdvisory": false,
+              "AdvisorySummary": []
+            },
+            "VulnerableRange": "> 0:1.19.0.cm2, < 0:1.20.7-1.cm2"
+          }
+        ],
+        "Metadata": {}
+      }
+    }
+]

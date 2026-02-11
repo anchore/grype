@@ -7,6 +7,9 @@ go.work
 go.work.sum
 .tool-versions
 .jj/
+mise.toml
+specs/
+*.xxh64
 
 # AI and LLM related files
 CLAUDE.md
