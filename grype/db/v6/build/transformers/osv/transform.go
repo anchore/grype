@@ -26,6 +26,7 @@ var osvOSPackageTypes = map[string]pkg.Type{
 	"almalinux": pkg.RpmPkg,
 	"rocky":     pkg.RpmPkg,
 	"alpaquita": pkg.ApkPkg,
+	"openeuler": pkg.RpmPkg,
 }
 
 func Transform(vulnerability unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
@@ -463,6 +464,13 @@ func getOperatingSystemFromEcosystem(ecosystem string) *db.OperatingSystem {
 
 	osVersion := parts[1]
 
+	// Separate any label suffix from the version (e.g. "20.03-LTS-SP4" → version="20.03", label="LTS-SP4")
+	var labelVersion string
+	if idx := strings.Index(osVersion, "-"); idx > 0 {
+		labelVersion = osVersion[idx+1:]
+		osVersion = osVersion[:idx]
+	}
+
 	// Parse version into major/minor components
 	versionFields := strings.Split(osVersion, ".")
 	var majorVersion, minorVersion string
@@ -471,10 +479,13 @@ func getOperatingSystemFromEcosystem(ecosystem string) *db.OperatingSystem {
 		// Check if the first field is actually a number
 		if len(majorVersion) == 0 || !isDigit(majorVersion[0]) {
 			// If not numeric, treat the whole thing as a label version (e.g. "stream")
+			if labelVersion != "" {
+				majorVersion = majorVersion + "-" + labelVersion
+			}
 			return &db.OperatingSystem{
 				Name:         osName,
 				ReleaseID:    osName,
-				LabelVersion: osVersion,
+				LabelVersion: majorVersion,
 				Codename:     codename.LookupOS(osName, "", ""),
 			}
 		}
@@ -488,6 +499,7 @@ func getOperatingSystemFromEcosystem(ecosystem string) *db.OperatingSystem {
 		ReleaseID:    osName,
 		MajorVersion: majorVersion,
 		MinorVersion: minorVersion,
+		LabelVersion: labelVersion,
 		Codename:     codename.LookupOS(osName, majorVersion, minorVersion),
 	}
 }
