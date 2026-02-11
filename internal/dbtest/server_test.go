@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db/v6/distribution"
-	dbtest "github.com/anchore/grype/grype/db/v6/testutil"
+	"github.com/anchore/grype/internal/dbtest"
 )
 
 func Test_NewServer(t *testing.T) {

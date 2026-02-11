@@ -1,0 +1,104 @@
+[
+  {
+    "Vulnerability": {
+      "Name": "ALAS-2021-1704",
+      "NamespaceName": "amzn:2",
+      "Description": "",
+      "Severity": "Medium",
+      "Metadata": {
+        "CVE": [
+          {
+            "Name": "CVE-2021-3653"
+          },
+          {
+            "Name": "CVE-2021-3656"
+          },
+          {
+            "Name": "CVE-2021-3732"
+          }
+        ]
+      },
+      "Link": "https://alas.aws.amazon.com/AL2/ALAS-2021-1704.html",
+      "FixedIn": [
+        {
+          "Name": "kernel-headers",
+          "NamespaceName": "amzn:2",
+          "VersionFormat": "rpm",
+          "Version": "4.14.246-187.474.amzn2"
+        },
+        {
+          "Name": "kernel",
+          "NamespaceName": "amzn:2",
+          "VersionFormat": "rpm",
+          "Version": "4.14.246-187.474.amzn2"
+        }
+      ]
+    }
+  },
+  {
+    "Vulnerability": {
+      "Name": "ALASKERNEL-5.4-2022-007",
+      "NamespaceName": "amzn:2",
+      "Description": "",
+      "Severity": "Medium",
+      "Metadata": {
+        "CVE": [
+          {
+            "Name": "CVE-2021-3753"
+          },
+          {
+            "Name": "CVE-2021-40490"
+          }
+        ]
+      },
+      "Link": "https://alas.aws.amazon.com/AL2/ALASKERNEL-5.4-2022-007.html",
+      "FixedIn": [
+        {
+          "Name": "kernel-headers",
+          "NamespaceName": "amzn:2",
+          "VersionFormat": "rpm",
+          "Version": "5.4.144-69.257.amzn2"
+        },
+        {
+          "Name": "kernel",
+          "NamespaceName": "amzn:2",
+          "VersionFormat": "rpm",
+          "Version": "5.4.144-69.257.amzn2"
+        }
+      ]
+    }
+  },
+  {
+    "Vulnerability": {
+      "Name": "ALASKERNEL-5.10-2022-005",
+      "NamespaceName": "amzn:2",
+      "Description": "",
+      "Severity": "Medium",
+      "Metadata": {
+        "CVE": [
+          {
+            "Name": "CVE-2021-3753"
+          },
+          {
+            "Name": "CVE-2021-40490"
+          }
+        ]
+      },
+      "Link": "https://alas.aws.amazon.com/AL2/ALASKERNEL-5.10-2022-005.html",
+      "FixedIn": [
+        {
+          "Name": "kernel-headers",
+          "NamespaceName": "amzn:2",
+          "VersionFormat": "rpm",
+          "Version": "5.10.62-55.141.amzn2"
+        },
+        {
+          "Name": "kernel",
+          "NamespaceName": "amzn:2",
+          "VersionFormat": "rpm",
+          "Version": "5.10.62-55.141.amzn2"
+        }
+      ]
+    }
+  }
+]

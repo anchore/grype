@@ -1,0 +1,142 @@
+{
+  "cve": {
+    "id": "CVE-2023-38733",
+    "sourceIdentifier": "psirt@us.ibm.com",
+    "published": "2023-08-22T22:15:08.460",
+    "lastModified": "2023-08-26T02:25:42.957",
+    "vulnStatus": "Analyzed",
+    "descriptions": [
+      {
+        "lang": "en",
+        "value": "\nIBM Robotic Process Automation 21.0.0 through 21.0.7.1 and 23.0.0 through 23.0.1 server could allow an authenticated user to view sensitive information from installation logs.  IBM X-Force Id:  262293.\n\n"
+      }
+    ],
+    "metrics": {
+      "cvssMetricV31": [
+        {
+          "source": "nvd@nist.gov",
+          "type": "Primary",
+          "cvssData": {
+            "version": "3.1",
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N",
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "LOW",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "LOW",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "NONE",
+            "baseScore": 4.3,
+            "baseSeverity": "MEDIUM"
+          },
+          "exploitabilityScore": 2.8,
+          "impactScore": 1.4
+        },
+        {
+          "source": "psirt@us.ibm.com",
+          "type": "Secondary",
+          "cvssData": {
+            "version": "3.1",
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:L/I:N/A:N",
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "LOW",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "LOW",
+            "integrityImpact": "NONE",
+            "availabilityImpact": "NONE",
+            "baseScore": 4.3,
+            "baseSeverity": "MEDIUM"
+          },
+          "exploitabilityScore": 2.8,
+          "impactScore": 1.4
+        }
+      ]
+    },
+    "weaknesses": [
+      {
+        "source": "nvd@nist.gov",
+        "type": "Primary",
+        "description": [
+          {
+            "lang": "en",
+            "value": "CWE-532"
+          }
+        ]
+      },
+      {
+        "source": "psirt@us.ibm.com",
+        "type": "Secondary",
+        "description": [
+          {
+            "lang": "en",
+            "value": "CWE-532"
+          }
+        ]
+      }
+    ],
+    "configurations": [
+      {
+        "operator": "AND",
+        "nodes": [
+          {
+            "operator": "OR",
+            "negate": false,
+            "cpeMatch": [
+              {
+                "vulnerable": true,
+                "criteria": "cpe:2.3:a:ibm:robotic_process_automation:*:*:*:*:*:*:*:*",
+                "versionStartIncluding": "21.0.0",
+                "versionEndIncluding": "21.0.7.3",
+                "matchCriteriaId": "DDF503DD-23DC-4B22-8873-BE94BF0F1CD1"
+              },
+              {
+                "vulnerable": true,
+                "criteria": "cpe:2.3:a:ibm:robotic_process_automation:*:*:*:*:*:*:*:*",
+                "versionStartIncluding": "23.0.0",
+                "versionEndIncluding": "23.0.3",
+                "matchCriteriaId": "F513AA2B-F457-408B-8D5F-EBE657439000"
+              }
+            ]
+          },
+          {
+            "operator": "OR",
+            "negate": false,
+            "cpeMatch": [
+              {
+                "vulnerable": false,
+                "criteria": "cpe:2.3:a:redhat:openshift:-:*:*:*:*:*:*:*",
+                "matchCriteriaId": "F08E234C-BDCF-4B41-87B9-96BD5578CBBF"
+              },
+              {
+                "vulnerable": false,
+                "criteria": "cpe:2.3:o:microsoft:windows:-:*:*:*:*:*:*:*",
+                "matchCriteriaId": "A2572D17-1DE6-457B-99CC-64AFD54487EA"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "references": [
+      {
+        "url": "https://exchange.xforce.ibmcloud.com/vulnerabilities/262293",
+        "source": "psirt@us.ibm.com",
+        "tags": [
+          "VDB Entry",
+          "Vendor Advisory"
+        ]
+      },
+      {
+        "url": "https://www.ibm.com/support/pages/node/7028223",
+        "source": "psirt@us.ibm.com",
+        "tags": [
+          "Patch",
+          "Vendor Advisory"
+        ]
+      }
+    ]
+  }
+}
