@@ -513,6 +513,17 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Version:      "edge",
 			LabelVersion: "edge",
 		},
+		{
+			Name:    "test-fixtures/os/openeuler",
+			Type:    OpenEuler,
+			Version: "20.03",
+		},
+		{
+			Name:         "test-fixtures/os/alpaquita",
+			Type:         Alpaquita,
+			Version:      "stream",
+			LabelVersion: "stream",
+		},
 	}
 
 	for _, tt := range tests {
