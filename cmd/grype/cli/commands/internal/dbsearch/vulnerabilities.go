@@ -272,9 +272,7 @@ func FindVulnerabilities(reader interface { //nolint:funlen
 	}
 
 	for i := range pairs {
-		if err := decorateVulnerabilities(reader, &pairs[i]); err != nil {
-			return nil, fmt.Errorf("unable to decorate vulnerability: %w", err)
-		}
+		decorateVulnerabilities(reader, &pairs[i])
 	}
 
 	var err error

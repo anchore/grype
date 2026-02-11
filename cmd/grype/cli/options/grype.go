@@ -41,6 +41,7 @@ type Grype struct {
 	MatchUpstreamKernelHeaders bool               `yaml:"match-upstream-kernel-headers" json:"match-upstream-kernel-headers" mapstructure:"match-upstream-kernel-headers"` // Show matches on kernel-headers packages where the match is on kernel upstream instead of marking them as ignored, default=false
 	FixChannel                 FixChannels        `yaml:"fix-channel" json:"fix-channel" mapstructure:"fix-channel"`                                                       // the fix channels to apply to the distro when matching
 	Timestamp                  bool               `yaml:"timestamp" json:"timestamp" mapstructure:"timestamp"`
+	Alerts                     Alerts             `yaml:"alerts" json:"alerts" mapstructure:"alerts"`
 	DatabaseCommand            `yaml:",inline" json:",inline" mapstructure:",squash"`
 }
 
@@ -72,6 +73,7 @@ func DefaultGrype(id clio.Identification) *Grype {
 		MatchUpstreamKernelHeaders: false,
 		SortBy:                     defaultSortBy(),
 		Timestamp:                  true,
+		Alerts:                     defaultAlerts(),
 	}
 }
 
@@ -113,7 +115,7 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 
 	flags.StringVarP(&o.FailOn,
 		"fail-on", "f",
-		fmt.Sprintf("set the return code to 1 if a vulnerability is found with a severity >= the given severity, options=%v", vulnerability.AllSeverities()),
+		fmt.Sprintf("set the return code to 2 if a vulnerability is found with a severity >= the given severity, options=%v", vulnerability.AllSeverities()),
 	)
 
 	flags.BoolVarP(&o.OnlyFixed,

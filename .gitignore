@@ -7,6 +7,8 @@ go.work
 go.work.sum
 .tool-versions
 .jj/
+/specs
+.context
 
 # AI and LLM related files
 CLAUDE.md

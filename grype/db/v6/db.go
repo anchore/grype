@@ -24,7 +24,7 @@ const (
 	Revision = 1
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 4
+	Addition = 5
 
 	// v6 model changelog:
 	// 6.0.0: Initial version 🎉
@@ -36,7 +36,8 @@ const (
 	// 6.1.1: Add UnaffectedCPE / UnaffectedPackage models and stores (remove "Affected" prefixes from existing blobs)
 	// 6.1.2: Add CWEs
 	// 6.1.3: Add ID field to Reference (for advisory IDs like RHSA-2023:5455)
-	// 6.1.4: Add RootIO field to PackageQualifiers for Root IO package detection.
+	// 6.1.4: Add EOLDate and EOASDate fields to OperatingSystem model
+	// 6.1.5: Add RootIO field to PackageQualifiers for Root IO package detection.
 	//        Enables NAK (Negative Acknowledgment) pattern: vulnerabilities marked with Root IO qualifier
 	//        will only match Root IO packages.
 )
@@ -77,6 +78,7 @@ type Writer interface {
 	ProviderStoreWriter
 	VulnerabilityStoreWriter
 	VulnerabilityDecoratorStoreWriter
+	OperatingSystemStoreWriter
 	AffectedPackageStoreWriter
 	UnaffectedPackageStoreWriter
 	AffectedCPEStoreWriter
