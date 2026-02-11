@@ -2,7 +2,6 @@ package osv
 
 import (
 	"os"
-	"reflect"
 	"testing"
 	"time"
 
@@ -239,6 +238,7 @@ func TestTransform(t *testing.T) {
 						},
 						OperatingSystem: &db.OperatingSystem{
 							Name:         "almalinux",
+							ReleaseID:    "almalinux",
 							MajorVersion: "10",
 						},
 						BlobValue: &db.PackageBlob{
@@ -246,7 +246,7 @@ func TestTransform(t *testing.T) {
 							Ranges: []db.Range{{
 								Version: db.Version{
 									Type:       "ecosystem",
-									Constraint: ">= 2:1.18.1-1.el10_0",
+									Constraint: ">=2:1.18.1-1.el10_0",
 								},
 								Fix: &db.Fix{
 									Version: "2:1.18.1-1.el10_0",
@@ -262,6 +262,7 @@ func TestTransform(t *testing.T) {
 						},
 						OperatingSystem: &db.OperatingSystem{
 							Name:         "almalinux",
+							ReleaseID:    "almalinux",
 							MajorVersion: "10",
 						},
 						BlobValue: &db.PackageBlob{
@@ -269,7 +270,7 @@ func TestTransform(t *testing.T) {
 							Ranges: []db.Range{{
 								Version: db.Version{
 									Type:       "ecosystem",
-									Constraint: ">= 2:1.18.1-1.el10_0",
+									Constraint: ">=2:1.18.1-1.el10_0",
 								},
 								Fix: &db.Fix{
 									Version: "2:1.18.1-1.el10_0",
@@ -287,24 +288,25 @@ func TestTransform(t *testing.T) {
 		test := testToRun
 		t.Run(test.name, func(tt *testing.T) {
 			tt.Parallel()
-			vulns := loadFixture(t, test.fixturePath)
+			vulns := loadFixture(tt, test.fixturePath)
 			var actual []transformers.RelatedEntries
 			for _, vuln := range vulns {
 				entries, err := Transform(vuln, inputProviderState())
-				require.NoError(t, err)
+				require.NoError(tt, err)
 				for _, entry := range entries {
 					e, ok := entry.Data.(transformers.RelatedEntries)
-					require.True(t, ok)
+					require.True(tt, ok)
 					actual = append(actual, e)
 				}
 			}
 
 			if diff := cmp.Diff(test.want, actual); diff != "" {
-				t.Errorf("data entries mismatch (-want +got):\n%s", diff)
+				tt.Errorf("data entries mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
 }
+
 func Test_getGrypeRangesFromRange(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -467,8 +469,9 @@ func Test_getGrypeRangesFromRange(t *testing.T) {
 		test := testToRun
 		t.Run(test.name, func(tt *testing.T) {
 			tt.Parallel()
-			if got := getGrypeRangesFromRange(test.rnge, test.ecosystem); !reflect.DeepEqual(got, test.want) {
-				t.Errorf("getGrypeRangesFromRange() = %v, want %v", got, test.want)
+			got := getGrypeRangesFromRange(test.rnge, test.ecosystem)
+			if diff := cmp.Diff(test.want, got); diff != "" {
+				tt.Errorf("getGrypeRangesFromRange() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
@@ -524,10 +527,10 @@ func Test_getPackage(t *testing.T) {
 			tt.Parallel()
 			got := getPackage(test.pkg)
 			if got.Name != test.want.Name {
-				t.Errorf("getPackage() got name = %v, want %v", got.Name, test.want.Name)
+				tt.Errorf("getPackage() got name = %v, want %v", got.Name, test.want.Name)
 			}
 			if got.Ecosystem != test.want.Ecosystem {
-				t.Errorf("getPackage() got ecosystem = %v, want %v", got.Ecosystem, test.want.Ecosystem)
+				tt.Errorf("getPackage() got ecosystem = %v, want %v", got.Ecosystem, test.want.Ecosystem)
 			}
 		})
 	}
@@ -577,14 +580,14 @@ func Test_extractCVSSInfo(t *testing.T) {
 			tt.Parallel()
 			gotVersion, gotVector, err := extractCVSSInfo(test.cvss)
 			if (err != nil) != test.wantErr {
-				t.Errorf("extractCVSSInfo() error = %v, wantErr %v", err, test.wantErr)
+				tt.Errorf("extractCVSSInfo() error = %v, wantErr %v", err, test.wantErr)
 				return
 			}
 			if gotVersion != test.wantVersion {
-				t.Errorf("extractCVSSInfo() got version = %v, want %v", gotVersion, test.wantVersion)
+				tt.Errorf("extractCVSSInfo() got version = %v, want %v", gotVersion, test.wantVersion)
 			}
 			if gotVector != test.wantVector {
-				t.Errorf("extractCVSSInfo() got vector = %v, want %v", gotVector, test.wantVector)
+				tt.Errorf("extractCVSSInfo() got vector = %v, want %v", gotVector, test.wantVector)
 			}
 		})
 	}
@@ -646,7 +649,7 @@ func Test_extractRpmModularity(t *testing.T) {
 		t.Run(test.name, func(tt *testing.T) {
 			got := extractRpmModularity(test.affected)
 			if got != test.want {
-				t.Errorf("extractRpmModularity() = %v, want %v", got, test.want)
+				tt.Errorf("extractRpmModularity() = %v, want %v", got, test.want)
 			}
 		})
 	}
@@ -713,8 +716,8 @@ func Test_getPackageQualifiers(t *testing.T) {
 		test := testToRun
 		t.Run(test.name, func(tt *testing.T) {
 			got := getPackageQualifiers(test.affected, test.cpes, test.withCPE)
-			if !reflect.DeepEqual(got, test.want) {
-				t.Errorf("getPackageQualifiers() = %v, want %v", got, test.want)
+			if diff := cmp.Diff(test.want, got); diff != "" {
+				tt.Errorf("getPackageQualifiers() mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}

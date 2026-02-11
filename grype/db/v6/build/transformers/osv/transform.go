@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/google/osv-scanner/pkg/models"
@@ -21,9 +20,13 @@ import (
 	"github.com/anchore/syft/syft/pkg"
 )
 
-const (
-	almaLinux = "almalinux"
-)
+// osvOSPackageTypes maps OSV ecosystem name prefixes (lowercased) to their package types.
+// This is used when PURLs are not available to determine the package type from the ecosystem string.
+var osvOSPackageTypes = map[string]pkg.Type{
+	"almalinux": pkg.RpmPkg,
+	"rocky":     pkg.RpmPkg,
+	"alpaquita": pkg.ApkPkg,
+}
 
 func Transform(vulnerability unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
 	severities, err := getSeverities(vulnerability)
@@ -121,8 +124,10 @@ func getPackageQualifiers(affected models.Affected, cpes any, withCPE bool) *db.
 
 	// Handle CPE qualifiers (existing logic)
 	if withCPE {
-		qualifiers = &db.PackageQualifiers{
-			PlatformCPEs: cpes.([]string),
+		if cpeList, ok := cpes.([]string); ok {
+			qualifiers = &db.PackageQualifiers{
+				PlatformCPEs: cpeList,
+			}
 		}
 	}
 
@@ -157,7 +162,7 @@ func extractRpmModularity(affected models.Affected) string {
 	return rpmModularityStr
 }
 
-// OSV supports flattered ranges, so both formats below are valid:
+// OSV supports flattened ranges, so both formats below are valid:
 // "ranges": [
 //
 //	{
@@ -220,35 +225,7 @@ func getGrypeRangesFromRange(r models.Range, ecosystem string) []db.Range { // n
 		}
 	}
 
-	fixByVersion := make(map[string]db.FixAvailability)
-	// check r.DatabaseSpecific for "anchore" key which has
-	// {"fixes": [{
-	//   "version": "v1.2.3",
-	//   "date": "YYYY-MM-DD",
-	//   "kind": "first-observed",
-	// }]}
-
-	if dbSpecific, ok := r.DatabaseSpecific["anchore"]; ok {
-		if anchoreInfo, ok := dbSpecific.(map[string]any); ok {
-			if fixes, ok := anchoreInfo["fixes"]; ok {
-				if fixList, ok := fixes.([]any); ok {
-					for _, fixEntry := range fixList {
-						if fixMap, ok := fixEntry.(map[string]any); ok {
-							version, vOk := fixMap["version"].(string)
-							kind, kOk := fixMap["kind"].(string)
-							date, dOk := fixMap["date"].(string)
-							if vOk && kOk && dOk {
-								fixByVersion[version] = db.FixAvailability{
-									Date: internal.ParseTime(date),
-									Kind: kind,
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+	fixByVersion := extractFixAvailability(r)
 
 	rangeType := normalizeRangeType(r.Type, ecosystem)
 	for _, e := range r.Events {
@@ -261,7 +238,7 @@ func getGrypeRangesFromRange(r models.Range, ecosystem string) []db.Range { // n
 			ranges = append(ranges, db.Range{
 				Version: db.Version{
 					Type:       rangeType,
-					Constraint: normalizeConstraint(constraint, rangeType),
+					Constraint: normalizeConstraint(constraint),
 				},
 			})
 			// Reset the constraint
@@ -278,7 +255,7 @@ func getGrypeRangesFromRange(r models.Range, ecosystem string) []db.Range { // n
 				Fix: normalizeFix(e.Fixed, detail),
 				Version: db.Version{
 					Type:       rangeType,
-					Constraint: normalizeConstraint(constraint, rangeType),
+					Constraint: normalizeConstraint(constraint),
 				},
 			})
 			// Reset the constraint
@@ -291,7 +268,7 @@ func getGrypeRangesFromRange(r models.Range, ecosystem string) []db.Range { // n
 		ranges = append(ranges, db.Range{
 			Version: db.Version{
 				Type:       rangeType,
-				Constraint: normalizeConstraint(constraint, rangeType),
+				Constraint: normalizeConstraint(constraint),
 			},
 		})
 	}
@@ -299,11 +276,10 @@ func getGrypeRangesFromRange(r models.Range, ecosystem string) []db.Range { // n
 	return ranges
 }
 
-func normalizeConstraint(constraint string, rangeType string) string {
-	if rangeType == "semver" || rangeType == "bitnami" {
-		return versionutil.EnforceSemVerConstraint(constraint)
-	}
-	return constraint
+func normalizeConstraint(constraint string) string {
+	// All compound constraints from OSV need to be comma-separated for grype.
+	// For example, ">= 0.2 < 1.8" becomes ">=0.2,<1.8".
+	return versionutil.EnforceSemVerConstraint(constraint)
 }
 
 func normalizeFix(fix string, detail *db.FixDetail) *db.Fix {
@@ -359,7 +335,7 @@ func getPackage(p models.Package) *db.Package {
 }
 
 // getPackageTypeFromEcosystem determines package type from OSV ecosystem
-// Currently only supports AlmaLinux; other ecosystems use PURL-based detection
+// for ecosystems that don't provide PURLs in their advisories.
 func getPackageTypeFromEcosystem(ecosystem string) pkg.Type {
 	if ecosystem == "" {
 		return ""
@@ -369,9 +345,13 @@ func getPackageTypeFromEcosystem(ecosystem string) pkg.Type {
 	parts := strings.Split(ecosystem, ":")
 	osName := strings.ToLower(parts[0])
 
-	// Only handle AlmaLinux
-	if osName == almaLinux {
-		return pkg.RpmPkg
+	if pt, ok := osvOSPackageTypes[osName]; ok {
+		return pt
+	}
+
+	switch osName {
+	case "cran":
+		return pkg.Rpkg
 	}
 
 	// For other ecosystems (like Bitnami, npm, pypi, etc.), return empty type
@@ -398,13 +378,14 @@ func getReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
 		)
 	}
 
-	return refs
+	return transformers.DeduplicateReferences(refs)
 }
+
+var cvssPattern = regexp.MustCompile(`^CVSS:(\d+\.\d+)/(.+)$`)
 
 // extractCVSSInfo extracts the CVSS version and vector from the CVSS string
 func extractCVSSInfo(cvss string) (string, string, error) {
-	re := regexp.MustCompile(`^CVSS:(\d+\.\d+)/(.+)$`)
-	matches := re.FindStringSubmatch(cvss)
+	matches := cvssPattern.FindStringSubmatch(cvss)
 
 	if len(matches) != 3 {
 		return "", "", fmt.Errorf("invalid CVSS format")
@@ -459,9 +440,9 @@ func getSeverities(vuln unmarshal.OSVVulnerability) ([]db.Severity, error) {
 	return severities, nil
 }
 
-// getOperatingSystemFromEcosystem extracts operating system information from OSV ecosystem field
-// Currently only supports AlmaLinux ecosystems
-// Example: "AlmaLinux:8" -> almalinux 8
+// getOperatingSystemFromEcosystem extracts operating system information from OSV ecosystem field.
+// It handles any OS ecosystem in the format "OSName:Version" where the OS name is recognized
+// in osvOSPackageTypes (e.g. "AlmaLinux:8", "Alpaquita:stream", "Rocky:9.2").
 func getOperatingSystemFromEcosystem(ecosystem string) *db.OperatingSystem {
 	if ecosystem == "" {
 		return nil
@@ -475,8 +456,8 @@ func getOperatingSystemFromEcosystem(ecosystem string) *db.OperatingSystem {
 
 	osName := strings.ToLower(parts[0])
 
-	// Only handle AlmaLinux
-	if osName != almaLinux {
+	// Only handle known OS ecosystems
+	if _, ok := osvOSPackageTypes[osName]; !ok {
 		return nil
 	}
 
@@ -488,12 +469,13 @@ func getOperatingSystemFromEcosystem(ecosystem string) *db.OperatingSystem {
 	if len(versionFields) > 0 {
 		majorVersion = versionFields[0]
 		// Check if the first field is actually a number
-		if _, err := strconv.Atoi(majorVersion[0:1]); err != nil {
-			// If not numeric, treat the whole thing as a label version
+		if len(majorVersion) == 0 || !isDigit(majorVersion[0]) {
+			// If not numeric, treat the whole thing as a label version (e.g. "stream")
 			return &db.OperatingSystem{
-				Name:         normalizeOSName(osName),
+				Name:         osName,
+				ReleaseID:    osName,
 				LabelVersion: osVersion,
-				Codename:     codename.LookupOS(normalizeOSName(osName), "", ""),
+				Codename:     codename.LookupOS(osName, "", ""),
 			}
 		}
 		if len(versionFields) > 1 {
@@ -502,24 +484,16 @@ func getOperatingSystemFromEcosystem(ecosystem string) *db.OperatingSystem {
 	}
 
 	return &db.OperatingSystem{
-		Name:         normalizeOSName(osName),
+		Name:         osName,
+		ReleaseID:    osName,
 		MajorVersion: majorVersion,
 		MinorVersion: minorVersion,
-		Codename:     codename.LookupOS(normalizeOSName(osName), majorVersion, minorVersion),
+		Codename:     codename.LookupOS(osName, majorVersion, minorVersion),
 	}
 }
 
-// normalizeOSName normalizes operating system names for consistency
-// Currently only supports AlmaLinux
-func normalizeOSName(osName string) string {
-	osName = strings.ToLower(osName)
-
-	// Only handle AlmaLinux
-	if osName == almaLinux {
-		return almaLinux
-	}
-
-	return osName
+func isDigit(b byte) bool {
+	return b >= '0' && b <= '9'
 }
 
 // isAdvisoryRecord checks if the OSV record is marked as an advisory
@@ -683,7 +657,7 @@ func createUnaffectedRange(fixedVersion string, fixByVersion map[string]db.FixAv
 		Fix: normalizeFix(fixedVersion, detail),
 		Version: db.Version{
 			Type:       rangeType,
-			Constraint: normalizeConstraint(constraint, rangeType),
+			Constraint: normalizeConstraint(constraint),
 		},
 	}
 }
