@@ -723,6 +723,109 @@ func Test_getPackageQualifiers(t *testing.T) {
 	}
 }
 
+func Test_getOperatingSystemFromEcosystem(t *testing.T) {
+	tests := []struct {
+		name      string
+		ecosystem string
+		want      *db.OperatingSystem
+	}{
+		{
+			name:      "openEuler base LTS",
+			ecosystem: "openEuler:20.03-LTS",
+			want: &db.OperatingSystem{
+				Name:         "openeuler",
+				ReleaseID:    "openeuler",
+				MajorVersion: "20",
+				MinorVersion: "03",
+				LabelVersion: "LTS",
+			},
+		},
+		{
+			name:      "openEuler LTS service pack",
+			ecosystem: "openEuler:20.03-LTS-SP4",
+			want: &db.OperatingSystem{
+				Name:         "openeuler",
+				ReleaseID:    "openeuler",
+				MajorVersion: "20",
+				MinorVersion: "03",
+				LabelVersion: "LTS-SP4",
+			},
+		},
+		{
+			name:      "openEuler 24.03 LTS service pack",
+			ecosystem: "openEuler:24.03-LTS-SP1",
+			want: &db.OperatingSystem{
+				Name:         "openeuler",
+				ReleaseID:    "openeuler",
+				MajorVersion: "24",
+				MinorVersion: "03",
+				LabelVersion: "LTS-SP1",
+			},
+		},
+		{
+			name:      "AlmaLinux major only",
+			ecosystem: "AlmaLinux:8",
+			want: &db.OperatingSystem{
+				Name:         "almalinux",
+				ReleaseID:    "almalinux",
+				MajorVersion: "8",
+			},
+		},
+		{
+			name:      "AlmaLinux major and minor",
+			ecosystem: "AlmaLinux:10",
+			want: &db.OperatingSystem{
+				Name:         "almalinux",
+				ReleaseID:    "almalinux",
+				MajorVersion: "10",
+			},
+		},
+		{
+			name:      "Rocky with minor version",
+			ecosystem: "Rocky:9.2",
+			want: &db.OperatingSystem{
+				Name:         "rocky",
+				ReleaseID:    "rocky",
+				MajorVersion: "9",
+				MinorVersion: "2",
+			},
+		},
+		{
+			name:      "Alpaquita stream (non-numeric label)",
+			ecosystem: "Alpaquita:stream",
+			want: &db.OperatingSystem{
+				Name:         "alpaquita",
+				ReleaseID:    "alpaquita",
+				LabelVersion: "stream",
+			},
+		},
+		{
+			name:      "unknown ecosystem returns nil",
+			ecosystem: "Bitnami:something",
+			want:      nil,
+		},
+		{
+			name:      "no version component returns nil",
+			ecosystem: "openEuler",
+			want:      nil,
+		},
+		{
+			name:      "empty string returns nil",
+			ecosystem: "",
+			want:      nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := getOperatingSystemFromEcosystem(tt.ecosystem)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("getOperatingSystemFromEcosystem() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func stringRef(s string) *string {
 	return &s
 }

@@ -104,15 +104,16 @@ var IDMapping = map[string]Type{
 	"scientific":    Scientific,
 	"secureos":      SecureOS,
 	"postmarketos":  PostmarketOS,
-	"openEuler":     OpenEuler,
+	"openEuler":     OpenEuler, // NOTE: mixed case is intentional — openEuler's /etc/os-release violates the freedesktop spec by using ID="openEuler" instead of lowercase
 }
 
 // aliasTypes maps common aliases to their corresponding Type.
 var aliasTypes = map[string]Type{
-	"Alpine Linux":     Alpine, // needed for CPE matching (see #2039)
+	"Alpine Linux":                 Alpine,    // needed for CPE matching (see #2039)
 	"BellSoft Hardened Containers": Alpaquita,
-	"windows":          Windows,
-	"scientific linux": Scientific, // Scientific linux prior to v7 didn't have an os-release file and syft raises up "scientific linux" as the release id as parsed from /etc/redhat-release
+	"openeuler":                    OpenEuler, // safety net for the mixed-case IDMapping key; TypeFromRelease is case-sensitive
+	"windows":                      Windows,
+	"scientific linux":             Scientific, // Scientific linux prior to v7 didn't have an os-release file and syft raises up "scientific linux" as the release id as parsed from /etc/redhat-release
 }
 
 var typeToIDMapping = map[Type]string{}
