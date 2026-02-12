@@ -83,7 +83,6 @@ var IDMapping = map[string]Type{
 	"fedora":        Fedora,
 	"alpine":        Alpine,
 	"alpaquita":     Alpaquita,
-	//"bellsoft-hardened-containers": Alpaquita,
 	"busybox":       Busybox,
 	"amzn":          AmazonLinux,
 	"ol":            OracleLinux,
@@ -109,7 +108,7 @@ var IDMapping = map[string]Type{
 
 // aliasTypes maps common aliases to their corresponding Type.
 var aliasTypes = map[string]Type{
-	"Alpine Linux":                 Alpine,    // needed for CPE matching (see #2039)
+	"Alpine Linux":                 Alpine, // needed for CPE matching (see #2039)
 	"BellSoft Hardened Containers": Alpaquita,
 	"openeuler":                    OpenEuler, // safety net for the mixed-case IDMapping key; TypeFromRelease is case-sensitive
 	"windows":                      Windows,
