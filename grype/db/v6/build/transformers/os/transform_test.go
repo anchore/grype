@@ -85,6 +85,11 @@ func TestTransform(t *testing.T) {
 		ReleaseID:    "rhel",
 		MajorVersion: "8",
 	}
+	fedora39OS := &db.OperatingSystem{
+		Name:         "fedora",
+		ReleaseID:    "fedora",
+		MajorVersion: "39",
+	}
 	tests := []struct {
 		name     string
 		provider string
@@ -1115,6 +1120,68 @@ func TestTransform(t *testing.T) {
 													{
 														ID:   "RHSA-2020:5619",
 														URL:  "https://access.redhat.com/errata/RHSA-2020:5619",
+														Tags: []string{db.AdvisoryReferenceTag},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					),
+				},
+			},
+		},
+		{
+			name:     "test-fixtures/fedora-39.json",
+			provider: "fedora",
+			want: []transformers.RelatedEntries{
+				{
+					VulnerabilityHandle: &db.VulnerabilityHandle{
+						Name:          "CVE-2024-34397",
+						ProviderID:    "fedora",
+						Provider:      expectedProvider("fedora"),
+						Status:        "active",
+						PublishedDate: timeRef(time.Date(2024, 5, 9, 2, 43, 30, 0, time.UTC)),
+						ModifiedDate:  timeRef(time.Date(2024, 5, 14, 3, 27, 20, 0, time.UTC)),
+						BlobValue: &db.VulnerabilityBlob{
+							ID:          "CVE-2024-34397",
+							Description: "Security update for glib2 to fix CVE-2024-34397",
+							References: []db.Reference{
+								{
+									URL: "https://bodhi.fedoraproject.org/updates/FEDORA-2024-fd2569c4e9",
+								},
+							},
+							Severities: []db.Severity{
+								{
+									Scheme: db.SeveritySchemeCHMLN,
+									Value:  "high",
+									Rank:   1,
+								},
+							},
+						},
+					},
+					Related: affectedPkgSlice(
+						db.AffectedPackageHandle{
+							OperatingSystem: fedora39OS,
+							Package:         &db.Package{Ecosystem: "rpm", Name: "glib2"},
+							BlobValue: &db.PackageBlob{
+								Qualifiers: &db.PackageQualifiers{RpmModularity: strRef("")},
+								Ranges: []db.Range{
+									{
+										Version: db.Version{
+											Type:       "rpm",
+											Constraint: "< 0:2.78.6-1.fc39",
+										},
+										Fix: &db.Fix{
+											Version: "0:2.78.6-1.fc39",
+											State:   db.FixedStatus,
+											Detail: &db.FixDetail{
+												References: []db.Reference{
+													{
+														ID:   "FEDORA-2024-fd2569c4e9",
+														URL:  "https://bodhi.fedoraproject.org/updates/FEDORA-2024-fd2569c4e9",
 														Tags: []string{db.AdvisoryReferenceTag},
 													},
 												},
