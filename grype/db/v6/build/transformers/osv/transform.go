@@ -350,8 +350,7 @@ func getPackageTypeFromEcosystem(ecosystem string) pkg.Type {
 		return pt
 	}
 
-	switch osName {
-	case "cran":
+	if osName == "cran" {
 		return pkg.Rpkg
 	}
 
