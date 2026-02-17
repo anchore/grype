@@ -11,7 +11,7 @@ type apkVersion struct {
 }
 
 func newApkVersion(raw string) (apkVersion, error) {
-	ver, err := apk.NewVersion(raw)
+	ver, err := apk.NewVersion(trimLeadingV(raw))
 	if err != nil {
 		return apkVersion{}, invalidFormatError(ApkFormat, raw, err)
 	}
@@ -19,6 +19,15 @@ func newApkVersion(raw string) (apkVersion, error) {
 	return apkVersion{
 		obj: ver,
 	}, nil
+}
+
+// trimLeadingV removes a single leading 'v' or 'V' prefix only if it's followed by a digit.
+// This allows versions like "v1.5.0" to be treated as "1.5.0" while preserving other strings as-is.
+func trimLeadingV(raw string) string {
+	if len(raw) >= 2 && (raw[0] == 'v' || raw[0] == 'V') && raw[1] >= '0' && raw[1] <= '9' {
+		return raw[1:]
+	}
+	return raw
 }
 
 func (v apkVersion) Compare(other *Version) (int, error) {
