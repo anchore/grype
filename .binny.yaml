@@ -2,7 +2,7 @@ tools:
   # we want to use a pinned version of binny to manage the toolchain (so binny manages itself!)
   - name: binny
     version:
-      want: v0.11.2
+      want: v0.11.3
     method: github-release
     with:
       repo: anchore/binny
@@ -26,7 +26,7 @@ tools:
   # used for linting
   - name: golangci-lint
     version:
-      want: v2.8.0
+      want: v2.9.0
     method: github-release
     with:
       repo: golangci/golangci-lint
@@ -98,7 +98,7 @@ tools:
   # used for integration tests
   - name: skopeo
     version:
-      want: v1.21.0
+      want: v1.22.0
     method: go-install
     with:
       module: github.com/containers/skopeo
