@@ -2,6 +2,7 @@ package match
 
 import (
 	"regexp"
+	"strings"
 
 	"github.com/bmatcuk/doublestar/v2"
 
@@ -193,12 +194,12 @@ func ifFixStateApplies(fs string) ignoreCondition {
 
 func ifVulnerabilityApplies(vulnerability string, includeAliases bool) ignoreCondition {
 	return func(match Match) bool {
-		if vulnerability == match.Vulnerability.ID {
+		if strings.EqualFold(vulnerability, match.Vulnerability.ID) {
 			return true
 		}
 		if includeAliases {
 			for _, related := range match.Vulnerability.RelatedVulnerabilities {
-				if vulnerability == related.ID {
+				if strings.EqualFold(vulnerability, related.ID) {
 					return true
 				}
 			}
