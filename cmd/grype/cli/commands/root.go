@@ -52,6 +52,7 @@ func Root(app clio.Application) *cobra.Command {
 	return app.SetupRootCommand(&cobra.Command{
 		Use:   fmt.Sprintf("%s [IMAGE]", app.ID().Name),
 		Short: "A vulnerability scanner for container images, filesystems, and SBOMs",
+
 		Long: stringutil.Tprintf(`A vulnerability scanner for container images, filesystems, and SBOMs.
 
 Supports the following image sources:
@@ -79,6 +80,7 @@ You can also pipe in Syft JSON directly:
 `, map[string]interface{}{
 			"appName": app.ID().Name,
 		}),
+		
 		Args:          validateRootArgs,
 		SilenceUsage:  true,
 		SilenceErrors: true,
@@ -130,6 +132,12 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 	var packages []pkg.Package
 	var s *sbom.SBOM
 	var pkgContext pkg.Context
+
+	defer func() {
+		if vp != nil {
+			log.CloseAndLogError(vp, status.Path)
+		}
+	}()
 
 	if opts.OnlyFixed {
 		opts.Ignore = append(opts.Ignore, ignoreNonFixedMatches...)
@@ -201,8 +209,6 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 	if err != nil {
 		return err
 	}
-
-	defer log.CloseAndLogError(vp, status.Path)
 
 	warnWhenDistroHintNeeded(packages, &pkgContext)
 
