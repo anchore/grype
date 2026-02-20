@@ -23,10 +23,11 @@ import (
 // osvOSPackageTypes maps OSV ecosystem name prefixes (lowercased) to their package types.
 // This is used when PURLs are not available to determine the package type from the ecosystem string.
 var osvOSPackageTypes = map[string]pkg.Type{
-	"almalinux": pkg.RpmPkg,
-	"rocky":     pkg.RpmPkg,
-	"alpaquita": pkg.ApkPkg,
-	"openeuler": pkg.RpmPkg,
+	"almalinux":                    pkg.RpmPkg,
+	"rocky":                        pkg.RpmPkg,
+	"alpaquita":                    pkg.ApkPkg,
+	"bellsoft hardened containers": pkg.ApkPkg,
+	"openeuler":                    pkg.RpmPkg,
 }
 
 func Transform(vulnerability unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
@@ -318,7 +319,13 @@ func getPackage(p models.Package) *db.Package {
 
 	if p.Purl != "" {
 		pkgType = pkg.TypeFromPURL(p.Purl)
-		ecosystem = string(p.Ecosystem)
+		// For OS package types, normalize the ecosystem to the package type string
+		// instead of keeping the raw ecosystem which includes version info (e.g., "openEuler:22.03-LTS-SP3")
+		if isOSEcosystem(string(p.Ecosystem)) {
+			ecosystem = string(pkgType)
+		} else {
+			ecosystem = string(p.Ecosystem)
+		}
 	} else {
 		pkgType = getPackageTypeFromEcosystem(string(p.Ecosystem))
 		// If we found a package type from OS ecosystem, use it; otherwise use original ecosystem
@@ -333,6 +340,14 @@ func getPackage(p models.Package) *db.Package {
 		Ecosystem: ecosystem,
 		Name:      name.Normalize(p.Name, pkgType),
 	}
+}
+
+// isOSEcosystem returns true if the ecosystem prefix matches a known OS package type
+func isOSEcosystem(ecosystem string) bool {
+	parts := strings.Split(ecosystem, ":")
+	osName := strings.ToLower(parts[0])
+	_, ok := osvOSPackageTypes[osName]
+	return ok
 }
 
 // getPackageTypeFromEcosystem determines package type from OSV ecosystem

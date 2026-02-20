@@ -282,6 +282,262 @@ func TestTransform(t *testing.T) {
 				),
 			}},
 		},
+		{
+			// Go Vuln DB: uses standard "aliases" field, SEMVER ranges, and golang PURL.
+			// This test should PASS with the current transformer since Go records use
+			// the standard OSV "aliases" field (not "upstream").
+			name:        "Go Vuln DB - protobuf infinite loop",
+			fixturePath: "test-fixtures/GO-2024-2611.json",
+			want: []transformers.RelatedEntries{{
+				VulnerabilityHandle: &db.VulnerabilityHandle{
+					Name:          "GO-2024-2611",
+					Status:        db.VulnerabilityActive,
+					ProviderID:    "osv",
+					Provider:      expectedProvider(),
+					ModifiedDate:  timeRef(time.Date(2026, time.January, 28, 3, 41, 22, 146319000, time.UTC)),
+					PublishedDate: timeRef(time.Date(2024, time.March, 5, 20, 24, 5, 0, time.UTC)),
+					BlobValue: &db.VulnerabilityBlob{
+						ID:          "GO-2024-2611",
+						Description: "The protojson.Unmarshal function can enter an infinite loop when unmarshaling certain forms of invalid JSON. This condition can occur when unmarshaling into a message which contains a google.protobuf.Any value, or when the UnmarshalOptions.DiscardUnknown option is set.",
+						References: []db.Reference{{
+							URL:  "https://go.dev/cl/569356",
+							Tags: []string{"FIX"},
+						}},
+						Aliases: []string{"CVE-2024-24786", "GHSA-8r3f-844c-mc37"},
+					},
+				},
+				Related: affectedPkgSlice(
+					db.AffectedPackageHandle{
+						Package: &db.Package{
+							Name:      "google.golang.org/protobuf",
+							Ecosystem: "Go",
+						},
+						BlobValue: &db.PackageBlob{
+							CVEs: []string{"CVE-2024-24786", "GHSA-8r3f-844c-mc37"},
+							Ranges: []db.Range{{
+								Version: db.Version{
+									Type:       "semver",
+									Constraint: "<1.33.0",
+								},
+								Fix: &db.Fix{
+									Version: "1.33.0",
+									State:   db.FixedStatus,
+								},
+							}},
+						},
+					},
+				),
+			}},
+		},
+		{
+			// R (CRAN) ecosystem: uses "upstream" field instead of "aliases" to reference CVEs.
+			// KNOWN ISSUE: The osv-scanner models.Vulnerability struct has no "Upstream" field,
+			// so "upstream" data is silently dropped during JSON unmarshaling. This causes:
+			//   - VulnerabilityBlob.Aliases to be empty (should contain CVE-2020-5238)
+			//   - PackageBlob.CVEs to be empty (should contain CVE-2020-5238)
+			// The grype transformer needs a custom unmarshal type or post-processing to capture
+			// the "upstream" field and merge it into Aliases.
+			name:        "R Sec (CRAN) - commonmark DoS",
+			fixturePath: "test-fixtures/RSEC-2023-6.json",
+			want: []transformers.RelatedEntries{{
+				VulnerabilityHandle: &db.VulnerabilityHandle{
+					Name:          "RSEC-2023-6",
+					Status:        db.VulnerabilityActive,
+					ProviderID:    "osv",
+					Provider:      expectedProvider(),
+					ModifiedDate:  timeRef(time.Date(2025, time.May, 19, 19, 43, 47, 903227000, time.UTC)),
+					PublishedDate: timeRef(time.Date(2023, time.October, 6, 5, 0, 0, 600000000, time.UTC)),
+					BlobValue: &db.VulnerabilityBlob{
+						ID:          "RSEC-2023-6",
+						Description: "The commonmark package, specifically in its dependency on GitHub Flavored Markdown before version 0.29.0.gfm.1, has a vulnerability related to time complexity. Parsing certain crafted markdown tables can take O(n * n) time, leading to potential Denial of Service attacks. This issue does not affect the upstream cmark project and has been fixed in version 0.29.0.gfm.1.",
+						References: []db.Reference{{
+							URL:  "https://security-tracker.debian.org/tracker/CVE-2020-5238",
+							Tags: []string{"WEB"},
+						}, {
+							URL:  "https://github.com/r-lib/commonmark/issues/13",
+							Tags: []string{"WEB"},
+						}, {
+							URL:  "https://github.com/r-lib/commonmark/pull/18",
+							Tags: []string{"WEB"},
+						}},
+						Aliases: []string{"CVE-2020-5238"},
+					},
+				},
+				Related: affectedPkgSlice(
+					db.AffectedPackageHandle{
+						Package: &db.Package{
+							Name:      "commonmark",
+							Ecosystem: "CRAN",
+						},
+						BlobValue: &db.PackageBlob{
+							CVEs: []string{"CVE-2020-5238"},
+							Ranges: []db.Range{{
+								Version: db.Version{
+									Type:       "ecosystem",
+									Constraint: ">=0.2,<1.8",
+								},
+								Fix: &db.Fix{
+									Version: "1.8",
+									State:   db.FixedStatus,
+								},
+							}},
+						},
+					},
+				),
+			}},
+		},
+		{
+			// openEuler (OESA) ecosystem: uses "upstream" field and has a malformed PURL
+			// (uses & instead of ? for qualifiers: "pkg:rpm/openEuler/booth&distro=...").
+			// KNOWN ISSUES:
+			//   1. "upstream" field dropped (same as RSEC above)
+			//   2. When PURL is present, getPackage() uses the original ecosystem string
+			//      ("openEuler:22.03-LTS-SP3") instead of the package type ("rpm").
+			//      For OS packages, the ecosystem should be the package type to match
+			//      how matchers search the DB. The no-PURL path (e.g., AlmaLinux) correctly
+			//      sets ecosystem to "rpm" via getPackageTypeFromEcosystem().
+			//   3. The PURL uses & instead of ? for qualifiers, which may cause purl parsing
+			//      to fail or produce incorrect results.
+			name:        "openEuler advisory - booth security update",
+			fixturePath: "test-fixtures/OESA-2024-2048.json",
+			want: []transformers.RelatedEntries{{
+				VulnerabilityHandle: &db.VulnerabilityHandle{
+					Name:          "OESA-2024-2048",
+					Status:        db.VulnerabilityActive,
+					ProviderID:    "osv",
+					Provider:      expectedProvider(),
+					ModifiedDate:  timeRef(time.Date(2025, time.September, 3, 6, 20, 13, 702698000, time.UTC)),
+					PublishedDate: timeRef(time.Date(2024, time.August, 23, 11, 8, 56, 0, time.UTC)),
+					BlobValue: &db.VulnerabilityBlob{
+						ID:          "OESA-2024-2048",
+						Description: "Booth manages tickets which authorize cluster sites located in geographically dispersed locations to run resources. It facilitates support of geographically distributed clustering in Pacemaker.\r\n\r\nSecurity Fix(es):\r\n\r\nA flaw was found in Booth, a cluster ticket manager. If a specially-crafted hash is passed to gcry_md_get_algo_dlen(), it may allow an invalid HMAC to be accepted by the Booth server.(CVE-2024-3049)",
+						References: []db.Reference{{
+							URL:  "https://www.openeuler.org/zh/security/security-bulletins/detail/?id=openEuler-SA-2024-2048",
+							Tags: []string{"ADVISORY"},
+						}, {
+							URL:  "https://nvd.nist.gov/vuln/detail/CVE-2024-3049",
+							Tags: []string{"ADVISORY"},
+						}},
+						Aliases: []string{"CVE-2024-3049"},
+					},
+				},
+				Related: affectedPkgSlice(
+					db.AffectedPackageHandle{
+						Package: &db.Package{
+							Name:      "booth",
+							Ecosystem: "rpm",
+						},
+						OperatingSystem: &db.OperatingSystem{
+							Name:         "openeuler",
+							ReleaseID:    "openeuler",
+							MajorVersion: "22",
+							MinorVersion: "03",
+							LabelVersion: "LTS-SP3",
+						},
+						BlobValue: &db.PackageBlob{
+							CVEs: []string{"CVE-2024-3049"},
+							Ranges: []db.Range{{
+								Version: db.Version{
+									Type:       "ecosystem",
+									Constraint: "<1.0-7.oe2203sp3",
+								},
+								Fix: &db.Fix{
+									Version: "1.0-7.oe2203sp3",
+									State:   db.FixedStatus,
+								},
+							}},
+						},
+					},
+				),
+			}},
+		},
+		{
+			// BellSoft / Alpaquita Linux: uses "upstream" field and has two distinct
+			// ecosystem variants: "Alpaquita" and "BellSoft Hardened Containers".
+			// KNOWN ISSUES:
+			//   1. "upstream" field dropped (same as RSEC/OESA above)
+			//   2. When PURL is present, ecosystem stays as original string instead of "apk"
+			//   3. "BellSoft Hardened Containers" is not in osvOSPackageTypes, so no OS is
+			//      detected for those entries. Needs to be added as a separate distro.
+			//   4. No "details" or "summary" field → description is empty string
+			name:        "BellSoft Alpaquita - sqlite use-after-free",
+			fixturePath: "test-fixtures/BELL-CVE-2024-0232.json",
+			want: []transformers.RelatedEntries{{
+				VulnerabilityHandle: &db.VulnerabilityHandle{
+					Name:          "BELL-CVE-2024-0232",
+					Status:        db.VulnerabilityActive,
+					ProviderID:    "osv",
+					Provider:      expectedProvider(),
+					ModifiedDate:  timeRef(time.Date(2026, time.January, 26, 9, 34, 44, 321485000, time.UTC)),
+					PublishedDate: timeRef(time.Date(2024, time.January, 12, 6, 0, 31, 487567000, time.UTC)),
+					BlobValue: &db.VulnerabilityBlob{
+						ID: "BELL-CVE-2024-0232",
+						References: []db.Reference{{
+							URL:  "https://docs.bell-sw.com/security/cves/CVE-2024-0232",
+							Tags: []string{"ADVISORY"},
+						}},
+						Aliases: []string{"CVE-2024-0232"},
+						Severities: []db.Severity{{
+							Scheme: db.SeveritySchemeCVSS,
+							Value: db.CVSSSeverity{
+								Vector:  "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H",
+								Version: "3.1",
+							},
+						}},
+					},
+				},
+				Related: affectedPkgSlice(
+					db.AffectedPackageHandle{
+						Package: &db.Package{
+							Name:      "sqlite",
+							Ecosystem: "apk",
+						},
+						OperatingSystem: &db.OperatingSystem{
+							Name:         "alpaquita",
+							ReleaseID:    "alpaquita",
+							LabelVersion: "stream",
+						},
+						BlobValue: &db.PackageBlob{
+							CVEs: []string{"CVE-2024-0232"},
+							Ranges: []db.Range{{
+								Version: db.Version{
+									Type:       "ecosystem",
+									Constraint: ">=3.43.0-r0,<3.43.2-r0",
+								},
+								Fix: &db.Fix{
+									Version: "3.43.2-r0",
+									State:   db.FixedStatus,
+								},
+							}},
+						},
+					},
+					db.AffectedPackageHandle{
+						Package: &db.Package{
+							Name:      "sqlite",
+							Ecosystem: "apk",
+						},
+						OperatingSystem: &db.OperatingSystem{
+							Name:         "bellsoft hardened containers",
+							ReleaseID:    "bellsoft hardened containers",
+							LabelVersion: "stream",
+						},
+						BlobValue: &db.PackageBlob{
+							CVEs: []string{"CVE-2024-0232"},
+							Ranges: []db.Range{{
+								Version: db.Version{
+									Type:       "ecosystem",
+									Constraint: ">=3.43.0-r0,<3.43.2-r0",
+								},
+								Fix: &db.Fix{
+									Version: "3.43.2-r0",
+									State:   db.FixedStatus,
+								},
+							}},
+						},
+					},
+				),
+			}},
+		},
 	}
 	t.Parallel()
 	for _, testToRun := range tests {
@@ -519,6 +775,106 @@ func Test_getPackage(t *testing.T) {
 				Ecosystem: "",
 			},
 		},
+		// --- New ecosystem test cases ---
+		{
+			// Go ecosystem: PURL present, ecosystem should stay as original "Go"
+			name: "Go package with golang PURL",
+			pkg: models.Package{
+				Ecosystem: "Go",
+				Name:      "google.golang.org/protobuf",
+				Purl:      "pkg:golang/google.golang.org/protobuf",
+			},
+			want: &db.Package{
+				Name:      "google.golang.org/protobuf",
+				Ecosystem: "Go",
+			},
+		},
+		{
+			// CRAN ecosystem: PURL present, ecosystem should stay as original "CRAN"
+			name: "CRAN R package with purl",
+			pkg: models.Package{
+				Ecosystem: "CRAN",
+				Name:      "commonmark",
+				Purl:      "pkg:cran/commonmark",
+			},
+			want: &db.Package{
+				Name:      "commonmark",
+				Ecosystem: "CRAN",
+			},
+		},
+		{
+			// CRAN ecosystem without PURL: ecosystem should be normalized to "R-package"
+			// (the string value of pkg.Rpkg) since CRAN maps to Rpkg in getPackageTypeFromEcosystem
+			name: "CRAN R package without purl",
+			pkg: models.Package{
+				Ecosystem: "CRAN",
+				Name:      "commonmark",
+				Purl:      "",
+			},
+			want: &db.Package{
+				Name:      "commonmark",
+				Ecosystem: "R-package",
+			},
+		},
+		{
+			// AlmaLinux without PURL: ecosystem should be "rpm" (existing working path)
+			name: "AlmaLinux package without purl",
+			pkg: models.Package{
+				Ecosystem: "AlmaLinux:10",
+				Name:      "skopeo",
+				Purl:      "",
+			},
+			want: &db.Package{
+				Name:      "skopeo",
+				Ecosystem: "rpm",
+			},
+		},
+		{
+			// openEuler with PURL: ecosystem SHOULD be "rpm" but current code keeps
+			// the original ecosystem string when PURL is present.
+			// KNOWN BUG: getPackage() returns ecosystem="openEuler:22.03-LTS-SP3"
+			// when it should return "rpm" for OS packages.
+			name: "openEuler RPM package with purl",
+			pkg: models.Package{
+				Ecosystem: "openEuler:22.03-LTS-SP3",
+				Name:      "booth",
+				Purl:      "pkg:rpm/openEuler/booth&distro=openEuler-22.03-LTS-SP3",
+			},
+			want: &db.Package{
+				Name:      "booth",
+				Ecosystem: "rpm",
+			},
+		},
+		{
+			// Alpaquita with PURL: ecosystem SHOULD be "apk" but current code keeps
+			// the original ecosystem string when PURL is present.
+			// KNOWN BUG: getPackage() returns ecosystem="Alpaquita:stream"
+			name: "Alpaquita APK package with purl",
+			pkg: models.Package{
+				Ecosystem: "Alpaquita:stream",
+				Name:      "sqlite",
+				Purl:      "pkg:apk/alpaquita/sqlite?arch=source&distro=stream",
+			},
+			want: &db.Package{
+				Name:      "sqlite",
+				Ecosystem: "apk",
+			},
+		},
+		{
+			// BellSoft Hardened Containers with PURL: ecosystem SHOULD be "apk"
+			// KNOWN BUG: ecosystem is "BellSoft Hardened Containers:stream" and
+			// this OS is not in osvOSPackageTypes.
+			name: "BellSoft Hardened Containers APK package with purl",
+			pkg: models.Package{
+				Ecosystem: "BellSoft Hardened Containers:stream",
+				Name:      "sqlite",
+				Purl:      "pkg:apk/bellsoft-hardened-containers/sqlite?arch=source&distro=stream",
+			},
+			want: &db.Package{
+				Name:      "sqlite",
+				Ecosystem: "apk",
+			},
+		},
 	}
 	t.Parallel()
 	for _, testToRun := range tests {
@@ -531,6 +887,76 @@ func Test_getPackage(t *testing.T) {
 			}
 			if got.Ecosystem != test.want.Ecosystem {
 				tt.Errorf("getPackage() got ecosystem = %v, want %v", got.Ecosystem, test.want.Ecosystem)
+			}
+		})
+	}
+}
+
+func Test_getPackageTypeFromEcosystem(t *testing.T) {
+	tests := []struct {
+		name      string
+		ecosystem string
+		want      string // expected pkg.Type string, empty for no match
+	}{
+		{
+			name:      "AlmaLinux",
+			ecosystem: "AlmaLinux:10",
+			want:      "rpm",
+		},
+		{
+			name:      "Rocky Linux",
+			ecosystem: "Rocky:9.2",
+			want:      "rpm",
+		},
+		{
+			name:      "openEuler with LTS service pack",
+			ecosystem: "openEuler:22.03-LTS-SP3",
+			want:      "rpm",
+		},
+		{
+			name:      "Alpaquita numeric version",
+			ecosystem: "Alpaquita:23",
+			want:      "apk",
+		},
+		{
+			name:      "Alpaquita stream",
+			ecosystem: "Alpaquita:stream",
+			want:      "apk",
+		},
+		{
+			// BellSoft Hardened Containers is NOT currently in osvOSPackageTypes.
+			// This test documents the desired behavior: it should map to apk.
+			name:      "BellSoft Hardened Containers",
+			ecosystem: "BellSoft Hardened Containers:stream",
+			want:      "apk",
+		},
+		{
+			name:      "CRAN maps to R-package",
+			ecosystem: "CRAN",
+			want:      "R-package",
+		},
+		{
+			name:      "Go has no OS package type",
+			ecosystem: "Go",
+			want:      "",
+		},
+		{
+			name:      "Bitnami has no OS package type",
+			ecosystem: "Bitnami",
+			want:      "",
+		},
+		{
+			name:      "empty ecosystem",
+			ecosystem: "",
+			want:      "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := getPackageTypeFromEcosystem(tt.ecosystem)
+			if string(got) != tt.want {
+				t.Errorf("getPackageTypeFromEcosystem(%q) = %q, want %q", tt.ecosystem, string(got), tt.want)
 			}
 		})
 	}
