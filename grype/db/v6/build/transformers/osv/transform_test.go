@@ -712,9 +712,146 @@ func Test_getPackageQualifiers(t *testing.T) {
 	for _, testToRun := range tests {
 		test := testToRun
 		t.Run(test.name, func(tt *testing.T) {
-			got := getPackageQualifiers(test.affected, test.cpes, test.withCPE)
+			// Pass empty vuln for non-Root IO tests
+			emptyVuln := unmarshal.OSVVulnerability{}
+			got := getPackageQualifiers(test.affected, test.cpes, test.withCPE, emptyVuln)
 			if !reflect.DeepEqual(got, test.want) {
 				t.Errorf("getPackageQualifiers() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+// Root IO Tests
+// ============================================================================
+
+func TestIsRootIORecord(t *testing.T) {
+	tests := []struct {
+		name string
+		vuln unmarshal.OSVVulnerability
+		want bool
+	}{
+		{
+			name: "Root IO record with database_specific.source",
+			vuln: unmarshal.OSVVulnerability{
+				DatabaseSpecific: map[string]interface{}{
+					"source": "Root",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Non-Root IO record",
+			vuln: unmarshal.OSVVulnerability{
+				DatabaseSpecific: map[string]interface{}{
+					"source": "GitHub",
+				},
+			},
+			want: false,
+		},
+		{
+			name: "No database_specific field",
+			vuln: unmarshal.OSVVulnerability{
+				DatabaseSpecific: nil,
+			},
+			want: false,
+		},
+		{
+			name: "database_specific without source",
+			vuln: unmarshal.OSVVulnerability{
+				DatabaseSpecific: map[string]interface{}{
+					"other_field": "value",
+				},
+			},
+			want: false,
+		},
+		{
+			name: "database_specific source is not string",
+			vuln: unmarshal.OSVVulnerability{
+				DatabaseSpecific: map[string]interface{}{
+					"source": 123,
+				},
+			},
+			want: false,
+		},
+	}
+
+	for _, testToRun := range tests {
+		test := testToRun
+		t.Run(test.name, func(tt *testing.T) {
+			got := isRootIORecord(test.vuln)
+			if got != test.want {
+				t.Errorf("isRootIORecord() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestTransformRootIOFixtures(t *testing.T) {
+	tests := []struct {
+		name        string
+		fixturePath string
+	}{
+		{
+			name:        "Root IO Alpine OS package",
+			fixturePath: "test-fixtures/ROOT-OS-ALPINE-318-CVE-2000-0548.json",
+		},
+		{
+			name:        "Root IO NPM package",
+			fixturePath: "test-fixtures/ROOT-APP-NPM-CVE-2022-25883.json",
+		},
+		{
+			name:        "Root IO PyPI package",
+			fixturePath: "test-fixtures/ROOT-APP-PYPI-CVE-2025-30473.json",
+		},
+		{
+			name:        "Root IO Debian package",
+			fixturePath: "test-fixtures/ROOT-OS-DEBIAN-bookworm-CVE-2025-53014.json",
+		},
+		{
+			name:        "Root IO Ubuntu package",
+			fixturePath: "test-fixtures/ROOT-OS-UBUNTU-2004-CVE-2024-12345.json",
+		},
+	}
+
+	for _, testToRun := range tests {
+		test := testToRun
+		t.Run(test.name, func(tt *testing.T) {
+			vulns := loadFixture(t, test.fixturePath)
+			require.NotEmpty(t, vulns, "fixture should contain at least one vulnerability")
+
+			for _, vuln := range vulns {
+				// Verify it's detected as Root IO record
+				require.True(t, isRootIORecord(vuln), "should be detected as Root IO record")
+
+				// Transform the vulnerability
+				entries, err := Transform(vuln, inputProviderState())
+				require.NoError(t, err, "Transform should not return error")
+				require.NotEmpty(t, entries, "Transform should return at least one entry")
+
+				// Verify structure
+				for _, entry := range entries {
+					relatedEntries, ok := entry.Data.(transformers.RelatedEntries)
+					require.True(t, ok, "entry data should be RelatedEntries")
+
+					// Verify vulnerability handle
+					require.NotNil(t, relatedEntries.VulnerabilityHandle, "VulnerabilityHandle should not be nil")
+					require.Equal(t, "osv", relatedEntries.VulnerabilityHandle.ProviderID)
+					require.NotNil(t, relatedEntries.VulnerabilityHandle.BlobValue)
+
+					// Verify related packages
+					require.NotEmpty(t, relatedEntries.Related, "should have at least one related package")
+
+					for _, rel := range relatedEntries.Related {
+						aph, ok := rel.(db.AffectedPackageHandle)
+						require.True(t, ok, "related entry should be AffectedPackageHandle")
+						require.NotNil(t, aph.Package, "Package should not be nil")
+						require.NotEmpty(t, aph.Package.Name, "Package name should not be empty")
+						require.NotNil(t, aph.BlobValue, "BlobValue should not be nil")
+						require.NotEmpty(t, aph.BlobValue.CVEs, "CVEs should not be empty")
+						require.NotEmpty(t, aph.BlobValue.Ranges, "Ranges should not be empty")
+					}
+				}
 			}
 		})
 	}
