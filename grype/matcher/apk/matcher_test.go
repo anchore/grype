@@ -32,7 +32,7 @@ func TestSecDBOnlyMatch(t *testing.T) {
 
 	vp := mock.VulnerabilityProvider(secDbVuln)
 
-	m := Matcher{}
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: true})
 	d := distro.New(distro.Alpine, "3.12.0", "")
 
 	p := pkg.Package{
@@ -108,7 +108,7 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 
 	vp := mock.VulnerabilityProvider(nvdVuln, secDbVuln)
 
-	m := Matcher{}
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: true})
 	d := distro.New(distro.Alpine, "3.12.0", "")
 
 	p := pkg.Package{
@@ -191,7 +191,7 @@ func TestBothSecdbAndNvdMatches_DifferentFixInfo(t *testing.T) {
 		},
 	}
 	vp := mock.VulnerabilityProvider(nvdVuln, secDbVuln)
-	m := Matcher{}
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: true})
 	d := distro.New(distro.Alpine, "3.12.0", "")
 
 	p := pkg.Package{
@@ -268,7 +268,7 @@ func TestBothSecdbAndNvdMatches_DifferentPackageName(t *testing.T) {
 
 	vp := mock.VulnerabilityProvider(nvdVuln, secDbVuln)
 
-	m := Matcher{}
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: true})
 	d := distro.New(distro.Alpine, "3.12.0", "")
 
 	p := pkg.Package{
@@ -333,7 +333,7 @@ func TestNvdOnlyMatches(t *testing.T) {
 	}
 	vp := mock.VulnerabilityProvider(nvdVuln)
 
-	m := Matcher{}
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: true})
 	d := distro.New(distro.Alpine, "3.12.0", "")
 
 	p := pkg.Package{
@@ -400,7 +400,7 @@ func TestNvdOnlyMatches_FixInNvd(t *testing.T) {
 	}
 	vp := mock.VulnerabilityProvider(nvdVuln)
 
-	m := Matcher{}
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: true})
 	d := distro.New(distro.Alpine, "3.12.0", "")
 
 	p := pkg.Package{
@@ -477,7 +477,7 @@ func TestNvdMatchesProperVersionFiltering(t *testing.T) {
 	}
 	vp := mock.VulnerabilityProvider(nvdVulnMatch, nvdVulnNoMatch)
 
-	m := Matcher{}
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: true})
 	d := distro.New(distro.Alpine, "3.12.0", "")
 
 	p := pkg.Package{
@@ -548,7 +548,7 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 
 	vp := mock.VulnerabilityProvider(nvdVuln, secDbVuln)
 
-	m := Matcher{}
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: true})
 	d := distro.New(distro.Alpine, "3.12.0", "")
 
 	p := pkg.Package{
@@ -594,7 +594,7 @@ func TestNvdMatchesNoConstraintWithSecDBFix(t *testing.T) {
 
 	vp := mock.VulnerabilityProvider(nvdVuln, secDbVuln)
 
-	m := Matcher{}
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: true})
 	d := distro.New(distro.Alpine, "3.12.0", "")
 
 	p := pkg.Package{
@@ -638,7 +638,7 @@ func TestNVDMatchCanceledByOriginPackageInSecDB(t *testing.T) {
 	}
 	vp := mock.VulnerabilityProvider(nvdVuln, secDBVuln)
 
-	m := Matcher{}
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: true})
 	d := distro.New(distro.Wolfi, "", "")
 
 	p := pkg.Package{
@@ -679,7 +679,7 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 	}
 	vp := mock.VulnerabilityProvider(secDbVuln)
 
-	m := Matcher{}
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: true})
 	d := distro.New(distro.Alpine, "3.12.0", "")
 
 	p := pkg.Package{
@@ -749,7 +749,7 @@ func TestSecDBMatchesStillCountedWithCpeErrors(t *testing.T) {
 
 	vp := mock.VulnerabilityProvider(secDbVuln)
 
-	m := Matcher{}
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: true})
 	d := distro.New(distro.Alpine, "3.12.0", "")
 
 	p := pkg.Package{
@@ -816,7 +816,7 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 	}
 	vp := mock.VulnerabilityProvider(nvdVuln)
 
-	m := Matcher{}
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: true})
 	d := distro.New(distro.Alpine, "3.12.0", "")
 
 	p := pkg.Package{
@@ -1065,7 +1065,7 @@ func Test_nakIgnoreRules(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// create mock vulnerability provider
 			vp := mock.VulnerabilityProvider(tt.vulns...)
-			apkMatcher := &Matcher{}
+			apkMatcher := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: true})
 
 			var allMatches []match.Match
 			var allIgnores []match.IgnoreFilter

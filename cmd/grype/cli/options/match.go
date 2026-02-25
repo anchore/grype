@@ -21,6 +21,7 @@ type matchConfig struct {
 	Stock      matcherConfig `yaml:"stock" json:"stock" mapstructure:"stock"`                // settings for the default/stock matcher
 	Dpkg       dpkgConfig    `yaml:"dpkg" json:"dpkg" mapstructure:"dpkg"`                   // settings for the dpkg matcher
 	Rpm        rpmConfig     `yaml:"rpm" json:"rpm" mapstructure:"rpm"`                      // settings for the rpm matcher
+	Apk        apkConfig     `yaml:"apk" json:"apk" mapstructure:"apk"`                      // settings for the apk matcher
 }
 
 var _ interface {
@@ -88,6 +89,11 @@ type rpmConfig struct {
 	UseCPEsForEOL        bool                         `yaml:"use-cpes-for-eol" json:"use-cpes-for-eol" mapstructure:"use-cpes-for-eol"` // if CPEs should be used for EOL distro packages
 }
 
+// apkConfig contains configuration for the APK matcher.
+type apkConfig struct {
+	UseUpstreamMatcher bool `yaml:"use-upstream-matcher" json:"use-upstream-matcher" mapstructure:"use-upstream-matcher"` // if the upstream/origin package should be used during matching
+}
+
 func defaultGolangConfig() golangConfig {
 	return golangConfig{
 		matcherConfig: matcherConfig{
@@ -130,6 +136,7 @@ func defaultMatchConfig() matchConfig {
 		Stock:      useCpe,
 		Dpkg:       defaultDpkgConfig(),
 		Rpm:        defaultRpmConfig(),
+		Apk:        apkConfig{UseUpstreamMatcher: true},
 	}
 }
 
@@ -182,4 +189,5 @@ func (cfg *matchConfig) DescribeFields(descriptions clio.FieldDescriptionSet) {
 	eolCpeDescription := `use CPE matching for packages from end-of-life distributions`
 	descriptions.Add(&cfg.Dpkg.UseCPEsForEOL, eolCpeDescription)
 	descriptions.Add(&cfg.Rpm.UseCPEsForEOL, eolCpeDescription)
+	descriptions.Add(&cfg.Apk.UseUpstreamMatcher, `use the upstream/origin package name when matching APK vulnerabilities`)
 }

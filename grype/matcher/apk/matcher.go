@@ -23,7 +23,17 @@ var (
 	})
 )
 
-type Matcher struct{}
+type MatcherConfig struct {
+	UseUpstreamMatcher bool
+}
+
+type Matcher struct {
+	cfg MatcherConfig
+}
+
+func NewApkMatcher(cfg MatcherConfig) *Matcher {
+	return &Matcher{cfg: cfg}
+}
 
 func (m *Matcher) PackageTypes() []syftPkg.Type {
 	return []syftPkg.Type{syftPkg.ApkPkg}
@@ -44,42 +54,58 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	matches = append(matches, directMatches...)
 
 	// indirect matches, via package's origin package
-	indirectMatches, err := m.findMatchesForOriginPackage(store, p)
-	if err != nil {
-		return nil, nil, err
+	if m.cfg.UseUpstreamMatcher {
+		// full upstream matching: consult advisory for origin package name
+		indirectMatches, err := m.findMatchesForOriginPackage(store, p)
+		if err != nil {
+			return nil, nil, err
+		}
+		matches = append(matches, indirectMatches...)
+	} else {
+		// CPE-only upstream matching: use origin's CPEs to find NVD vulns, but
+		// filter against the direct sub-package's advisory (not the origin's)
+		indirectMatches, err := m.findCPEMatchesForOriginPackages(store, p)
+		if err != nil {
+			return nil, nil, err
+		}
+		matches = append(matches, indirectMatches...)
 	}
-	matches = append(matches, indirectMatches...)
 
 	// APK sources are also able to NAK vulnerabilities, so we want to return these as explicit ignores in order
 	// to allow rules later to use these to ignore "the same" vulnerability found in "the same" locations
-	naks, err := m.findNaksForPackage(store, p)
+	naks, err := m.findNaksForPackage(store, p, m.cfg.UseUpstreamMatcher)
 
 	return matches, naks, err
 }
 
 //nolint:funlen,gocognit
-func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
-	// find CPE-indexed vulnerability matches specific to the given package name and version
-	cpeMatches, err := internal.MatchPackageByCPEs(provider, p, m.Type())
+// cpeMatchesWithoutSecDBFixes finds CPE-indexed vulnerability matches for cpePkg (using its
+// CPEs for NVD lookup) but filters out matches already fixed according to the advisory for
+// secdbPkg. Normally cpePkg == secdbPkg, but when UseUpstreamMatcher is false, cpePkg is the
+// origin package (rewritten CPEs for NVD lookup) while secdbPkg is the direct sub-package
+// (whose advisory holds the authoritative fix/NAK data).
+func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, cpePkg pkg.Package, secdbPkg pkg.Package) ([]match.Match, error) {
+	// find CPE-indexed vulnerability matches using cpePkg's CPEs
+	cpeMatches, err := internal.MatchPackageByCPEs(provider, cpePkg, m.Type())
 	if err != nil {
-		log.WithFields("package", p.Name, "error", err).Debug("failed to find CPE matches for package")
+		log.WithFields("package", cpePkg.Name, "error", err).Debug("failed to find CPE matches for package")
 	}
-	if p.Distro == nil {
+	if secdbPkg.Distro == nil {
 		return cpeMatches, nil
 	}
 
 	cpeMatchesByID := matchesByID(cpeMatches)
 
-	// remove cpe matches where there is an entry in the secDB for the particular package-vulnerability pairing, and the
-	// installed package version is >= the fixed in version for the secDB record.
+	// remove cpe matches where there is an entry in the advisory for secdbPkg indicating the
+	// installed version is already fixed.
 	secDBVulnerabilities, err := provider.FindVulnerabilities(
-		search.ByPackageName(p.Name),
-		search.ByDistro(*p.Distro))
+		search.ByPackageName(secdbPkg.Name),
+		search.ByDistro(*secdbPkg.Distro))
 	if err != nil {
 		return nil, err
 	}
 
-	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
+	for _, upstreamPkg := range pkg.UpstreamPackages(secdbPkg) {
 		secDBVulnerabilitiesForUpstream, err := provider.FindVulnerabilities(
 			search.ByPackageName(upstreamPkg.Name),
 			search.ByDistro(*upstreamPkg.Distro))
@@ -91,7 +117,7 @@ func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, p
 
 	secDBVulnerabilitiesByID := vulnerabilitiesByID(secDBVulnerabilities)
 
-	verObj := version.New(p.Version, pkg.VersionFormat(p))
+	verObj := version.New(secdbPkg.Version, pkg.VersionFormat(secdbPkg))
 
 	var finalCpeMatches []match.Match
 
@@ -178,7 +204,7 @@ func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Pack
 	}
 
 	// TODO: are there other errors that we should handle here that causes this to short circuit
-	cpeMatches, err := m.cpeMatchesWithoutSecDBFixes(store, p)
+	cpeMatches, err := m.cpeMatchesWithoutSecDBFixes(store, p, p)
 	if err != nil && !errors.Is(err, internal.ErrEmptyCPEMatch) {
 		return nil, err
 	}
@@ -212,6 +238,27 @@ func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, cata
 	return matches, nil
 }
 
+// findCPEMatchesForOriginPackages is used when UseUpstreamMatcher is false. It still performs
+// CPE/NVD lookups using origin-rewritten CPEs (so NVD vulns keyed under the origin name are
+// found), but advisory filtering uses the direct sub-package's advisory rather than the
+// origin's. This supports distro advisories that are keyed per sub-package rather than per
+// origin package.
+func (m *Matcher) findCPEMatchesForOriginPackages(store vulnerability.Provider, catalogPkg pkg.Package) ([]match.Match, error) {
+	var matches []match.Match
+
+	for _, indirectPackage := range pkg.UpstreamPackages(catalogPkg) {
+		// cpePkg = origin (rewritten CPEs for NVD), secdbPkg = direct sub-package (advisory filtering)
+		cpeMatches, err := m.cpeMatchesWithoutSecDBFixes(store, indirectPackage, catalogPkg)
+		if err != nil && !errors.Is(err, internal.ErrEmptyCPEMatch) {
+			return nil, fmt.Errorf("failed to find CPE vulnerabilities for apk upstream source package: %w", err)
+		}
+		matches = append(matches, cpeMatches...)
+	}
+
+	match.ConvertToIndirectMatches(matches, catalogPkg)
+	return matches, nil
+}
+
 // NAK entries are those reported as explicitly not vulnerable by the upstream provider,
 // for example this entry is present in the v5 database:
 // 312891,CVE-2020-7224,openvpn,alpine:distro:alpine:3.10,,< 0,apk,,"[{""id"":""CVE-2020-7224"",""namespace"":""nvd:cpe""}]","[""0""]",fixed,
@@ -219,7 +266,7 @@ func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, cata
 // we want to report these NAK entries as match.IgnoredMatch, to allow for later processing to create ignore rules
 // based on packages which overlap by location, such as a python binary found in addition to the python APK entry --
 // we want to NAK this vulnerability for BOTH packages
-func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Package) ([]match.IgnoreFilter, error) {
+func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Package, useUpstreamMatcher bool) ([]match.IgnoreFilter, error) {
 	if p.Distro == nil {
 		return nil, nil
 	}
@@ -235,17 +282,19 @@ func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Pack
 	}
 
 	// append all the upstream naks
-	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
-		upstreamNaks, err := provider.FindVulnerabilities(
-			search.ByDistro(*upstreamPkg.Distro),
-			search.ByPackageName(upstreamPkg.Name),
-			nakConstraint,
-		)
-		if err != nil {
-			return nil, err
-		}
+	if useUpstreamMatcher {
+		for _, upstreamPkg := range pkg.UpstreamPackages(p) {
+			upstreamNaks, err := provider.FindVulnerabilities(
+				search.ByDistro(*upstreamPkg.Distro),
+				search.ByPackageName(upstreamPkg.Name),
+				nakConstraint,
+			)
+			if err != nil {
+				return nil, err
+			}
 
-		naks = append(naks, upstreamNaks...)
+			naks = append(naks, upstreamNaks...)
+		}
 	}
 
 	meta, ok := p.Metadata.(pkg.ApkMetadata)
