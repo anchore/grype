@@ -476,6 +476,9 @@ func getOperatingSystemFromEcosystem(ecosystem string) *db.OperatingSystem {
 		return nil
 	}
 
+	// Normalize OS name to match /etc/os-release ID format (hyphens, not spaces)
+	releaseID := strings.ReplaceAll(osName, " ", "-")
+
 	osVersion := parts[1]
 
 	// Separate any label suffix from the version (e.g. "20.03-LTS-SP4" → version="20.03", label="LTS-SP4")
@@ -497,10 +500,10 @@ func getOperatingSystemFromEcosystem(ecosystem string) *db.OperatingSystem {
 				majorVersion = majorVersion + "-" + labelVersion
 			}
 			return &db.OperatingSystem{
-				Name:         osName,
-				ReleaseID:    osName,
+				Name:         releaseID,
+				ReleaseID:    releaseID,
 				LabelVersion: majorVersion,
-				Codename:     codename.LookupOS(osName, "", ""),
+				Codename:     codename.LookupOS(releaseID, "", ""),
 			}
 		}
 		if len(versionFields) > 1 {
@@ -509,12 +512,12 @@ func getOperatingSystemFromEcosystem(ecosystem string) *db.OperatingSystem {
 	}
 
 	return &db.OperatingSystem{
-		Name:         osName,
-		ReleaseID:    osName,
+		Name:         releaseID,
+		ReleaseID:    releaseID,
 		MajorVersion: majorVersion,
 		MinorVersion: minorVersion,
 		LabelVersion: labelVersion,
-		Codename:     codename.LookupOS(osName, majorVersion, minorVersion),
+		Codename:     codename.LookupOS(releaseID, majorVersion, minorVersion),
 	}
 }
 

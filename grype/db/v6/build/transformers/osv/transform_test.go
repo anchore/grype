@@ -517,8 +517,8 @@ func TestTransform(t *testing.T) {
 							Ecosystem: "apk",
 						},
 						OperatingSystem: &db.OperatingSystem{
-							Name:         "bellsoft hardened containers",
-							ReleaseID:    "bellsoft hardened containers",
+							Name:         "bellsoft-hardened-containers",
+							ReleaseID:    "bellsoft-hardened-containers",
 							LabelVersion: "stream",
 						},
 						BlobValue: &db.PackageBlob{
@@ -1222,6 +1222,15 @@ func Test_getOperatingSystemFromEcosystem(t *testing.T) {
 			want: &db.OperatingSystem{
 				Name:         "alpaquita",
 				ReleaseID:    "alpaquita",
+				LabelVersion: "stream",
+			},
+		},
+		{
+			name:      "BellSoft Hardened Containers stream",
+			ecosystem: "BellSoft Hardened Containers:stream",
+			want: &db.OperatingSystem{
+				Name:         "bellsoft-hardened-containers",
+				ReleaseID:    "bellsoft-hardened-containers",
 				LabelVersion: "stream",
 			},
 		},

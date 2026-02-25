@@ -44,7 +44,7 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 
 		// BellSoft family
 		{Alias: "alpaquita", Rolling: true},
-		{Alias: "bellsoft-hardened-containers", ReplacementName: strRef("alpaquita"), Rolling: true},
+		{Alias: "bellsoft-hardened-containers", Rolling: true},
 
 		// others
 		{Alias: "archlinux", Rolling: true},
