@@ -948,6 +948,7 @@ func TestMatchByImage(t *testing.T) {
 	definedMatchers.Remove(string(match.MsrcMatcher))
 	definedMatchers.Remove(string(match.PortageMatcher)) // TODO: add this back in when #744 is complete
 	definedMatchers.Remove(string(match.BitnamiMatcher)) // bitnami will be tested via quality gate
+	definedMatchers.Remove(string(match.RMatcher))       // R will be tested via quality gate
 
 	if len(observedMatchers) != len(definedMatchers) {
 		t.Errorf("matcher coverage incomplete (matchers=%d, coverage=%d)", len(definedMatchers), len(observedMatchers))

@@ -188,10 +188,48 @@ func NewFromRelease(release linux.Release, channels []FixChannel) (*Distro, erro
 		selectedVersion = release.VersionID
 	}
 
-	d := New(t, selectedVersion, release.VersionCodename, release.IDLike...)
+	codename := release.VersionCodename
+	if codename == "" && t == OpenEuler {
+		// openEuler encodes LTS/SP info in the VERSION field (e.g. "20.03 (LTS-SP4)")
+		// but not in VERSION_CODENAME. We need this label for precise vulnerability matching
+		// since different service packs have different fix versions.
+		codename = extractVersionLabel(release.Version, selectedVersion)
+	}
+
+	d := New(t, selectedVersion, codename, release.IDLike...)
 	d.Channels = applyChannels(release, selectedVersionObj, d.Channels, channels)
 
 	return d, nil
+}
+
+// extractVersionLabel extracts a label suffix from a VERSION string relative to a known version number.
+// For example, given VERSION="20.03 (LTS-SP4)" and version="20.03", it returns "LTS-SP4".
+// This handles formats like "20.03 (LTS-SP4)", "22.03 LTS", and "24.03 (LTS)".
+// It only extracts a label when the VERSION string starts with the selected version — this avoids
+// false positives when VERSION and VERSION_ID are unrelated (e.g. CentOS VERSION="7" with VERSION_ID="8").
+func extractVersionLabel(versionStr, version string) string {
+	if versionStr == "" || version == "" {
+		return ""
+	}
+
+	// only proceed if VERSION starts with the selected version number followed by a space or paren
+	// (not a dot or digit, which would indicate a longer version like "3.0.20240417" for VERSION_ID "3.0")
+	if !strings.HasPrefix(versionStr, version) {
+		return ""
+	}
+	rest := versionStr[len(version):]
+	if len(rest) > 0 && rest[0] != ' ' && rest[0] != '(' {
+		return ""
+	}
+	rest = strings.TrimSpace(rest)
+	if rest == "" {
+		return ""
+	}
+
+	// strip surrounding parentheses
+	rest = strings.TrimPrefix(rest, "(")
+	rest = strings.TrimSuffix(rest, ")")
+	return strings.TrimSpace(rest)
 }
 
 func (d Distro) Name() string {

@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.7.3",
+  "id": "OESA-2024-2048",
+  "published": "2024-08-23T11:08:56Z",
+  "modified": "2025-09-03T06:20:13.702698Z",
+  "upstream": [
+    "CVE-2024-3049"
+  ],
+  "summary": "booth security update",
+  "details": "Booth manages tickets which authorize cluster sites located in geographically dispersed locations to run resources. It facilitates support of geographically distributed clustering in Pacemaker.\r\n\r\nSecurity Fix(es):\r\n\r\nA flaw was found in Booth, a cluster ticket manager. If a specially-crafted hash is passed to gcry_md_get_algo_dlen(), it may allow an invalid HMAC to be accepted by the Booth server.(CVE-2024-3049)",
+  "affected": [
+    {
+      "package": {
+        "name": "booth",
+        "ecosystem": "openEuler:22.03-LTS-SP3",
+        "purl": "pkg:rpm/openEuler/booth&distro=openEuler-22.03-LTS-SP3"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "1.0-7.oe2203sp3"
+            }
+          ]
+        }
+      ],
+      "ecosystem_specific": {
+        "aarch64": [
+          "booth-1.0-7.oe2203sp3.aarch64.rpm",
+          "booth-core-1.0-7.oe2203sp3.aarch64.rpm"
+        ],
+        "src": [
+          "booth-1.0-7.oe2203sp3.src.rpm"
+        ],
+        "x86_64": [
+          "booth-1.0-7.oe2203sp3.x86_64.rpm",
+          "booth-core-1.0-7.oe2203sp3.x86_64.rpm"
+        ]
+      },
+      "database_specific": {
+        "source": "https://repo.openeuler.org/security/data/osv/OESA-2024-2048.json"
+      }
+    }
+  ],
+  "references": [
+    {
+      "type": "ADVISORY",
+      "url": "https://www.openeuler.org/zh/security/security-bulletins/detail/?id=openEuler-SA-2024-2048"
+    },
+    {
+      "type": "ADVISORY",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-3049"
+    }
+  ],
+  "database_specific": {
+    "severity": "High"
+  }
+}

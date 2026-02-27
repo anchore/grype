@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.7.3",
+  "id": "GO-2024-2611",
+  "published": "2024-03-05T20:24:05Z",
+  "modified": "2026-01-28T03:41:22.146319Z",
+  "aliases": [
+    "CVE-2024-24786",
+    "GHSA-8r3f-844c-mc37"
+  ],
+  "related": [
+    "CGA-p6mq-m46f-v73f",
+    "RHSA-2024:0043",
+    "RHSA-2024:2548"
+  ],
+  "summary": "Infinite loop in JSON unmarshaling in google.golang.org/protobuf",
+  "details": "The protojson.Unmarshal function can enter an infinite loop when unmarshaling certain forms of invalid JSON. This condition can occur when unmarshaling into a message which contains a google.protobuf.Any value, or when the UnmarshalOptions.DiscardUnknown option is set.",
+  "affected": [
+    {
+      "package": {
+        "name": "google.golang.org/protobuf",
+        "ecosystem": "Go",
+        "purl": "pkg:golang/google.golang.org/protobuf"
+      },
+      "ranges": [
+        {
+          "type": "SEMVER",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "1.33.0"
+            }
+          ]
+        }
+      ],
+      "ecosystem_specific": {
+        "imports": [
+          {
+            "path": "google.golang.org/protobuf/encoding/protojson",
+            "symbols": [
+              "Unmarshal",
+              "UnmarshalOptions.Unmarshal"
+            ]
+          }
+        ]
+      },
+      "database_specific": {
+        "source": "https://vuln.go.dev/ID/GO-2024-2611.json"
+      }
+    }
+  ],
+  "references": [
+    {
+      "type": "FIX",
+      "url": "https://go.dev/cl/569356"
+    }
+  ],
+  "database_specific": {
+    "review_status": "REVIEWED",
+    "url": "https://pkg.go.dev/vuln/GO-2024-2611"
+  }
+}

@@ -16,6 +16,7 @@ const (
 	CentOS       Type = "centos"
 	Fedora       Type = "fedora"
 	Alpine       Type = "alpine"
+	Alpaquita    Type = "alpaquita"
 	Busybox      Type = "busybox"
 	AmazonLinux  Type = "amazonlinux"
 	OracleLinux  Type = "oraclelinux"
@@ -37,6 +38,7 @@ const (
 	Scientific   Type = "scientific"
 	SecureOS     Type = "secureos"
 	PostmarketOS Type = "postmarketos"
+	OpenEuler    Type = "openeuler"
 )
 
 // All contains all Linux distribution options
@@ -47,6 +49,7 @@ var All = []Type{
 	CentOS,
 	Fedora,
 	Alpine,
+	Alpaquita,
 	Busybox,
 	AmazonLinux,
 	OracleLinux,
@@ -68,6 +71,7 @@ var All = []Type{
 	Scientific,
 	SecureOS,
 	PostmarketOS,
+	OpenEuler,
 }
 
 // IDMapping maps a distro ID from the /etc/os-release (e.g. like "ubuntu") to a Distro type.
@@ -78,6 +82,7 @@ var IDMapping = map[string]Type{
 	"centos":        CentOS,
 	"fedora":        Fedora,
 	"alpine":        Alpine,
+	"alpaquita":     Alpaquita,
 	"busybox":       Busybox,
 	"amzn":          AmazonLinux,
 	"ol":            OracleLinux,
@@ -98,13 +103,16 @@ var IDMapping = map[string]Type{
 	"scientific":    Scientific,
 	"secureos":      SecureOS,
 	"postmarketos":  PostmarketOS,
+	"openEuler":     OpenEuler, // NOTE: mixed case is intentional — openEuler's /etc/os-release violates the freedesktop spec by using ID="openEuler" instead of lowercase
 }
 
 // aliasTypes maps common aliases to their corresponding Type.
 var aliasTypes = map[string]Type{
-	"Alpine Linux":     Alpine, // needed for CPE matching (see #2039)
-	"windows":          Windows,
-	"scientific linux": Scientific, // Scientific linux prior to v7 didn't have an os-release file and syft raises up "scientific linux" as the release id as parsed from /etc/redhat-release
+	"Alpine Linux":                 Alpine, // needed for CPE matching (see #2039)
+	"BellSoft Hardened Containers": Alpaquita,
+	"openeuler":                    OpenEuler, // safety net for the mixed-case IDMapping key; TypeFromRelease is case-sensitive
+	"windows":                      Windows,
+	"scientific linux":             Scientific, // Scientific linux prior to v7 didn't have an os-release file and syft raises up "scientific linux" as the release id as parsed from /etc/redhat-release
 }
 
 var typeToIDMapping = map[Type]string{}
