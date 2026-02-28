@@ -869,6 +869,311 @@ func TestNVDMatchBySourceIndirection(t *testing.T) {
 	assertMatches(t, expected, actual)
 }
 
+// Tests for UseUpstreamMatcher=false: all origin/upstream lookups must be skipped.
+// The intent is to support distro advisories keyed per sub-package rather than per origin.
+
+func TestUpstreamMatcherDisabled_AlpineAlwaysUsesUpstream(t *testing.T) {
+	// Alpine uses secdb-style advisories keyed by origin package name.
+	// Even with UseUpstreamMatcher=false, Alpine must still perform origin lookups
+	// or vulnerabilities would be silently missed.
+	secDbVuln := vulnerability.Vulnerability{
+		Reference: vulnerability.Reference{
+			ID:        "CVE-2020-2",
+			Namespace: "secdb:distro:alpine:3.12",
+		},
+		PackageName: "thingsync",
+		Constraint:  version.MustGetConstraint("< 2.0.14-r1", version.ApkFormat),
+	}
+	vp := mock.VulnerabilityProvider(secDbVuln)
+
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: false})
+	d := distro.New(distro.Alpine, "3.12.0", "")
+
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "thingsync-compat",
+		Version: "2.0.14-r0",
+		Type:    syftPkg.ApkPkg,
+		Distro:  d,
+		Upstreams: []pkg.UpstreamPackage{
+			{Name: "thingsync"},
+		},
+	}
+
+	// Alpine origin lookup must fire despite flag=false
+	actual, _, err := m.Match(vp, p)
+	assert.NoError(t, err)
+	assert.Len(t, actual, 1)
+	assert.Equal(t, match.ExactIndirectMatch, actual[0].Details[0].Type)
+}
+
+func TestAlpine_OriginNAKStillPropagated_WhenFlagFalse(t *testing.T) {
+	// NAK entries for Alpine sub-packages come from the origin package advisory.
+	// Even with UseUpstreamMatcher=false, Alpine must still propagate origin NAKs
+	// or the NAK-based ignore rules would silently stop working for Alpine.
+	originNakVuln := vulnerability.Vulnerability{
+		Reference: vulnerability.Reference{
+			ID:        "CVE-2020-2",
+			Namespace: "secdb:distro:alpine:3.12",
+		},
+		PackageName: "thingsync",
+		Constraint:  version.MustGetConstraint("< 0", version.ApkFormat),
+	}
+	vp := mock.VulnerabilityProvider(originNakVuln)
+
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: false})
+	d := distro.New(distro.Alpine, "3.12.0", "")
+
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "thingsync-compat",
+		Version: "2.0.14-r0",
+		Type:    syftPkg.ApkPkg,
+		Distro:  d,
+		Upstreams: []pkg.UpstreamPackage{
+			{Name: "thingsync"},
+		},
+		Metadata: pkg.ApkMetadata{Files: []pkg.ApkFileRecord{
+			{Path: "/usr/bin/entrypoint.sh"},
+		}},
+	}
+
+	_, ignores, err := m.Match(vp, p)
+	assert.NoError(t, err)
+	assert.Len(t, ignores, 1, "Alpine origin NAK must still produce an ignore rule when UseUpstreamMatcher=false")
+}
+
+func TestAlpine_CPEFilteredByOriginSecdb_WhenFlagFalse(t *testing.T) {
+	// When NVD has a CPE match and the Alpine secdb says the origin package is already
+	// fixed, the CPE match must be suppressed. This must hold even with UseUpstreamMatcher=false
+	// since Alpine always consults origin advisory data for CPE filtering.
+	nvdVuln := vulnerability.Vulnerability{
+		Reference: vulnerability.Reference{
+			ID:        "CVE-2020-1",
+			Namespace: "nvd:cpe",
+		},
+		PackageName: "thingsync",
+		Constraint:  version.MustGetConstraint("<= 2.0.14-r1", version.UnknownFormat),
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:thingsync:thingsync:*:*:*:*:*:*:*:*", ""),
+		},
+	}
+	// Origin secdb says: CVE-2020-1 is fixed in thingsync 2.0.14-r1
+	secDbVuln := vulnerability.Vulnerability{
+		Reference: vulnerability.Reference{
+			ID:        "CVE-2020-1",
+			Namespace: "secdb:distro:alpine:3.12",
+		},
+		PackageName: "thingsync",
+		Constraint:  version.MustGetConstraint("< 2.0.14-r1", version.ApkFormat),
+		Fix: vulnerability.Fix{
+			Versions: []string{"2.0.14-r1"},
+			State:    vulnerability.FixStateFixed,
+		},
+	}
+	vp := mock.VulnerabilityProvider(nvdVuln, secDbVuln)
+
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: false})
+	d := distro.New(distro.Alpine, "3.12.0", "")
+
+	// thingsync-compat is at 2.0.14-r1 — already fixed per the origin secdb
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "thingsync-compat",
+		Version: "2.0.14-r1",
+		Type:    syftPkg.ApkPkg,
+		Distro:  d,
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:thingsync-compat:thingsync-compat:*:*:*:*:*:*:*:*", ""),
+		},
+		Upstreams: []pkg.UpstreamPackage{
+			{Name: "thingsync"},
+		},
+	}
+
+	// The NVD CPE match must be suppressed because the origin secdb says it's already fixed
+	actual, _, err := m.Match(vp, p)
+	assert.NoError(t, err)
+	assert.Empty(t, actual, "Alpine CPE match must be suppressed by origin secdb fix data even when UseUpstreamMatcher=false")
+}
+
+func TestUpstreamMatcherDisabled_OriginAdvisoryNotUsed(t *testing.T) {
+	// Advisory has an entry for the origin ("thingsync") but NOT for the sub-package ("thingsync-compat").
+	// With UseUpstreamMatcher=false the origin lookup is skipped and nothing should match.
+	secDbVuln := vulnerability.Vulnerability{
+		Reference: vulnerability.Reference{
+			ID:        "CGA-xcpc-gm23-prj9",
+			Namespace: "chainguard:distro:chainguard:rolling",
+		},
+		PackageName: "thingsync",
+		Constraint:  version.MustGetConstraint("< 2.0.14-r1", version.ApkFormat),
+	}
+	vp := mock.VulnerabilityProvider(secDbVuln)
+
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: false})
+	d := distro.New(distro.Chainguard, "", "")
+
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "thingsync-compat",
+		Version: "2.0.14-r0",
+		Type:    syftPkg.ApkPkg,
+		Distro:  d,
+		Upstreams: []pkg.UpstreamPackage{
+			{Name: "thingsync"},
+		},
+	}
+
+	actual, _, err := m.Match(vp, p)
+	assert.NoError(t, err)
+	assert.Empty(t, actual)
+}
+
+func TestUpstreamMatcherDisabled_DirectAdvisoryUsed(t *testing.T) {
+	// Advisory has a direct entry for the sub-package ("thingsync-compat").
+	// With UseUpstreamMatcher=false this direct entry must still be found.
+	directVuln := vulnerability.Vulnerability{
+		Reference: vulnerability.Reference{
+			ID:        "CGA-xcpc-gm23-prj9",
+			Namespace: "chainguard:distro:chainguard:rolling",
+		},
+		PackageName: "thingsync-compat",
+		Constraint:  version.MustGetConstraint("< 2.0.14-r1", version.ApkFormat),
+	}
+	vp := mock.VulnerabilityProvider(directVuln)
+
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: false})
+	d := distro.New(distro.Chainguard, "", "")
+
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "thingsync-compat",
+		Version: "2.0.14-r0",
+		Type:    syftPkg.ApkPkg,
+		Distro:  d,
+		Upstreams: []pkg.UpstreamPackage{
+			{Name: "thingsync"},
+		},
+	}
+
+	actual, _, err := m.Match(vp, p)
+	assert.NoError(t, err)
+	assert.Len(t, actual, 1)
+	assert.Equal(t, "thingsync-compat", actual[0].Vulnerability.PackageName)
+	assert.Equal(t, match.ExactDirectMatch, actual[0].Details[0].Type)
+}
+
+func TestUpstreamMatcherDisabled_NVDOriginCPENotUsed(t *testing.T) {
+	// NVD has a CPE entry keyed under the origin ("thingsync") CPE.
+	// With UseUpstreamMatcher=false origin CPE lookups are skipped and nothing should match.
+	nvdVuln := vulnerability.Vulnerability{
+		Reference: vulnerability.Reference{
+			ID:        "CVE-2025-68121",
+			Namespace: "nvd:cpe",
+		},
+		PackageName: "thingsync",
+		Constraint:  version.MustGetConstraint("< 2.0.14-r1", version.UnknownFormat),
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:thingsync:thingsync:*:*:*:*:*:*:*:*", ""),
+		},
+	}
+	vp := mock.VulnerabilityProvider(nvdVuln)
+
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: false})
+	d := distro.New(distro.Chainguard, "", "")
+
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "thingsync-compat",
+		Version: "2.0.14-r0",
+		Type:    syftPkg.ApkPkg,
+		Distro:  d,
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:thingsync-compat:thingsync-compat:*:*:*:*:*:*:*:*", ""),
+		},
+		Upstreams: []pkg.UpstreamPackage{
+			{Name: "thingsync"},
+		},
+	}
+
+	actual, _, err := m.Match(vp, p)
+	assert.NoError(t, err)
+	assert.Empty(t, actual)
+}
+
+func TestUpstreamMatcherDisabled_DirectNAKRespected(t *testing.T) {
+	// The sub-package ("thingsync-compat") has a direct NAK entry (< 0) in the advisory.
+	// With UseUpstreamMatcher=false this direct NAK must still produce an ignore rule.
+	nakVuln := vulnerability.Vulnerability{
+		Reference: vulnerability.Reference{
+			ID:        "CGA-xcpc-gm23-prj9",
+			Namespace: "chainguard:distro:chainguard:rolling",
+		},
+		PackageName: "thingsync-compat",
+		Constraint:  version.MustGetConstraint("< 0", version.ApkFormat),
+	}
+	vp := mock.VulnerabilityProvider(nakVuln)
+
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: false})
+
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "thingsync-compat",
+		Version: "2.0.14-r0",
+		Type:    syftPkg.ApkPkg,
+		Distro:  &distro.Distro{Type: distro.Chainguard},
+		Upstreams: []pkg.UpstreamPackage{
+			{Name: "thingsync"},
+		},
+		Metadata: pkg.ApkMetadata{Files: []pkg.ApkFileRecord{
+			{Path: "/usr/bin/entrypoint.sh"},
+		}},
+	}
+
+	_, ignores, err := m.Match(vp, p)
+	assert.NoError(t, err)
+	assert.Len(t, ignores, 1)
+
+	rule, ok := ignores[0].(match.IgnoreRule)
+	require.True(t, ok)
+	assert.Equal(t, "CGA-xcpc-gm23-prj9", rule.Vulnerability)
+	assert.Equal(t, "/usr/bin/entrypoint.sh", rule.Package.Location)
+}
+
+func TestUpstreamMatcherDisabled_OriginNAKNotPropagated(t *testing.T) {
+	// The origin ("thingsync") has a NAK entry but the sub-package ("thingsync-compat") does not.
+	// With UseUpstreamMatcher=false the origin NAK must NOT propagate to the sub-package.
+	originNakVuln := vulnerability.Vulnerability{
+		Reference: vulnerability.Reference{
+			ID:        "CGA-xcpc-gm23-prj9",
+			Namespace: "chainguard:distro:chainguard:rolling",
+		},
+		PackageName: "thingsync",
+		Constraint:  version.MustGetConstraint("< 0", version.ApkFormat),
+	}
+	vp := mock.VulnerabilityProvider(originNakVuln)
+
+	m := NewApkMatcher(MatcherConfig{UseUpstreamMatcher: false})
+
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "thingsync-compat",
+		Version: "2.0.14-r0",
+		Type:    syftPkg.ApkPkg,
+		Distro:  &distro.Distro{Type: distro.Chainguard},
+		Upstreams: []pkg.UpstreamPackage{
+			{Name: "thingsync"},
+		},
+		Metadata: pkg.ApkMetadata{Files: []pkg.ApkFileRecord{
+			{Path: "/usr/bin/entrypoint.sh"},
+		}},
+	}
+
+	_, ignores, err := m.Match(vp, p)
+	assert.NoError(t, err)
+	assert.Empty(t, ignores)
+}
+
 func assertMatches(t *testing.T, expected, actual []match.Match) {
 	t.Helper()
 	var opts = []cmp.Option{

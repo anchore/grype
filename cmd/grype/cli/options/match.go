@@ -91,7 +91,7 @@ type rpmConfig struct {
 
 // apkConfig contains configuration for the APK matcher.
 type apkConfig struct {
-	UseUpstreamMatcher bool `yaml:"use-upstream-matcher" json:"use-upstream-matcher" mapstructure:"use-upstream-matcher"` // if the upstream/origin package should be used during matching
+	UseUpstreamMatcher bool `yaml:"use-upstream-matcher" json:"use-upstream-matcher" mapstructure:"use-upstream-matcher"` // if the upstream/origin package name should be used during matching
 }
 
 func defaultGolangConfig() golangConfig {
