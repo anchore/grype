@@ -33,6 +33,7 @@ type Config struct {
 	Stock      stock.MatcherConfig
 	Dpkg       dpkg.MatcherConfig
 	Rpm        rpm.MatcherConfig
+	Apk        apk.MatcherConfig
 }
 
 func NewDefaultMatchers(mc Config) []match.Matcher {
@@ -44,7 +45,7 @@ func NewDefaultMatchers(mc Config) []match.Matcher {
 		rpm.NewRpmMatcher(mc.Rpm),
 		java.NewJavaMatcher(mc.Java),
 		javascript.NewJavascriptMatcher(mc.Javascript),
-		&apk.Matcher{},
+		apk.NewApkMatcher(mc.Apk),
 		golang.NewGolangMatcher(mc.Golang),
 		&msrc.Matcher{},
 		&portage.Matcher{},

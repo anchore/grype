@@ -20,6 +20,7 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
 	"github.com/anchore/grype/grype/matcher/dotnet"
+	"github.com/anchore/grype/grype/matcher/apk"
 	"github.com/anchore/grype/grype/matcher/dpkg"
 	"github.com/anchore/grype/grype/matcher/golang"
 	"github.com/anchore/grype/grype/matcher/hex"
@@ -387,6 +388,9 @@ func getMatcherConfig(opts *options.Grype) matcher.Config {
 		Rpm: rpm.MatcherConfig{
 			MissingEpochStrategy: opts.Match.Rpm.MissingEpochStrategy,
 			UseCPEsForEOL:        opts.Match.Rpm.UseCPEsForEOL,
+		},
+		Apk: apk.MatcherConfig{
+			UseUpstreamMatcher: opts.Match.Apk.UseUpstreamMatcher,
 		},
 	}
 }
