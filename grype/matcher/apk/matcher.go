@@ -53,18 +53,13 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	}
 	matches = append(matches, directMatches...)
 
-	// indirect matches, via package's origin package
+	// For secdb-style advisories that lack per-sub-package granularity, vulnerabilities are
+	// keyed under the origin/source package name rather than the individual sub-package.
+	// This lookup propagates those matches to the installed sub-package. When using an OSV-based
+	// advisory that has per-sub-package entries, this should be disabled (UseUpstreamMatcher=false)
+	// to avoid false positives from origin-level entries applying to unaffected sub-packages.
 	if m.cfg.UseUpstreamMatcher {
-		// full upstream matching: consult advisory for origin package name
 		indirectMatches, err := m.findMatchesForOriginPackage(store, p)
-		if err != nil {
-			return nil, nil, err
-		}
-		matches = append(matches, indirectMatches...)
-	} else {
-		// CPE-only upstream matching: use origin's CPEs to find NVD vulns, but
-		// filter against the direct sub-package's advisory (not the origin's)
-		indirectMatches, err := m.findCPEMatchesForOriginPackages(store, p)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -79,45 +74,46 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 }
 
 //nolint:funlen,gocognit
-// cpeMatchesWithoutSecDBFixes finds CPE-indexed vulnerability matches for cpePkg (using its
-// CPEs for NVD lookup) but filters out matches already fixed according to the advisory for
-// secdbPkg. Normally cpePkg == secdbPkg, but when UseUpstreamMatcher is false, cpePkg is the
-// origin package (rewritten CPEs for NVD lookup) while secdbPkg is the direct sub-package
-// (whose advisory holds the authoritative fix/NAK data).
-func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, cpePkg pkg.Package, secdbPkg pkg.Package) ([]match.Match, error) {
-	// find CPE-indexed vulnerability matches using cpePkg's CPEs
-	cpeMatches, err := internal.MatchPackageByCPEs(provider, cpePkg, m.Type())
+func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+	// find CPE-indexed vulnerability matches specific to the given package name and version
+	cpeMatches, err := internal.MatchPackageByCPEs(provider, p, m.Type())
 	if err != nil {
-		log.WithFields("package", cpePkg.Name, "error", err).Debug("failed to find CPE matches for package")
+		log.WithFields("package", p.Name, "error", err).Debug("failed to find CPE matches for package")
 	}
-	if secdbPkg.Distro == nil {
+	if p.Distro == nil {
 		return cpeMatches, nil
 	}
 
 	cpeMatchesByID := matchesByID(cpeMatches)
 
-	// remove cpe matches where there is an entry in the advisory for secdbPkg indicating the
-	// installed version is already fixed.
+	// Suppress CPE matches that the distro advisory has already marked as fixed.
+	// When UseUpstreamMatcher is false we only consult the direct package's advisory here,
+	// not the origin's. This means a CPE match won't be suppressed based on an origin-level
+	// fix — a deliberate tradeoff: a sub-package with its own CPEs may produce a false
+	// positive if the origin advisory already has the fix and version numbers are shared.
+	// In practice this is uncommon since APK sub-packages rarely have independent CPEs in NVD.
 	secDBVulnerabilities, err := provider.FindVulnerabilities(
-		search.ByPackageName(secdbPkg.Name),
-		search.ByDistro(*secdbPkg.Distro))
+		search.ByPackageName(p.Name),
+		search.ByDistro(*p.Distro))
 	if err != nil {
 		return nil, err
 	}
 
-	for _, upstreamPkg := range pkg.UpstreamPackages(secdbPkg) {
-		secDBVulnerabilitiesForUpstream, err := provider.FindVulnerabilities(
-			search.ByPackageName(upstreamPkg.Name),
-			search.ByDistro(*upstreamPkg.Distro))
-		if err != nil {
-			return nil, err
+	if m.cfg.UseUpstreamMatcher {
+		for _, upstreamPkg := range pkg.UpstreamPackages(p) {
+			secDBVulnerabilitiesForUpstream, err := provider.FindVulnerabilities(
+				search.ByPackageName(upstreamPkg.Name),
+				search.ByDistro(*upstreamPkg.Distro))
+			if err != nil {
+				return nil, err
+			}
+			secDBVulnerabilities = append(secDBVulnerabilities, secDBVulnerabilitiesForUpstream...)
 		}
-		secDBVulnerabilities = append(secDBVulnerabilities, secDBVulnerabilitiesForUpstream...)
 	}
 
 	secDBVulnerabilitiesByID := vulnerabilitiesByID(secDBVulnerabilities)
 
-	verObj := version.New(secdbPkg.Version, pkg.VersionFormat(secdbPkg))
+	verObj := version.New(p.Version, pkg.VersionFormat(p))
 
 	var finalCpeMatches []match.Match
 
@@ -204,7 +200,7 @@ func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Pack
 	}
 
 	// TODO: are there other errors that we should handle here that causes this to short circuit
-	cpeMatches, err := m.cpeMatchesWithoutSecDBFixes(store, p, p)
+	cpeMatches, err := m.cpeMatchesWithoutSecDBFixes(store, p)
 	if err != nil && !errors.Is(err, internal.ErrEmptyCPEMatch) {
 		return nil, err
 	}
@@ -235,27 +231,6 @@ func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, cata
 	// however, we also want to keep the indirect package around for future reference
 	match.ConvertToIndirectMatches(matches, catalogPkg)
 
-	return matches, nil
-}
-
-// findCPEMatchesForOriginPackages is used when UseUpstreamMatcher is false. It still performs
-// CPE/NVD lookups using origin-rewritten CPEs (so NVD vulns keyed under the origin name are
-// found), but advisory filtering uses the direct sub-package's advisory rather than the
-// origin's. This supports distro advisories that are keyed per sub-package rather than per
-// origin package.
-func (m *Matcher) findCPEMatchesForOriginPackages(store vulnerability.Provider, catalogPkg pkg.Package) ([]match.Match, error) {
-	var matches []match.Match
-
-	for _, indirectPackage := range pkg.UpstreamPackages(catalogPkg) {
-		// cpePkg = origin (rewritten CPEs for NVD), secdbPkg = direct sub-package (advisory filtering)
-		cpeMatches, err := m.cpeMatchesWithoutSecDBFixes(store, indirectPackage, catalogPkg)
-		if err != nil && !errors.Is(err, internal.ErrEmptyCPEMatch) {
-			return nil, fmt.Errorf("failed to find CPE vulnerabilities for apk upstream source package: %w", err)
-		}
-		matches = append(matches, cpeMatches...)
-	}
-
-	match.ConvertToIndirectMatches(matches, catalogPkg)
 	return matches, nil
 }
 
