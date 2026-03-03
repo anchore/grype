@@ -25,31 +25,31 @@ func TestProviderLocationExcludes(t *testing.T) {
 	}{
 		{
 			name:     "exclude everything",
-			fixture:  "test-fixtures/syft-spring.json",
+			fixture:  "testdata/syft-spring.json",
 			excludes: []string{"**"},
 			expected: []string{},
 		},
 		{
 			name:     "exclude specific real path match",
-			fixture:  "test-fixtures/syft-spring.json",
+			fixture:  "testdata/syft-spring.json",
 			excludes: []string{"**/tomcat*.jar"},
 			expected: []string{"charsets"},
 		},
 		{
 			name:     "include everything with no match",
-			fixture:  "test-fixtures/syft-spring.json",
+			fixture:  "testdata/syft-spring.json",
 			excludes: []string{"**/asdf*.jar"},
 			expected: []string{"charsets", "tomcat-embed-el"},
 		},
 		{
 			name:     "include everything with no excludes",
-			fixture:  "test-fixtures/syft-spring.json",
+			fixture:  "testdata/syft-spring.json",
 			excludes: []string{},
 			expected: []string{"charsets", "tomcat-embed-el"},
 		},
 		{
 			name:     "exclusions must not hide parsing error",
-			fixture:  "test-fixtures/bad-sbom.json",
+			fixture:  "testdata/bad-sbom.json",
 			excludes: []string{"**/some-glob/*"},
 			wantErr:  assert.Error,
 		},

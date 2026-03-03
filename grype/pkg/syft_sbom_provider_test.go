@@ -26,7 +26,7 @@ func TestParseSyftJSON(t *testing.T) {
 		Context  Context
 	}{
 		{
-			Fixture: "test-fixtures/syft-multiple-ecosystems.json",
+			Fixture: "testdata/syft-multiple-ecosystems.json",
 			Packages: []Package{
 				{
 					Name:    "alpine-baselayout",
@@ -270,7 +270,7 @@ func TestParseSyftJSON(t *testing.T) {
 
 func TestParseSyftJSON_BadCPEs(t *testing.T) {
 	applyChannel := getDistroChannelApplier(testFixChannels())
-	pkgs, _, _, err := syftSBOMProvider("test-fixtures/syft-java-bad-cpes.json", ProviderConfig{}, applyChannel)
+	pkgs, _, _, err := syftSBOMProvider("testdata/syft-java-bad-cpes.json", ProviderConfig{}, applyChannel)
 	assert.NoError(t, err)
 	assert.Len(t, pkgs, 1)
 }
@@ -282,7 +282,7 @@ var springImageTestCase = struct {
 	Packages []Package
 	Context  Context
 }{
-	Fixture: "test-fixtures/syft-spring.json",
+	Fixture: "testdata/syft-spring.json",
 	Packages: []Package{
 		{
 			Name:    "charsets",
@@ -362,7 +362,7 @@ func Test_PurlList(t *testing.T) {
 	}{
 		{
 			name:      "takes multiple purls",
-			userInput: "purl:test-fixtures/purl/valid-purl.txt",
+			userInput: "purl:testdata/purl/valid-purl.txt",
 			wantContext: Context{
 				Distro: &distro.Distro{
 					Type:    "debian",
@@ -371,7 +371,7 @@ func Test_PurlList(t *testing.T) {
 				},
 				Source: &source.Description{
 					Metadata: SBOMFileMetadata{
-						Path: "test-fixtures/purl/valid-purl.txt",
+						Path: "testdata/purl/valid-purl.txt",
 					},
 				},
 			},
@@ -414,7 +414,7 @@ func Test_PurlList(t *testing.T) {
 		},
 		{
 			name:      "infer context when distro is present for multiple similar purls",
-			userInput: "purl:test-fixtures/purl/homogeneous-os.txt",
+			userInput: "purl:testdata/purl/homogeneous-os.txt",
 			wantContext: Context{
 				Distro: &distro.Distro{
 					Type:    "alpine",
@@ -423,7 +423,7 @@ func Test_PurlList(t *testing.T) {
 				},
 				Source: &source.Description{
 					Metadata: SBOMFileMetadata{
-						Path: "test-fixtures/purl/homogeneous-os.txt",
+						Path: "testdata/purl/homogeneous-os.txt",
 					},
 				},
 			},
@@ -446,12 +446,12 @@ func Test_PurlList(t *testing.T) {
 		},
 		{
 			name:      "different distro info in purls does not infer context",
-			userInput: "purl:test-fixtures/purl/different-os.txt",
+			userInput: "purl:testdata/purl/different-os.txt",
 			wantContext: Context{
 				// important: no distro info inferred
 				Source: &source.Description{
 					Metadata: SBOMFileMetadata{
-						Path: "test-fixtures/purl/different-os.txt",
+						Path: "testdata/purl/different-os.txt",
 					},
 				},
 			},
@@ -484,12 +484,12 @@ func Test_PurlList(t *testing.T) {
 		},
 		{
 			name:      "fails for empty purl file",
-			userInput: "purl:test-fixtures/purl/empty.json",
+			userInput: "purl:testdata/purl/empty.json",
 			wantErr:   require.Error,
 		},
 		{
 			name:      "fails on invalid purl in file",
-			userInput: "purl:test-fixtures/purl/invalid-purl.txt",
+			userInput: "purl:testdata/purl/invalid-purl.txt",
 			wantErr:   require.Error,
 		},
 		{
@@ -501,11 +501,11 @@ func Test_PurlList(t *testing.T) {
 					},
 				},
 			},
-			userInput: "purl:test-fixtures/purl/valid-rhel-9.txt",
+			userInput: "purl:testdata/purl/valid-rhel-9.txt",
 			wantContext: Context{
 				Source: &source.Description{
 					Metadata: SBOMFileMetadata{
-						Path: "test-fixtures/purl/valid-rhel-9.txt",
+						Path: "testdata/purl/valid-rhel-9.txt",
 					},
 				},
 				Distro: &distro.Distro{
@@ -533,11 +533,11 @@ func Test_PurlList(t *testing.T) {
 					},
 				},
 			},
-			userInput: "purl:test-fixtures/purl/valid-rhel-9+eus.txt",
+			userInput: "purl:testdata/purl/valid-rhel-9+eus.txt",
 			wantContext: Context{
 				Source: &source.Description{
 					Metadata: SBOMFileMetadata{
-						Path: "test-fixtures/purl/valid-rhel-9+eus.txt",
+						Path: "testdata/purl/valid-rhel-9+eus.txt",
 					},
 				},
 				Distro: &distro.Distro{

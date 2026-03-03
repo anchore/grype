@@ -55,7 +55,7 @@ func TestTransform(t *testing.T) {
 	}{
 		{
 			name:     "basic version range",
-			fixture:  "test-fixtures/version-range.json",
+			fixture:  "testdata/version-range.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -144,7 +144,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "with fix version information",
-			fixture:  "test-fixtures/fix-version.json",
+			fixture:  "testdata/fix-version.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -243,7 +243,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "mismatched fix info",
-			fixture:  "test-fixtures/fix-wrong-version.json",
+			fixture:  "testdata/fix-wrong-version.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -337,7 +337,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "single package, multiple distros",
-			fixture:  "test-fixtures/single-package-multi-distro.json",
+			fixture:  "testdata/single-package-multi-distro.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -477,7 +477,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "single package, multiple distros (application types only)",
-			fixture:  "test-fixtures/single-package-multi-distro.json",
+			fixture:  "testdata/single-package-multi-distro.json",
 			provider: "nvd",
 			config: func() Config {
 				c := defaultConfig()
@@ -573,7 +573,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "multiple packages, multiple distros",
-			fixture:  "test-fixtures/compound-pkg.json",
+			fixture:  "testdata/compound-pkg.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -660,7 +660,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "invalid CPE",
-			fixture:  "test-fixtures/invalid_cpe.json",
+			fixture:  "testdata/invalid_cpe.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -724,7 +724,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "basic platform CPE",
-			fixture:  "test-fixtures/platform-cpe.json",
+			fixture:  "testdata/platform-cpe.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -846,7 +846,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "multiple platform CPEs for single package",
-			fixture:  "test-fixtures/cve-2022-0543.json",
+			fixture:  "testdata/cve-2022-0543.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -951,7 +951,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "multiple platform CPEs for single package + fix and OS match",
-			fixture:  "test-fixtures/cve-2020-10729.json",
+			fixture:  "testdata/cve-2020-10729.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -1071,7 +1071,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "application type as platform CPE",
-			fixture:  "test-fixtures/multiple-platforms-with-application-cpe.json",
+			fixture:  "testdata/multiple-platforms-with-application-cpe.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -1169,7 +1169,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "can process entries when the platform CPE is first",
-			fixture:  "test-fixtures/CVE-2023-45283-platform-cpe-first.json",
+			fixture:  "testdata/CVE-2023-45283-platform-cpe-first.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -1285,7 +1285,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "can process entries when the platform CPE is last",
-			fixture:  "test-fixtures/CVE-2023-45283-platform-cpe-last.json",
+			fixture:  "testdata/CVE-2023-45283-platform-cpe-last.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -1402,7 +1402,7 @@ func TestTransform(t *testing.T) {
 		{
 			name: "a simple list of OS matches",
 			// note: this was modified relative to the upstream data to account for additional interesting cases
-			fixture:  "test-fixtures/cve-2024-26663-standalone-os.json",
+			fixture:  "testdata/cve-2024-26663-standalone-os.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -1513,7 +1513,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "drops nodes with unsupported topology",
-			fixture:  "test-fixtures/cve-2021-1566.json",
+			fixture:  "testdata/cve-2021-1566.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -1586,7 +1586,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "considers non-standard CPE fields",
-			fixture:  "test-fixtures/CVE-2008-3442.json",
+			fixture:  "testdata/CVE-2008-3442.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -1678,7 +1678,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "https://github.com/anchore/grype/issues/2807#issuecomment-3101447594",
-			fixture:  "test-fixtures/CVE-2004-0377.json",
+			fixture:  "testdata/CVE-2004-0377.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -1742,7 +1742,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "JVM packages version format detection",
-			fixture:  "test-fixtures/jvm-packages.json",
+			fixture:  "testdata/jvm-packages.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{

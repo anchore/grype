@@ -96,7 +96,7 @@ func TestTransform(t *testing.T) {
 		want     []transformers.RelatedEntries
 	}{
 		{
-			name:     "test-fixtures/alpine-3.9.json",
+			name:     "testdata/alpine-3.9.json",
 			provider: "alpine",
 			want: []transformers.RelatedEntries{
 				{
@@ -148,7 +148,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/amzn.json",
+			name:     "testdata/amzn.json",
 			provider: "amazon",
 			want: []transformers.RelatedEntries{
 				{
@@ -265,7 +265,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/amazon-multiple-kernel-advisories.json",
+			name:     "testdata/amazon-multiple-kernel-advisories.json",
 			provider: "amazon",
 			want: []transformers.RelatedEntries{
 				{
@@ -434,7 +434,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/azure-linux-3.json",
+			name:     "testdata/azure-linux-3.json",
 			provider: "mariner",
 			want: []transformers.RelatedEntries{
 				{
@@ -479,7 +479,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/debian-8.json",
+			name:     "testdata/debian-8.json",
 			provider: "debian",
 			want: []transformers.RelatedEntries{
 				{
@@ -558,7 +558,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/debian-8-multiple-entries-for-same-package.json",
+			name:     "testdata/debian-8-multiple-entries-for-same-package.json",
 			provider: "debian",
 			want: []transformers.RelatedEntries{
 				{
@@ -638,7 +638,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/mariner-20.json",
+			name:     "testdata/mariner-20.json",
 			provider: "mariner",
 			want: []transformers.RelatedEntries{
 				{
@@ -685,7 +685,7 @@ func TestTransform(t *testing.T) {
 		},
 
 		{
-			name:     "test-fixtures/mariner-range.json",
+			name:     "testdata/mariner-range.json",
 			provider: "mariner",
 			want: []transformers.RelatedEntries{
 				{
@@ -730,7 +730,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/ol-8.json",
+			name:     "testdata/ol-8.json",
 			provider: "oracle",
 			want: []transformers.RelatedEntries{
 				{
@@ -808,7 +808,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/ol-8-modules.json",
+			name:     "testdata/ol-8-modules.json",
 			provider: "oracle",
 			want: []transformers.RelatedEntries{
 				{
@@ -904,7 +904,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/rhel-8.json",
+			name:     "testdata/rhel-8.json",
 			provider: "redhat",
 			want: []transformers.RelatedEntries{
 				{
@@ -1004,7 +1004,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/rhel-8-modules.json",
+			name:     "testdata/rhel-8-modules.json",
 			provider: "redhat",
 			want: []transformers.RelatedEntries{
 				{
@@ -1134,7 +1134,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/fedora-39.json",
+			name:     "testdata/fedora-39.json",
 			provider: "fedora",
 			want: []transformers.RelatedEntries{
 				{
@@ -1391,7 +1391,7 @@ func TestGetFixAvailability(t *testing.T) {
 	}{
 		{
 			name:    "alpine-3.9 with package availability",
-			fixture: "test-fixtures/alpine-3.9.json",
+			fixture: "testdata/alpine-3.9.json",
 			expected: map[string]*db.FixAvailability{
 				"xen": {
 					Date: timeRef(time.Date(2018, 12, 1, 9, 15, 30, 0, time.UTC)),
@@ -1401,7 +1401,7 @@ func TestGetFixAvailability(t *testing.T) {
 		},
 		{
 			name:    "rhel-8 with advisory availability",
-			fixture: "test-fixtures/rhel-8.json",
+			fixture: "testdata/rhel-8.json",
 			expected: map[string]*db.FixAvailability{
 				"firefox": {
 					Date: timeRef(time.Date(2020, 4, 8, 14, 30, 15, 0, time.UTC)),
@@ -1585,7 +1585,7 @@ func TestGetFixWithDetailFixtures(t *testing.T) {
 	}{
 		{
 			name:    "alpine-3.9 with availability",
-			fixture: "test-fixtures/alpine-3.9.json",
+			fixture: "testdata/alpine-3.9.json",
 			expected: map[string]*db.Fix{
 				"xen": {
 					Version: "4.11.1-r0",
@@ -1601,7 +1601,7 @@ func TestGetFixWithDetailFixtures(t *testing.T) {
 		},
 		{
 			name:    "rhel-8 with availability and advisory references",
-			fixture: "test-fixtures/rhel-8.json",
+			fixture: "testdata/rhel-8.json",
 			expected: map[string]*db.Fix{
 				"firefox": {
 					Version: "0:68.6.1-1.el8_1",

@@ -259,16 +259,16 @@ tasks:
   fingerprints:
     desc: Generate test fixture fingerprints
     generates:
-      - test/integration/test-fixtures/cache.fingerprint
+      - test/integration/testdata/cache.fingerprint
       - test/install/cache.fingerprint
-      - test/cli/test-fixtures/cache.fingerprint
+      - test/cli/testdata/cache.fingerprint
     cmds:
       # for IMAGE integration test fixtures
-      - "cd test/integration/test-fixtures && make cache.fingerprint"
+      - "cd test/integration/testdata && make cache.fingerprint"
       # for INSTALL integration test fixtures
       - "cd test/install && make cache.fingerprint"
       # for CLI test fixtures
-      - "cd test/cli/test-fixtures && make cache.fingerprint"
+      - "cd test/cli/testdata && make cache.fingerprint"
 
   show-test-image-cache:
     silent: true
@@ -276,7 +276,7 @@ tasks:
       - "echo '\nDocker daemon cache:'"
       - "docker images --format '{{`{{.ID}}`}} {{`{{.Repository}}`}}:{{`{{.Tag}}`}}' | grep stereoscope-fixture- | sort"
       - "echo '\nTar cache:'"
-      - 'find . -type f -wholename "**/test-fixtures/snapshot/*" | sort'
+      - 'find . -type f -wholename "**/testdata/snapshot/*" | sort'
 
 
   ## install.sh testing targets #################################
@@ -298,7 +298,7 @@ tasks:
       - "cd test/install && make ci-test-mac"
 
   generate-compare-file:
-    cmd: "go run ./cmd/{{ .PROJECT }} {{ .COMPARE_TEST_IMAGE }} -o json > {{ .COMPARE_DIR }}/test-fixtures/acceptance-{{ .COMPARE_TEST_IMAGE }}.json"
+    cmd: "go run ./cmd/{{ .PROJECT }} {{ .COMPARE_TEST_IMAGE }} -o json > {{ .COMPARE_DIR }}/testdata/acceptance-{{ .COMPARE_TEST_IMAGE }}.json"
 
   compare-mac:
     deps: [tmpdir]
@@ -462,5 +462,5 @@ tasks:
   clean-cache:
     desc: Remove all docker cache and local image tar cache
     cmds:
-      - 'find . -type f -wholename "**/test-fixtures/cache/stereoscope-fixture-*.tar" -delete'
+      - 'find . -type f -wholename "**/testdata/cache/stereoscope-fixture-*.tar" -delete'
       - "docker images --format '{{`{{.ID}}`}} {{`{{.Repository}}`}}' | grep stereoscope-fixture- | awk '{print $$1}' | uniq | xargs -r docker rmi --force"

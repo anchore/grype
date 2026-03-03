@@ -75,7 +75,7 @@ func TestBuildGrypeNamespace(t *testing.T) {
 }
 
 func TestUnmarshalGitHubEntries(t *testing.T) {
-	f, err := os.Open("test-fixtures/github-github-python-0.json")
+	f, err := os.Open("testdata/github-github-python-0.json")
 	require.NoError(t, err)
 	defer testutil.CloseFile(f)
 
@@ -151,7 +151,7 @@ func TestParseGitHubEntry(t *testing.T) {
 		Description:  "Moderate severity vulnerability that affects Plone",
 	}
 
-	f, err := os.Open("test-fixtures/github-github-python-1.json")
+	f, err := os.Open("testdata/github-github-python-1.json")
 	require.NoError(t, err)
 	defer testutil.CloseFile(f)
 
@@ -225,7 +225,7 @@ func TestDefaultVersionFormatNpmGitHubEntry(t *testing.T) {
 		},
 	}
 
-	f, err := os.Open("test-fixtures/github-github-npm-0.json")
+	f, err := os.Open("testdata/github-github-npm-0.json")
 	require.NoError(t, err)
 	defer testutil.CloseFile(f)
 
@@ -255,7 +255,7 @@ func TestDefaultVersionFormatNpmGitHubEntry(t *testing.T) {
 }
 
 func TestFilterWithdrawnEntries(t *testing.T) {
-	f, err := os.Open("test-fixtures/github-withdrawn.json")
+	f, err := os.Open("testdata/github-withdrawn.json")
 	require.NoError(t, err)
 	defer testutil.CloseFile(f)
 

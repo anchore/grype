@@ -8,10 +8,10 @@
    "foundBy": "python-package-cataloger",
    "locations": [
     {
-     "path": "test/integration/test-fixtures/image-debian-match-coverage/python/dist-info/METADATA"
+     "path": "test/integration/testdata/image-debian-match-coverage/python/dist-info/METADATA"
     },
     {
-     "path": "test/integration/test-fixtures/image-debian-match-coverage/python/dist-info/top_level.txt"
+     "path": "test/integration/testdata/image-debian-match-coverage/python/dist-info/top_level.txt"
     }
    ],
    "licenses": [
@@ -47,7 +47,7 @@
     "author": "Georg Brandl",
     "authorEmail": "georg@python.org",
     "platform": "any",
-    "sitePackagesRootPath": "test/integration/test-fixtures/image-debian-match-coverage/python",
+    "sitePackagesRootPath": "test/integration/testdata/image-debian-match-coverage/python",
     "topLevelPackages": [
      "pygments"
     ]
@@ -61,7 +61,7 @@
    "foundBy": "dpkgdb-cataloger",
    "locations": [
     {
-     "path": "test/integration/test-fixtures/image-debian-match-coverage/var/lib/dpkg/status"
+     "path": "test/integration/testdata/image-debian-match-coverage/var/lib/dpkg/status"
     }
    ],
    "licenses": [],
@@ -123,7 +123,7 @@
    "foundBy": "rpm-db-cataloger",
    "locations": [
     {
-     "path": "test/integration/test-fixtures/image-sles-match-coverage/var/lib/rpm/Packages"
+     "path": "test/integration/testdata/image-sles-match-coverage/var/lib/rpm/Packages"
     }
    ],
    "licenses": [],
@@ -154,7 +154,7 @@
    "foundBy": "java-cataloger",
    "locations": [
     {
-     "path": "test/integration/test-fixtures/image-debian-match-coverage/java/example-java-app-maven-0.1.0.jar"
+     "path": "test/integration/testdata/image-debian-match-coverage/java/example-java-app-maven-0.1.0.jar"
     }
    ],
    "licenses": [],
@@ -180,7 +180,7 @@
    "purl": "pkg:maven/org.anchore/example-java-app-maven@0.1.0",
    "metadataType": "JavaMetadata",
    "metadata": {
-    "virtualPath": "test/integration/test-fixtures/image-debian-match-coverage/java/example-java-app-maven-0.1.0.jar",
+    "virtualPath": "test/integration/testdata/image-debian-match-coverage/java/example-java-app-maven-0.1.0.jar",
     "manifest": {
      "main": {
       "Archiver-Version": "Plexus Archiver",
@@ -947,7 +947,7 @@
    "foundBy": "java-cataloger",
    "locations": [
     {
-     "path": "test/integration/test-fixtures/image-debian-match-coverage/java/example-java-app-maven-0.1.0.jar"
+     "path": "test/integration/testdata/image-debian-match-coverage/java/example-java-app-maven-0.1.0.jar"
     }
    ],
    "licenses": [],
@@ -963,7 +963,7 @@
    "purl": "pkg:maven/joda-time/joda-time@2.9.2",
    "metadataType": "JavaMetadata",
    "metadata": {
-    "virtualPath": "test/integration/test-fixtures/image-debian-match-coverage/java/example-java-app-maven-0.1.0.jar:joda-time",
+    "virtualPath": "test/integration/testdata/image-debian-match-coverage/java/example-java-app-maven-0.1.0.jar:joda-time",
     "pomProperties": {
      "path": "META-INF/maven/joda-time/joda-time/pom.properties",
      "name": "",
@@ -991,7 +991,7 @@
    "foundBy": "apkdb-cataloger",
    "locations": [
     {
-     "path": "test/integration/test-fixtures/image-alpine-match-coverage/lib/apk/db/installed"
+     "path": "test/integration/testdata/image-alpine-match-coverage/lib/apk/db/installed"
     }
    ],
    "licenses": [
@@ -1083,7 +1083,7 @@
    "foundBy": "ruby-gemfile-cataloger",
    "locations": [
     {
-     "path": "test/integration/test-fixtures/image-debian-match-coverage/ruby/Gemfile.lock"
+     "path": "test/integration/testdata/image-debian-match-coverage/ruby/Gemfile.lock"
     }
    ],
    "licenses": [],

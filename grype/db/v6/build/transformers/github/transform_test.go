@@ -31,7 +31,7 @@ func TestTransform(t *testing.T) {
 	}{
 		{
 			name:    "multiple fixed versions for Plone",
-			fixture: "test-fixtures/multiple-fixed-in-names.json",
+			fixture: "testdata/multiple-fixed-in-names.json",
 			state: provider.State{
 				Provider:  "github",
 				Version:   1,
@@ -76,7 +76,7 @@ func TestGetVulnerability(t *testing.T) {
 		expected []db.VulnerabilityHandle
 	}{
 		{
-			name: "test-fixtures/GHSA-2wgc-48g2-cj5w.json",
+			name: "testdata/GHSA-2wgc-48g2-cj5w.json",
 			expected: []db.VulnerabilityHandle{
 				{
 					Name:       "GHSA-2wgc-48g2-cj5w",
@@ -117,7 +117,7 @@ func TestGetVulnerability(t *testing.T) {
 			},
 		},
 		{
-			name: "test-fixtures/GHSA-3x74-v64j-qc3f.json",
+			name: "testdata/GHSA-3x74-v64j-qc3f.json",
 			expected: []db.VulnerabilityHandle{
 				{
 					Name:       "GHSA-3x74-v64j-qc3f",
@@ -158,7 +158,7 @@ func TestGetVulnerability(t *testing.T) {
 			},
 		},
 		{
-			name: "test-fixtures/github-github-npm-0.json",
+			name: "testdata/github-github-npm-0.json",
 			expected: []db.VulnerabilityHandle{
 				{
 					Name:       "GHSA-vc9j-fhvv-8vrf",
@@ -199,7 +199,7 @@ func TestGetVulnerability(t *testing.T) {
 			},
 		},
 		{
-			name: "test-fixtures/github-github-python-0.json",
+			name: "testdata/github-github-python-0.json",
 			expected: []db.VulnerabilityHandle{
 				{
 					Name:       "GHSA-6cwv-x26c-w2q4",
@@ -258,7 +258,7 @@ func TestGetVulnerability(t *testing.T) {
 			},
 		},
 		{
-			name: "test-fixtures/github-withdrawn.json",
+			name: "testdata/github-withdrawn.json",
 			expected: []db.VulnerabilityHandle{
 				{
 					Name:       "GHSA-6cwv-x26c-w2q4",
@@ -292,7 +292,7 @@ func TestGetVulnerability(t *testing.T) {
 			},
 		},
 		{
-			name: "test-fixtures/multiple-fixed-in-names.json",
+			name: "testdata/multiple-fixed-in-names.json",
 			expected: []db.VulnerabilityHandle{
 				{
 					Name:       "GHSA-p5wr-vp8g-q5p4",
@@ -323,7 +323,7 @@ func TestGetVulnerability(t *testing.T) {
 			},
 		},
 		{
-			name: "test-fixtures/GHSA-qc55-vm3j-74gp.json",
+			name: "testdata/GHSA-qc55-vm3j-74gp.json",
 			expected: []db.VulnerabilityHandle{
 				{
 					Name:       "GHSA-qc55-vm3j-74gp",
@@ -406,7 +406,7 @@ func TestGetAffectedPackage(t *testing.T) {
 		expected []db.AffectedPackageHandle
 	}{
 		{
-			name: "test-fixtures/GHSA-2wgc-48g2-cj5w.json",
+			name: "testdata/GHSA-2wgc-48g2-cj5w.json",
 			expected: []db.AffectedPackageHandle{
 				{
 					Package: &db.Package{
@@ -438,7 +438,7 @@ func TestGetAffectedPackage(t *testing.T) {
 			},
 		},
 		{
-			name: "test-fixtures/GHSA-3x74-v64j-qc3f.json",
+			name: "testdata/GHSA-3x74-v64j-qc3f.json",
 			expected: []db.AffectedPackageHandle{
 				{
 					Package: &db.Package{
@@ -464,7 +464,7 @@ func TestGetAffectedPackage(t *testing.T) {
 			},
 		},
 		{
-			name: "test-fixtures/github-github-npm-0.json",
+			name: "testdata/github-github-npm-0.json",
 			expected: []db.AffectedPackageHandle{
 				{
 					Package: &db.Package{
@@ -490,7 +490,7 @@ func TestGetAffectedPackage(t *testing.T) {
 			},
 		},
 		{
-			name: "test-fixtures/github-github-python-0.json",
+			name: "testdata/github-github-python-0.json",
 			expected: []db.AffectedPackageHandle{
 				{
 					Package: &db.Package{
@@ -526,7 +526,7 @@ func TestGetAffectedPackage(t *testing.T) {
 			},
 		},
 		{
-			name: "test-fixtures/multiple-fixed-in-names.json",
+			name: "testdata/multiple-fixed-in-names.json",
 			expected: []db.AffectedPackageHandle{
 				{
 					Package: &db.Package{
@@ -668,7 +668,7 @@ func TestGetPackageType(t *testing.T) {
 }
 
 func TestGetRanges(t *testing.T) {
-	advisories := loadFixture(t, "test-fixtures/GHSA-92cp-5422-2mw7.json")
+	advisories := loadFixture(t, "testdata/GHSA-92cp-5422-2mw7.json")
 	require.Len(t, advisories, 1)
 	advisory := advisories[0]
 	var ranges []db.Range
@@ -730,7 +730,7 @@ func TestGetFixAvailability(t *testing.T) {
 	}{
 		{
 			name:    "GHSA-2wgc-48g2-cj5w with advisory availability",
-			fixture: "test-fixtures/GHSA-2wgc-48g2-cj5w.json",
+			fixture: "testdata/GHSA-2wgc-48g2-cj5w.json",
 			expected: map[string]*db.FixAvailability{
 				"4.2.0": {
 					Date: internal.ParseTime("2024-01-30T15:00:00Z"),
@@ -740,7 +740,7 @@ func TestGetFixAvailability(t *testing.T) {
 		},
 		{
 			name:    "multiple-fixed-in-names with mixed availability",
-			fixture: "test-fixtures/multiple-fixed-in-names.json",
+			fixture: "testdata/multiple-fixed-in-names.json",
 			expected: map[string]*db.FixAvailability{
 				"4.3.12": {
 					Date: internal.ParseTime("2017-05-20T10:30:45Z"),
@@ -800,7 +800,7 @@ func TestGetFix(t *testing.T) {
 	}{
 		{
 			name:    "GHSA-2wgc-48g2-cj5w with availability",
-			fixture: "test-fixtures/GHSA-2wgc-48g2-cj5w.json",
+			fixture: "testdata/GHSA-2wgc-48g2-cj5w.json",
 			expected: map[string]*db.Fix{
 				"4.2.0": {
 					Version: "4.2.0",
@@ -816,7 +816,7 @@ func TestGetFix(t *testing.T) {
 		},
 		{
 			name:    "multiple-fixed-in-names with mixed availability",
-			fixture: "test-fixtures/multiple-fixed-in-names.json",
+			fixture: "testdata/multiple-fixed-in-names.json",
 			expected: map[string]*db.Fix{
 				"4.3.12": {
 					Version: "4.3.12",

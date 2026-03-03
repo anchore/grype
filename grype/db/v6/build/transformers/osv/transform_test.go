@@ -85,7 +85,7 @@ func TestTransform(t *testing.T) {
 	}{
 		{
 			name:        "Apache 2020-11984",
-			fixturePath: "test-fixtures/BIT-apache-2020-11984.json",
+			fixturePath: "testdata/BIT-apache-2020-11984.json",
 			want: []transformers.RelatedEntries{{
 				VulnerabilityHandle: &db.VulnerabilityHandle{
 					Name:          "BIT-apache-2020-11984",
@@ -135,7 +135,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:        "Node 2020-8201",
-			fixturePath: "test-fixtures/BIT-node-2020-8201.json",
+			fixturePath: "testdata/BIT-node-2020-8201.json",
 			want: []transformers.RelatedEntries{{
 				VulnerabilityHandle: &db.VulnerabilityHandle{
 					Name:          "BIT-node-2020-8201",
@@ -210,7 +210,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:        "AlmaLinux Advisory",
-			fixturePath: "test-fixtures/ALSA-2025-7467.json",
+			fixturePath: "testdata/ALSA-2025-7467.json",
 			want: []transformers.RelatedEntries{{
 				VulnerabilityHandle: &db.VulnerabilityHandle{
 					Name:          "ALSA-2025:7467",

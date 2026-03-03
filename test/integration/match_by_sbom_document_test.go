@@ -25,7 +25,7 @@ func TestMatchBySBOMDocument(t *testing.T) {
 	}{
 		{
 			name:        "unknown package type",
-			fixture:     "test-fixtures/sbom/syft-sbom-with-unknown-packages.json",
+			fixture:     "testdata/sbom/syft-sbom-with-unknown-packages.json",
 			expectedIDs: []string{"CVE-bogus-my-package-2-idris"},
 			expectedDetails: []match.Detail{
 				{

@@ -17,7 +17,7 @@ import (
 )
 
 func TestUnmarshalOSVulnerabilitiesEntries(t *testing.T) {
-	f, err := os.Open("test-fixtures/unmarshal-test.json")
+	f, err := os.Open("testdata/unmarshal-test.json")
 	require.NoError(t, err)
 	defer testutil.CloseFile(f)
 
@@ -39,7 +39,7 @@ func TestParseVulnerabilitiesEntry(t *testing.T) {
 		{
 			name:       "Amazon",
 			numEntries: 1,
-			fixture:    "test-fixtures/amzn.json",
+			fixture:    "testdata/amzn.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:                "ALAS-2018-1106",
@@ -159,7 +159,7 @@ func TestParseVulnerabilitiesEntry(t *testing.T) {
 		{
 			name:       "Debian",
 			numEntries: 1,
-			fixture:    "test-fixtures/debian-8.json",
+			fixture:    "testdata/debian-8.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:                "CVE-2008-7220",
@@ -242,7 +242,7 @@ func TestParseVulnerabilitiesEntry(t *testing.T) {
 		{
 			name:       "RHEL",
 			numEntries: 1,
-			fixture:    "test-fixtures/rhel-8.json",
+			fixture:    "testdata/rhel-8.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:          "CVE-2020-6819",
@@ -327,7 +327,7 @@ func TestParseVulnerabilitiesEntry(t *testing.T) {
 		{
 			name:       "RHEL with modularity",
 			numEntries: 1,
-			fixture:    "test-fixtures/rhel-8-modules.json",
+			fixture:    "testdata/rhel-8-modules.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:          "CVE-2020-14350",
@@ -439,19 +439,19 @@ func TestParseVulnerabilitiesEntry(t *testing.T) {
 		{
 			name:       "RHEL EUS (ignore)",
 			numEntries: 1,
-			fixture:    "test-fixtures/rhel-8-eus.json",
+			fixture:    "testdata/rhel-8-eus.json",
 			// intentionally creates no vulnerabilities to write to the DB
 		},
 		{
 			name:       "Photon (ignore)",
 			numEntries: 1,
-			fixture:    "test-fixtures/photon-4.0.json",
+			fixture:    "testdata/photon-4.0.json",
 			// photon is not supported in v5, records should be dropped entirely
 		},
 		{
 			name:       "Alpine",
 			numEntries: 1,
-			fixture:    "test-fixtures/alpine-3.9.json",
+			fixture:    "testdata/alpine-3.9.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:                "CVE-2018-19967",
@@ -484,7 +484,7 @@ func TestParseVulnerabilitiesEntry(t *testing.T) {
 		{
 			name:       "Oracle",
 			numEntries: 1,
-			fixture:    "test-fixtures/ol-8.json",
+			fixture:    "testdata/ol-8.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:          "ELSA-2020-2550",
@@ -562,7 +562,7 @@ func TestParseVulnerabilitiesEntry(t *testing.T) {
 		{
 			name:       "Oracle Linux 8 with modularity",
 			numEntries: 1,
-			fixture:    "test-fixtures/ol-8-modules.json",
+			fixture:    "testdata/ol-8-modules.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:          "CVE-2020-14350",
@@ -641,7 +641,7 @@ func TestParseVulnerabilitiesEntry(t *testing.T) {
 		{
 			name:       "mariner linux 2.0",
 			numEntries: 1,
-			fixture:    "test-fixtures/mariner-20.json",
+			fixture:    "testdata/mariner-20.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:          "CVE-2021-37621",
@@ -681,7 +681,7 @@ func TestParseVulnerabilitiesEntry(t *testing.T) {
 		{
 			name:       "azure linux 3",
 			numEntries: 1,
-			fixture:    "test-fixtures/azure-linux-3.json",
+			fixture:    "testdata/azure-linux-3.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:          "CVE-2023-29403",
@@ -719,7 +719,7 @@ func TestParseVulnerabilitiesEntry(t *testing.T) {
 		{
 			name:       "mariner entry with version range",
 			numEntries: 1,
-			fixture:    "test-fixtures/mariner-range.json",
+			fixture:    "testdata/mariner-range.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:          "CVE-2023-29404",
@@ -805,7 +805,7 @@ func TestParseVulnerabilitiesAllEntries(t *testing.T) {
 		{
 			name:       "Debian",
 			numEntries: 2,
-			fixture:    "test-fixtures/debian-8-multiple-entries-for-same-package.json",
+			fixture:    "testdata/debian-8-multiple-entries-for-same-package.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:                "CVE-2011-4623",
@@ -846,7 +846,7 @@ func TestParseVulnerabilitiesAllEntries(t *testing.T) {
 		{
 			name:       "Amazon",
 			numEntries: 3,
-			fixture:    "test-fixtures/amazon-multiple-kernel-advisories.json",
+			fixture:    "testdata/amazon-multiple-kernel-advisories.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:          "ALAS-2021-1704",
