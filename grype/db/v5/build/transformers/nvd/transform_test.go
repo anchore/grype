@@ -19,7 +19,7 @@ import (
 )
 
 func TestUnmarshalNVDVulnerabilitiesEntries(t *testing.T) {
-	f, err := os.Open("test-fixtures/unmarshal-test.json")
+	f, err := os.Open("testdata/unmarshal-test.json")
 	require.NoError(t, err)
 	defer testutil.CloseFile(f)
 
@@ -41,7 +41,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 		{
 			name:       "AppVersionRange",
 			numEntries: 1,
-			fixture:    "test-fixtures/version-range.json",
+			fixture:    "testdata/version-range.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:          "CVE-2018-5487",
@@ -96,7 +96,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 		{
 			name:       "App+OS",
 			numEntries: 1,
-			fixture:    "test-fixtures/single-package-multi-distro.json",
+			fixture:    "testdata/single-package-multi-distro.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:                "CVE-2018-1000222",
@@ -148,7 +148,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 		{
 			name:       "AppCompoundVersionRange",
 			numEntries: 1,
-			fixture:    "test-fixtures/compound-pkg.json",
+			fixture:    "testdata/compound-pkg.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:                "CVE-2018-10189",
@@ -201,7 +201,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 			// we always keep the metadata even though there are no vulnerability entries for it
 			name:       "InvalidCPE",
 			numEntries: 1,
-			fixture:    "test-fixtures/invalid_cpe.json",
+			fixture:    "testdata/invalid_cpe.json",
 			vulns:      nil,
 			metadata: db.VulnerabilityMetadata{
 				ID:           "CVE-2015-8978",
@@ -243,7 +243,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 		{
 			name:       "With Platform CPE",
 			numEntries: 1,
-			fixture:    "test-fixtures/platform-cpe.json",
+			fixture:    "testdata/platform-cpe.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:                "CVE-2022-26488",
@@ -331,7 +331,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 		{
 			name:       "CVE-2022-0543 multiple platforms",
 			numEntries: 1,
-			fixture:    "test-fixtures/cve-2022-0543.json",
+			fixture:    "testdata/cve-2022-0543.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:          "CVE-2022-0543",
@@ -447,7 +447,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 		{
 			name:       "CVE-2020-10729 multiple platforms omitted top level config",
 			numEntries: 1,
-			fixture:    "test-fixtures/cve-2020-10729.json",
+			fixture:    "testdata/cve-2020-10729.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:          "CVE-2020-10729",
@@ -529,7 +529,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 		{
 			name:       "multiple platforms some are application",
 			numEntries: 2,
-			fixture:    "test-fixtures/multiple-platforms-with-application-cpe.json",
+			fixture:    "testdata/multiple-platforms-with-application-cpe.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:          "CVE-2023-38733",
@@ -600,7 +600,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 		{
 			name:       "Platform CPE first in CPE config list",
 			numEntries: 1,
-			fixture:    "test-fixtures/CVE-2023-45283-platform-cpe-first.json",
+			fixture:    "testdata/CVE-2023-45283-platform-cpe-first.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:          "CVE-2023-45283",
@@ -654,7 +654,7 @@ func TestParseAllNVDVulnerabilityEntries(t *testing.T) {
 		{
 			name:       "Platform CPE last in CPE config list",
 			numEntries: 1,
-			fixture:    "test-fixtures/CVE-2023-45283-platform-cpe-last.json",
+			fixture:    "testdata/CVE-2023-45283-platform-cpe-last.json",
 			vulns: []db.Vulnerability{
 				{
 					ID:          "CVE-2023-45283",

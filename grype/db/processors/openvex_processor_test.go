@@ -23,7 +23,7 @@ func mockOpenVEXProcessorTransform(vulnerability unmarshal.OpenVEXVulnerability,
 }
 
 func TestV2OpenVEXProcessor_Process(t *testing.T) {
-	f, err := os.Open("test-fixtures/openvex.json")
+	f, err := os.Open("testdata/openvex.json")
 	require.NoError(t, err)
 	defer testutil.CloseFile(f)
 

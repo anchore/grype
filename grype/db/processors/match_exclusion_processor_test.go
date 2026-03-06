@@ -23,7 +23,7 @@ func mockMatchExclusionProcessorTransform(vulnerability unmarshal.MatchExclusion
 }
 
 func TestMatchExclusionProcessor_Process(t *testing.T) {
-	f, err := os.Open("test-fixtures/exclusions.json")
+	f, err := os.Open("testdata/exclusions.json")
 	require.NoError(t, err)
 	defer testutil.CloseFile(f)
 

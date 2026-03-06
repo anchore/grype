@@ -22,12 +22,12 @@ func TestExplainSnapshot(t *testing.T) {
 	}{
 		{
 			name:             "keycloak-CVE-2020-12413",
-			fixture:          "./test-fixtures/keycloak-test.json",
+			fixture:          "./testdata/keycloak-test.json",
 			vulnerabilityIDs: []string{"CVE-2020-12413"},
 		},
 		{
 			name:             "chainguard-ruby-CVE-2023-28755",
-			fixture:          "test-fixtures/chainguard-ruby-test.json",
+			fixture:          "testdata/chainguard-ruby-test.json",
 			vulnerabilityIDs: []string{"CVE-2023-28755"},
 		},
 		{
@@ -39,12 +39,12 @@ func TestExplainSnapshot(t *testing.T) {
 				Then filtering matches to relevant ones:
 				jq -c '.matches[]' | rg -e GHSA-cfh5-3ghh-wfjx -e CVE-2014-3577 | jq -s .
 			*/
-			fixture:          "test-fixtures/ghsa-test.json",
+			fixture:          "testdata/ghsa-test.json",
 			vulnerabilityIDs: []string{"GHSA-cfh5-3ghh-wfjx"},
 		},
 		{
 			name:             "test a CVE alias of a GHSA",
-			fixture:          "test-fixtures/ghsa-test.json",
+			fixture:          "testdata/ghsa-test.json",
 			vulnerabilityIDs: []string{"CVE-2014-3577"},
 		},
 	}

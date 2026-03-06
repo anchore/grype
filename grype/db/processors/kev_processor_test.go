@@ -22,7 +22,7 @@ func mockKEVProcessorTransform(vulnerability unmarshal.KnownExploitedVulnerabili
 }
 
 func TestKEVProcessor_Process(t *testing.T) {
-	f, err := os.Open("test-fixtures/kev.json")
+	f, err := os.Open("testdata/kev.json")
 	require.NoError(t, err)
 	defer f.Close()
 

@@ -407,13 +407,13 @@ func Test_PurlProvider(t *testing.T) {
 		},
 		{
 			name:      "fails on purl list input",
-			userInput: "purl:test-fixtures/purl/invalid-purl.txt",
+			userInput: "purl:testdata/purl/invalid-purl.txt",
 			channels:  testFixChannels(),
 			wantErr:   require.Error,
 		},
 		{
 			name:      "invalid prefix",
-			userInput: "dir:test-fixtures/purl",
+			userInput: "dir:testdata/purl",
 			channels:  testFixChannels(),
 			wantErr:   require.Error,
 		},

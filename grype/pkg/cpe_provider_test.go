@@ -117,7 +117,7 @@ func Test_CPEProvider(t *testing.T) {
 
 		{
 			name:      "invalid prefix",
-			userInput: "dir:test-fixtures/cpe",
+			userInput: "dir:testdata/cpe",
 			wantErr:   require.Error,
 		},
 	}

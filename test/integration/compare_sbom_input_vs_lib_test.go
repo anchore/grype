@@ -39,7 +39,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 	store, status, err := grype.LoadVulnerabilityDB(distribution.Config{
 		LatestURL: getLatestURL(),
 	}, installation.Config{
-		DBRootDir:        "test-fixtures/grype-db",
+		DBRootDir:        "testdata/grype-db",
 		ValidateChecksum: false,
 	}, true)
 	assert.NoError(t, err)

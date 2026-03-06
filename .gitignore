@@ -51,7 +51,9 @@ coverage.txt
 /listing.json
 *.db
 *.db-journal
-!**/test-fixtures/**/*.db
+!**/testdata/**/*.db
+!**/testdata/**/bin/
+!**/testdata/**/*.jar
 
 # probable archives
 .images

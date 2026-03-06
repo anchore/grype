@@ -23,7 +23,7 @@ func mockOSVProcessorTransform(vulnerability unmarshal.OSVVulnerability, state p
 }
 
 func TestV2OSVProcessor_Process(t *testing.T) {
-	f, err := os.Open("test-fixtures/osv.json")
+	f, err := os.Open("testdata/osv.json")
 	require.NoError(t, err)
 	defer testutil.CloseFile(f)
 

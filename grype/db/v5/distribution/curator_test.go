@@ -128,7 +128,7 @@ func Test_defaultHTTPClientTimeout(t *testing.T) {
 }
 
 func generateCertFixture(t *testing.T) string {
-	path := "test-fixtures/tls/server.crt"
+	path := "testdata/tls/server.crt"
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		// fixture already exists...
 		return path
@@ -142,7 +142,7 @@ func generateCertFixture(t *testing.T) string {
 	}
 
 	cmd := exec.Command("make", "server.crt")
-	cmd.Dir = filepath.Join(cwd, "test-fixtures/tls")
+	cmd.Dir = filepath.Join(cwd, "testdata/tls")
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
@@ -254,35 +254,35 @@ func TestCuratorValidate(t *testing.T) {
 	}{
 		{
 			name:              "good checksum & good constraint",
-			fixture:           "test-fixtures/curator-validate/good-checksum",
+			fixture:           "testdata/curator-validate/good-checksum",
 			cfgValidateDbHash: true,
 			constraint:        1,
 			err:               false,
 		},
 		{
 			name:              "good checksum & bad constraint",
-			fixture:           "test-fixtures/curator-validate/good-checksum",
+			fixture:           "testdata/curator-validate/good-checksum",
 			cfgValidateDbHash: true,
 			constraint:        2,
 			err:               true,
 		},
 		{
 			name:              "bad checksum & good constraint",
-			fixture:           "test-fixtures/curator-validate/bad-checksum",
+			fixture:           "testdata/curator-validate/bad-checksum",
 			cfgValidateDbHash: true,
 			constraint:        1,
 			err:               true,
 		},
 		{
 			name:              "bad checksum & bad constraint",
-			fixture:           "test-fixtures/curator-validate/bad-checksum",
+			fixture:           "testdata/curator-validate/bad-checksum",
 			cfgValidateDbHash: true,
 			constraint:        2,
 			err:               true,
 		},
 		{
 			name:              "bad checksum ignored on config exception",
-			fixture:           "test-fixtures/curator-validate/bad-checksum",
+			fixture:           "testdata/curator-validate/bad-checksum",
 			cfgValidateDbHash: false,
 			constraint:        1,
 			err:               false,
