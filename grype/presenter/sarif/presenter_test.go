@@ -428,6 +428,59 @@ func Test_cvssScore(t *testing.T) {
 	}
 }
 
+func Test_findDescription(t *testing.T) {
+	tests := []struct {
+		name     string
+		match    models.Match
+		expected string
+	}{
+		{
+			name: "no description anywhere",
+			match: models.Match{
+				Vulnerability: models.Vulnerability{
+					VulnerabilityMetadata: models.VulnerabilityMetadata{ID: "CVE-1"},
+				},
+			},
+			expected: "",
+		},
+		{
+			name: "description in primary vulnerability",
+			match: models.Match{
+				Vulnerability: models.Vulnerability{
+					VulnerabilityMetadata: models.VulnerabilityMetadata{
+						ID:          "CVE-1",
+						Description: "primary description",
+					},
+				},
+				RelatedVulnerabilities: []models.VulnerabilityMetadata{
+					{ID: "CVE-2", Description: "related description"},
+				},
+			},
+			expected: "primary description",
+		},
+		{
+			name: "first non-empty related description wins",
+			match: models.Match{
+				Vulnerability: models.Vulnerability{
+					VulnerabilityMetadata: models.VulnerabilityMetadata{ID: "CVE-1"},
+				},
+				RelatedVulnerabilities: []models.VulnerabilityMetadata{
+					{ID: "CVE-2"},
+					{ID: "CVE-3", Description: "second related"},
+					{ID: "CVE-4", Description: "third related"},
+				},
+			},
+			expected: "second related",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.expected, findDescription(test.match))
+		})
+	}
+}
+
 func Test_imageShortPathName(t *testing.T) {
 	tests := []struct {
 		name     string
