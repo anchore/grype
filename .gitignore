@@ -52,6 +52,8 @@ coverage.txt
 *.db
 *.db-journal
 !**/testdata/**/*.db
+!**/testdata/**/bin/
+!**/testdata/**/*.jar
 
 # probable archives
 .images
