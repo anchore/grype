@@ -1,0 +1,716 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "anchore.io/schema/grype/document/json/1.0.0/document",
+  "$ref": "#/$defs/Document",
+  "$defs": {
+    "Advisory": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "link": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "id",
+        "link"
+      ]
+    },
+    "Alert": {
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "metadata": true
+      },
+      "type": "object",
+      "required": [
+        "type",
+        "message"
+      ]
+    },
+    "CWE": {
+      "properties": {
+        "cve": {
+          "type": "string"
+        },
+        "cwe": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "cve"
+      ]
+    },
+    "Cvss": {
+      "properties": {
+        "source": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "vector": {
+          "type": "string"
+        },
+        "metrics": {
+          "$ref": "#/$defs/CvssMetrics"
+        },
+        "vendorMetadata": true
+      },
+      "type": "object",
+      "required": [
+        "version",
+        "vector",
+        "metrics",
+        "vendorMetadata"
+      ]
+    },
+    "CvssMetrics": {
+      "properties": {
+        "baseScore": {
+          "type": "number"
+        },
+        "exploitabilityScore": {
+          "type": "number"
+        },
+        "impactScore": {
+          "type": "number"
+        }
+      },
+      "type": "object",
+      "required": [
+        "baseScore"
+      ]
+    },
+    "Document": {
+      "properties": {
+        "matches": {
+          "items": {
+            "$ref": "#/$defs/Match"
+          },
+          "type": "array"
+        },
+        "ignoredMatches": {
+          "items": {
+            "$ref": "#/$defs/IgnoredMatch"
+          },
+          "type": "array"
+        },
+        "alertsByPackage": {
+          "items": {
+            "$ref": "#/$defs/PackageAlerts"
+          },
+          "type": "array"
+        },
+        "source": {
+          "$ref": "#/$defs/source"
+        },
+        "distro": {
+          "$ref": "#/$defs/distribution"
+        },
+        "descriptor": {
+          "$ref": "#/$defs/descriptor"
+        }
+      },
+      "type": "object",
+      "required": [
+        "matches",
+        "source",
+        "distro",
+        "descriptor"
+      ]
+    },
+    "EPSS": {
+      "properties": {
+        "cve": {
+          "type": "string"
+        },
+        "epss": {
+          "type": "number"
+        },
+        "percentile": {
+          "type": "number"
+        },
+        "date": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "cve",
+        "epss",
+        "percentile",
+        "date"
+      ]
+    },
+    "Fix": {
+      "properties": {
+        "versions": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "state": {
+          "type": "string"
+        },
+        "available": {
+          "items": {
+            "$ref": "#/$defs/FixAvailable"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "versions",
+        "state"
+      ]
+    },
+    "FixAvailable": {
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "date": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "version",
+        "date"
+      ]
+    },
+    "FixDetails": {
+      "properties": {
+        "suggestedVersion": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "suggestedVersion"
+      ]
+    },
+    "IgnoreRule": {
+      "properties": {
+        "vulnerability": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "fix-state": {
+          "type": "string"
+        },
+        "package": {
+          "$ref": "#/$defs/IgnoreRulePackage"
+        },
+        "vex-status": {
+          "type": "string"
+        },
+        "vex-justification": {
+          "type": "string"
+        },
+        "match-type": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "namespace"
+      ]
+    },
+    "IgnoreRulePackage": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "language": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "upstream-name": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "language"
+      ]
+    },
+    "IgnoredMatch": {
+      "properties": {
+        "vulnerability": {
+          "$ref": "#/$defs/Vulnerability"
+        },
+        "relatedVulnerabilities": {
+          "items": {
+            "$ref": "#/$defs/VulnerabilityMetadata"
+          },
+          "type": "array"
+        },
+        "matchDetails": {
+          "items": {
+            "$ref": "#/$defs/MatchDetails"
+          },
+          "type": "array"
+        },
+        "artifact": {
+          "$ref": "#/$defs/Package"
+        },
+        "appliedIgnoreRules": {
+          "items": {
+            "$ref": "#/$defs/IgnoreRule"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "vulnerability",
+        "relatedVulnerabilities",
+        "matchDetails",
+        "artifact",
+        "appliedIgnoreRules"
+      ]
+    },
+    "KnownExploited": {
+      "properties": {
+        "cve": {
+          "type": "string"
+        },
+        "vendorProject": {
+          "type": "string"
+        },
+        "product": {
+          "type": "string"
+        },
+        "dateAdded": {
+          "type": "string"
+        },
+        "requiredAction": {
+          "type": "string"
+        },
+        "dueDate": {
+          "type": "string"
+        },
+        "knownRansomwareCampaignUse": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "urls": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "cwes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "cve",
+        "knownRansomwareCampaignUse"
+      ]
+    },
+    "Location": {
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "layerID": {
+          "type": "string"
+        },
+        "accessPath": {
+          "type": "string"
+        },
+        "annotations": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      },
+      "type": "object",
+      "required": [
+        "path",
+        "accessPath"
+      ]
+    },
+    "Locations": {
+      "items": {
+        "$ref": "#/$defs/Location"
+      },
+      "type": "array"
+    },
+    "Match": {
+      "properties": {
+        "vulnerability": {
+          "$ref": "#/$defs/Vulnerability"
+        },
+        "relatedVulnerabilities": {
+          "items": {
+            "$ref": "#/$defs/VulnerabilityMetadata"
+          },
+          "type": "array"
+        },
+        "matchDetails": {
+          "items": {
+            "$ref": "#/$defs/MatchDetails"
+          },
+          "type": "array"
+        },
+        "artifact": {
+          "$ref": "#/$defs/Package"
+        }
+      },
+      "type": "object",
+      "required": [
+        "vulnerability",
+        "relatedVulnerabilities",
+        "matchDetails",
+        "artifact"
+      ]
+    },
+    "MatchDetails": {
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "matcher": {
+          "type": "string"
+        },
+        "searchedBy": true,
+        "found": true,
+        "fix": {
+          "$ref": "#/$defs/FixDetails"
+        }
+      },
+      "type": "object",
+      "required": [
+        "type",
+        "matcher",
+        "searchedBy",
+        "found"
+      ]
+    },
+    "Package": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "locations": {
+          "$ref": "#/$defs/Locations"
+        },
+        "language": {
+          "type": "string"
+        },
+        "licenses": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "cpes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "purl": {
+          "type": "string"
+        },
+        "upstreams": {
+          "items": {
+            "$ref": "#/$defs/UpstreamPackage"
+          },
+          "type": "array"
+        },
+        "metadataType": {
+          "type": "string"
+        },
+        "metadata": true
+      },
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "version",
+        "type",
+        "locations",
+        "language",
+        "licenses",
+        "cpes",
+        "purl",
+        "upstreams"
+      ]
+    },
+    "PackageAlerts": {
+      "properties": {
+        "package": {
+          "$ref": "#/$defs/Package"
+        },
+        "alerts": {
+          "items": {
+            "$ref": "#/$defs/Alert"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "package",
+        "alerts"
+      ]
+    },
+    "UpstreamPackage": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "name"
+      ]
+    },
+    "Vulnerability": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "dataSource": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "urls": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "description": {
+          "type": "string"
+        },
+        "cvss": {
+          "items": {
+            "$ref": "#/$defs/Cvss"
+          },
+          "type": "array"
+        },
+        "knownExploited": {
+          "items": {
+            "$ref": "#/$defs/KnownExploited"
+          },
+          "type": "array"
+        },
+        "epss": {
+          "items": {
+            "$ref": "#/$defs/EPSS"
+          },
+          "type": "array"
+        },
+        "cwes": {
+          "items": {
+            "$ref": "#/$defs/CWE"
+          },
+          "type": "array"
+        },
+        "fix": {
+          "$ref": "#/$defs/Fix"
+        },
+        "advisories": {
+          "items": {
+            "$ref": "#/$defs/Advisory"
+          },
+          "type": "array"
+        },
+        "risk": {
+          "type": "number"
+        }
+      },
+      "type": "object",
+      "required": [
+        "id",
+        "dataSource",
+        "urls",
+        "cvss",
+        "fix",
+        "advisories",
+        "risk"
+      ]
+    },
+    "VulnerabilityMetadata": {
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "dataSource": {
+          "type": "string"
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "urls": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "description": {
+          "type": "string"
+        },
+        "cvss": {
+          "items": {
+            "$ref": "#/$defs/Cvss"
+          },
+          "type": "array"
+        },
+        "knownExploited": {
+          "items": {
+            "$ref": "#/$defs/KnownExploited"
+          },
+          "type": "array"
+        },
+        "epss": {
+          "items": {
+            "$ref": "#/$defs/EPSS"
+          },
+          "type": "array"
+        },
+        "cwes": {
+          "items": {
+            "$ref": "#/$defs/CWE"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "id",
+        "dataSource",
+        "urls",
+        "cvss"
+      ]
+    },
+    "descriptor": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "configuration": true,
+        "db": true,
+        "timestamp": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "name",
+        "version"
+      ]
+    },
+    "distribution": {
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "idLike": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "channels": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "name",
+        "version",
+        "idLike"
+      ]
+    },
+    "source": {
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "target": true
+      },
+      "type": "object",
+      "required": [
+        "type",
+        "target"
+      ]
+    }
+  }
+}
