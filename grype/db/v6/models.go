@@ -581,13 +581,17 @@ func (o *OperatingSystem) Version() string {
 		return ""
 	}
 
-	if o.LabelVersion != "" {
+	// If only a label is set (no numeric version), return just the label (e.g. Alpaquita "stream")
+	if o.LabelVersion != "" && o.MajorVersion == "" {
 		return o.LabelVersion
 	}
 
 	var suffix string
+	if o.LabelVersion != "" {
+		suffix = "-" + o.LabelVersion
+	}
 	if o.Channel != "" {
-		suffix = fmt.Sprintf("+%s", o.Channel)
+		suffix += "+" + o.Channel
 	}
 
 	if o.MajorVersion != "" {

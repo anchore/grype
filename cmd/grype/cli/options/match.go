@@ -15,6 +15,7 @@ type matchConfig struct {
 	Golang     golangConfig  `yaml:"golang" json:"golang" mapstructure:"golang"`             // settings for the golang matcher
 	Javascript matcherConfig `yaml:"javascript" json:"javascript" mapstructure:"javascript"` // settings for the javascript matcher
 	Python     matcherConfig `yaml:"python" json:"python" mapstructure:"python"`             // settings for the python matcher
+	R          matcherConfig `yaml:"r" json:"r" mapstructure:"r"`                            // settings for the r matcher (R language)
 	Ruby       matcherConfig `yaml:"ruby" json:"ruby" mapstructure:"ruby"`                   // settings for the ruby matcher
 	Rust       matcherConfig `yaml:"rust" json:"rust" mapstructure:"rust"`                   // settings for the rust matcher
 	Hex        matcherConfig `yaml:"hex" json:"hex" mapstructure:"hex"`                      // settings for the hex matcher (Elixir/Erlang)
@@ -124,6 +125,7 @@ func defaultMatchConfig() matchConfig {
 		Golang:     defaultGolangConfig(),
 		Javascript: dontUseCpe,
 		Python:     dontUseCpe,
+		R:          dontUseCpe,
 		Ruby:       dontUseCpe,
 		Rust:       dontUseCpe,
 		Hex:        dontUseCpe,
@@ -170,6 +172,7 @@ func (cfg *matchConfig) DescribeFields(descriptions clio.FieldDescriptionSet) {
 	descriptions.Add(&cfg.Golang.AllowMainModulePseudoVersionComparison, `allow comparison between main module pseudo-versions (e.g. v0.0.0-20240413-2b432cf643...)`)
 	descriptions.Add(&cfg.Javascript.UseCPEs, usingCpeDescription)
 	descriptions.Add(&cfg.Python.UseCPEs, usingCpeDescription)
+	descriptions.Add(&cfg.R.UseCPEs, usingCpeDescription)
 	descriptions.Add(&cfg.Ruby.UseCPEs, usingCpeDescription)
 	descriptions.Add(&cfg.Rust.UseCPEs, usingCpeDescription)
 	descriptions.Add(&cfg.Hex.UseCPEs, usingCpeDescription)
