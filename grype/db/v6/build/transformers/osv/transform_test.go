@@ -533,6 +533,138 @@ func Test_getPackage(t *testing.T) {
 	}
 }
 
+// Test_getOperatingSystemFromEcosystem covers the distro ecosystem mappings we added.
+// Alpine is included to verify it would be handled if OSV data for Alpine ever appeared,
+// but Alpine currently uses secdb (OS schema) and never reaches this code path.
+func Test_getOperatingSystemFromEcosystem(t *testing.T) {
+	tests := []struct {
+		ecosystem string
+		wantName  string
+		wantLabel string
+		wantMajor string
+		wantMinor string
+		wantNil   bool
+	}{
+		{ecosystem: "Chainguard", wantName: "chainguard", wantLabel: "rolling"},
+		{ecosystem: "Wolfi", wantName: "wolfi", wantLabel: "rolling"},
+		{ecosystem: "AlmaLinux:8", wantName: "almalinux", wantMajor: "8"},
+		{ecosystem: "Alpine:3.21", wantName: "alpine", wantMajor: "3", wantMinor: "21"},
+		// "alpine" without a version cannot identify the distro
+		{ecosystem: "alpine", wantNil: true},
+		{ecosystem: "", wantNil: true},
+		{ecosystem: "npm", wantNil: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.ecosystem, func(t *testing.T) {
+			got := getOperatingSystemFromEcosystem(tt.ecosystem)
+			if tt.wantNil {
+				require.Nil(t, got)
+				return
+			}
+			require.NotNil(t, got)
+			require.Equal(t, tt.wantName, got.Name)
+			require.Equal(t, tt.wantLabel, got.LabelVersion)
+			require.Equal(t, tt.wantMajor, got.MajorVersion)
+			require.Equal(t, tt.wantMinor, got.MinorVersion)
+		})
+	}
+}
+
+func Test_getPackageTypeFromEcosystem(t *testing.T) {
+	tests := []struct {
+		ecosystem string
+		wantType  string
+	}{
+		{ecosystem: "Chainguard", wantType: "apk"},
+		{ecosystem: "Wolfi", wantType: "apk"},
+		{ecosystem: "Alpine:3.21", wantType: "apk"},
+		{ecosystem: "AlmaLinux:8", wantType: "rpm"},
+		{ecosystem: "npm", wantType: ""},
+		{ecosystem: "", wantType: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.ecosystem, func(t *testing.T) {
+			got := getPackageTypeFromEcosystem(tt.ecosystem)
+			require.Equal(t, tt.wantType, string(got))
+		})
+	}
+}
+
+func Test_normalizeRangeType_APKEcosystems(t *testing.T) {
+	// ECOSYSTEM ranges for APK distros must use "apk" version format so that
+	// APK-specific version comparison semantics (epoch-release suffix) are applied.
+	// Other ecosystems must fall through to their existing behaviour unchanged.
+	tests := []struct {
+		ecosystem string
+		rangeType models.RangeType
+		want      string
+	}{
+		{ecosystem: "Chainguard", rangeType: models.RangeEcosystem, want: "apk"},
+		{ecosystem: "Wolfi", rangeType: models.RangeEcosystem, want: "apk"},
+		{ecosystem: "Alpine:3.21", rangeType: models.RangeEcosystem, want: "apk"},
+		// AlmaLinux falls through — see comment in normalizeRangeType
+		{ecosystem: "AlmaLinux:8", rangeType: models.RangeEcosystem, want: "ecosystem"},
+		// Non-ECOSYSTEM range types are unaffected
+		{ecosystem: "Chainguard", rangeType: models.RangeSemVer, want: "semver"},
+		{ecosystem: "npm", rangeType: models.RangeEcosystem, want: "ecosystem"},
+	}
+	for _, tt := range tests {
+		t.Run(string(tt.rangeType)+"/"+tt.ecosystem, func(t *testing.T) {
+			got := normalizeRangeType(tt.rangeType, tt.ecosystem)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestTransform_CGA(t *testing.T) {
+	// Verify end-to-end transformation of a real Chainguard CGA record.
+	// Key properties:
+	//   - CVE/GHSA IDs in "related" become aliases in the blob
+	//   - Chainguard and Wolfi packages from the same record get separate AffectedPackageHandles
+	//   - ECOSYSTEM ranges produce "apk" version type (not "ecosystem")
+	//   - OperatingSystem is set to rolling for both distros
+	entries := loadFixture(t, "test-fixtures/CGA-224q-ccj5-2p53.json")
+	require.Len(t, entries, 1)
+
+	result, err := Transform(entries[0], inputProviderState())
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+
+	re := result[0].Data.(transformers.RelatedEntries)
+
+	// primary ID is the CGA, related CVE/GHSA appear as aliases
+	require.Equal(t, "CGA-224q-ccj5-2p53", re.VulnerabilityHandle.Name)
+	require.Contains(t, re.VulnerabilityHandle.BlobValue.Aliases, "CVE-2025-32464")
+	require.Contains(t, re.VulnerabilityHandle.BlobValue.Aliases, "GHSA-frg5-h47x-75j9")
+
+	// two affected packages: one Chainguard, one Wolfi
+	require.Len(t, re.Related, 2)
+
+	byEcosystem := map[string]db.AffectedPackageHandle{}
+	for _, r := range re.Related {
+		aph := r.(db.AffectedPackageHandle)
+		byEcosystem[aph.Package.Ecosystem] = aph
+	}
+
+	cgPkg, ok := byEcosystem["Chainguard"]
+	require.True(t, ok)
+	require.Equal(t, "haproxy-2.8", cgPkg.Package.Name)
+	require.NotNil(t, cgPkg.OperatingSystem)
+	require.Equal(t, "chainguard", cgPkg.OperatingSystem.Name)
+	require.Equal(t, "rolling", cgPkg.OperatingSystem.LabelVersion)
+	require.Len(t, cgPkg.BlobValue.Ranges, 1)
+	require.Equal(t, "apk", cgPkg.BlobValue.Ranges[0].Version.Type)
+	require.Equal(t, "2.8.18-r0", cgPkg.BlobValue.Ranges[0].Fix.Version)
+
+	wolfiPkg, ok := byEcosystem["Wolfi"]
+	require.True(t, ok)
+	require.Equal(t, "haproxy-3.1", wolfiPkg.Package.Name)
+	require.NotNil(t, wolfiPkg.OperatingSystem)
+	require.Equal(t, "wolfi", wolfiPkg.OperatingSystem.Name)
+	require.Equal(t, "rolling", wolfiPkg.OperatingSystem.LabelVersion)
+	require.Equal(t, "apk", wolfiPkg.BlobValue.Ranges[0].Version.Type)
+}
+
 func Test_extractCVSSInfo(t *testing.T) {
 	tests := []struct {
 		name        string
