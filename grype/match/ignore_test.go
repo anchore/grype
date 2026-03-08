@@ -297,6 +297,24 @@ var (
 	}
 )
 
+func TestIgnoreRule_VulnerabilityID_IsCaseInsensitive(t *testing.T) {
+	rule := IgnoreRule{
+		Vulnerability:  "ghsa-jc7w-c686-c4v9",
+		IncludeAliases: true,
+	}
+
+	match := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			ID: "GHSA-JC7W-C686-C4V9",
+		},
+	}
+
+	ignored := rule.IgnoreMatch(match)
+	if len(ignored) == 0 {
+		t.Fatalf("expected vulnerability to be ignored regardless of casing")
+	}
+}
+
 func TestApplyIgnoreRules(t *testing.T) {
 	cases := []struct {
 		name                     string
