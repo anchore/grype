@@ -130,10 +130,10 @@ func buildSemVer(majorVersion, minorVersion, patchVersion, preRelease, build str
 	semver.WriteString(strings.Join(segs, "."))
 
 	if preRelease != "" {
-		semver.WriteString(fmt.Sprintf("-%s", preRelease))
+		fmt.Fprintf(&semver, "-%s", preRelease)
 	}
 	if build != "" {
-		semver.WriteString(fmt.Sprintf("+%s", build))
+		fmt.Fprintf(&semver, "+%s", build)
 	}
 
 	return semver.String()
