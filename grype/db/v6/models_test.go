@@ -124,6 +124,21 @@ func TestOperatingSystem_Version(t *testing.T) {
 			os:             &OperatingSystem{MajorVersion: "10", MinorVersion: "1", Channel: "stable"},
 			expectedResult: "10.1+stable",
 		},
+		{
+			name:           "major minor and label version",
+			os:             &OperatingSystem{MajorVersion: "24", MinorVersion: "3", LabelVersion: "LTS-SP1"},
+			expectedResult: "24.3-LTS-SP1",
+		},
+		{
+			name:           "major and label version without minor",
+			os:             &OperatingSystem{MajorVersion: "8", LabelVersion: "LTS"},
+			expectedResult: "8-LTS",
+		},
+		{
+			name:           "major minor label and channel",
+			os:             &OperatingSystem{MajorVersion: "24", MinorVersion: "3", LabelVersion: "LTS-SP1", Channel: "eus"},
+			expectedResult: "24.3-LTS-SP1+eus",
+		},
 	}
 
 	for _, tt := range tests {
