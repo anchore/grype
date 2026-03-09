@@ -29,13 +29,25 @@ func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func
 		return nil, Context{}, nil, err
 	}
 
-	src := s.Source
-	if src.Metadata == nil && path != "" {
-		src.Metadata = SBOMFileMetadata{
+	if s.Source.Metadata == nil && path != "" {
+		s.Source.Metadata = SBOMFileMetadata{
 			Path: path,
 		}
 	}
 
+	return processSBOM(s, fmtID, config, applyChannel)
+}
+
+func syftSBOMProviderFromReader(reader io.ReadSeeker, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]Package, Context, *sbom.SBOM, error) {
+	s, fmtID, err := readSBOM(reader)
+	if err != nil {
+		return nil, Context{}, nil, err
+	}
+
+	return processSBOM(s, fmtID, config, applyChannel)
+}
+
+func processSBOM(s *sbom.SBOM, fmtID sbom.FormatID, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]Package, Context, *sbom.SBOM, error) {
 	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
 	catalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
@@ -46,7 +58,7 @@ func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func
 	}
 
 	return FromCollection(catalog, config.SynthesisConfig, enhancers...), Context{
-		Source:                &src,
+		Source:                &s.Source,
 		Distro:                d,
 		DistroDetectionFailed: distroDetectionFailed,
 	}, s, nil
