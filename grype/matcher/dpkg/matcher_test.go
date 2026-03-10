@@ -11,6 +11,9 @@ import (
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/version"
+	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/vulnerability/mock"
 	"github.com/anchore/grype/internal/stringutil"
 	syftCpe "github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -145,6 +148,138 @@ func TestMatcherDpkg_CPEFallbackWhenEOL(t *testing.T) {
 				assert.True(t, hasCPEMatch, "expected CPE matches for EOL distro")
 			} else {
 				assert.False(t, hasCPEMatch, "did not expect CPE matches")
+			}
+		})
+	}
+}
+
+func TestMatcherDpkg_DistroFixedIgnoreRules(t *testing.T) {
+	debNamespace := "secdb:distro:debian:8"
+
+	tests := []struct {
+		name                  string
+		p                     pkg.Package
+		vulnerabilities       []vulnerability.Vulnerability
+		expectedIgnoreVulnIDs []string
+		expectedMatchIDs      []string
+	}{
+		{
+			name: "package already at fixed version - should produce ignore rules but no matches",
+			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "python3-requests",
+				Version: "2.25.1-1",
+				Type:    syftPkg.DebPkg,
+				Distro:  distro.New(distro.Debian, "8", ""),
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "python3-requests",
+					Constraint:  version.MustGetConstraint("< 2.25.1-1", version.DebFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-backported", Namespace: debNamespace},
+				},
+			},
+			expectedIgnoreVulnIDs: []string{"CVE-2023-backported"},
+			expectedMatchIDs:      nil,
+		},
+		{
+			name: "package still vulnerable - should produce matches but no ignore rules",
+			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "python3-requests",
+				Version: "2.25.0-1",
+				Type:    syftPkg.DebPkg,
+				Distro:  distro.New(distro.Debian, "8", ""),
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "python3-requests",
+					Constraint:  version.MustGetConstraint("< 2.25.1-1", version.DebFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-backported", Namespace: debNamespace},
+				},
+			},
+			expectedIgnoreVulnIDs: nil,
+			expectedMatchIDs:      []string{"CVE-2023-backported"},
+		},
+		{
+			name: "no distro data for the package (search miss) - no ignore rules",
+			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "python3-something-obscure",
+				Version: "1.0.0-1",
+				Type:    syftPkg.DebPkg,
+				Distro:  distro.New(distro.Debian, "8", ""),
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "python3-requests",
+					Constraint:  version.MustGetConstraint("< 2.25.1-1", version.DebFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-backported", Namespace: debNamespace},
+				},
+			},
+			expectedIgnoreVulnIDs: nil,
+			expectedMatchIDs:      nil,
+		},
+		{
+			name: "upstream source package is fixed - should produce ignore rules",
+			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "python3-urllib3",
+				Version: "1.26.5-1",
+				Type:    syftPkg.DebPkg,
+				Distro:  distro.New(distro.Debian, "8", ""),
+				Upstreams: []pkg.UpstreamPackage{
+					{
+						Name:    "python-urllib3",
+						Version: "1.26.5-1",
+					},
+				},
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					// vuln against the source package, already fixed
+					PackageName: "python-urllib3",
+					Constraint:  version.MustGetConstraint("< 1.26.5-1", version.DebFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-upstream-fixed", Namespace: debNamespace},
+				},
+			},
+			expectedIgnoreVulnIDs: []string{"CVE-2023-upstream-fixed"},
+			expectedMatchIDs:      nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			matcher := Matcher{}
+
+			store := mock.VulnerabilityProvider(test.vulnerabilities...)
+			matches, ignoreFilters, err := matcher.Match(store, test.p)
+			require.NoError(t, err)
+
+			// verify matches
+			var gotMatchIDs []string
+			for _, m := range matches {
+				gotMatchIDs = append(gotMatchIDs, m.Vulnerability.ID)
+			}
+			if test.expectedMatchIDs == nil {
+				assert.Empty(t, gotMatchIDs, "expected no matches")
+			} else {
+				assert.ElementsMatch(t, test.expectedMatchIDs, gotMatchIDs, "unexpected match IDs")
+			}
+
+			// verify ignore rules
+			var gotIgnoreIDs []string
+			for _, filter := range ignoreFilters {
+				rule, ok := filter.(match.IgnoreRule)
+				require.True(t, ok, "expected IgnoreRule type")
+				gotIgnoreIDs = append(gotIgnoreIDs, rule.Vulnerability)
+				assert.True(t, rule.IncludeAliases, "expected IncludeAliases to be true")
+				assert.Equal(t, "DistroPackageFixed", rule.Reason)
+			}
+			if test.expectedIgnoreVulnIDs == nil {
+				assert.Empty(t, gotIgnoreIDs, "expected no ignore rules")
+			} else {
+				assert.ElementsMatch(t, test.expectedIgnoreVulnIDs, gotIgnoreIDs, "unexpected ignore rule vulnerability IDs")
 			}
 		})
 	}
