@@ -345,7 +345,7 @@ func levelValue(m models.Match) string {
 
 // subtitle generates a subtitle for the given match
 func subtitle(m models.Match) string {
-	subtitle := m.Vulnerability.Description
+	subtitle := findDescription(m)
 	if subtitle != "" {
 		return subtitle
 	}
@@ -356,6 +356,20 @@ func subtitle(m models.Match) string {
 	}
 
 	return fmt.Sprintf("Version %s is affected with no fixes reported yet.", m.Artifact.Version)
+}
+
+func findDescription(m models.Match) string {
+	if m.Vulnerability.Description != "" {
+		return m.Vulnerability.Description
+	}
+
+	for _, r := range m.RelatedVulnerabilities {
+		if r.Description != "" {
+			return r.Description
+		}
+	}
+
+	return ""
 }
 
 func fixVersions(m models.Match) string {
