@@ -29,6 +29,26 @@
       "provider": "github",
       "id": "github:npm/ghsa-f8mp-x433-5wpf",
       "output": "github-npm-ghsa-f8mp-x433-5wpf.json"
+    },
+    {
+      "provider": "nvd",
+      "id": "2021/cve-2021-30473",
+      "output": "nvd-cve-2021-30473.json"
+    },
+    {
+      "provider": "wolfi",
+      "id": "wolfi:rolling/CVE-2015-3211",
+      "output": "wolfi-rolling-cve-2015-3211.json"
+    },
+    {
+      "provider": "rhel",
+      "id": "rhel:8/cve-2018-0734",
+      "output": "rhel-8-cve-2018-0734.json"
+    },
+    {
+      "provider": "debian",
+      "id": "debian:8/cve-2014-0071",
+      "output": "debian-8-cve-2014-0071.json"
     }
   ]
 }
