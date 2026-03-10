@@ -1,0 +1,98 @@
+{
+  "Advisory": {
+    "CVE": [
+      "CVE-2023-7080"
+    ],
+    "CVSS": {
+      "base_metrics": {
+        "base_score": 9.3,
+        "base_severity": "Critical",
+        "exploitability_score": 2.8,
+        "impact_score": 5.8
+      },
+      "status": "N/A",
+      "vector_string": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:N",
+      "version": "3.1"
+    },
+    "Classification": "GENERAL",
+    "FixedIn": [
+      {
+        "available": {
+          "date": "2024-01-04",
+          "kind": "first-observed"
+        },
+        "ecosystem": "npm",
+        "identifier": "3.19.0",
+        "name": "wrangler",
+        "namespace": "github:npm",
+        "range": "\u003e= 3.0.0 \u003c 3.19.0"
+      },
+      {
+        "available": {
+          "date": "2024-01-04",
+          "kind": "first-observed"
+        },
+        "ecosystem": "npm",
+        "identifier": "2.20.2",
+        "name": "wrangler",
+        "namespace": "github:npm",
+        "range": "\u003e= 2.0.0 \u003c 2.20.2"
+      }
+    ],
+    "Metadata": {
+      "CVE": [
+        "CVE-2023-7080"
+      ]
+    },
+    "Severity": "Critical",
+    "Summary": "Arbitrary remote code execution within `wrangler dev` Workers sandbox",
+    "cvss_severities": [
+      {
+        "vector": "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:N",
+        "version": "3.1"
+      }
+    ],
+    "ghsaId": "GHSA-f8mp-x433-5wpf",
+    "namespace": "github:npm",
+    "published": "2024-01-03T21:26:50Z",
+    "references": [
+      {
+        "url": "https://github.com/cloudflare/workers-sdk/security/advisories/GHSA-f8mp-x433-5wpf"
+      },
+      {
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-7080"
+      },
+      {
+        "url": "https://github.com/cloudflare/workers-sdk/issues/4430"
+      },
+      {
+        "url": "https://github.com/cloudflare/workers-sdk/pull/4437"
+      },
+      {
+        "url": "https://github.com/cloudflare/workers-sdk/pull/4535"
+      },
+      {
+        "url": "https://github.com/cloudflare/workers-sdk/pull/4550"
+      },
+      {
+        "url": "https://github.com/cloudflare/workers-sdk/commit/05b1bbd2f5b8e60268e30c276067c3a3ae1239cf"
+      },
+      {
+        "url": "https://github.com/cloudflare/workers-sdk/commit/29df8e17545bf3926b6d61678b596be809d40c6d"
+      },
+      {
+        "url": "https://github.com/cloudflare/workers-sdk/commit/49a469601adaa9eb9e1f2d6de197c1979d5c6c1b"
+      },
+      {
+        "url": "https://github.com/cloudflare/workers-sdk/commit/63708a94fb7a055bf15fa963f2d598b47b11d3c0"
+      },
+      {
+        "url": "https://github.com/advisories/GHSA-f8mp-x433-5wpf"
+      }
+    ],
+    "updated": "2024-01-03T21:26:51Z",
+    "url": "https://github.com/advisories/GHSA-f8mp-x433-5wpf",
+    "withdrawn": null
+  },
+  "Vulnerability": {}
+}

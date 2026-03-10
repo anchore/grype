@@ -1,0 +1,82 @@
+{
+  "Advisory": {
+    "CVE": [
+      "CVE-2021-25292"
+    ],
+    "CVSS": {
+      "base_metrics": {
+        "base_score": 6.5,
+        "base_severity": "Medium",
+        "exploitability_score": 2.8,
+        "impact_score": 3.6
+      },
+      "status": "N/A",
+      "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H",
+      "version": "3.1"
+    },
+    "Classification": "GENERAL",
+    "FixedIn": [
+      {
+        "available": {
+          "date": "2021-03-30",
+          "kind": "first-observed"
+        },
+        "ecosystem": "python",
+        "identifier": "8.1.1",
+        "name": "Pillow",
+        "namespace": "github:python",
+        "range": "\u003e= 5.1.0 \u003c 8.1.1"
+      }
+    ],
+    "Metadata": {
+      "CVE": [
+        "CVE-2021-25292"
+      ]
+    },
+    "Severity": "Medium",
+    "Summary": "Regular Expression Denial of Service (ReDoS) in Pillow",
+    "cvss_severities": [
+      {
+        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H",
+        "version": "3.1"
+      },
+      {
+        "vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:A/VC:N/VI:N/VA:H/SC:N/SI:N/SA:N",
+        "version": "4.0"
+      }
+    ],
+    "ghsaId": "GHSA-9hx2-hgq2-2g4f",
+    "namespace": "github:python",
+    "published": "2021-03-29T16:35:46Z",
+    "references": [
+      {
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-25292"
+      },
+      {
+        "url": "https://github.com/python-pillow/Pillow/commit/3bce145966374dd39ce58a6fc0083f8d1890719c"
+      },
+      {
+        "url": "https://github.com/python-pillow/Pillow/commit/6207b44ab1ff4a91d8ddc7579619876d0bb191a4"
+      },
+      {
+        "url": "https://pillow.readthedocs.io/en/stable/releasenotes/8.1.1.html"
+      },
+      {
+        "url": "https://security.gentoo.org/glsa/202107-33"
+      },
+      {
+        "url": "https://github.com/python-pillow/Pillow/commit/521dab94c7ab72b037bd9a83e9663401e0fd2cee"
+      },
+      {
+        "url": "https://github.com/advisories/GHSA-9hx2-hgq2-2g4f"
+      },
+      {
+        "url": "https://github.com/pypa/advisory-database/tree/main/vulns/pillow/PYSEC-2021-38.yaml"
+      }
+    ],
+    "updated": "2024-10-09T21:05:47Z",
+    "url": "https://github.com/advisories/GHSA-9hx2-hgq2-2g4f",
+    "withdrawn": null
+  },
+  "Vulnerability": {}
+}

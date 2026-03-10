@@ -1,0 +1,34 @@
+{
+  "fixtures": [
+    {
+      "provider": "debian",
+      "id": "debian:8/cve-2005-2964",
+      "output": "debian-8-cve-2005-2964.json"
+    },
+    {
+      "provider": "alpine",
+      "id": "3.18/cve-2021-30473",
+      "output": "alpine-3.18-cve-2021-30473.json"
+    },
+    {
+      "provider": "rhel",
+      "id": "rhel:8/cve-2015-20107",
+      "output": "rhel-8-cve-2015-20107.json"
+    },
+    {
+      "provider": "nvd",
+      "id": "2024/cve-2024-0181",
+      "output": "nvd-cve-2024-0181.json"
+    },
+    {
+      "provider": "github",
+      "id": "github:python/ghsa-9hx2-hgq2-2g4f",
+      "output": "github-python-ghsa-9hx2-hgq2-2g4f.json"
+    },
+    {
+      "provider": "github",
+      "id": "github:npm/ghsa-f8mp-x433-5wpf",
+      "output": "github-npm-ghsa-f8mp-x433-5wpf.json"
+    }
+  ]
+}
