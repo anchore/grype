@@ -104,11 +104,11 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 
 func TestFindDistroFixedIgnoreRules(t *testing.T) {
 	tests := []struct {
-		name                   string
-		pkg                    pkg.Package
-		vulnerabilities        []vulnerability.Vulnerability
-		expectedIgnoreVulnIDs  []string
-		expectNoIgnoreRules    bool
+		name                  string
+		pkg                   pkg.Package
+		vulnerabilities       []vulnerability.Vulnerability
+		expectedIgnoreVulnIDs []string
+		expectNoIgnoreRules   bool
 	}{
 		{
 			name: "package version is already fixed - should produce ignore rules",

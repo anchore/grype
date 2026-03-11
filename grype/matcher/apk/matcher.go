@@ -53,8 +53,23 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	// APK sources are also able to NAK vulnerabilities, so we want to return these as explicit ignores in order
 	// to allow rules later to use these to ignore "the same" vulnerability found in "the same" locations
 	naks, err := m.findNaksForPackage(store, p)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	return matches, naks, err
+	// Discover vulnerabilities the distro feed has assessed as fixed for this package, and return
+	// ignore rules so that language/ecosystem matchers for co-installed language packages (e.g. a
+	// Go module installed via an APK) don't produce false positive matches for the same CVEs.
+	distroFixed, err := m.findDistroFixedIgnoreRules(store, p)
+	if err != nil {
+		log.WithFields("package", p.Name, "error", err).Debug("failed to find distro fixed ignore rules")
+	}
+
+	var ignoreFilters []match.IgnoreFilter
+	ignoreFilters = append(ignoreFilters, naks...)
+	ignoreFilters = append(ignoreFilters, distroFixed...)
+
+	return matches, ignoreFilters, nil
 }
 
 //nolint:funlen,gocognit
@@ -210,6 +225,28 @@ func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, cata
 	match.ConvertToIndirectMatches(matches, catalogPkg)
 
 	return matches, nil
+}
+
+// findDistroFixedIgnoreRules discovers CVEs that the APK distro feed has data about but for which the
+// installed package version is already patched. These are returned as ignore rules that suppress false
+// positive matches from language/ecosystem matchers for the same CVEs.
+func (m *Matcher) findDistroFixedIgnoreRules(store vulnerability.Provider, p pkg.Package) ([]match.IgnoreFilter, error) {
+	// APK doesn't use epochs, so pass nil for the config
+	ignores, err := internal.FindDistroFixedIgnoreRules(store, p, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// also search upstream/source packages
+	for _, indirectPackage := range pkg.UpstreamPackages(p) {
+		upstreamIgnores, err := internal.FindDistroFixedIgnoreRules(store, indirectPackage, nil)
+		if err != nil {
+			return nil, err
+		}
+		ignores = append(ignores, upstreamIgnores...)
+	}
+
+	return ignores, nil
 }
 
 // NAK entries are those reported as explicitly not vulnerable by the upstream provider,
