@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -27,6 +28,14 @@ import (
 	v6build "github.com/anchore/grype/grype/db/v6/build"
 	"github.com/anchore/grype/grype/vulnerability"
 )
+
+// Fixture returns the absolute path to a bundled test fixture file in the
+// testdata directory of this package. Use this from external test packages
+// to reference the pre-extracted vunnel fixtures.
+func Fixture(name string) string {
+	_, filename, _, _ := runtime.Caller(0)
+	return filepath.Join(filepath.Dir(filename), "testdata", name)
+}
 
 // sidecar matches the .meta.json file written by the extract-fixture tool.
 type sidecar struct {

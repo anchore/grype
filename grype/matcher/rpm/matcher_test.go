@@ -2,12 +2,12 @@ package rpm
 
 import (
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/grype/db/v6/testdb"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -17,286 +17,135 @@ import (
 )
 
 func TestMatcherRpm(t *testing.T) {
+	// Uses real RHEL fixture for CVE-2015-20107 (python3 fixed at 0:3.6.8-47.el8_6,
+	// python38 with module python38:3.8, python39 with module python39:3.9).
+	provider := testdb.New(t,
+		testdb.WithVunnelFixture(testdb.Fixture("rhel-8-cve-2015-20107.json")),
+	)
+
 	tests := []struct {
 		name            string
 		p               pkg.Package
-		setup           func() (vulnerability.Provider, *distro.Distro, Matcher)
+		distro          *distro.Distro
+		matcher         Matcher
 		expectedMatches map[string]match.Type
-		wantErr         bool
 	}{
 		{
 			name: "Rpm Match matches by direct and by source indirection",
 			p: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
-				Name:    "neutron-libs",
-				Version: "7.1.3-6",
+				Name:    "python3-libs",
+				Version: "3.6.8-37.el8",
 				Type:    syftPkg.RpmPkg,
 				Upstreams: []pkg.UpstreamPackage{
 					{
-						Name:    "neutron",
-						Version: "7.1.3-6.el8",
+						Name:    "python3",
+						Version: "3.6.8-37.el8",
 					},
 				},
 			},
-			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
-				matcher := Matcher{}
-				d := distro.New(distro.CentOS, "8", "")
-				store := newMockProvider("neutron-libs", "neutron", false, false)
-
-				return store, d, matcher
-			},
+			distro:  distro.New(distro.CentOS, "8", ""),
+			matcher: Matcher{},
 			expectedMatches: map[string]match.Type{
-				"CVE-2014-fake-1": match.ExactDirectMatch,
-				"CVE-2014-fake-2": match.ExactIndirectMatch,
-				"CVE-2013-fake-3": match.ExactIndirectMatch,
+				"CVE-2015-20107": match.ExactIndirectMatch,
 			},
 		},
 		{
-			name: "Rpm Match matches by direct and ignores the source rpm when the package names are the same",
+			name: "Rpm Match matches by direct when package name is the vulnerable package",
 			p: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
-				Name:    "neutron",
-				Version: "7.1.3-6",
+				Name:    "python3",
+				Version: "3.6.8-37.el8",
 				Type:    syftPkg.RpmPkg,
-				Upstreams: []pkg.UpstreamPackage{
-					{
-						Name:    "neutron",
-						Version: "7.1.3-6.el8",
-					},
-				},
 			},
-			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
-				matcher := Matcher{}
-				d := distro.New(distro.CentOS, "8", "")
-
-				store := newMockProvider("neutron", "neutron-devel", false, false)
-
-				return store, d, matcher
-			},
+			distro:  distro.New(distro.RedHat, "8", ""),
+			matcher: Matcher{},
 			expectedMatches: map[string]match.Type{
-				"CVE-2014-fake-1": match.ExactDirectMatch,
+				"CVE-2015-20107": match.ExactDirectMatch,
 			},
 		},
 		{
-			// Regression against https://github.com/anchore/grype/issues/376
-			name: "Rpm Match matches by direct and by source indirection when the SourceRpm version is desynced from package version",
+			name: "Rpm Match - no match when version is at fix",
 			p: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
-				Name:    "neutron-libs",
-				Version: "7.1.3-6",
+				Name:    "python3",
+				Version: "3.6.8-47.el8_6",
 				Type:    syftPkg.RpmPkg,
-				Upstreams: []pkg.UpstreamPackage{
-					{
-						Name:    "neutron",
-						Version: "17.16.3-229.el8",
-					},
-				},
 			},
-			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
-				matcher := Matcher{}
-				d := distro.New(distro.CentOS, "8", "")
-
-				store := newMockProvider("neutron-libs", "neutron", false, false)
-
-				return store, d, matcher
-			},
-			expectedMatches: map[string]match.Type{
-				"CVE-2014-fake-1": match.ExactDirectMatch,
-			},
-		},
-		{
-			// Epoch in pkg but not in src package version, epoch found in the vuln record
-			// Regression: https://github.com/anchore/grype/issues/437
-			name: "Rpm Match should not occur due to source match even though source has no epoch",
-			p: pkg.Package{
-				ID:      pkg.ID(uuid.NewString()),
-				Name:    "perl-Errno",
-				Version: "0:1.28-419.el8_4.1",
-				Type:    syftPkg.RpmPkg,
-				Metadata: pkg.RpmMetadata{
-					Epoch: intRef(0),
-				},
-				Upstreams: []pkg.UpstreamPackage{
-					{
-						Name:    "perl",
-						Version: "5.26.3-419.el8_4.1",
-					},
-				},
-			},
-			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
-				matcher := Matcher{}
-				d := distro.New(distro.CentOS, "8", "")
-
-				store := newMockProvider("perl-Errno", "perl", true, false)
-
-				return store, d, matcher
-			},
-			expectedMatches: map[string]match.Type{
-				"CVE-2021-2": match.ExactDirectMatch,
-				"CVE-2021-3": match.ExactIndirectMatch,
-			},
-		},
-		{
-			name: "package without epoch is assumed to be 0 - compared against vuln with NO epoch (direct match only)",
-			p: pkg.Package{
-				ID:       pkg.ID(uuid.NewString()),
-				Name:     "perl-Errno",
-				Version:  "1.28-419.el8_4.1",
-				Type:     syftPkg.RpmPkg,
-				Metadata: pkg.RpmMetadata{},
-			},
-			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
-				matcher := Matcher{}
-				d := distro.New(distro.CentOS, "8", "")
-
-				store := newMockProvider("perl-Errno", "doesn't-matter", false, false)
-
-				return store, d, matcher
-			},
-			expectedMatches: map[string]match.Type{
-				"CVE-2014-fake-1": match.ExactDirectMatch,
-			},
-		},
-		{
-			name: "package without epoch is assumed to be 0 - compared against vuln WITH epoch (direct match only)",
-			p: pkg.Package{
-				ID:       pkg.ID(uuid.NewString()),
-				Name:     "perl-Errno",
-				Version:  "1.28-419.el8_4.1",
-				Type:     syftPkg.RpmPkg,
-				Metadata: pkg.RpmMetadata{},
-			},
-			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
-				matcher := Matcher{}
-				d := distro.New(distro.CentOS, "8", "")
-
-				store := newMockProvider("perl-Errno", "doesn't-matter", true, false)
-
-				return store, d, matcher
-			},
-			expectedMatches: map[string]match.Type{
-				"CVE-2021-2": match.ExactDirectMatch,
-			},
-		},
-		{
-			name: "package WITH epoch - compared against vuln with NO epoch (direct match only)",
-			p: pkg.Package{
-				ID:       pkg.ID(uuid.NewString()),
-				Name:     "perl-Errno",
-				Version:  "2:1.28-419.el8_4.1",
-				Type:     syftPkg.RpmPkg,
-				Metadata: pkg.RpmMetadata{},
-			},
-			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
-				matcher := Matcher{}
-				d := distro.New(distro.CentOS, "8", "")
-
-				store := newMockProvider("perl-Errno", "doesn't-matter", false, false)
-
-				return store, d, matcher
-			},
-			expectedMatches: map[string]match.Type{
-				"CVE-2014-fake-1": match.ExactDirectMatch,
-			},
-		},
-		{
-			name: "package WITH epoch - compared against vuln WITH epoch (direct match only)",
-			p: pkg.Package{
-				ID:       pkg.ID(uuid.NewString()),
-				Name:     "perl-Errno",
-				Version:  "2:1.28-419.el8_4.1",
-				Type:     syftPkg.RpmPkg,
-				Metadata: pkg.RpmMetadata{},
-			},
-			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
-				matcher := Matcher{}
-				d := distro.New(distro.CentOS, "8", "")
-
-				store := newMockProvider("perl-Errno", "doesn't-matter", true, false)
-
-				return store, d, matcher
-			},
+			distro:          distro.New(distro.RedHat, "8", ""),
+			matcher:         Matcher{},
 			expectedMatches: map[string]match.Type{},
 		},
 		{
-			name: "package with modularity label 1",
+			name: "Rpm Match - desynced source version above fix means no indirect match",
 			p: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
-				Name:    "maniac",
-				Version: "0.1",
+				Name:    "python3-libs",
+				Version: "3.6.8-37.el8",
 				Type:    syftPkg.RpmPkg,
-				Metadata: pkg.RpmMetadata{
-					ModularityLabel: strRef("containertools:3:1234:5678"),
+				Upstreams: []pkg.UpstreamPackage{
+					{
+						Name:    "python3",
+						Version: "3.6.8-50.el8",
+					},
 				},
 			},
-			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
-				matcher := Matcher{}
-				d := distro.New(distro.CentOS, "8", "")
-
-				store := newMockProvider("maniac", "doesn't-matter", false, true)
-
-				return store, d, matcher
+			distro:          distro.New(distro.RedHat, "8", ""),
+			matcher:         Matcher{},
+			expectedMatches: map[string]match.Type{},
+		},
+		{
+			name: "package with modularity label matching module in fixture",
+			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "python38",
+				Version: "3.8.12-1.module+el8.6.0+15298+3a81427c",
+				Type:    syftPkg.RpmPkg,
+				Metadata: pkg.RpmMetadata{
+					ModularityLabel: strRef("python38:3.8:1234:5678"),
+				},
 			},
+			distro:  distro.New(distro.RedHat, "8", ""),
+			matcher: Matcher{},
 			expectedMatches: map[string]match.Type{
-				"CVE-2021-1": match.ExactDirectMatch,
-				"CVE-2021-3": match.ExactDirectMatch,
+				"CVE-2015-20107": match.ExactDirectMatch,
 			},
 		},
 		{
-			name: "package with modularity label 2",
+			name: "package with non-matching modularity label",
 			p: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
-				Name:    "maniac",
-				Version: "0.1",
+				Name:    "python38",
+				Version: "3.8.12-1.module+el8.6.0+15298+3a81427c",
 				Type:    syftPkg.RpmPkg,
 				Metadata: pkg.RpmMetadata{
-					ModularityLabel: strRef("containertools:1:abc:123"),
+					ModularityLabel: strRef("python39:3.9:1234:5678"),
 				},
 			},
-			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
-				matcher := Matcher{}
-				d := distro.New(distro.CentOS, "8", "")
-
-				store := newMockProvider("maniac", "doesn't-matter", false, true)
-
-				return store, d, matcher
-			},
-			expectedMatches: map[string]match.Type{
-				"CVE-2021-3": match.ExactDirectMatch,
-			},
+			distro:          distro.New(distro.RedHat, "8", ""),
+			matcher:         Matcher{},
+			expectedMatches: map[string]match.Type{},
 		},
 		{
-			name: "package without modularity label",
+			name: "package without modularity label matches all entries",
 			p: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
-				Name:    "maniac",
-				Version: "0.1",
+				Name:    "python38",
+				Version: "3.8.12-1.module+el8.6.0+15298+3a81427c",
 				Type:    syftPkg.RpmPkg,
 			},
-			setup: func() (vulnerability.Provider, *distro.Distro, Matcher) {
-				matcher := Matcher{}
-				d := distro.New(distro.CentOS, "8", "")
-
-				store := newMockProvider("maniac", "doesn't-matter", false, true)
-
-				return store, d, matcher
-			},
+			distro:  distro.New(distro.RedHat, "8", ""),
+			matcher: Matcher{},
 			expectedMatches: map[string]match.Type{
-				"CVE-2021-1": match.ExactDirectMatch,
-				"CVE-2021-2": match.ExactDirectMatch,
-				"CVE-2021-3": match.ExactDirectMatch,
-				"CVE-2021-4": match.ExactDirectMatch,
+				"CVE-2015-20107": match.ExactDirectMatch,
 			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			store, d, matcher := test.setup()
-			if test.p.Distro == nil {
-				test.p.Distro = d
-			}
-			actual, _, err := matcher.Match(store, test.p)
+			test.p.Distro = test.distro
+			actual, _, err := test.matcher.Match(provider, test.p)
 			if err != nil {
 				t.Fatal("could not find match: ", err)
 			}
@@ -316,12 +165,118 @@ func TestMatcherRpm(t *testing.T) {
 
 				assert.Equal(t, test.p.Name, a.Package.Name, "failed to capture original package name")
 				for _, detail := range a.Details {
-					assert.Equal(t, matcher.Type(), detail.Matcher, "failed to capture matcher type")
+					assert.Equal(t, test.matcher.Type(), detail.Matcher, "failed to capture matcher type")
 				}
 			}
 
 			if t.Failed() {
 				t.Logf("discovered CVES: %+v", actual)
+			}
+		})
+	}
+}
+
+func TestMatcherRpm_Epoch(t *testing.T) {
+	// Uses real RHEL fixture for CVE-2018-0734 (openssl fixed at 1:1.1.1c-2.el8, epoch 1).
+	provider := testdb.New(t,
+		testdb.WithVunnelFixture(testdb.Fixture("rhel-8-cve-2018-0734.json")),
+	)
+
+	matcher := Matcher{}
+	d := distro.New(distro.RedHat, "8", "")
+
+	tests := []struct {
+		name        string
+		p           pkg.Package
+		expectMatch bool
+	}{
+		{
+			name: "package without epoch assumed 0 - vulnerable when fix has epoch 1",
+			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "openssl",
+				Version: "1.1.1-1.el8",
+				Type:    syftPkg.RpmPkg,
+			},
+			expectMatch: true,
+		},
+		{
+			name: "package without epoch is assumed to be 0 - compared against vuln WITH epoch",
+			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "openssl",
+				Version:  "1.1.1-1.el8",
+				Type:     syftPkg.RpmPkg,
+				Metadata: pkg.RpmMetadata{},
+			},
+			expectMatch: true,
+		},
+		{
+			name: "package with epoch 1 at fix version - not vulnerable",
+			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "openssl",
+				Version: "1:1.1.1c-2.el8",
+				Type:    syftPkg.RpmPkg,
+			},
+			expectMatch: false,
+		},
+		{
+			name: "package with epoch 1 above fix - not vulnerable",
+			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "openssl",
+				Version: "1:1.1.1k-5.el8",
+				Type:    syftPkg.RpmPkg,
+			},
+			expectMatch: false,
+		},
+		{
+			name: "package WITH higher epoch 2 - not vulnerable",
+			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "openssl",
+				Version: "2:0.9.8-1.el8",
+				Type:    syftPkg.RpmPkg,
+			},
+			expectMatch: false,
+		},
+		{
+			name: "package with epoch 1 below fix - vulnerable",
+			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "openssl",
+				Version: "1:1.0.2k-16.el8",
+				Type:    syftPkg.RpmPkg,
+			},
+			expectMatch: true,
+		},
+		{
+			name: "epoch from metadata when not in version string",
+			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "openssl",
+				Version: "1.0.2k-16.el8",
+				Type:    syftPkg.RpmPkg,
+				Metadata: pkg.RpmMetadata{
+					Epoch: intRef(1),
+				},
+			},
+			expectMatch: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.p.Distro = d
+			actual, _, err := matcher.Match(provider, tt.p)
+			require.NoError(t, err)
+
+			cveMatches := filterByVulnID(actual, "CVE-2018-0734")
+			if tt.expectMatch {
+				require.NotEmpty(t, cveMatches, "expected match for CVE-2018-0734")
+			} else {
+				assert.Empty(t, cveMatches, "expected no match for CVE-2018-0734")
 			}
 		})
 	}
@@ -388,57 +343,76 @@ func Test_addEpochIfApplicable(t *testing.T) {
 }
 
 func TestMatcherRpm_CPEFallbackWhenEOL(t *testing.T) {
-	pastEOL := time.Now().AddDate(-1, 0, 0)  // 1 year ago
-	futureEOL := time.Now().AddDate(1, 0, 0) // 1 year from now
+	// CPE fallback behavior: when a distro is past its EOL date and the
+	// UseCPEsForEOL config flag is set, the matcher also performs CPE-based
+	// matching in addition to distro-based matching.
+	//
+	// Uses real fixtures:
+	// - RHEL 7 (EOL 2024-06-30, past) with CVE-2018-0734 openssl vulnerability
+	// - RHEL 9 (EOL 2032-05-31, future) with a vulnerability to create the OS row
+	// - NVD CVE-2018-0734 with openssl CPE data for CPE-based matching
+	// - EOL fixtures for RHEL 7 and RHEL 9
 
-	d := distro.New(distro.CentOS, "8", "")
+	// Provider for EOL distro (RHEL 7)
+	eolProvider := testdb.New(t,
+		testdb.WithVunnelFixture(testdb.Fixture("rhel-7-cve-2018-0734.json")),
+		testdb.WithVunnelFixture(testdb.Fixture("nvd-cve-2018-0734.json")),
+		testdb.WithVunnelFixture(testdb.Fixture("eol-rhel-7.json")),
+	)
 
-	// package with CPEs for CPE-based matching
-	p := pkg.Package{
-		ID:      pkg.ID(uuid.NewString()),
-		Name:    "openssl",
-		Version: "1.0.1",
-		Type:    syftPkg.RpmPkg,
-		Distro:  d,
-		CPEs: []syftCpe.CPE{
-			syftCpe.Must("cpe:2.3:a:openssl:openssl:1.0.1:*:*:*:*:*:*:*", ""),
-		},
-	}
+	// Provider for not-EOL distro (RHEL 9)
+	notEolProvider := testdb.New(t,
+		testdb.WithVunnelFixture(testdb.Fixture("rhel-9-cve-2005-2541.json")),
+		testdb.WithVunnelFixture(testdb.Fixture("nvd-cve-2018-0734.json")),
+		testdb.WithVunnelFixture(testdb.Fixture("eol-rhel-9.json")),
+	)
+
+	// Provider with no EOL data at all (RHEL 8 vuln but no EOL fixture)
+	noEolDataProvider := testdb.New(t,
+		testdb.WithVunnelFixture(testdb.Fixture("rhel-8-cve-2018-0734.json")),
+		testdb.WithVunnelFixture(testdb.Fixture("nvd-cve-2018-0734.json")),
+	)
 
 	tests := []struct {
 		name             string
+		provider         vulnerability.Provider
+		distro           *distro.Distro
 		useCPEsForEOL    bool
-		eolDate          *time.Time
 		expectCPEMatches bool
 	}{
 		{
 			name:             "CPE fallback enabled and distro is EOL - should include CPE matches",
+			provider:         eolProvider,
+			distro:           distro.New(distro.RedHat, "7", ""),
 			useCPEsForEOL:    true,
-			eolDate:          &pastEOL,
 			expectCPEMatches: true,
 		},
 		{
 			name:             "CPE fallback enabled but distro not EOL - should not include CPE matches",
+			provider:         notEolProvider,
+			distro:           distro.New(distro.RedHat, "9", ""),
 			useCPEsForEOL:    true,
-			eolDate:          &futureEOL,
 			expectCPEMatches: false,
 		},
 		{
 			name:             "CPE fallback disabled and distro is EOL - should not include CPE matches",
+			provider:         eolProvider,
+			distro:           distro.New(distro.RedHat, "7", ""),
 			useCPEsForEOL:    false,
-			eolDate:          &pastEOL,
 			expectCPEMatches: false,
 		},
 		{
 			name:             "CPE fallback disabled and distro not EOL - should not include CPE matches",
+			provider:         notEolProvider,
+			distro:           distro.New(distro.RedHat, "9", ""),
 			useCPEsForEOL:    false,
-			eolDate:          &futureEOL,
 			expectCPEMatches: false,
 		},
 		{
 			name:             "CPE fallback enabled but no EOL data - should not include CPE matches",
+			provider:         noEolDataProvider,
+			distro:           distro.New(distro.RedHat, "8", ""),
 			useCPEsForEOL:    true,
-			eolDate:          nil,
 			expectCPEMatches: false,
 		},
 	}
@@ -449,8 +423,18 @@ func TestMatcherRpm_CPEFallbackWhenEOL(t *testing.T) {
 				UseCPEsForEOL: tt.useCPEsForEOL,
 			})
 
-			vp := newMockEOLProvider(tt.eolDate)
-			matches, _, err := matcher.Match(vp, p)
+			p := pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "openssl",
+				Version: "1.0.2a",
+				Type:    syftPkg.RpmPkg,
+				Distro:  tt.distro,
+				CPEs: []syftCpe.CPE{
+					syftCpe.Must("cpe:2.3:a:openssl:openssl:1.0.2a:*:*:*:*:*:*:*", ""),
+				},
+			}
+
+			matches, _, err := matcher.Match(tt.provider, p)
 			require.NoError(t, err)
 
 			// check if any CPE matches were found
@@ -471,4 +455,14 @@ func TestMatcherRpm_CPEFallbackWhenEOL(t *testing.T) {
 			}
 		})
 	}
+}
+
+func filterByVulnID(matches []match.Match, id string) []match.Match {
+	var result []match.Match
+	for _, m := range matches {
+		if m.Vulnerability.ID == id {
+			result = append(result, m)
+		}
+	}
+	return result
 }

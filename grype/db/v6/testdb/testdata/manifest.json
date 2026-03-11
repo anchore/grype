@@ -49,6 +49,61 @@
       "provider": "debian",
       "id": "debian:8/cve-2014-0071",
       "output": "debian-8-cve-2014-0071.json"
+    },
+    {
+      "provider": "nvd",
+      "id": "2018/cve-2018-0734",
+      "output": "nvd-cve-2018-0734.json"
+    },
+    {
+      "provider": "rhel",
+      "id": "rhel:7/cve-2018-0734",
+      "output": "rhel-7-cve-2018-0734.json"
+    },
+    {
+      "provider": "rhel",
+      "id": "rhel:7/cve-2004-2771",
+      "output": "rhel-7-cve-2004-2771.json"
+    },
+    {
+      "provider": "rhel",
+      "id": "rhel:9/cve-2005-2541",
+      "output": "rhel-9-cve-2005-2541.json"
+    },
+    {
+      "provider": "ubuntu",
+      "id": "ubuntu:24.04/cve-2024-0567",
+      "output": "ubuntu-24.04-cve-2024-0567.json"
+    },
+    {
+      "provider": "eol",
+      "id": "debian:8",
+      "output": "eol-debian-8.json"
+    },
+    {
+      "provider": "eol",
+      "id": "centos:8",
+      "output": "eol-centos-8.json"
+    },
+    {
+      "provider": "eol",
+      "id": "ubuntu:24.04",
+      "output": "eol-ubuntu-24.04.json"
+    },
+    {
+      "provider": "eol",
+      "id": "rhel:7",
+      "output": "eol-rhel-7.json"
+    },
+    {
+      "provider": "eol",
+      "id": "rhel:8",
+      "output": "eol-rhel-8.json"
+    },
+    {
+      "provider": "eol",
+      "id": "rhel:9",
+      "output": "eol-rhel-9.json"
     }
   ]
 }

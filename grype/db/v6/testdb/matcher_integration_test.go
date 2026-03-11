@@ -2,6 +2,7 @@ package testdb
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -16,6 +17,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/rpm"
 	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/vulnerability"
 	syftCpe "github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -1127,6 +1129,65 @@ func assertHasMatchType(t *testing.T, m match.Match, expected match.Type) {
 		}
 	}
 	t.Errorf("expected match type %v in details %+v", expected, m.Details)
+}
+
+func TestEOLFixture_RealDB(t *testing.T) {
+	// Verify that EOL fixtures flow through the real pipeline and populate the
+	// operating_system table's eol_date/eoas_date columns.
+	// Note: EOL data updates existing OS rows, so we must also load vulnerability
+	// fixtures that create the OS rows first.
+	provider := New(t,
+		WithVunnelFixture(Fixture("debian-8-cve-2014-0071.json")),     // creates debian:8 OS row
+		WithVunnelFixture(Fixture("ubuntu-24.04-cve-2024-0567.json")), // creates ubuntu:24.04 OS row
+		WithVunnelFixture(Fixture("rhel-7-cve-2004-2771.json")),       // creates redhat:7 OS row
+		WithVunnelFixture(Fixture("rhel-9-cve-2005-2541.json")),       // creates redhat:9 OS row
+		WithVunnelFixture(Fixture("eol-debian-8.json")),               // updates debian:8 EOL date
+		WithVunnelFixture(Fixture("eol-ubuntu-24.04.json")),           // updates ubuntu:24.04 EOL date
+		WithVunnelFixture(Fixture("eol-rhel-7.json")),                 // updates redhat:7 EOL date (past)
+		WithVunnelFixture(Fixture("eol-rhel-9.json")),                 // updates redhat:9 EOL date (future)
+	)
+
+	checker, ok := provider.(vulnerability.EOLChecker)
+	require.True(t, ok, "provider should implement EOLChecker")
+
+	t.Run("debian 8 is EOL", func(t *testing.T) {
+		d := distro.New(distro.Debian, "8", "")
+		eolDate, _, err := checker.GetOperatingSystemEOL(d)
+		require.NoError(t, err)
+		require.NotNil(t, eolDate, "debian 8 should have an EOL date")
+		assert.True(t, time.Now().After(*eolDate), "debian 8 EOL date should be in the past")
+	})
+
+	t.Run("ubuntu 24.04 is not EOL", func(t *testing.T) {
+		d := distro.New(distro.Ubuntu, "24.04", "")
+		eolDate, _, err := checker.GetOperatingSystemEOL(d)
+		require.NoError(t, err)
+		require.NotNil(t, eolDate, "ubuntu 24.04 should have an EOL date")
+		assert.True(t, time.Now().Before(*eolDate), "ubuntu 24.04 EOL date should be in the future")
+	})
+
+	t.Run("redhat 7 is EOL", func(t *testing.T) {
+		d := distro.New(distro.RedHat, "7", "")
+		eolDate, _, err := checker.GetOperatingSystemEOL(d)
+		require.NoError(t, err)
+		require.NotNil(t, eolDate, "redhat 7 should have an EOL date")
+		assert.True(t, time.Now().After(*eolDate), "redhat 7 EOL date should be in the past")
+	})
+
+	t.Run("redhat 9 is not EOL", func(t *testing.T) {
+		d := distro.New(distro.RedHat, "9", "")
+		eolDate, _, err := checker.GetOperatingSystemEOL(d)
+		require.NoError(t, err)
+		require.NotNil(t, eolDate, "redhat 9 should have an EOL date")
+		assert.True(t, time.Now().Before(*eolDate), "redhat 9 EOL date should be in the future")
+	})
+
+	t.Run("no EOL data for unknown distro", func(t *testing.T) {
+		d := distro.New(distro.CentOS, "8", "")
+		eolDate, _, err := checker.GetOperatingSystemEOL(d)
+		require.NoError(t, err)
+		assert.Nil(t, eolDate, "centos 8 should have no EOL date (no centos OS row in DB)")
+	})
 }
 
 func strRef(s string) *string {

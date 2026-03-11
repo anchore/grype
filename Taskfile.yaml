@@ -275,7 +275,7 @@ tasks:
     vars:
       VUNNEL_ROOT: '{{ .VUNNEL_ROOT | default "../grype-db/data/vunnel" }}'
     cmds:
-      - "go run ./grype/db/v6/internal/testdb/cmd/extract-fixture --manifest grype/db/v6/internal/testdb/testdata/manifest.json --vunnel-root {{ .VUNNEL_ROOT }}"
+      - "go run ./grype/db/v6/testdb/cmd/extract-fixture --manifest grype/db/v6/testdb/testdata/manifest.json --vunnel-root {{ .VUNNEL_ROOT }}"
 
   show-test-image-cache:
     silent: true
