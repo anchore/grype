@@ -33,7 +33,10 @@ import (
 // testdata directory of this package. Use this from external test packages
 // to reference the pre-extracted vunnel fixtures.
 func Fixture(name string) string {
-	_, filename, _, _ := runtime.Caller(0)
+	_, filename, _, ok := runtime.Caller(0)
+	if !ok {
+		panic("testdb: unable to determine caller file path")
+	}
 	return filepath.Join(filepath.Dir(filename), "testdata", name)
 }
 

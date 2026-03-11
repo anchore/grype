@@ -155,7 +155,7 @@ func extractOne(dbPath, recordID, providerName, outputPath string) error {
 		return fmt.Errorf("creating output directory: %w", err)
 	}
 
-	if err := os.WriteFile(outputPath, prettyItem, 0o644); err != nil {
+	if err := os.WriteFile(outputPath, prettyItem, 0o600); err != nil {
 		return fmt.Errorf("writing fixture: %w", err)
 	}
 
@@ -172,7 +172,7 @@ func extractOne(dbPath, recordID, providerName, outputPath string) error {
 	scData = append(scData, '\n')
 
 	scPath := strings.TrimSuffix(outputPath, filepath.Ext(outputPath)) + ".meta.json"
-	if err := os.WriteFile(scPath, scData, 0o644); err != nil {
+	if err := os.WriteFile(scPath, scData, 0o600); err != nil {
 		return fmt.Errorf("writing sidecar: %w", err)
 	}
 
