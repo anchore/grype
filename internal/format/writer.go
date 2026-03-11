@@ -186,6 +186,9 @@ type scanResultStreamWriter struct {
 // Write the provided result to the data stream
 func (w *scanResultStreamWriter) Write(s models.PresenterConfig) error {
 	pres := GetPresenter(w.format, w.cfg, s)
+	if pres == nil {
+		return fmt.Errorf("invalid format: %s", w.format)
+	}
 	if err := pres.Present(w.out); err != nil {
 		return fmt.Errorf("unable to encode result: %w", err)
 	}
