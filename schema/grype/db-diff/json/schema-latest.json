@@ -4,6 +4,14 @@
   "$ref": "#/$defs/Result",
   "$defs": {
     "DatabaseDiff": {
+      "$defs": {
+        "after": {
+          "description": "is the next database, chronologically after the first"
+        },
+        "before": {
+          "description": "is the starting database, generated chronologically first"
+        }
+      },
       "properties": {
         "before": {
           "$ref": "#/$defs/DatabaseInfo"
@@ -19,6 +27,20 @@
       ]
     },
     "DatabaseInfo": {
+      "$defs": {
+        "buildTimestamp": {
+          "description": "is the timestamp in the database metadata"
+        },
+        "checksum": {
+          "description": "is the checksum of the database, calculated by the hydration process"
+        },
+        "modelVersion": {
+          "description": "is the schema version of the database"
+        },
+        "revision": {
+          "description": "is the database revision"
+        }
+      },
       "properties": {
         "buildTimestamp": {
           "type": "string"
@@ -41,6 +63,20 @@
       ]
     },
     "PackageDiff": {
+      "$defs": {
+        "cpe": {
+          "description": "is the CPE identifier for the package if this is a CPE-based package"
+        },
+        "ecosystem": {
+          "description": "is the package ecosystem such as rpm, or cpe"
+        },
+        "name": {
+          "description": "is the package name or CPE product"
+        },
+        "vulnerabilities": {
+          "description": "is all the vulnerability changes between the two databases"
+        }
+      },
       "properties": {
         "ecosystem": {
           "type": "string"
@@ -62,8 +98,19 @@
       ]
     },
     "Result": {
+      "$defs": {
+        "databases": {
+          "description": "indicates the two databases used to create this diff"
+        },
+        "packages": {
+          "description": "holds the package-based diff result"
+        },
+        "schema": {
+          "description": "is the diff JSON schema of this diff result"
+        }
+      },
       "properties": {
-        "$schema": {
+        "schema": {
           "type": "string"
         },
         "databases": {
@@ -78,11 +125,22 @@
       },
       "type": "object",
       "required": [
-        "$schema",
+        "schema",
         "databases"
       ]
     },
     "VulnerabilityChanges": {
+      "$defs": {
+        "added": {
+          "description": "results are results added that will newly match a specific package"
+        },
+        "modified": {
+          "description": "results are results that have been modified which will match the same package"
+        },
+        "removed": {
+          "description": "results are results removed that will no longer match a specific package"
+        }
+      },
       "properties": {
         "added": {
           "items": {
@@ -106,6 +164,14 @@
       "type": "object"
     },
     "VulnerabilityID": {
+      "$defs": {
+        "id": {
+          "description": "is the vulnerability identifier"
+        },
+        "provider": {
+          "description": "is the vulnerability provider such as github, nvd, or redhat"
+        }
+      },
       "properties": {
         "provider": {
           "type": "string"
