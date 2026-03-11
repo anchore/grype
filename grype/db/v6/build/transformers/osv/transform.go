@@ -23,6 +23,8 @@ import (
 
 const (
 	almaLinux = "almalinux"
+	alpaquita = "alpaquita"
+	bellsoft_hardened_containers = "bellsoft-hardened-containers"
 )
 
 func Transform(vulnerability unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
@@ -475,8 +477,10 @@ func getOperatingSystemFromEcosystem(ecosystem string) *db.OperatingSystem {
 
 	osName := strings.ToLower(parts[0])
 
-	// Only handle AlmaLinux
-	if osName != almaLinux {
+	// Only handle AlmaLinux, Alpaquita and BellSoft Hardened Containers
+	if osName != almaLinux &&
+	   osName != alpaquita &&
+	   osName != bellsoft_hardened_containers {
 		return nil
 	}
 
