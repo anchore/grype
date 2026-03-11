@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "anchore.io/schema/grype/db-diff/json/0.5.0/results",
+  "$ref": "#/$defs/Result",
+  "$defs": {
+    "DatabaseDiff": {
+      "properties": {
+        "before": {
+          "$ref": "#/$defs/DatabaseInfo"
+        },
+        "after": {
+          "$ref": "#/$defs/DatabaseInfo"
+        }
+      },
+      "type": "object",
+      "required": [
+        "before",
+        "after"
+      ]
+    },
+    "DatabaseInfo": {
+      "properties": {
+        "buildTimestamp": {
+          "type": "string"
+        },
+        "modelVersion": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer"
+        },
+        "checksum": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "buildTimestamp",
+        "modelVersion",
+        "revision"
+      ]
+    },
+    "PackageDiff": {
+      "properties": {
+        "ecosystem": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "cpe": {
+          "type": "string"
+        },
+        "vulnerabilities": {
+          "$ref": "#/$defs/VulnerabilityChanges"
+        }
+      },
+      "type": "object",
+      "required": [
+        "name",
+        "vulnerabilities"
+      ]
+    },
+    "Result": {
+      "properties": {
+        "$schema": {
+          "type": "string"
+        },
+        "databases": {
+          "$ref": "#/$defs/DatabaseDiff"
+        },
+        "packages": {
+          "items": {
+            "$ref": "#/$defs/PackageDiff"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "$schema",
+        "databases"
+      ]
+    },
+    "VulnerabilityChanges": {
+      "properties": {
+        "added": {
+          "items": {
+            "$ref": "#/$defs/VulnerabilityID"
+          },
+          "type": "array"
+        },
+        "removed": {
+          "items": {
+            "$ref": "#/$defs/VulnerabilityID"
+          },
+          "type": "array"
+        },
+        "modified": {
+          "items": {
+            "$ref": "#/$defs/VulnerabilityID"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "VulnerabilityID": {
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "provider",
+        "id"
+      ]
+    }
+  }
+}
