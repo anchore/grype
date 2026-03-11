@@ -1,0 +1,30 @@
+{
+  "codename": null,
+  "custom": null,
+  "eoasFrom": "2021-12-31",
+  "eolFrom": "2021-12-31",
+  "identifiers": [
+    {
+      "id": "cpe:/o:centos:centos",
+      "type": "cpe"
+    },
+    {
+      "id": "cpe:2.3:o:centos:centos",
+      "type": "cpe"
+    }
+  ],
+  "isEoas": true,
+  "isEol": true,
+  "isLts": false,
+  "isMaintained": false,
+  "label": "8",
+  "latest": {
+    "date": "2021-11-16",
+    "link": "https://wiki.centos.org/Manuals(2f)ReleaseNotes(2f)CentOS8(2e)2111.html",
+    "name": "8 (2111)"
+  },
+  "ltsFrom": null,
+  "name": "8",
+  "product": "centos",
+  "releaseDate": "2019-09-24"
+}

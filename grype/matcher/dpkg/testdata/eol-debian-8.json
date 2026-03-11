@@ -1,0 +1,30 @@
+{
+  "codename": "Jessie",
+  "custom": null,
+  "eoesFrom": "2020-06-30",
+  "eolFrom": "2018-06-17",
+  "identifiers": [
+    {
+      "id": "cpe:2.3:o:debian:debian_linux",
+      "type": "cpe"
+    },
+    {
+      "id": "cpe:/o:debian:debian_linux",
+      "type": "cpe"
+    }
+  ],
+  "isEoes": true,
+  "isEol": true,
+  "isLts": false,
+  "isMaintained": false,
+  "label": "8 (Jessie)",
+  "latest": {
+    "date": "2018-06-23",
+    "link": "https://lists.debian.org/debian-announce/2015/msg00001.html",
+    "name": "8.11"
+  },
+  "ltsFrom": null,
+  "name": "8",
+  "product": "debian",
+  "releaseDate": "2015-04-25"
+}

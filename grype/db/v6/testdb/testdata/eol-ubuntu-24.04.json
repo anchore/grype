@@ -1,0 +1,32 @@
+{
+  "codename": "Noble Numbat",
+  "custom": null,
+  "eoasFrom": "2029-05-31",
+  "eoesFrom": "2036-05-31",
+  "eolFrom": "2029-05-31",
+  "identifiers": [
+    {
+      "id": "cpe:2.3:o:canonical:ubuntu_linux",
+      "type": "cpe"
+    },
+    {
+      "id": "cpe:/o:canonical:ubuntu_linux",
+      "type": "cpe"
+    }
+  ],
+  "isEoas": false,
+  "isEoes": false,
+  "isEol": false,
+  "isLts": true,
+  "isMaintained": true,
+  "label": "24.04 'Noble Numbat' (LTS)",
+  "latest": {
+    "date": "2026-02-12",
+    "link": "https://wiki.ubuntu.com/NobleNumbat/ReleaseNotes/",
+    "name": "24.04.4"
+  },
+  "ltsFrom": null,
+  "name": "24.04",
+  "product": "ubuntu",
+  "releaseDate": "2024-04-25"
+}
