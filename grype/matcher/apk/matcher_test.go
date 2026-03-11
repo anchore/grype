@@ -23,7 +23,7 @@ import (
 func TestSecDBOnlyMatch(t *testing.T) {
 	// Uses real alpine secDB fixture for CVE-2021-30473 (aom, fix at 3.1.1-r0)
 	vp := testdb.New(t,
-		testdb.WithVunnelFixture(testdb.Fixture("alpine-3.18-cve-2021-30473.json")),
+		testdb.WithVunnelFixture("testdata/alpine-3.18-cve-2021-30473.json"),
 	)
 
 	m := Matcher{}
@@ -55,8 +55,8 @@ func TestBothSecdbAndNvdMatches(t *testing.T) {
 	// Both Alpine secDB and NVD have CVE-2021-30473 for aom/aomedia.
 	// The APK matcher should deduplicate: secDB match preferred over NVD.
 	vp := testdb.New(t,
-		testdb.WithVunnelFixture(testdb.Fixture("alpine-3.18-cve-2021-30473.json")),
-		testdb.WithVunnelFixture(testdb.Fixture("nvd-cve-2021-30473.json")),
+		testdb.WithVunnelFixture("testdata/alpine-3.18-cve-2021-30473.json"),
+		testdb.WithVunnelFixture("testdata/nvd-cve-2021-30473.json"),
 	)
 
 	m := Matcher{}
@@ -90,8 +90,8 @@ func TestBothSecdbAndNvdMatches_DifferentFixInfo(t *testing.T) {
 	// Both Alpine secDB and NVD have CVE-2021-30473. The secDB fix (3.1.1-r0)
 	// should be authoritative over NVD fix info.
 	vp := testdb.New(t,
-		testdb.WithVunnelFixture(testdb.Fixture("alpine-3.18-cve-2021-30473.json")),
-		testdb.WithVunnelFixture(testdb.Fixture("nvd-cve-2021-30473.json")),
+		testdb.WithVunnelFixture("testdata/alpine-3.18-cve-2021-30473.json"),
+		testdb.WithVunnelFixture("testdata/nvd-cve-2021-30473.json"),
 	)
 
 	m := Matcher{}
@@ -414,8 +414,8 @@ func TestNvdMatchesWithSecDBFix(t *testing.T) {
 	// When secDB says a version is fixed, NVD matches should be canceled
 	// even if the NVD constraint would still match.
 	vp := testdb.New(t,
-		testdb.WithVunnelFixture(testdb.Fixture("alpine-3.18-cve-2021-30473.json")),
-		testdb.WithVunnelFixture(testdb.Fixture("nvd-cve-2021-30473.json")),
+		testdb.WithVunnelFixture("testdata/alpine-3.18-cve-2021-30473.json"),
+		testdb.WithVunnelFixture("testdata/nvd-cve-2021-30473.json"),
 	)
 
 	m := Matcher{}
@@ -493,7 +493,7 @@ func TestNVDMatchCanceledByOriginPackageInSecDB(t *testing.T) {
 	// NVD CPE matches for a downstream package.
 	// Uses real wolfi fixture for CVE-2015-3211 (php-8.3 NAK).
 	vp := testdb.New(t,
-		testdb.WithVunnelFixture(testdb.Fixture("wolfi-rolling-cve-2015-3211.json")),
+		testdb.WithVunnelFixture("testdata/wolfi-rolling-cve-2015-3211.json"),
 	)
 
 	m := Matcher{}
@@ -530,7 +530,7 @@ func TestDistroMatchBySourceIndirection(t *testing.T) {
 	// Uses real alpine fixture. A package "aom-libs" with upstream "aom"
 	// should match CVE-2021-30473 via source indirection.
 	vp := testdb.New(t,
-		testdb.WithVunnelFixture(testdb.Fixture("alpine-3.18-cve-2021-30473.json")),
+		testdb.WithVunnelFixture("testdata/alpine-3.18-cve-2021-30473.json"),
 	)
 
 	m := Matcher{}

@@ -20,7 +20,7 @@ func TestMatcherRpm(t *testing.T) {
 	// Uses real RHEL fixture for CVE-2015-20107 (python3 fixed at 0:3.6.8-47.el8_6,
 	// python38 with module python38:3.8, python39 with module python39:3.9).
 	provider := testdb.New(t,
-		testdb.WithVunnelFixture(testdb.Fixture("rhel-8-cve-2015-20107.json")),
+		testdb.WithVunnelFixture("testdata/rhel-8-cve-2015-20107.json"),
 	)
 
 	tests := []struct {
@@ -179,7 +179,7 @@ func TestMatcherRpm(t *testing.T) {
 func TestMatcherRpm_Epoch(t *testing.T) {
 	// Uses real RHEL fixture for CVE-2018-0734 (openssl fixed at 1:1.1.1c-2.el8, epoch 1).
 	provider := testdb.New(t,
-		testdb.WithVunnelFixture(testdb.Fixture("rhel-8-cve-2018-0734.json")),
+		testdb.WithVunnelFixture("testdata/rhel-8-cve-2018-0734.json"),
 	)
 
 	matcher := Matcher{}
@@ -355,22 +355,22 @@ func TestMatcherRpm_CPEFallbackWhenEOL(t *testing.T) {
 
 	// Provider for EOL distro (RHEL 7)
 	eolProvider := testdb.New(t,
-		testdb.WithVunnelFixture(testdb.Fixture("rhel-7-cve-2018-0734.json")),
-		testdb.WithVunnelFixture(testdb.Fixture("nvd-cve-2018-0734.json")),
-		testdb.WithVunnelFixture(testdb.Fixture("eol-rhel-7.json")),
+		testdb.WithVunnelFixture("testdata/rhel-7-cve-2018-0734.json"),
+		testdb.WithVunnelFixture("testdata/nvd-cve-2018-0734.json"),
+		testdb.WithVunnelFixture("testdata/eol-rhel-7.json"),
 	)
 
 	// Provider for not-EOL distro (RHEL 9)
 	notEolProvider := testdb.New(t,
-		testdb.WithVunnelFixture(testdb.Fixture("rhel-9-cve-2005-2541.json")),
-		testdb.WithVunnelFixture(testdb.Fixture("nvd-cve-2018-0734.json")),
-		testdb.WithVunnelFixture(testdb.Fixture("eol-rhel-9.json")),
+		testdb.WithVunnelFixture("testdata/rhel-9-cve-2005-2541.json"),
+		testdb.WithVunnelFixture("testdata/nvd-cve-2018-0734.json"),
+		testdb.WithVunnelFixture("testdata/eol-rhel-9.json"),
 	)
 
 	// Provider with no EOL data at all (RHEL 8 vuln but no EOL fixture)
 	noEolDataProvider := testdb.New(t,
-		testdb.WithVunnelFixture(testdb.Fixture("rhel-8-cve-2018-0734.json")),
-		testdb.WithVunnelFixture(testdb.Fixture("nvd-cve-2018-0734.json")),
+		testdb.WithVunnelFixture("testdata/rhel-8-cve-2018-0734.json"),
+		testdb.WithVunnelFixture("testdata/nvd-cve-2018-0734.json"),
 	)
 
 	tests := []struct {

@@ -1,0 +1,32 @@
+{
+  "codename": null,
+  "custom": null,
+  "eoasFrom": "2019-08-06",
+  "eoesFrom": "2029-05-31",
+  "eolFrom": "2024-06-30",
+  "identifiers": [
+    {
+      "id": "cpe:/o:redhat:enterprise_linux",
+      "type": "cpe"
+    },
+    {
+      "id": "cpe:2.3:o:redhat:enterprise_linux",
+      "type": "cpe"
+    }
+  ],
+  "isEoas": true,
+  "isEoes": false,
+  "isEol": true,
+  "isLts": true,
+  "isMaintained": true,
+  "label": "7 (ELS)",
+  "latest": {
+    "date": "2020-09-29",
+    "link": "https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/7.9_release_notes/index",
+    "name": "7.9"
+  },
+  "ltsFrom": "2024-06-30",
+  "name": "7",
+  "product": "rhel",
+  "releaseDate": "2014-06-10"
+}

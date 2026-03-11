@@ -19,7 +19,7 @@ import (
 func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 	// Uses real Debian fixture for CVE-2014-0071 (neutron fixed at 2014.1-1 on debian:8).
 	provider := testdb.New(t,
-		testdb.WithVunnelFixture(testdb.Fixture("debian-8-cve-2014-0071.json")),
+		testdb.WithVunnelFixture("testdata/debian-8-cve-2014-0071.json"),
 	)
 
 	matcher := Matcher{}
@@ -123,22 +123,22 @@ func TestMatcherDpkg_CPEFallbackWhenEOL(t *testing.T) {
 
 	// Provider for EOL distro (Debian 8)
 	eolProvider := testdb.New(t,
-		testdb.WithVunnelFixture(testdb.Fixture("debian-8-cve-2014-0071.json")),
-		testdb.WithVunnelFixture(testdb.Fixture("nvd-cve-2018-0734.json")),
-		testdb.WithVunnelFixture(testdb.Fixture("eol-debian-8.json")),
+		testdb.WithVunnelFixture("testdata/debian-8-cve-2014-0071.json"),
+		testdb.WithVunnelFixture("testdata/nvd-cve-2018-0734.json"),
+		testdb.WithVunnelFixture("testdata/eol-debian-8.json"),
 	)
 
 	// Provider for not-EOL distro (Ubuntu 24.04)
 	notEolProvider := testdb.New(t,
-		testdb.WithVunnelFixture(testdb.Fixture("ubuntu-24.04-cve-2024-0567.json")),
-		testdb.WithVunnelFixture(testdb.Fixture("nvd-cve-2018-0734.json")),
-		testdb.WithVunnelFixture(testdb.Fixture("eol-ubuntu-24.04.json")),
+		testdb.WithVunnelFixture("testdata/ubuntu-24.04-cve-2024-0567.json"),
+		testdb.WithVunnelFixture("testdata/nvd-cve-2018-0734.json"),
+		testdb.WithVunnelFixture("testdata/eol-ubuntu-24.04.json"),
 	)
 
 	// Provider with no EOL data at all (Debian 8 vuln but no EOL fixture)
 	noEolDataProvider := testdb.New(t,
-		testdb.WithVunnelFixture(testdb.Fixture("debian-8-cve-2014-0071.json")),
-		testdb.WithVunnelFixture(testdb.Fixture("nvd-cve-2018-0734.json")),
+		testdb.WithVunnelFixture("testdata/debian-8-cve-2014-0071.json"),
+		testdb.WithVunnelFixture("testdata/nvd-cve-2018-0734.json"),
 	)
 
 	tests := []struct {
