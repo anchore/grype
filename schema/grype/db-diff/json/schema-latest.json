@@ -93,8 +93,7 @@
       },
       "type": "object",
       "required": [
-        "name",
-        "vulnerabilities"
+        "name"
       ]
     },
     "Result": {

@@ -49,7 +49,7 @@ type PackageDiff struct {
 	// CPE is the CPE identifier for the package if this is a CPE-based package
 	CPE string `json:"cpe,omitempty"`
 	// Vulnerabilities is all the vulnerability changes between the two databases
-	Vulnerabilities VulnerabilityChanges `json:"vulnerabilities"`
+	Vulnerabilities VulnerabilityChanges `json:"vulnerabilities,omitempty"`
 }
 
 // VulnerabilityChanges holds the added, removed, and modified vulnerabilities for a package.
