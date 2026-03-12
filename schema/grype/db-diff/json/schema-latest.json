@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "anchore.io/schema/grype/db-diff/json/0.5.0/results",
+  "$ref": "#/$defs/Result",
+  "$defs": {
+    "DatabaseDiff": {
+      "$defs": {
+        "after": {
+          "description": "is the next database, chronologically after the first"
+        },
+        "before": {
+          "description": "is the starting database, generated chronologically first"
+        }
+      },
+      "properties": {
+        "before": {
+          "$ref": "#/$defs/DatabaseInfo"
+        },
+        "after": {
+          "$ref": "#/$defs/DatabaseInfo"
+        }
+      },
+      "type": "object",
+      "required": [
+        "before",
+        "after"
+      ]
+    },
+    "DatabaseInfo": {
+      "$defs": {
+        "buildTimestamp": {
+          "description": "is the timestamp in the database metadata"
+        },
+        "checksum": {
+          "description": "is the checksum of the database, calculated by the hydration process"
+        },
+        "modelVersion": {
+          "description": "is the schema version of the database"
+        },
+        "revision": {
+          "description": "is the database revision"
+        }
+      },
+      "properties": {
+        "buildTimestamp": {
+          "type": "string"
+        },
+        "modelVersion": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer"
+        },
+        "checksum": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "buildTimestamp",
+        "modelVersion",
+        "revision"
+      ]
+    },
+    "PackageDiff": {
+      "$defs": {
+        "cpe": {
+          "description": "is the CPE identifier for the package if this is a CPE-based package"
+        },
+        "ecosystem": {
+          "description": "is the package ecosystem such as rpm, or cpe"
+        },
+        "name": {
+          "description": "is the package name or CPE product"
+        },
+        "vulnerabilities": {
+          "description": "is all the vulnerability changes between the two databases"
+        }
+      },
+      "properties": {
+        "ecosystem": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "cpe": {
+          "type": "string"
+        },
+        "vulnerabilities": {
+          "$ref": "#/$defs/VulnerabilityChanges"
+        }
+      },
+      "type": "object",
+      "required": [
+        "name"
+      ]
+    },
+    "Result": {
+      "$defs": {
+        "databases": {
+          "description": "indicates the two databases used to create this diff"
+        },
+        "packages": {
+          "description": "holds the package-based diff result"
+        },
+        "schema": {
+          "description": "is the diff JSON schema of this diff result"
+        }
+      },
+      "properties": {
+        "schema": {
+          "type": "string"
+        },
+        "databases": {
+          "$ref": "#/$defs/DatabaseDiff"
+        },
+        "packages": {
+          "items": {
+            "$ref": "#/$defs/PackageDiff"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "schema",
+        "databases"
+      ]
+    },
+    "VulnerabilityChanges": {
+      "$defs": {
+        "added": {
+          "description": "results are results added that will newly match a specific package"
+        },
+        "modified": {
+          "description": "results are results that have been modified which will match the same package"
+        },
+        "removed": {
+          "description": "results are results removed that will no longer match a specific package"
+        }
+      },
+      "properties": {
+        "added": {
+          "items": {
+            "$ref": "#/$defs/VulnerabilityID"
+          },
+          "type": "array"
+        },
+        "removed": {
+          "items": {
+            "$ref": "#/$defs/VulnerabilityID"
+          },
+          "type": "array"
+        },
+        "modified": {
+          "items": {
+            "$ref": "#/$defs/VulnerabilityID"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "VulnerabilityID": {
+      "$defs": {
+        "id": {
+          "description": "is the vulnerability identifier"
+        },
+        "provider": {
+          "description": "is the vulnerability provider such as github, nvd, or redhat"
+        }
+      },
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "type": "object",
+      "required": [
+        "provider",
+        "id"
+      ]
+    }
+  }
+}

@@ -18,24 +18,35 @@ import (
 	"golang.org/x/tools/go/packages"
 
 	v6 "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/grype/db/v6/diff"
 )
 
 func main() {
 	// The schema version is derived from the database version
 	version := fmt.Sprintf("%d.%d.%d", v6.ModelVersion, v6.Revision, v6.Addition)
 
+	comments := parseCommentsFromPackages([]string{"../diff"})
+
+	// Generate unified blob JSON schema
+	err := generateDiffSchema(diff.SchemaVersion, comments)
+	if err != nil {
+		fmt.Printf("Failed to generate diff JSON schema: %v\n", err)
+		os.Exit(1)
+	}
+
 	pkgPatterns := []string{".."}
-	comments := parseCommentsFromPackages(pkgPatterns)
+	comments = parseCommentsFromPackages(pkgPatterns)
 	fmt.Printf("Extracted field comments from %d structs\n", len(comments))
 
 	// Generate SQL schema
-	if err := generateSQLSchema(version); err != nil {
+	err = generateSQLSchema(version)
+	if err != nil {
 		fmt.Printf("Failed to generate SQL schema: %v\n", err)
 		os.Exit(1)
 	}
 
 	// Generate unified blob JSON schema
-	err := generateBlobSchema(version, comments)
+	err = generateBlobSchema(version, comments)
 	if err != nil {
 		fmt.Printf("Failed to generate blob JSON schema: %v\n", err)
 		os.Exit(1)
@@ -213,6 +224,25 @@ func buildUnifiedBlobSchema(version string, comments map[string]map[string]strin
 	applyComments(unifiedSchema.Definitions, comments)
 
 	return unifiedSchema
+}
+
+func generateDiffSchema(version string, comments map[string]map[string]string) error {
+	reflector := &jsonschema.Reflector{
+		AllowAdditionalProperties: true,
+		Namer: func(r reflect.Type) string {
+			return strings.TrimPrefix(r.Name(), "JSON")
+		},
+	}
+
+	diffSchema := reflector.ReflectFromType(reflect.TypeOf(diff.Result{}))
+
+	applyComments(diffSchema.Definitions, comments)
+
+	diffSchema.ID = jsonschema.ID(diff.Schema)
+
+	encoded := encode(diffSchema)
+
+	return writeFile(string(encoded), "db-diff/json", version, ".json")
 }
 
 func mergeDefinitions(target, source map[string]*jsonschema.Schema) {
