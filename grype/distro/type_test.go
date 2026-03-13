@@ -117,6 +117,20 @@ func TestTypeFromRelease(t *testing.T) {
 			want: Alpine,
 		},
 		{
+			name: "cleanstart ID mapping",
+			release: linux.Release{
+				ID: "cleanstart",
+			},
+			want: Clnstrt,
+		},
+		{
+			name: "clnstrt ID mapping",
+			release: linux.Release{
+				ID: "clnstrt",
+			},
+			want: Clnstrt,
+		},
+		{
 			name: "Scientific Linux 6",
 			release: linux.Release{
 				Name:      "Scientific Linux",
