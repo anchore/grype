@@ -68,40 +68,7 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 		}
 	}
 
-	// Discover vulnerabilities the distro feed has assessed as fixed for this package, and return
-	// ignore rules so that language/ecosystem matchers for co-installed language packages (e.g. a
-	// PyPI package installed via a deb) don't produce false positive matches for the same CVEs.
-	ignoreFilters, err := m.findDistroFixedIgnoreRules(store, p)
-	if err != nil {
-		log.WithFields("package", p.Name, "error", err).Debug("failed to find distro fixed ignore rules")
-	}
-
-	return matches, ignoreFilters, nil
-}
-
-// findDistroFixedIgnoreRules discovers CVEs that the Debian/Ubuntu distro feed has data about but for
-// which the installed package version is already patched. These are returned as ignore rules that suppress
-// false positive matches from language/ecosystem matchers for the same CVEs.
-func (m *Matcher) findDistroFixedIgnoreRules(store vulnerability.Provider, p pkg.Package) ([]match.IgnoreFilter, error) {
-	versionCfg := &version.ComparisonConfig{
-		MissingEpochStrategy: m.cfg.MissingEpochStrategy,
-	}
-
-	ignores, err := internal.FindDistroFixedIgnoreRules(store, p, versionCfg)
-	if err != nil {
-		return nil, err
-	}
-
-	// also search upstream/source packages
-	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		upstreamIgnores, err := internal.FindDistroFixedIgnoreRules(store, indirectPackage, versionCfg)
-		if err != nil {
-			return nil, err
-		}
-		ignores = append(ignores, upstreamIgnores...)
-	}
-
-	return ignores, nil
+	return matches, nil, nil
 }
 
 func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Package) ([]match.Match, error) {

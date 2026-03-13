@@ -228,18 +228,24 @@ func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, cata
 }
 
 // findDistroFixedIgnoreRules discovers CVEs that the APK distro feed has data about but for which the
-// installed package version is already patched. These are returned as ignore rules that suppress false
-// positive matches from language/ecosystem matchers for the same CVEs.
+// installed package version is already patched. These are returned as ignore rules scoped to file paths
+// owned by the APK, so they only suppress findings for co-located packages (e.g. a Go binary installed
+// via APK) and not for independently installed packages (e.g. a pip install in the same container).
 func (m *Matcher) findDistroFixedIgnoreRules(store vulnerability.Provider, p pkg.Package) ([]match.IgnoreFilter, error) {
+	ownedPaths := ownedFilePaths(p)
+	if len(ownedPaths) == 0 {
+		return nil, nil
+	}
+
 	// APK doesn't use epochs, so pass nil for the config
-	ignores, err := internal.FindDistroFixedIgnoreRules(store, p, nil)
+	ignores, err := internal.FindDistroFixedIgnoreRules(store, p, nil, ownedPaths)
 	if err != nil {
 		return nil, err
 	}
 
 	// also search upstream/source packages
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		upstreamIgnores, err := internal.FindDistroFixedIgnoreRules(store, indirectPackage, nil)
+		upstreamIgnores, err := internal.FindDistroFixedIgnoreRules(store, indirectPackage, nil, ownedPaths)
 		if err != nil {
 			return nil, err
 		}
@@ -247,6 +253,19 @@ func (m *Matcher) findDistroFixedIgnoreRules(store vulnerability.Provider, p pkg
 	}
 
 	return ignores, nil
+}
+
+// ownedFilePaths extracts the file paths owned by an APK package from its metadata.
+func ownedFilePaths(p pkg.Package) []string {
+	meta, ok := p.Metadata.(pkg.ApkMetadata)
+	if !ok {
+		return nil
+	}
+	var paths []string
+	for _, f := range meta.Files {
+		paths = append(paths, f.Path)
+	}
+	return paths
 }
 
 // NAK entries are those reported as explicitly not vulnerable by the upstream provider,

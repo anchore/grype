@@ -81,15 +81,7 @@ func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match
 		}
 	}
 
-	// Discover vulnerabilities the distro feed has assessed as fixed for this package, and return
-	// ignore rules so that language/ecosystem matchers for co-installed language packages (e.g. a
-	// PyPI package installed via an RPM) don't produce false positive matches for the same CVEs.
-	ignoreFilters, err := m.findDistroFixedIgnoreRules(vp, p)
-	if err != nil {
-		log.WithFields("package", p.Name, "error", err).Debug("failed to find distro fixed ignore rules")
-	}
-
-	return matches, ignoreFilters, nil
+	return matches, nil, nil
 }
 
 // matchAlmaLinux handles AlmaLinux-specific matching logic that considers both binary and upstream packages
@@ -242,40 +234,6 @@ func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Packag
 	}
 
 	return disclosures.ToMatches(), nil
-}
-
-// findDistroFixedIgnoreRules discovers CVEs that the RPM distro feed has data about but for which the
-// installed package version is already patched. These are returned as ignore rules that suppress false
-// positive matches from language/ecosystem matchers for the same CVEs.
-//
-// For example, when RHEL backports a fix into python3-requests, the RPM feed knows this CVE is fixed,
-// but the co-installed PyPI "requests" package still looks vulnerable to the GHSA/Python matcher
-// because its upstream version number hasn't changed. The ignore rules from this method will suppress
-// that false positive GHSA match.
-func (m *Matcher) findDistroFixedIgnoreRules(vp vulnerability.Provider, p pkg.Package) ([]match.IgnoreFilter, error) {
-	versionCfg := &version.ComparisonConfig{
-		MissingEpochStrategy: m.cfg.MissingEpochStrategy,
-	}
-
-	// search the binary package with epoch applied (same as matchPackage)
-	binaryPkg := p
-	addEpochIfApplicable(&binaryPkg)
-
-	ignores, err := internal.FindDistroFixedIgnoreRules(vp, binaryPkg, versionCfg)
-	if err != nil {
-		return nil, err
-	}
-
-	// also search upstream/source packages (same as matchUpstreamPackages)
-	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		upstreamIgnores, err := internal.FindDistroFixedIgnoreRules(vp, indirectPackage, versionCfg)
-		if err != nil {
-			return nil, err
-		}
-		ignores = append(ignores, upstreamIgnores...)
-	}
-
-	return ignores, nil
 }
 
 func addEpochIfApplicable(p *pkg.Package) {

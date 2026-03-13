@@ -103,15 +103,19 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 }
 
 func TestFindDistroFixedIgnoreRules(t *testing.T) {
+	ownedPaths := []string{"/usr/lib/python3/dist-packages/requests", "/usr/bin/python3"}
+
 	tests := []struct {
 		name                  string
 		pkg                   pkg.Package
+		ownedPaths            []string
 		vulnerabilities       []vulnerability.Vulnerability
 		expectedIgnoreVulnIDs []string
 		expectNoIgnoreRules   bool
 	}{
 		{
-			name: "package version is already fixed - should produce ignore rules",
+			name:       "package version is already fixed - should produce ignore rules scoped to paths",
+			ownedPaths: ownedPaths,
 			pkg: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
 				Name:    "python3-requests",
@@ -126,11 +130,12 @@ func TestFindDistroFixedIgnoreRules(t *testing.T) {
 					Reference:   vulnerability.Reference{ID: "CVE-2023-backported", Namespace: "secdb:distro:redhat:8"},
 				},
 			},
-			// package version 2.25.1-14.el8 is NOT less than 2.25.1-14.el8, so it's fixed
-			expectedIgnoreVulnIDs: []string{"CVE-2023-backported"},
+			// one rule per (vulnID, path) pair
+			expectedIgnoreVulnIDs: []string{"CVE-2023-backported", "CVE-2023-backported"},
 		},
 		{
-			name: "package version is still vulnerable - should NOT produce ignore rules",
+			name:       "package version is still vulnerable - should NOT produce ignore rules",
+			ownedPaths: ownedPaths,
 			pkg: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
 				Name:    "python3-requests",
@@ -148,7 +153,8 @@ func TestFindDistroFixedIgnoreRules(t *testing.T) {
 			expectNoIgnoreRules: true,
 		},
 		{
-			name: "distro has no data about the package - should NOT produce ignore rules (search miss)",
+			name:       "distro has no data about the package - should NOT produce ignore rules (search miss)",
+			ownedPaths: ownedPaths,
 			pkg: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
 				Name:    "python3-something-obscure",
@@ -167,7 +173,8 @@ func TestFindDistroFixedIgnoreRules(t *testing.T) {
 			expectNoIgnoreRules: true,
 		},
 		{
-			name: "mix of fixed and still-vulnerable CVEs - should only produce ignore rules for fixed ones",
+			name:       "mix of fixed and still-vulnerable CVEs - should only produce ignore rules for fixed ones",
+			ownedPaths: ownedPaths,
 			pkg: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
 				Name:    "python3-requests",
@@ -189,10 +196,12 @@ func TestFindDistroFixedIgnoreRules(t *testing.T) {
 					Reference:   vulnerability.Reference{ID: "CVE-2023-still-vulnerable", Namespace: "secdb:distro:redhat:8"},
 				},
 			},
-			expectedIgnoreVulnIDs: []string{"CVE-2023-already-fixed"},
+			// one rule per path for the fixed CVE only
+			expectedIgnoreVulnIDs: []string{"CVE-2023-already-fixed", "CVE-2023-already-fixed"},
 		},
 		{
-			name: "fixed CVE with related vulnerabilities - should produce ignore rules for all IDs",
+			name:       "fixed CVE with related vulnerabilities - should produce ignore rules for all IDs at all paths",
+			ownedPaths: ownedPaths,
 			pkg: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
 				Name:    "python3-requests",
@@ -210,11 +219,12 @@ func TestFindDistroFixedIgnoreRules(t *testing.T) {
 					},
 				},
 			},
-			// both the primary ID and the related GHSA ID should be present
-			expectedIgnoreVulnIDs: []string{"CVE-2023-backported", "GHSA-xxxx-yyyy-zzzz"},
+			// both IDs × 2 paths = 4 rules
+			expectedIgnoreVulnIDs: []string{"CVE-2023-backported", "CVE-2023-backported", "GHSA-xxxx-yyyy-zzzz", "GHSA-xxxx-yyyy-zzzz"},
 		},
 		{
-			name: "no distro on package - should NOT produce ignore rules",
+			name:       "no distro on package - should NOT produce ignore rules",
+			ownedPaths: ownedPaths,
 			pkg: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
 				Name:    "python3-requests",
@@ -232,11 +242,31 @@ func TestFindDistroFixedIgnoreRules(t *testing.T) {
 			expectNoIgnoreRules: true,
 		},
 		{
-			name: "unknown version - should NOT produce ignore rules",
+			name:       "unknown version - should NOT produce ignore rules",
+			ownedPaths: ownedPaths,
 			pkg: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
 				Name:    "python3-requests",
 				Version: "unknown",
+				Type:    syftPkg.RpmPkg,
+				Distro:  distro.New(distro.RedHat, "8", ""),
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "python3-requests",
+					Constraint:  version.MustGetConstraint("< 2.25.1-14.el8", version.RpmFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-backported", Namespace: "secdb:distro:redhat:8"},
+				},
+			},
+			expectNoIgnoreRules: true,
+		},
+		{
+			name:       "no owned paths - should NOT produce ignore rules even if fixed",
+			ownedPaths: nil,
+			pkg: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "python3-requests",
+				Version: "2.25.1-14.el8",
 				Type:    syftPkg.RpmPkg,
 				Distro:  distro.New(distro.RedHat, "8", ""),
 			},
@@ -255,7 +285,7 @@ func TestFindDistroFixedIgnoreRules(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			store := mock.VulnerabilityProvider(test.vulnerabilities...)
 
-			ignoreFilters, err := FindDistroFixedIgnoreRules(store, test.pkg, nil)
+			ignoreFilters, err := FindDistroFixedIgnoreRules(store, test.pkg, nil, test.ownedPaths)
 			require.NoError(t, err)
 
 			if test.expectNoIgnoreRules {
@@ -271,6 +301,7 @@ func TestFindDistroFixedIgnoreRules(t *testing.T) {
 				gotVulnIDs = append(gotVulnIDs, rule.Vulnerability)
 				assert.True(t, rule.IncludeAliases, "expected IncludeAliases to be true")
 				assert.Equal(t, "DistroPackageFixed", rule.Reason)
+				assert.NotEmpty(t, rule.Package.Location, "expected location to be set")
 			}
 
 			assert.ElementsMatch(t, test.expectedIgnoreVulnIDs, gotVulnIDs, "unexpected ignore rule vulnerability IDs")

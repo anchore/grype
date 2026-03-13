@@ -1095,6 +1095,11 @@ func Test_nakIgnoreRules(t *testing.T) {
 func TestMatcherApk_DistroFixedIgnoreRules(t *testing.T) {
 	apkNamespace := "secdb:distro:wolfi:rolling"
 
+	apkFiles := pkg.ApkMetadata{Files: []pkg.ApkFileRecord{
+		{Path: "/usr/bin/kyverno"},
+		{Path: "/usr/lib/kyverno/config"},
+	}}
+
 	tests := []struct {
 		name                  string
 		p                     pkg.Package
@@ -1103,13 +1108,14 @@ func TestMatcherApk_DistroFixedIgnoreRules(t *testing.T) {
 		expectedMatchIDs      []string
 	}{
 		{
-			name: "package already at fixed version - should produce ignore rules but no matches",
+			name: "package already at fixed version - should produce location-scoped ignore rules but no matches",
 			p: pkg.Package{
-				ID:      pkg.ID(uuid.NewString()),
-				Name:    "kyverno",
-				Version: "1.15.3-r0",
-				Type:    syftPkg.ApkPkg,
-				Distro:  distro.New(distro.Wolfi, "", ""),
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "kyverno",
+				Version:  "1.15.3-r0",
+				Type:     syftPkg.ApkPkg,
+				Distro:   distro.New(distro.Wolfi, "", ""),
+				Metadata: apkFiles,
 			},
 			vulnerabilities: []vulnerability.Vulnerability{
 				{
@@ -1118,17 +1124,19 @@ func TestMatcherApk_DistroFixedIgnoreRules(t *testing.T) {
 					Reference:   vulnerability.Reference{ID: "CVE-2026-22039", Namespace: apkNamespace},
 				},
 			},
-			expectedIgnoreVulnIDs: []string{"CVE-2026-22039"},
+			// one rule per owned path
+			expectedIgnoreVulnIDs: []string{"CVE-2026-22039", "CVE-2026-22039"},
 			expectedMatchIDs:      nil,
 		},
 		{
 			name: "package still vulnerable - should produce matches but no ignore rules",
 			p: pkg.Package{
-				ID:      pkg.ID(uuid.NewString()),
-				Name:    "kyverno",
-				Version: "1.14.5-r0",
-				Type:    syftPkg.ApkPkg,
-				Distro:  distro.New(distro.Wolfi, "", ""),
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "kyverno",
+				Version:  "1.14.5-r0",
+				Type:     syftPkg.ApkPkg,
+				Distro:   distro.New(distro.Wolfi, "", ""),
+				Metadata: apkFiles,
 			},
 			vulnerabilities: []vulnerability.Vulnerability{
 				{
@@ -1143,11 +1151,12 @@ func TestMatcherApk_DistroFixedIgnoreRules(t *testing.T) {
 		{
 			name: "no distro data for the package - no ignore rules (search miss allows GHSA to stand)",
 			p: pkg.Package{
-				ID:      pkg.ID(uuid.NewString()),
-				Name:    "something-obscure",
-				Version: "1.0.0-r0",
-				Type:    syftPkg.ApkPkg,
-				Distro:  distro.New(distro.Wolfi, "", ""),
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "something-obscure",
+				Version:  "1.0.0-r0",
+				Type:     syftPkg.ApkPkg,
+				Distro:   distro.New(distro.Wolfi, "", ""),
+				Metadata: apkFiles,
 			},
 			vulnerabilities: []vulnerability.Vulnerability{
 				{
@@ -1160,13 +1169,14 @@ func TestMatcherApk_DistroFixedIgnoreRules(t *testing.T) {
 			expectedMatchIDs:      nil,
 		},
 		{
-			name: "upstream package is fixed - should produce ignore rules",
+			name: "upstream package is fixed - should produce location-scoped ignore rules",
 			p: pkg.Package{
-				ID:      pkg.ID(uuid.NewString()),
-				Name:    "kyverno-cli",
-				Version: "1.15.3-r0",
-				Type:    syftPkg.ApkPkg,
-				Distro:  distro.New(distro.Wolfi, "", ""),
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "kyverno-cli",
+				Version:  "1.15.3-r0",
+				Type:     syftPkg.ApkPkg,
+				Distro:   distro.New(distro.Wolfi, "", ""),
+				Metadata: apkFiles,
 				Upstreams: []pkg.UpstreamPackage{
 					{
 						Name:    "kyverno",
@@ -1181,17 +1191,19 @@ func TestMatcherApk_DistroFixedIgnoreRules(t *testing.T) {
 					Reference:   vulnerability.Reference{ID: "CVE-2026-22039", Namespace: apkNamespace},
 				},
 			},
-			expectedIgnoreVulnIDs: []string{"CVE-2026-22039"},
+			// one rule per owned path
+			expectedIgnoreVulnIDs: []string{"CVE-2026-22039", "CVE-2026-22039"},
 			expectedMatchIDs:      nil,
 		},
 		{
-			name: "fixed CVE with related GHSA - ignore rules include both IDs for alias resolution",
+			name: "fixed CVE with related GHSA - ignore rules include both IDs at all paths",
 			p: pkg.Package{
-				ID:      pkg.ID(uuid.NewString()),
-				Name:    "kyverno",
-				Version: "1.15.3-r0",
-				Type:    syftPkg.ApkPkg,
-				Distro:  distro.New(distro.Wolfi, "", ""),
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "kyverno",
+				Version:  "1.15.3-r0",
+				Type:     syftPkg.ApkPkg,
+				Distro:   distro.New(distro.Wolfi, "", ""),
+				Metadata: apkFiles,
 			},
 			vulnerabilities: []vulnerability.Vulnerability{
 				{
@@ -1203,7 +1215,28 @@ func TestMatcherApk_DistroFixedIgnoreRules(t *testing.T) {
 					},
 				},
 			},
-			expectedIgnoreVulnIDs: []string{"CVE-2026-22039", "GHSA-8p9x-46gm-qfx2"},
+			// 2 IDs × 2 paths = 4 rules
+			expectedIgnoreVulnIDs: []string{"CVE-2026-22039", "CVE-2026-22039", "GHSA-8p9x-46gm-qfx2", "GHSA-8p9x-46gm-qfx2"},
+			expectedMatchIDs:      nil,
+		},
+		{
+			name: "no APK metadata (no file list) - should NOT produce ignore rules even if fixed",
+			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "kyverno",
+				Version: "1.15.3-r0",
+				Type:    syftPkg.ApkPkg,
+				Distro:  distro.New(distro.Wolfi, "", ""),
+				// no Metadata
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "kyverno",
+					Constraint:  version.MustGetConstraint("< 1.15.3-r0", version.ApkFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2026-22039", Namespace: apkNamespace},
+				},
+			},
+			expectedIgnoreVulnIDs: nil,
 			expectedMatchIDs:      nil,
 		},
 	}
@@ -1237,6 +1270,7 @@ func TestMatcherApk_DistroFixedIgnoreRules(t *testing.T) {
 				}
 				gotIgnoreIDs = append(gotIgnoreIDs, rule.Vulnerability)
 				assert.True(t, rule.IncludeAliases, "expected IncludeAliases to be true")
+				assert.NotEmpty(t, rule.Package.Location, "expected location to be set on DistroPackageFixed rule")
 			}
 			if test.expectedIgnoreVulnIDs == nil {
 				assert.Empty(t, gotIgnoreIDs, "expected no ignore rules")

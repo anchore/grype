@@ -94,16 +94,16 @@ func distroMatchDetails(upstreamMatcher match.MatcherType, searchPkg pkg.Package
 
 // FindDistroFixedIgnoreRules discovers vulnerabilities that the distro feed has data about but that do not
 // affect the installed package version (i.e. the package is already at or beyond the fixed version). These
-// "assessed-not-vulnerable" entries are returned as IgnoreRules so they can suppress false positive matches
-// from language/ecosystem matchers (e.g. the GHSA/Python matcher) for the same CVE.
+// "assessed-not-vulnerable" entries are returned as IgnoreRules scoped to the provided ownedPaths so they
+// only suppress findings for packages located at those paths — not for independently installed packages
+// (e.g. a pip-installed package in a container that also has the distro package).
 //
-// This addresses the case where a distro backports a fix (e.g. RHEL patches python3-requests) but the
-// upstream version number still looks vulnerable to the language-ecosystem advisory data. Without this,
-// the language matcher would produce a false positive match.
-//
-// Importantly, when the distro feed has NO data about a CVE, no ignore rule is emitted, allowing the
-// language matcher's verdict to stand -- this is the "search miss lets GHSA stand" behavior.
-func FindDistroFixedIgnoreRules(provider vulnerability.Provider, searchPkg pkg.Package, cfg *version.ComparisonConfig) ([]match.IgnoreFilter, error) {
+// If ownedPaths is empty, no ignore rules are emitted (we cannot safely scope the suppression).
+func FindDistroFixedIgnoreRules(provider vulnerability.Provider, searchPkg pkg.Package, cfg *version.ComparisonConfig, ownedPaths []string) ([]match.IgnoreFilter, error) {
+	if len(ownedPaths) == 0 {
+		return nil, nil
+	}
+
 	if searchPkg.Distro == nil {
 		return nil, nil
 	}
@@ -162,11 +162,16 @@ func FindDistroFixedIgnoreRules(provider vulnerability.Provider, searchPkg pkg.P
 		ids := collectVulnerabilityIDs(v)
 
 		for _, id := range ids {
-			ignores = append(ignores, match.IgnoreRule{
-				Vulnerability:  id,
-				IncludeAliases: true,
-				Reason:         "DistroPackageFixed",
-			})
+			for _, path := range ownedPaths {
+				ignores = append(ignores, match.IgnoreRule{
+					Vulnerability:  id,
+					IncludeAliases: true,
+					Reason:         "DistroPackageFixed",
+					Package: match.IgnoreRulePackage{
+						Location: path,
+					},
+				})
+			}
 		}
 	}
 
