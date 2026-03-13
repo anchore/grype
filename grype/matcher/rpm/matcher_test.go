@@ -11,7 +11,9 @@ import (
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/vulnerability/mock"
 	syftCpe "github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -385,6 +387,30 @@ func Test_addEpochIfApplicable(t *testing.T) {
 			assert.Equal(t, test.expected, p.Version)
 		})
 	}
+}
+
+func TestMatcherRpm_NoDistroFixedIgnoreRulesWithoutFileData(t *testing.T) {
+	// RPM packages don't have file ownership metadata, so the RPM matcher should NOT
+	// emit DistroPackageFixed ignore rules (we can't scope them to owned paths).
+	matcher := Matcher{}
+
+	store := mock.VulnerabilityProvider(vulnerability.Vulnerability{
+		PackageName: "python3-requests",
+		Constraint:  version.MustGetConstraint("< 0:2.25.1-14.el8", version.RpmFormat),
+		Reference:   vulnerability.Reference{ID: "CVE-2023-backported", Namespace: namespace},
+	})
+
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "python3-requests",
+		Version: "2.25.1-14.el8", // at the fixed version
+		Type:    syftPkg.RpmPkg,
+		Distro:  distro.New(distro.CentOS, "8", ""),
+	}
+
+	_, ignoreFilters, err := matcher.Match(store, p)
+	require.NoError(t, err)
+	assert.Empty(t, ignoreFilters, "RPM matcher should not emit ignore rules without file ownership data")
 }
 
 func TestMatcherRpm_CPEFallbackWhenEOL(t *testing.T) {

@@ -11,6 +11,9 @@ import (
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/version"
+	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/vulnerability/mock"
 	"github.com/anchore/grype/internal/stringutil"
 	syftCpe "github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -148,4 +151,28 @@ func TestMatcherDpkg_CPEFallbackWhenEOL(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMatcherDpkg_NoDistroFixedIgnoreRulesWithoutFileData(t *testing.T) {
+	// dpkg packages don't have file ownership metadata, so the dpkg matcher should NOT
+	// emit DistroPackageFixed ignore rules (we can't scope them to owned paths).
+	matcher := Matcher{}
+
+	store := mock.VulnerabilityProvider(vulnerability.Vulnerability{
+		PackageName: "python3-requests",
+		Constraint:  version.MustGetConstraint("< 2.25.1-1", version.DebFormat),
+		Reference:   vulnerability.Reference{ID: "CVE-2023-backported", Namespace: "secdb:distro:debian:8"},
+	})
+
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "python3-requests",
+		Version: "2.25.1-1", // at the fixed version
+		Type:    syftPkg.DebPkg,
+		Distro:  distro.New(distro.Debian, "8", ""),
+	}
+
+	_, ignoreFilters, err := matcher.Match(store, p)
+	require.NoError(t, err)
+	assert.Empty(t, ignoreFilters, "dpkg matcher should not emit ignore rules without file ownership data")
 }
