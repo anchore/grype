@@ -89,6 +89,13 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		name   string
 		image  string
 		format sbom.FormatEncoder
+		// knownFormatLossMatches lists match keys (vuln-pkg-version) that are expected to
+		// appear only in results from this SBOM format (and not from an image scan) due to
+		// metadata loss during format encoding. For example, SPDX does not preserve APK file
+		// ownership metadata, so distro-package-fixed ignore rules cannot be scoped to owned
+		// paths and are not emitted — causing matches that the image scan correctly suppresses
+		// to remain visible. This does NOT apply to syft-json, which preserves all metadata.
+		knownFormatLossMatches []string
 	}{
 		{
 			image:  "anchore/test_images:vulnerabilities-alpine",
@@ -118,12 +125,18 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 			image:  "anchore/test_images:gems",
 			format: must(spdxjson.NewFormatEncoderWithConfig(spdxjson.DefaultEncoderConfig())),
 			name:   "gems-spdx-json",
+			// SPDX does not preserve APK file ownership metadata, so distro-package-fixed
+			// ignore rules cannot be scoped to owned paths and are not emitted from the SBOM.
+			knownFormatLossMatches: []string{"GHSA-8cr8-4vfw-mr7h-rexml-3.2.3.1"},
 		},
 
 		{
 			image:  "anchore/test_images:gems",
 			format: must(spdxtagvalue.NewFormatEncoderWithConfig(spdxtagvalue.DefaultEncoderConfig())),
 			name:   "gems-spdx-tag-value",
+			// SPDX does not preserve APK file ownership metadata, so distro-package-fixed
+			// ignore rules cannot be scoped to owned paths and are not emitted from the SBOM.
+			knownFormatLossMatches: []string{"GHSA-8cr8-4vfw-mr7h-rexml-3.2.3.1"},
 		},
 
 		{
@@ -262,7 +275,11 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 			matchSetFromSbom := getMatchSet(matchesFromSbom)
 			matchSetFromImage := getMatchSet(matchesFromImage)
 
-			assert.Empty(t, strset.Difference(matchSetFromSbom, matchSetFromImage).List(), "vulnerabilities present only in results when using sbom as input")
+			sbomOnly := strset.Difference(matchSetFromSbom, matchSetFromImage)
+			if len(tc.knownFormatLossMatches) > 0 {
+				sbomOnly.Remove(tc.knownFormatLossMatches...)
+			}
+			assert.Empty(t, sbomOnly.List(), "vulnerabilities present only in results when using sbom as input")
 			assert.Empty(t, strset.Difference(matchSetFromImage, matchSetFromSbom).List(), "vulnerabilities present only in results when using image as input")
 
 			// track all covered package types (for use after the test)
