@@ -483,6 +483,16 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Version: "20241031",
 		},
 		{
+			Name:    "testdata/os/cleanstart",
+			Type:    Clnstrt,
+			Version: "3.20.3",
+		},
+		{
+			Name:    "testdata/os/clnstrt",
+			Type:    Clnstrt,
+			Version: "3.20.3",
+		},
+		{
 			Name:    "testdata/os/raspbian",
 			Type:    Raspbian,
 			Version: "9",
