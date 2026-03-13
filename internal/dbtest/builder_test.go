@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/grype/db/provider"
+	"github.com/anchore/grype/grype/pkg"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -92,9 +94,9 @@ func TestGenerateListingFile(t *testing.T) {
 	err = os.WriteFile(resultFile, []byte(`{"test": "data"}`), 0644)
 	require.NoError(t, err)
 
-	// generate listing
+	// generate listing using provider package function
 	listingPath := filepath.Join(resultsDir, "listing.xxh64")
-	err = generateListingFile(resultsDir, listingPath)
+	err = provider.GenerateListingFile(resultsDir, listingPath)
 	require.NoError(t, err)
 
 	// verify listing file exists
@@ -107,4 +109,42 @@ func TestGenerateListingFile(t *testing.T) {
 
 	// should contain the result file path
 	assert.Contains(t, string(content), "results/CVE-2024-0001.json")
+}
+
+func TestSharedDBs(t *testing.T) {
+	// test that SharedDBs can load fixtures from the shared directory
+	SharedDBs(t, "all").Run(func(t *testing.T, db *DB) {
+		assert.NotNil(t, db)
+		assert.NotEmpty(t, db.Name)
+		assert.NotEmpty(t, db.Path)
+
+		// verify the provider works by calling a method that delegates to it
+		names := db.PackageSearchNames(pkg.Package{Name: "openssl"})
+		assert.NotNil(t, names)
+	})
+}
+
+func TestSelectOnly(t *testing.T) {
+	// test that SelectOnly filters results correctly
+	// the all fixture has:
+	//   - debian:11/CVE-2024-0727 (openssl)
+	//   - nvd/CVE-2024-0727 (openssl CPE data)
+
+	t.Run("select by CVE ID", func(t *testing.T) {
+		SharedDBs(t, "all").SelectOnly("CVE-2024-0727").Run(func(t *testing.T, db *DB) {
+			assert.NotNil(t, db)
+		})
+	})
+
+	t.Run("select by namespace", func(t *testing.T) {
+		SharedDBs(t, "all").SelectOnly("debian:11").Run(func(t *testing.T, db *DB) {
+			assert.NotNil(t, db)
+		})
+	})
+
+	t.Run("select exact identifier", func(t *testing.T) {
+		SharedDBs(t, "all").SelectOnly("debian:11/CVE-2024-0727").Run(func(t *testing.T, db *DB) {
+			assert.NotNil(t, db)
+		})
+	})
 }

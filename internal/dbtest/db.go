@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"io"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	grypePkg "github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -34,6 +36,7 @@ type DB struct {
 }
 
 var _ vulnerability.Provider = &DB{}
+var _ vulnerability.EOLChecker = &DB{}
 
 // PackageSearchNames returns the package names to search for in the database.
 func (db *DB) PackageSearchNames(p grypePkg.Package) []string {
@@ -46,6 +49,8 @@ func (db *DB) FindVulnerabilities(criteria ...vulnerability.Criteria) ([]vulnera
 }
 
 // VulnerabilityMetadata returns the metadata associated with a vulnerability.
+//
+//nolint:staticcheck // keeping deprecated API for compatibility
 func (db *DB) VulnerabilityMetadata(ref vulnerability.Reference) (*vulnerability.Metadata, error) {
 	return db.provider.VulnerabilityMetadata(ref)
 }
@@ -71,4 +76,14 @@ func (db *DB) MustMatch(t *testing.T, matcher Matcher, p grypePkg.Package) []mat
 	matches, _, err := matcher.Match(db, p)
 	require.NoError(t, err)
 	return matches
+}
+
+// GetOperatingSystemEOL returns the EOL and EOAS dates for the given distro.
+// Implements vulnerability.EOLChecker by delegating to the underlying provider
+// if it supports the interface.
+func (db *DB) GetOperatingSystemEOL(d *distro.Distro) (eolDate, eoasDate *time.Time, err error) {
+	if checker, ok := db.provider.(vulnerability.EOLChecker); ok {
+		return checker.GetOperatingSystemEOL(d)
+	}
+	return nil, nil, nil
 }

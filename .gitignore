@@ -29,6 +29,8 @@ bin/
 /.tool
 /.task
 /specs
+/extractor
+/manager
 
 # changelog generation
 /CHANGELOG.md

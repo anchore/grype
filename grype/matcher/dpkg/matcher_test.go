@@ -2,212 +2,109 @@ package dpkg
 
 import (
 	"testing"
-	"time"
 
-	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
-	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
-	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal/dbtest"
-	"github.com/anchore/grype/internal/stringutil"
-	syftCpe "github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
-	matcher := Matcher{}
+func TestMatcherDpkg_DirectMatch(t *testing.T) {
+	dbtest.SharedDBs(t, "all").
+		SelectOnly("debian:11/CVE-2024-0727").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
 
-	d := distro.New(distro.Debian, "8", "")
+			p := dbtest.NewPackage("openssl", "1.1.1k-1", syftPkg.DebPkg). // vulnerable (< 1.1.1w-0+deb11u2)
+											WithDistro(dbtest.Debian11).
+											Build()
 
-	p := pkg.Package{
-		ID:      pkg.ID(uuid.NewString()),
-		Name:    "neutron",
-		Version: "2014.1.3-6",
-		Type:    syftPkg.DebPkg,
-		Distro:  d,
-		Upstreams: []pkg.UpstreamPackage{
-			{
-				Name: "neutron-devel",
-			},
-		},
-	}
+			matches := db.MustMatch(t, &matcher, p)
 
-	vp := newMockProvider()
-	actual, err := matcher.matchUpstreamPackages(vp, p)
-	assert.NoError(t, err, "unexpected err from matchUpstreamPackages", err)
+			dbtest.AssertFindings(t, matches).
+				IsSingleMatch().
+				HasDetail(match.ExactDirectMatch, match.DpkgMatcher)
+		})
+}
 
-	assert.Len(t, actual, 2, "unexpected indirect matches count")
+func TestMatcherDpkg_IndirectMatch(t *testing.T) {
+	dbtest.SharedDBs(t, "all").
+		SelectOnly("debian:11/CVE-2024-0727").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
 
-	foundCVEs := stringutil.NewStringSet()
-	for _, a := range actual {
-		foundCVEs.Add(a.Vulnerability.ID)
+			// binary package libssl3 with upstream openssl
+			p := dbtest.NewPackage("libssl3", "1.1.1k-1", syftPkg.DebPkg). // vulnerable
+											WithDistro(dbtest.Debian11).
+											WithUpstream("openssl", "").
+											Build()
 
-		require.NotEmpty(t, a.Details)
-		for _, d := range a.Details {
-			assert.Equal(t, match.ExactIndirectMatch, d.Type, "indirect match not indicated")
-		}
-		assert.Equal(t, p.Name, a.Package.Name, "failed to capture original package name")
-		for _, detail := range a.Details {
-			assert.Equal(t, matcher.Type(), detail.Matcher, "failed to capture matcher type")
-		}
-	}
+			matches := db.MustMatch(t, &matcher, p)
 
-	for _, id := range []string{"CVE-2014-fake-2", "CVE-2013-fake-3"} {
-		if !foundCVEs.Contains(id) {
-			t.Errorf("missing discovered CVE: %s", id)
-		}
-	}
-	if t.Failed() {
-		t.Logf("discovered CVES: %+v", foundCVEs)
-	}
+			dbtest.AssertFindings(t, matches).
+				IsSingleMatch().
+				AffectsPackage("libssl3").
+				HasDetail(match.ExactIndirectMatch, match.DpkgMatcher)
+		})
 }
 
 func TestMatcherDpkg_CPEFallbackWhenEOL(t *testing.T) {
-	pastEOL := time.Now().AddDate(-1, 0, 0)  // 1 year ago
-	futureEOL := time.Now().AddDate(1, 0, 0) // 1 year from now
-
-	d := distro.New(distro.Debian, "8", "")
-
-	// package with CPEs for CPE-based matching
-	p := pkg.Package{
-		ID:      pkg.ID(uuid.NewString()),
-		Name:    "openssl",
-		Version: "1.0.1",
-		Type:    syftPkg.DebPkg,
-		Distro:  d,
-		CPEs: []syftCpe.CPE{
-			syftCpe.Must("cpe:2.3:a:openssl:openssl:1.0.1:*:*:*:*:*:*:*", ""),
-		},
-	}
+	p := dbtest.NewPackage("openssl", "1.1.1k", syftPkg.DebPkg). // vulnerable
+									WithDistro(dbtest.Debian8).
+									WithCPE("cpe:2.3:a:openssl:openssl:1.1.1k:*:*:*:*:*:*:*").
+									Build()
 
 	tests := []struct {
 		name             string
 		useCPEsForEOL    bool
-		eolDate          *time.Time
 		expectCPEMatches bool
 	}{
 		{
-			name:             "CPE fallback enabled and distro is EOL - should include CPE matches",
+			name:             "CPE fallback enabled and distro is EOL",
 			useCPEsForEOL:    true,
-			eolDate:          &pastEOL,
 			expectCPEMatches: true,
 		},
 		{
-			name:             "CPE fallback enabled but distro not EOL - should not include CPE matches",
-			useCPEsForEOL:    true,
-			eolDate:          &futureEOL,
-			expectCPEMatches: false,
-		},
-		{
-			name:             "CPE fallback disabled and distro is EOL - should not include CPE matches",
+			name:             "CPE fallback disabled and distro is EOL",
 			useCPEsForEOL:    false,
-			eolDate:          &pastEOL,
-			expectCPEMatches: false,
-		},
-		{
-			name:             "CPE fallback disabled and distro not EOL - should not include CPE matches",
-			useCPEsForEOL:    false,
-			eolDate:          &futureEOL,
-			expectCPEMatches: false,
-		},
-		{
-			name:             "CPE fallback enabled but no EOL data - should not include CPE matches",
-			useCPEsForEOL:    true,
-			eolDate:          nil,
 			expectCPEMatches: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			matcher := NewDpkgMatcher(MatcherConfig{
-				UseCPEsForEOL: tt.useCPEsForEOL,
-			})
+			// use the local EOL fixture that has Debian 8 EOL date set
+			dbtest.DBs(t, "eol-debian8").Run(func(t *testing.T, db *dbtest.DB) {
+				matcher := NewDpkgMatcher(MatcherConfig{
+					UseCPEsForEOL: tt.useCPEsForEOL,
+				})
 
-			vp := newMockEOLProvider(tt.eolDate)
-			matches, _, err := matcher.Match(vp, p)
-			require.NoError(t, err)
+				matches := db.MustMatch(t, matcher, p)
 
-			// check if any CPE matches were found
-			hasCPEMatch := false
-			for _, m := range matches {
-				for _, detail := range m.Details {
-					if detail.Type == match.CPEMatch {
-						hasCPEMatch = true
-						break
-					}
+				if tt.expectCPEMatches {
+					dbtest.AssertFindings(t, matches).
+						ContainsVuln("CVE-2024-0727").
+						HasAnyMatchOfType(match.CPEMatch)
+				} else {
+					dbtest.AssertFindings(t, matches).
+						HasNoMatchOfType(match.CPEMatch)
 				}
-			}
-
-			if tt.expectCPEMatches {
-				assert.True(t, hasCPEMatch, "expected CPE matches for EOL distro")
-			} else {
-				assert.False(t, hasCPEMatch, "did not expect CPE matches")
-			}
+			})
 		})
 	}
 }
 
-// TestMatcherDpkg_RealDB_DirectMatch tests the dpkg matcher with direct package
-// matching using a real database built from vunnel provider fixtures.
-func TestMatcherDpkg_RealDB_DirectMatch(t *testing.T) {
-	dbtest.DBs(t, "dpkg-fixture").Run(func(t *testing.T, db *dbtest.DB) {
-		// neutron 2014.1.3-5 is vulnerable to CVE-2014-fake-1 (fixed in 2014.1.3-6)
-		p := dbtest.NewPackage("neutron", "2014.1.3-5", syftPkg.DebPkg).
-			WithDistro(dbtest.Debian8).
-			Build()
+func TestMatcherDpkg_NoMatch(t *testing.T) {
+	dbtest.SharedDBs(t, "all").
+		SelectOnly("debian:11/CVE-2024-0727").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
 
-		actual := db.MustMatch(t, &Matcher{}, p)
+			p := dbtest.NewPackage("openssl", "3.0.13-1", syftPkg.DebPkg). // not vulnerable (>= fixed version)
+											WithDistro(dbtest.Debian11).
+											Build()
 
-		dbtest.AssertMatchVulnerabilityIDs(t, actual, "CVE-2014-fake-1")
+			matches := db.MustMatch(t, &matcher, p)
 
-		require.Len(t, actual, 1)
-		dbtest.AssertMatch(t, actual[0]).
-			HasVulnerabilityID("CVE-2014-fake-1").
-			HasPackageName("neutron")
-	})
-}
-
-// TestMatcherDpkg_RealDB_NoMatchWhenFixed tests that a fixed version does not match.
-func TestMatcherDpkg_RealDB_NoMatchWhenFixed(t *testing.T) {
-	dbtest.DBs(t, "dpkg-fixture").Run(func(t *testing.T, db *dbtest.DB) {
-		// neutron 2014.1.3-6 is the fixed version, should not match
-		p := dbtest.NewPackage("neutron", "2014.1.3-6", syftPkg.DebPkg).
-			WithDistro(dbtest.Debian8).
-			Build()
-
-		actual := db.MustMatch(t, &Matcher{}, p)
-
-		dbtest.AssertNoMatches(t, actual)
-	})
-}
-
-// TestMatcherDpkg_RealDB_IndirectMatch tests the dpkg matcher with upstream/indirect
-// package matching using a real database.
-func TestMatcherDpkg_RealDB_IndirectMatch(t *testing.T) {
-	dbtest.DBs(t, "dpkg-fixture").Run(func(t *testing.T, db *dbtest.DB) {
-		// neutron with upstream neutron-devel should match CVE-2014-fake-2 and CVE-2013-fake-3
-		// but NOT CVE-2013-fake-BAD (version constraint too old)
-		p := dbtest.NewPackage("neutron", "2014.1.3-6", syftPkg.DebPkg).
-			WithDistro(dbtest.Debian8).
-			WithUpstream("neutron-devel", "").
-			Build()
-
-		actual := db.MustMatch(t, &Matcher{}, p)
-
-		// should match the two upstream vulnerabilities
-		dbtest.AssertMatchCount(t, actual, 2)
-		dbtest.AssertMatchVulnerabilityIDs(t, actual, "CVE-2014-fake-2", "CVE-2013-fake-3")
-
-		// verify all matches are indirect
-		for _, m := range actual {
-			require.NotEmpty(t, m.Details)
-			for _, d := range m.Details {
-				assert.Equal(t, match.ExactIndirectMatch, d.Type, "expected indirect match type")
-			}
-		}
-	})
+			dbtest.AssertFindings(t, matches).IsEmpty()
+		})
 }

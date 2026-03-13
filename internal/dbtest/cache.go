@@ -51,11 +51,11 @@ func computeInputHash(fixtureDir string) (string, error) {
 			return "", err
 		}
 
-		if _, err := io.Copy(hasher, f); err != nil {
-			f.Close()
-			return "", err
+		_, copyErr := io.Copy(hasher, f)
+		f.Close() // close immediately after use; defer would accumulate across loop iterations
+		if copyErr != nil {
+			return "", copyErr
 		}
-		f.Close()
 	}
 
 	return hex.EncodeToString(hasher.Sum(nil)), nil
@@ -74,7 +74,7 @@ func readStoredHash(cacheDir string) (string, error) {
 // writeStoredHash writes the input hash to the cache directory.
 func writeStoredHash(cacheDir, hash string) error {
 	hashPath := filepath.Join(cacheDir, inputHashFileName)
-	return os.WriteFile(hashPath, []byte(hash), 0644)
+	return os.WriteFile(hashPath, []byte(hash), 0600)
 }
 
 // isCacheValid checks if the cache is valid by comparing the stored hash with the computed hash.
