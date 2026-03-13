@@ -304,21 +304,21 @@ func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Pack
 		naks = append(naks, upstreamNaks...)
 	}
 
-	meta, ok := p.Metadata.(pkg.ApkMetadata)
-	if !ok {
+	paths := ownedFilePaths(p)
+	if len(paths) == 0 {
 		return nil, nil
 	}
 
 	var ignores []match.IgnoreFilter
 	for _, nak := range naks {
-		for _, f := range meta.Files {
+		for _, path := range paths {
 			ignores = append(ignores,
 				match.IgnoreRule{
 					Vulnerability:  nak.ID,
 					IncludeAliases: true,
 					Reason:         "Explicit APK NAK",
 					Package: match.IgnoreRulePackage{
-						Location: f.Path,
+						Location: path,
 					},
 				})
 		}
