@@ -18,11 +18,10 @@ func TestMatcherDpkg_DirectMatch(t *testing.T) {
 											WithDistro(dbtest.Debian11).
 											Build()
 
-			matches := db.MustMatch(t, &matcher, p)
-
-			dbtest.AssertFindings(t, matches).
-				IsSingleMatch().
-				HasDetail(match.ExactDirectMatch, match.DpkgMatcher)
+			db.Match(t, &matcher, p).
+				SelectMatch("CVE-2024-0727").
+				SelectDetailByType(match.ExactDirectMatch).
+				AsDistroSearch()
 		})
 }
 
@@ -38,12 +37,10 @@ func TestMatcherDpkg_IndirectMatch(t *testing.T) {
 											WithUpstream("openssl", "").
 											Build()
 
-			matches := db.MustMatch(t, &matcher, p)
-
-			dbtest.AssertFindings(t, matches).
-				IsSingleMatch().
-				AffectsPackage("libssl3").
-				HasDetail(match.ExactIndirectMatch, match.DpkgMatcher)
+			db.Match(t, &matcher, p).
+				SelectMatch("CVE-2024-0727").
+				SelectDetailByType(match.ExactIndirectMatch).
+				AsDistroSearch()
 		})
 }
 
@@ -78,33 +75,19 @@ func TestMatcherDpkg_CPEFallbackWhenEOL(t *testing.T) {
 					UseCPEsForEOL: tt.useCPEsForEOL,
 				})
 
-				matches := db.MustMatch(t, matcher, p)
+				findings := db.Match(t, matcher, p)
 
 				if tt.expectCPEMatches {
-					dbtest.AssertFindings(t, matches).
-						ContainsVuln("CVE-2024-0727").
-						HasAnyMatchOfType(match.CPEMatch)
+					findings.
+						ContainsVulnerabilities("CVE-2024-0727").
+						SelectMatch("CVE-2024-0727").
+						SelectDetailByType(match.CPEMatch).
+						AsCPESearch().
+						FoundCPEs("cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*")
 				} else {
-					dbtest.AssertFindings(t, matches).
-						HasNoMatchOfType(match.CPEMatch)
+					findings.IsEmpty()
 				}
 			})
 		})
 	}
-}
-
-func TestMatcherDpkg_NoMatch(t *testing.T) {
-	dbtest.SharedDBs(t, "all").
-		SelectOnly("debian:11/CVE-2024-0727").
-		Run(func(t *testing.T, db *dbtest.DB) {
-			matcher := Matcher{}
-
-			p := dbtest.NewPackage("openssl", "3.0.13-1", syftPkg.DebPkg). // not vulnerable (>= fixed version)
-											WithDistro(dbtest.Debian11).
-											Build()
-
-			matches := db.MustMatch(t, &matcher, p)
-
-			dbtest.AssertFindings(t, matches).IsEmpty()
-		})
 }

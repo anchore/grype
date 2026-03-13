@@ -68,14 +68,13 @@ func (db *DB) String() string {
 	return fmt.Sprintf("DB{name=%s, schema=%d, path=%s}", db.Name, db.SchemaVersion, db.Path)
 }
 
-// MustMatch calls matcher.Match using this DB as the provider.
-// Returns the matches, failing the test on error. This drops the
-// IgnoreFilter return value for convenience.
-func (db *DB) MustMatch(t *testing.T, matcher Matcher, p grypePkg.Package) []match.Match {
+// Match calls matcher.Match using this DB as the provider and returns a FindingsAssertion
+// for fluent assertions. Fails the test on error. Drops the IgnoreFilter return value for convenience.
+func (db *DB) Match(t *testing.T, matcher Matcher, p grypePkg.Package) *FindingsAssertion {
 	t.Helper()
 	matches, _, err := matcher.Match(db, p)
 	require.NoError(t, err)
-	return matches
+	return AssertFindings(t, matches, p)
 }
 
 // GetOperatingSystemEOL returns the EOL and EOAS dates for the given distro.
