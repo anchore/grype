@@ -3,10 +3,75 @@ package dbtest
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 )
+
+// mockT is a mock testing.T that captures test failures without actually failing.
+// It implements enough of testing.TB to work with testify assertions.
+type mockT struct {
+	failed   bool
+	fataled  bool
+	errors   []string
+	cleanups []func()
+}
+
+func newMockT() *mockT {
+	return &mockT{}
+}
+
+func (m *mockT) Helper() {}
+
+func (m *mockT) Errorf(format string, args ...any) {
+	m.failed = true
+	m.errors = append(m.errors, format)
+}
+
+func (m *mockT) Fatalf(format string, args ...any) {
+	m.failed = true
+	m.fataled = true
+	m.errors = append(m.errors, format)
+}
+
+func (m *mockT) FailNow() {
+	m.failed = true
+	m.fataled = true
+}
+
+func (m *mockT) Failed() bool {
+	return m.failed
+}
+
+func (m *mockT) Cleanup(f func()) {
+	m.cleanups = append(m.cleanups, f)
+}
+
+func (m *mockT) runCleanups() {
+	for i := len(m.cleanups) - 1; i >= 0; i-- {
+		m.cleanups[i]()
+	}
+}
+
+// additional methods required by testify
+func (m *mockT) Name() string {
+	return "mockT"
+}
+
+func (m *mockT) Log(args ...any) {}
+
+func (m *mockT) Logf(format string, args ...any) {}
+
+func (m *mockT) Error(args ...any) {
+	m.failed = true
+}
+
+func (m *mockT) Fatal(args ...any) {
+	m.failed = true
+	m.fataled = true
+}
 
 func makeVuln(id, namespace string) vulnerability.Vulnerability {
 	return vulnerability.Vulnerability{
@@ -403,4 +468,604 @@ func TestComplete(t *testing.T) {
 	findings := AssertFindings(t, matches, p)
 	findings.SelectMatch("CVE-2024-0001").SelectDetailByType().AsDistroSearch()
 	findings.SelectMatch("CVE-2024-0002").SelectDetailByType().AsDistroSearch()
+}
+
+// Failure path tests - these verify that assertions correctly fail when conditions are not met
+
+func TestAssertFindings_HasCount_Failure(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().HasCount(5)
+
+	assert.True(t, mockT.Failed(), "expected HasCount to fail when count is wrong")
+}
+
+func TestAssertFindings_IsEmpty_Failure(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().IsEmpty()
+
+	assert.True(t, mockT.Failed(), "expected IsEmpty to fail when matches exist")
+}
+
+func TestAssertFindings_ContainsVulnerabilities_Failure(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		ContainsVulnerabilities("CVE-2024-9999") // not present
+
+	assert.True(t, mockT.Failed(), "expected ContainsVulnerabilities to fail when vulnerability is missing")
+}
+
+func TestAssertFindings_OnlyHasVulnerabilities_Failure_Missing(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		OnlyHasVulnerabilities("CVE-2024-0001", "CVE-2024-9999") // 9999 not present
+
+	assert.True(t, mockT.Failed(), "expected OnlyHasVulnerabilities to fail when expected vulnerability is missing")
+}
+
+func TestAssertFindings_OnlyHasVulnerabilities_Failure_Extra(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p},
+		{Vulnerability: makeVuln("CVE-2024-0002", ""), Package: p},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		OnlyHasVulnerabilities("CVE-2024-0001") // 0002 is extra
+
+	assert.True(t, mockT.Failed(), "expected OnlyHasVulnerabilities to fail when extra vulnerability exists")
+}
+
+func TestAssertFindings_DoesNotHaveAnyVulnerabilities_Failure(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		DoesNotHaveAnyVulnerabilities("CVE-2024-0001") // is present
+
+	assert.True(t, mockT.Failed(), "expected DoesNotHaveAnyVulnerabilities to fail when vulnerability is present")
+}
+
+func TestAssertFindings_DoesNotHaveAnyVulnerabilities_ReportsAllViolations(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p},
+		{Vulnerability: makeVuln("CVE-2024-0002", ""), Package: p},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		DoesNotHaveAnyVulnerabilities("CVE-2024-0001", "CVE-2024-0002") // both present
+
+	assert.True(t, mockT.Failed(), "expected DoesNotHaveAnyVulnerabilities to fail")
+	// should report both violations, not just the first one
+	assert.Len(t, mockT.errors, 2, "expected both violations to be reported")
+}
+
+func TestAssertFindings_SelectMatch_NotFound(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatch("CVE-2024-9999") // not present
+
+	assert.True(t, mockT.fataled, "expected SelectMatch to fatal when vulnerability not found")
+}
+
+func TestAssertFindings_SelectMatch_MultipleMatches(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p},
+		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p}, // duplicate
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatch("CVE-2024-0001") // ambiguous
+
+	assert.True(t, mockT.fataled, "expected SelectMatch to fatal when multiple matches exist")
+}
+
+func TestAssertFindings_SelectMatch_NoArgsMultipleMatches(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p},
+		{Vulnerability: makeVuln("CVE-2024-0002", ""), Package: p},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatch() // no args but multiple matches
+
+	assert.True(t, mockT.fataled, "expected SelectMatch() to fatal when multiple matches exist")
+}
+
+func TestSingleFindingAssertion_HasMatchType_Failure(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl", Version: "7.88.1"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", ""),
+			Package:       p,
+			Details:       []match.Detail{{Type: match.ExactDirectMatch}},
+		},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatch().
+		HasMatchType(match.CPEMatch) // wrong type
+
+	assert.True(t, mockT.Failed(), "expected HasMatchType to fail when type not present")
+}
+
+func TestSingleFindingAssertion_HasOnlyMatchTypes(t *testing.T) {
+	p := pkg.Package{Name: "curl", Version: "7.88.1"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", ""),
+			Package:       p,
+			Details: []match.Detail{
+				{Type: match.ExactDirectMatch},
+				{Type: match.ExactIndirectMatch},
+			},
+		},
+	}
+
+	// success case - all types are allowed
+	AssertFindings(t, matches, p).SkipCompleteness().
+		SelectMatch().
+		HasOnlyMatchTypes(match.ExactDirectMatch, match.ExactIndirectMatch)
+}
+
+func TestSingleFindingAssertion_HasOnlyMatchTypes_Failure(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl", Version: "7.88.1"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", ""),
+			Package:       p,
+			Details: []match.Detail{
+				{Type: match.ExactDirectMatch},
+				{Type: match.CPEMatch}, // not in allowed list
+			},
+		},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatch().
+		HasOnlyMatchTypes(match.ExactDirectMatch) // CPEMatch not allowed
+
+	assert.True(t, mockT.Failed(), "expected HasOnlyMatchTypes to fail when unexpected type present")
+}
+
+func TestSingleFindingAssertion_SelectDetailByType_NotFound(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl", Version: "7.88.1"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", ""),
+			Package:       p,
+			Details:       []match.Detail{{Type: match.ExactDirectMatch}},
+		},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatch().
+		SelectDetailByType(match.CPEMatch) // wrong type
+
+	assert.True(t, mockT.fataled, "expected SelectDetailByType to fatal when type not found")
+}
+
+func TestSingleFindingAssertion_SelectDetailByType_MultipleMatches(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl", Version: "7.88.1"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", ""),
+			Package:       p,
+			Details: []match.Detail{
+				{Type: match.ExactDirectMatch},
+				{Type: match.ExactDirectMatch}, // duplicate type
+			},
+		},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatch().
+		SelectDetailByType(match.ExactDirectMatch) // ambiguous
+
+	assert.True(t, mockT.fataled, "expected SelectDetailByType to fatal when multiple details match")
+}
+
+func TestCompleteness_MatchNotSelected(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl", Version: "7.88.1"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", ""),
+			Package:       p,
+			Details: []match.Detail{
+				{
+					Type:       match.ExactDirectMatch,
+					SearchedBy: match.DistroParameters{},
+					Found:      match.DistroResult{VulnerabilityID: "CVE-2024-0001"},
+				},
+			},
+		},
+		{
+			Vulnerability: makeVuln("CVE-2024-0002", ""),
+			Package:       p,
+			Details: []match.Detail{
+				{
+					Type:       match.ExactDirectMatch,
+					SearchedBy: match.DistroParameters{},
+					Found:      match.DistroResult{VulnerabilityID: "CVE-2024-0002"},
+				},
+			},
+		},
+	}
+
+	findings := AssertFindings(mockT, matches, p)
+	// only assert on first match, leave second unselected
+	findings.SelectMatch("CVE-2024-0001").SelectDetailByType().AsDistroSearch()
+
+	// run cleanups to trigger completeness check
+	mockT.runCleanups()
+
+	assert.True(t, mockT.Failed(), "expected completeness check to fail when match not selected")
+}
+
+func TestCompleteness_DetailNotSelected(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl", Version: "7.88.1"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", ""),
+			Package:       p,
+			Details: []match.Detail{
+				{
+					Type:       match.ExactDirectMatch,
+					SearchedBy: match.DistroParameters{},
+					Found:      match.DistroResult{VulnerabilityID: "CVE-2024-0001"},
+				},
+				{
+					Type:       match.CPEMatch,
+					SearchedBy: match.CPEParameters{},
+					Found:      match.CPEResult{VulnerabilityID: "CVE-2024-0001"},
+				},
+			},
+		},
+	}
+
+	findings := AssertFindings(mockT, matches, p)
+	// select match but only assert on one detail
+	findings.SelectMatch("CVE-2024-0001").SelectDetailByType(match.ExactDirectMatch).AsDistroSearch()
+
+	// run cleanups to trigger completeness check
+	mockT.runCleanups()
+
+	assert.True(t, mockT.Failed(), "expected completeness check to fail when detail not selected")
+}
+
+func TestCompleteness_DetailSelectedButAsSearchNotCalled(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl", Version: "7.88.1"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", ""),
+			Package:       p,
+			Details: []match.Detail{
+				{
+					Type:       match.ExactDirectMatch,
+					SearchedBy: match.DistroParameters{},
+					Found:      match.DistroResult{VulnerabilityID: "CVE-2024-0001"},
+				},
+			},
+		},
+	}
+
+	findings := AssertFindings(mockT, matches, p)
+	// select detail but don't call As*Search()
+	findings.SelectMatch("CVE-2024-0001").SelectDetailByType(match.ExactDirectMatch)
+
+	// run cleanups to trigger completeness check
+	mockT.runCleanups()
+
+	assert.True(t, mockT.Failed(), "expected completeness check to fail when As*Search not called")
+}
+
+func TestDistroDetailAssertion_HasMatchType(t *testing.T) {
+	p := pkg.Package{Name: "curl", Version: "7.88.1"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", "debian:11"),
+			Package:       p,
+			Details: []match.Detail{
+				{
+					Type: match.ExactDirectMatch,
+					SearchedBy: match.DistroParameters{
+						Package: match.PackageParameter{Name: "curl", Version: "7.88.1"},
+						Distro:  match.DistroIdentification{Type: "debian", Version: "11"},
+					},
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2024-0001",
+						VersionConstraint: "< 8.0.0",
+					},
+				},
+			},
+		},
+	}
+
+	AssertFindings(t, matches, p).
+		SelectMatch().
+		SelectDetailByType().
+		AsDistroSearch().
+		HasMatchType(match.ExactDirectMatch)
+}
+
+func TestDistroDetailAssertion_HasMatchType_Failure(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl", Version: "7.88.1"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", "debian:11"),
+			Package:       p,
+			Details: []match.Detail{
+				{
+					Type: match.ExactDirectMatch,
+					SearchedBy: match.DistroParameters{
+						Package: match.PackageParameter{Name: "curl", Version: "7.88.1"},
+						Distro:  match.DistroIdentification{Type: "debian", Version: "11"},
+					},
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2024-0001",
+						VersionConstraint: "< 8.0.0",
+					},
+				},
+			},
+		},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatch().
+		SelectDetailByType().
+		AsDistroSearch().
+		HasMatchType(match.CPEMatch) // wrong type
+
+	assert.True(t, mockT.Failed(), "expected HasMatchType to fail on DistroDetailAssertion")
+}
+
+func TestCPEDetailAssertion_HasMatchType(t *testing.T) {
+	p := pkg.Package{Name: "openssl", Version: "1.1.1k"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", "nvd:cpe"),
+			Package:       p,
+			Details: []match.Detail{
+				{
+					Type: match.CPEMatch,
+					SearchedBy: match.CPEParameters{
+						Package:   match.PackageParameter{Name: "openssl", Version: "1.1.1k"},
+						CPEs:      []string{"cpe:2.3:a:openssl:openssl:1.1.1k:*:*:*:*:*:*:*"},
+						Namespace: "nvd:cpe",
+					},
+					Found: match.CPEResult{
+						VulnerabilityID:   "CVE-2024-0001",
+						VersionConstraint: "< 1.1.1w",
+						CPEs:              []string{"cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*"},
+					},
+				},
+			},
+		},
+	}
+
+	AssertFindings(t, matches, p).
+		SelectMatch().
+		SelectDetailByType().
+		AsCPESearch().
+		HasMatchType(match.CPEMatch)
+}
+
+func TestCPEDetailAssertion_HasMatchType_Failure(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "openssl", Version: "1.1.1k"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", "nvd:cpe"),
+			Package:       p,
+			Details: []match.Detail{
+				{
+					Type: match.CPEMatch,
+					SearchedBy: match.CPEParameters{
+						Package:   match.PackageParameter{Name: "openssl", Version: "1.1.1k"},
+						CPEs:      []string{"cpe:2.3:a:openssl:openssl:1.1.1k:*:*:*:*:*:*:*"},
+						Namespace: "nvd:cpe",
+					},
+					Found: match.CPEResult{
+						VulnerabilityID:   "CVE-2024-0001",
+						VersionConstraint: "< 1.1.1w",
+						CPEs:              []string{"cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*"},
+					},
+				},
+			},
+		},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatch().
+		SelectDetailByType().
+		AsCPESearch().
+		HasMatchType(match.ExactDirectMatch) // wrong type
+
+	assert.True(t, mockT.Failed(), "expected HasMatchType to fail on CPEDetailAssertion")
+}
+
+func TestEcosystemDetailAssertion_HasMatchType(t *testing.T) {
+	p := pkg.Package{Name: "requests", Version: "2.25.0"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", "github:language:python"),
+			Package:       p,
+			Details: []match.Detail{
+				{
+					Type: match.ExactDirectMatch,
+					SearchedBy: match.EcosystemParameters{
+						Package:   match.PackageParameter{Name: "requests", Version: "2.25.0"},
+						Language:  "python",
+						Namespace: "github:language:python",
+					},
+					Found: match.EcosystemResult{
+						VulnerabilityID:   "CVE-2024-0001",
+						VersionConstraint: "< 2.26.0",
+					},
+				},
+			},
+		},
+	}
+
+	AssertFindings(t, matches, p).
+		SelectMatch().
+		SelectDetailByType().
+		AsEcosystemSearch().
+		HasMatchType(match.ExactDirectMatch)
+}
+
+func TestEcosystemDetailAssertion_HasMatchType_Failure(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "requests", Version: "2.25.0"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", "github:language:python"),
+			Package:       p,
+			Details: []match.Detail{
+				{
+					Type: match.ExactDirectMatch,
+					SearchedBy: match.EcosystemParameters{
+						Package:   match.PackageParameter{Name: "requests", Version: "2.25.0"},
+						Language:  "python",
+						Namespace: "github:language:python",
+					},
+					Found: match.EcosystemResult{
+						VulnerabilityID:   "CVE-2024-0001",
+						VersionConstraint: "< 2.26.0",
+					},
+				},
+			},
+		},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatch().
+		SelectDetailByType().
+		AsEcosystemSearch().
+		HasMatchType(match.CPEMatch) // wrong type
+
+	assert.True(t, mockT.Failed(), "expected HasMatchType to fail on EcosystemDetailAssertion")
+}
+
+func TestConstraintValidation_Failure(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl", Version: "7.88.1"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", "debian:11"),
+			Package:       p,
+			Details: []match.Detail{
+				{
+					Type: match.ExactDirectMatch,
+					SearchedBy: match.DistroParameters{
+						Package: match.PackageParameter{Name: "curl", Version: "7.88.1"},
+						Distro:  match.DistroIdentification{Type: "debian", Version: "11"},
+					},
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2024-0001",
+						VersionConstraint: "< 8.0.0",
+					},
+				},
+			},
+		},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatch().
+		SelectDetailByType().
+		AsDistroSearch("< 9.0.0") // wrong constraint
+
+	assert.True(t, mockT.Failed(), "expected constraint validation to fail with wrong constraint")
+}
+
+func TestFoundCPEs_Failure(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "openssl", Version: "1.1.1k"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", "nvd:cpe"),
+			Package:       p,
+			Details: []match.Detail{
+				{
+					Type: match.CPEMatch,
+					SearchedBy: match.CPEParameters{
+						Package:   match.PackageParameter{Name: "openssl", Version: "1.1.1k"},
+						CPEs:      []string{"cpe:2.3:a:openssl:openssl:1.1.1k:*:*:*:*:*:*:*"},
+						Namespace: "nvd:cpe",
+					},
+					Found: match.CPEResult{
+						VulnerabilityID:   "CVE-2024-0001",
+						VersionConstraint: "< 1.1.1w",
+						CPEs:              []string{"cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*"},
+					},
+				},
+			},
+		},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatch().
+		SelectDetailByType().
+		AsCPESearch().
+		FoundCPEs("cpe:2.3:a:other:other:*:*:*:*:*:*:*:*") // not present
+
+	assert.True(t, mockT.Failed(), "expected FoundCPEs to fail when CPE not present")
+}
+
+func TestPackageVersionMismatch_Failure(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl", Version: "7.88.1"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", ""),
+			Package:       pkg.Package{Name: "curl", Version: "8.0.0"}, // wrong version
+			Details:       []match.Detail{{Type: match.ExactDirectMatch}},
+		},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().SelectMatch()
+
+	assert.True(t, mockT.Failed(), "expected assertion to fail when package version doesn't match")
 }

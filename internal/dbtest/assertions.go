@@ -3,7 +3,6 @@ package dbtest
 import (
 	"fmt"
 	"strings"
-	"testing"
 
 	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
@@ -12,6 +11,16 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 )
+
+// TestingT is the interface required for assertions, satisfied by *testing.T and mock implementations.
+type TestingT interface {
+	Helper()
+	Errorf(format string, args ...any)
+	Fatalf(format string, args ...any)
+	FailNow()
+	Cleanup(f func())
+	Name() string
+}
 
 // singleFindingTracker tracks which details have been asserted for a single match.
 type singleFindingTracker struct {
@@ -32,7 +41,7 @@ type singleFindingTracker struct {
 //	    OnlyHasVulnerabilities("CVE-2024-1234", "CVE-2024-5678").
 //	    DoesNotHaveAnyVulnerabilities("CVE-2024-9999")
 type FindingsAssertion struct {
-	t       *testing.T
+	t       TestingT
 	pkg     pkg.Package
 	matches []match.Match
 
@@ -48,7 +57,7 @@ type FindingsAssertion struct {
 //
 // Use complete() to enable completeness checking, which verifies that all matches
 // and details were asserted.
-func AssertFindings(t *testing.T, matches []match.Match, p pkg.Package) *FindingsAssertion {
+func AssertFindings(t TestingT, matches []match.Match, p pkg.Package) *FindingsAssertion {
 	t.Helper()
 
 	if p.Name == "" {
@@ -81,6 +90,7 @@ func (f *FindingsAssertion) IsEmpty() *FindingsAssertion {
 }
 
 // Matches returns the underlying matches for direct assertions if needed, but using this is not recommended as it
+// bypasses the completeness checking and makes tests more fragile to internal API changes.
 func (f *FindingsAssertion) Matches() []match.Match {
 	f.t.Helper()
 	return f.matches
@@ -202,7 +212,6 @@ func (f *FindingsAssertion) DoesNotHaveAnyVulnerabilities(vulnIDs ...string) *Fi
 	for _, id := range vulnIDs {
 		if ids.Has(id) {
 			f.t.Errorf("expected vulnerability %q to not be present, but it was found", id)
-			return f
 		}
 	}
 
@@ -254,7 +263,7 @@ func (f *FindingsAssertion) SelectMatch(vulnIDs ...string) *SingleFindingAsserti
 
 // SingleFindingAssertion provides detailed string-based assertions on a single finding.
 type SingleFindingAssertion struct {
-	t        *testing.T
+	t        TestingT
 	pkg      pkg.Package
 	match    *match.Match
 	matchIdx int
@@ -264,7 +273,7 @@ type SingleFindingAssertion struct {
 
 // newSingleFindingAssertion creates a SingleFindingAssertion and asserts that the match
 // affects the expected package (name and version if provided).
-func newSingleFindingAssertion(t *testing.T, p pkg.Package, m *match.Match, matchIdx int, tracker *singleFindingTracker) *SingleFindingAssertion {
+func newSingleFindingAssertion(t TestingT, p pkg.Package, m *match.Match, matchIdx int, tracker *singleFindingTracker) *SingleFindingAssertion {
 	t.Helper()
 	assert.Equal(t, p.Name, m.Package.Name, "unexpected package name")
 	if p.Version != "" {
@@ -519,7 +528,7 @@ func (s *SingleFindingAssertion) SelectDetailByEcosystem(language string, constr
 // SingleDetailAssertion provides assertions on a single match detail.
 // Use AsDistroSearch(), AsCPESearch(), or AsEcosystemSearch() for type-specific assertions.
 type SingleDetailAssertion struct {
-	t         *testing.T
+	t         TestingT
 	pkg       pkg.Package
 	detail    *match.Detail
 	detailIdx int
@@ -602,7 +611,7 @@ func (d *SingleDetailAssertion) AsEcosystemSearch(constraint ...string) *Ecosyst
 // DistroDetailAssertion provides assertions for distro/OS package matches.
 // SearchedBy is DistroParameters, Found is DistroResult.
 type DistroDetailAssertion struct {
-	t          *testing.T
+	t          TestingT
 	pkg        pkg.Package
 	detail     *match.Detail
 	searchedBy match.DistroParameters
@@ -611,7 +620,7 @@ type DistroDetailAssertion struct {
 
 // newDistroDetailAssertion creates a DistroDetailAssertion and asserts that the searched
 // distro matches the package's distro (if the package has distro info).
-func newDistroDetailAssertion(t *testing.T, p pkg.Package, detail *match.Detail, searchedBy match.DistroParameters, found match.DistroResult) *DistroDetailAssertion {
+func newDistroDetailAssertion(t TestingT, p pkg.Package, detail *match.Detail, searchedBy match.DistroParameters, found match.DistroResult) *DistroDetailAssertion {
 	t.Helper()
 	if p.Distro != nil {
 		assert.Equal(t, string(p.Distro.Type), searchedBy.Distro.Type, "unexpected distro type in SearchedBy")
@@ -645,7 +654,7 @@ func (d *DistroDetailAssertion) HasMatchType(matchType match.Type) *DistroDetail
 // CPEDetailAssertion provides assertions for CPE-based matches.
 // SearchedBy is CPEParameters, Found is CPEResult.
 type CPEDetailAssertion struct {
-	t          *testing.T
+	t          TestingT
 	pkg        pkg.Package
 	detail     *match.Detail
 	searchedBy match.CPEParameters
@@ -654,7 +663,7 @@ type CPEDetailAssertion struct {
 
 // newCPEDetailAssertion creates a CPEDetailAssertion.
 // Note: package name is not asserted since it may differ for upstream/indirect matches.
-func newCPEDetailAssertion(t *testing.T, p pkg.Package, detail *match.Detail, searchedBy match.CPEParameters, found match.CPEResult) *CPEDetailAssertion {
+func newCPEDetailAssertion(t TestingT, p pkg.Package, detail *match.Detail, searchedBy match.CPEParameters, found match.CPEResult) *CPEDetailAssertion {
 	t.Helper()
 	return &CPEDetailAssertion{t: t, pkg: p, detail: detail, searchedBy: searchedBy, found: found}
 }
@@ -694,7 +703,7 @@ func (c *CPEDetailAssertion) HasMatchType(matchType match.Type) *CPEDetailAssert
 // EcosystemDetailAssertion provides assertions for language/ecosystem package matches.
 // SearchedBy is EcosystemParameters, Found is EcosystemResult.
 type EcosystemDetailAssertion struct {
-	t          *testing.T
+	t          TestingT
 	pkg        pkg.Package
 	detail     *match.Detail
 	searchedBy match.EcosystemParameters
@@ -704,7 +713,7 @@ type EcosystemDetailAssertion struct {
 // newEcosystemDetailAssertion creates an EcosystemDetailAssertion and asserts that the searched
 // language matches the package's language (if the package has language info).
 // Note: package name is not asserted since it may differ for upstream/indirect matches.
-func newEcosystemDetailAssertion(t *testing.T, p pkg.Package, detail *match.Detail, searchedBy match.EcosystemParameters, found match.EcosystemResult) *EcosystemDetailAssertion {
+func newEcosystemDetailAssertion(t TestingT, p pkg.Package, detail *match.Detail, searchedBy match.EcosystemParameters, found match.EcosystemResult) *EcosystemDetailAssertion {
 	t.Helper()
 	if p.Language != "" {
 		assert.Equal(t, string(p.Language), searchedBy.Language, "unexpected language in SearchedBy")

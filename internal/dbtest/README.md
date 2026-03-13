@@ -1,6 +1,6 @@
 # dbtest - Database Testing Utilities
 
-This package provides utilities for building and testing grype vulnerability databases from fixture data.
+This package provides utilities for building and testing grype vulnerability databases from fixture data, along with fluent assertion helpers that decouple test code from internal API shapes.
 
 ## Quick Start
 
@@ -18,7 +18,11 @@ func TestVulnerabilityMatching(t *testing.T) {
 func TestWithSharedFixture(t *testing.T) {
     // use a fixture from internal/dbtest/testdata/shared/
     dbtest.SharedDBs(t, "all").Run(func(t *testing.T, db *dbtest.DB) {
-        matches := db.MustMatch(t, matcher, pkg)
+        // db.Match returns a FindingsAssertion for fluent assertions
+        db.Match(t, matcher, pkg).
+            SelectMatch("CVE-2024-1234").
+            SelectDetailByType(match.ExactDirectMatch).
+            AsDistroSearch()
     })
 }
 ```
@@ -43,6 +47,7 @@ Testing grype's vulnerability matching requires realistic database fixtures. How
 3. **Easy maintenance**: Append new records to existing fixtures as test cases evolve
 4. **Cross-package sharing**: Share fixtures between test packages via `SharedDBs()`
 5. **Fixture provenance**: Track how fixtures were created and regenerate them when needed
+6. **API-agnostic assertions**: Decouple test assertions from internal data structures to survive refactors
 
 ## Go API
 
@@ -83,9 +88,89 @@ func (db *DB) FindVulnerabilities(criteria ...vulnerability.Criteria) ([]vulnera
 func (db *DB) VulnerabilityMetadata(ref vulnerability.Reference) (*vulnerability.Metadata, error)
 func (db *DB) PackageSearchNames(p grypePkg.Package) []string
 
-// convenience method for matcher testing
-func (db *DB) MustMatch(t *testing.T, matcher Matcher, p grypePkg.Package) []match.Match
+// runs matcher and returns fluent assertion chain
+func (db *DB) Match(t *testing.T, matcher Matcher, p grypePkg.Package) *FindingsAssertion
 ```
+
+### Fluent Assertions
+
+The assertion helpers provide a **string-based, API-agnostic** way to validate match results. This design has several benefits:
+
+- **Survives refactors**: Tests don't break when internal struct shapes change (e.g., grype v1 API changes)
+- **Removes boilerplate**: No need to manually iterate matches/details or check types
+- **Completeness checking**: By default, tests fail if any matches or details are not asserted
+- **Readable tests**: Fluent chains clearly express what's being validated
+
+This approach is similar to syft's `pkgtest` helpers - abstracting test assertions from implementation details.
+
+#### Basic Usage
+
+```go
+// match and assert in one fluent chain
+db.Match(t, &matcher, pkg).
+    SelectMatch("CVE-2024-1234").
+    SelectDetailByType(match.ExactDirectMatch).
+    AsDistroSearch("< 1.0.0")  // validates constraint
+
+// or use AssertFindings directly with pre-existing matches
+dbtest.AssertFindings(t, matches, pkg).
+    HasCount(2).
+    OnlyHasVulnerabilities("CVE-2024-1234", "CVE-2024-5678")
+```
+
+#### Completeness Checking
+
+By default, assertions require that **all matches and details are asserted**. This catches cases where a matcher returns unexpected results:
+
+```go
+// this will fail if there are matches other than CVE-2024-1234
+db.Match(t, &matcher, pkg).
+    SelectMatch("CVE-2024-1234").
+    SelectDetailByType().
+    AsDistroSearch()
+
+// use SkipCompleteness() when you only care about specific matches
+db.Match(t, &matcher, pkg).SkipCompleteness().
+    ContainsVulnerabilities("CVE-2024-1234")  // other matches OK
+```
+
+#### Detail Assertions
+
+After selecting a match, drill into details by type or search parameters:
+
+```go
+// select by match type
+findings.SelectMatch("CVE-2024-1234").
+    SelectDetailByType(match.ExactDirectMatch).
+    AsDistroSearch()
+
+// select by distro (when multiple distro details exist)
+findings.SelectMatch("CVE-2024-1234").
+    SelectDetailByDistro("debian", "11", "< 1.0.0")
+
+// select by CPE
+findings.SelectMatch("CVE-2024-1234").
+    SelectDetailByCPE("cpe:2.3:a:vendor:product:1.0:*:*:*:*:*:*:*").
+    FoundCPEs("cpe:2.3:a:vendor:product:*:*:*:*:*:*:*:*")
+
+// select by ecosystem/language
+findings.SelectMatch("CVE-2024-1234").
+    SelectDetailByEcosystem("python", "< 2.0.0")
+```
+
+#### Available Assertions
+
+| Method | Description |
+|--------|-------------|
+| `HasCount(n)` | Assert exactly n matches |
+| `IsEmpty()` | Assert no matches |
+| `ContainsVulnerabilities(ids...)` | Assert these CVEs are present (others may exist) |
+| `OnlyHasVulnerabilities(ids...)` | Assert exactly these CVEs and no others |
+| `DoesNotHaveAnyVulnerabilities(ids...)` | Assert these CVEs are not present |
+| `SelectMatch(id)` | Select a specific match for detail assertions |
+| `HasMatchType(type)` | Assert at least one detail has this match type |
+| `HasOnlyMatchTypes(types...)` | Assert all details have one of these types |
+| `SkipCompleteness()` | Disable completeness checking |
 
 ### Extracting Fixtures from Vunnel Cache
 
