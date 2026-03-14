@@ -248,6 +248,10 @@ func getPackageType(osName string) pkg.Type {
 		return pkg.ApkPkg
 	case "windows":
 		return pkg.KbPkg
+	case "rapidfort-ubuntu":
+		return pkg.DebPkg
+	case "rapidfort-alpine":
+		return pkg.ApkPkg
 	}
 
 	return ""

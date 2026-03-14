@@ -1,0 +1,26 @@
+[
+  {
+    "Vulnerability": {
+      "CVSS": [],
+      "Description": "curl: OAUTH2 bearer bypass in connection re-use",
+      "FixedIn": [
+        {
+          "Name": "curl",
+          "NamespaceName": "rapidfort-ubuntu:20.04",
+          "Version": "7.68.0-1ubuntu2.10",
+          "VersionFormat": "dpkg",
+          "VulnerableRange": ">= 7.68.0, < 7.68.0-1ubuntu2.10",
+          "Available": {
+            "Date": "2022-05-01T00:00:00Z",
+            "Kind": "advisory"
+          }
+        }
+      ],
+      "Link": "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-22576",
+      "Metadata": {},
+      "Name": "CVE-2022-22576",
+      "NamespaceName": "rapidfort-ubuntu:20.04",
+      "Severity": "Medium"
+    }
+  }
+]

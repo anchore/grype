@@ -44,6 +44,13 @@ func expectedProvider(name string) *db.Provider {
 
 func TestTransform(t *testing.T) {
 
+	rapidfortUbuntu2004OS := &db.OperatingSystem{
+		Name:         "rapidfort-ubuntu",
+		ReleaseID:    "rapidfort-ubuntu",
+		MajorVersion: "20",
+		MinorVersion: "04",
+	}
+
 	alpineOS := &db.OperatingSystem{
 		Name:         "alpine",
 		ReleaseID:    "alpine",
@@ -1134,6 +1141,56 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
+			name:     "test-fixtures/rapidfort-ubuntu-20.04.json",
+			provider: "rapidfort",
+			want: []transformers.RelatedEntries{
+				{
+					VulnerabilityHandle: &db.VulnerabilityHandle{
+						Name:       "CVE-2022-22576",
+						ProviderID: "rapidfort",
+						Provider:   expectedProvider("rapidfort"),
+						Status:     "active",
+						BlobValue: &db.VulnerabilityBlob{
+							ID:          "CVE-2022-22576",
+							Description: "curl: OAUTH2 bearer bypass in connection re-use",
+							References: []db.Reference{
+								{URL: "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-22576"},
+							},
+							Severities: []db.Severity{
+								{Scheme: db.SeveritySchemeCHMLN, Value: "medium", Rank: 1},
+							},
+						},
+					},
+					Related: affectedPkgSlice(
+						db.AffectedPackageHandle{
+							OperatingSystem: rapidfortUbuntu2004OS,
+							Package:         &db.Package{Ecosystem: "deb", Name: "curl"},
+							BlobValue: &db.PackageBlob{
+								Ranges: []db.Range{
+									{
+										Version: db.Version{
+											Type:       "dpkg",
+											Constraint: ">= 7.68.0, < 7.68.0-1ubuntu2.10",
+										},
+										Fix: &db.Fix{
+											Version: "7.68.0-1ubuntu2.10",
+											State:   db.FixedStatus,
+											Detail: &db.FixDetail{
+												Available: &db.FixAvailability{
+													Date: timeRef(time.Date(2022, 5, 1, 0, 0, 0, 0, time.UTC)),
+													Kind: "advisory",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					),
+				},
+			},
+		},
+		{
 			name:     "test-fixtures/fedora-39.json",
 			provider: "fedora",
 			want: []transformers.RelatedEntries{
@@ -1371,6 +1428,24 @@ func TestGetOSInfo(t *testing.T) {
 				id:      "rhel",
 				version: "8",
 				channel: "eus",
+			},
+		},
+		{
+			name:  "rapidfort ubuntu 20.04 (provider-curated, 2-part namespace)",
+			group: "rapidfort-ubuntu:20.04",
+			expected: osInfo{
+				name:    "rapidfort-ubuntu",
+				id:      "rapidfort-ubuntu",
+				version: "20.04",
+			},
+		},
+		{
+			name:  "rapidfort alpine 3.20 (provider-curated, 2-part namespace)",
+			group: "rapidfort-alpine:3.20",
+			expected: osInfo{
+				name:    "rapidfort-alpine",
+				id:      "rapidfort-alpine",
+				version: "3.20",
 			},
 		},
 	}
