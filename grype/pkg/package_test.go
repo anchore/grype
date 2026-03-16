@@ -989,7 +989,7 @@ func TestFromCollection_DoesNotPanic(t *testing.T) {
 	collection.Add(examplePackage)
 
 	assert.NotPanics(t, func() {
-		_ = FromCollection(collection, SynthesisConfig{})
+		_ = FromCollection(collection, nil, SynthesisConfig{})
 	})
 }
 
@@ -1010,12 +1010,12 @@ func TestFromCollection_GeneratesCPEs(t *testing.T) {
 	})
 
 	// doesn't generate cpes when no flag
-	pkgs := FromCollection(collection, SynthesisConfig{})
+	pkgs := FromCollection(collection, nil, SynthesisConfig{})
 	assert.Len(t, pkgs[0].CPEs, 1)
 	assert.Len(t, pkgs[1].CPEs, 0)
 
 	// does generate cpes with the flag
-	pkgs = FromCollection(collection, SynthesisConfig{
+	pkgs = FromCollection(collection, nil, SynthesisConfig{
 		GenerateMissingCPEs: true,
 	})
 	assert.Len(t, pkgs[0].CPEs, 1)
@@ -1163,7 +1163,7 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			d := distro.FromRelease(test.sbom.Artifacts.LinuxDistribution, distro.DefaultFixChannels())
 			catalog := removePackagesByOverlap(test.sbom.Artifacts.Packages, test.sbom.Relationships, d)
-			pkgs := FromCollection(catalog, SynthesisConfig{})
+			pkgs := FromCollection(catalog, test.sbom.Relationships, SynthesisConfig{})
 			var pkgNames []string
 			for _, p := range pkgs {
 				pkgNames = append(pkgNames, fmt.Sprintf("%s:%s@%s", p.Type, p.Name, p.Version))

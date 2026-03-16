@@ -45,7 +45,7 @@ func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func
 		enhancers = purlEnhancers(applyChannel)
 	}
 
-	return FromCollection(catalog, config.SynthesisConfig, enhancers...), Context{
+	return FromCollection(catalog, s.Relationships, config.SynthesisConfig, enhancers...), Context{
 		Source:                &src,
 		Distro:                d,
 		DistroDetectionFailed: distroDetectionFailed,

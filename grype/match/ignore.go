@@ -5,8 +5,10 @@ import (
 
 	"github.com/bmatcuk/doublestar/v2"
 
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/syft/syft/artifact"
 )
 
 // IgnoreFilter implementations are used to filter matches, returning all applicable IgnoreRule(s) that applied,
@@ -41,12 +43,61 @@ type IgnoreRule struct {
 
 // IgnoreRulePackage describes the Package-specific fields that comprise the IgnoreRule.
 type IgnoreRulePackage struct {
+	ID           string `yaml:"id" json:"id" mapstructure:"id"`
 	Name         string `yaml:"name" json:"name" mapstructure:"name"`
 	Version      string `yaml:"version" json:"version" mapstructure:"version"`
 	Language     string `yaml:"language" json:"language" mapstructure:"language"`
 	Type         string `yaml:"type" json:"type" mapstructure:"type"`
 	Location     string `yaml:"location" json:"location" mapstructure:"location"`
 	UpstreamName string `yaml:"upstream-name" json:"upstream-name" mapstructure:"upstream-name"`
+}
+
+// IgnoreRelatedPackage is an IgnoreFilter that looks at package relationships to drop vulnerabilities on specific packages
+// that meet the specified relationship rules
+type IgnoreRelatedPackage struct {
+	Reason           string
+	RelationshipType artifact.RelationshipType `yaml:"relationship-type" json:"relationship-type" mapstructure:"relationship-type"`
+	VulnerabilityID  string                    `yaml:"vulnerability" json:"vulnerability" mapstructure:"vulnerability"`
+	RelatedPackageID pkg.ID                    `yaml:"related-package" json:"related-package" mapstructure:"related-package"`
+}
+
+func (i IgnoreRelatedPackage) IgnoreMatch(m Match) []IgnoreRule {
+	if m.Vulnerability.ID != i.VulnerabilityID {
+		matches := false
+		for _, related := range m.Vulnerability.RelatedVulnerabilities {
+			if related.ID == i.VulnerabilityID {
+				matches = true
+				break
+			}
+		}
+		if !matches {
+			return nil
+		}
+	}
+	relatedPackages := m.Package.RelatedPackages[i.RelationshipType]
+	if relatedPackages == nil {
+		return nil
+	}
+	// any packages that _this package owns_ should be filtered out
+	overlaps := false
+	for _, ownerPkg := range relatedPackages {
+		if ownerPkg.ID == i.RelatedPackageID {
+			overlaps = true
+			break
+		}
+	}
+	if !overlaps {
+		return nil
+	}
+	return []IgnoreRule{
+		{
+			Vulnerability: i.VulnerabilityID,
+			Package: IgnoreRulePackage{
+				ID: string(i.RelatedPackageID),
+			},
+			Reason: "Explicit APK NAK by Ownership",
+		},
+	}
 }
 
 // ApplyIgnoreRules iterates through the provided matches and, for each match,

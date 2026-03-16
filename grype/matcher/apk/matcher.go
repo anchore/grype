@@ -11,6 +11,7 @@ import (
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/syft/syft/artifact"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -264,8 +265,16 @@ func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Pack
 					Package: match.IgnoreRulePackage{
 						Location: f.Path,
 					},
-				})
+				},
+			)
 		}
+
+		ignores = append(ignores, match.IgnoreRelatedPackage{
+			Reason:           "Explicit APK NAK by Ownership",
+			RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+			VulnerabilityID:  nak.ID,
+			RelatedPackageID: p.ID,
+		})
 	}
 
 	return ignores, nil
