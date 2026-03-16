@@ -12,7 +12,9 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/log"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -75,7 +77,18 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	}
 	all = append(all, binaryMatches...)
 
-	return all, nil, nil
+	// 3. Post-filter: suppress any match where the installed version is already at or
+	//    beyond the recorded fix version.  This is an explicit safety net — well-formed
+	//    RF advisories use strict "< fixVersion" constraints so the DB query already
+	//    excludes fixed packages, but this guards against edge cases (e.g. advisory
+	//    has only an "introduced" event and was later patched without updating the DB).
+	//
+	//    Priority: fix-version check first, range constraint second.
+	format := pkg.VersionFormat(p)
+	filtered := filterAlreadyFixed(all, p.Version, format)
+
+	// 4. Dedup: source and binary lookups can surface the same CVE for the same package.
+	return dedupMatches(filtered), nil, nil
 }
 
 // matchUpstreamPackages searches the RF DB using the source/upstream package names
@@ -96,4 +109,62 @@ func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Pack
 	// Mark all upstream-sourced matches as indirect (the artifact is the binary pkg).
 	match.ConvertToIndirectMatches(matches, p)
 	return matches, nil
+}
+
+// filterAlreadyFixed removes matches where the installed version exactly equals
+// a recorded fix version, meaning the package has been patched.
+//
+// Logic (in priority order):
+//  1. If Fix.State == FixStateFixed AND installedVersion == fixVersion → suppress.
+//  2. Otherwise the range constraint (already evaluated by FindVulnerabilities) decides.
+func filterAlreadyFixed(matches []match.Match, installedVer string, format version.Format) []match.Match {
+	installed := version.New(installedVer, format)
+	var out []match.Match
+	for _, m := range matches {
+		fix := m.Vulnerability.Fix
+		if fix.State == vulnerability.FixStateFixed {
+			suppressed := false
+			for _, fixVer := range fix.Versions {
+				if fixVer == "" || fixVer == "None" {
+					continue
+				}
+				// cmp = fixVersion.Compare(installed): 0 means installed == fixVersion
+				cmp, err := version.New(fixVer, format).Compare(installed)
+				if err != nil {
+					log.WithFields("pkg", installedVer, "fixVersion", fixVer, "err", err).
+						Trace("rapidfort: could not compare fix version, keeping match")
+					continue
+				}
+				if cmp == 0 {
+					// installed version equals the fix — package is patched
+					log.WithFields("vuln", m.Vulnerability.ID, "pkg", installedVer, "fixVersion", fixVer).
+						Trace("rapidfort: suppressing match — installed version == fix version")
+					suppressed = true
+					break
+				}
+			}
+			if suppressed {
+				vulnerability.LogDropped(m.Vulnerability.ID, "rapidfort-matcher",
+					"installed version equals fix version", installedVer)
+				continue
+			}
+		}
+		out = append(out, m)
+	}
+	return out
+}
+
+// dedupMatches removes duplicate matches with the same vulnerability ID.
+// Source and binary package lookups can surface the same CVE for the same package.
+func dedupMatches(matches []match.Match) []match.Match {
+	seen := make(map[string]struct{}, len(matches))
+	out := make([]match.Match, 0, len(matches))
+	for _, m := range matches {
+		if _, ok := seen[m.Vulnerability.ID]; ok {
+			continue
+		}
+		seen[m.Vulnerability.ID] = struct{}{}
+		out = append(out, m)
+	}
+	return out
 }

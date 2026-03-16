@@ -26,7 +26,6 @@ import (
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
 	"github.com/anchore/grype/grype/matcher/python"
-	"github.com/anchore/grype/grype/matcher/rapidfort"
 	"github.com/anchore/grype/grype/matcher/rpm"
 	"github.com/anchore/grype/grype/matcher/ruby"
 	"github.com/anchore/grype/grype/matcher/stock"
@@ -221,10 +220,7 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 		return fmt.Errorf("failed to create VEX processor: %w", err)
 	}
 
-	matchers := getMatchers(opts)
-	if rapidfort.IsRapidFortImage(pkgContext.Source) {
-		matchers = append(matchers, rapidfort.NewMatcher())
-	}
+	matchers := getMatchers(opts, pkgContext)
 
 	vulnMatcher := grype.VulnerabilityMatcher{
 		VulnerabilityProvider: vp,
@@ -397,8 +393,8 @@ func getMatcherConfig(opts *options.Grype) matcher.Config {
 	}
 }
 
-func getMatchers(opts *options.Grype) []match.Matcher {
-	return matcher.NewDefaultMatchers(getMatcherConfig(opts))
+func getMatchers(opts *options.Grype, pkgContext pkg.Context) []match.Matcher {
+	return matcher.ApplySelectionPolicy(matcher.NewDefaultMatchers(getMatcherConfig(opts)), pkgContext)
 }
 
 func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
