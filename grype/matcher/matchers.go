@@ -14,10 +14,12 @@ import (
 	"github.com/anchore/grype/grype/matcher/pacman"
 	"github.com/anchore/grype/grype/matcher/portage"
 	"github.com/anchore/grype/grype/matcher/python"
+	"github.com/anchore/grype/grype/matcher/rapidfort"
 	"github.com/anchore/grype/grype/matcher/rpm"
 	"github.com/anchore/grype/grype/matcher/ruby"
 	"github.com/anchore/grype/grype/matcher/rust"
 	"github.com/anchore/grype/grype/matcher/stock"
+	"github.com/anchore/grype/grype/pkg"
 )
 
 // Config contains values used by individual matcher structs for advanced configuration
@@ -54,4 +56,44 @@ func NewDefaultMatchers(mc Config) []match.Matcher {
 		&bitnami.Matcher{},
 		&pacman.Matcher{},
 	}
+}
+
+func ApplySelectionPolicy(matchers []match.Matcher, ctx pkg.Context) []match.Matcher {
+	if !rapidfort.IsRapidFortImage(ctx.Source) {
+		return matchers
+	}
+
+	rfMatcher := rapidfort.NewMatcher()
+	replacements := map[match.MatcherType]match.Matcher{
+		match.DpkgMatcher: rfMatcher,
+		match.ApkMatcher:  rfMatcher,
+	}
+
+	return applyMatcherOverrides(matchers, replacements)
+}
+
+func applyMatcherOverrides(matchers []match.Matcher, replacements map[match.MatcherType]match.Matcher) []match.Matcher {
+	if len(replacements) == 0 {
+		return matchers
+	}
+
+	var out []match.Matcher
+	added := make(map[match.MatcherType]struct{})
+
+	for _, m := range matchers {
+		replacement, ok := replacements[m.Type()]
+		if !ok {
+			out = append(out, m)
+			continue
+		}
+
+		if _, exists := added[replacement.Type()]; exists {
+			continue
+		}
+
+		out = append(out, replacement)
+		added[replacement.Type()] = struct{}{}
+	}
+
+	return out
 }
