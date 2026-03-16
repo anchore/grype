@@ -91,7 +91,8 @@ func (i IgnoreRelatedPackage) IgnoreMatch(m Match) []IgnoreRule {
 	}
 	return []IgnoreRule{
 		{
-			Vulnerability: i.VulnerabilityID,
+			Vulnerability:  i.VulnerabilityID,
+			IncludeAliases: true,
 			Package: IgnoreRulePackage{
 				ID: string(i.RelatedPackageID),
 			},
