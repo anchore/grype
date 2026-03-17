@@ -270,7 +270,7 @@ func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Pack
 		}
 
 		ignores = append(ignores, match.IgnoreRelatedPackage{
-			Reason:           "Explicit APK NAK by Ownership",
+			Reason:           fmt.Sprintf("Explicit APK NAK by Ownership from package: %s", p.Name),
 			RelationshipType: artifact.OwnershipByFileOverlapRelationship,
 			VulnerabilityID:  nak.ID,
 			RelatedPackageID: p.ID,

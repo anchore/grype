@@ -43,7 +43,6 @@ type IgnoreRule struct {
 
 // IgnoreRulePackage describes the Package-specific fields that comprise the IgnoreRule.
 type IgnoreRulePackage struct {
-	ID           string `yaml:"id" json:"id" mapstructure:"id"`
 	Name         string `yaml:"name" json:"name" mapstructure:"name"`
 	Version      string `yaml:"version" json:"version" mapstructure:"version"`
 	Language     string `yaml:"language" json:"language" mapstructure:"language"`
@@ -93,10 +92,7 @@ func (i IgnoreRelatedPackage) IgnoreMatch(m Match) []IgnoreRule {
 		{
 			Vulnerability:  i.VulnerabilityID,
 			IncludeAliases: true,
-			Package: IgnoreRulePackage{
-				ID: string(i.RelatedPackageID),
-			},
-			Reason: "Explicit APK NAK by Ownership",
+			Reason:         i.Reason,
 		},
 	}
 }
