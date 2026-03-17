@@ -35,20 +35,25 @@ func (m *Matcher) Type() match.MatcherType {
 
 func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	var matches []match.Match
+	var ignoreFilters []match.IgnoreFilter
 
-	// direct matches with package itself
-	directMatches, err := m.findMatchesForPackage(store, p, nil)
+	ownedPaths := ownedFilePaths(p)
+
+	// direct matches with package itself (+ distro-fixed ignore rules when ownedPaths is available)
+	directMatches, directIgnores, err := m.findMatchesForPackage(store, p, nil, ownedPaths)
 	if err != nil {
 		return nil, nil, err
 	}
 	matches = append(matches, directMatches...)
+	ignoreFilters = append(ignoreFilters, directIgnores...)
 
 	// indirect matches, via package's origin package
-	indirectMatches, err := m.findMatchesForOriginPackage(store, p)
+	indirectMatches, indirectIgnores, err := m.findMatchesForOriginPackage(store, p, ownedPaths)
 	if err != nil {
 		return nil, nil, err
 	}
 	matches = append(matches, indirectMatches...)
+	ignoreFilters = append(ignoreFilters, indirectIgnores...)
 
 	// APK sources are also able to NAK vulnerabilities, so we want to return these as explicit ignores in order
 	// to allow rules later to use these to ignore "the same" vulnerability found in "the same" locations
@@ -56,18 +61,7 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	if err != nil {
 		return nil, nil, err
 	}
-
-	// Discover vulnerabilities the distro feed has assessed as fixed for this package, and return
-	// ignore rules so that language/ecosystem matchers for co-installed language packages (e.g. a
-	// Go module installed via an APK) don't produce false positive matches for the same CVEs.
-	distroFixed, err := m.findDistroFixedIgnoreRules(store, p)
-	if err != nil {
-		log.WithFields("package", p.Name, "error", err).Debug("failed to find distro fixed ignore rules")
-	}
-
-	var ignoreFilters []match.IgnoreFilter
 	ignoreFilters = append(ignoreFilters, naks...)
-	ignoreFilters = append(ignoreFilters, distroFixed...)
 
 	return matches, ignoreFilters, nil
 }
@@ -184,18 +178,18 @@ func vulnerabilitiesByID(vulns []vulnerability.Vulnerability) map[string][]vulne
 	return results
 }
 
-func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Package, catalogPkg *pkg.Package) ([]match.Match, error) {
+func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Package, catalogPkg *pkg.Package, ownedPaths []string) ([]match.Match, []match.IgnoreFilter, error) {
 	// find SecDB matches for the given package name and version
 	// APK doesn't use epochs, so pass nil for the config
-	secDBMatches, _, err := internal.MatchPackageByDistro(store, p, catalogPkg, m.Type(), nil)
+	secDBMatches, secDBIgnores, err := internal.MatchPackageByDistro(store, p, catalogPkg, m.Type(), nil, ownedPaths...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// TODO: are there other errors that we should handle here that causes this to short circuit
 	cpeMatches, err := m.cpeMatchesWithoutSecDBFixes(store, p)
 	if err != nil && !errors.Is(err, internal.ErrEmptyCPEMatch) {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var matches []match.Match
@@ -206,53 +200,27 @@ func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Pack
 	// keep only unique CPE matches
 	matches = append(matches, deduplicateMatches(secDBMatches, cpeMatches)...)
 
-	return matches, nil
+	return matches, secDBIgnores, nil
 }
 
-func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, catalogPkg pkg.Package) ([]match.Match, error) {
+func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, catalogPkg pkg.Package, ownedPaths []string) ([]match.Match, []match.IgnoreFilter, error) {
 	var matches []match.Match
+	var ignores []match.IgnoreFilter
 
 	for _, indirectPackage := range pkg.UpstreamPackages(catalogPkg) {
-		indirectMatches, err := m.findMatchesForPackage(store, indirectPackage, &catalogPkg)
+		indirectMatches, indirectIgnores, err := m.findMatchesForPackage(store, indirectPackage, &catalogPkg, ownedPaths)
 		if err != nil {
-			return nil, fmt.Errorf("failed to find vulnerabilities for apk upstream source package: %w", err)
+			return nil, nil, fmt.Errorf("failed to find vulnerabilities for apk upstream source package: %w", err)
 		}
 		matches = append(matches, indirectMatches...)
+		ignores = append(ignores, indirectIgnores...)
 	}
 
 	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package)
 	// however, we also want to keep the indirect package around for future reference
 	match.ConvertToIndirectMatches(matches, catalogPkg)
 
-	return matches, nil
-}
-
-// findDistroFixedIgnoreRules discovers CVEs that the APK distro feed has data about but for which the
-// installed package version is already patched. These are returned as ignore rules scoped to file paths
-// owned by the APK, so they only suppress findings for co-located packages (e.g. a Go binary installed
-// via APK) and not for independently installed packages (e.g. a pip install in the same container).
-func (m *Matcher) findDistroFixedIgnoreRules(store vulnerability.Provider, p pkg.Package) ([]match.IgnoreFilter, error) {
-	ownedPaths := ownedFilePaths(p)
-	if len(ownedPaths) == 0 {
-		return nil, nil
-	}
-
-	// APK doesn't use epochs, so pass nil for the config
-	ignores, err := internal.FindDistroFixedIgnoreRules(store, p, nil, ownedPaths)
-	if err != nil {
-		return nil, err
-	}
-
-	// also search upstream/source packages
-	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		upstreamIgnores, err := internal.FindDistroFixedIgnoreRules(store, indirectPackage, nil, ownedPaths)
-		if err != nil {
-			return nil, err
-		}
-		ignores = append(ignores, upstreamIgnores...)
-	}
-
-	return ignores, nil
+	return matches, ignores, nil
 }
 
 // ownedFilePaths extracts the file paths owned by an APK package from its metadata.

@@ -102,7 +102,7 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 	assert.Empty(t, actual)
 }
 
-func TestFindDistroFixedIgnoreRules(t *testing.T) {
+func TestMatchPackageByDistroWithIgnoreRules(t *testing.T) {
 	ownedPaths := []string{"/usr/lib/python3/dist-packages/requests", "/usr/bin/python3"}
 
 	tests := []struct {
@@ -111,6 +111,7 @@ func TestFindDistroFixedIgnoreRules(t *testing.T) {
 		ownedPaths            []string
 		vulnerabilities       []vulnerability.Vulnerability
 		expectedIgnoreVulnIDs []string
+		expectedMatchIDs      []string
 		expectNoIgnoreRules   bool
 	}{
 		{
@@ -150,6 +151,7 @@ func TestFindDistroFixedIgnoreRules(t *testing.T) {
 					Reference:   vulnerability.Reference{ID: "CVE-2023-backported", Namespace: "secdb:distro:redhat:8"},
 				},
 			},
+			expectedMatchIDs:    []string{"CVE-2023-backported"},
 			expectNoIgnoreRules: true,
 		},
 		{
@@ -196,6 +198,7 @@ func TestFindDistroFixedIgnoreRules(t *testing.T) {
 					Reference:   vulnerability.Reference{ID: "CVE-2023-still-vulnerable", Namespace: "secdb:distro:redhat:8"},
 				},
 			},
+			expectedMatchIDs: []string{"CVE-2023-still-vulnerable"},
 			// one rule per path for the fixed CVE only
 			expectedIgnoreVulnIDs: []string{"CVE-2023-already-fixed", "CVE-2023-already-fixed"},
 		},
@@ -285,8 +288,17 @@ func TestFindDistroFixedIgnoreRules(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			store := mock.VulnerabilityProvider(test.vulnerabilities...)
 
-			ignoreFilters, err := FindDistroFixedIgnoreRules(store, test.pkg, nil, test.ownedPaths)
+			matches, ignoreFilters, err := MatchPackageByDistro(store, test.pkg, nil, match.PythonMatcher, nil, test.ownedPaths...)
 			require.NoError(t, err)
+
+			// verify matches
+			var gotMatchIDs []string
+			for _, m := range matches {
+				gotMatchIDs = append(gotMatchIDs, m.Vulnerability.ID)
+			}
+			if len(test.expectedMatchIDs) > 0 {
+				assert.ElementsMatch(t, test.expectedMatchIDs, gotMatchIDs, "unexpected match IDs")
+			}
 
 			if test.expectNoIgnoreRules {
 				assert.Empty(t, ignoreFilters, "expected no ignore rules")

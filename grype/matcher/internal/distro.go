@@ -13,7 +13,15 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package, catalogPkg *pkg.Package, upstreamMatcher match.MatcherType, cfg *version.ComparisonConfig) ([]match.Match, []match.IgnoreFilter, error) {
+// MatchPackageByDistro searches for vulnerabilities by distro package and returns matches for vulnerable
+// entries. When ownedPaths is non-empty it also returns ignore rules for vulnerabilities the distro has
+// assessed as fixed, scoped to those paths. This avoids suppressing findings for independently installed
+// packages (e.g. a pip-installed package in a container that also has the distro package).
+//
+// When ownedPaths is empty the query includes version filtering for efficiency (only vulnerable entries
+// are fetched). When ownedPaths is provided the superset of all known vulnerabilities is fetched in a
+// single query and partitioned in memory, reducing the total number of database queries from 3 to 1.
+func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package, catalogPkg *pkg.Package, upstreamMatcher match.MatcherType, cfg *version.ComparisonConfig, ownedPaths ...string) ([]match.Match, []match.IgnoreFilter, error) {
 	if searchPkg.Distro == nil {
 		return nil, nil, nil
 	}
@@ -22,8 +30,6 @@ func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package
 		log.WithFields("package", searchPkg.Name).Trace("skipping package with unknown version")
 		return nil, nil, nil
 	}
-
-	var matches []match.Match
 
 	// Create version with config embedded if provided
 	var pkgVersion *version.Version
@@ -35,6 +41,50 @@ func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package
 
 	versionCriteria := OnlyVulnerableVersions(pkgVersion)
 
+	if len(ownedPaths) == 0 {
+		// No ignore rules needed — add version criteria for an efficient, narrow query.
+		return matchDistroVulnerable(provider, searchPkg, catalogPkg, upstreamMatcher, versionCriteria)
+	}
+
+	// Fetch the superset of all vulnerabilities the distro knows about for this package (1 query).
+	allVulns, err := provider.FindVulnerabilities(
+		search.ByPackageName(searchPkg.Name),
+		search.ByDistro(*searchPkg.Distro),
+		OnlyQualifiedPackages(searchPkg),
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
+	}
+
+	// Partition in memory: vulnerable vs. fixed.
+	var matches []match.Match
+	var fixedVulns []vulnerability.Vulnerability
+
+	for _, vuln := range allVulns {
+		isVulnerable, _, matchErr := versionCriteria.MatchesVulnerability(vuln)
+		if matchErr != nil {
+			return nil, nil, fmt.Errorf("failed to evaluate version criteria for %s: %w", vuln.ID, matchErr)
+		}
+
+		if isVulnerable {
+			matches = append(matches, match.Match{
+				Vulnerability: vuln,
+				Package:       matchPackage(searchPkg, catalogPkg),
+				Details:       distroMatchDetails(upstreamMatcher, searchPkg, catalogPkg, vuln),
+			})
+		} else {
+			fixedVulns = append(fixedVulns, vuln)
+		}
+	}
+
+	ignores := distroFixedIgnoreRules(fixedVulns, ownedPaths)
+
+	return matches, ignores, nil
+}
+
+// matchDistroVulnerable is the fast path when no ignore rules are needed: it issues a single DB query
+// that includes version criteria so only vulnerable entries are returned.
+func matchDistroVulnerable(provider vulnerability.Provider, searchPkg pkg.Package, catalogPkg *pkg.Package, upstreamMatcher match.MatcherType, versionCriteria vulnerability.Criteria) ([]match.Match, []match.IgnoreFilter, error) {
 	vulns, err := provider.FindVulnerabilities(
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
@@ -45,6 +95,7 @@ func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package
 		return nil, nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
 
+	var matches []match.Match
 	for _, vuln := range vulns {
 		matches = append(matches, match.Match{
 			Vulnerability: vuln,
@@ -52,7 +103,29 @@ func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package
 			Details:       distroMatchDetails(upstreamMatcher, searchPkg, catalogPkg, vuln),
 		})
 	}
-	return matches, nil, err
+	return matches, nil, nil
+}
+
+// distroFixedIgnoreRules builds location-scoped ignore rules for vulnerabilities that the distro has
+// assessed as fixed. Each vulnerability ID (including aliases) gets one rule per owned path.
+func distroFixedIgnoreRules(fixedVulns []vulnerability.Vulnerability, ownedPaths []string) []match.IgnoreFilter {
+	var ignores []match.IgnoreFilter
+	for _, v := range fixedVulns {
+		ids := collectVulnerabilityIDs(v)
+		for _, id := range ids {
+			for _, path := range ownedPaths {
+				ignores = append(ignores, match.IgnoreRule{
+					Vulnerability:  id,
+					IncludeAliases: true,
+					Reason:         "DistroPackageFixed",
+					Package: match.IgnoreRulePackage{
+						Location: path,
+					},
+				})
+			}
+		}
+	}
+	return ignores
 }
 
 func matchPackage(searchPkg pkg.Package, catalogPkg *pkg.Package) pkg.Package {
@@ -90,92 +163,6 @@ func distroMatchDetails(upstreamMatcher match.MatcherType, searchPkg pkg.Package
 			Confidence: 1.0, // TODO: this is hard coded for now
 		},
 	}
-}
-
-// FindDistroFixedIgnoreRules discovers vulnerabilities that the distro feed has data about but that do not
-// affect the installed package version (i.e. the package is already at or beyond the fixed version). These
-// "assessed-not-vulnerable" entries are returned as IgnoreRules scoped to the provided ownedPaths so they
-// only suppress findings for packages located at those paths — not for independently installed packages
-// (e.g. a pip-installed package in a container that also has the distro package).
-//
-// If ownedPaths is empty, no ignore rules are emitted (we cannot safely scope the suppression).
-func FindDistroFixedIgnoreRules(provider vulnerability.Provider, searchPkg pkg.Package, cfg *version.ComparisonConfig, ownedPaths []string) ([]match.IgnoreFilter, error) {
-	if len(ownedPaths) == 0 {
-		return nil, nil
-	}
-
-	if searchPkg.Distro == nil {
-		return nil, nil
-	}
-
-	if isUnknownVersion(searchPkg.Version) {
-		return nil, nil
-	}
-
-	// Phase 1: find ALL vulnerabilities the distro knows about for this package (without version filtering).
-	allKnown, err := provider.FindVulnerabilities(
-		search.ByPackageName(searchPkg.Name),
-		search.ByDistro(*searchPkg.Distro),
-		OnlyQualifiedPackages(searchPkg),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch all known vulnerabilities distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
-	}
-
-	if len(allKnown) == 0 {
-		// the distro has no data about this package at all -- nothing to suppress
-		return nil, nil
-	}
-
-	// Phase 2: find only the vulnerabilities that actually affect the installed version.
-	var pkgVersion *version.Version
-	if cfg != nil {
-		pkgVersion = version.NewWithConfig(searchPkg.Version, pkg.VersionFormat(searchPkg), *cfg)
-	} else {
-		pkgVersion = version.New(searchPkg.Version, pkg.VersionFormat(searchPkg))
-	}
-
-	vulnerable, err := provider.FindVulnerabilities(
-		search.ByPackageName(searchPkg.Name),
-		search.ByDistro(*searchPkg.Distro),
-		OnlyQualifiedPackages(searchPkg),
-		OnlyVulnerableVersions(pkgVersion),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch vulnerable versions distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
-	}
-
-	// Phase 3: the difference is the "assessed-not-vulnerable" set -- the distro has data for these CVEs
-	// but the installed version is already fixed.
-	vulnerableIDs := make(map[string]struct{})
-	for _, v := range vulnerable {
-		vulnerableIDs[v.ID] = struct{}{}
-	}
-
-	var ignores []match.IgnoreFilter
-	for _, v := range allKnown {
-		if _, isVulnerable := vulnerableIDs[v.ID]; isVulnerable {
-			continue
-		}
-
-		// collect all IDs (primary + related) so that alias resolution catches GHSA↔CVE mappings
-		ids := collectVulnerabilityIDs(v)
-
-		for _, id := range ids {
-			for _, path := range ownedPaths {
-				ignores = append(ignores, match.IgnoreRule{
-					Vulnerability:  id,
-					IncludeAliases: true,
-					Reason:         "DistroPackageFixed",
-					Package: match.IgnoreRulePackage{
-						Location: path,
-					},
-				})
-			}
-		}
-	}
-
-	return ignores, nil
 }
 
 // collectVulnerabilityIDs returns the primary ID plus all related/alias IDs for a vulnerability.
