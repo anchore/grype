@@ -84,6 +84,37 @@ func Test_CPEProvider(t *testing.T) {
 			},
 		},
 		{
+			name:      "takes CPE 2.3 format",
+			userInput: "cpe:2.3:a:apache:log4j:2.14.1:*:*:*:*:*:*:*",
+			context: Context{
+				Source: &source.Description{
+					Metadata: CPELiteralMetadata{
+						CPE: "cpe:2.3:a:apache:log4j:2.14.1:*:*:*:*:*:*:*",
+					},
+				},
+			},
+			pkgs: []Package{
+				{
+					Name:    "log4j",
+					Version: "2.14.1",
+					CPEs: []cpe.CPE{
+						cpe.Must("cpe:2.3:a:apache:log4j:2.14.1:*:*:*:*:*:*:*", ""),
+					},
+				},
+			},
+			sbom: &sbom.SBOM{
+				Artifacts: sbom.Artifacts{
+					Packages: pkg.NewCollection(pkg.Package{
+						Name:    "log4j",
+						Version: "2.14.1",
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:a:apache:log4j:2.14.1:*:*:*:*:*:*:*", ""),
+						},
+					}),
+				},
+			},
+		},
+		{
 			name: "takes multiple CPEs",
 			userInput: `cpe:/a:apache:log4j:2.14.1
 						cpe:2.3:a:f5:nginx:*:*:*:*:*:*:*:*`,
