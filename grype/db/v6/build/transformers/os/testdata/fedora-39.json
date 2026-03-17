@@ -1,0 +1,33 @@
+[
+  {
+    "Vulnerability": {
+      "CVSS": [],
+      "Description": "Security update for glib2 to fix CVE-2024-34397",
+      "FixedIn": [
+        {
+          "Name": "glib2",
+          "NamespaceName": "fedora:39",
+          "VendorAdvisory": {
+            "AdvisorySummary": [
+              {
+                "ID": "FEDORA-2024-fd2569c4e9",
+                "Link": "https://bodhi.fedoraproject.org/updates/FEDORA-2024-fd2569c4e9"
+              }
+            ],
+            "NoAdvisory": false
+          },
+          "Version": "0:2.78.6-1.fc39",
+          "VersionFormat": "rpm"
+        }
+      ],
+      "Link": "https://bodhi.fedoraproject.org/updates/FEDORA-2024-fd2569c4e9",
+      "Metadata": {
+        "Issued": "2024-05-09T02:43:30Z",
+        "Updated": "2024-05-14T03:27:20Z"
+      },
+      "Name": "CVE-2024-34397",
+      "NamespaceName": "fedora:39",
+      "Severity": "High"
+    }
+  }
+]

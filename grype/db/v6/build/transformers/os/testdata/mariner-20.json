@@ -1,0 +1,26 @@
+[
+  {
+    "Vulnerability": {
+      "Name": "CVE-2021-37621",
+      "NamespaceName": "mariner:2.0",
+      "Description": "CVE-2021-37621 affecting package exiv2 for versions less than 0.27.5-1. An upgraded version of the package is available that resolves this issue.",
+      "Severity": "Medium",
+      "Link": "https://nvd.nist.gov/vuln/detail/CVE-2021-37621",
+      "CVSS": [],
+      "FixedIn": [
+        {
+          "Name": "exiv2",
+          "NamespaceName": "mariner:2.0",
+          "VersionFormat": "rpm",
+          "Version": "0:0.27.5-1.cm2",
+          "Module": "",
+          "VendorAdvisory": {
+            "NoAdvisory": false,
+            "AdvisorySummary": []
+          }
+        }
+      ],
+      "Metadata": {}
+    }
+  }
+]

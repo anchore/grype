@@ -384,6 +384,13 @@ func (s *operatingSystemStore) searchForOSExactVersions(query *gorm.DB, d OSSpec
 			if err != nil || len(result) > 0 {
 				return result, err
 			}
+		} else {
+			// empty minor version - exact match for major-only distros (e.g., Debian 8, 9, 10...)
+			majorExclusiveQuery := query.Session(&gorm.Session{}).Where("major_version = ? AND minor_version = ?", d.MajorVersion, "")
+			result, err = handleQuery(majorExclusiveQuery, "major version with empty minor")
+			if err != nil || len(result) > 0 {
+				return result, err
+			}
 		}
 
 		// when fallback is disabled, don't try less specific version matches

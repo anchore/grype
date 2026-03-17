@@ -37,6 +37,12 @@ linters:
       - common-false-positives
       - legacy
       - std-error-handling
+    rules:
+      # we have multiple packages in grype that might overlap with the stblib; their names reflect their purpose
+      - linters:
+          - revive
+        text: "var-naming: avoid package names that conflict"
+
     paths:
       - third_party$
       - builtin$

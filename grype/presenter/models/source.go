@@ -43,6 +43,19 @@ func newSource(src syftSource.Description) (source, error) {
 			Type:   "image",
 			Target: m,
 		}, nil
+	case syftSource.OCIModelMetadata:
+		// ensure that empty collections are not shown as null
+		if m.RepoDigests == nil {
+			m.RepoDigests = []string{}
+		}
+		if m.Tags == nil {
+			m.Tags = []string{}
+		}
+
+		return source{
+			Type:   "oci-model",
+			Target: m,
+		}, nil
 	case syftSource.DirectoryMetadata:
 		return source{
 			Type:   "directory",

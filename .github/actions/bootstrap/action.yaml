@@ -4,7 +4,7 @@ inputs:
   go-version:
     description: "Go version to install"
     required: true
-    default: ">= 1.24"
+    default: "1.25.x"
   python-version:
     description: "Python version to install"
     required: true
@@ -32,10 +32,11 @@ runs:
   using: "composite"
   steps:
     # note: go mod and build is automatically cached on default with v4+
-    - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+    - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
       if: inputs.go-version != ''
       with:
         go-version: ${{ inputs.go-version }}
+        check-latest: true
 
     - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
       with:

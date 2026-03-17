@@ -7,6 +7,9 @@ go.work
 go.work.sum
 .tool-versions
 .jj/
+mise.toml
+specs/
+*.xxh64
 
 # AI and LLM related files
 CLAUDE.md
@@ -48,7 +51,9 @@ coverage.txt
 /listing.json
 *.db
 *.db-journal
-!**/test-fixtures/**/*.db
+!**/testdata/**/*.db
+!**/testdata/**/bin/
+!**/testdata/**/*.jar
 
 # probable archives
 .images

@@ -1,0 +1,130 @@
+[
+  {
+    "schema_version": "1.3.1",
+    "id": "GO-2023-2412",
+    "modified": "0001-01-01T00:00:00Z",
+    "published": "0001-01-01T00:00:00Z",
+    "aliases": [
+      "GHSA-7ww5-4wqc-m92c"
+    ],
+    "summary": "RAPL accessibility in github.com/containerd/containerd",
+    "details": "RAPL accessibility in github.com/containerd/containerd",
+    "affected": [
+      {
+        "package": {
+          "name": "github.com/containerd/containerd",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1.6.26"
+              },
+              {
+                "introduced": "1.7.0"
+              },
+              {
+                "fixed": "1.7.11"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "imports": [
+            {
+              "path": "github.com/containerd/containerd/contrib/apparmor",
+              "symbols": [
+                "DumpDefaultProfile",
+                "LoadDefaultProfile",
+                "generate"
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "references": [
+      {
+        "type": "ADVISORY",
+        "url": "https://github.com/containerd/containerd/security/advisories/GHSA-7ww5-4wqc-m92c"
+      },
+      {
+        "type": "FIX",
+        "url": "https://github.com/containerd/containerd/commit/67d356cb3095f3e8f8ad7d36f9a733fea1e7e28c"
+      },
+      {
+        "type": "FIX",
+        "url": "https://github.com/containerd/containerd/commit/746b910f05855c8bfdb4415a1c0f958b234910e5"
+      }
+    ],
+    "database_specific": {
+      "url": "https://pkg.go.dev/vuln/GO-2023-2412"
+    }
+  },
+  {
+    "schema_version": "1.3.1",
+    "id": "GO-2023-2413",
+    "modified": "0001-01-01T00:00:00Z",
+    "published": "0001-01-01T00:00:00Z",
+    "aliases": [
+      "CVE-2023-49922",
+      "GHSA-hj4r-2c9c-29h3"
+    ],
+    "summary": "Sensitive information logged in github.com/elastic/beats/v7",
+    "details": "Sensitive information logged in github.com/elastic/beats/v7",
+    "affected": [
+      {
+        "package": {
+          "name": "github.com/elastic/beats/v7",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "7.17.16"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "imports": [
+            {
+              "path": "github.com/elastic/beats/v7/libbeat/processors/script/javascript",
+              "symbols": [
+                "jsProcessor.Run",
+                "session.runProcessFunc"
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "references": [
+      {
+        "type": "ADVISORY",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-49922"
+      },
+      {
+        "type": "FIX",
+        "url": "https://github.com/elastic/beats/commit/9bd7de84ab9c31bb4e1c0a348a7b7c26817a0996"
+      },
+      {
+        "type": "WEB",
+        "url": "https://discuss.elastic.co/t/beats-and-elastic-agent-8-11-3-7-17-16-security-update-esa-2023-30/349180"
+      }
+    ],
+    "database_specific": {
+      "url": "https://pkg.go.dev/vuln/GO-2023-2413"
+    }
+  }
+]

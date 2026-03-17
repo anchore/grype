@@ -8,6 +8,66 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func intRef(i int) *int {
+	return &i
+}
+
+func TestTrimLeadingV(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "lowercase v followed by digit",
+			input: "v1.5.0",
+			want:  "1.5.0",
+		},
+		{
+			name:  "uppercase V followed by digit",
+			input: "V1.5.0",
+			want:  "1.5.0",
+		},
+		{
+			name:  "no prefix",
+			input: "1.5.0",
+			want:  "1.5.0",
+		},
+		{
+			name:  "v not followed by digit",
+			input: "version1.0",
+			want:  "version1.0",
+		},
+		{
+			name:  "empty string",
+			input: "",
+			want:  "",
+		},
+		{
+			name:  "single v",
+			input: "v",
+			want:  "v",
+		},
+		{
+			name:  "v followed by non-digit",
+			input: "va.b.c",
+			want:  "va.b.c",
+		},
+		{
+			name:  "double v prefix",
+			input: "vv1.0.0",
+			want:  "vv1.0.0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := trimLeadingV(tt.input)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestApkVersion_Constraint(t *testing.T) {
 	tests := []testCase{
 		{version: "2.3.1", constraint: "", satisfied: true},
@@ -69,6 +129,7 @@ func TestApkVersion_Compare(t *testing.T) {
 		otherFormat    Format
 		expectError    bool
 		errorSubstring string
+		expectResult   *int // nil means don't check specific result
 	}{
 		{
 			name:         "same format successful comparison",
@@ -107,6 +168,27 @@ func TestApkVersion_Compare(t *testing.T) {
 			expectError:    true,
 			errorSubstring: "invalid version",
 		},
+		{
+			name:         "lowercase v prefix on other version is stripped",
+			thisVersion:  "1.5.0",
+			otherVersion: "v1.5.0",
+			otherFormat:  ApkFormat,
+			expectResult: intRef(0),
+		},
+		{
+			name:         "uppercase V prefix on other version is stripped",
+			thisVersion:  "1.5.0",
+			otherVersion: "V1.5.0",
+			otherFormat:  ApkFormat,
+			expectResult: intRef(0),
+		},
+		{
+			name:         "v prefix on this version is stripped",
+			thisVersion:  "v1.5.0",
+			otherVersion: "1.5.0",
+			otherFormat:  ApkFormat,
+			expectResult: intRef(0),
+		},
 	}
 
 	for _, test := range tests {
@@ -126,7 +208,11 @@ func TestApkVersion_Compare(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err)
-				assert.Contains(t, []int{-1, 0, 1}, result, "Expected comparison result to be -1, 0, or 1")
+				if test.expectResult != nil {
+					assert.Equal(t, *test.expectResult, result)
+				} else {
+					assert.Contains(t, []int{-1, 0, 1}, result, "Expected comparison result to be -1, 0, or 1")
+				}
 			}
 		})
 	}

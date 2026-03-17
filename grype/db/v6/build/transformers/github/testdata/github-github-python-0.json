@@ -1,0 +1,58 @@
+[
+  {
+    "Advisory": {
+      "CVE": [
+        "CVE-2018-8768"
+      ],
+      "FixedIn": [
+        {
+          "ecosystem": "python",
+          "identifier": "5.4.1",
+          "name": "notebook",
+          "namespace": "github:python",
+          "range": "< 5.4.1"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2018-8768"
+        ]
+      },
+      "Severity": "Low",
+      "Summary": "Low severity vulnerability that affects notebook",
+      "ghsaId": "GHSA-6cwv-x26c-w2q4",
+      "namespace": "github:python",
+      "url": "https://github.com/advisories/GHSA-6cwv-x26c-w2q4",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  {
+    "Advisory": {
+      "CVE": [
+        "CVE-2017-5524"
+      ],
+      "FixedIn": [
+        {
+          "ecosystem": "python",
+          "identifier": "4.3.12",
+          "name": "Plone",
+          "namespace": "github:python",
+          "range": ">= 4.0 < 4.3.12"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2017-5524"
+        ]
+      },
+      "Severity": "Medium",
+      "Summary": "Moderate severity vulnerability that affects Plone",
+      "ghsaId": "GHSA-p5wr-vp8g-q5p4",
+      "namespace": "github:python",
+      "url": "https://github.com/advisories/GHSA-p5wr-vp8g-q5p4",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  }
+]

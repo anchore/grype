@@ -1,0 +1,174 @@
+{
+  "cve": {
+    "id": "CVE-2018-1000222",
+    "sourceIdentifier": "cve@mitre.org",
+    "published": "2018-08-20T20:29:01.347",
+    "lastModified": "2020-03-31T02:15:12.667",
+    "vulnStatus": "Modified",
+    "descriptions": [
+      {
+        "lang": "en",
+        "value": "Libgd version 2.2.5 contains a Double Free Vulnerability vulnerability in gdImageBmpPtr Function that can result in Remote Code Execution . This attack appear to be exploitable via Specially Crafted Jpeg Image can trigger double free. This vulnerability appears to have been fixed in after commit ac16bdf2d41724b5a65255d4c28fb0ec46bc42f5."
+      },
+      {
+        "lang": "es",
+        "value": "Libgd 2.2.5 contiene una vulnerabilidad de doble liberación (double free) en la función gdImageBmpPtr que puede resultar en la ejecución remota de código. Este ataque parece ser explotable mediante una imagen JPEG especialmente manipulada que desencadene una doble liberación (double free). La vulnerabilidad parece haber sido solucionada tras el commit con ID ac16bdf2d41724b5a65255d4c28fb0ec46bc42f5."
+      }
+    ],
+    "metrics": {
+      "cvssMetricV30": [
+        {
+          "source": "nvd@nist.gov",
+          "type": "Primary",
+          "cvssData": {
+            "version": "3.0",
+            "vectorString": "CVSS:3.0/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "REQUIRED",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "HIGH",
+            "baseScore": 8.8,
+            "baseSeverity": "HIGH"
+          },
+          "exploitabilityScore": 2.8,
+          "impactScore": 5.9
+        }
+      ],
+      "cvssMetricV2": [
+        {
+          "source": "nvd@nist.gov",
+          "type": "Primary",
+          "cvssData": {
+            "version": "2.0",
+            "vectorString": "AV:N/AC:M/Au:N/C:P/I:P/A:P",
+            "accessVector": "NETWORK",
+            "accessComplexity": "MEDIUM",
+            "authentication": "NONE",
+            "confidentialityImpact": "PARTIAL",
+            "integrityImpact": "PARTIAL",
+            "availabilityImpact": "PARTIAL",
+            "baseScore": 6.8
+          },
+          "baseSeverity": "MEDIUM",
+          "exploitabilityScore": 8.6,
+          "impactScore": 6.4,
+          "acInsufInfo": false,
+          "obtainAllPrivilege": false,
+          "obtainUserPrivilege": false,
+          "obtainOtherPrivilege": false,
+          "userInteractionRequired": true
+        }
+      ]
+    },
+    "weaknesses": [
+      {
+        "source": "nvd@nist.gov",
+        "type": "Primary",
+        "description": [
+          {
+            "lang": "en",
+            "value": "CWE-415"
+          }
+        ]
+      }
+    ],
+    "configurations": [
+      {
+        "nodes": [
+          {
+            "operator": "OR",
+            "negate": false,
+            "cpeMatch": [
+              {
+                "vulnerable": true,
+                "criteria": "cpe:2.3:a:libgd:libgd:2.2.5:*:*:*:*:*:*:*",
+                "matchCriteriaId": "C257CC1C-BF6A-4125-AA61-9C2D09096084"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "operator": "OR",
+            "negate": false,
+            "cpeMatch": [
+              {
+                "vulnerable": true,
+                "criteria": "cpe:2.3:o:canonical:ubuntu_linux:14.04:*:*:*:lts:*:*:*",
+                "matchCriteriaId": "B5A6F2F3-4894-4392-8296-3B8DD2679084"
+              },
+              {
+                "vulnerable": true,
+                "criteria": "cpe:2.3:o:canonical:ubuntu_linux:16.04:*:*:*:lts:*:*:*",
+                "matchCriteriaId": "F7016A2A-8365-4F1A-89A2-7A19F2BCAE5B"
+              },
+              {
+                "vulnerable": true,
+                "criteria": "cpe:2.3:o:canonical:ubuntu_linux:18.04:*:*:*:lts:*:*:*",
+                "matchCriteriaId": "23A7C53F-B80F-4E6A-AFA9-58EEA84BE11D"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "operator": "OR",
+            "negate": false,
+            "cpeMatch": [
+              {
+                "vulnerable": true,
+                "criteria": "cpe:2.3:o:debian:debian_linux:8.0:*:*:*:*:*:*:*",
+                "matchCriteriaId": "C11E6FB0-C8C0-4527-9AA0-CB9B316F8F43"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "references": [
+      {
+        "url": "https://github.com/libgd/libgd/issues/447",
+        "source": "cve@mitre.org",
+        "tags": [
+          "Issue Tracking",
+          "Third Party Advisory"
+        ]
+      },
+      {
+        "url": "https://lists.debian.org/debian-lts-announce/2019/01/msg00028.html",
+        "source": "cve@mitre.org",
+        "tags": [
+          "Mailing List",
+          "Third Party Advisory"
+        ]
+      },
+      {
+        "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/3CZ2QADQTKRHTGB2AHD7J4QQNDLBEMM6/",
+        "source": "cve@mitre.org"
+      },
+      {
+        "url": "https://security.gentoo.org/glsa/201903-18",
+        "source": "cve@mitre.org",
+        "tags": [
+          "Third Party Advisory"
+        ]
+      },
+      {
+        "url": "https://usn.ubuntu.com/3755-1/",
+        "source": "cve@mitre.org",
+        "tags": [
+          "Mitigation",
+          "Third Party Advisory"
+        ]
+      }
+    ]
+  }
+}

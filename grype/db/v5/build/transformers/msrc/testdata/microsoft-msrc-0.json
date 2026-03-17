@@ -1,0 +1,194 @@
+[
+ {
+  "cvss": {
+   "base_score": 7.8,
+   "temporal_score": 7,
+   "vector": "CVSS:3.0/AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H/E:P/RL:O/RC:C"
+  },
+  "fixed_in": [
+   {
+    "id": "4493470",
+    "is_first": true,
+    "is_latest": false,
+    "links": [
+     "https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB4493470",
+     "https://support.microsoft.com/help/4493470"
+    ]
+   },
+   {
+    "id": "4494440",
+    "is_first": false,
+    "is_latest": false,
+    "links": [
+     "https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB4494440",
+     "https://support.microsoft.com/help/4494440"
+    ]
+   },
+   {
+    "id": "4503267",
+    "is_first": false,
+    "is_latest": false,
+    "links": [
+     "https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB4503267",
+     "https://support.microsoft.com/en-us/help/4503267"
+    ]
+   },
+   {
+    "id": "4507460",
+    "is_first": false,
+    "is_latest": false,
+    "links": [
+     "https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB4507460",
+     "https://support.microsoft.com/help/4507460"
+    ]
+   },
+   {
+    "id": "4512517",
+    "is_first": false,
+    "is_latest": false,
+    "links": [
+     "https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB4512517",
+     "https://support.microsoft.com/help/4512517"
+    ]
+   },
+   {
+    "id": "4516044",
+    "is_first": false,
+    "is_latest": true,
+    "links": [
+     "https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB4516044",
+     "https://support.microsoft.com/help/4516044"
+    ]
+   }
+  ],
+  "id": "CVE-2019-0671",
+  "link": "https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2019-0671",
+  "product": {
+   "family": "Windows",
+   "id": "10852",
+   "name": "Windows 10 Version 1607 for 32-bit Systems"
+  },
+  "severity": "High",
+  "summary": "Microsoft Office Access Connectivity Engine Remote Code Execution Vulnerability",
+  "vulnerable": [
+   "4480961",
+   "4483229",
+   "4487026",
+   "4489882"
+  ]
+ },
+{
+  "cvss": {
+   "base_score": 4.4,
+   "temporal_score": 4,
+   "vector": "CVSS:3.0/AV:L/AC:H/PR:L/UI:R/S:U/C:N/I:N/A:H/E:P/RL:O/RC:C"
+  },
+  "fixed_in": [
+   {
+    "id": "4093119",
+    "is_first": true,
+    "is_latest": false,
+    "links": [
+     "https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB4093119"
+    ]
+   },
+   {
+    "id": "4103723",
+    "is_first": false,
+    "is_latest": false,
+    "links": [
+     "https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB4103723"
+    ]
+   },
+   {
+    "id": "4284880",
+    "is_first": false,
+    "is_latest": false,
+    "links": [
+     "https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB4284880"
+    ]
+   },
+   {
+    "id": "4338814",
+    "is_first": false,
+    "is_latest": false,
+    "links": [
+     "https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB4338814"
+    ]
+   },
+   {
+    "id": "4343887",
+    "is_first": false,
+    "is_latest": false,
+    "links": [
+     "https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB4343887"
+    ]
+   },
+   {
+    "id": "4345418",
+    "is_first": false,
+    "is_latest": true,
+    "links": [
+     "https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB4345418"
+    ]
+   },
+   {
+    "id": "4457131",
+    "is_first": false,
+    "is_latest": false,
+    "links": [
+     "https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB4457131"
+    ]
+   },
+   {
+    "id": "4462917",
+    "is_first": false,
+    "is_latest": false,
+    "links": [
+     "https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB4462917"
+    ]
+   },
+   {
+    "id": "4467691",
+    "is_first": false,
+    "is_latest": false,
+    "links": [
+     "https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB4467691"
+    ]
+   },
+   {
+    "id": "4471321",
+    "is_first": false,
+    "is_latest": true,
+    "links": [
+     "https://catalog.update.microsoft.com/v7/site/Search.aspx?q=KB4471321"
+    ]
+   }
+  ],
+  "id": "CVE-2018-8116",
+  "link": "https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2018-8116",
+  "product": {
+   "family": "Windows",
+   "id": "10852",
+   "name": "Windows 10 Version 1607 for 32-bit Systems"
+  },
+  "severity": "Medium",
+  "summary": "Microsoft Graphics Component Denial of Service Vulnerability",
+  "vulnerable": [
+   "3213986",
+   "4013429",
+   "4015217",
+   "4019472",
+   "4022715",
+   "4025339",
+   "4034658",
+   "4038782",
+   "4041691",
+   "4048953",
+   "4053579",
+   "4056890",
+   "4074590",
+   "4088787"
+  ]
+ }
+]

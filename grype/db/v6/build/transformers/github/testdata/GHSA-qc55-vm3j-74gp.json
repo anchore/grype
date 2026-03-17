@@ -1,0 +1,73 @@
+{
+  "Vulnerability": {},
+  "Advisory": {
+    "Classification": "GENERAL",
+    "Severity": "High",
+    "CVSS": {
+      "version": "3.0",
+      "vector_string": "CVSS:3.0/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:N",
+      "base_metrics": {
+        "base_score": 5.5,
+        "exploitability_score": 1.8,
+        "impact_score": 3.6,
+        "base_severity": "Medium"
+      },
+      "status": "N/A"
+    },
+    "cvss_severities": [
+      {
+        "version": "3.0",
+        "vector": "CVSS:3.0/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:N"
+      },
+      {
+        "version": "4.0",
+        "vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:N/VI:H/VA:N/SC:N/SI:N/SA:N"
+      }
+    ],
+    "FixedIn": [
+      {
+        "name": "jsnapy",
+        "identifier": "1.3.0",
+        "ecosystem": "python",
+        "namespace": "github:python",
+        "range": "< 1.3.0",
+        "available": {
+          "date": "2020-07-28",
+          "kind": "first-observed"
+        }
+      }
+    ],
+    "Summary": "JSNAPy allows unprivileged local users to alter files under the directory",
+    "url": "https://github.com/advisories/GHSA-qc55-vm3j-74gp",
+    "CVE": [
+      "CVE-2018-0023"
+    ],
+    "Metadata": {
+      "CVE": [
+        "CVE-2018-0023"
+      ]
+    },
+    "ghsaId": "GHSA-qc55-vm3j-74gp",
+    "published": "2018-07-12T20:30:36Z",
+    "updated": "2024-09-24T21:02:13Z",
+    "withdrawn": null,
+    "references": [
+      {
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-0023"
+      },
+      {
+        "url": "https://github.com/advisories/GHSA-qc55-vm3j-74gp"
+      },
+      {
+        "url": "https://kb.juniper.net/JSA10856"
+      },
+      {
+        "url": "https://github.com/pypa/advisory-database/tree/main/vulns/jsnapy/PYSEC-2018-84.yaml"
+      },
+      {
+        "url": "https://web.archive.org/web/20200227125151/http://www.securityfocus.com/bid/103745"
+      }
+    ],
+    "namespace": "github:python"
+  }
+}

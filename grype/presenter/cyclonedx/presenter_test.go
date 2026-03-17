@@ -11,9 +11,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/presenter/internal"
 	"github.com/anchore/grype/grype/presenter/models"
+	"github.com/anchore/grype/internal/testutils"
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/sbom"
 )

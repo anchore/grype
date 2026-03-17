@@ -111,7 +111,7 @@ tasks:
   update-quality-gate-db:
     desc: Update pinned version of quality gate database
     cmds:
-      - cmd: "go run cmd/grype/main.go db list -o json | jq -r '.[0].path' > test/quality/test-db"
+      - cmd: "go run cmd/grype/main.go db list -o json | jq -r '\"https://grype.anchore.io/databases/v6/\" + .[0].path' > test/quality/test-db"
         silent: true
 
   list-tools:
@@ -221,12 +221,20 @@ tasks:
       # exercise most of the CLI with the data race detector enabled
       - "go run -race cmd/{{ .PROJECT }}/main.go alpine:latest"
 
+  _ensure-snapshot:
+    # Ensure the snapshot binary is available, building only if needed.
+    # In CI, set GRYPE_SNAPSHOT_PREBUILT=true to skip the rebuild when the binary was restored from cache.
+    # Locally, this falls through to the snapshot task which uses checksum-based staleness detection
+    # so that code changes always produce a fresh binary.
+    internal: true
+    status:
+      - test -n "$GRYPE_SNAPSHOT_PREBUILT" -a -f "{{ .SNAPSHOT_BIN }}"
+    cmds:
+      - task: snapshot
+
   cli:
     desc: Run CLI tests
-    # note: we don't want to regenerate the snapshot unless we have to. In CI it's probable
-    # that the cache being restored with the correct binary will be rebuilt since the timestamps
-    # and local checksums will not line up.
-    deps: [tools, snapshot]
+    deps: [tools, _ensure-snapshot]
     sources:
       - "{{ .SNAPSHOT_BIN }}"
       - ./test/cli/**
@@ -251,16 +259,16 @@ tasks:
   fingerprints:
     desc: Generate test fixture fingerprints
     generates:
-      - test/integration/test-fixtures/cache.fingerprint
+      - test/integration/testdata/cache.fingerprint
       - test/install/cache.fingerprint
-      - test/cli/test-fixtures/cache.fingerprint
+      - test/cli/testdata/cache.fingerprint
     cmds:
       # for IMAGE integration test fixtures
-      - "cd test/integration/test-fixtures && make cache.fingerprint"
+      - "cd test/integration/testdata && make cache.fingerprint"
       # for INSTALL integration test fixtures
       - "cd test/install && make cache.fingerprint"
       # for CLI test fixtures
-      - "cd test/cli/test-fixtures && make cache.fingerprint"
+      - "cd test/cli/testdata && make cache.fingerprint"
 
   show-test-image-cache:
     silent: true
@@ -268,7 +276,7 @@ tasks:
       - "echo '\nDocker daemon cache:'"
       - "docker images --format '{{`{{.ID}}`}} {{`{{.Repository}}`}}:{{`{{.Tag}}`}}' | grep stereoscope-fixture- | sort"
       - "echo '\nTar cache:'"
-      - 'find . -type f -wholename "**/test-fixtures/snapshot/*" | sort'
+      - 'find . -type f -wholename "**/testdata/snapshot/*" | sort'
 
 
   ## install.sh testing targets #################################
@@ -290,7 +298,7 @@ tasks:
       - "cd test/install && make ci-test-mac"
 
   generate-compare-file:
-    cmd: "go run ./cmd/{{ .PROJECT }} {{ .COMPARE_TEST_IMAGE }} -o json > {{ .COMPARE_DIR }}/test-fixtures/acceptance-{{ .COMPARE_TEST_IMAGE }}.json"
+    cmd: "go run ./cmd/{{ .PROJECT }} {{ .COMPARE_TEST_IMAGE }} -o json > {{ .COMPARE_DIR }}/testdata/acceptance-{{ .COMPARE_TEST_IMAGE }}.json"
 
   compare-mac:
     deps: [tmpdir]
@@ -332,6 +340,7 @@ tasks:
     cmds:
       - task: generate-json-schema
       - task: generate-db-schema
+      - task: generate-codename-data
 
   generate-json-schema:
     desc: Generate a new JSON schema
@@ -346,6 +355,12 @@ tasks:
     cmds:
       # generate the JSON schema for database blob types
       - "cd grype/db/v6/schema && go run ."
+
+  generate-codename-data:
+    desc: Generate OS codename lookup data
+    cmds:
+      - "go generate ./grype/db"
+      - task: format
 
 
   ## Build-related targets #################################
@@ -447,5 +462,5 @@ tasks:
   clean-cache:
     desc: Remove all docker cache and local image tar cache
     cmds:
-      - 'find . -type f -wholename "**/test-fixtures/cache/stereoscope-fixture-*.tar" -delete'
+      - 'find . -type f -wholename "**/testdata/cache/stereoscope-fixture-*.tar" -delete'
       - "docker images --format '{{`{{.ID}}`}} {{`{{.Repository}}`}}' | grep stereoscope-fixture- | awk '{print $$1}' | uniq | xargs -r docker rmi --force"

@@ -1,0 +1,24 @@
+[
+  {
+    "product": "",
+    "identifiers": [],
+    "name": "",
+    "isEol": false,
+    "isMaintained": false
+  },
+  {
+    "product": "alpine",
+    "identifiers": [],
+    "name": "3.18",
+    "codename": null,
+    "label": "3.18",
+    "releaseDate": "2023-05-09",
+    "isLts": false,
+    "ltsFrom": null,
+    "isEoas": false,
+    "eoasFrom": null,
+    "isEol": false,
+    "eolFrom": "2025-05-09",
+    "isMaintained": true
+  }
+]

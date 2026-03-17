@@ -65,7 +65,7 @@ jobs:
 
       - name: Upload the provider state archive
         if: ${{ failure() }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: qg-capture-state
           path: qg-capture-state.tar.gz
@@ -112,8 +112,8 @@ jobs:
       - name: Restore integration test cache
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 #v5.0.3
         with:
-          path: ${{ github.workspace }}/test/integration/test-fixtures/cache
-          key: ${{ runner.os }}-integration-test-cache-${{ hashFiles('test/integration/test-fixtures/cache.fingerprint') }}
+          path: ${{ github.workspace }}/test/integration/testdata/cache
+          key: ${{ runner.os }}-integration-test-cache-${{ hashFiles('test/integration/testdata/cache.fingerprint') }}
 
       - name: Run integration tests
         run: make integration
@@ -270,8 +270,8 @@ jobs:
       - name: Restore CLI test-fixture cache
         uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 #v5.0.3
         with:
-          path: ${{ github.workspace }}/test/cli/test-fixtures/cache
-          key: ${{ runner.os }}-cli-test-cache-${{ hashFiles('test/cli/test-fixtures/cache.fingerprint') }}
+          path: ${{ github.workspace }}/test/cli/testdata/cache
+          key: ${{ runner.os }}-cli-test-cache-${{ hashFiles('test/cli/testdata/cache.fingerprint') }}
 
       - name: Download snapshot build
         uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 #v5.0.3
@@ -281,6 +281,9 @@ jobs:
 
       - name: Run CLI Tests (Linux)
         run: make cli
+        env:
+          GRYPE_SNAPSHOT_PREBUILT: "true"
+          GRYPE_BINARY_LOCATION: ${{ github.workspace }}/snapshot/linux-build_linux_amd64_v1/grype
 
   Cleanup-Cache:
     name: "Cleanup snapshot cache"
