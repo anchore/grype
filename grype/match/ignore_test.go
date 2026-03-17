@@ -1239,8 +1239,8 @@ func TestIgnoreRelatedPackage(t *testing.T) {
 			rules := filter.IgnoreMatch(tt.match)
 			if tt.expectIgnored {
 				assert.NotEmpty(t, rules, "expected match to be ignored")
-				assert.Equal(t, "GHSA-xjjg-vmw6-c2p9", rules[0].Vulnerability)
-				assert.Equal(t, string(ownerPkgID), rules[0].Package.ID)
+				assert.Equal(t, filter.VulnerabilityID, rules[0].Vulnerability)
+				assert.Equal(t, filter.Reason, rules[0].Reason)
 			} else {
 				assert.Empty(t, rules, "expected match to NOT be ignored")
 			}
