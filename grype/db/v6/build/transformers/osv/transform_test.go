@@ -623,7 +623,7 @@ func TestTransform_CGA(t *testing.T) {
 	//   - Chainguard and Wolfi packages from the same record get separate AffectedPackageHandles
 	//   - ECOSYSTEM ranges produce "apk" version type (not "ecosystem")
 	//   - OperatingSystem is set to rolling for both distros
-	entries := loadFixture(t, "test-fixtures/CGA-224q-ccj5-2p53.json")
+	entries := loadFixture(t, "testdata/CGA-224q-ccj5-2p53.json")
 	require.Len(t, entries, 1)
 
 	result, err := Transform(entries[0], inputProviderState())
@@ -855,3 +855,121 @@ func Test_getPackageQualifiers(t *testing.T) {
 func stringRef(s string) *string {
 	return &s
 }
+
+func Test_extractArchFromPURL(t *testing.T) {
+	tests := []struct {
+		name string
+		purl string
+		want string
+	}{
+		{
+			name: "purl with arch qualifier",
+			purl: "pkg:apk/chainguard/openssl?arch=aarch64",
+			want: "aarch64",
+		},
+		{
+			name: "purl with arch qualifier x86_64",
+			purl: "pkg:apk/chainguard/openssl?arch=x86_64",
+			want: "x86_64",
+		},
+		{
+			name: "purl with multiple qualifiers including arch",
+			purl: "pkg:apk/chainguard/openssl?distro=chainguard&arch=aarch64",
+			want: "aarch64",
+		},
+		{
+			name: "purl without arch qualifier",
+			purl: "pkg:apk/chainguard/openssl",
+			want: "",
+		},
+		{
+			name: "purl with other qualifier but no arch",
+			purl: "pkg:apk/chainguard/openssl?distro=chainguard",
+			want: "",
+		},
+		{
+			name: "empty purl",
+			purl: "",
+			want: "",
+		},
+		{
+			name: "maven purl without arch",
+			purl: "pkg:maven/io.netty/netty@3.10.6.Final",
+			want: "",
+		},
+	}
+
+	for _, testToRun := range tests {
+		test := testToRun
+		t.Run(test.name, func(tt *testing.T) {
+			got := extractArchFromPURL(test.purl)
+			if got != test.want {
+				t.Errorf("extractArchFromPURL() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestTransform_CGA_WithArchAndUpstream(t *testing.T) {
+	// Verify transformation handles:
+	//   - upstream field (same as related, but per OSV spec is more semantically correct)
+	//   - architecture extracted from PURL qualifier
+	//   - deduplication of aliases when upstream and related contain same values
+	entries := loadFixture(t, "testdata/CGA-with-arch-and-upstream.json")
+	require.Len(t, entries, 1)
+
+	result, err := Transform(entries[0], inputProviderState())
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+
+	re := result[0].Data.(transformers.RelatedEntries)
+
+	// Check vulnerability handle
+	require.Equal(t, "CGA-test-arch-upstream", re.VulnerabilityHandle.Name)
+
+	// Aliases should be deduplicated (upstream and related have same values)
+	require.Len(t, re.VulnerabilityHandle.BlobValue.Aliases, 2)
+	require.Contains(t, re.VulnerabilityHandle.BlobValue.Aliases, "CVE-2024-12345")
+	require.Contains(t, re.VulnerabilityHandle.BlobValue.Aliases, "GHSA-xxxx-yyyy-zzzz")
+
+	// Three affected packages
+	require.Len(t, re.Related, 3)
+
+	// Group by package name and architecture for easier testing
+	type pkgKey struct {
+		name string
+		arch string
+	}
+	byKey := make(map[pkgKey]db.AffectedPackageHandle)
+	for _, r := range re.Related {
+		aph := r.(db.AffectedPackageHandle)
+		var arch string
+		if aph.BlobValue.Qualifiers != nil && aph.BlobValue.Qualifiers.Architecture != nil {
+			arch = *aph.BlobValue.Qualifiers.Architecture
+		}
+		byKey[pkgKey{name: aph.Package.Name, arch: arch}] = aph
+	}
+
+	// Check openssl aarch64
+	aarch64Pkg, ok := byKey[pkgKey{name: "openssl", arch: "aarch64"}]
+	require.True(t, ok, "expected openssl aarch64 package")
+	require.NotNil(t, aarch64Pkg.BlobValue.Qualifiers)
+	require.NotNil(t, aarch64Pkg.BlobValue.Qualifiers.Architecture)
+	require.Equal(t, "aarch64", *aarch64Pkg.BlobValue.Qualifiers.Architecture)
+
+	// Check openssl x86_64
+	x86Pkg, ok := byKey[pkgKey{name: "openssl", arch: "x86_64"}]
+	require.True(t, ok, "expected openssl x86_64 package")
+	require.NotNil(t, x86Pkg.BlobValue.Qualifiers)
+	require.NotNil(t, x86Pkg.BlobValue.Qualifiers.Architecture)
+	require.Equal(t, "x86_64", *x86Pkg.BlobValue.Qualifiers.Architecture)
+
+	// Check openssl-dev (no arch - should apply to all architectures)
+	devPkg, ok := byKey[pkgKey{name: "openssl-dev", arch: ""}]
+	require.True(t, ok, "expected openssl-dev package without arch")
+	// Should have nil qualifiers or nil architecture
+	if devPkg.BlobValue.Qualifiers != nil {
+		require.Nil(t, devPkg.BlobValue.Qualifiers.Architecture)
+	}
+}
+

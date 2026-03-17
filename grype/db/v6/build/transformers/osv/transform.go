@@ -18,6 +18,8 @@ import (
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
 	"github.com/anchore/grype/grype/db/v6/name"
+	"github.com/anchore/grype/internal/stringutil"
+	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/pkg"
 )
 
@@ -37,9 +39,15 @@ func Transform(vulnerability unmarshal.OSVVulnerability, state provider.State) (
 	if isAdvisory {
 		aliases = append(aliases, vulnerability.Related...)
 	} else if strings.HasPrefix(vulnerability.ID, "CGA-") {
-		// Chainguard CGA records put CVE/GHSA IDs in "related" rather than "aliases"
+		// Chainguard CGA records put CVE/GHSA IDs in "upstream" and "related"
+		// rather than "aliases". Per OSV spec, "upstream" is semantically correct
+		// for distro advisories; "related" is kept for backwards compatibility.
+		aliases = append(aliases, vulnerability.Upstream...)
 		aliases = append(aliases, vulnerability.Related...)
 	}
+
+	// Deduplicate aliases (related and upstream may contain the same IDs)
+	aliases = stringutil.NewStringSetFromSlice(aliases).ToSlice()
 
 	in := []any{
 		db.VulnerabilityHandle{
@@ -118,7 +126,7 @@ func getAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHa
 }
 
 // getPackageQualifiers extracts package qualifiers from affected package data
-// including CPE information and RPM modularity
+// including CPE information, RPM modularity, and architecture from PURL
 func getPackageQualifiers(affected models.Affected, cpes any, withCPE bool) *db.PackageQualifiers {
 	var qualifiers *db.PackageQualifiers
 
@@ -138,7 +146,38 @@ func getPackageQualifiers(affected models.Affected, cpes any, withCPE bool) *db.
 		qualifiers.RpmModularity = &rpmModularity
 	}
 
+	// Extract architecture from PURL qualifier (e.g., "pkg:apk/chainguard/foo?arch=aarch64")
+	arch := extractArchFromPURL(affected.Package.Purl)
+	if arch != "" {
+		if qualifiers == nil {
+			qualifiers = &db.PackageQualifiers{}
+		}
+		qualifiers.Architecture = &arch
+	}
+
 	return qualifiers
+}
+
+// extractArchFromPURL extracts the "arch" qualifier from a PURL string.
+// Returns empty string if no arch qualifier is present or if PURL is invalid.
+// Example: "pkg:apk/chainguard/openssl?arch=aarch64" returns "aarch64"
+func extractArchFromPURL(purlStr string) string {
+	if purlStr == "" {
+		return ""
+	}
+
+	purl, err := packageurl.FromString(purlStr)
+	if err != nil {
+		return ""
+	}
+
+	for _, qualifier := range purl.Qualifiers {
+		if qualifier.Key == pkg.PURLQualifierArch {
+			return qualifier.Value
+		}
+	}
+
+	return ""
 }
 
 // extractRpmModularity extracts RPM modularity information from affected package ecosystem_specific
