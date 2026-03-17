@@ -77,7 +77,7 @@ func (i IgnoreRelatedPackage) IgnoreMatch(m Match) []IgnoreRule {
 	if relatedPackages == nil {
 		return nil
 	}
-	// any packages that _this package owns_ should be filtered out
+	// any findings for packages with files that this package owns by should be filtered out
 	overlaps := false
 	for _, ownerPkg := range relatedPackages {
 		if ownerPkg.ID == i.RelatedPackageID {
@@ -90,6 +90,7 @@ func (i IgnoreRelatedPackage) IgnoreMatch(m Match) []IgnoreRule {
 	}
 	return []IgnoreRule{
 		{
+			// details about why the vulnerability is being ignored
 			Vulnerability:  i.VulnerabilityID,
 			IncludeAliases: true,
 			Reason:         i.Reason,
