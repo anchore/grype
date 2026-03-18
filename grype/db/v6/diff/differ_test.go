@@ -157,6 +157,52 @@ func Test_basicPackageDiff(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "unaffected-added",
+			oldDB: []string{
+				"pypi/CGA-r79g-x2wf-m9qj.json",
+			},
+			newDB: []string{
+				"pypi/CGA-r79g-x2wf-m9qj.json",
+				"pypi/CGA-v587-68x3-qwqr.json",
+			},
+			expected: map[string]changes{
+				"pillow": {
+					added{"CGA-v587-68x3-qwqr"},
+				},
+			},
+		},
+		{
+			name: "unaffected-removed",
+			oldDB: []string{
+				"pypi/CGA-r79g-x2wf-m9qj.json",
+				"pypi/CGA-v587-68x3-qwqr.json",
+			},
+			newDB: []string{
+				"pypi/CGA-r79g-x2wf-m9qj.json",
+			},
+			expected: map[string]changes{
+				"pillow": {
+					removed{"CGA-v587-68x3-qwqr"},
+				},
+			},
+		},
+		{
+			name: "unaffected-modified",
+			oldDB: []string{
+				"pypi/CGA-r79g-x2wf-m9qj.json",
+				"pypi/CGA-v587-68x3-qwqr.json",
+			},
+			newDB: []string{
+				"pypi/CGA-r79g-x2wf-m9qj.json",
+				"pypi/CGA-v587-68x3-qwqr-modified.json",
+			},
+			expected: map[string]changes{
+				"pillow": {
+					modified{"CGA-v587-68x3-qwqr"},
+				},
+			},
+		},
 	}
 
 	testdataDir, err := filepath.Abs("testdata")
