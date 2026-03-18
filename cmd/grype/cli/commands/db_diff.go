@@ -20,20 +20,51 @@ import (
 type dbDiffOptions struct {
 	Output                  string `yaml:"output" json:"output" mapstructure:"output"`
 	options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
+	EPSSThreshold           float64     `yaml:"epss-threshold" json:"epss-threshold" mapstructure:"epss-threshold"`
+	Include                 diffInclude `json:"include" yaml:"include" mapstructure:"include"`
 	Old                     string
 	New                     string
+}
+
+type diffInclude struct {
+	Packages *bool `yaml:"packages" json:"packages" mapstructure:"packages"`
+	Vulns    *bool `yaml:"vulns" json:"vulns" mapstructure:"vulns"`
+	EPSS     *bool `yaml:"epss" json:"epss" mapstructure:"epss"`
+	KEV      *bool `yaml:"kev" json:"kev" mapstructure:"kev"`
 }
 
 var _ clio.FlagAdder = (*dbDiffOptions)(nil)
 
 func (d *dbDiffOptions) AddFlags(flags clio.FlagSet) {
 	flags.StringVarP(&d.Output, "output", "o", "format to display results (available=[text, json])")
+	flags.BoolPtrVarP(&d.Include.Packages, "packages", "", "only include packages")
+	flags.BoolPtrVarP(&d.Include.Vulns, "vulns", "", "only include vulnerabilities")
+}
+
+func (d *dbDiffOptions) ToIncludes() diff.Includes {
+	def := diff.DefaultConfig()
+	if d.Include.Packages != nil {
+		def.Include.Packages = *d.Include.Packages
+	}
+	if d.Include.Vulns != nil {
+		def.Include.Vulns = *d.Include.Vulns
+	}
+	if d.Include.EPSS != nil {
+		def.Include.EPSS = *d.Include.EPSS
+	}
+	if d.Include.KEV != nil {
+		def.Include.KEV = *d.Include.KEV
+	}
+	return def.Include
 }
 
 func DBDiff(app clio.Application) *cobra.Command {
+	cfg := diff.DefaultConfig()
 	opts := &dbDiffOptions{
 		Output:          textOutputFormat,
 		DatabaseCommand: *options.DefaultDatabaseCommand(app.ID()),
+		EPSSThreshold:   cfg.EPSSThreshold,
+		Include:         diffInclude{}, // this defaults to packages, vulns, and kev where flags will override
 	}
 
 	cmd := &cobra.Command{
@@ -64,12 +95,13 @@ func DBDiff(app clio.Application) *cobra.Command {
 func runDBDiff(opts dbDiffOptions) error {
 	startTime := time.Now()
 
-	// d, err := diff.NewProviderDiffer(oldResult.dir, newResult.dir)
 	d, err := diff.NewDBDiffer(diff.Config{
-		Config: opts.ToCuratorConfig(),
-		Debug:  opts.Developer.DB.Debug,
-		OldDB:  opts.Old,
-		NewDB:  opts.New,
+		Config:        opts.ToCuratorConfig(),
+		Include:       opts.ToIncludes(),
+		Debug:         opts.Developer.DB.Debug,
+		EPSSThreshold: opts.EPSSThreshold,
+		OldDB:         opts.Old,
+		NewDB:         opts.New,
 	})
 
 	if err != nil {

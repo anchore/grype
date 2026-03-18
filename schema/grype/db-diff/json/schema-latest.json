@@ -106,6 +106,9 @@
         },
         "schema": {
           "description": "is the diff JSON schema of this diff result"
+        },
+        "vulnerabilities": {
+          "description": "holds the vulnerability-based diff result"
         }
       },
       "properties": {
@@ -120,6 +123,9 @@
             "$ref": "#/$defs/PackageDiff"
           },
           "type": "array"
+        },
+        "vulnerabilities": {
+          "$ref": "#/$defs/VulnerabilityDiff"
         }
       },
       "type": "object",
@@ -162,6 +168,40 @@
       },
       "type": "object"
     },
+    "VulnerabilityDiff": {
+      "$defs": {
+        "added": {
+          "description": "is the list of vulnerabilities added to a provider between databases"
+        },
+        "modified": {
+          "description": "is the list of vulnerabilities having metadata modified within the same provider between databases"
+        },
+        "removed": {
+          "description": "is the list of vulnerabilities removed from a provider between databases"
+        }
+      },
+      "properties": {
+        "added": {
+          "items": {
+            "$ref": "#/$defs/VulnerabilityID"
+          },
+          "type": "array"
+        },
+        "modified": {
+          "items": {
+            "$ref": "#/$defs/VulnerabilityID"
+          },
+          "type": "array"
+        },
+        "removed": {
+          "items": {
+            "$ref": "#/$defs/VulnerabilityID"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
     "VulnerabilityID": {
       "$defs": {
         "id": {
@@ -181,7 +221,6 @@
       },
       "type": "object",
       "required": [
-        "provider",
         "id"
       ]
     }

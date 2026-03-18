@@ -10,11 +10,11 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/martian/log"
 	"github.com/mholt/archives"
 
 	"github.com/anchore/go-homedir"
 	db "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/internal/log"
 )
 
 type ResolvedDB struct {
@@ -140,7 +140,7 @@ func unarchiveDB(source, destination string) error {
 	if err != nil {
 		return err
 	}
-	defer sourceFile.Close()
+	defer log.CloseAndLogError(sourceFile, source)
 
 	format, stream, err := archives.Identify(context.Background(), source, sourceFile)
 	if err != nil {
@@ -166,7 +166,7 @@ func unarchiveDB(source, destination string) error {
 		if err != nil {
 			return err
 		}
-		defer fileReader.Close()
+		defer log.CloseAndLogError(fileReader, source+"/"+file.NameInArchive)
 
 		filename := filepath.Clean(file.NameInArchive)
 
@@ -174,7 +174,7 @@ func unarchiveDB(source, destination string) error {
 		if err != nil {
 			return err
 		}
-		defer outputFile.Close()
+		defer log.CloseAndLogError(outputFile, source+"/"+filename)
 
 		_, err = io.Copy(outputFile, fileReader)
 		return err
@@ -197,12 +197,12 @@ func downloadDB(url string) (string, error) {
 
 	dbPath := filepath.Join(tmpDir, db.VulnerabilityDBFileName)
 
-	resp, err := http.Get(url) //nolint:gosec
+	resp, err := http.Get(url) //nolint:gosec,bodyclose
 	if err != nil {
 		_ = os.RemoveAll(tmpDir)
 		return "", fmt.Errorf("failed to download from %s: %w", url, err)
 	}
-	defer resp.Body.Close()
+	defer log.CloseAndLogError(resp.Body, url)
 
 	if resp.StatusCode != http.StatusOK {
 		_ = os.RemoveAll(tmpDir)
@@ -214,7 +214,7 @@ func downloadDB(url string) (string, error) {
 		_ = os.RemoveAll(tmpDir)
 		return "", fmt.Errorf("failed to create file: %w", err)
 	}
-	defer out.Close()
+	defer log.CloseAndLogError(out, dbPath)
 
 	if _, err := io.Copy(out, resp.Body); err != nil {
 		_ = os.RemoveAll(tmpDir)

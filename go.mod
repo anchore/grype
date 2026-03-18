@@ -79,10 +79,7 @@ require (
 	gorm.io/gorm v1.31.1
 )
 
-require (
-	github.com/bmatcuk/doublestar/v4 v4.10.0
-	github.com/google/martian v2.1.0+incompatible
-)
+require github.com/bmatcuk/doublestar/v4 v4.10.0
 
 require (
 	cel.dev/expr v0.24.0 // indirect

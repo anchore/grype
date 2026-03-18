@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"regexp"
-	"sort"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -13,28 +13,20 @@ import (
 	"gorm.io/gorm"
 
 	v6 "github.com/anchore/grype/grype/db/v6"
-	"github.com/anchore/grype/grype/db/v6/installation"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/cpe"
 )
 
 const cpeEcosystem = "cpe"
 
-type Config struct {
-	installation.Config
-	Debug bool
-	OldDB string
-	NewDB string
-}
-
 // DBDiffer compares two vulnerability databases using direct SQL comparison.
 // The old database is opened as the main connection and the new database is
 // attached as "new_db", allowing cross-database SQL queries.
 type DBDiffer struct {
-	debug bool
-	db    *gorm.DB
-	oldDB ResolvedDB
-	newDB ResolvedDB
+	config Config
+	db     *gorm.DB
+	oldDB  ResolvedDB
+	newDB  ResolvedDB
 }
 
 // NewDBDiffer creates a new database differ. oldDBDir and newDBDir are directories
@@ -50,7 +42,7 @@ func NewDBDiffer(cfg Config) (*DBDiffer, error) {
 		return nil, err
 	}
 
-	differ, err := newDBDifferDirs(resolvedOld, resolvedNew, cfg.Debug)
+	differ, err := newDBDifferDirs(resolvedOld, resolvedNew, cfg)
 	if differ == nil {
 		defer resolvedOld.Cleanup()
 		defer resolvedNew.Cleanup()
@@ -59,12 +51,12 @@ func NewDBDiffer(cfg Config) (*DBDiffer, error) {
 	return differ, err
 }
 
-func newDBDifferDirs(oldDB, newDB ResolvedDB, debug bool) (*DBDiffer, error) {
+func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) {
 	oldDBPath := filepath.Join(oldDB.Dir, v6.VulnerabilityDBFileName)
 	newDBPath := filepath.Join(newDB.Dir, v6.VulnerabilityDBFileName)
 
-	writable := debug
-	db, err := v6.NewLowLevelDB(oldDBPath, false, writable, debug)
+	writable := config.Debug
+	db, err := v6.NewLowLevelDB(oldDBPath, false, writable, config.Debug)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open old database: %w", err)
 	}
@@ -93,10 +85,10 @@ func newDBDifferDirs(oldDB, newDB ResolvedDB, debug bool) (*DBDiffer, error) {
 	}
 
 	return &DBDiffer{
-		db:    db,
-		oldDB: oldDB,
-		newDB: newDB,
-		debug: debug,
+		db:     db,
+		oldDB:  oldDB,
+		newDB:  newDB,
+		config: config,
 	}, nil
 }
 
@@ -117,6 +109,40 @@ type pkgKey struct {
 
 // Diff runs all comparison vectors and returns a Result using the existing output types.
 func (d *DBDiffer) Diff() (*Result, error) {
+	startTime := time.Now()
+
+	var err error
+
+	var vulns *VulnerabilityDiff
+	if d.config.IncludeVulns() {
+		vulns, err = d.diffVulns()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var packages []PackageDiff
+	if d.config.IncludePackages() {
+		packages, err = d.diffPackages()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	log.Infof("full diff completed in %s", time.Since(startTime))
+
+	return &Result{
+		Schema: Schema,
+		Databases: DatabaseDiff{
+			Before: d.oldDB.Info,
+			After:  d.newDB.Info,
+		},
+		Packages:        packages,
+		Vulnerabilities: vulns,
+	}, nil
+}
+
+func (d *DBDiffer) diffPackages() ([]PackageDiff, error) {
 	startTime := time.Now()
 
 	err := d.createPackagesTables()
@@ -154,24 +180,16 @@ func (d *DBDiffer) Diff() (*Result, error) {
 	for _, pd := range diffs {
 		packages = append(packages, *pd)
 	}
-	sort.Slice(packages, func(i, j int) bool {
-		if packages[i].Name != packages[j].Name {
-			return packages[i].Name < packages[j].Name
+	slices.SortFunc(packages, func(a, b PackageDiff) int {
+		if a.Name != b.Name {
+			return strings.Compare(a.Name, b.Name)
 		}
-		if packages[i].Ecosystem != packages[j].Ecosystem {
-			return packages[i].Ecosystem < packages[j].Ecosystem
+		if a.Ecosystem != b.Ecosystem {
+			return strings.Compare(a.Ecosystem, b.Ecosystem)
 		}
-		return packages[i].CPE < packages[j].CPE
+		return strings.Compare(a.CPE, b.CPE)
 	})
-
-	return &Result{
-		Schema: Schema,
-		Databases: DatabaseDiff{
-			Before: d.oldDB.Info,
-			After:  d.newDB.Info,
-		},
-		Packages: packages,
-	}, nil
+	return packages, nil
 }
 
 func (d *DBDiffer) createPackagesTables() error {
@@ -295,7 +313,7 @@ func (d *DBDiffer) prepareTemplates(templates []string, r *strings.Replacer) []s
 	for _, template := range templates {
 		stmt := r.Replace(template)
 
-		if d.debug {
+		if d.config.Debug {
 			if tableCreate.MatchString(stmt) {
 				table := tableCreate.FindStringSubmatch(stmt)[1]
 				if d.db.Exec(fmt.Sprintf("SELECT 1 from %s", table)).Error == nil {
@@ -333,6 +351,92 @@ func (d *DBDiffer) prepareTemplates(templates []string, r *strings.Replacer) []s
 		}
 	}
 	return out
+}
+
+func (d *DBDiffer) createVulnsTables() error {
+	startTime := time.Now()
+	if err := d.createDiffTablesVulns("old", "main"); err != nil {
+		return fmt.Errorf("failed to create old vuln diff tables: %w", err)
+	}
+	if err := d.createDiffTablesVulns("new", "new_db"); err != nil {
+		return fmt.Errorf("failed to create new vuln diff tables: %w", err)
+	}
+	if err := d.createDiffViewsVulns(); err != nil {
+		return fmt.Errorf("failed to create vuln diff views: %w", err)
+	}
+	log.Infof("created vuln diff tables in %s", time.Since(startTime))
+	return nil
+}
+
+func (d *DBDiffer) findKevDiffs() (map[string]struct{}, error) {
+	startTime := time.Now()
+	out := map[string]struct{}{}
+
+	var rows []string
+
+	err := d.db.Raw(`
+		SELECT cve from diff_new_kev n
+		WHERE NOT EXISTS (
+			SELECT 1 from diff_old_kev o where o.cve = n.cve
+	    )
+		UNION
+		SELECT cve from diff_old_kev o
+		WHERE NOT EXISTS (
+			SELECT 1 from diff_new_kev n where n.cve = o.cve
+	    )
+	    `).Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
+		out[r] = struct{}{}
+	}
+
+	log.Infof("found kev diff in %s", time.Since(startTime))
+	return out, nil
+}
+
+func (d *DBDiffer) findEpssDiffs() (map[string]struct{}, error) {
+	err := d.createDiffTablesEPSS("old", "main")
+	if err != nil {
+		return nil, err
+	}
+
+	err = d.createDiffTablesEPSS("new", "new_db")
+	if err != nil {
+		return nil, err
+	}
+
+	startTime := time.Now()
+	out := map[string]struct{}{}
+
+	var rows []string
+
+	err = d.db.Raw(`
+		SELECT n.cve FROM diff_new_epss n
+		WHERE NOT EXISTS (
+			SELECT 1 FROM diff_old_epss o where o.cve = n.cve
+	    )
+		UNION
+		SELECT o.cve FROM diff_old_epss o
+		WHERE NOT EXISTS (
+			SELECT 1 FROM diff_new_epss n where o.cve = n.cve
+	    )
+		UNION
+		SELECT o.cve FROM diff_old_epss o
+		JOIN diff_new_epss n ON o.cve = n.cve
+		WHERE ABS(n.epss - o.epss) > ?
+		OR ABS(n.percentile - o.percentile) > ?
+	    `, d.config.EPSSThreshold, d.config.EPSSThreshold).Scan(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range rows {
+		out[r] = struct{}{}
+	}
+
+	log.Infof("found epss diff in %s", time.Since(startTime))
+	return out, nil
 }
 
 func applyChange(diffs map[pkgKey]*PackageDiff, pkgEcosystem, pkgName, pkgCPE, providerID, vulnName string, applyChangeFn func(*PackageDiff, VulnerabilityID)) {
@@ -412,6 +516,11 @@ type pkgRow struct {
 	PkgName    string `gorm:"column:pkg_name"`
 	ProviderID string `gorm:"column:provider_id"`
 	VulnName   string `gorm:"column:vuln_name"`
+}
+
+type vulnRow struct {
+	ProviderID string `gorm:"column:provider_id"`
+	VulnName   string `gorm:"column:name"`
 }
 
 type cpeRow struct {

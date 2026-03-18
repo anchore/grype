@@ -16,8 +16,10 @@ type Result struct {
 	Schema string `json:"schema"`
 	// Databases indicates the two databases used to create this diff
 	Databases DatabaseDiff `json:"databases"`
-	// Packages holds the package-based diff result
+	// Packages differences in data that result in different vulnerabilities matching packages
 	Packages []PackageDiff `json:"packages,omitempty"`
+	// Vulnerabilities the vulnerability metadata changes across databases
+	Vulnerabilities *VulnerabilityDiff `json:"vulnerabilities,omitempty"`
 }
 
 // DatabaseDiff holds metadata for both databases being compared.
@@ -65,9 +67,19 @@ type VulnerabilityChanges struct {
 // VulnerabilityID is a minimal vulnerability reference in diff output.
 type VulnerabilityID struct {
 	// Provider is the vulnerability provider such as github, nvd, or redhat
-	Provider string `json:"provider"`
+	Provider string `json:"provider,omitempty"`
 	// ID is the vulnerability identifier
 	ID string `json:"id"`
+}
+
+// VulnerabilityDiff represents the vulnerability differences per provider across databases
+type VulnerabilityDiff struct {
+	// Added is the list of vulnerabilities added to a provider between databases
+	Added []VulnerabilityID `json:"added,omitempty"`
+	// Modified is the list of vulnerabilities having metadata modified within the same provider between databases
+	Modified []VulnerabilityID `json:"modified,omitempty"`
+	// Removed is the list of vulnerabilities removed from a provider between databases
+	Removed []VulnerabilityID `json:"removed,omitempty"`
 }
 
 // newDatabaseInfo constructs a DatabaseInfo from a DB directory path by reading metadata.
