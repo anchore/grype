@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
@@ -23,7 +24,33 @@ var (
 	})
 )
 
-type Matcher struct{}
+type MatcherConfig struct {
+	UseUpstreamMatcher bool
+}
+
+type Matcher struct {
+	cfg MatcherConfig
+}
+
+func NewApkMatcher(cfg MatcherConfig) *Matcher {
+	return &Matcher{cfg: cfg}
+}
+
+// useUpstreamForPackage returns whether origin/upstream lookups should be performed
+// for this package. Alpine always requires upstream lookups regardless of the config flag —
+// it uses secdb-style advisories keyed by origin package name, so disabling lookups would
+// silently miss vulnerabilities. OSV-based distros with per-sub-package entries (e.g.
+// Chainguard, Wolfi) can disable upstream lookups via UseUpstreamMatcher=false to avoid
+// false positives from origin-level entries applying to unaffected sub-packages.
+//
+// TODO: if Alpine ever publishes per-sub-package OSV advisories, this hardcoded override
+// should be removed and Alpine should respect the flag like other distros.
+func (m *Matcher) useUpstreamForPackage(p pkg.Package) bool {
+	if p.Distro != nil && p.Distro.Type == distro.Alpine {
+		return true
+	}
+	return m.cfg.UseUpstreamMatcher
+}
 
 func (m *Matcher) PackageTypes() []syftPkg.Type {
 	return []syftPkg.Type{syftPkg.ApkPkg}
@@ -43,12 +70,19 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	}
 	matches = append(matches, directMatches...)
 
-	// indirect matches, via package's origin package
-	indirectMatches, err := m.findMatchesForOriginPackage(store, p)
-	if err != nil {
-		return nil, nil, err
+	// For secdb-style advisories that lack per-sub-package granularity, vulnerabilities are
+	// keyed under the origin/source package name rather than the individual sub-package.
+	// This lookup propagates those matches to the installed sub-package. When using an OSV-based
+	// advisory that has per-sub-package entries (e.g. Chainguard/Wolfi), this can be disabled
+	// (UseUpstreamMatcher=false) to avoid false positives from origin-level entries applying to
+	// unaffected sub-packages. Alpine is always exempt — see useUpstreamForPackage.
+	if m.useUpstreamForPackage(p) {
+		indirectMatches, err := m.findMatchesForOriginPackage(store, p)
+		if err != nil {
+			return nil, nil, err
+		}
+		matches = append(matches, indirectMatches...)
 	}
-	matches = append(matches, indirectMatches...)
 
 	// APK sources are also able to NAK vulnerabilities, so we want to return these as explicit ignores in order
 	// to allow rules later to use these to ignore "the same" vulnerability found in "the same" locations
@@ -70,8 +104,12 @@ func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, p
 
 	cpeMatchesByID := matchesByID(cpeMatches)
 
-	// remove cpe matches where there is an entry in the secDB for the particular package-vulnerability pairing, and the
-	// installed package version is >= the fixed in version for the secDB record.
+	// Suppress CPE matches that the distro advisory has already marked as fixed.
+	// When UseUpstreamMatcher is false we only consult the direct package's advisory here,
+	// not the origin's. This means a CPE match won't be suppressed based on an origin-level
+	// fix — a deliberate tradeoff: a sub-package with its own CPEs may produce a false
+	// positive if the origin advisory already has the fix and version numbers are shared.
+	// In practice this is uncommon since APK sub-packages rarely have independent CPEs in NVD.
 	secDBVulnerabilities, err := provider.FindVulnerabilities(
 		search.ByPackageName(p.Name),
 		search.ByDistro(*p.Distro))
@@ -79,14 +117,16 @@ func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, p
 		return nil, err
 	}
 
-	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
-		secDBVulnerabilitiesForUpstream, err := provider.FindVulnerabilities(
-			search.ByPackageName(upstreamPkg.Name),
-			search.ByDistro(*upstreamPkg.Distro))
-		if err != nil {
-			return nil, err
+	if m.useUpstreamForPackage(p) {
+		for _, upstreamPkg := range pkg.UpstreamPackages(p) {
+			secDBVulnerabilitiesForUpstream, err := provider.FindVulnerabilities(
+				search.ByPackageName(upstreamPkg.Name),
+				search.ByDistro(*upstreamPkg.Distro))
+			if err != nil {
+				return nil, err
+			}
+			secDBVulnerabilities = append(secDBVulnerabilities, secDBVulnerabilitiesForUpstream...)
 		}
-		secDBVulnerabilities = append(secDBVulnerabilities, secDBVulnerabilitiesForUpstream...)
 	}
 
 	secDBVulnerabilitiesByID := vulnerabilitiesByID(secDBVulnerabilities)
@@ -235,17 +275,19 @@ func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Pack
 	}
 
 	// append all the upstream naks
-	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
-		upstreamNaks, err := provider.FindVulnerabilities(
-			search.ByDistro(*upstreamPkg.Distro),
-			search.ByPackageName(upstreamPkg.Name),
-			nakConstraint,
-		)
-		if err != nil {
-			return nil, err
-		}
+	if m.useUpstreamForPackage(p) {
+		for _, upstreamPkg := range pkg.UpstreamPackages(p) {
+			upstreamNaks, err := provider.FindVulnerabilities(
+				search.ByDistro(*upstreamPkg.Distro),
+				search.ByPackageName(upstreamPkg.Name),
+				nakConstraint,
+			)
+			if err != nil {
+				return nil, err
+			}
 
-		naks = append(naks, upstreamNaks...)
+			naks = append(naks, upstreamNaks...)
+		}
 	}
 
 	meta, ok := p.Metadata.(pkg.ApkMetadata)
