@@ -102,13 +102,13 @@
           "description": "indicates the two databases used to create this diff"
         },
         "packages": {
-          "description": "holds the package-based diff result"
+          "description": "differences in data that result in different vulnerabilities matching packages"
         },
         "schema": {
           "description": "is the diff JSON schema of this diff result"
         },
         "vulnerabilities": {
-          "description": "holds the vulnerability-based diff result"
+          "description": "the vulnerability metadata changes across databases"
         }
       },
       "properties": {

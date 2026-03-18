@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -868,7 +869,7 @@ func requireVulns(t *testing.T, testType string, vulns []VulnerabilityID, vulnNa
 nextVuln:
 	for _, required := range vulnNames {
 		for _, vuln := range vulns {
-			if vuln.ID == required {
+			if strings.EqualFold(vuln.ID, required) {
 				continue nextVuln
 			}
 		}
@@ -881,7 +882,7 @@ func requireVulnIDs(t *testing.T, testType string, vulns []VulnerabilityID, expe
 nextVuln:
 	for _, exp := range expected {
 		for _, vuln := range vulns {
-			if vuln.ID == exp.ID && vuln.Provider == exp.Provider {
+			if strings.EqualFold(vuln.ID, exp.ID) && strings.EqualFold(vuln.Provider, exp.Provider) {
 				continue nextVuln
 			}
 		}
@@ -892,7 +893,7 @@ nextVuln:
 func findPackageDiff(diff *Result, packageName string) []PackageDiff {
 	var out []PackageDiff
 	for _, p := range diff.Packages {
-		if p.Name == packageName {
+		if strings.EqualFold(p.Name, packageName) {
 			out = append(out, p)
 		}
 	}
@@ -901,7 +902,7 @@ func findPackageDiff(diff *Result, packageName string) []PackageDiff {
 
 func findExactPackageDiff(diff *Result, ecosystem, name string) *PackageDiff {
 	for _, p := range diff.Packages {
-		if p.Ecosystem == ecosystem && p.Name == name {
+		if strings.EqualFold(p.Ecosystem, ecosystem) && strings.EqualFold(p.Name, name) {
 			return &p
 		}
 	}

@@ -175,7 +175,7 @@ func prepareFileInclude(s string) string {
 	}
 	// otherwise, assume it is probably a vuln id
 	if !strings.HasSuffix(s, "*") && !strings.Contains(path.Base(s), ".") {
-		s += "*"
+		s += ".json"
 	}
 	if !strings.HasPrefix(s, "/") {
 		s = "**/" + s
