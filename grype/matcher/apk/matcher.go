@@ -37,10 +37,8 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	var matches []match.Match
 	var ignoreFilters []match.IgnoreFilter
 
-	ownedPaths := ownedFilePaths(p)
-
-	// direct matches with package itself (+ distro-fixed ignore rules when ownedPaths is available)
-	directMatches, directIgnores, err := m.findMatchesForPackage(store, p, nil, ownedPaths)
+	// direct matches with package itself (+ distro-fixed ignore rules when metadata implements FileOwner)
+	directMatches, directIgnores, err := m.findMatchesForPackage(store, p, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -48,7 +46,7 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	ignoreFilters = append(ignoreFilters, directIgnores...)
 
 	// indirect matches, via package's origin package
-	indirectMatches, indirectIgnores, err := m.findMatchesForOriginPackage(store, p, ownedPaths)
+	indirectMatches, indirectIgnores, err := m.findMatchesForOriginPackage(store, p)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -178,10 +176,10 @@ func vulnerabilitiesByID(vulns []vulnerability.Vulnerability) map[string][]vulne
 	return results
 }
 
-func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Package, catalogPkg *pkg.Package, ownedPaths []string) ([]match.Match, []match.IgnoreFilter, error) {
+func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Package, catalogPkg *pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	// find SecDB matches for the given package name and version
 	// APK doesn't use epochs, so pass nil for the config
-	secDBMatches, secDBIgnores, err := internal.MatchPackageByDistro(store, p, catalogPkg, m.Type(), nil, ownedPaths...)
+	secDBMatches, secDBIgnores, err := internal.MatchPackageByDistroWithOwnedFiles(store, p, catalogPkg, m.Type(), nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -203,12 +201,12 @@ func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Pack
 	return matches, secDBIgnores, nil
 }
 
-func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, catalogPkg pkg.Package, ownedPaths []string) ([]match.Match, []match.IgnoreFilter, error) {
+func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, catalogPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	var matches []match.Match
 	var ignores []match.IgnoreFilter
 
 	for _, indirectPackage := range pkg.UpstreamPackages(catalogPkg) {
-		indirectMatches, indirectIgnores, err := m.findMatchesForPackage(store, indirectPackage, &catalogPkg, ownedPaths)
+		indirectMatches, indirectIgnores, err := m.findMatchesForPackage(store, indirectPackage, &catalogPkg)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to find vulnerabilities for apk upstream source package: %w", err)
 		}
@@ -223,17 +221,12 @@ func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, cata
 	return matches, ignores, nil
 }
 
-// ownedFilePaths extracts the file paths owned by an APK package from its metadata.
-func ownedFilePaths(p pkg.Package) []string {
-	meta, ok := p.Metadata.(pkg.ApkMetadata)
-	if !ok {
-		return nil
+// ownedFilesFromMetadata returns the files owned by a package if its metadata implements pkg.FileOwner.
+func ownedFilesFromMetadata(p pkg.Package) []string {
+	if fo, ok := p.Metadata.(pkg.FileOwner); ok {
+		return fo.OwnedFiles()
 	}
-	var paths []string
-	for _, f := range meta.Files {
-		paths = append(paths, f.Path)
-	}
-	return paths
+	return nil
 }
 
 // NAK entries are those reported as explicitly not vulnerable by the upstream provider,
@@ -272,7 +265,7 @@ func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Pack
 		naks = append(naks, upstreamNaks...)
 	}
 
-	paths := ownedFilePaths(p)
+	paths := ownedFilesFromMetadata(p)
 	if len(paths) == 0 {
 		return nil, nil
 	}

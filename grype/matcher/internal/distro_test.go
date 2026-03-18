@@ -103,26 +103,28 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 }
 
 func TestMatchPackageByDistroWithIgnoreRules(t *testing.T) {
-	ownedPaths := []string{"/usr/lib/python3/dist-packages/requests", "/usr/bin/python3"}
+	ownedFiles := pkg.ApkMetadata{Files: []pkg.ApkFileRecord{
+		{Path: "/usr/lib/python3/dist-packages/requests"},
+		{Path: "/usr/bin/python3"},
+	}}
 
 	tests := []struct {
 		name                  string
 		pkg                   pkg.Package
-		ownedPaths            []string
 		vulnerabilities       []vulnerability.Vulnerability
 		expectedIgnoreVulnIDs []string
 		expectedMatchIDs      []string
 		expectNoIgnoreRules   bool
 	}{
 		{
-			name:       "package version is already fixed - should produce ignore rules scoped to paths",
-			ownedPaths: ownedPaths,
+			name: "package version is already fixed - should produce ignore rules scoped to paths",
 			pkg: pkg.Package{
-				ID:      pkg.ID(uuid.NewString()),
-				Name:    "python3-requests",
-				Version: "2.25.1-14.el8",
-				Type:    syftPkg.RpmPkg,
-				Distro:  distro.New(distro.RedHat, "8", ""),
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "python3-requests",
+				Version:  "2.25.1-14.el8",
+				Type:     syftPkg.RpmPkg,
+				Distro:   distro.New(distro.RedHat, "8", ""),
+				Metadata: ownedFiles,
 			},
 			vulnerabilities: []vulnerability.Vulnerability{
 				{
@@ -135,14 +137,14 @@ func TestMatchPackageByDistroWithIgnoreRules(t *testing.T) {
 			expectedIgnoreVulnIDs: []string{"CVE-2023-backported", "CVE-2023-backported"},
 		},
 		{
-			name:       "package version is still vulnerable - should NOT produce ignore rules",
-			ownedPaths: ownedPaths,
+			name: "package version is still vulnerable - should NOT produce ignore rules",
 			pkg: pkg.Package{
-				ID:      pkg.ID(uuid.NewString()),
-				Name:    "python3-requests",
-				Version: "2.25.1-10.el8",
-				Type:    syftPkg.RpmPkg,
-				Distro:  distro.New(distro.RedHat, "8", ""),
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "python3-requests",
+				Version:  "2.25.1-10.el8",
+				Type:     syftPkg.RpmPkg,
+				Distro:   distro.New(distro.RedHat, "8", ""),
+				Metadata: ownedFiles,
 			},
 			vulnerabilities: []vulnerability.Vulnerability{
 				{
@@ -155,14 +157,14 @@ func TestMatchPackageByDistroWithIgnoreRules(t *testing.T) {
 			expectNoIgnoreRules: true,
 		},
 		{
-			name:       "distro has no data about the package - should NOT produce ignore rules (search miss)",
-			ownedPaths: ownedPaths,
+			name: "distro has no data about the package - should NOT produce ignore rules (search miss)",
 			pkg: pkg.Package{
-				ID:      pkg.ID(uuid.NewString()),
-				Name:    "python3-something-obscure",
-				Version: "1.0.0-1.el8",
-				Type:    syftPkg.RpmPkg,
-				Distro:  distro.New(distro.RedHat, "8", ""),
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "python3-something-obscure",
+				Version:  "1.0.0-1.el8",
+				Type:     syftPkg.RpmPkg,
+				Distro:   distro.New(distro.RedHat, "8", ""),
+				Metadata: ownedFiles,
 			},
 			vulnerabilities: []vulnerability.Vulnerability{
 				// no vulnerabilities for this package in the distro feed
@@ -175,14 +177,14 @@ func TestMatchPackageByDistroWithIgnoreRules(t *testing.T) {
 			expectNoIgnoreRules: true,
 		},
 		{
-			name:       "mix of fixed and still-vulnerable CVEs - should only produce ignore rules for fixed ones",
-			ownedPaths: ownedPaths,
+			name: "mix of fixed and still-vulnerable CVEs - should only produce ignore rules for fixed ones",
 			pkg: pkg.Package{
-				ID:      pkg.ID(uuid.NewString()),
-				Name:    "python3-requests",
-				Version: "2.25.1-14.el8",
-				Type:    syftPkg.RpmPkg,
-				Distro:  distro.New(distro.RedHat, "8", ""),
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "python3-requests",
+				Version:  "2.25.1-14.el8",
+				Type:     syftPkg.RpmPkg,
+				Distro:   distro.New(distro.RedHat, "8", ""),
+				Metadata: ownedFiles,
 			},
 			vulnerabilities: []vulnerability.Vulnerability{
 				{
@@ -203,14 +205,14 @@ func TestMatchPackageByDistroWithIgnoreRules(t *testing.T) {
 			expectedIgnoreVulnIDs: []string{"CVE-2023-already-fixed", "CVE-2023-already-fixed"},
 		},
 		{
-			name:       "fixed CVE with related vulnerabilities - should produce ignore rules for all IDs at all paths",
-			ownedPaths: ownedPaths,
+			name: "fixed CVE with related vulnerabilities - should produce ignore rules for all IDs at all paths",
 			pkg: pkg.Package{
-				ID:      pkg.ID(uuid.NewString()),
-				Name:    "python3-requests",
-				Version: "2.25.1-14.el8",
-				Type:    syftPkg.RpmPkg,
-				Distro:  distro.New(distro.RedHat, "8", ""),
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "python3-requests",
+				Version:  "2.25.1-14.el8",
+				Type:     syftPkg.RpmPkg,
+				Distro:   distro.New(distro.RedHat, "8", ""),
+				Metadata: ownedFiles,
 			},
 			vulnerabilities: []vulnerability.Vulnerability{
 				{
@@ -226,14 +228,14 @@ func TestMatchPackageByDistroWithIgnoreRules(t *testing.T) {
 			expectedIgnoreVulnIDs: []string{"CVE-2023-backported", "CVE-2023-backported", "GHSA-xxxx-yyyy-zzzz", "GHSA-xxxx-yyyy-zzzz"},
 		},
 		{
-			name:       "no distro on package - should NOT produce ignore rules",
-			ownedPaths: ownedPaths,
+			name: "no distro on package - should NOT produce ignore rules",
 			pkg: pkg.Package{
-				ID:      pkg.ID(uuid.NewString()),
-				Name:    "python3-requests",
-				Version: "2.25.1-14.el8",
-				Type:    syftPkg.RpmPkg,
-				Distro:  nil,
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "python3-requests",
+				Version:  "2.25.1-14.el8",
+				Type:     syftPkg.RpmPkg,
+				Distro:   nil,
+				Metadata: ownedFiles,
 			},
 			vulnerabilities: []vulnerability.Vulnerability{
 				{
@@ -245,14 +247,14 @@ func TestMatchPackageByDistroWithIgnoreRules(t *testing.T) {
 			expectNoIgnoreRules: true,
 		},
 		{
-			name:       "unknown version - should NOT produce ignore rules",
-			ownedPaths: ownedPaths,
+			name: "unknown version - should NOT produce ignore rules",
 			pkg: pkg.Package{
-				ID:      pkg.ID(uuid.NewString()),
-				Name:    "python3-requests",
-				Version: "unknown",
-				Type:    syftPkg.RpmPkg,
-				Distro:  distro.New(distro.RedHat, "8", ""),
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "python3-requests",
+				Version:  "unknown",
+				Type:     syftPkg.RpmPkg,
+				Distro:   distro.New(distro.RedHat, "8", ""),
+				Metadata: ownedFiles,
 			},
 			vulnerabilities: []vulnerability.Vulnerability{
 				{
@@ -264,14 +266,14 @@ func TestMatchPackageByDistroWithIgnoreRules(t *testing.T) {
 			expectNoIgnoreRules: true,
 		},
 		{
-			name:       "no owned paths - should NOT produce ignore rules even if fixed",
-			ownedPaths: nil,
+			name: "no FileOwner metadata - should NOT produce ignore rules even if fixed",
 			pkg: pkg.Package{
 				ID:      pkg.ID(uuid.NewString()),
 				Name:    "python3-requests",
 				Version: "2.25.1-14.el8",
 				Type:    syftPkg.RpmPkg,
 				Distro:  distro.New(distro.RedHat, "8", ""),
+				// no Metadata — does not implement FileOwner
 			},
 			vulnerabilities: []vulnerability.Vulnerability{
 				{
@@ -288,7 +290,7 @@ func TestMatchPackageByDistroWithIgnoreRules(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			store := mock.VulnerabilityProvider(test.vulnerabilities...)
 
-			matches, ignoreFilters, err := MatchPackageByDistro(store, test.pkg, nil, match.PythonMatcher, nil, test.ownedPaths...)
+			matches, ignoreFilters, err := MatchPackageByDistroWithOwnedFiles(store, test.pkg, nil, match.PythonMatcher, nil)
 			require.NoError(t, err)
 
 			// verify matches
