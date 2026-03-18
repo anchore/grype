@@ -102,8 +102,7 @@ func MatchPackageByDistroWithOwnedFiles(provider vulnerability.Provider, searchP
 	}
 
 	// Partition in memory: vulnerable vs. fixed.
-	vulnerable := allVulns.Filter(versionCriteria)
-	fixed := allVulns.Remove(vulnerable)
+	vulnerable, fixed := allVulns.Partition(versionCriteria)
 
 	matches := vulnerable.ToMatches()
 	ignores := distroFixedIgnoreRules(fixed, ownedFiles)

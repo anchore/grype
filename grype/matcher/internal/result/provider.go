@@ -56,6 +56,13 @@ func (p provider) FindResults(criteria ...vulnerability.Criteria) (Set, error) {
 
 func detailProvider(matcher match.MatcherType, catalogedPkg pkg.Package, criteriaSet []vulnerability.Criteria, vuln vulnerability.Vulnerability) match.Details {
 	cpeParams, distroParams, ecosystemParams, pkgParams := extractSearchParameters(criteriaSet, vuln)
+
+	// When version criteria are not part of the query (e.g. fetching a superset of all known
+	// vulnerabilities), fall back to the cataloged package version so match details are complete.
+	if pkgParams != nil && pkgParams.Version == "" && catalogedPkg.Version != "" {
+		pkgParams.Version = catalogedPkg.Version
+	}
+
 	distroMatchType := determineMatchType(catalogedPkg, pkgParams)
 	applyPackageParamsToSearchParams(pkgParams, &cpeParams, &distroParams, &ecosystemParams)
 	constraintStr := getConstraintString(vuln)

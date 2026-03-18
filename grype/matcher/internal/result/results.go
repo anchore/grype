@@ -256,6 +256,59 @@ func (s Set) Update(incoming Set, shouldUpdate func(existing Result, incoming Re
 	return out
 }
 
+// Partition splits the set into two: results whose vulnerabilities match all criteria, and the rest.
+// Both returned sets preserve the original Result fields (Details, Package, etc.).
+func (s Set) Partition(criteria ...vulnerability.Criteria) (matching Set, rest Set) {
+	matching = Set{}
+	rest = Set{}
+	for id, results := range s {
+		for _, r := range results {
+			matched, unmatched, err := partitionVulns(r.Vulnerabilities, criteria)
+			if err != nil {
+				log.WithFields("vulnerability", r.ID, "error", err).Debug("failed to partition vulns")
+				// on error, treat all as matching (conservative)
+				matched = r.Vulnerabilities
+				unmatched = nil
+			}
+			if len(matched) > 0 {
+				matching[id] = append(matching[id], Result{
+					ID:              r.ID,
+					Vulnerabilities: matched,
+					Details:         r.Details,
+					Package:         r.Package,
+				})
+			}
+			if len(unmatched) > 0 {
+				rest[id] = append(rest[id], Result{
+					ID:              r.ID,
+					Vulnerabilities: unmatched,
+					Details:         r.Details,
+					Package:         r.Package,
+				})
+			}
+		}
+	}
+	return matching, rest
+}
+
+func partitionVulns(vulnerabilities []vulnerability.Vulnerability, criteria []vulnerability.Criteria) (matched, unmatched []vulnerability.Vulnerability, err error) {
+nextVuln:
+	for _, v := range vulnerabilities {
+		for _, c := range criteria {
+			matches, _, e := c.MatchesVulnerability(v)
+			if e != nil {
+				return nil, nil, e
+			}
+			if !matches {
+				unmatched = append(unmatched, v)
+				continue nextVuln
+			}
+		}
+		matched = append(matched, v)
+	}
+	return matched, unmatched, nil
+}
+
 func (s Set) Filter(criteria ...vulnerability.Criteria) Set {
 	out := Set{}
 	for id, results := range s {
