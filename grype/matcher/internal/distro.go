@@ -65,7 +65,9 @@ func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package
 // searchPkg) implements [pkg.FileOwner]. When no owned files are available, this falls back to
 // [MatchPackageByDistro] (version-filtered query, no ignore rules) to avoid over-fetching.
 func MatchPackageByDistroWithOwnedFiles(provider vulnerability.Provider, searchPkg pkg.Package, catalogPkg *pkg.Package, upstreamMatcher match.MatcherType, cfg *version.ComparisonConfig) ([]match.Match, []match.IgnoreFilter, error) {
-	ownedFiles := ownedFilesFor(searchPkg, catalogPkg)
+	// Use the SBOM package (not the synthetic upstream) for file ownership — the upstream
+	// package won't carry file metadata.
+	ownedFiles := ownedFilesFor(matchPackage(searchPkg, catalogPkg))
 	if len(ownedFiles) == 0 {
 		return MatchPackageByDistro(provider, searchPkg, catalogPkg, upstreamMatcher, cfg)
 	}
@@ -101,8 +103,13 @@ func MatchPackageByDistroWithOwnedFiles(provider vulnerability.Provider, searchP
 		return nil, nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
 
-	// Partition in memory: vulnerable vs. fixed.
-	vulnerable, fixed := allVulns.Partition(versionCriteria)
+	// Split in memory: vulnerable vs. fixed.
+	vulnerable := allVulns.Filter(versionCriteria)
+	fixed := allVulns.Remove(vulnerable)
+
+	// The superset query omits version criteria, so match details are missing the searched-by
+	// version. Patch it in from the search package before converting to matches.
+	patchDetailVersion(vulnerable, searchPkg.Version)
 
 	matches := vulnerable.ToMatches()
 	ignores := distroFixedIgnoreRules(fixed, ownedFiles)
@@ -188,15 +195,39 @@ func isUnknownVersion(v string) bool {
 	return strings.ToLower(v) == "unknown"
 }
 
-// ownedFilesFor returns the files owned by the package, preferring the catalog package's metadata
-// (the SBOM package) over the search package's metadata (which may be a synthetic upstream).
-func ownedFilesFor(searchPkg pkg.Package, catalogPkg *pkg.Package) []string {
-	if catalogPkg != nil {
-		if fo, ok := catalogPkg.Metadata.(pkg.FileOwner); ok {
-			return fo.OwnedFiles()
+// patchDetailVersion fills in the searched-by package version on match details that are missing it.
+// This is needed when results come from a superset query (no version criteria), since
+// result.Provider only populates the version from VersionCriteria in the query.
+func patchDetailVersion(s result.Set, version string) {
+	for _, results := range s {
+		for i := range results {
+			for j := range results[i].Details {
+				d := &results[i].Details[j]
+				switch sb := d.SearchedBy.(type) {
+				case match.DistroParameters:
+					if sb.Package.Version == "" {
+						sb.Package.Version = version
+						d.SearchedBy = sb
+					}
+				case match.EcosystemParameters:
+					if sb.Package.Version == "" {
+						sb.Package.Version = version
+						d.SearchedBy = sb
+					}
+				case match.CPEParameters:
+					if sb.Package.Version == "" {
+						sb.Package.Version = version
+						d.SearchedBy = sb
+					}
+				}
+			}
 		}
 	}
-	if fo, ok := searchPkg.Metadata.(pkg.FileOwner); ok {
+}
+
+// ownedFilesFor returns the files owned by the package if its metadata implements [pkg.FileOwner].
+func ownedFilesFor(p pkg.Package) []string {
+	if fo, ok := p.Metadata.(pkg.FileOwner); ok {
 		return fo.OwnedFiles()
 	}
 	return nil
