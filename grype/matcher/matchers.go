@@ -67,6 +67,7 @@ func ApplySelectionPolicy(matchers []match.Matcher, ctx pkg.Context) []match.Mat
 	replacements := map[match.MatcherType]match.Matcher{
 		match.DpkgMatcher: rfMatcher,
 		match.ApkMatcher:  rfMatcher,
+		match.RpmMatcher:  rfMatcher,
 	}
 
 	return applyMatcherOverrides(matchers, replacements)

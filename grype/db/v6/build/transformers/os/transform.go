@@ -123,6 +123,21 @@ func getFix(fixedInEntry unmarshal.OSFixedIn) *db.Fix {
 	}
 
 	var refs []db.Reference
+	if fixedInEntry.Identifier != "" {
+		rid := releaseIdentifierReferenceID(fixedInEntry.Identifier)
+		refURL := rid
+		for _, adv := range advisoryOrder {
+			if adv.link != "" {
+				refURL = adv.link
+				break
+			}
+		}
+		refs = append(refs, db.Reference{
+			ID:   rid,
+			URL:  refURL, // prefer vendor advisory URL; else rid so toAdvisories includes the ref
+			Tags: []string{db.AdvisoryReferenceTag},
+		})
+	}
 	for _, adv := range advisoryOrder {
 		refs = append(refs, db.Reference{
 			ID:   adv.id,
@@ -164,6 +179,10 @@ func getFixAvailability(fixedInEntry unmarshal.OSFixedIn) *db.FixAvailability {
 	}
 }
 
+func releaseIdentifierReferenceID(identifier string) string {
+	return "release-identifier:" + strings.ToLower(strings.TrimSpace(identifier))
+}
+
 func enforceConstraint(fixedVersion, vulnerableRange, format, vulnerabilityID string) string {
 	if len(vulnerableRange) > 0 {
 		return vulnerableRange
@@ -203,14 +222,15 @@ func deriveConstraintFromFix(fixVersion, vulnerabilityID string) string {
 }
 
 type groupIndex struct {
-	name      string
-	id        string
-	osName    string
-	osVersion string
-	osChannel string
-	hasModule bool
-	module    string
-	format    string
+	name       string
+	id         string
+	osName     string
+	osVersion  string
+	osChannel  string
+	identifier string
+	hasModule  bool
+	module     string
+	format     string
 }
 
 func groupFixedIns(vuln unmarshal.OSVulnerability) map[groupIndex][]unmarshal.OSFixedIn {
@@ -223,14 +243,15 @@ func groupFixedIns(vuln unmarshal.OSVulnerability) map[groupIndex][]unmarshal.OS
 			mod = *fixedIn.Module
 		}
 		g := groupIndex{
-			name:      fixedIn.Name,
-			id:        oi.id,
-			osName:    oi.name,
-			osVersion: oi.version,
-			osChannel: oi.channel,
-			hasModule: fixedIn.Module != nil,
-			module:    mod,
-			format:    fixedIn.VersionFormat,
+			name:       fixedIn.Name,
+			id:         oi.id,
+			osName:     oi.name,
+			osVersion:  oi.version,
+			osChannel:  oi.channel,
+			identifier: fixedIn.Identifier,
+			hasModule:  fixedIn.Module != nil,
+			module:     mod,
+			format:     fixedIn.VersionFormat,
 		}
 
 		grouped[g] = append(grouped[g], fixedIn)
@@ -252,6 +273,8 @@ func getPackageType(osName string) pkg.Type {
 		return pkg.DebPkg
 	case "rapidfort-alpine":
 		return pkg.ApkPkg
+	case "rapidfort-redhat":
+		return pkg.RpmPkg
 	}
 
 	return ""
