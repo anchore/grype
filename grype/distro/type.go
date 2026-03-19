@@ -39,6 +39,7 @@ const (
 	PostmarketOS    Type = "postmarketos"
 	RapidFortUbuntu Type = "rapidfort-ubuntu"
 	RapidFortAlpine Type = "rapidfort-alpine"
+	RapidFortRedHat Type = "rapidfort-redhat"
 )
 
 // All contains all Linux distribution options
@@ -72,6 +73,7 @@ var All = []Type{
 	PostmarketOS,
 	RapidFortUbuntu,
 	RapidFortAlpine,
+	RapidFortRedHat,
 }
 
 // IDMapping maps a distro ID from the /etc/os-release (e.g. like "ubuntu") to a Distro type.
@@ -104,6 +106,7 @@ var IDMapping = map[string]Type{
 	"postmarketos":     PostmarketOS,
 	"rapidfort-ubuntu": RapidFortUbuntu,
 	"rapidfort-alpine": RapidFortAlpine,
+	"rapidfort-redhat": RapidFortRedHat,
 }
 
 // aliasTypes maps common aliases to their corresponding Type.

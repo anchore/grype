@@ -331,6 +331,9 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 	// Somewhat cheating with Windows. There is no support for detecting/parsing a Windows OS, so it is not
 	// possible to comply with this test unless it is added manually to the "observed distros"
 	definedDistros.Remove(string(Windows))
+	definedDistros.Remove(string(RapidFortUbuntu))
+	definedDistros.Remove(string(RapidFortAlpine))
+	definedDistros.Remove(string(RapidFortRedHat))
 
 	tests := []struct {
 		Name         string

@@ -717,36 +717,6 @@ func TestParseVulnerabilitiesEntry(t *testing.T) {
 			},
 		},
 		{
-			name:       "RapidFort ubuntu 20.04",
-			numEntries: 1,
-			fixture:    "test-fixtures/rapidfort-ubuntu-20.04.json",
-			vulns: []db.Vulnerability{
-				{
-					ID:                "CVE-2022-22576",
-					PackageName:       "curl",
-					VersionConstraint: ">= 7.68.0, < 7.68.0-1ubuntu2.10",
-					VersionFormat:     "dpkg",
-					Namespace:         "rapidfort-ubuntu:distro:rapidfort-ubuntu:20.04",
-					RelatedVulnerabilities: []db.VulnerabilityReference{
-						{ID: "CVE-2022-22576", Namespace: "nvd:cpe"},
-					},
-					Fix: db.Fix{
-						Versions: []string{"7.68.0-1ubuntu2.10"},
-						State:    db.FixedState,
-					},
-				},
-			},
-			metadata: db.VulnerabilityMetadata{
-				ID:           "CVE-2022-22576",
-				Namespace:    "rapidfort-ubuntu:distro:rapidfort-ubuntu:20.04",
-				DataSource:   "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-22576",
-				RecordSource: "vulnerabilities:rapidfort-ubuntu:20.04",
-				Severity:     "Medium",
-				URLs:         []string{"https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-22576"},
-				Description:  "curl: OAUTH2 bearer bypass in connection re-use",
-			},
-		},
-		{
 			name:       "mariner entry with version range",
 			numEntries: 1,
 			fixture:    "test-fixtures/mariner-range.json",

@@ -48,6 +48,7 @@ func TestApplySelectionPolicy_UsesRapidFortMatcherInsteadOfDebAndApkMatchers(t *
 	assert.Contains(t, matcherTypes(matchers), match.RapidFortMatcher)
 	assert.NotContains(t, matcherTypes(matchers), match.DpkgMatcher)
 	assert.NotContains(t, matcherTypes(matchers), match.ApkMatcher)
+	assert.NotContains(t, matcherTypes(matchers), match.RpmMatcher)
 	assert.Contains(t, matcherTypes(matchers), match.JavaMatcher)
 	assert.Contains(t, matcherTypes(matchers), match.StockMatcher)
 }
