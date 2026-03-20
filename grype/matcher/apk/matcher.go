@@ -11,7 +11,6 @@ import (
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
-	"github.com/anchore/syft/syft/artifact"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -222,14 +221,6 @@ func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, cata
 	return matches, ignores, nil
 }
 
-// ownedFilesFromMetadata returns the files owned by a package if its metadata implements pkg.FileOwner.
-func ownedFilesFromMetadata(p pkg.Package) []string {
-	if fo, ok := p.Metadata.(pkg.FileOwner); ok {
-		return fo.OwnedFiles()
-	}
-	return nil
-}
-
 // NAK entries are those reported as explicitly not vulnerable by the upstream provider,
 // for example this entry is present in the v5 database:
 // 312891,CVE-2020-7224,openvpn,alpine:distro:alpine:3.10,,< 0,apk,,"[{""id"":""CVE-2020-7224"",""namespace"":""nvd:cpe""}]","[""0""]",fixed,
@@ -266,33 +257,5 @@ func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Pack
 		naks = append(naks, upstreamNaks...)
 	}
 
-	paths := ownedFilesFromMetadata(p)
-	if len(paths) == 0 {
-		return nil, nil
-	}
-
-	var ignores []match.IgnoreFilter
-	for _, nak := range naks {
-		for _, path := range paths {
-			ignores = append(ignores,
-				match.IgnoreRule{
-					Vulnerability:  nak.ID,
-					IncludeAliases: true,
-					Reason:         "Explicit APK NAK",
-					Package: match.IgnoreRulePackage{
-						Location: path,
-					},
-				},
-			)
-		}
-
-		ignores = append(ignores, match.IgnoreRelatedPackage{
-			Reason:           fmt.Sprintf("Explicit APK NAK by Ownership from package: %s", p.Name),
-			RelationshipType: artifact.OwnershipByFileOverlapRelationship,
-			VulnerabilityID:  nak.ID,
-			RelatedPackageID: p.ID,
-		})
-	}
-
-	return ignores, nil
+	return internal.OwnershipIgnores(p, "Explicit APK NAK", naks...), nil
 }

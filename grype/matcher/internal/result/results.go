@@ -70,6 +70,17 @@ func (s Set) ToMatches() []match.Match {
 	return out
 }
 
+// Vulnerabilities returns a flattened slice of all vulnerabilities in the set
+func (s Set) Vulnerabilities() []vulnerability.Vulnerability {
+	var out []vulnerability.Vulnerability
+	for _, results := range s {
+		for _, r := range results {
+			out = append(out, r.Vulnerabilities...)
+		}
+	}
+	return out
+}
+
 // Remove will prune elements from the current set that have any ids/aliases in common with the incoming set.
 // For example:
 //

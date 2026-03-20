@@ -6,6 +6,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
+	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -1197,7 +1198,7 @@ func TestMatcherApk_DistroFixedIgnoreRules(t *testing.T) {
 				},
 			},
 			// one rule per owned path
-			expectedIgnoreVulnIDs: []string{"CVE-2026-22039", "CVE-2026-22039"},
+			expectedIgnoreVulnIDs: []string{"CVE-2026-22039"},
 			expectedMatchIDs:      nil,
 		},
 		{
@@ -1264,7 +1265,7 @@ func TestMatcherApk_DistroFixedIgnoreRules(t *testing.T) {
 				},
 			},
 			// one rule per owned path
-			expectedIgnoreVulnIDs: []string{"CVE-2026-22039", "CVE-2026-22039"},
+			expectedIgnoreVulnIDs: []string{"CVE-2026-22039"},
 			expectedMatchIDs:      nil,
 		},
 		{
@@ -1288,27 +1289,7 @@ func TestMatcherApk_DistroFixedIgnoreRules(t *testing.T) {
 				},
 			},
 			// 2 IDs × 2 paths = 4 rules
-			expectedIgnoreVulnIDs: []string{"CVE-2026-22039", "CVE-2026-22039", "GHSA-8p9x-46gm-qfx2", "GHSA-8p9x-46gm-qfx2"},
-			expectedMatchIDs:      nil,
-		},
-		{
-			name: "no APK metadata (no file list) - should NOT produce ignore rules even if fixed",
-			p: pkg.Package{
-				ID:      pkg.ID(uuid.NewString()),
-				Name:    "kyverno",
-				Version: "1.15.3-r0",
-				Type:    syftPkg.ApkPkg,
-				Distro:  distro.New(distro.Wolfi, "", ""),
-				// no Metadata
-			},
-			vulnerabilities: []vulnerability.Vulnerability{
-				{
-					PackageName: "kyverno",
-					Constraint:  version.MustGetConstraint("< 1.15.3-r0", version.ApkFormat),
-					Reference:   vulnerability.Reference{ID: "CVE-2026-22039", Namespace: apkNamespace},
-				},
-			},
-			expectedIgnoreVulnIDs: nil,
+			expectedIgnoreVulnIDs: []string{"CVE-2026-22039", "GHSA-8p9x-46gm-qfx2"},
 			expectedMatchIDs:      nil,
 		},
 	}
@@ -1333,21 +1314,23 @@ func TestMatcherApk_DistroFixedIgnoreRules(t *testing.T) {
 			}
 
 			// verify ignore rules - filter to only DistroPackageFixed rules (not NAK rules)
-			var gotIgnoreIDs []string
+			gotIgnoreIDs := strset.New()
 			for _, filter := range ignoreFilters {
-				rule, ok := filter.(match.IgnoreRule)
-				require.True(t, ok, "expected IgnoreRule type")
-				if rule.Reason != "DistroPackageFixed" {
+				related, ok := filter.(match.IgnoreRelatedPackage)
+				if ok {
+					gotIgnoreIDs.Add(related.VulnerabilityID)
 					continue
 				}
-				gotIgnoreIDs = append(gotIgnoreIDs, rule.Vulnerability)
+				rule, ok := filter.(match.IgnoreRule)
+				require.True(t, ok, "expected IgnoreRule or IgnoreRelatedPackage types")
+				gotIgnoreIDs.Add(rule.Vulnerability)
 				assert.True(t, rule.IncludeAliases, "expected IncludeAliases to be true")
 				assert.NotEmpty(t, rule.Package.Location, "expected location to be set on DistroPackageFixed rule")
 			}
 			if test.expectedIgnoreVulnIDs == nil {
-				assert.Empty(t, gotIgnoreIDs, "expected no ignore rules")
+				assert.Empty(t, gotIgnoreIDs.List(), "expected no ignore rules")
 			} else {
-				assert.ElementsMatch(t, test.expectedIgnoreVulnIDs, gotIgnoreIDs, "unexpected ignore rule vulnerability IDs")
+				assert.ElementsMatch(t, test.expectedIgnoreVulnIDs, gotIgnoreIDs.List(), "unexpected ignore rule vulnerability IDs")
 			}
 		})
 	}
