@@ -102,6 +102,227 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 	assert.Empty(t, actual)
 }
 
+func TestMatchPackageByDistroWithIgnoreRules(t *testing.T) {
+	ownedFiles := pkg.ApkMetadata{Files: []pkg.ApkFileRecord{
+		{Path: "/usr/lib/python3/dist-packages/requests"},
+		{Path: "/usr/bin/python3"},
+	}}
+
+	tests := []struct {
+		name                  string
+		pkg                   pkg.Package
+		vulnerabilities       []vulnerability.Vulnerability
+		expectedIgnoreVulnIDs []string
+		expectedMatchIDs      []string
+		expectNoIgnoreRules   bool
+	}{
+		{
+			name: "package version is already fixed - should produce ignore rules scoped to paths",
+			pkg: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "python3-requests",
+				Version:  "2.25.1-14.el8",
+				Type:     syftPkg.RpmPkg,
+				Distro:   distro.New(distro.RedHat, "8", ""),
+				Metadata: ownedFiles,
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "python3-requests",
+					Constraint:  version.MustGetConstraint("< 2.25.1-14.el8", version.RpmFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-backported", Namespace: "secdb:distro:redhat:8"},
+				},
+			},
+			// one rule per (vulnID, path) pair
+			expectedIgnoreVulnIDs: []string{"CVE-2023-backported", "CVE-2023-backported"},
+		},
+		{
+			name: "package version is still vulnerable - should NOT produce ignore rules",
+			pkg: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "python3-requests",
+				Version:  "2.25.1-10.el8",
+				Type:     syftPkg.RpmPkg,
+				Distro:   distro.New(distro.RedHat, "8", ""),
+				Metadata: ownedFiles,
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "python3-requests",
+					Constraint:  version.MustGetConstraint("< 2.25.1-14.el8", version.RpmFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-backported", Namespace: "secdb:distro:redhat:8"},
+				},
+			},
+			expectedMatchIDs:    []string{"CVE-2023-backported"},
+			expectNoIgnoreRules: true,
+		},
+		{
+			name: "distro has no data about the package - should NOT produce ignore rules (search miss)",
+			pkg: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "python3-something-obscure",
+				Version:  "1.0.0-1.el8",
+				Type:     syftPkg.RpmPkg,
+				Distro:   distro.New(distro.RedHat, "8", ""),
+				Metadata: ownedFiles,
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				// no vulnerabilities for this package in the distro feed
+				{
+					PackageName: "other-package",
+					Constraint:  version.MustGetConstraint("< 2.0.0", version.RpmFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-other", Namespace: "secdb:distro:redhat:8"},
+				},
+			},
+			expectNoIgnoreRules: true,
+		},
+		{
+			name: "mix of fixed and still-vulnerable CVEs - should only produce ignore rules for fixed ones",
+			pkg: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "python3-requests",
+				Version:  "2.25.1-14.el8",
+				Type:     syftPkg.RpmPkg,
+				Distro:   distro.New(distro.RedHat, "8", ""),
+				Metadata: ownedFiles,
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					// fixed: package version 2.25.1-14.el8 >= fix version
+					PackageName: "python3-requests",
+					Constraint:  version.MustGetConstraint("< 2.25.1-14.el8", version.RpmFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-already-fixed", Namespace: "secdb:distro:redhat:8"},
+				},
+				{
+					// still vulnerable: package version 2.25.1-14.el8 < 2.25.1-20.el8
+					PackageName: "python3-requests",
+					Constraint:  version.MustGetConstraint("< 2.25.1-20.el8", version.RpmFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-still-vulnerable", Namespace: "secdb:distro:redhat:8"},
+				},
+			},
+			expectedMatchIDs: []string{"CVE-2023-still-vulnerable"},
+			// one rule per path for the fixed CVE only
+			expectedIgnoreVulnIDs: []string{"CVE-2023-already-fixed", "CVE-2023-already-fixed"},
+		},
+		{
+			name: "fixed CVE with related vulnerabilities - should produce ignore rules for all IDs at all paths",
+			pkg: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "python3-requests",
+				Version:  "2.25.1-14.el8",
+				Type:     syftPkg.RpmPkg,
+				Distro:   distro.New(distro.RedHat, "8", ""),
+				Metadata: ownedFiles,
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "python3-requests",
+					Constraint:  version.MustGetConstraint("< 2.25.1-14.el8", version.RpmFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-backported", Namespace: "secdb:distro:redhat:8"},
+					RelatedVulnerabilities: []vulnerability.Reference{
+						{ID: "GHSA-xxxx-yyyy-zzzz", Namespace: "github:language:python"},
+					},
+				},
+			},
+			// both IDs × 2 paths = 4 rules
+			expectedIgnoreVulnIDs: []string{"CVE-2023-backported", "CVE-2023-backported", "GHSA-xxxx-yyyy-zzzz", "GHSA-xxxx-yyyy-zzzz"},
+		},
+		{
+			name: "no distro on package - should NOT produce ignore rules",
+			pkg: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "python3-requests",
+				Version:  "2.25.1-14.el8",
+				Type:     syftPkg.RpmPkg,
+				Distro:   nil,
+				Metadata: ownedFiles,
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "python3-requests",
+					Constraint:  version.MustGetConstraint("< 2.25.1-14.el8", version.RpmFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-backported", Namespace: "secdb:distro:redhat:8"},
+				},
+			},
+			expectNoIgnoreRules: true,
+		},
+		{
+			name: "unknown version - should NOT produce ignore rules",
+			pkg: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "python3-requests",
+				Version:  "unknown",
+				Type:     syftPkg.RpmPkg,
+				Distro:   distro.New(distro.RedHat, "8", ""),
+				Metadata: ownedFiles,
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "python3-requests",
+					Constraint:  version.MustGetConstraint("< 2.25.1-14.el8", version.RpmFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-backported", Namespace: "secdb:distro:redhat:8"},
+				},
+			},
+			expectNoIgnoreRules: true,
+		},
+		{
+			name: "no FileOwner metadata - should NOT produce ignore rules even if fixed",
+			pkg: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "python3-requests",
+				Version: "2.25.1-14.el8",
+				Type:    syftPkg.RpmPkg,
+				Distro:  distro.New(distro.RedHat, "8", ""),
+				// no Metadata — does not implement FileOwner
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "python3-requests",
+					Constraint:  version.MustGetConstraint("< 2.25.1-14.el8", version.RpmFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-backported", Namespace: "secdb:distro:redhat:8"},
+				},
+			},
+			expectNoIgnoreRules: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			store := mock.VulnerabilityProvider(test.vulnerabilities...)
+
+			matches, ignoreFilters, err := MatchPackageByDistroWithOwnedFiles(store, test.pkg, nil, match.PythonMatcher, nil)
+			require.NoError(t, err)
+
+			// verify matches
+			var gotMatchIDs []string
+			for _, m := range matches {
+				gotMatchIDs = append(gotMatchIDs, m.Vulnerability.ID)
+			}
+			if len(test.expectedMatchIDs) > 0 {
+				assert.ElementsMatch(t, test.expectedMatchIDs, gotMatchIDs, "unexpected match IDs")
+			}
+
+			if test.expectNoIgnoreRules {
+				assert.Empty(t, ignoreFilters, "expected no ignore rules")
+				return
+			}
+
+			// extract the vulnerability IDs from the ignore rules
+			var gotVulnIDs []string
+			for _, filter := range ignoreFilters {
+				rule, ok := filter.(match.IgnoreRule)
+				require.True(t, ok, "expected IgnoreRule type")
+				gotVulnIDs = append(gotVulnIDs, rule.Vulnerability)
+				assert.True(t, rule.IncludeAliases, "expected IncludeAliases to be true")
+				assert.Equal(t, "DistroPackageFixed", rule.Reason)
+				assert.NotEmpty(t, rule.Package.Location, "expected location to be set")
+			}
+
+			assert.ElementsMatch(t, test.expectedIgnoreVulnIDs, gotVulnIDs, "unexpected ignore rule vulnerability IDs")
+		})
+	}
+}
+
 func TestFindMatchesByPackageDistroSles(t *testing.T) {
 	p := pkg.Package{
 		ID:      pkg.ID(uuid.NewString()),

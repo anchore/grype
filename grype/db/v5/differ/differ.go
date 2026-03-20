@@ -186,6 +186,7 @@ func (d *Differ) Present(outputFormat string, diff *[]v5.Diff, output io.Writer)
 func newTable(output io.Writer, columns []string) *tablewriter.Table {
 	return tablewriter.NewTable(output,
 		tablewriter.WithHeader(columns),
+		tablewriter.WithHeaderAlignment(tw.AlignLeft),
 		tablewriter.WithHeaderAutoWrap(tw.WrapNone),
 		tablewriter.WithRowAutoWrap(tw.WrapNone),
 		tablewriter.WithAutoHide(tw.On),

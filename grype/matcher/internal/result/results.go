@@ -276,6 +276,7 @@ func (s Set) Filter(criteria ...vulnerability.Criteria) Set {
 				ID:              result.ID,
 				Vulnerabilities: vulns,
 				Details:         result.Details,
+				Package:         result.Package,
 			})
 		}
 
