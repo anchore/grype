@@ -355,6 +355,7 @@ func rpmDataFromPkg(p syftPkg.Package) (metadata *RpmMetadata, upstreams []Upstr
 		metadata = &RpmMetadata{
 			Epoch:           m.Epoch,
 			ModularityLabel: m.ModularityLabel,
+			Files:           rpmFileRecords(m.Files),
 		}
 	case syftPkg.RpmArchive:
 		if m.SourceRpm != "" {
@@ -364,9 +365,20 @@ func rpmDataFromPkg(p syftPkg.Package) (metadata *RpmMetadata, upstreams []Upstr
 		metadata = &RpmMetadata{
 			Epoch:           m.Epoch,
 			ModularityLabel: m.ModularityLabel,
+			Files:           rpmFileRecords(m.Files),
 		}
 	}
 	return metadata, upstreams
+}
+
+func rpmFileRecords(files []syftPkg.RpmFileRecord) []RpmFileRecord {
+	var records []RpmFileRecord
+	for _, f := range files {
+		if f.Path != "" {
+			records = append(records, RpmFileRecord{Path: f.Path})
+		}
+	}
+	return records
 }
 
 func handleSourceRPM(pkgName, sourceRpm string) []UpstreamPackage {

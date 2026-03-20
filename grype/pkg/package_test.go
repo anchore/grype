@@ -129,6 +129,7 @@ func TestNew(t *testing.T) {
 			},
 			metadata: RpmMetadata{
 				Epoch: intRef(30),
+				Files: []RpmFileRecord{{Path: "path-info"}},
 			},
 			upstreams: []UpstreamPackage{
 				{
@@ -167,6 +168,7 @@ func TestNew(t *testing.T) {
 			},
 			metadata: RpmMetadata{
 				Epoch: intRef(30),
+				Files: []RpmFileRecord{{Path: "path-info"}},
 			},
 			upstreams: []UpstreamPackage{
 				{

@@ -11,7 +11,9 @@ import (
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/vulnerability/mock"
 	syftCpe "github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -383,6 +385,198 @@ func Test_addEpochIfApplicable(t *testing.T) {
 			p := test.pkg
 			addEpochIfApplicable(&p)
 			assert.Equal(t, test.expected, p.Version)
+		})
+	}
+}
+
+func TestMatcherRpm_DistroFixedIgnoreRules(t *testing.T) {
+	ownedFiles := pkg.RpmMetadata{
+		Files: []pkg.RpmFileRecord{
+			{Path: "/usr/lib/python3.6/site-packages/requests"},
+			{Path: "/usr/bin/python3"},
+		},
+	}
+
+	tests := []struct {
+		name                  string
+		p                     pkg.Package
+		vulnerabilities       []vulnerability.Vulnerability
+		expectedMatchIDs      []string
+		expectedIgnoreVulnIDs []string
+		expectNoIgnores       bool
+	}{
+		{
+			name: "RPM is fixed - should produce ignore rules scoped to owned paths",
+			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "python3-requests",
+				Version:  "2.25.1-14.el8",
+				Type:     syftPkg.RpmPkg,
+				Distro:   distro.New(distro.SLES, "15", ""),
+				Metadata: ownedFiles,
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "python3-requests",
+					Constraint:  version.MustGetConstraint("< 0:2.25.1-14.el8", version.RpmFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-fixed", Namespace: "secdb:distro:sles:15"},
+				},
+			},
+			// One rule per (vulnID, path) pair: 1 vuln × 2 paths = 2
+			expectedIgnoreVulnIDs: []string{"CVE-2023-fixed", "CVE-2023-fixed"},
+		},
+		{
+			name: "RPM is still vulnerable - should NOT produce ignore rules",
+			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "python3-requests",
+				Version:  "2.25.1-10.el8",
+				Type:     syftPkg.RpmPkg,
+				Distro:   distro.New(distro.SLES, "15", ""),
+				Metadata: ownedFiles,
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "python3-requests",
+					Constraint:  version.MustGetConstraint("< 0:2.25.1-14.el8", version.RpmFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-unfixed", Namespace: "secdb:distro:sles:15"},
+				},
+			},
+			expectedMatchIDs: []string{"CVE-2023-unfixed"},
+			expectNoIgnores:  true,
+		},
+		{
+			name: "mixed fixed and vulnerable - only produce ignores for fixed",
+			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "python3-requests",
+				Version:  "2.25.1-14.el8",
+				Type:     syftPkg.RpmPkg,
+				Distro:   distro.New(distro.SLES, "15", ""),
+				Metadata: ownedFiles,
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					// fixed
+					PackageName: "python3-requests",
+					Constraint:  version.MustGetConstraint("< 0:2.25.1-14.el8", version.RpmFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-already-fixed", Namespace: "secdb:distro:sles:15"},
+				},
+				{
+					// still vulnerable
+					PackageName: "python3-requests",
+					Constraint:  version.MustGetConstraint("< 0:2.25.1-20.el8", version.RpmFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-still-vulnerable", Namespace: "secdb:distro:sles:15"},
+				},
+			},
+			expectedMatchIDs:      []string{"CVE-2023-still-vulnerable"},
+			expectedIgnoreVulnIDs: []string{"CVE-2023-already-fixed", "CVE-2023-already-fixed"},
+		},
+		{
+			name: "fixed CVE with related vulns - should produce ignore rules for all IDs",
+			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "python3-requests",
+				Version:  "2.25.1-14.el8",
+				Type:     syftPkg.RpmPkg,
+				Distro:   distro.New(distro.SLES, "15", ""),
+				Metadata: ownedFiles,
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "python3-requests",
+					Constraint:  version.MustGetConstraint("< 0:2.25.1-14.el8", version.RpmFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-fixed", Namespace: "secdb:distro:sles:15"},
+					RelatedVulnerabilities: []vulnerability.Reference{
+						{ID: "GHSA-xxxx-yyyy-zzzz", Namespace: "github:language:python"},
+					},
+				},
+			},
+			// both IDs × 2 paths = 4
+			expectedIgnoreVulnIDs: []string{"CVE-2023-fixed", "CVE-2023-fixed", "GHSA-xxxx-yyyy-zzzz", "GHSA-xxxx-yyyy-zzzz"},
+		},
+		{
+			name: "no FileOwner metadata - should NOT produce ignore rules even if fixed",
+			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "python3-requests",
+				Version: "2.25.1-14.el8",
+				Type:    syftPkg.RpmPkg,
+				Distro:  distro.New(distro.SLES, "15", ""),
+				// no Metadata — does not implement FileOwner
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "python3-requests",
+					Constraint:  version.MustGetConstraint("< 0:2.25.1-14.el8", version.RpmFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-fixed", Namespace: "secdb:distro:sles:15"},
+				},
+			},
+			expectNoIgnores: true,
+		},
+		{
+			name: "upstream match with FileOwner on catalog pkg - should produce ignore rules",
+			p: pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "python3-requests",
+				Version: "2.25.1-14.el8",
+				Type:    syftPkg.RpmPkg,
+				Distro:  distro.New(distro.SLES, "15", ""),
+				Upstreams: []pkg.UpstreamPackage{
+					{
+						Name:    "python-requests",
+						Version: "2.25.1-14.el8",
+					},
+				},
+				Metadata: ownedFiles,
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					// upstream vulnerability that is fixed
+					PackageName: "python-requests",
+					Constraint:  version.MustGetConstraint("< 0:2.25.1-14.el8", version.RpmFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2023-upstream-fixed", Namespace: "secdb:distro:sles:15"},
+				},
+			},
+			// 1 vuln × 2 paths = 2 ignore rules
+			expectedIgnoreVulnIDs: []string{"CVE-2023-upstream-fixed", "CVE-2023-upstream-fixed"},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			store := mock.VulnerabilityProvider(test.vulnerabilities...)
+			matcher := NewRpmMatcher(MatcherConfig{})
+
+			matches, ignoreFilters, err := matcher.Match(store, test.p)
+			require.NoError(t, err)
+
+			// verify matches
+			var gotMatchIDs []string
+			for _, m := range matches {
+				gotMatchIDs = append(gotMatchIDs, m.Vulnerability.ID)
+			}
+			if len(test.expectedMatchIDs) > 0 {
+				assert.ElementsMatch(t, test.expectedMatchIDs, gotMatchIDs, "unexpected match IDs")
+			}
+
+			if test.expectNoIgnores {
+				assert.Empty(t, ignoreFilters, "expected no ignore rules")
+				return
+			}
+
+			// extract vulnerability IDs from ignore rules
+			var gotVulnIDs []string
+			for _, filter := range ignoreFilters {
+				rule, ok := filter.(match.IgnoreRule)
+				require.True(t, ok, "expected IgnoreRule type")
+				gotVulnIDs = append(gotVulnIDs, rule.Vulnerability)
+				assert.True(t, rule.IncludeAliases, "expected IncludeAliases to be true")
+				assert.Equal(t, "DistroPackageFixed", rule.Reason)
+				assert.NotEmpty(t, rule.Package.Location, "expected location to be set")
+			}
+
+			assert.ElementsMatch(t, test.expectedIgnoreVulnIDs, gotVulnIDs, "unexpected ignore rule vulnerability IDs")
 		})
 	}
 }
