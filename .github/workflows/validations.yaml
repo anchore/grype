@@ -37,7 +37,9 @@ jobs:
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
-      
+        with:
+          cache-test-fixtures: true
+
       - name: Run unit tests
         run: make unit
 
@@ -53,6 +55,8 @@ jobs:
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
+        with:
+          cache-test-fixtures: true
 
       - name: Run quality tests
         run: make quality
@@ -108,12 +112,8 @@ jobs:
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
-
-      - name: Restore integration test cache
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 #v5.0.3
         with:
-          path: ${{ github.workspace }}/test/integration/testdata/cache
-          key: ${{ runner.os }}-integration-test-cache-${{ hashFiles('test/integration/testdata/cache.fingerprint') }}
+          cache-test-fixtures: true
 
       - name: Run integration tests
         run: make integration
@@ -266,12 +266,8 @@ jobs:
 
       - name: Bootstrap environment
         uses: ./.github/actions/bootstrap
-
-      - name: Restore CLI test-fixture cache
-        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 #v5.0.3
         with:
-          path: ${{ github.workspace }}/test/cli/testdata/cache
-          key: ${{ runner.os }}-cli-test-cache-${{ hashFiles('test/cli/testdata/cache.fingerprint') }}
+          cache-test-fixtures: true
 
       - name: Download snapshot build
         uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 #v5.0.3
