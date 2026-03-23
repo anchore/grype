@@ -93,6 +93,7 @@ func (w *WorkspaceWriter) WriteState(state State) error {
 // WriteResult writes a single result file and returns its File entry.
 // The content should be a vunnel envelope JSON with schema, identifier, and item fields.
 // The filename can include subdirectories (e.g., "debian@10/CVE-2024-1234.json").
+// JSON content is pretty-formatted with 2-space indentation for readability.
 func (w *WorkspaceWriter) WriteResult(filename string, content []byte) (*File, error) {
 	resultsDir := filepath.Join(w.root, w.provider, "results")
 	resultPath := filepath.Join(resultsDir, filename)
@@ -102,20 +103,40 @@ func (w *WorkspaceWriter) WriteResult(filename string, content []byte) (*File, e
 		return nil, fmt.Errorf("failed to create results directory: %w", err)
 	}
 
+	// pretty-format JSON content for readability
+	formattedContent := formatJSON(content)
+
 	//nolint:gosec // resultPath is constructed internally by the workspace writer, not user input
-	if err := os.WriteFile(resultPath, content, 0600); err != nil {
+	if err := os.WriteFile(resultPath, formattedContent, 0600); err != nil {
 		return nil, fmt.Errorf("failed to write result file: %w", err)
 	}
 
 	// compute xxh64 hash
 	hasher := xxhash.New64()
-	_, _ = hasher.Write(content)
+	_, _ = hasher.Write(formattedContent)
 
 	return &File{
 		Path:      filepath.Join("results", filename),
 		Digest:    hex.EncodeToString(hasher.Sum(nil)),
 		Algorithm: "xxh64",
 	}, nil
+}
+
+// formatJSON attempts to pretty-format JSON content with 2-space indentation.
+// If the content is not valid JSON, it is returned unchanged.
+func formatJSON(content []byte) []byte {
+	var data any
+	if err := json.Unmarshal(content, &data); err != nil {
+		return content
+	}
+
+	formatted, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return content
+	}
+
+	// add trailing newline for consistency
+	return append(formatted, '\n')
 }
 
 // CopyResultFrom copies a result file from another location into this workspace.

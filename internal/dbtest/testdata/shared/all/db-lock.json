@@ -1,7 +1,7 @@
 {
-  "content_hash": "e62bd81e8bed34b6",
+  "content_hash": "4c253c15848e5791",
   "created_at": "2026-03-12T20:50:04.428614Z",
-  "regenerated_at": "2026-03-13T14:59:14.169163Z",
+  "regenerated_at": "2026-03-23T20:52:35.797373Z",
   "providers": {
     "debian": {
       "vunnel_version": "vunnel@0.55.2.post5+b0ff778",

@@ -72,11 +72,17 @@ func TestWorkspaceWriter_WriteResult(t *testing.T) {
 	assert.Equal(t, "xxh64", file.Algorithm)
 	assert.NotEmpty(t, file.Digest)
 
-	// verify file was created
+	// verify file was created with pretty-formatted JSON
 	resultPath := filepath.Join(tmpDir, "test-provider", "results", "CVE-2024-1234.json")
 	data, err := os.ReadFile(resultPath)
 	require.NoError(t, err)
-	assert.Equal(t, content, data)
+
+	expectedFormatted := `{
+  "identifier": "debian:10/CVE-2024-1234",
+  "item": {}
+}
+`
+	assert.Equal(t, expectedFormatted, string(data))
 }
 
 func TestWorkspaceWriter_CopyResultFrom(t *testing.T) {
@@ -101,11 +107,17 @@ func TestWorkspaceWriter_CopyResultFrom(t *testing.T) {
 	assert.Equal(t, "results/CVE-2024-5678.json", file.Path)
 	assert.NotEmpty(t, file.Digest)
 
-	// verify file was copied
+	// verify file was copied with pretty-formatted JSON
 	destPath := filepath.Join(tmpDir, "test-provider", "results", "CVE-2024-5678.json")
 	data, err := os.ReadFile(destPath)
 	require.NoError(t, err)
-	assert.Equal(t, content, data)
+
+	expectedFormatted := `{
+  "identifier": "debian:11/CVE-2024-5678",
+  "item": {}
+}
+`
+	assert.Equal(t, expectedFormatted, string(data))
 }
 
 func TestWorkspaceWriter_WriteListing(t *testing.T) {
