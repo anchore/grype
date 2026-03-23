@@ -84,7 +84,7 @@ func (d *DBDiffer) findVulnsAdded(diff *VulnerabilityDiff) (int, error) {
 	out := map[VulnerabilityID]struct{}{}
 	var rows []vulnRow
 	err := d.db.Raw(`
-		SELECT provider_id, name FROM diff_vulns_added
+		SELECT provider_id, name FROM diff_vuln_added
 	`).Scan(&rows).Error
 	if err != nil {
 		return 0, err
@@ -101,7 +101,7 @@ func (d *DBDiffer) findVulnsRemoved(diff *VulnerabilityDiff) (int, error) {
 	out := map[VulnerabilityID]struct{}{}
 	var rows []vulnRow
 	err := d.db.Raw(`
-		SELECT provider_id, name FROM diff_vulns_removed
+		SELECT provider_id, name FROM diff_vuln_removed
 	`).Scan(&rows).Error
 	if err != nil {
 		return 0, err
@@ -118,7 +118,7 @@ func (d *DBDiffer) findVulnsModified(diff *VulnerabilityDiff) (int, error) {
 	out := map[VulnerabilityID]struct{}{}
 	var rows []vulnRow
 	err := d.db.Raw(`
-		SELECT provider_id, name FROM diff_vulns_modified
+		SELECT provider_id, name FROM diff_vuln_modified
 	`).Scan(&rows).Error
 	if err != nil {
 		return 0, err

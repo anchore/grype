@@ -203,6 +203,34 @@ func Test_basicPackageDiff(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "status-change-removal",
+			oldDB: []string{
+				"2020/cve-2020-15415",
+			},
+			newDB: []string{
+				"2020/cve-2020-15415-status-rejected",
+			},
+			expected: map[string]changes{
+				"vigor3900": {
+					removed{"cve-2020-15415"},
+				},
+			},
+		},
+		{
+			name: "status-change-addition",
+			oldDB: []string{
+				"2020/cve-2020-15415-status-rejected",
+			},
+			newDB: []string{
+				"2020/cve-2020-15415",
+			},
+			expected: map[string]changes{
+				"vigor3900": {
+					added{"cve-2020-15415"},
+				},
+			},
+		},
 	}
 
 	testdataDir, err := filepath.Abs("testdata")

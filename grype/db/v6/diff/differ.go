@@ -29,7 +29,7 @@ type DBDiffer struct {
 	newDB  ResolvedDB
 }
 
-// NewDBDiffer creates a new database differ. oldDBDir and newDBDir are directories
+// NewDBDiffer resolves the databases from the config and returns a new DBDiffer for database comparison
 // containing a vulnerability.db file.
 func NewDBDiffer(cfg Config) (*DBDiffer, error) {
 	resolvedOld, resolvedNew, err := parallel[ResolvedDB](func() (ResolvedDB, error) {
@@ -222,7 +222,7 @@ func (d *DBDiffer) executeTemplates(templates []string, r *strings.Replacer) err
 func (d *DBDiffer) findLanguageAndOSVulnsAdded(diffs map[pkgKey]*PackageDiff) (int, error) {
 	var rows []pkgRow
 	err := d.db.Raw(`
-		SELECT * FROM pkg_diff_added
+		SELECT * FROM diff_pkg_added
 	`).Scan(&rows).Error
 	if err != nil {
 		return 0, err
@@ -237,7 +237,7 @@ func (d *DBDiffer) findLanguageAndOSVulnsAdded(diffs map[pkgKey]*PackageDiff) (i
 func (d *DBDiffer) findLanguageAndOSVulnsRemoved(diffs map[pkgKey]*PackageDiff) (int, error) {
 	var rows []pkgRow
 	err := d.db.Raw(`
-		SELECT * FROM pkg_diff_removed
+		SELECT * FROM diff_pkg_removed
 	`).Scan(&rows).Error
 	if err != nil {
 		return 0, err
@@ -252,7 +252,7 @@ func (d *DBDiffer) findLanguageAndOSVulnsRemoved(diffs map[pkgKey]*PackageDiff) 
 func (d *DBDiffer) findLanguageAndOSVulnsModified(diffs map[pkgKey]*PackageDiff) (int, error) {
 	var rows []pkgRow
 	err := d.db.Raw(`
-		SELECT * FROM pkg_diff_modified
+		SELECT * FROM diff_pkg_modified
 	`).Scan(&rows).Error
 	if err != nil {
 		return 0, err
@@ -267,7 +267,7 @@ func (d *DBDiffer) findLanguageAndOSVulnsModified(diffs map[pkgKey]*PackageDiff)
 func (d *DBDiffer) findCPEVulnsAdded(diffs map[pkgKey]*PackageDiff) (int, error) {
 	var rows []cpeRow
 	err := d.db.Raw(`
-		SELECT * FROM cpe_diff_added
+		SELECT * FROM diff_cpe_added
 	`).Scan(&rows).Error
 	if err != nil {
 		return 0, err
@@ -282,7 +282,7 @@ func (d *DBDiffer) findCPEVulnsAdded(diffs map[pkgKey]*PackageDiff) (int, error)
 func (d *DBDiffer) findCPEVulnsRemoved(diffs map[pkgKey]*PackageDiff) (int, error) {
 	var rows []cpeRow
 	err := d.db.Raw(`
-		SELECT * FROM cpe_diff_removed
+		SELECT * FROM diff_cpe_removed
 	`).Scan(&rows).Error
 	if err != nil {
 		return 0, err
@@ -297,7 +297,7 @@ func (d *DBDiffer) findCPEVulnsRemoved(diffs map[pkgKey]*PackageDiff) (int, erro
 func (d *DBDiffer) findCPEVulnsModified(diffs map[pkgKey]*PackageDiff) (int, error) {
 	var rows []cpeRow
 	err := d.db.Raw(`
-		SELECT * FROM cpe_diff_modified
+		SELECT * FROM diff_cpe_modified
 	`).Scan(&rows).Error
 	if err != nil {
 		return 0, err
@@ -375,14 +375,14 @@ func (d *DBDiffer) findKevDiffs() (map[string]struct{}, error) {
 	var rows []string
 
 	err := d.db.Raw(`
-		SELECT cve from diff_new_kev n
+		SELECT cve from diff_kev_new n
 		WHERE NOT EXISTS (
-			SELECT 1 from diff_old_kev o where o.cve = n.cve
+			SELECT 1 from diff_kev_old o where o.cve = n.cve
 	    )
 		UNION
-		SELECT cve from diff_old_kev o
+		SELECT cve from diff_kev_old o
 		WHERE NOT EXISTS (
-			SELECT 1 from diff_new_kev n where n.cve = o.cve
+			SELECT 1 from diff_kev_new n where n.cve = o.cve
 	    )
 	    `).Scan(&rows).Error
 	if err != nil {
@@ -413,18 +413,18 @@ func (d *DBDiffer) findEpssDiffs() (map[string]struct{}, error) {
 	var rows []string
 
 	err = d.db.Raw(`
-		SELECT n.cve FROM diff_new_epss n
+		SELECT n.cve FROM diff_epss_new n
 		WHERE NOT EXISTS (
-			SELECT 1 FROM diff_old_epss o where o.cve = n.cve
+			SELECT 1 FROM diff_epss_old o where o.cve = n.cve
 	    )
 		UNION
-		SELECT o.cve FROM diff_old_epss o
+		SELECT o.cve FROM diff_epss_old o
 		WHERE NOT EXISTS (
-			SELECT 1 FROM diff_new_epss n where o.cve = n.cve
+			SELECT 1 FROM diff_epss_new n where o.cve = n.cve
 	    )
 		UNION
-		SELECT o.cve FROM diff_old_epss o
-		JOIN diff_new_epss n ON o.cve = n.cve
+		SELECT o.cve FROM diff_epss_old o
+		JOIN diff_epss_new n ON o.cve = n.cve
 		WHERE ABS(n.epss - o.epss) > ?
 		OR ABS(n.percentile - o.percentile) > ?
 	    `, d.config.EPSSThreshold, d.config.EPSSThreshold).Scan(&rows).Error
