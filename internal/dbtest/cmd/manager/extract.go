@@ -28,6 +28,7 @@ func extractCmd(args []string) {
 	fs.Usage = extractUsage(fs)
 
 	if err := fs.Parse(args); err != nil {
+		fmt.Fprintf(os.Stderr, "error parsing flags: %v\n", err)
 		os.Exit(1)
 	}
 
