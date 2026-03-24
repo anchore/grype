@@ -7,6 +7,8 @@ import (
 	grypePkg "github.com/anchore/grype/grype/pkg"
 )
 
+var pythonNormalizePattern = regexp.MustCompile(`[-_.]+`)
+
 type Resolver struct {
 }
 
@@ -16,7 +18,7 @@ func (r *Resolver) Normalize(name string) string {
 	// the official python implementation of canonical naming at
 	// https://packaging.pypa.io/en/latest/_modules/packaging/utils.html#canonicalize_name
 
-	return strings.ToLower(regexp.MustCompile(`[-_.]+`).ReplaceAllString(name, "-"))
+	return strings.ToLower(pythonNormalizePattern.ReplaceAllString(name, "-"))
 }
 
 func (r *Resolver) Resolve(p grypePkg.Package) []string {
