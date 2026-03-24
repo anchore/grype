@@ -1,98 +1,30 @@
 package dbtest
 
 import (
-	"encoding/hex"
-	"io"
 	"os"
 	"path/filepath"
-	"sort"
-
-	"github.com/OneOfOne/xxhash"
 )
 
-const (
-	inputHashFileName = "input.xxh64"
-)
+const inputHashFileName = "input.xxh64"
 
-// computeInputHash walks all files in the fixture directory and computes a combined xxhash64.
-// Files are processed in sorted order to ensure deterministic hashing.
-func computeInputHash(fixtureDir string) (string, error) {
-	hasher := xxhash.New64()
-
-	var files []string
-	err := filepath.Walk(fixtureDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() {
-			files = append(files, path)
-		}
-		return nil
-	})
+// isCacheValid checks if the cache is valid by comparing the stored hash with the computed hash.
+func isCacheValid(cacheDir, inputHash string) bool {
+	data, err := os.ReadFile(filepath.Join(cacheDir, inputHashFileName))
 	if err != nil {
-		return "", err
+		return false
 	}
-
-	// sort files for deterministic hashing
-	sort.Strings(files)
-
-	for _, path := range files {
-		// include the relative path in the hash so file renames are detected
-		relPath, err := filepath.Rel(fixtureDir, path)
-		if err != nil {
-			return "", err
-		}
-		if _, err := hasher.Write([]byte(relPath)); err != nil {
-			return "", err
-		}
-
-		f, err := os.Open(path)
-		if err != nil {
-			return "", err
-		}
-
-		_, copyErr := io.Copy(hasher, f)
-		f.Close() // close immediately after use; defer would accumulate across loop iterations
-		if copyErr != nil {
-			return "", copyErr
-		}
-	}
-
-	return hex.EncodeToString(hasher.Sum(nil)), nil
-}
-
-// readStoredHash reads the stored input hash from the cache directory.
-func readStoredHash(cacheDir string) (string, error) {
-	hashPath := filepath.Join(cacheDir, inputHashFileName)
-	data, err := os.ReadFile(hashPath)
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
+	return string(data) == inputHash
 }
 
 // writeStoredHash writes the input hash to the cache directory.
 func writeStoredHash(cacheDir, hash string) error {
-	hashPath := filepath.Join(cacheDir, inputHashFileName)
-	return os.WriteFile(hashPath, []byte(hash), 0600)
+	return os.WriteFile(filepath.Join(cacheDir, inputHashFileName), []byte(hash), 0600)
 }
 
-// isCacheValid checks if the cache is valid by comparing the stored hash with the computed hash.
-func isCacheValid(cacheDir, inputHash string) bool {
-	storedHash, err := readStoredHash(cacheDir)
-	if err != nil {
-		return false
-	}
-	return storedHash == inputHash
-}
-
-// invalidateCache removes all cached database files and the input hash file.
+// invalidateCache removes the entire cache directory.
 func invalidateCache(cacheDir string) error {
-	// remove the entire cache directory if it exists
 	if _, err := os.Stat(cacheDir); err == nil {
-		if err := os.RemoveAll(cacheDir); err != nil {
-			return err
-		}
+		return os.RemoveAll(cacheDir)
 	}
 	return nil
 }

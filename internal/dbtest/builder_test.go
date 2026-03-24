@@ -13,36 +13,6 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-func TestComputeInputHash(t *testing.T) {
-	// create a temporary directory with some test files
-	tempDir := t.TempDir()
-
-	err := os.WriteFile(filepath.Join(tempDir, "file1.txt"), []byte("content1"), 0644)
-	require.NoError(t, err)
-
-	err = os.WriteFile(filepath.Join(tempDir, "file2.txt"), []byte("content2"), 0644)
-	require.NoError(t, err)
-
-	// compute hash
-	hash1, err := computeInputHash(tempDir)
-	require.NoError(t, err)
-	assert.NotEmpty(t, hash1)
-
-	// same content should produce same hash
-	hash2, err := computeInputHash(tempDir)
-	require.NoError(t, err)
-	assert.Equal(t, hash1, hash2)
-
-	// modify a file
-	err = os.WriteFile(filepath.Join(tempDir, "file1.txt"), []byte("modified"), 0644)
-	require.NoError(t, err)
-
-	// hash should be different
-	hash3, err := computeInputHash(tempDir)
-	require.NoError(t, err)
-	assert.NotEqual(t, hash1, hash3)
-}
-
 func TestCacheValidation(t *testing.T) {
 	cacheDir := t.TempDir()
 	testHash := "abc123"
@@ -386,8 +356,8 @@ func TestSelectOnly_HashOnlyIncludesSelectedFiles(t *testing.T) {
 	assert.NotEqual(t, hash1, hash3, "modifying selected file should change hash")
 }
 
-func TestSelectOnly_HashChangesWhenMetadataChanges(t *testing.T) {
-	// verify that metadata changes DO affect the hash even with selections
+func TestHashIgnoresMetadataChanges(t *testing.T) {
+	// verify that metadata changes do NOT affect the hash - only result files matter
 	tempDir := t.TempDir()
 	fixtureDir := filepath.Join(tempDir, "fixture")
 	cacheDir := filepath.Join(tempDir, "cache")
@@ -404,7 +374,7 @@ func TestSelectOnly_HashChangesWhenMetadataChanges(t *testing.T) {
 		0644,
 	))
 
-	// write initial metadata (must include listing reference)
+	// write initial metadata
 	metadataContent := `{"provider":"test-provider","version":1,"processor":"test","schema":{"version":"1.0.0","url":"http://test"},"timestamp":"2024-01-01T00:00:00Z","store":"flat-file","listing":{"path":"results/listing.xxh64","algorithm":"xxh64"}}`
 	require.NoError(t, os.WriteFile(
 		filepath.Join(providerDir, "metadata.json"),
@@ -420,14 +390,13 @@ func TestSelectOnly_HashChangesWhenMetadataChanges(t *testing.T) {
 		fixtureName: "test-fixture",
 		fixtureDir:  fixtureDir,
 		cacheDir:    cacheDir,
-		selections:  []string{"CVE-2024-0001"},
 	}
 
 	hash1, err := builder.computeInputHash()
 	require.NoError(t, err)
 
-	// modify metadata (e.g., version bump) - must keep listing reference
-	modifiedMetadata := `{"provider":"test-provider","version":2,"processor":"test","schema":{"version":"1.0.0","url":"http://test"},"timestamp":"2024-01-01T00:00:00Z","store":"flat-file","listing":{"path":"results/listing.xxh64","algorithm":"xxh64"}}`
+	// modify metadata (e.g., version bump, timestamp change)
+	modifiedMetadata := `{"provider":"test-provider","version":2,"processor":"test-v2","schema":{"version":"1.0.0","url":"http://test"},"timestamp":"2025-01-01T00:00:00Z","store":"flat-file","listing":{"path":"results/listing.xxh64","algorithm":"xxh64"}}`
 	require.NoError(t, os.WriteFile(
 		filepath.Join(providerDir, "metadata.json"),
 		[]byte(modifiedMetadata),
@@ -437,5 +406,5 @@ func TestSelectOnly_HashChangesWhenMetadataChanges(t *testing.T) {
 	hash2, err := builder.computeInputHash()
 	require.NoError(t, err)
 
-	assert.NotEqual(t, hash1, hash2, "metadata changes should affect hash even with selections")
+	assert.Equal(t, hash1, hash2, "metadata changes should not affect hash - only result files matter")
 }

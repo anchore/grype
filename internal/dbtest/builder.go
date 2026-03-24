@@ -145,68 +145,18 @@ func (b *Builder) Build(schemas ...int) []*DB {
 		schemas = DefaultSchemaVersions
 	}
 
-	// verify fixture directory exists
-	if _, err := os.Stat(b.fixtureDir); os.IsNotExist(err) {
-		b.t.Fatalf("fixture directory does not exist: %s", b.fixtureDir)
-	}
+	inputHash, cacheDir := b.prepareCache()
+	states := b.loadStates()
 
-	// compute input hash for cache validation (includes selections if any)
-	inputHash, err := b.computeInputHash()
-	if err != nil {
-		b.t.Fatalf("failed to compute input hash: %v", err)
-	}
-
-	// determine effective cache directory (may differ if selections are used)
-	effectiveCacheDir := b.effectiveCacheDir()
-
-	// check if cache is valid
-	if !isCacheValid(effectiveCacheDir, inputHash) {
-		// invalidate and rebuild
-		if err := invalidateCache(effectiveCacheDir); err != nil {
-			b.t.Fatalf("failed to invalidate cache: %v", err)
-		}
-	}
-
-	// ensure cache directory exists
-	if err := ensureCacheDir(effectiveCacheDir); err != nil {
-		b.t.Fatalf("failed to create cache directory: %v", err)
-	}
-
-	// parse fixture providers
-	states, err := parseWorkspaceProviders(b.fixtureDir)
-	if err != nil {
-		b.t.Fatalf("failed to parse fixture providers: %v", err)
-	}
-
-	if len(states) == 0 {
-		b.t.Fatalf("no providers found in fixture: %s", b.fixtureDir)
-	}
-
-	// if selections are specified, create a filtered workspace
-	if len(b.selections) > 0 {
-		workingDir := b.createFilteredWorkspace(states)
-		// re-parse from filtered workspace
-		states, err = parseWorkspaceProviders(workingDir)
-		if err != nil {
-			b.t.Fatalf("failed to parse filtered workspace: %v", err)
-		}
-		if len(states) == 0 {
-			b.t.Fatalf("no matching records found for selections: %v", b.selections)
-		}
-	}
-
-	// build databases for each schema version
 	var dbs []*DB
 	for _, schema := range schemas {
-		db := b.buildSchema(schema, states, inputHash, effectiveCacheDir)
-		dbs = append(dbs, db)
+		dbs = append(dbs, b.buildSchema(schema, states, inputHash, cacheDir))
 	}
 
-	// register cleanup to close all databases
 	b.t.Cleanup(func() {
-		for _, db := range dbs {
-			if err := db.Close(); err != nil {
-				b.t.Errorf("failed to close database %s: %v", db.Name, err)
+		for _, d := range dbs {
+			if err := d.Close(); err != nil {
+				b.t.Errorf("failed to close database %s: %v", d.Name, err)
 			}
 		}
 	})
@@ -214,58 +164,125 @@ func (b *Builder) Build(schemas ...int) []*DB {
 	return dbs
 }
 
+// prepareCache validates and prepares the cache directory, returning the input hash and cache path.
+func (b *Builder) prepareCache() (inputHash string, cacheDir string) {
+	b.t.Helper()
+
+	if _, err := os.Stat(b.fixtureDir); os.IsNotExist(err) {
+		b.t.Fatalf("fixture directory does not exist: %s", b.fixtureDir)
+	}
+
+	hash, err := b.computeInputHash()
+	if err != nil {
+		b.t.Fatalf("failed to compute input hash: %v", err)
+	}
+
+	cacheDir = b.effectiveCacheDir()
+
+	if !isCacheValid(cacheDir, hash) {
+		if err := invalidateCache(cacheDir); err != nil {
+			b.t.Fatalf("failed to invalidate cache: %v", err)
+		}
+	}
+
+	if err := ensureCacheDir(cacheDir); err != nil {
+		b.t.Fatalf("failed to create cache directory: %v", err)
+	}
+
+	return hash, cacheDir
+}
+
+// loadStates parses provider states from the fixture, applying selections if specified.
+func (b *Builder) loadStates() provider.States {
+	b.t.Helper()
+
+	states, err := parseWorkspaceProviders(b.fixtureDir)
+	if err != nil {
+		b.t.Fatalf("failed to parse fixture providers: %v", err)
+	}
+	if len(states) == 0 {
+		b.t.Fatalf("no providers found in fixture: %s", b.fixtureDir)
+	}
+
+	if len(b.selections) == 0 {
+		return states
+	}
+
+	// create filtered workspace and re-parse
+	workingDir := b.createFilteredWorkspace(states)
+	states, err = parseWorkspaceProviders(workingDir)
+	if err != nil {
+		b.t.Fatalf("failed to parse filtered workspace: %v", err)
+	}
+	if len(states) == 0 {
+		b.t.Fatalf("no matching records found for selections: %v", b.selections)
+	}
+
+	return states
+}
+
 // computeInputHash computes a hash of the fixture directory contents plus any selections.
 // When selections are present, only the matching files are hashed to avoid unnecessary
 // cache invalidation when unrelated files change.
 func (b *Builder) computeInputHash() (string, error) {
-	hasher := xxhash.New64()
+	return computeFixtureHash(b.fixtureDir, b.selections)
+}
 
-	// hash sorted selection strings for differentiation (empty loop if no selections)
-	sorted := make([]string, len(b.selections))
-	copy(sorted, b.selections)
+// effectiveCacheDir returns the cache directory to use, accounting for selections.
+func (b *Builder) effectiveCacheDir() string {
+	if len(b.selections) == 0 {
+		return b.cacheDir
+	}
+	selHash := hashSelections(b.selections)[:selectionHashTruncateLen]
+	return filepath.Join(b.cacheDir, "selected", selHash)
+}
+
+// hashSelections returns a deterministic hash of the given selection patterns.
+func hashSelections(selections []string) string {
+	hasher := xxhash.New64()
+	sorted := make([]string, len(selections))
+	copy(sorted, selections)
 	sort.Strings(sorted)
 	for _, sel := range sorted {
 		_, _ = hasher.Write([]byte(sel))
 	}
+	return hex.EncodeToString(hasher.Sum(nil))
+}
 
-	// find all provider directories and their metadata
-	states, err := parseWorkspaceProviders(b.fixtureDir)
+// computeFixtureHash computes a hash of fixture files, optionally filtered by selections.
+func computeFixtureHash(fixtureDir string, selections []string) (string, error) {
+	hasher := xxhash.New64()
+
+	// include selections in hash for differentiation
+	if len(selections) > 0 {
+		_, _ = hasher.Write([]byte(hashSelections(selections)))
+	}
+
+	states, err := parseWorkspaceProviders(fixtureDir)
 	if err != nil {
 		return "", err
 	}
 
-	// sort providers by name for deterministic hashing
+	// sort providers for determinism
 	sort.Slice(states, func(i, j int) bool {
 		return states[i].Provider < states[j].Provider
 	})
 
-	// for each provider, hash metadata + result files (filtered if selections specified)
 	for _, state := range states {
-		// hash metadata.json path and content
-		metadataRelPath := filepath.Join(state.Provider, "metadata.json")
-		if err := hashFile(hasher, b.fixtureDir, metadataRelPath); err != nil {
-			return "", err
+		// get result paths, filter if selections specified
+		resultPaths := state.ResultPaths()
+		if len(selections) > 0 {
+			resultPaths = filterResultFiles(resultPaths, selections)
 		}
-
-		// get result paths, filter if selections are specified
-		allPaths := state.ResultPaths()
-		var resultPaths []string
-		if len(b.selections) > 0 {
-			resultPaths = filterResultFiles(allPaths, b.selections)
-		} else {
-			resultPaths = allPaths
-		}
-
-		// sort for determinism
 		sort.Strings(resultPaths)
 
 		// hash each result file
 		for _, path := range resultPaths {
-			relPath, err := filepath.Rel(b.fixtureDir, path)
+			relPath, err := filepath.Rel(fixtureDir, path)
 			if err != nil {
 				return "", err
 			}
-			if err := hashFile(hasher, b.fixtureDir, relPath); err != nil {
+			if err := hashFile(hasher, fixtureDir, relPath); err != nil {
 				return "", err
 			}
 		}
@@ -274,74 +291,51 @@ func (b *Builder) computeInputHash() (string, error) {
 	return hex.EncodeToString(hasher.Sum(nil)), nil
 }
 
-// effectiveCacheDir returns the cache directory to use, accounting for selections.
-func (b *Builder) effectiveCacheDir() string {
-	if len(b.selections) == 0 {
-		return b.cacheDir
-	}
-
-	// compute a short hash of the selections for the subdirectory name
-	hasher := xxhash.New64()
-	sorted := make([]string, len(b.selections))
-	copy(sorted, b.selections)
-	sort.Strings(sorted)
-	for _, sel := range sorted {
-		_, _ = hasher.Write([]byte(sel))
-	}
-	selHash := hex.EncodeToString(hasher.Sum(nil))[:selectionHashTruncateLen]
-
-	return filepath.Join(b.cacheDir, "selected", selHash)
-}
-
 // createFilteredWorkspace creates a temporary workspace containing only records matching the selections.
 func (b *Builder) createFilteredWorkspace(states provider.States) string {
 	b.t.Helper()
+	dir, err := copyFilteredWorkspace(b.t.TempDir(), states, b.selections)
+	if err != nil {
+		b.t.Fatalf("failed to create filtered workspace: %v", err)
+	}
+	return dir
+}
 
-	tmpDir := b.t.TempDir()
-
+// copyFilteredWorkspace copies matching records from states into outputDir.
+func copyFilteredWorkspace(outputDir string, states provider.States, selections []string) (string, error) {
 	for _, state := range states {
-		// get all result paths from the original state
-		allPaths := state.ResultPaths()
-
-		// filter to only matching records
-		matchedPaths := filterResultFiles(allPaths, b.selections)
-
+		matchedPaths := filterResultFiles(state.ResultPaths(), selections)
 		if len(matchedPaths) == 0 {
-			continue // skip provider with no matching results
+			continue
 		}
 
-		// create workspace writer for this provider
-		writer := provider.NewWorkspaceWriter(tmpDir, state.Provider)
+		writer := provider.NewWorkspaceWriter(outputDir, state.Provider)
 
-		// copy matched results
 		var files []provider.File
 		for _, path := range matchedPaths {
 			file, err := writer.CopyResultFrom(path)
 			if err != nil {
-				b.t.Fatalf("failed to copy result %q: %v", path, err)
+				return "", fmt.Errorf("copy result %q: %w", path, err)
 			}
 			files = append(files, *file)
 		}
 
-		// write listing file
 		if err := writer.WriteListing(files); err != nil {
-			b.t.Fatalf("failed to write listing for provider %s: %v", state.Provider, err)
+			return "", fmt.Errorf("write listing for %s: %w", state.Provider, err)
 		}
 
-		// create new state with updated listing reference
 		newState := state
 		newState.Listing = &provider.File{
 			Path:      "results/listing.xxh64",
 			Algorithm: "xxh64",
 		}
 
-		// write state
 		if err := writer.WriteState(newState); err != nil {
-			b.t.Fatalf("failed to write state for provider %s: %v", state.Provider, err)
+			return "", fmt.Errorf("write state for %s: %w", state.Provider, err)
 		}
 	}
 
-	return tmpDir
+	return outputDir, nil
 }
 
 // buildSchema builds a database for a specific schema version.
@@ -351,21 +345,17 @@ func (b *Builder) buildSchema(schema int, states provider.States, inputHash stri
 	schemaDir := filepath.Join(cacheDir, fmt.Sprintf("v%d", schema))
 	dbPath := filepath.Join(schemaDir, v6.VulnerabilityDBFileName)
 
-	// check if database already exists in cache
+	// build if not cached
 	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-		// build the database
-		if err := b.buildDatabase(schema, schemaDir, states); err != nil {
+		if err := buildDatabase(schema, schemaDir, states); err != nil {
 			b.t.Fatalf("failed to build v%d database: %v", schema, err)
 		}
-
-		// write input hash after successful build
 		if err := writeStoredHash(cacheDir, inputHash); err != nil {
 			b.t.Fatalf("failed to write input hash: %v", err)
 		}
 	}
 
-	// open the database and create provider
-	provider, closer, err := b.openDatabase(schema, schemaDir)
+	vp, closer, err := openDatabase(schema, schemaDir)
 	if err != nil {
 		b.t.Fatalf("failed to open v%d database: %v", schema, err)
 	}
@@ -374,15 +364,15 @@ func (b *Builder) buildSchema(schema int, states provider.States, inputHash stri
 		Name:          fmt.Sprintf("v%d", schema),
 		SchemaVersion: schema,
 		Path:          schemaDir,
-		provider:      provider,
+		provider:      vp,
 		closer:        closer,
 	}
 }
 
-// buildDatabase builds a database using the db.Build function.
-func (b *Builder) buildDatabase(schema int, outputDir string, states provider.States) error {
+// buildDatabase builds a vulnerability database for the given schema version.
+func buildDatabase(schema int, outputDir string, states provider.States) error {
 	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return fmt.Errorf("failed to create output directory: %w", err)
+		return fmt.Errorf("create output directory: %w", err)
 	}
 
 	cfg := db.BuildConfig{
@@ -391,26 +381,21 @@ func (b *Builder) buildDatabase(schema int, outputDir string, states provider.St
 		States:          states,
 		Timestamp:       time.Now(),
 		Hydrate:         true,
-		IncludeCPEParts: []string{"a", "h", "o"}, // include application, hardware, and OS CPEs
+		IncludeCPEParts: []string{"a", "h", "o"},
 	}
 
-	if err := db.Build(cfg); err != nil {
-		return fmt.Errorf("failed to build database: %w", err)
-	}
-
-	return nil
+	return db.Build(cfg)
 }
 
-// openDatabase opens a database and returns a vulnerability provider.
-func (b *Builder) openDatabase(schema int, dbDir string) (vulnerability.Provider, io.Closer, error) {
+// openDatabase opens a vulnerability database and returns a provider.
+func openDatabase(schema int, dbDir string) (vulnerability.Provider, io.Closer, error) {
 	switch schema {
 	case v6.ModelVersion:
 		reader, err := v6.NewReader(v6.Config{DBDirPath: dbDir})
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to open v6 database: %w", err)
+			return nil, nil, fmt.Errorf("open v6 database: %w", err)
 		}
-		provider := v6.NewVulnerabilityProvider(reader)
-		return provider, reader, nil
+		return v6.NewVulnerabilityProvider(reader), reader, nil
 	default:
 		return nil, nil, fmt.Errorf("unsupported schema version: %d", schema)
 	}
