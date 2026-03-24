@@ -148,3 +148,157 @@ func TestSelectOnly(t *testing.T) {
 		})
 	})
 }
+
+func TestSelectOnly_CacheIsolation(t *testing.T) {
+	// verify that different selections use different cache directories
+	// and that selection order doesn't matter
+
+	t.Run("different selections use different cache dirs", func(t *testing.T) {
+		builder1 := SharedDBs(t, "all").SelectOnly("CVE-2024-0727")
+		builder2 := SharedDBs(t, "all").SelectOnly("debian:11")
+
+		dir1 := builder1.effectiveCacheDir()
+		dir2 := builder2.effectiveCacheDir()
+
+		assert.NotEqual(t, dir1, dir2, "different selections should use different cache directories")
+		assert.Contains(t, dir1, "selected")
+		assert.Contains(t, dir2, "selected")
+	})
+
+	t.Run("same selections in different order use same cache dir", func(t *testing.T) {
+		builder1 := SharedDBs(t, "all").SelectOnly("CVE-2024-0727", "debian:11")
+		builder2 := SharedDBs(t, "all").SelectOnly("debian:11", "CVE-2024-0727")
+
+		dir1 := builder1.effectiveCacheDir()
+		dir2 := builder2.effectiveCacheDir()
+
+		assert.Equal(t, dir1, dir2, "same selections in different order should use same cache directory")
+	})
+
+	t.Run("no selections uses base cache dir", func(t *testing.T) {
+		builder := SharedDBs(t, "all")
+		dir := builder.effectiveCacheDir()
+
+		assert.NotContains(t, dir, "selected", "no selections should use base cache directory")
+	})
+}
+
+func TestSelectOnly_InputHashIncludesFixtureAndSelections(t *testing.T) {
+	// verify that the input hash changes when either fixture OR selections change
+
+	t.Run("same fixture same selections produces same hash", func(t *testing.T) {
+		builder1 := SharedDBs(t, "all").SelectOnly("CVE-2024-0727")
+		builder2 := SharedDBs(t, "all").SelectOnly("CVE-2024-0727")
+
+		hash1, err := builder1.computeInputHash()
+		require.NoError(t, err)
+
+		hash2, err := builder2.computeInputHash()
+		require.NoError(t, err)
+
+		assert.Equal(t, hash1, hash2, "same fixture and selections should produce same hash")
+	})
+
+	t.Run("different selections produce different hash", func(t *testing.T) {
+		builder1 := SharedDBs(t, "all").SelectOnly("CVE-2024-0727")
+		builder2 := SharedDBs(t, "all").SelectOnly("debian:11")
+
+		hash1, err := builder1.computeInputHash()
+		require.NoError(t, err)
+
+		hash2, err := builder2.computeInputHash()
+		require.NoError(t, err)
+
+		assert.NotEqual(t, hash1, hash2, "different selections should produce different hash")
+	})
+
+	t.Run("selection order does not affect hash", func(t *testing.T) {
+		builder1 := SharedDBs(t, "all").SelectOnly("CVE-2024-0727", "debian:11")
+		builder2 := SharedDBs(t, "all").SelectOnly("debian:11", "CVE-2024-0727")
+
+		hash1, err := builder1.computeInputHash()
+		require.NoError(t, err)
+
+		hash2, err := builder2.computeInputHash()
+		require.NoError(t, err)
+
+		assert.Equal(t, hash1, hash2, "selection order should not affect hash")
+	})
+}
+
+func TestCacheInvalidation_WithSelections(t *testing.T) {
+	// test the full cache invalidation flow with selections
+	// using a temporary fixture that we can modify
+
+	// create a temporary fixture directory
+	tempDir := t.TempDir()
+	fixtureDir := filepath.Join(tempDir, "fixture")
+	cacheDir := filepath.Join(tempDir, "cache")
+
+	// create a minimal fixture structure
+	providerDir := filepath.Join(fixtureDir, "test-provider")
+	resultsDir := filepath.Join(providerDir, "results")
+	require.NoError(t, os.MkdirAll(resultsDir, 0755))
+
+	// write a result file
+	resultContent := `{"schema":"1.0.0","identifier":"test:ns/CVE-2024-0001","item":{}}`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(resultsDir, "CVE-2024-0001.json"),
+		[]byte(resultContent),
+		0644,
+	))
+
+	// write metadata
+	metadataContent := `{"provider":"test-provider","version":1,"processor":"test","schema":{"version":"1.0.0","url":"http://test"},"timestamp":"2024-01-01T00:00:00Z","store":"flat-file"}`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(providerDir, "metadata.json"),
+		[]byte(metadataContent),
+		0644,
+	))
+
+	// write listing file
+	require.NoError(t, provider.GenerateListingFile(resultsDir, filepath.Join(resultsDir, "listing.xxh64")))
+
+	// create a builder with custom paths
+	builder := &Builder{
+		t:           t,
+		fixtureName: "test-fixture",
+		fixtureDir:  fixtureDir,
+		cacheDir:    cacheDir,
+		selections:  []string{"CVE-2024-0001"},
+	}
+
+	// compute initial hash
+	hash1, err := builder.computeInputHash()
+	require.NoError(t, err)
+
+	effectiveCache := builder.effectiveCacheDir()
+
+	// simulate writing the hash (as if a build completed)
+	require.NoError(t, ensureCacheDir(effectiveCache))
+	require.NoError(t, writeStoredHash(effectiveCache, hash1))
+
+	// cache should be valid
+	assert.True(t, isCacheValid(effectiveCache, hash1), "cache should be valid with matching hash")
+
+	// modify the fixture
+	modifiedContent := `{"schema":"1.0.0","identifier":"test:ns/CVE-2024-0001","item":{"modified":true}}`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(resultsDir, "CVE-2024-0001.json"),
+		[]byte(modifiedContent),
+		0644,
+	))
+
+	// compute new hash
+	hash2, err := builder.computeInputHash()
+	require.NoError(t, err)
+
+	// hashes should be different
+	assert.NotEqual(t, hash1, hash2, "fixture modification should produce different hash")
+
+	// cache should now be invalid
+	assert.False(t, isCacheValid(effectiveCache, hash2), "cache should be invalid after fixture modification")
+
+	// the effective cache dir should be the same (selections unchanged)
+	assert.Equal(t, effectiveCache, builder.effectiveCacheDir(), "cache directory should not change when fixture changes")
+}
