@@ -23,3 +23,8 @@ updates:
       interval: daily
     cooldown:
       default-days: 7
+    ignore:
+      - dependency-name: "github.com/aquasecurity/go-pep440-version"
+      - dependency-name: "github.com/aquasecurity/go-version"
+      - dependency-name: "github.com/knqyf263/go-apk-version"
+      - dependency-name: "github.com/knqyf263/go-deb-version"
