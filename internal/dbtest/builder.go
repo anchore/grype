@@ -324,11 +324,16 @@ func copyFilteredWorkspace(outputDir string, states provider.States, selections 
 			return "", fmt.Errorf("write listing for %s: %w", state.Provider, err)
 		}
 
-		newState := state
-		newState.Listing = &provider.File{
-			Path:      "results/listing.xxh64",
-			Algorithm: "xxh64",
+		// compute listing file with digest
+		listingPath := filepath.Join(outputDir, state.Provider, "results", "listing.xxh64")
+		listingFile, err := provider.NewFile(listingPath)
+		if err != nil {
+			return "", fmt.Errorf("hash listing for %s: %w", state.Provider, err)
 		}
+		listingFile.Path = "results/listing.xxh64" // relative path for metadata
+
+		newState := state
+		newState.Listing = listingFile
 
 		if err := writer.WriteState(newState); err != nil {
 			return "", fmt.Errorf("write state for %s: %w", state.Provider, err)

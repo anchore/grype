@@ -12,7 +12,7 @@
   "timestamp": "2026-03-12T00:25:36Z",
   "listing": {
     "path": "results/listing.xxh64",
-    "digest": "",
+    "digest": "cbd8fcecdc24302b",
     "algorithm": "xxh64"
   },
   "store": "flat-file"

@@ -91,8 +91,24 @@ func (b *ExtractionBuilder) writeFixture(fixtureDir string, appendMode bool) err
 		return fmt.Errorf("failed to write listing: %w", err)
 	}
 
+	// compute listing file with digest
+	listingPath := filepath.Join(fixtureDir, b.providerName, "results", "listing.xxh64")
+	listingFile, err := provider.NewFile(listingPath)
+	if err != nil {
+		return fmt.Errorf("failed to hash listing file: %w", err)
+	}
+	listingFile.Path = "results/listing.xxh64" // relative path for metadata
+
+	// preserve original fixture timestamp if appending
+	if appendMode {
+		existingMetadataPath := filepath.Join(fixtureDir, b.providerName, "metadata.json")
+		if existingState, err := provider.ReadState(existingMetadataPath); err == nil {
+			originalState.Timestamp = existingState.Timestamp
+		}
+	}
+
 	// create and write fixture state
-	fixtureState := b.createFixtureState(originalState, fixtureDir, appendMode)
+	fixtureState := b.createFixtureState(originalState, listingFile)
 	if err := writer.WriteState(fixtureState); err != nil {
 		return fmt.Errorf("failed to write state: %w", err)
 	}
@@ -149,8 +165,8 @@ func (b *ExtractionBuilder) writeRecords(writer *provider.WorkspaceWriter, recor
 	return files, nil
 }
 
-func (b *ExtractionBuilder) createFixtureState(originalState provider.State, fixtureDir string, appendMode bool) provider.State {
-	fixtureState := provider.State{
+func (b *ExtractionBuilder) createFixtureState(originalState provider.State, listing *provider.File) provider.State {
+	return provider.State{
 		Provider:  originalState.Provider,
 		Version:   originalState.Version,
 		Processor: originalState.Processor,
@@ -158,21 +174,8 @@ func (b *ExtractionBuilder) createFixtureState(originalState provider.State, fix
 		URLs:      originalState.URLs,
 		Timestamp: originalState.Timestamp,
 		Store:     "flat-file",
-		Listing: &provider.File{
-			Path:      "results/listing.xxh64",
-			Algorithm: "xxh64",
-		},
+		Listing:   listing,
 	}
-
-	// preserve original fixture timestamp if appending
-	if appendMode {
-		existingMetadataPath := filepath.Join(fixtureDir, b.providerName, "metadata.json")
-		if existingState, err := provider.ReadState(existingMetadataPath); err == nil {
-			fixtureState.Timestamp = existingState.Timestamp
-		}
-	}
-
-	return fixtureState
 }
 
 // collectExistingFiles reads existing result files from a fixture directory.

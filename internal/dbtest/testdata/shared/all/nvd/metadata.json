@@ -12,7 +12,7 @@
   "timestamp": "2026-03-11T16:25:08Z",
   "listing": {
     "path": "results/listing.xxh64",
-    "digest": "",
+    "digest": "83650024d7878758",
     "algorithm": "xxh64"
   },
   "store": "flat-file"
