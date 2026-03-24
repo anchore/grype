@@ -248,8 +248,8 @@ func TestCacheInvalidation_WithSelections(t *testing.T) {
 		0644,
 	))
 
-	// write metadata
-	metadataContent := `{"provider":"test-provider","version":1,"processor":"test","schema":{"version":"1.0.0","url":"http://test"},"timestamp":"2024-01-01T00:00:00Z","store":"flat-file"}`
+	// write metadata (must include listing reference)
+	metadataContent := `{"provider":"test-provider","version":1,"processor":"test","schema":{"version":"1.0.0","url":"http://test"},"timestamp":"2024-01-01T00:00:00Z","store":"flat-file","listing":{"path":"results/listing.xxh64","algorithm":"xxh64"}}`
 	require.NoError(t, os.WriteFile(
 		filepath.Join(providerDir, "metadata.json"),
 		[]byte(metadataContent),
@@ -301,4 +301,141 @@ func TestCacheInvalidation_WithSelections(t *testing.T) {
 
 	// the effective cache dir should be the same (selections unchanged)
 	assert.Equal(t, effectiveCache, builder.effectiveCacheDir(), "cache directory should not change when fixture changes")
+}
+
+func TestSelectOnly_HashOnlyIncludesSelectedFiles(t *testing.T) {
+	// verify that adding unrelated files doesn't change the hash when using selections
+	tempDir := t.TempDir()
+	fixtureDir := filepath.Join(tempDir, "fixture")
+	cacheDir := filepath.Join(tempDir, "cache")
+
+	// create a fixture with multiple providers/CVEs
+	providerDir := filepath.Join(fixtureDir, "test-provider")
+	resultsDir := filepath.Join(providerDir, "results")
+	require.NoError(t, os.MkdirAll(resultsDir, 0755))
+
+	// write CVE-A (the one we'll select)
+	cveAContent := `{"schema":"1.0.0","identifier":"test:ns/CVE-A","item":{}}`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(resultsDir, "CVE-A.json"),
+		[]byte(cveAContent),
+		0644,
+	))
+
+	// write CVE-B (unrelated)
+	cveBContent := `{"schema":"1.0.0","identifier":"test:ns/CVE-B","item":{}}`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(resultsDir, "CVE-B.json"),
+		[]byte(cveBContent),
+		0644,
+	))
+
+	// write metadata (must include listing reference)
+	metadataContent := `{"provider":"test-provider","version":1,"processor":"test","schema":{"version":"1.0.0","url":"http://test"},"timestamp":"2024-01-01T00:00:00Z","store":"flat-file","listing":{"path":"results/listing.xxh64","algorithm":"xxh64"}}`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(providerDir, "metadata.json"),
+		[]byte(metadataContent),
+		0644,
+	))
+
+	// write listing file
+	require.NoError(t, provider.GenerateListingFile(resultsDir, filepath.Join(resultsDir, "listing.xxh64")))
+
+	// create a builder that selects only CVE-A
+	builder := &Builder{
+		t:           t,
+		fixtureName: "test-fixture",
+		fixtureDir:  fixtureDir,
+		cacheDir:    cacheDir,
+		selections:  []string{"CVE-A"},
+	}
+
+	// compute initial hash
+	hash1, err := builder.computeInputHash()
+	require.NoError(t, err)
+
+	// add an unrelated CVE-C file
+	cveCContent := `{"schema":"1.0.0","identifier":"test:ns/CVE-C","item":{}}`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(resultsDir, "CVE-C.json"),
+		[]byte(cveCContent),
+		0644,
+	))
+
+	// regenerate listing file
+	require.NoError(t, provider.GenerateListingFile(resultsDir, filepath.Join(resultsDir, "listing.xxh64")))
+
+	// compute hash again
+	hash2, err := builder.computeInputHash()
+	require.NoError(t, err)
+
+	// hash should NOT change because CVE-C is not selected
+	assert.Equal(t, hash1, hash2, "adding unrelated file should not change hash when using selections")
+
+	// verify that modifying the selected file DOES change the hash
+	cveAModified := `{"schema":"1.0.0","identifier":"test:ns/CVE-A","item":{"modified":true}}`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(resultsDir, "CVE-A.json"),
+		[]byte(cveAModified),
+		0644,
+	))
+
+	hash3, err := builder.computeInputHash()
+	require.NoError(t, err)
+
+	assert.NotEqual(t, hash1, hash3, "modifying selected file should change hash")
+}
+
+func TestSelectOnly_HashChangesWhenMetadataChanges(t *testing.T) {
+	// verify that metadata changes DO affect the hash even with selections
+	tempDir := t.TempDir()
+	fixtureDir := filepath.Join(tempDir, "fixture")
+	cacheDir := filepath.Join(tempDir, "cache")
+
+	providerDir := filepath.Join(fixtureDir, "test-provider")
+	resultsDir := filepath.Join(providerDir, "results")
+	require.NoError(t, os.MkdirAll(resultsDir, 0755))
+
+	// write a result file
+	resultContent := `{"schema":"1.0.0","identifier":"test:ns/CVE-2024-0001","item":{}}`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(resultsDir, "CVE-2024-0001.json"),
+		[]byte(resultContent),
+		0644,
+	))
+
+	// write initial metadata (must include listing reference)
+	metadataContent := `{"provider":"test-provider","version":1,"processor":"test","schema":{"version":"1.0.0","url":"http://test"},"timestamp":"2024-01-01T00:00:00Z","store":"flat-file","listing":{"path":"results/listing.xxh64","algorithm":"xxh64"}}`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(providerDir, "metadata.json"),
+		[]byte(metadataContent),
+		0644,
+	))
+
+	// write listing file
+	require.NoError(t, provider.GenerateListingFile(resultsDir, filepath.Join(resultsDir, "listing.xxh64")))
+
+	builder := &Builder{
+		t:           t,
+		fixtureName: "test-fixture",
+		fixtureDir:  fixtureDir,
+		cacheDir:    cacheDir,
+		selections:  []string{"CVE-2024-0001"},
+	}
+
+	hash1, err := builder.computeInputHash()
+	require.NoError(t, err)
+
+	// modify metadata (e.g., version bump) - must keep listing reference
+	modifiedMetadata := `{"provider":"test-provider","version":2,"processor":"test","schema":{"version":"1.0.0","url":"http://test"},"timestamp":"2024-01-01T00:00:00Z","store":"flat-file","listing":{"path":"results/listing.xxh64","algorithm":"xxh64"}}`
+	require.NoError(t, os.WriteFile(
+		filepath.Join(providerDir, "metadata.json"),
+		[]byte(modifiedMetadata),
+		0644,
+	))
+
+	hash2, err := builder.computeInputHash()
+	require.NoError(t, err)
+
+	assert.NotEqual(t, hash1, hash2, "metadata changes should affect hash even with selections")
 }

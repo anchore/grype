@@ -215,26 +215,60 @@ func (b *Builder) Build(schemas ...int) []*DB {
 }
 
 // computeInputHash computes a hash of the fixture directory contents plus any selections.
+// When selections are present, only the matching files are hashed to avoid unnecessary
+// cache invalidation when unrelated files change.
 func (b *Builder) computeInputHash() (string, error) {
-	baseHash, err := computeInputHash(b.fixtureDir)
+	hasher := xxhash.New64()
+
+	// hash sorted selection strings for differentiation (empty loop if no selections)
+	sorted := make([]string, len(b.selections))
+	copy(sorted, b.selections)
+	sort.Strings(sorted)
+	for _, sel := range sorted {
+		_, _ = hasher.Write([]byte(sel))
+	}
+
+	// find all provider directories and their metadata
+	states, err := parseWorkspaceProviders(b.fixtureDir)
 	if err != nil {
 		return "", err
 	}
 
-	if len(b.selections) == 0 {
-		return baseHash, nil
-	}
+	// sort providers by name for deterministic hashing
+	sort.Slice(states, func(i, j int) bool {
+		return states[i].Provider < states[j].Provider
+	})
 
-	// include selections in hash for cache differentiation
-	hasher := xxhash.New64()
-	_, _ = hasher.Write([]byte(baseHash))
+	// for each provider, hash metadata + result files (filtered if selections specified)
+	for _, state := range states {
+		// hash metadata.json path and content
+		metadataRelPath := filepath.Join(state.Provider, "metadata.json")
+		if err := hashFile(hasher, b.fixtureDir, metadataRelPath); err != nil {
+			return "", err
+		}
 
-	sorted := make([]string, len(b.selections))
-	copy(sorted, b.selections)
-	sort.Strings(sorted)
+		// get result paths, filter if selections are specified
+		allPaths := state.ResultPaths()
+		var resultPaths []string
+		if len(b.selections) > 0 {
+			resultPaths = filterResultFiles(allPaths, b.selections)
+		} else {
+			resultPaths = allPaths
+		}
 
-	for _, sel := range sorted {
-		_, _ = hasher.Write([]byte(sel))
+		// sort for determinism
+		sort.Strings(resultPaths)
+
+		// hash each result file
+		for _, path := range resultPaths {
+			relPath, err := filepath.Rel(b.fixtureDir, path)
+			if err != nil {
+				return "", err
+			}
+			if err := hashFile(hasher, b.fixtureDir, relPath); err != nil {
+				return "", err
+			}
+		}
 	}
 
 	return hex.EncodeToString(hasher.Sum(nil)), nil
