@@ -51,7 +51,7 @@ func TestAffectedPackageTableRowMarshalJSON(t *testing.T) {
 		},
 		AffectedPackageInfo: AffectedPackageInfo{
 			Package:   &Package{Name: "pkg1", Ecosystem: "ecosystem1"},
-			CPE:       &CPE{Part: "a", Vendor: "vendor1", Product: "product1"},
+			CPE:       &CPE{Part: "a", Vendor: "vendor1:2:3", Product: "product1/subproduct"},
 			Namespace: "namespace1",
 			Detail: v6.PackageBlob{
 				CVEs: []string{"CVE-1234-5678"},
@@ -121,7 +121,7 @@ func TestAffectedPackageTableRowMarshalJSON(t *testing.T) {
     "name": "pkg1",
     "ecosystem": "ecosystem1"
   },
-  "cpe": "cpe:2.3:a:vendor1:product1:*:*:*:*:*:*:*:*",
+  "cpe": "cpe:2.3:a:vendor1\\:2\\:3:product1\\/subproduct:*:*:*:*:*:*:*:*",
   "namespace": "namespace1",
   "detail": {
     "cves": [
