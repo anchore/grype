@@ -30,14 +30,14 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/facebookincubator/nvdtools v0.1.5
 	github.com/gabriel-vasile/mimetype v1.4.13
-	github.com/gkampitakis/go-snaps v0.5.20
+	github.com/gkampitakis/go-snaps v0.5.21
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-test/deep v1.1.1
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/gocsaf/csaf/v3 v3.5.1
 	github.com/gohugoio/hashstructure v0.6.0
 	github.com/google/go-cmp v0.7.0
-	github.com/google/go-containerregistry v0.21.2
+	github.com/google/go-containerregistry v0.21.3
 	github.com/google/osv-scanner v1.9.2
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.6.0
@@ -240,6 +240,7 @@ require (
 	github.com/moby/locker v1.0.1 // indirect
 	github.com/moby/moby/api v1.54.0 // indirect
 	github.com/moby/moby/client v0.3.0 // indirect
+	github.com/moby/sys/atomicwriter v0.1.0 // indirect
 	github.com/moby/sys/mountinfo v0.7.2 // indirect
 	github.com/moby/sys/sequential v0.6.0 // indirect
 	github.com/moby/sys/signal v0.7.1 // indirect
@@ -247,6 +248,7 @@ require (
 	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
+	github.com/morikuni/aec v1.1.0 // indirect
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
