@@ -27,6 +27,10 @@ inputs:
   bootstrap-apt-packages:
     description: "Space delimited list of tools to install via apt"
     default: "libxml2-utils"
+  cache-test-fixtures:
+    description: "Cache test database builds"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -71,6 +75,17 @@ runs:
         DEBIAN_FRONTEND=noninteractive sudo apt update && sudo -E apt install -y "${PACKAGES[@]}"
       env:
         BOOTSTRAP_APT_PACKAGES: ${{ inputs.bootstrap-apt-packages }}
+
+    - name: Restore test fixture cache
+      id: test-fixture-cache
+      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+      if: inputs.cache-test-fixtures == 'true'
+      with:
+        path: |
+          **/testdata/cache
+        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-test-fixtures-${{ hashFiles('**/testdata/**', '!**/testdata/cache/**') }}
+        restore-keys: |
+          ${{ inputs.cache-key-prefix }}-${{ runner.os }}-test-fixtures-
 
     - name: Create all cache fingerprints
       if: inputs.compute-fingerprints == 'true'
