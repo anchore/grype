@@ -271,6 +271,69 @@ func Test_NewDistroFromRelease(t *testing.T) {
 			minor: "4",
 		},
 		{
+			name: "openEuler base LTS extracts label from VERSION",
+			release: linux.Release{
+				ID:        "openEuler",
+				VersionID: "20.03",
+				Version:   "20.03 (LTS)",
+			},
+			channels: testFixChannels(),
+			expected: &Distro{
+				Type:     OpenEuler,
+				Version:  "20.03",
+				Codename: "LTS",
+			},
+			major: "20",
+			minor: "03",
+		},
+		{
+			name: "openEuler LTS-SP extracts label from VERSION",
+			release: linux.Release{
+				ID:        "openEuler",
+				VersionID: "20.03",
+				Version:   "20.03 (LTS-SP4)",
+			},
+			channels: testFixChannels(),
+			expected: &Distro{
+				Type:     OpenEuler,
+				Version:  "20.03",
+				Codename: "LTS-SP4",
+			},
+			major: "20",
+			minor: "03",
+		},
+		{
+			name: "openEuler LTS without parens extracts label from VERSION",
+			release: linux.Release{
+				ID:        "openEuler",
+				VersionID: "22.03",
+				Version:   "22.03 LTS",
+			},
+			channels: testFixChannels(),
+			expected: &Distro{
+				Type:     OpenEuler,
+				Version:  "22.03",
+				Codename: "LTS",
+			},
+			major: "22",
+			minor: "03",
+		},
+		{
+			name: "openEuler innovation release has no label",
+			release: linux.Release{
+				ID:        "openEuler",
+				VersionID: "23.03",
+				Version:   "23.03",
+			},
+			channels: testFixChannels(),
+			expected: &Distro{
+				Type:    OpenEuler,
+				Version: "23.03",
+			},
+			major: "23",
+			minor: "03",
+		},
+		{
 			name: "v versionID prefix postmarketos",
 			release: linux.Release{
 				ID:        "postmarketos",
@@ -512,6 +575,18 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Type:         PostmarketOS,
 			Version:      "edge",
 			LabelVersion: "edge",
+		},
+		{
+			Name:         "test-fixtures/os/openeuler",
+			Type:         OpenEuler,
+			Version:      "20.03",
+			LabelVersion: "LTS-SP4",
+		},
+		{
+			Name:         "test-fixtures/os/alpaquita",
+			Type:         Alpaquita,
+			Version:      "stream",
+			LabelVersion: "stream",
 		},
 	}
 

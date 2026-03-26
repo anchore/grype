@@ -14,6 +14,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/pacman"
 	"github.com/anchore/grype/grype/matcher/portage"
 	"github.com/anchore/grype/grype/matcher/python"
+	"github.com/anchore/grype/grype/matcher/r"
 	"github.com/anchore/grype/grype/matcher/rpm"
 	"github.com/anchore/grype/grype/matcher/ruby"
 	"github.com/anchore/grype/grype/matcher/rust"
@@ -33,6 +34,7 @@ type Config struct {
 	Stock      stock.MatcherConfig
 	Dpkg       dpkg.MatcherConfig
 	Rpm        rpm.MatcherConfig
+	R          r.MatcherConfig
 }
 
 func NewDefaultMatchers(mc Config) []match.Matcher {
@@ -50,6 +52,7 @@ func NewDefaultMatchers(mc Config) []match.Matcher {
 		&portage.Matcher{},
 		rust.NewRustMatcher(mc.Rust),
 		hex.NewHexMatcher(mc.Hex),
+		r.NewRMatcher(mc.R),
 		stock.NewStockMatcher(mc.Stock),
 		&bitnami.Matcher{},
 		&pacman.Matcher{},

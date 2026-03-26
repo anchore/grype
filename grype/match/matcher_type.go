@@ -7,6 +7,7 @@ const (
 	RubyGemMatcher     MatcherType = "ruby-gem-matcher"
 	DpkgMatcher        MatcherType = "dpkg-matcher"
 	RpmMatcher         MatcherType = "rpm-matcher"
+	RMatcher           MatcherType = "r-matcher"
 	JavaMatcher        MatcherType = "java-matcher"
 	PythonMatcher      MatcherType = "python-matcher"
 	DotnetMatcher      MatcherType = "dotnet-matcher"
@@ -27,6 +28,7 @@ var AllMatcherTypes = []MatcherType{
 	RubyGemMatcher,
 	DpkgMatcher,
 	RpmMatcher,
+	RMatcher,
 	JavaMatcher,
 	PythonMatcher,
 	DotnetMatcher,

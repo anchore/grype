@@ -1,6 +1,7 @@
 package v6
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -831,23 +832,24 @@ func createTestEntries(count int) []data.Entry {
 	entries := make([]data.Entry, count)
 
 	for i := 0; i < count; i++ {
+		name := fmt.Sprintf("CVE-2023-TEST-%04d", i)
 		entries[i] = data.Entry{
 			DBSchemaVersion: db.ModelVersion,
 			Data: transformers.RelatedEntries{
 				VulnerabilityHandle: &db.VulnerabilityHandle{
-					Name:       "CVE-2023-TEST",
+					Name:       name,
 					ProviderID: "test-provider",
 					Provider: &db.Provider{
 						ID:      "test-provider",
 						Version: "1.0.0",
 					},
 					BlobValue: &db.VulnerabilityBlob{
-						ID: "CVE-2023-TEST",
+						ID: name,
 					},
 				},
 				Related: []any{
 					db.CWEHandle{
-						CVE: "CVE-2023-TEST",
+						CVE: name,
 						CWE: "CWE-79",
 					},
 				},
