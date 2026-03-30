@@ -1,0 +1,74 @@
+{
+  "schema_version": "1.6.0",
+  "id": "CGA-test-arch-upstream",
+  "published": "2026-03-01T10:00:00Z",
+  "modified": "2026-03-05T10:00:00Z",
+  "summary": "Test vulnerability with arch in PURL and upstream field",
+  "severity": [
+    {
+      "type": "CVSS_V3",
+      "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+    }
+  ],
+  "upstream": [
+    "CVE-2024-12345",
+    "GHSA-xxxx-yyyy-zzzz"
+  ],
+  "related": [
+    "CVE-2024-12345",
+    "GHSA-xxxx-yyyy-zzzz"
+  ],
+  "references": [
+    {"type": "ADVISORY", "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-12345"}
+  ],
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "Chainguard",
+        "name": "openssl",
+        "purl": "pkg:apk/chainguard/openssl?arch=aarch64"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            { "introduced": "0" },
+            { "fixed": "3.2.1-r5" }
+          ]
+        }
+      ]
+    },
+    {
+      "package": {
+        "ecosystem": "Chainguard",
+        "name": "openssl",
+        "purl": "pkg:apk/chainguard/openssl?arch=x86_64"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            { "introduced": "0" },
+            { "fixed": "3.2.1-r5" }
+          ]
+        }
+      ]
+    },
+    {
+      "package": {
+        "ecosystem": "Chainguard",
+        "name": "openssl-dev",
+        "purl": "pkg:apk/chainguard/openssl-dev"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            { "introduced": "0" },
+            { "fixed": "3.2.1-r5" }
+          ]
+        }
+      ]
+    }
+  ]
+}

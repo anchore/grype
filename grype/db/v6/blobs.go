@@ -146,6 +146,10 @@ type PackageQualifiers struct {
 
 	// PlatformCPEs lists Common Platform Enumeration (CPE) identifiers for affected platforms.
 	PlatformCPEs []string `json:"platform_cpes,omitempty"`
+
+	// Architecture specifies the CPU architecture this vulnerability applies to (e.g., "aarch64", "x86_64").
+	// If nil, the vulnerability applies to all architectures.
+	Architecture *string `json:"architecture,omitempty"`
 }
 
 // Range defines a specific range of package versions pertaining to a vulnerability.

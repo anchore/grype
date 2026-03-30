@@ -1,0 +1,51 @@
+{
+  "modified": "2026-01-07T00:00:00Z",
+  "published": "2026-01-07T00:00:00Z",
+  "id": "CGA-224q-ccj5-2p53",
+  "related": [
+    "CVE-2025-32464",
+    "GHSA-frg5-h47x-75j9"
+  ],
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "Chainguard",
+        "name": "haproxy-2.8",
+        "purl": "pkg:apk/chainguard/haproxy-2.8"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "2.8.18-r0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "package": {
+        "ecosystem": "Wolfi",
+        "name": "haproxy-3.1",
+        "purl": "pkg:apk/wolfi/haproxy-3.1"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "3.1.7-r0"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

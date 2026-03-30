@@ -18,6 +18,8 @@ import (
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
 	"github.com/anchore/grype/grype/db/v6/name"
+	"github.com/anchore/grype/internal/stringutil"
+	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/pkg"
 )
 
@@ -36,7 +38,16 @@ func Transform(vulnerability unmarshal.OSVVulnerability, state provider.State) (
 
 	if isAdvisory {
 		aliases = append(aliases, vulnerability.Related...)
+	} else if strings.HasPrefix(vulnerability.ID, "CGA-") {
+		// Chainguard CGA records put CVE/GHSA IDs in "upstream" and "related"
+		// rather than "aliases". Per OSV spec, "upstream" is semantically correct
+		// for distro advisories; "related" is kept for backwards compatibility.
+		aliases = append(aliases, vulnerability.Upstream...)
+		aliases = append(aliases, vulnerability.Related...)
 	}
+
+	// Deduplicate aliases (related and upstream may contain the same IDs)
+	aliases = stringutil.NewStringSetFromSlice(aliases).ToSlice()
 
 	in := []any{
 		db.VulnerabilityHandle{
@@ -115,7 +126,7 @@ func getAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHa
 }
 
 // getPackageQualifiers extracts package qualifiers from affected package data
-// including CPE information and RPM modularity
+// including CPE information, RPM modularity, and architecture from PURL
 func getPackageQualifiers(affected models.Affected, cpes any, withCPE bool) *db.PackageQualifiers {
 	var qualifiers *db.PackageQualifiers
 
@@ -135,7 +146,38 @@ func getPackageQualifiers(affected models.Affected, cpes any, withCPE bool) *db.
 		qualifiers.RpmModularity = &rpmModularity
 	}
 
+	// Extract architecture from PURL qualifier (e.g., "pkg:apk/chainguard/foo?arch=aarch64")
+	arch := extractArchFromPURL(affected.Package.Purl)
+	if arch != "" {
+		if qualifiers == nil {
+			qualifiers = &db.PackageQualifiers{}
+		}
+		qualifiers.Architecture = &arch
+	}
+
 	return qualifiers
+}
+
+// extractArchFromPURL extracts the "arch" qualifier from a PURL string.
+// Returns empty string if no arch qualifier is present or if PURL is invalid.
+// Example: "pkg:apk/chainguard/openssl?arch=aarch64" returns "aarch64"
+func extractArchFromPURL(purlStr string) string {
+	if purlStr == "" {
+		return ""
+	}
+
+	purl, err := packageurl.FromString(purlStr)
+	if err != nil {
+		return ""
+	}
+
+	for _, qualifier := range purl.Qualifiers {
+		if qualifier.Key == pkg.PURLQualifierArch {
+			return qualifier.Value
+		}
+	}
+
+	return ""
 }
 
 // extractRpmModularity extracts RPM modularity information from affected package ecosystem_specific
@@ -326,6 +368,12 @@ func normalizeRangeType(t models.RangeType, ecosystem string) string {
 		return "bitnami"
 	}
 
+	// APK distros (Chainguard, Wolfi, Alpine) use ECOSYSTEM ranges but require APK
+	// version semantics for correct constraint evaluation (e.g. epoch-release suffixes).
+	if t == models.RangeEcosystem && getPackageTypeFromEcosystem(ecosystem) == pkg.ApkPkg {
+		return "apk"
+	}
+
 	switch t {
 	case models.RangeSemVer, models.RangeEcosystem, models.RangeGit:
 		return strings.ToLower(string(t))
@@ -358,19 +406,19 @@ func getPackage(p models.Package) *db.Package {
 	}
 }
 
-// getPackageTypeFromEcosystem determines package type from OSV ecosystem
-// Currently only supports AlmaLinux; other ecosystems use PURL-based detection
+// getPackageTypeFromEcosystem determines package type from OSV ecosystem.
+// This is used when no PURL is present; when a PURL is present it takes priority.
 func getPackageTypeFromEcosystem(ecosystem string) pkg.Type {
 	if ecosystem == "" {
 		return ""
 	}
 
-	// Split ecosystem by colon to get OS name
-	parts := strings.Split(ecosystem, ":")
-	osName := strings.ToLower(parts[0])
+	osName := strings.ToLower(strings.Split(ecosystem, ":")[0])
 
-	// Only handle AlmaLinux
-	if osName == almaLinux {
+	switch osName {
+	case "chainguard", "wolfi", "alpine":
+		return pkg.ApkPkg
+	case almaLinux:
 		return pkg.RpmPkg
 	}
 
@@ -459,24 +507,28 @@ func getSeverities(vuln unmarshal.OSVVulnerability) ([]db.Severity, error) {
 	return severities, nil
 }
 
-// getOperatingSystemFromEcosystem extracts operating system information from OSV ecosystem field
-// Currently only supports AlmaLinux ecosystems
-// Example: "AlmaLinux:8" -> almalinux 8
+// getOperatingSystemFromEcosystem extracts operating system information from OSV ecosystem field.
+// Examples:
+//   - "Chainguard"   -> chainguard rolling
+//   - "Wolfi"        -> wolfi rolling
+//   - "AlmaLinux:8"  -> almalinux 8
+//   - "Alpine:3.21"  -> alpine 3.21
 func getOperatingSystemFromEcosystem(ecosystem string) *db.OperatingSystem {
 	if ecosystem == "" {
 		return nil
 	}
 
-	// Split ecosystem by colon to get components
 	parts := strings.Split(ecosystem, ":")
-	if len(parts) < 2 {
-		return nil
-	}
-
 	osName := strings.ToLower(parts[0])
 
-	// Only handle AlmaLinux
-	if osName != almaLinux {
+	// Rolling APK distros — no version suffix in the ecosystem field
+	switch osName {
+	case "chainguard", "wolfi":
+		return &db.OperatingSystem{Name: osName, LabelVersion: "rolling"}
+	}
+
+	// Versioned ecosystems require a colon-separated version component
+	if len(parts) < 2 {
 		return nil
 	}
 
@@ -509,17 +561,8 @@ func getOperatingSystemFromEcosystem(ecosystem string) *db.OperatingSystem {
 	}
 }
 
-// normalizeOSName normalizes operating system names for consistency
-// Currently only supports AlmaLinux
 func normalizeOSName(osName string) string {
-	osName = strings.ToLower(osName)
-
-	// Only handle AlmaLinux
-	if osName == almaLinux {
-		return almaLinux
-	}
-
-	return osName
+	return strings.ToLower(osName)
 }
 
 // isAdvisoryRecord checks if the OSV record is marked as an advisory
