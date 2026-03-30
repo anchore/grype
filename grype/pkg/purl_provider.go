@@ -38,7 +38,7 @@ func purlProvider(userInput string, config ProviderConfig, applyChannel func(*di
 		return nil, Context{}, nil, fmt.Errorf("unable to decode purl: %w", err)
 	}
 
-	return FromCollection(s.Artifacts.Packages, config.SynthesisConfig, purlEnhancers(applyChannel)...), ctx, s, nil
+	return FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig, purlEnhancers(applyChannel)...), ctx, s, nil
 }
 
 func getPurlReader(userInput string) (r io.Reader, ctx Context, err error) {

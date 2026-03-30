@@ -2,7 +2,6 @@ package internal
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 
 	"github.com/anchore/grype/grype/match"
@@ -65,13 +64,6 @@ func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package
 // searchPkg) implements [pkg.FileOwner]. When no owned files are available, this falls back to
 // [MatchPackageByDistro] (version-filtered query, no ignore rules) to avoid over-fetching.
 func MatchPackageByDistroWithOwnedFiles(provider vulnerability.Provider, searchPkg pkg.Package, catalogPkg *pkg.Package, upstreamMatcher match.MatcherType, cfg *version.ComparisonConfig) ([]match.Match, []match.IgnoreFilter, error) {
-	// Use the SBOM package (not the synthetic upstream) for file ownership — the upstream
-	// package won't carry file metadata.
-	ownedFiles := ownedFilesFor(matchPackage(searchPkg, catalogPkg))
-	if len(ownedFiles) == 0 {
-		return MatchPackageByDistro(provider, searchPkg, catalogPkg, upstreamMatcher, cfg)
-	}
-
 	if searchPkg.Distro == nil {
 		return nil, nil, nil
 	}
@@ -112,35 +104,11 @@ func MatchPackageByDistroWithOwnedFiles(provider vulnerability.Provider, searchP
 	patchDetailVersion(vulnerable, searchPkg.Version)
 
 	matches := vulnerable.ToMatches()
-	ignores := distroFixedIgnoreRules(fixed, ownedFiles)
+
+	// Use the SBOM package (not the synthetic upstream) for file ownership — the upstream package doesn't have file metadata.
+	ignores := OwnershipIgnores(matchPackage(searchPkg, catalogPkg), "DistroPackageFixed", fixed.Vulnerabilities()...)
 
 	return matches, ignores, nil
-}
-
-// distroFixedIgnoreRules builds location-scoped ignore rules for vulnerabilities that the distro has
-// assessed as fixed. Each vulnerability ID (including aliases) gets one rule per owned path.
-func distroFixedIgnoreRules(fixed result.Set, ownedFiles []string) []match.IgnoreFilter {
-	var ignores []match.IgnoreFilter
-	for _, results := range fixed {
-		for _, r := range results {
-			for _, v := range r.Vulnerabilities {
-				ids := collectVulnerabilityIDs(v)
-				for _, id := range ids {
-					for _, path := range ownedFiles {
-						ignores = append(ignores, match.IgnoreRule{
-							Vulnerability:  id,
-							IncludeAliases: true,
-							Reason:         "DistroPackageFixed",
-							Package: match.IgnoreRulePackage{
-								Location: path,
-							},
-						})
-					}
-				}
-			}
-		}
-	}
-	return ignores
 }
 
 func matchPackage(searchPkg pkg.Package, catalogPkg *pkg.Package) pkg.Package {
@@ -180,17 +148,6 @@ func distroMatchDetails(upstreamMatcher match.MatcherType, searchPkg pkg.Package
 	}
 }
 
-// collectVulnerabilityIDs returns the primary ID plus all related/alias IDs for a vulnerability.
-func collectVulnerabilityIDs(v vulnerability.Vulnerability) []string {
-	ids := []string{v.ID}
-	for _, related := range v.RelatedVulnerabilities {
-		if !slices.Contains(ids, related.ID) {
-			ids = append(ids, related.ID)
-		}
-	}
-	return ids
-}
-
 func isUnknownVersion(v string) bool {
 	return strings.ToLower(v) == "unknown"
 }
@@ -223,12 +180,4 @@ func patchDetailVersion(s result.Set, version string) {
 			}
 		}
 	}
-}
-
-// ownedFilesFor returns the files owned by the package if its metadata implements [pkg.FileOwner].
-func ownedFilesFor(p pkg.Package) []string {
-	if fo, ok := p.Metadata.(pkg.FileOwner); ok {
-		return fo.OwnedFiles()
-	}
-	return nil
 }
