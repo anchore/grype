@@ -132,6 +132,9 @@ func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {
 		{Ecosystem: "kb", ReplacementEcosystem: ptr(string(pkg.KbPkg))},
 		{Ecosystem: "dpkg", ReplacementEcosystem: ptr(string(pkg.DebPkg))},
 		{Ecosystem: "apkg", ReplacementEcosystem: ptr(string(pkg.ApkPkg))},
+
+		// Common aliases
+		{Ecosystem: "pacman", ReplacementEcosystem: ptr(string(pkg.AlpmPkg))},
 	}
 
 	// remap package URL types to syft package types
