@@ -9,6 +9,7 @@ import (
 	"github.com/facebookincubator/nvdtools/wfn"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
@@ -37,13 +38,16 @@ func alpineCPEComparableVersion(version string) string {
 var ErrEmptyCPEMatch = errors.New("attempted CPE match against package with no CPEs")
 
 // MatchPackageByCPEs retrieves all vulnerabilities that match any of the provided package's CPEs
-func MatchPackageByCPEs(provider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, error) {
+func MatchPackageByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
+	provider := result.NewProvider(vulnProvider, p, upstreamMatcher)
+
+	var ignores []match.IgnoreFilter
 	// we attempt to merge match details within the same matcher when searching by CPEs, in this way there are fewer duplicated match
 	// objects (and fewer duplicated match details).
 
 	// Warn the user if they are matching by CPE, but there are no CPEs available.
 	if len(p.CPEs) == 0 {
-		return nil, ErrEmptyCPEMatch
+		return nil, nil, ErrEmptyCPEMatch
 	}
 
 	matchesByFingerprint := make(map[match.Fingerprint]match.Match)
@@ -81,26 +85,28 @@ func MatchPackageByCPEs(provider vulnerability.Provider, p pkg.Package, upstream
 		}
 
 		// find all vulnerability records in the DB for the given CPE (not including version comparisons)
-		vulns, err := provider.FindVulnerabilities(
+		all, err := provider.FindResults(
 			search.ByCPE(c),
 			OnlyVulnerableTargets(p),
 			OnlyQualifiedPackages(p),
-			OnlyVulnerableVersions(verObj),
 			OnlyNonWithdrawnVulnerabilities(),
 		)
 		if err != nil {
-			return nil, fmt.Errorf("matcher failed to fetch by CPE pkg=%q: %w", p.Name, err)
+			return nil, nil, fmt.Errorf("matcher failed to fetch by CPE pkg=%q: %w", p.Name, err)
 		}
+
+		vulns := all.Filter(OnlyVulnerableVersions(verObj))
+		ignores = append(ignores, OwnershipIgnores(p, "CPE not vulnerable", all.Remove(vulns).Vulnerabilities()...)...)
 
 		// for each vulnerability record found, check the version constraint. If the constraint is satisfied
 		// relative to the current version information from the CPE (or the package) then the given package
 		// is vulnerable.
-		for _, vuln := range vulns {
+		for _, vuln := range vulns.Vulnerabilities() {
 			addNewMatch(matchesByFingerprint, vuln, p, verObj, upstreamMatcher, c)
 		}
 	}
 
-	return toMatches(matchesByFingerprint), nil
+	return toMatches(matchesByFingerprint), ignores, nil
 }
 
 func transformJvmVersion(searchVersion, updateCpeField string) string {

@@ -10,7 +10,7 @@ import (
 	"github.com/anchore/syft/syft/artifact"
 )
 
-func OwnershipIgnores(p pkg.Package, reason string, ignoredVulnerabilities ...vulnerability.Vulnerability) []match.IgnoreFilter {
+func OwnershipAndPathIgnores(p pkg.Package, reason string, ignoredVulnerabilities ...vulnerability.Vulnerability) []match.IgnoreFilter {
 	var ignores []match.IgnoreFilter
 
 	paths := ownedFilesFor(p)
@@ -30,6 +30,23 @@ func OwnershipIgnores(p pkg.Package, reason string, ignoredVulnerabilities ...vu
 				)
 			}
 
+			ignores = append(ignores, match.IgnoreRelatedPackage{
+				Reason:           fmt.Sprintf("%s by Ownership from package: %v", reason, p),
+				RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+				VulnerabilityID:  ignoreVulnID,
+				RelatedPackageID: p.ID,
+			})
+		}
+	}
+
+	return ignores
+}
+
+func OwnershipIgnores(p pkg.Package, reason string, ignoredVulnerabilities ...vulnerability.Vulnerability) []match.IgnoreFilter {
+	var ignores []match.IgnoreFilter
+
+	for _, ignoredVulnerability := range ignoredVulnerabilities {
+		for _, ignoreVulnID := range collectVulnerabilityIDs(ignoredVulnerability) {
 			ignores = append(ignores, match.IgnoreRelatedPackage{
 				Reason:           fmt.Sprintf("%s by Ownership from package: %v", reason, p),
 				RelationshipType: artifact.OwnershipByFileOverlapRelationship,
