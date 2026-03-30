@@ -240,6 +240,8 @@ func groupFixedIns(vuln unmarshal.OSVulnerability) map[groupIndex][]unmarshal.OS
 
 func getPackageType(osName string) pkg.Type {
 	switch osName {
+	case "arch", "archlinux":
+		return pkg.AlpmPkg
 	case "redhat", "amazonlinux", "oraclelinux", "sles", "mariner", "azurelinux", "photon", "fedora", "rocky", "rockylinux", "almalinux", "centos":
 		return pkg.RpmPkg
 	case "ubuntu", "debian", "echo":
