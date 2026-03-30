@@ -42,6 +42,9 @@ type Package struct {
 	PURL      string       // the Package URL (see https://github.com/package-url/purl-spec)
 	Upstreams []UpstreamPackage
 	Metadata  interface{} // This is NOT 1-for-1 the syft metadata! Only the select data needed for vulnerability matching
+
+	// Related packages may be used for scanning
+	RelatedPackages map[artifact.RelationshipType][]*Package
 }
 
 type Enhancer func(out *Package, purl packageurl.PackageURL, pkg syftPkg.Package)
@@ -60,7 +63,7 @@ func New(p syftPkg.Package, enhancers ...Enhancer) Package {
 	}
 
 	out := Package{
-		ID:        ID(p.ID()),
+		ID:        grypeID(p),
 		Name:      p.Name,
 		Version:   p.Version,
 		Locations: p.Locations,
@@ -86,15 +89,17 @@ func New(p syftPkg.Package, enhancers ...Enhancer) Package {
 	return out
 }
 
-func FromCollection(catalog *syftPkg.Collection, config SynthesisConfig, enhancers ...Enhancer) []Package {
-	return FromPackages(catalog.Sorted(), config, enhancers...)
+func FromCollection(catalog *syftPkg.Collection, relationships []artifact.Relationship, config SynthesisConfig, enhancers ...Enhancer) []Package {
+	return FromPackages(catalog.Sorted(), relationships, config, enhancers...)
 }
 
-func FromPackages(syftPkgs []syftPkg.Package, config SynthesisConfig, enhancers ...Enhancer) []Package {
+func FromPackages(syftPkgs []syftPkg.Package, relationships []artifact.Relationship, config SynthesisConfig, enhancers ...Enhancer) []Package {
 	var pkgs []Package
 
 	// if the user provided a distro explicitly, then use that over any distro that may be inferred from a package url
 	enhancers = append([]Enhancer{applyDistroOverride(config.Distro.Override)}, enhancers...)
+
+	pkgIdx := make(map[ID]int)
 
 	for _, p := range syftPkgs {
 		if len(p.CPEs) == 0 {
@@ -106,7 +111,30 @@ func FromPackages(syftPkgs []syftPkg.Package, config SynthesisConfig, enhancers 
 			}
 		}
 
-		pkgs = append(pkgs, New(p, enhancers...))
+		grypePkg := New(p, enhancers...)
+		pkgIdx[grypePkg.ID] = len(pkgs)
+		pkgs = append(pkgs, grypePkg)
+	}
+
+	for _, r := range relationships {
+		if !retainRelationshipType(r.Type) {
+			continue
+		}
+		fromPkg, fromOK := pkgIdx[grypeID(r.From)]
+		toPkg, toOK := pkgIdx[grypeID(r.To)]
+		if !fromOK || !toOK {
+			continue
+		}
+
+		if invertRelationship(r.Type) {
+			fromPkg, toPkg = toPkg, fromPkg
+		}
+
+		if pkgs[fromPkg].RelatedPackages == nil {
+			pkgs[fromPkg].RelatedPackages = map[artifact.RelationshipType][]*Package{}
+		}
+
+		pkgs[fromPkg].RelatedPackages[r.Type] = append(pkgs[fromPkg].RelatedPackages[r.Type], &pkgs[toPkg])
 	}
 
 	return pkgs
@@ -523,5 +551,29 @@ func applyDistroOverride(override *distro.Distro) Enhancer {
 		}
 		// allow downstream matchers to always consider the given user distro
 		out.Distro = override
+	}
+}
+
+func invertRelationship(relationshipType artifact.RelationshipType) bool {
+	switch relationshipType {
+	case artifact.ContainsRelationship,
+		artifact.OwnershipByFileOverlapRelationship:
+		return true
+	default:
+		return false
+	}
+}
+
+func grypeID(identifiable artifact.Identifiable) ID {
+	return ID(identifiable.ID())
+}
+
+func retainRelationshipType(relationshipType artifact.RelationshipType) bool {
+	switch relationshipType {
+	case artifact.ContainsRelationship,
+		artifact.OwnershipByFileOverlapRelationship:
+		return true
+	default:
+		return false
 	}
 }
