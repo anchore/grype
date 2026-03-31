@@ -326,6 +326,11 @@ func normalizeRangeType(t models.RangeType, ecosystem string) string {
 		return "bitnami"
 	}
 
+	pkgType := getPackageTypeFromEcosystem(ecosystem)
+	if pkgType == pkg.RpmPkg && t == models.RangeEcosystem {
+		return pkgType.String()
+	}
+
 	switch t {
 	case models.RangeSemVer, models.RangeEcosystem, models.RangeGit:
 		return strings.ToLower(string(t))
