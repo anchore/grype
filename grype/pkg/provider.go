@@ -135,7 +135,20 @@ func applyChannelsToDistro(d *distro.Distro, channels distro.FixChannels) bool {
 
 // Provide a set of packages and context metadata describing where they were sourced from.
 func provide(userInput string, config ProviderConfig, applyChannel func(d *distro.Distro) bool) ([]Package, Context, *sbom.SBOM, error) {
-	packages, ctx, s, err := purlProvider(userInput, config, applyChannel)
+	packages, ctx, s, err := zarfProvider(userInput, config, applyChannel)
+	if !errors.Is(err, errDoesNotProvide) {
+		if len(config.Exclusions) > 0 {
+			var exclusionsErr error
+			packages, exclusionsErr = filterPackageExclusions(packages, config.Exclusions)
+			if exclusionsErr != nil {
+				return nil, ctx, s, exclusionsErr
+			}
+		}
+		log.WithFields("input", userInput).Trace("interpreting input as a Zarf package")
+		return packages, ctx, s, err
+	}
+
+	packages, ctx, s, err = purlProvider(userInput, config, applyChannel)
 	if !errors.Is(err, errDoesNotProvide) {
 		log.WithFields("input", userInput).Trace("interpreting input as one or more PURLs")
 		return packages, ctx, s, err
