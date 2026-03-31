@@ -3,6 +3,7 @@ package openvex
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	govex "github.com/openvex/go-vex/pkg/vex"
 
@@ -210,7 +211,7 @@ func getPackageBlob(aliases []string, ver string, ty string, fixState db.FixStat
 		Ranges: []db.Range{
 			{
 				Version: db.Version{
-					Type:       version.ParseFormat(ty).String(),
+					Type:       strings.ToLower(version.ParseFormat(ty).String()),
 					Constraint: fmt.Sprintf("= %s", ver),
 				},
 				Fix: fix,

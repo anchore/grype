@@ -245,7 +245,7 @@ func TestTransform(t *testing.T) {
 							CVEs: []string{"CVE-2025-27144"},
 							Ranges: []db.Range{{
 								Version: db.Version{
-									Type:       "ecosystem",
+									Type:       "rpm",
 									Constraint: ">= 2:1.18.1-1.el10_0",
 								},
 								Fix: &db.Fix{
@@ -268,7 +268,7 @@ func TestTransform(t *testing.T) {
 							CVEs: []string{"CVE-2025-27144"},
 							Ranges: []db.Range{{
 								Version: db.Version{
-									Type:       "ecosystem",
+									Type:       "rpm",
 									Constraint: ">= 2:1.18.1-1.el10_0",
 								},
 								Fix: &db.Fix{
