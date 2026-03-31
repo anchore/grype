@@ -23,6 +23,7 @@ import (
 
 const (
 	almaLinux = "almalinux"
+	cleanStart = "cleanstart"
 )
 
 func Transform(vulnerability unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
@@ -378,6 +379,9 @@ func getPackageTypeFromEcosystem(ecosystem string) pkg.Type {
 	if osName == almaLinux {
 		return pkg.RpmPkg
 	}
+	if osName == cleanStart {
+		return pkg.ApkPkg
+	}
 
 	// For other ecosystems (like Bitnami, npm, pypi, etc.), return empty type
 	// The package type will be determined from PURL if available
@@ -474,14 +478,19 @@ func getOperatingSystemFromEcosystem(ecosystem string) *db.OperatingSystem {
 
 	// Split ecosystem by colon to get components
 	parts := strings.Split(ecosystem, ":")
+	osName := strings.ToLower(parts[0])
+
 	if len(parts) < 2 {
+		if osName == cleanStart {
+			return &db.OperatingSystem{
+				Name: normalizeOSName(osName),
+			}
+		}
 		return nil
 	}
 
-	osName := strings.ToLower(parts[0])
-
-	// Only handle AlmaLinux
-	if osName != almaLinux {
+	// Only handle AlmaLinux and Cleanstart
+	if osName != almaLinux && osName != cleanStart {
 		return nil
 	}
 
@@ -522,6 +531,10 @@ func normalizeOSName(osName string) string {
 	// Only handle AlmaLinux
 	if osName == almaLinux {
 		return almaLinux
+	}
+	// Handle Cleanstart
+	if osName == cleanStart {
+		return cleanStart
 	}
 
 	return osName

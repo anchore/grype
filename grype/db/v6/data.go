@@ -51,6 +51,8 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		{Alias: "amazon", ReplacementName: strRef("amzn")},                   // non-standard, but common
 		{Alias: "amazonlinux", ReplacementName: strRef("amzn")},              // non-standard, but common (dockerhub uses "amazonlinux")
 		{Alias: "echo", Rolling: true},
+		{Alias: "clnstrt", ReplacementName: strRef("cleanstart"), Rolling: true},
+		{Alias: "cleanstart", ReplacementName: strRef("cleanstart"), Rolling: true},
 		// TODO: forky is a placeholder for now, but should be updated to sid when the time comes
 		// this needs to be automated, but isn't clear how to do so since you'll see things like this:
 		//
