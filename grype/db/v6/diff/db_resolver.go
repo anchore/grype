@@ -79,10 +79,18 @@ func ResolveDB(value, defaultDir string) (ResolvedDB, error) {
 	}
 
 	// case 3: it's a DB archive; extract and hydrate into a sibling directory
-	return extractAndHydrateArchive(expanded)
+	return extractArchive(expanded)
 }
 
 func newResolvedDB(dir string, cleanup func()) (ResolvedDB, error) {
+	log.Infof("hydrating database: %s", dir)
+
+	hydrate := db.Hydrater()
+	if err := hydrate(dir); err != nil {
+		_ = os.RemoveAll(dir)
+		return ResolvedDB{}, fmt.Errorf("failed to hydrate database: %w", err)
+	}
+
 	info, err := newDatabaseInfo(dir)
 	if err != nil {
 		return ResolvedDB{}, fmt.Errorf("failed to get old database info: %w", err)
@@ -97,10 +105,10 @@ func newResolvedDB(dir string, cleanup func()) (ResolvedDB, error) {
 
 var tarExtPattern = regexp.MustCompile(`\.tar(\.\w+)?$`)
 
-// extractAndHydrateArchive extracts a DB archive into a sibling directory (archive name with
+// extractArchive extracts a DB archive into a sibling directory (archive name with
 // .tar.* extension stripped), then runs hydration to create indexes. If the directory already
 // exists with a vulnerability.db inside, it is reused
-func extractAndHydrateArchive(archivePath string) (ResolvedDB, error) {
+func extractArchive(archivePath string) (ResolvedDB, error) {
 	destDir := tarExtPattern.ReplaceAllString(archivePath, "")
 	if destDir == archivePath {
 		return ResolvedDB{}, fmt.Errorf("unrecognized file type (not a .db file or supported archive): %s", archivePath)
@@ -121,14 +129,6 @@ func extractAndHydrateArchive(archivePath string) (ResolvedDB, error) {
 			_ = os.RemoveAll(destDir)
 			return ResolvedDB{}, fmt.Errorf("failed to extract archive %q: %w", archivePath, err)
 		}
-	}
-
-	log.Infof("hydrating database: %s", destDir)
-
-	hydrate := db.Hydrater()
-	if err := hydrate(destDir); err != nil {
-		_ = os.RemoveAll(destDir)
-		return ResolvedDB{}, fmt.Errorf("failed to hydrate database: %w", err)
 	}
 
 	return newResolvedDB(destDir, nil)

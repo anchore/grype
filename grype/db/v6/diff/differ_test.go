@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/installation"
 	"github.com/anchore/grype/grype/db/v6/testdb"
 )
@@ -922,6 +923,209 @@ func Test_packageDiff(t *testing.T) {
 				}
 				if !hasModified {
 					require.Emptyf(t, vulnChanges.Modified, "expected no modified vulns for %+v; got: %+v", expectedPkg, vulnChanges.Modified)
+				}
+				if !hasRemoved {
+					require.Emptyf(t, vulnChanges.Removed, "expected no removed vulns for %+v; got: %+v", expectedPkg, vulnChanges.Removed)
+				}
+			}
+
+			// make sure we don't have unexpected changes
+			for _, resultPkg := range packageResult.Packages {
+				key := pkg{ecosystem: resultPkg.Ecosystem, name: resultPkg.Name}
+				if _, checked := tt.expected[key]; !checked {
+					assert.Failf(t, "package found in diff not expected", "%+v: %+v", key, resultPkg.Vulnerabilities)
+				}
+			}
+		})
+	}
+}
+
+// Test_hydrationPermutations verifies that the differ works correctly across different database
+// schema states, simulating older databases that may be missing columns added in later schema
+// versions. For example, the "channel" column was added to the operating_systems table in
+// schema 6.0.3 — an older database archive would not have it. The hydration step in
+// newResolvedDB should add any missing columns/indexes before the diff runs.
+func Test_hydrationPermutations(t *testing.T) {
+	type dbMutation func(t *testing.T, dbDir string)
+
+	// dropOSChannel simulates a pre-6.0.3 database by removing the channel column
+	// from the operating_systems table. In SQLite, ALTER TABLE DROP COLUMN requires
+	// dropping dependent indexes first.
+	dropOSChannel := func(t *testing.T, dbDir string) {
+		t.Helper()
+		dbPath := filepath.Join(dbDir, "vulnerability.db")
+		db, err := v6.NewLowLevelDB(dbPath, false, true, false)
+		require.NoError(t, err)
+		defer closeLowLevelDB(db)
+
+		// drop indexes that reference the channel column
+		require.NoError(t, db.Exec("DROP INDEX IF EXISTS idx_operating_systems_channel").Error)
+		require.NoError(t, db.Exec("DROP INDEX IF EXISTS os_idx").Error)
+		// now drop the column
+		require.NoError(t, db.Exec("ALTER TABLE operating_systems DROP COLUMN channel").Error)
+	}
+
+	type changes []any
+	type pkg struct {
+		ecosystem string
+		name      string
+	}
+	type added []VulnerabilityID
+	type removed []VulnerabilityID
+
+	v := func(provider, id string) VulnerabilityID {
+		return VulnerabilityID{Provider: provider, ID: id}
+	}
+	p := func(ecosystem, name string) pkg {
+		return pkg{ecosystem: ecosystem, name: name}
+	}
+
+	tests := []struct {
+		name      string
+		oldDB     []string
+		newDB     []string
+		mutateOld dbMutation // applied to the old DB after build, before diff
+		mutateNew dbMutation // applied to the new DB after build, before diff
+		expected  map[pkg]changes
+	}{
+		{
+			name:  "both-current-with-channel",
+			oldDB: []string{"rhel-8/cve-2025-13012"},
+			newDB: []string{"rhel-8/cve-2025-13012", "rhel-8.4+eus/cve-2025-13012"},
+			expected: map[pkg]changes{
+				p("rpm", "firefox"):     {added{v("rhel", "CVE-2025-13012")}},
+				p("rpm", "thunderbird"): {added{v("rhel", "CVE-2025-13012")}},
+			},
+		},
+		{
+			name:      "old-db-missing-channel-column",
+			oldDB:     []string{"rhel-8/cve-2025-13012"},
+			newDB:     []string{"rhel-8/cve-2025-13012", "rhel-8.4+eus/cve-2025-13012"},
+			mutateOld: dropOSChannel,
+			expected: map[pkg]changes{
+				p("rpm", "firefox"):     {added{v("rhel", "CVE-2025-13012")}},
+				p("rpm", "thunderbird"): {added{v("rhel", "CVE-2025-13012")}},
+			},
+		},
+		{
+			name:      "new-db-missing-channel-column",
+			oldDB:     []string{"rhel-8/cve-2025-13012", "rhel-8.4+eus/cve-2025-13012"},
+			newDB:     []string{"rhel-8/cve-2025-13012"},
+			mutateNew: dropOSChannel,
+			expected: map[pkg]changes{
+				p("rpm", "firefox"):     {removed{v("rhel", "CVE-2025-13012")}},
+				p("rpm", "thunderbird"): {removed{v("rhel", "CVE-2025-13012")}},
+			},
+		},
+		{
+			name:      "both-dbs-missing-channel-column",
+			oldDB:     []string{"rhel-8/cve-2025-13012"},
+			newDB:     []string{"rhel-8/cve-2025-13012", "rhel-9/cve-2025-13012"},
+			mutateOld: dropOSChannel,
+			mutateNew: dropOSChannel,
+			expected: map[pkg]changes{
+				p("rpm", "firefox"):     {added{v("rhel", "CVE-2025-13012")}},
+				p("rpm", "thunderbird"): {added{v("rhel", "CVE-2025-13012")}},
+			},
+		},
+		{
+			name:      "no-changes-after-hydration",
+			oldDB:     []string{"rhel-8/cve-2025-13012"},
+			newDB:     []string{"rhel-8/cve-2025-13012"},
+			mutateOld: dropOSChannel,
+			expected:  map[pkg]changes{},
+		},
+		{
+			name:      "mixed-os-and-cpe-with-old-db-missing-channel",
+			oldDB:     []string{"rhel-8/cve-2025-13012", "cve-2025-24456"},
+			newDB:     []string{"rhel-8/cve-2025-13012", "rhel-8.4+eus/cve-2025-13012", "cve-2025-24456", "cve-2025-21916"},
+			mutateOld: dropOSChannel,
+			expected: map[pkg]changes{
+				p("rpm", "firefox"):      {added{v("rhel", "CVE-2025-13012")}},
+				p("rpm", "thunderbird"):  {added{v("rhel", "CVE-2025-13012")}},
+				p("cpe", "linux_kernel"): {added{v("nvd", "CVE-2025-21916")}},
+			},
+		},
+	}
+
+	testdataDir, err := filepath.Abs("testdata")
+	require.NoError(t, err)
+
+	inputDir := filepath.Join(testdataDir, "inputs")
+
+	var tmpdir string
+	if debug {
+		tmpdir = filepath.Join(testdataDir, "cache")
+		t.Logf("using persistent testdata cache dir: %s", tmpdir)
+	} else {
+		tmpdir = t.TempDir()
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpdir := filepath.Join(tmpdir, regexp.MustCompile(`[^a-zA-Z0-9]`).ReplaceAllString(t.Name(), "_"))
+
+			oldDBDir := filepath.Join(tmpdir, "oldDB")
+			err = os.MkdirAll(oldDBDir, 0o755)
+			require.NoError(t, err)
+
+			testdb.BuildFromFlatFileDir(t,
+				time.Date(2022, 8, 11, 18, 1, 5, 0, time.UTC),
+				oldDBDir,
+				inputDir,
+				tt.oldDB...)
+
+			if tt.mutateOld != nil {
+				tt.mutateOld(t, oldDBDir)
+			}
+
+			newDBDir := filepath.Join(tmpdir, "newDB")
+			testdb.BuildFromFlatFileDir(t,
+				time.Date(2022, 8, 12, 1, 55, 19, 0, time.UTC),
+				newDBDir,
+				inputDir,
+				tt.newDB...)
+
+			if tt.mutateNew != nil {
+				tt.mutateNew(t, newDBDir)
+			}
+
+			differ, err := NewDBDiffer(Config{
+				Config: installation.Config{},
+				Debug:  debug,
+				OldDB:  oldDBDir,
+				NewDB:  newDBDir,
+			})
+			require.NoError(t, err)
+			require.NotNil(t, differ)
+
+			packageResult, err := differ.Diff()
+			require.NoError(t, err)
+
+			for expectedPkg, expected := range tt.expected {
+				pd := findExactPackageDiff(packageResult, expectedPkg.ecosystem, expectedPkg.name)
+				if len(expected) == 0 {
+					require.Nilf(t, pd, "expected no package diff for %+v", expectedPkg)
+					continue
+				}
+				require.NotNilf(t, pd, "expected package diff for %+v", expectedPkg)
+
+				vulnChanges := pd.Vulnerabilities
+
+				hasAdded := false
+				hasRemoved := false
+				for _, expected := range expected {
+					switch expected := expected.(type) {
+					case added:
+						hasAdded = true
+						requireVulnIDs(t, "added", vulnChanges.Added, expected...)
+					case removed:
+						hasRemoved = true
+						requireVulnIDs(t, "removed", vulnChanges.Removed, expected...)
+					}
+				}
+				if !hasAdded {
+					require.Emptyf(t, vulnChanges.Added, "expected no added vulns for %+v; got: %+v", expectedPkg, vulnChanges.Added)
 				}
 				if !hasRemoved {
 					require.Emptyf(t, vulnChanges.Removed, "expected no removed vulns for %+v; got: %+v", expectedPkg, vulnChanges.Removed)

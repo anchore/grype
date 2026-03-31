@@ -5,7 +5,7 @@ import (
 )
 
 // createDiffTablesPackages builds indexed temp tables from the given schema (main or new_db)
-// with the given prefix (old or new) for table names.
+// with the given suffix (old or new) for table names.
 //
 //nolint:funlen
 func (d *DBDiffer) createDiffTablesPackages(db, schema string) error {
@@ -27,8 +27,7 @@ func (d *DBDiffer) createDiffTablesPackages(db, schema string) error {
 			COALESCE(os.major_version, '') AS os_major,
 			COALESCE(os.minor_version, '') AS os_minor,
 			COALESCE(os.codename, '') AS os_codename,
-			COALESCE(os.channel, '') AS os_channel,
-			COALESCE(os.eoas_date, '') AS os_eoas_date
+			COALESCE(os.channel, '') AS os_channel
 		 FROM {db}affected_package_handles aph
 		 JOIN {db}vulnerability_handles vh ON aph.vulnerability_id = vh.id
 		 JOIN {db}packages p ON aph.package_id = p.id
@@ -48,8 +47,7 @@ func (d *DBDiffer) createDiffTablesPackages(db, schema string) error {
 			COALESCE(os.major_version, '') AS os_major,
 			COALESCE(os.minor_version, '') AS os_minor,
 			COALESCE(os.codename, '') AS os_codename,
-			COALESCE(os.channel, '') AS os_channel,
-			COALESCE(os.eoas_date, '') AS os_eoas_date
+			COALESCE(os.channel, '') AS os_channel
 		 FROM {db}unaffected_package_handles aph
 		 JOIN {db}vulnerability_handles vh ON aph.vulnerability_id = vh.id
 		 JOIN {db}packages p ON aph.package_id = p.id
