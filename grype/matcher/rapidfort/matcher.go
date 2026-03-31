@@ -94,7 +94,7 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	//    keyed on the subpackage/binary name rather than the source).
 	rfPkg := p
 	rfPkg.Distro = rfDistro
-	binaryMatches, err := m.matchPackageByDistro(store, rfPkg, &p)
+	binaryMatches, err := m.matchPackageByDistro(store, rfPkg, &p, match.ExactDirectMatch)
 	if err != nil {
 		return nil, nil, fmt.Errorf("rapidfort matcher failed binary lookup for %q: %w", p.Name, err)
 	}
@@ -129,7 +129,7 @@ func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Pack
 
 	for _, upstream := range pkg.UpstreamPackages(p) {
 		upstream.Distro = rfDistro
-		found, err := m.matchPackageByDistro(store, upstream, &p)
+		found, err := m.matchPackageByDistro(store, upstream, &p, match.ExactIndirectMatch)
 		if err != nil {
 			return nil, fmt.Errorf("failed RF upstream lookup for source %q: %w", upstream.Name, err)
 		}
@@ -141,7 +141,7 @@ func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Pack
 	return matches, nil
 }
 
-func (m *Matcher) matchPackageByDistro(store vulnerability.Provider, searchPkg pkg.Package, catalogPkg *pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchPackageByDistro(store vulnerability.Provider, searchPkg pkg.Package, catalogPkg *pkg.Package, ty match.Type) ([]match.Match, error) {
 	if searchPkg.Distro == nil {
 		return nil, nil
 	}
@@ -175,7 +175,7 @@ func (m *Matcher) matchPackageByDistro(store vulnerability.Provider, searchPkg p
 		matches = append(matches, match.Match{
 			Vulnerability: vuln,
 			Package:       matchPackage(searchPkg, catalogPkg),
-			Details:       distroMatchDetails(m.Type(), searchPkg, catalogPkg, vuln),
+			Details:       distroMatchDetails(m.Type(), ty, searchPkg, catalogPkg, vuln),
 		})
 	}
 
@@ -287,12 +287,7 @@ func matchPackage(searchPkg pkg.Package, catalogPkg *pkg.Package) pkg.Package {
 	return searchPkg
 }
 
-func distroMatchDetails(upstreamMatcher match.MatcherType, searchPkg pkg.Package, catalogPkg *pkg.Package, vuln vulnerability.Vulnerability) []match.Detail {
-	ty := match.ExactIndirectMatch
-	if catalogPkg == nil {
-		ty = match.ExactDirectMatch
-	}
-
+func distroMatchDetails(upstreamMatcher match.MatcherType, ty match.Type, searchPkg pkg.Package, catalogPkg *pkg.Package, vuln vulnerability.Vulnerability) []match.Detail {
 	return []match.Detail{
 		{
 			Type:    ty,
