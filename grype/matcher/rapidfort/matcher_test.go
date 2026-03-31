@@ -129,6 +129,12 @@ func TestRapidfortDistroVersion(t *testing.T) {
 			rfDistro:    distro.RapidFortUbuntu,
 			expectedVer: "20.04",
 		},
+		{
+			name:        "rapidfort alpine keeps full version",
+			baseDistro:  *distro.New(distro.Alpine, "3.15", ""),
+			rfDistro:    distro.RapidFortAlpine,
+			expectedVer: "3.15",
+		},
 	}
 
 	for _, test := range tests {
