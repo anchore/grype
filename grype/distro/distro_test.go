@@ -513,6 +513,11 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Version:      "edge",
 			LabelVersion: "edge",
 		},
+		{
+			Name:    "test-fixtures/os/hummingbird",
+			Type:    Hummingbird,
+			Version: "1",
+		},
 	}
 
 	for _, tt := range tests {
