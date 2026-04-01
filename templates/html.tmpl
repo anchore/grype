@@ -735,6 +735,23 @@
                         <span id="dateElement">{{.Descriptor.Timestamp}}</span>
                         <span id="prettyDateElement" style="display: none;"></span>
                     </dd>
+
+                    {{- /* Add Grype Version information */ -}}
+                    {{- with .Descriptor }}
+                    <dt>Grype Version:</dt>
+                    <dd id="grypeVersion">{{.Name}} {{.Version}}</dd>
+                    {{- end -}}
+
+                    {{- /* Add Vulnerability DB information */ -}}
+                    {{- with .Descriptor.DB.Status }}
+                    {{- if .Built }}
+                    <dt>Vuln DB:</dt>
+                    <dd>
+                        <span id="dbBuiltElement">{{.Built.Format "2006-01-02T15:04:05Z07:00"}}</span>
+                        <span id="prettyDbBuiltElement" style="display: none;"></span>
+                    </dd>
+                    {{- end -}}
+                    {{- end -}}
                 </dl>
             </div>
             <div class="heading-right">
@@ -1297,6 +1314,62 @@
     }
 
     /**
+     * Formats the original ISO timestamp from the #dbBuiltElement into a human-readable
+     * format (e.g., "January 1, 2024") and displays it in the #prettyDbBuiltElement,
+     * hiding the original element.
+     */
+    function renderFormattedDbBuilt() {
+        const originalDbBuiltElement = document.getElementById("dbBuiltElement");
+        const prettyDbBuiltElement = document.getElementById("prettyDbBuiltElement");
+
+        // If elements don't exist, silently return (DB info may not be available)
+        if (!originalDbBuiltElement || !prettyDbBuiltElement) {
+            return;
+        }
+
+        const dbBuiltString = originalDbBuiltElement.textContent;
+        if (!dbBuiltString) {
+            prettyDbBuiltElement.textContent = 'N/A';
+            prettyDbBuiltElement.style.display = '';
+            originalDbBuiltElement.style.display = 'none';
+            return;
+        }
+
+        try {
+            const date = new Date(dbBuiltString);
+
+            // Check for invalid date
+            if (isNaN(date.getTime())) {
+                console.warn("renderFormattedDbBuilt: Invalid date string:", dbBuiltString);
+                prettyDbBuiltElement.textContent = 'Invalid Date';
+                prettyDbBuiltElement.style.display = '';
+                originalDbBuiltElement.style.display = 'none';
+                return;
+            }
+
+            // Format date to a more human-readable form (without time for DB built)
+            const formattedDate = date.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+            });
+
+            // Update the content of the pretty date element
+            prettyDbBuiltElement.textContent = formattedDate;
+
+            // Hide the original and show the pretty one
+            originalDbBuiltElement.style.display = 'none';
+            prettyDbBuiltElement.style.display = ''; // Reset to default (inline)
+
+        } catch (error) {
+             console.error("renderFormattedDbBuilt: Error formatting date:", error);
+             prettyDbBuiltElement.textContent = 'Error';
+             prettyDbBuiltElement.style.display = '';
+             originalDbBuiltElement.style.display = 'none';
+        }
+    }
+
+    /**
      * Extracts report metadata (title, name, type, checksum, date) from DOM elements.
      * Formats the data for use in report exports (PDF, Excel messageTop) and
      * generates a sanitized version of the name for use in filenames.
@@ -1311,6 +1384,8 @@
         const typeElem = document.getElementById('typeValue');
         const checksumElem = document.getElementById('checksumValue');
         const dateElem = document.getElementById('prettyDateElement');
+        const grypeVersionElem = document.getElementById('grypeVersion');
+        const dbBuiltElem = document.getElementById('prettyDbBuiltElement');
 
         // Extract text content with fallbacks
         const title = titleElem ? titleElem.textContent.trim() : 'Vulnerability Report';
@@ -1318,6 +1393,8 @@
         const type = typeElem ? typeElem.textContent.trim() : 'N/A';
         const checksum = checksumElem ? checksumElem.textContent.trim() : 'N/A';
         const dateText = dateElem ? dateElem.textContent.trim() : 'N/A';
+        const grypeVersion = grypeVersionElem ? grypeVersionElem.textContent.trim() : 'N/A';
+        const dbBuilt = dbBuiltElem ? dbBuiltElem.textContent.trim() : 'N/A';
 
         // Sanitize the name for use as a filename (allow letters, numbers, ., _, -)
         const safeName = name.replace(/[^a-z0-9._-]+/gi, '_').replace(/_+/g, '_');
@@ -1328,7 +1405,14 @@
         if (checksumElem && checksum !== 'N/A') {
             message += `Checksum: ${checksum}\n`;
         }
-        message += `Date: ${dateText}\n\n`;
+        message += `Date: ${dateText}\n`;
+        if (grypeVersion !== 'N/A') {
+            message += `Grype Version: ${grypeVersion}\n`;
+        }
+        if (dbBuilt !== 'N/A') {
+            message += `Vuln DB: ${dbBuilt}\n`;
+        }
+        message += `\n`;
 
         return {
             title,    // Report title
@@ -1531,7 +1615,10 @@
         // 2. Format the timestamp in the header
         renderFormattedTimestamp();
 
-        // 3. Initialize the main DataTable
+        // 3. Format the DB built date in the header
+        renderFormattedDbBuilt();
+
+        // 4. Initialize the main DataTable
         initDataTable();
         
     });
