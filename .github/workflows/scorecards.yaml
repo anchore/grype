@@ -1,22 +1,19 @@
-name: Scorecards supply-chain security
+name: Scorecards
 on:
-  # Only the default branch is supported.
-  branch_protection_rule:
   push:
     branches: [ "main" ]
-
-# Declare default permissions as read only.
-permissions: read-all
+  schedule:
+    - cron: '0 0 * * 1'  # weekly on Monday
+  workflow_dispatch:
 
 jobs:
   analysis:
     name: Scorecards analysis
     runs-on: ubuntu-latest
     permissions:
-      # Needed to upload the results to code-scanning dashboard.
-      security-events: write
-      # Used to receive a badge.
-      id-token: write
+      contents: read
+      security-events: write  # upload results to code-scanning dashboard
+      id-token: write         # receive a badge
 
     steps:
       - name: "Checkout code"
