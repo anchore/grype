@@ -163,6 +163,9 @@ jobs:
           name: snapshot
           path: snapshot
 
+      - name: Restore executable permissions
+        run: chmod -R +x snapshot/**/grype
+
       - name: Restore install.sh test image cache
         id: install-test-image-cache
         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 #v5.0.4
@@ -200,6 +203,9 @@ jobs:
           name: snapshot
           path: snapshot
 
+      - name: Restore executable permissions
+        run: chmod -R +x snapshot/**/grype
+
       - name: Restore docker image cache for compare testing
         id: mac-compare-testing-cache
         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 #v5.0.4
@@ -235,6 +241,9 @@ jobs:
         with:
           name: snapshot
           path: snapshot
+
+      - name: Restore executable permissions
+        run: chmod -R +x snapshot/**/grype
 
       - name: Run CLI Tests (Linux)
         run: make cli
