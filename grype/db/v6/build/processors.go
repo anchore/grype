@@ -11,6 +11,7 @@ import (
 	"github.com/anchore/grype/grype/db/v6/build/transformers/kev"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/msrc"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/nvd"
+	"github.com/anchore/grype/grype/db/v6/build/transformers/csafvex"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/openvex"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/os"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/osv"
@@ -54,6 +55,7 @@ func Processors(cfg Config) []data.Processor {
 		processors.NewV2EPSSProcessor(epss.Transform),
 		processors.NewV2OpenVEXProcessor(openvex.Transform),
 		processors.NewV2AnnotatedOpenVEXProcessor(openvex.AnnotatedTransform),
+		processors.NewV2CSAFVEXProcessor(csafvex.Transform),
 		// EOL processor must be last to update existing OS records
 		processors.NewV2EOLProcessor(eol.Transform),
 	}
