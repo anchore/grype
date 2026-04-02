@@ -317,7 +317,6 @@ func Test_NewDistroFromRelease(t *testing.T) {
 			assert.Equal(t, tt.minor, distro.MinorVersion(), "unexpected minor version")
 		})
 	}
-
 }
 
 func Test_NewDistroFromRelease_Coverage(t *testing.T) {
@@ -512,6 +511,11 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Type:         PostmarketOS,
 			Version:      "edge",
 			LabelVersion: "edge",
+		},
+		{
+			Name:    "testdata/os/hummingbird",
+			Type:    Hummingbird,
+			Version: "20251124",
 		},
 	}
 

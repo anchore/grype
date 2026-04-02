@@ -1,8 +1,13 @@
+# only pull in version updates that were released more than a week ago (low-pass filter for quickly-retracted releases)
+cooldown: 7d
+
 tools:
+  ## internal tools ############################################################################
+
   # we want to use a pinned version of binny to manage the toolchain (so binny manages itself!)
   - name: binny
     version:
-      want: v0.12.0
+      want: v0.13.0
     method: github-release
     with:
       repo: anchore/binny
@@ -10,7 +15,7 @@ tools:
   # used to produce SBOMs during release
   - name: syft
     version:
-      want: latest
+      want: v1.42.3
     method: github-release
     with:
       repo: anchore/syft
@@ -22,6 +27,16 @@ tools:
     method: github-release
     with:
       repo: anchore/quill
+
+  # used at release to generate the changelog
+  - name: chronicle
+    version:
+      want: v0.8.0
+    method: github-release
+    with:
+      repo: anchore/chronicle
+
+  ## external tools ############################################################################
 
   # used for linting
   - name: golangci-lint
@@ -50,7 +65,7 @@ tools:
   # used to release all artifacts
   - name: goreleaser
     version:
-      want: v2.14.3
+      want: v2.15.2
     method: github-release
     with:
       repo: goreleaser/goreleaser
@@ -62,14 +77,6 @@ tools:
     method: github-release
     with:
       repo: rinchsan/gosimports
-
-  # used at release to generate the changelog
-  - name: chronicle
-    version:
-      want: v0.8.0
-    method: github-release
-    with:
-      repo: anchore/chronicle
 
   # used during static analysis for license compliance
   - name: bouncer
@@ -90,7 +97,7 @@ tools:
   # used for triggering a release
   - name: gh
     version:
-      want: v2.88.1
+      want: v2.89.0
     method: github-release
     with:
       repo: cli/cli
