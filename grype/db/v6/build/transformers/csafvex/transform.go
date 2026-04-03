@@ -23,19 +23,16 @@ func Transform(advisory unmarshal.CSAFVEXAdvisory, state provider.State) ([]data
 
 	var allEntries []data.Entry
 
-	for i := range advisory.Vulnerabilites {
-		vuln := &advisory.Vulnerabilites[i]
-		entries, err := transformVulnerability(vuln, &advisory, productIndex, state)
-		if err != nil {
-			return nil, fmt.Errorf("failed to transform vulnerability %s: %w", vuln.CVE, err)
-		}
+	for i := range advisory.Vulnerabilities {
+		vuln := &advisory.Vulnerabilities[i]
+		entries := transformVulnerability(vuln, &advisory, productIndex, state)
 		allEntries = append(allEntries, entries...)
 	}
 
 	return allEntries, nil
 }
 
-func transformVulnerability(vuln *unmarshal.CSAFVulnerability, advisory *unmarshal.CSAFVEXAdvisory, idx *productIndex, state provider.State) ([]data.Entry, error) {
+func transformVulnerability(vuln *unmarshal.CSAFVulnerability, advisory *unmarshal.CSAFVEXAdvisory, idx *productIndex, state provider.State) []data.Entry {
 	vulnName := vuln.CVE
 
 	severities := getSeverities(vuln)
@@ -57,15 +54,12 @@ func transformVulnerability(vuln *unmarshal.CSAFVulnerability, advisory *unmarsh
 		},
 	}
 
-	pkgs, err := getPackageHandles(vuln, idx)
-	if err != nil {
-		return nil, err
-	}
+	pkgs := getPackageHandles(vuln, idx)
 
 	in := []any{vulnHandle}
 	in = append(in, pkgs...)
 
-	return transformers.NewEntries(in...), nil
+	return transformers.NewEntries(in...)
 }
 
 // ── product tree indexing ────────────────────────────────────────────
@@ -139,9 +133,9 @@ func (idx *productIndex) indexBranch(b *unmarshal.CSAFBranch) {
 
 // ── package handles ──────────────────────────────────────────────────
 
-func getPackageHandles(vuln *unmarshal.CSAFVulnerability, idx *productIndex) ([]any, error) {
+func getPackageHandles(vuln *unmarshal.CSAFVulnerability, idx *productIndex) []any {
 	if vuln.ProductStatus == nil {
-		return nil, nil
+		return nil
 	}
 
 	// build a set of product IDs that have a vendor_fix remediation, and their fix URLs
@@ -188,7 +182,7 @@ func getPackageHandles(vuln *unmarshal.CSAFVulnerability, idx *productIndex) ([]
 		all = append(all, uphs[i])
 	}
 
-	return all, nil
+	return all
 }
 
 func makeAffectedHandle(productID string, vuln *unmarshal.CSAFVulnerability, idx *productIndex, remediations map[string]*unmarshal.CSAFRemediation) (*db.AffectedPackageHandle, error) {
@@ -384,15 +378,16 @@ func getOperatingSystem(productID string, idx *productIndex) *db.OperatingSystem
 func osFromCPE(cpe string) *db.OperatingSystem {
 	// handle both cpe:/ and cpe:2.3: formats
 	var parts []string
-	if strings.HasPrefix(cpe, "cpe:/") {
+	switch {
+	case strings.HasPrefix(cpe, "cpe:/"):
 		// URI format: cpe:/part:vendor:product:version
 		remainder := strings.TrimPrefix(cpe, "cpe:/")
 		parts = strings.Split(remainder, ":")
-	} else if strings.HasPrefix(cpe, "cpe:2.3:") {
+	case strings.HasPrefix(cpe, "cpe:2.3:"):
 		// formatted string: cpe:2.3:part:vendor:product:version:...
 		remainder := strings.TrimPrefix(cpe, "cpe:2.3:")
 		parts = strings.Split(remainder, ":")
-	} else {
+	default:
 		return nil
 	}
 

@@ -6,24 +6,24 @@ import "io"
 // relevant to vulnerability-database ingestion are included; the full CSAF
 // spec has many more optional fields that we intentionally omit.
 type CSAFVEXAdvisory struct {
-	Document      CSAFDocument      `json:"document"`
-	ProductTree   CSAFProductTree   `json:"product_tree"`
-	Vulnerabilites []CSAFVulnerability `json:"vulnerabilities"`
+	Document        CSAFDocument        `json:"document"`
+	ProductTree     CSAFProductTree     `json:"product_tree"`
+	Vulnerabilities []CSAFVulnerability `json:"vulnerabilities"`
 }
 
 // ── document metadata ────────────────────────────────────────────────
 
 type CSAFDocument struct {
-	Category          string                `json:"category"`
-	CSAFVersion       string                `json:"csaf_version"`
-	Title             string                `json:"title"`
-	Lang              string                `json:"lang,omitempty"`
+	Category          string                 `json:"category"`
+	CSAFVersion       string                 `json:"csaf_version"`
+	Title             string                 `json:"title"`
+	Lang              string                 `json:"lang,omitempty"`
 	AggregateSeverity *CSAFAggregateSeverity `json:"aggregate_severity,omitempty"`
-	Distribution      *CSAFDistribution     `json:"distribution,omitempty"`
-	Notes             []CSAFNote            `json:"notes,omitempty"`
-	Publisher         CSAFPublisher         `json:"publisher"`
-	References        []CSAFReference       `json:"references,omitempty"`
-	Tracking          CSAFTracking          `json:"tracking"`
+	Distribution      *CSAFDistribution      `json:"distribution,omitempty"`
+	Notes             []CSAFNote             `json:"notes,omitempty"`
+	Publisher         CSAFPublisher          `json:"publisher"`
+	References        []CSAFReference        `json:"references,omitempty"`
+	Tracking          CSAFTracking           `json:"tracking"`
 }
 
 type CSAFAggregateSeverity struct {
@@ -50,17 +50,17 @@ type CSAFPublisher struct {
 }
 
 type CSAFTracking struct {
-	CurrentReleaseDate string          `json:"current_release_date"`
-	Generator          *CSAFGenerator  `json:"generator,omitempty"`
-	ID                 string          `json:"id"`
-	InitialReleaseDate string          `json:"initial_release_date"`
-	RevisionHistory    []CSAFRevision  `json:"revision_history,omitempty"`
-	Status             string          `json:"status"`
-	Version            string          `json:"version"`
+	CurrentReleaseDate string         `json:"current_release_date"`
+	Generator          *CSAFGenerator `json:"generator,omitempty"`
+	ID                 string         `json:"id"`
+	InitialReleaseDate string         `json:"initial_release_date"`
+	RevisionHistory    []CSAFRevision `json:"revision_history,omitempty"`
+	Status             string         `json:"status"`
+	Version            string         `json:"version"`
 }
 
 type CSAFGenerator struct {
-	Date   string             `json:"date,omitempty"`
+	Date   string               `json:"date,omitempty"`
 	Engine *CSAFGeneratorEngine `json:"engine,omitempty"`
 }
 
@@ -102,8 +102,8 @@ type CSAFBranch struct {
 }
 
 type CSAFProduct struct {
-	Name                        string                        `json:"name"`
-	ProductID                   string                        `json:"product_id"`
+	Name                        string                           `json:"name"`
+	ProductID                   string                           `json:"product_id"`
 	ProductIdentificationHelper *CSAFProductIdentificationHelper `json:"product_identification_helper,omitempty"`
 }
 
@@ -113,10 +113,10 @@ type CSAFProductIdentificationHelper struct {
 }
 
 type CSAFRelationship struct {
-	Category                   string      `json:"category"`
-	FullProductName            CSAFProduct `json:"full_product_name"`
-	ProductReference           string      `json:"product_reference"`
-	RelatesToProductReference  string      `json:"relates_to_product_reference"`
+	Category                  string      `json:"category"`
+	FullProductName           CSAFProduct `json:"full_product_name"`
+	ProductReference          string      `json:"product_reference"`
+	RelatesToProductReference string      `json:"relates_to_product_reference"`
 }
 
 // ── vulnerabilities ──────────────────────────────────────────────────
