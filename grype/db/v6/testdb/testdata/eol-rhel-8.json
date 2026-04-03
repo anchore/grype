@@ -1,0 +1,32 @@
+{
+  "codename": null,
+  "custom": null,
+  "eoasFrom": "2024-05-31",
+  "eoesFrom": "2032-05-31",
+  "eolFrom": "2029-05-31",
+  "identifiers": [
+    {
+      "id": "cpe:/o:redhat:enterprise_linux",
+      "type": "cpe"
+    },
+    {
+      "id": "cpe:2.3:o:redhat:enterprise_linux",
+      "type": "cpe"
+    }
+  ],
+  "isEoas": true,
+  "isEoes": false,
+  "isEol": false,
+  "isLts": false,
+  "isMaintained": true,
+  "label": "8 (Upcoming ELS)",
+  "latest": {
+    "date": "2024-05-22",
+    "link": "https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/8.10_release_notes/index",
+    "name": "8.10"
+  },
+  "ltsFrom": "2029-05-31",
+  "name": "8",
+  "product": "rhel",
+  "releaseDate": "2019-05-07"
+}

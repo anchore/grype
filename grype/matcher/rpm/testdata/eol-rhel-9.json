@@ -1,0 +1,32 @@
+{
+  "codename": null,
+  "custom": null,
+  "eoasFrom": "2027-05-31",
+  "eoesFrom": "2035-05-31",
+  "eolFrom": "2032-05-31",
+  "identifiers": [
+    {
+      "id": "cpe:/o:redhat:enterprise_linux",
+      "type": "cpe"
+    },
+    {
+      "id": "cpe:2.3:o:redhat:enterprise_linux",
+      "type": "cpe"
+    }
+  ],
+  "isEoas": false,
+  "isEoes": false,
+  "isEol": false,
+  "isLts": false,
+  "isMaintained": true,
+  "label": "9 (Upcoming ELS)",
+  "latest": {
+    "date": "2025-11-12",
+    "link": "https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9/html/9.7_release_notes/index",
+    "name": "9.7"
+  },
+  "ltsFrom": "2032-05-31",
+  "name": "9",
+  "product": "rhel",
+  "releaseDate": "2022-05-18"
+}

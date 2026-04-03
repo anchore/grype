@@ -270,6 +270,13 @@ tasks:
       # for CLI test fixtures
       - "cd test/cli/testdata && make cache.fingerprint"
 
+  update-test-fixtures:
+    desc: Re-extract vunnel test fixtures from local vunnel cache
+    vars:
+      VUNNEL_ROOT: '{{ .VUNNEL_ROOT | default "../grype-db/data/vunnel" }}'
+    cmds:
+      - "go run ./grype/db/v6/testdb/cmd/extract-fixture --manifest grype/db/v6/testdb/testdata/manifest.json --vunnel-root {{ .VUNNEL_ROOT }}"
+
   show-test-image-cache:
     silent: true
     cmds:

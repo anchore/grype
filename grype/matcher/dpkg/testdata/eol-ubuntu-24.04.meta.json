@@ -1,0 +1,5 @@
+{
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/eol/schema-1.0.0.json",
+  "identifier": "ubuntu:24.04",
+  "provider": "eol"
+}
