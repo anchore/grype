@@ -1,6 +1,5 @@
 # only pull in version updates that were released more than a week ago (low-pass filter for quickly-retracted releases)
 cooldown: 7d
-
 tools:
   ## internal tools ############################################################################
 
@@ -36,10 +35,9 @@ tools:
     with:
       repo: anchore/chronicle
 
-  ## external tools ############################################################################
-
   # used for linting
-  - name: golangci-lint
+  - name
+    ## external tools ############################################################################: golangci-lint
     version:
       want: v2.11.4
     method: github-release
