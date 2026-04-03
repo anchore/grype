@@ -261,16 +261,16 @@ func compareByKEV(a, b Match) int {
 }
 
 func epssPercentile(es []EPSS) float64 {
-	switch len(es) {
-	case 0:
+	if len(es) == 0 {
 		return 0.0
-	case 1:
-		return es[0].Percentile
 	}
-	sort.Slice(es, func(i, j int) bool {
-		return es[i].Percentile > es[j].Percentile
-	})
-	return es[0].Percentile
+	max := es[0].Percentile
+	for _, e := range es[1:] {
+		if e.Percentile > max {
+			max = e.Percentile
+		}
+	}
+	return max
 }
 
 // severityPriority maps severity strings to numeric priority for comparison (the lowest value is most severe)
