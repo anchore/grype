@@ -37,6 +37,7 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+	var ignores []match.IgnoreFilter
 	matches := make([]match.Match, 0)
 
 	sourceMatches, err := m.matchUpstreamPackages(store, p)
@@ -57,7 +58,7 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	// if configured, also search by CPEs for packages from EOL distros
 	if m.cfg.UseCPEsForEOL && internal.IsDistroEOL(store, p.Distro) {
 		log.WithFields("package", p.Name, "distro", p.Distro).Debug("distro is EOL, searching by CPEs")
-		cpeMatches, err := internal.MatchPackageByCPEs(store, p, m.Type())
+		cpeMatches, ignored, err := internal.MatchPackageByCPEs(store, p, m.Type())
 		switch {
 		case errors.Is(err, internal.ErrEmptyCPEMatch):
 			log.WithFields("package", p.Name).Debug("package has no CPEs for EOL fallback matching")
@@ -65,10 +66,11 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 			log.WithFields("package", p.Name, "error", err).Debug("failed to match by CPEs for EOL distro")
 		default:
 			matches = append(matches, cpeMatches...)
+			ignores = append(ignores, ignored...)
 		}
 	}
 
-	return matches, nil, nil
+	return matches, ignores, nil
 }
 
 func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Package) ([]match.Match, error) {

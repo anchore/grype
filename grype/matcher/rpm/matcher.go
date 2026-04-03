@@ -42,35 +42,39 @@ func (m *Matcher) Type() match.MatcherType {
 //nolint:funlen
 func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	var matches []match.Match
+	var ignored []match.IgnoreFilter
 
 	// Handle AlmaLinux matching at the top level before the binary/upstream split
 	// AlmaLinux matching needs to handle both binary and upstream packages internally
 	if p.Distro != nil && shouldUseAlmaLinuxMatching(p.Distro) {
-		almaMatches, err := m.matchAlmaLinux(vp, p)
+		almaMatches, ignores, err := m.matchAlmaLinux(vp, p)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to match AlmaLinux: %w", err)
 		}
 		matches = append(matches, almaMatches...)
+		ignored = append(ignored, ignores...)
 	} else {
 		// For non-AlmaLinux distros, use the standard binary/upstream split
-		exactMatches, err := m.matchPackage(vp, p)
+		exactMatches, ignores, err := m.matchPackage(vp, p)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
 		}
 
 		matches = append(matches, exactMatches...)
+		ignored = append(ignored, ignores...)
 
-		sourceMatches, err := m.matchUpstreamPackages(vp, p)
+		sourceMatches, ignores, err := m.matchUpstreamPackages(vp, p)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to match by source indirection: %w", err)
 		}
 		matches = append(matches, sourceMatches...)
+		ignored = append(ignored, ignores...)
 	}
 
 	// if configured, also search by CPEs for packages from EOL distros
 	if m.cfg.UseCPEsForEOL && internal.IsDistroEOL(vp, p.Distro) {
 		log.WithFields("package", p.Name, "distro", p.Distro).Debug("distro is EOL, searching by CPEs")
-		cpeMatches, err := internal.MatchPackageByCPEs(vp, p, m.Type())
+		cpeMatches, ignores, err := internal.MatchPackageByCPEs(vp, p, m.Type())
 		switch {
 		case errors.Is(err, internal.ErrEmptyCPEMatch):
 			log.WithFields("package", p.Name).Debug("package has no CPEs for EOL fallback matching")
@@ -78,23 +82,24 @@ func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match
 			log.WithFields("package", p.Name, "error", err).Debug("failed to match by CPEs for EOL distro")
 		default:
 			matches = append(matches, cpeMatches...)
+			ignored = append(ignored, ignores...)
 		}
 	}
 
-	return matches, nil, nil
+	return matches, ignored, nil
 }
 
 // matchAlmaLinux handles AlmaLinux-specific matching logic that considers both binary and upstream packages
 // This must be called at the top level (before the binary/upstream split) because AlmaLinux matching
 // needs to search for RHEL disclosures for both the binary package and its upstreams, then filter
 // using AlmaLinux unaffected records for both the binary package and related packages
-func (m *Matcher) matchAlmaLinux(vp vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchAlmaLinux(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	if p.Distro == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 	if isUnknownVersion(p.Version) {
 		log.WithFields("package", p.Name).Trace("skipping package with unknown version")
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	provider := result.NewProvider(vp, p, m.Type())
@@ -122,7 +127,7 @@ func (m *Matcher) matchAlmaLinux(vp vulnerability.Provider, p pkg.Package) ([]ma
 // comparison for the above-mentioned reasons --essentially for the source RPM
 // case). To do this, we fill in missing epoch values in the package versions with
 // an explicit 0.
-func (m *Matcher) matchPackage(vp vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchPackage(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	provider := result.NewProvider(vp, p, m.Type())
 
 	// we want to ensure that the version ALWAYS has an epoch specified... but at the same time we do not want to modify the
@@ -130,12 +135,12 @@ func (m *Matcher) matchPackage(vp vulnerability.Provider, p pkg.Package) ([]matc
 	// then patch the epoch into the version of the package that we are searching with.
 	addEpochIfApplicable(&p)
 
-	matches, err := m.findMatches(provider, p)
+	matches, ignores, err := m.findMatches(provider, p)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
+		return nil, nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
 	}
 
-	return matches, nil
+	return matches, ignores, nil
 }
 
 // matchUpstreamPackages finds matches with a synthetic package based on the sourceRPM (indirect match).
@@ -180,29 +185,31 @@ func (m *Matcher) matchPackage(vp vulnerability.Provider, p pkg.Package) ([]matc
 // being compared (in our example, no perl epoch on one side means we should
 // really assume an epoch of 4 on the other side). This could still lead to
 // problems since an epoch delimits potentially non-comparable version lineages.
-func (m *Matcher) matchUpstreamPackages(vp vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchUpstreamPackages(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	provider := result.NewProvider(vp, p, m.Type())
 
 	var matches []match.Match
+	var ignored []match.IgnoreFilter
 
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, err := m.findMatches(provider, indirectPackage)
+		indirectMatches, ignores, err := m.findMatches(provider, indirectPackage)
 		if err != nil {
-			return nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
+			return nil, nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
 		}
 		matches = append(matches, indirectMatches...)
+		ignored = append(ignored, ignores...)
 	}
 
-	return matches, nil
+	return matches, ignored, nil
 }
 
-func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
+func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	if searchPkg.Distro == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 	if isUnknownVersion(searchPkg.Version) {
 		log.WithFields("package", searchPkg.Name).Trace("skipping package with unknown version")
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	switch {
@@ -213,7 +220,7 @@ func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) (
 	}
 }
 
-func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, error) {
+func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	// Create version with config embedded
 	pkgVersion := version.NewWithConfig(
 		searchPkg.Version,
@@ -223,17 +230,18 @@ func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Packag
 		},
 	)
 
-	disclosures, err := provider.FindResults(
+	all, err := provider.FindResults(
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
 		internal.OnlyQualifiedPackages(searchPkg),
-		internal.OnlyVulnerableVersions(pkgVersion),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
+		return nil, nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
 
-	return disclosures.ToMatches(), nil
+	disclosures := all.Filter(internal.OnlyVulnerableVersions(pkgVersion))
+
+	return disclosures.ToMatches(), internal.OwnershipIgnores(searchPkg, "Distro Not Vulnerable", all.Remove(disclosures).Vulnerabilities()...), nil
 }
 
 func addEpochIfApplicable(p *pkg.Package) {

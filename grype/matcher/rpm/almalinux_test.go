@@ -123,7 +123,7 @@ func TestModularityExcludesDisclosure(t *testing.T) {
 		return result.Set{}, nil
 	}
 
-	_, err := almaLinuxMatchesWithUpstreams(mockProvider, testPkg)
+	_, _, err := almaLinuxMatchesWithUpstreams(mockProvider, testPkg)
 	require.NoError(t, err)
 
 	require.GreaterOrEqual(t, len(capturedCriteria), 2, "FindResults should be called for both RHEL disclosures and AlmaLinux advisories")
@@ -1564,7 +1564,7 @@ func TestAlmaLinuxMatching(t *testing.T) {
 			}
 
 			// Call the matcher
-			matches, err := almaLinuxMatchesWithUpstreams(mockProvider, tt.pkg)
+			matches, _, err := almaLinuxMatchesWithUpstreams(mockProvider, tt.pkg)
 			require.NoError(t, err)
 
 			// Compare matches using cmp.Diff

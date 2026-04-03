@@ -99,14 +99,10 @@ func MatchPackageByDistroWithOwnedFiles(provider vulnerability.Provider, searchP
 	vulnerable := allVulns.Filter(versionCriteria)
 	fixed := allVulns.Remove(vulnerable)
 
-	// The superset query omits version criteria, so match details are missing the searched-by
-	// version. Patch it in from the search package before converting to matches.
-	patchDetailVersion(vulnerable, searchPkg.Version)
-
 	matches := vulnerable.ToMatches()
 
 	// Use the SBOM package (not the synthetic upstream) for file ownership — the upstream package doesn't have file metadata.
-	ignores := OwnershipIgnores(matchPackage(searchPkg, catalogPkg), "DistroPackageFixed", fixed.Vulnerabilities()...)
+	ignores := OwnershipAndPathIgnores(matchPackage(searchPkg, catalogPkg), "DistroPackageFixed", fixed.Vulnerabilities()...)
 
 	return matches, ignores, nil
 }
@@ -150,34 +146,4 @@ func distroMatchDetails(upstreamMatcher match.MatcherType, searchPkg pkg.Package
 
 func isUnknownVersion(v string) bool {
 	return strings.ToLower(v) == "unknown"
-}
-
-// patchDetailVersion fills in the searched-by package version on match details that are missing it.
-// This is needed when results come from a superset query (no version criteria), since
-// result.Provider only populates the version from VersionCriteria in the query.
-func patchDetailVersion(s result.Set, version string) {
-	for _, results := range s {
-		for i := range results {
-			for j := range results[i].Details {
-				d := &results[i].Details[j]
-				switch sb := d.SearchedBy.(type) {
-				case match.DistroParameters:
-					if sb.Package.Version == "" {
-						sb.Package.Version = version
-						d.SearchedBy = sb
-					}
-				case match.EcosystemParameters:
-					if sb.Package.Version == "" {
-						sb.Package.Version = version
-						d.SearchedBy = sb
-					}
-				case match.CPEParameters:
-					if sb.Package.Version == "" {
-						sb.Package.Version = version
-						d.SearchedBy = sb
-					}
-				}
-			}
-		}
-	}
 }
