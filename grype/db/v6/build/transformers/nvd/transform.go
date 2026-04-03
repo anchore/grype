@@ -15,6 +15,7 @@ import (
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/cpe"
 )
@@ -33,10 +34,23 @@ func defaultConfig() Config {
 	}
 }
 
-func getVersionFormat(cpeProduct string) string {
-	if pkg.HasJvmPackageName(cpeProduct) {
+func getVersionFormat(cpe cpe.Attributes, packageSpec *db.PackageSpecifier) string {
+	if pkg.HasJvmPackageName(cpe.Product) {
 		return "jvm"
 	}
+
+	var versionType version.Format
+
+	if packageSpec != nil {
+		versionType = version.ParseFormat(packageSpec.Ecosystem)
+	} else {
+		versionType = version.ParseFormat(cpe.TargetSW)
+	}
+
+	if versionType != version.UnknownFormat {
+		return strings.ToLower(versionType.String())
+	}
+
 	return ""
 }
 
@@ -68,7 +82,14 @@ func transform(cfg Config, vulnerability unmarshal.NVDVulnerability, state provi
 		},
 	}
 
-	for _, a := range getAffected(cfg, vulnerability) {
+	cpeHandles, packageHandles := getAffected(cfg, vulnerability)
+	sort.Sort(internal.ByAffectedPackage(packageHandles))
+
+	for _, a := range cpeHandles {
+		in = append(in, a)
+	}
+
+	for _, a := range packageHandles {
 		in = append(in, a)
 	}
 
@@ -150,19 +171,22 @@ func getVulnStatus(vuln unmarshal.NVDVulnerability) db.VulnerabilityStatus {
 	return db.UnknownVulnerabilityStatus
 }
 
-func getAffected(cfg Config, vulnerability unmarshal.NVDVulnerability) []db.AffectedCPEHandle {
+func getAffected(cfg Config, vulnerability unmarshal.NVDVulnerability) ([]db.AffectedCPEHandle, []db.AffectedPackageHandle) {
 	candidates, err := allCandidates(vulnerability.ID, vulnerability.Configurations, cfg)
 	if err != nil {
 		log.WithFields("error", err).Warn("failed to process affected NVD CPEs")
-		return nil
+		return nil, nil
 	}
 
-	var affs []db.AffectedCPEHandle
+	var affectedCPEHandles []db.AffectedCPEHandle
+	var affectedPackageHandles []db.AffectedPackageHandle
 	for _, candidate := range candidates {
-		affs = append(affs, affectedApplicationPackage(cfg, vulnerability, candidate)...)
+		cpeHandles, packageHandles := affectedApplicationPackage(cfg, vulnerability, candidate)
+		affectedCPEHandles = append(affectedCPEHandles, cpeHandles...)
+		affectedPackageHandles = append(affectedPackageHandles, packageHandles...)
 	}
 
-	return affs
+	return affectedCPEHandles, affectedPackageHandles
 }
 
 func getCWEs(vulnerability unmarshal.NVDVulnerability) []db.CWEHandle {
@@ -204,32 +228,49 @@ func encodeCPEs(cpes []cpe.Attributes) []string {
 	return results
 }
 
-func affectedApplicationPackage(cfg Config, vulnerability unmarshal.NVDVulnerability, p affectedPackageCandidate) []db.AffectedCPEHandle {
-	var affs []db.AffectedCPEHandle
-
+func affectedApplicationPackage(cfg Config, vulnerability unmarshal.NVDVulnerability, p affectedPackageCandidate) ([]db.AffectedCPEHandle, []db.AffectedPackageHandle) {
+	var cpeHandles []db.AffectedCPEHandle
+	var packageHandles []db.AffectedPackageHandle
 	var qualifiers *db.PackageQualifiers
+
+	cpe := getCPEFromAttributes(p.VulnerableCPE)
+
 	if len(p.PlatformCPEs) > 0 {
 		qualifiers = &db.PackageQualifiers{
 			PlatformCPEs: encodeCPEs(p.PlatformCPEs),
 		}
+	} else {
+		// We currently only attempt to create AffectedPackageHandle entries when there are no Platform CPEs.  We may choose to handle
+		// this case in future, but it adds complexity and is not necessary for any of the currently curated mappings
+		if packageSpecs, ok := db.CPEPackageSpecifierLookup[cpe.String()]; ok {
+			for _, packageSpec := range packageSpecs {
+				packageHandles = append(packageHandles, db.AffectedPackageHandle{
+					Package: &db.Package{Name: packageSpec.Name, Ecosystem: packageSpec.Ecosystem, CPEs: []db.Cpe{*cpe}},
+					BlobValue: &db.PackageBlob{
+						CVEs:   []string{vulnerability.ID},
+						Ranges: getRanges(cfg, p.VulnerableCPE, p.Ranges.toSlice(), vulnerability.ID, &packageSpec),
+					},
+				})
+			}
+		}
 	}
 
-	affs = append(affs, db.AffectedCPEHandle{
-		CPE: getCPEFromAttributes(p.VulnerableCPE),
+	cpeHandles = append(cpeHandles, db.AffectedCPEHandle{
+		CPE: cpe,
 		BlobValue: &db.PackageBlob{
 			CVEs:       []string{vulnerability.ID},
 			Qualifiers: qualifiers,
-			Ranges:     getRanges(cfg, p.VulnerableCPE, p.Ranges.toSlice(), vulnerability.ID),
+			Ranges:     getRanges(cfg, p.VulnerableCPE, p.Ranges.toSlice(), vulnerability.ID, nil),
 		},
 	})
 
-	return affs
+	return cpeHandles, packageHandles
 }
 
-func getRanges(cfg Config, c cpe.Attributes, ras []affectedCPERange, vulnID string) []db.Range {
+func getRanges(cfg Config, c cpe.Attributes, ras []affectedCPERange, vulnID string, packageSpec *db.PackageSpecifier) []db.Range {
 	var ranges []db.Range
 	for _, ra := range ras {
-		r := getRange(cfg, c, ra, vulnID)
+		r := getRange(cfg, c, ra, vulnID, packageSpec)
 		if r != nil {
 			ranges = append(ranges, *r)
 		}
@@ -238,13 +279,23 @@ func getRanges(cfg Config, c cpe.Attributes, ras []affectedCPERange, vulnID stri
 	return ranges
 }
 
-func getRange(cfg Config, c cpe.Attributes, ra affectedCPERange, vulnID string) *db.Range {
+func getRange(cfg Config, c cpe.Attributes, ra affectedCPERange, vulnID string, packageSpec *db.PackageSpecifier) *db.Range {
+	v := db.Version{
+		Type:       getVersionFormat(c, packageSpec),
+		Constraint: ra.String(),
+	}
+
+	if v.Type != "" {
+		err := internal.ValidateAffectedVersion(v)
+		if err != nil {
+			log.Warnf("failed to validate affected version for cve=%s: %v", vulnID, err)
+			v.Type = ""
+		}
+	}
+
 	return &db.Range{
-		Version: db.Version{
-			Type:       getVersionFormat(c.Product),
-			Constraint: ra.String(),
-		},
-		Fix: getFix(cfg, c, ra, vulnID),
+		Version: v,
+		Fix:     getFix(cfg, c, ra, vulnID),
 	}
 }
 
