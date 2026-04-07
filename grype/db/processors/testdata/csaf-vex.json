@@ -1,0 +1,102 @@
+{
+  "document": {
+    "aggregate_severity": {"namespace": "https://access.redhat.com/security/updates/classification/", "text": "Moderate"},
+    "category": "csaf_vex",
+    "csaf_version": "2.0",
+    "publisher": {
+      "category": "vendor",
+      "contact_details": "https://access.redhat.com/security/team/contact/",
+      "issuing_authority": "Red Hat Product Security",
+      "name": "Red Hat Product Security",
+      "namespace": "https://www.redhat.com"
+    },
+    "title": "Test CSAF VEX advisory",
+    "tracking": {
+      "current_release_date": "2026-03-20T12:00:00+00:00",
+      "generator": {"date": "2026-03-20T12:00:00+00:00", "engine": {"name": "test", "version": "1.0"}},
+      "id": "CVE-2026-12345",
+      "initial_release_date": "2026-03-01T00:00:00+00:00",
+      "revision_history": [{"date": "2026-03-20T12:00:00+00:00", "number": "1", "summary": "Current"}],
+      "status": "final",
+      "version": "1"
+    }
+  },
+  "product_tree": {
+    "branches": [{
+      "category": "vendor",
+      "name": "Red Hat",
+      "branches": [
+        {
+          "category": "product_name",
+          "name": "Red Hat Hardened Images",
+          "product": {
+            "name": "Red Hat Hardened Images",
+            "product_id": "hummingbird-1",
+            "product_identification_helper": {"cpe": "cpe:/a:redhat:hummingbird:1"}
+          }
+        },
+        {
+          "category": "product_version",
+          "name": "testpkg",
+          "product": {
+            "name": "testpkg",
+            "product_id": "testpkg-0:1.2.3-1.hum1.src",
+            "product_identification_helper": {"purl": "pkg:rpm/redhat/testpkg@1.2.3-1.hum1?arch=src"}
+          }
+        },
+        {
+          "category": "product_version",
+          "name": "otherpkg",
+          "product": {
+            "name": "otherpkg",
+            "product_id": "otherpkg",
+            "product_identification_helper": {"purl": "pkg:rpm/redhat/otherpkg"}
+          }
+        }
+      ]
+    }],
+    "relationships": [
+      {
+        "category": "default_component_of",
+        "full_product_name": {"name": "testpkg as component of hummingbird", "product_id": "hummingbird-1:testpkg-0:1.2.3-1.hum1.src"},
+        "product_reference": "testpkg-0:1.2.3-1.hum1.src",
+        "relates_to_product_reference": "hummingbird-1"
+      },
+      {
+        "category": "default_component_of",
+        "full_product_name": {"name": "otherpkg as component of hummingbird", "product_id": "hummingbird-1:otherpkg"},
+        "product_reference": "otherpkg",
+        "relates_to_product_reference": "hummingbird-1"
+      }
+    ]
+  },
+  "vulnerabilities": [{
+    "cve": "CVE-2026-12345",
+    "title": "Test vulnerability",
+    "notes": [{"category": "description", "text": "A test vulnerability.", "title": "Description"}],
+    "release_date": "2026-03-01T00:00:00+00:00",
+    "product_status": {
+      "fixed": ["hummingbird-1:testpkg-0:1.2.3-1.hum1.src"],
+      "known_not_affected": ["hummingbird-1:otherpkg"]
+    },
+    "remediations": [{
+      "category": "vendor_fix",
+      "date": "2026-03-20T00:00:00+00:00",
+      "details": "Update to latest version",
+      "product_ids": ["hummingbird-1:testpkg-0:1.2.3-1.hum1.src"],
+      "url": "https://access.redhat.com/errata/RHSA-2026:1234"
+    }],
+    "scores": [{
+      "cvss_v3": {
+        "attackComplexity": "LOW", "attackVector": "NETWORK", "availabilityImpact": "NONE",
+        "baseScore": 5.3, "baseSeverity": "MEDIUM", "confidentialityImpact": "LOW",
+        "integrityImpact": "NONE", "privilegesRequired": "NONE", "scope": "UNCHANGED",
+        "userInteraction": "NONE",
+        "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N", "version": "3.1"
+      },
+      "products": ["hummingbird-1:testpkg-0:1.2.3-1.hum1.src", "hummingbird-1:otherpkg"]
+    }],
+    "threats": [{"category": "impact", "details": "Moderate"}],
+    "references": [{"category": "self", "summary": "CVE page", "url": "https://access.redhat.com/security/cve/CVE-2026-12345"}]
+  }]
+}
