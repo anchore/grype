@@ -306,12 +306,6 @@ func filterVulns(vulnerabilities []vulnerability.Vulnerability, details match.De
 nextVulnerability:
 	for _, v := range vulnerabilities {
 		for _, c := range criteria {
-			if versionCriteria, ok := c.(*search.VersionCriteria); ok {
-				// The superset query omits version criteria, so match details are missing the searched-by
-				// version. Patch it in from the search package before converting to matches.
-				details = patchDetailVersion(details, versionCriteria.Version.Raw)
-			}
-
 			matches, dropReason, err := c.MatchesVulnerability(v)
 			if err != nil {
 				return nil, details, err
@@ -320,6 +314,11 @@ nextVulnerability:
 				vulnerability.LogDropped(v.ID, "filterVulns", dropReason, c)
 				continue nextVulnerability
 			}
+
+			if versionCriteria, ok := c.(*search.VersionCriteria); ok {
+				// version info needs to be captured when applicable, until there is a better audit mechanism
+				details = patchDetailVersion(details, versionCriteria.Version.Raw)
+			}
 		}
 		out = append(out, v)
 	}
@@ -327,8 +326,6 @@ nextVulnerability:
 }
 
 // patchDetailVersion fills in the searched-by package version on match details that are missing it.
-// This is needed when results come from a superset query (no version criteria), since
-// result.Provider only populates the version from VersionCriteria in the query.
 func patchDetailVersion(details match.Details, version string) match.Details {
 	for i := range details {
 		d := &details[i]

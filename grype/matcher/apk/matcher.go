@@ -257,5 +257,5 @@ func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Pack
 		naks = append(naks, upstreamNaks...)
 	}
 
-	return internal.OwnershipAndPathIgnores(p, "Explicit APK NAK", naks...), nil
+	return internal.OwnershipIgnores(p, "Explicit APK NAK", naks...), nil
 }
