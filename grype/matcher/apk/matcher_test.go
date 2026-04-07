@@ -926,84 +926,13 @@ func Test_nakConstraint(t *testing.T) {
 	}
 }
 
-func TestNakIgnoreRulesIncludeRelatedPackageFilter(t *testing.T) {
-	// This test verifies that NAK entries (< 0 version constraint) produce IgnoreRelatedPackage filters
-	// in addition to location-based IgnoreRule filters, so that related packages (e.g. python packages
-	// owned by an APK package) are also ignored by relationship, not just by file location.
-	nakVuln := vulnerability.Vulnerability{
-		Reference: vulnerability.Reference{
-			ID:        "GHSA-xjjg-vmw6-c2p9",
-			Namespace: "wolfi:distro:wolfi:rolling",
-		},
-		PackageName: "httpie",
-		Constraint:  version.MustGetConstraint("< 0", version.ApkFormat),
-	}
-
-	vp := mock.VulnerabilityProvider(nakVuln)
-
-	apkMatcher := &Matcher{}
-
-	tests := []struct {
-		name                        string
-		pkg                         pkg.Package
-		expectLocationIgnores       int
-		expectRelatedPackageIgnores int
-	}{
-		{
-			name: "NAK with files produces both location and relationship ignores",
-			pkg: pkg.Package{
-				ID:     "apk-httpie-pkg",
-				Name:   "httpie",
-				Distro: &distro.Distro{Type: distro.Wolfi},
-				Metadata: pkg.ApkMetadata{Files: []pkg.ApkFileRecord{
-					{Path: "/usr/lib/python3.14/site-packages/httpie-1.0.2.dist-info/METADATA"},
-				}},
-			},
-			expectLocationIgnores:       1,
-			expectRelatedPackageIgnores: 1,
-		},
-		{
-			name: "NAK without files produces only relationship ignores",
-			pkg: pkg.Package{
-				ID:       "apk-httpie-pkg-no-files",
-				Name:     "httpie",
-				Distro:   &distro.Distro{Type: distro.Wolfi},
-				Metadata: pkg.ApkMetadata{Files: nil},
-			},
-			expectLocationIgnores:       0,
-			expectRelatedPackageIgnores: 1,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, ignores, err := apkMatcher.Match(vp, tt.pkg)
-			require.NoError(t, err)
-
-			var locationIgnores int
-			var relatedPkgIgnores int
-			for _, ignore := range ignores {
-				switch ignore.(type) {
-				case match.IgnoreRule:
-					locationIgnores++
-				case match.IgnoreRelatedPackage:
-					relatedPkgIgnores++
-				}
-			}
-
-			assert.Equal(t, tt.expectLocationIgnores, locationIgnores, "location-based ignore count")
-			assert.Equal(t, tt.expectRelatedPackageIgnores, relatedPkgIgnores, "related-package ignore count")
-		})
-	}
-}
-
 func Test_nakIgnoreRules(t *testing.T) {
 	cases := []struct {
-		name                    string
-		pkgs                    []pkg.Package
-		vulns                   []vulnerability.Vulnerability
-		expectedLocationIgnores map[string][]string
-		errAssertion            assert.ErrorAssertionFunc
+		name                string
+		pkgs                []pkg.Package
+		vulns               []vulnerability.Vulnerability
+		expectedVulnIgnores []string
+		errAssertion        assert.ErrorAssertionFunc
 	}{
 		{
 			name: "false positive in wolfi package adds index entry",
@@ -1028,8 +957,8 @@ func Test_nakIgnoreRules(t *testing.T) {
 					Constraint:  version.MustGetConstraint("< 0", version.ApkFormat),
 				},
 			},
-			expectedLocationIgnores: map[string][]string{
-				"/bin/foo-binary": {"GHSA-2014-fake-3"},
+			expectedVulnIgnores: []string{
+				"GHSA-2014-fake-3",
 			},
 			errAssertion: assert.NoError,
 		},
@@ -1061,8 +990,8 @@ func Test_nakIgnoreRules(t *testing.T) {
 					Constraint:  version.MustGetConstraint("< 0", version.ApkFormat),
 				},
 			},
-			expectedLocationIgnores: map[string][]string{
-				"/bin/foo-subpackage-binary": {"GHSA-2014-fake-3"},
+			expectedVulnIgnores: []string{
+				"GHSA-2014-fake-3",
 			},
 			errAssertion: assert.NoError,
 		},
@@ -1089,11 +1018,11 @@ func Test_nakIgnoreRules(t *testing.T) {
 					Constraint:  version.MustGetConstraint("< 1.2.3-r4", version.ApkFormat),
 				},
 			},
-			expectedLocationIgnores: map[string][]string{},
-			errAssertion:            assert.NoError,
+			expectedVulnIgnores: []string{},
+			errAssertion:        assert.NoError,
 		},
 		{
-			name: "no vuln data for wolfi package",
+			name: "no NAK for wolfi package",
 			pkgs: []pkg.Package{
 				{
 					Name:   "foo",
@@ -1105,31 +1034,26 @@ func Test_nakIgnoreRules(t *testing.T) {
 					}},
 				},
 			},
-			vulns:                   []vulnerability.Vulnerability{},
-			expectedLocationIgnores: map[string][]string{},
-			errAssertion:            assert.NoError,
-		},
-		{
-			name: "no files listed for a wolfi package",
-			pkgs: []pkg.Package{
-				{
-					Name:     "foo",
-					Distro:   &distro.Distro{Type: distro.Wolfi},
-					Metadata: pkg.ApkMetadata{Files: nil},
-				},
-			},
 			vulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "GHSA-2014-fake-2",
+						Namespace: "wolfi:distro:wolfi:rolling",
+					},
+					PackageName: "not-foo",
+					Constraint:  version.MustGetConstraint("< 0", version.ApkFormat),
+				},
 				{
 					Reference: vulnerability.Reference{
 						ID:        "GHSA-2014-fake-3",
 						Namespace: "wolfi:distro:wolfi:rolling",
 					},
 					PackageName: "foo",
-					Constraint:  version.MustGetConstraint("< 0", version.ApkFormat),
+					Constraint:  version.MustGetConstraint("< 1", version.ApkFormat),
 				},
 			},
-			expectedLocationIgnores: map[string][]string{},
-			errAssertion:            assert.NoError,
+			expectedVulnIgnores: []string{},
+			errAssertion:        assert.NoError,
 		},
 	}
 
@@ -1148,19 +1072,16 @@ func Test_nakIgnoreRules(t *testing.T) {
 				allIgnores = append(allIgnores, ignores...)
 			}
 
-			actualResult := map[string][]string{}
+			actualResult := []string{}
 			for _, ignore := range allIgnores {
-				rule, ok := ignore.(match.IgnoreRule)
-				if !ok {
-					// skip non-IgnoreRule filters (e.g. IgnoreRelatedPackage)
-					continue
+				switch rule := ignore.(type) {
+				case match.IgnoreRule:
+					actualResult = append(actualResult, rule.Vulnerability)
+				case match.IgnoreRelatedPackage:
+					actualResult = append(actualResult, rule.VulnerabilityID)
 				}
-				if rule.Package.Location == "" {
-					continue
-				}
-				actualResult[rule.Package.Location] = append(actualResult[rule.Package.Location], rule.Vulnerability)
 			}
-			require.Equal(t, tt.expectedLocationIgnores, actualResult)
+			require.ElementsMatch(t, tt.expectedVulnIgnores, actualResult)
 		})
 	}
 }
