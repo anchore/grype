@@ -999,7 +999,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			actual, _, err := MatchPackageByCPEs(newCPETestStore(), test.p, matcher)
+			actual, err := MatchPackageByCPEs(newCPETestStore(), test.p, matcher)
 			if test.wantErr == nil {
 				test.wantErr = require.NoError
 			}

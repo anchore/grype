@@ -31,14 +31,13 @@ func MatchPackageByEcosystemPackageNameAndCPEs(store vulnerability.Provider, p p
 		log.Debugf("could not match by package ecosystem (package=%+v): %v", p, err)
 	}
 	if includeCPEs {
-		cpeMatches, ignores, err := MatchPackageByCPEs(store, p, matcher)
+		cpeMatches, err := MatchPackageByCPEs(store, p, matcher)
 		if errors.Is(err, ErrEmptyCPEMatch) {
 			log.Debugf("attempted CPE search on %s, which has no CPEs. Consider re-running with --add-cpes-if-none", p.Name)
 		} else if err != nil {
 			log.Debugf("could not match by package CPE (package=%+v): %v", p, err)
 		}
 		matches = append(matches, cpeMatches...)
-		ignored = append(ignored, ignores...)
 	}
 	return matches, ignored, nil
 }

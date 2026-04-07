@@ -1484,7 +1484,7 @@ func TestRedhatEUSMatches(t *testing.T) {
 
 			resultProvider := result.NewProvider(vulnProvider, tt.catalogPkg, match.RpmMatcher)
 
-			got, _, err := redhatEUSMatches(resultProvider, *tt.searchPkg, "zero")
+			got, err := redhatEUSMatches(resultProvider, *tt.searchPkg, "zero")
 			tt.wantErr(t, err)
 
 			if err != nil {

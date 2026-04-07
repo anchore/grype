@@ -163,7 +163,7 @@ func shouldUseRedhatEUSMatching(d *distro.Distro) bool {
 // Any disclosure that does not apply to the original package version (e.g. a fix was found) at this point has been removed.
 //
 // The final step is to render the final matches from the merged collection.
-func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package, missingEpochStrategy version.MissingEpochStrategy) ([]match.Match, []match.IgnoreFilter, error) {
+func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package, missingEpochStrategy version.MissingEpochStrategy) ([]match.Match, error) {
 	distroWithoutEUS := *searchPkg.Distro
 	distroWithoutEUS.Channels = nil // clear the EUS channel so that we can search for the base distro
 
@@ -184,11 +184,11 @@ func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package, missingEp
 		internal.OnlyVulnerableVersions(pkgVersion), // if these records indicate the version of the package is not vulnerable, do not include them
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
+		return nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
 
 	if len(disclosures) == 0 {
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	// find all base distro fixes (e.g. '>= 9.0 && < 10') and EUS fixes for the package in the specific minor version of the distro (e.g. '9.4+eus')
@@ -202,7 +202,7 @@ func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package, missingEp
 	)
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("matcher failed to fetch resolutions for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
+		return nil, fmt.Errorf("matcher failed to fetch resolutions for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
 
 	eusFixes := resolutions.Filter(search.ByFixedVersion(*pkgVersion))
@@ -218,7 +218,7 @@ func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package, missingEp
 	// Note: we pass searchPkg.Distro (the EUS distro) to filter out fixes not reachable for this EUS version
 	remaining = remaining.Merge(resolutions, mergeEUSAdvisoriesIntoMainDisclosures(pkgVersion, searchPkg.Distro))
 
-	return remaining.ToMatches(), internal.OwnershipIgnores(searchPkg, "Distro Not Vulnerable", eusFixes.Vulnerabilities()...), err
+	return remaining.ToMatches(), err
 }
 
 // mergeEUSAdvisoriesIntoMainDisclosures returns a function that will filter disclosures based on the provided advisory information (by fix version only).
