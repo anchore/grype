@@ -6,6 +6,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/uuid"
+	"github.com/scylladb/go-set/strset"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/grype/vulnerability/mock"
+	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -925,18 +927,18 @@ func Test_nakConstraint(t *testing.T) {
 	}
 }
 
-func Test_nakIgnoreRules(t *testing.T) {
+func Test_ignoreFilters(t *testing.T) {
 	cases := []struct {
-		name                    string
-		pkgs                    []pkg.Package
-		vulns                   []vulnerability.Vulnerability
-		expectedLocationIgnores map[string][]string
-		errAssertion            assert.ErrorAssertionFunc
+		name            string
+		pkgs            []pkg.Package
+		vulns           []vulnerability.Vulnerability
+		expectedIgnores []match.IgnoreFilter
 	}{
 		{
-			name: "false positive in wolfi package adds index entry",
+			name: "NAK in wolfi package",
 			pkgs: []pkg.Package{
 				{
+					ID:     "foo-id",
 					Name:   "foo",
 					Distro: &distro.Distro{Type: distro.Wolfi},
 					Metadata: pkg.ApkMetadata{Files: []pkg.ApkFileRecord{
@@ -956,15 +958,20 @@ func Test_nakIgnoreRules(t *testing.T) {
 					Constraint:  version.MustGetConstraint("< 0", version.ApkFormat),
 				},
 			},
-			expectedLocationIgnores: map[string][]string{
-				"/bin/foo-binary": {"GHSA-2014-fake-3"},
+			expectedIgnores: []match.IgnoreFilter{
+				match.IgnoreRelatedPackage{
+					Reason:           "Explicit APK NAK",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "GHSA-2014-fake-3",
+					RelatedPackageID: "foo-id",
+				},
 			},
-			errAssertion: assert.NoError,
 		},
 		{
-			name: "false positive in wolfi subpackage adds index entry",
+			name: "NAK in upstream wolfi package",
 			pkgs: []pkg.Package{
 				{
+					ID:     "subpackage-foo-id",
 					Name:   "subpackage-foo",
 					Distro: &distro.Distro{Type: distro.Wolfi},
 					Metadata: pkg.ApkMetadata{Files: []pkg.ApkFileRecord{
@@ -989,17 +996,23 @@ func Test_nakIgnoreRules(t *testing.T) {
 					Constraint:  version.MustGetConstraint("< 0", version.ApkFormat),
 				},
 			},
-			expectedLocationIgnores: map[string][]string{
-				"/bin/foo-subpackage-binary": {"GHSA-2014-fake-3"},
+			expectedIgnores: []match.IgnoreFilter{
+				match.IgnoreRelatedPackage{
+					Reason:           "Explicit APK NAK",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "GHSA-2014-fake-3",
+					RelatedPackageID: "subpackage-foo-id",
+				},
 			},
-			errAssertion: assert.NoError,
 		},
 		{
-			name: "fixed vuln (not a false positive) in wolfi package",
+			name: "fixed vuln (not a NAK) in wolfi package",
 			pkgs: []pkg.Package{
 				{
-					Name:   "foo",
-					Distro: &distro.Distro{Type: distro.Wolfi},
+					ID:      "foo-id",
+					Name:    "foo",
+					Version: "1.2.4",
+					Distro:  &distro.Distro{Type: distro.Wolfi},
 					Metadata: pkg.ApkMetadata{Files: []pkg.ApkFileRecord{
 						{
 							Path: "/bin/foo-binary",
@@ -1017,11 +1030,82 @@ func Test_nakIgnoreRules(t *testing.T) {
 					Constraint:  version.MustGetConstraint("< 1.2.3-r4", version.ApkFormat),
 				},
 			},
-			expectedLocationIgnores: map[string][]string{},
-			errAssertion:            assert.NoError,
+			expectedIgnores: []match.IgnoreFilter{
+				match.IgnoreRelatedPackage{
+					Reason:           "DistroPackageFixed",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "GHSA-2014-fake-3",
+					RelatedPackageID: "foo-id",
+				},
+			},
 		},
 		{
-			name: "no vuln data for wolfi package",
+			name: "fixed vuln (not a NAK) in upstream wolfi package",
+			pkgs: []pkg.Package{
+				{
+					ID:      "foo-id",
+					Name:    "foo",
+					Version: "1.2.4",
+					Distro:  &distro.Distro{Type: distro.Wolfi},
+					Metadata: pkg.ApkMetadata{Files: []pkg.ApkFileRecord{
+						{
+							Path: "/bin/foo-binary",
+						},
+					}},
+					Upstreams: []pkg.UpstreamPackage{
+						{
+							Name: "origin-foo",
+						},
+					},
+				},
+			},
+			vulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "GHSA-2014-fake-3",
+						Namespace: "wolfi:distro:wolfi:rolling",
+					},
+					PackageName: "origin-foo",
+					Constraint:  version.MustGetConstraint("< 1.2.3-r4", version.ApkFormat),
+				},
+			},
+			expectedIgnores: []match.IgnoreFilter{
+				match.IgnoreRelatedPackage{
+					Reason:           "DistroPackageFixed",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "GHSA-2014-fake-3",
+					RelatedPackageID: "foo-id",
+				},
+			},
+		},
+		{
+			name: "vulnerable (not a NAK or fixed) in wolfi package",
+			pkgs: []pkg.Package{
+				{
+					Name:    "foo",
+					Distro:  &distro.Distro{Type: distro.Wolfi},
+					Version: "1.2.2",
+					Metadata: pkg.ApkMetadata{Files: []pkg.ApkFileRecord{
+						{
+							Path: "/bin/foo-binary",
+						},
+					}},
+				},
+			},
+			vulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "GHSA-2014-fake-3",
+						Namespace: "wolfi:distro:wolfi:rolling",
+					},
+					PackageName: "foo",
+					Constraint:  version.MustGetConstraint("< 1.2.3-r4", version.ApkFormat),
+				},
+			},
+			expectedIgnores: nil,
+		},
+		{
+			name: "no NAK or vulns for wolfi package",
 			pkgs: []pkg.Package{
 				{
 					Name:   "foo",
@@ -1033,31 +1117,25 @@ func Test_nakIgnoreRules(t *testing.T) {
 					}},
 				},
 			},
-			vulns:                   []vulnerability.Vulnerability{},
-			expectedLocationIgnores: map[string][]string{},
-			errAssertion:            assert.NoError,
-		},
-		{
-			name: "no files listed for a wolfi package",
-			pkgs: []pkg.Package{
-				{
-					Name:     "foo",
-					Distro:   &distro.Distro{Type: distro.Wolfi},
-					Metadata: pkg.ApkMetadata{Files: nil},
-				},
-			},
 			vulns: []vulnerability.Vulnerability{
+				{
+					Reference: vulnerability.Reference{
+						ID:        "GHSA-2014-fake-2",
+						Namespace: "wolfi:distro:wolfi:rolling",
+					},
+					PackageName: "not-foo",
+					Constraint:  version.MustGetConstraint("< 0", version.ApkFormat),
+				},
 				{
 					Reference: vulnerability.Reference{
 						ID:        "GHSA-2014-fake-3",
 						Namespace: "wolfi:distro:wolfi:rolling",
 					},
-					PackageName: "foo",
-					Constraint:  version.MustGetConstraint("< 0", version.ApkFormat),
+					PackageName: "not-foo",
+					Constraint:  version.MustGetConstraint("< 1", version.ApkFormat),
 				},
 			},
-			expectedLocationIgnores: map[string][]string{},
-			errAssertion:            assert.NoError,
+			expectedIgnores: nil,
 		},
 	}
 
@@ -1067,27 +1145,185 @@ func Test_nakIgnoreRules(t *testing.T) {
 			vp := mock.VulnerabilityProvider(tt.vulns...)
 			apkMatcher := &Matcher{}
 
-			var allMatches []match.Match
-			var allIgnores []match.IgnoreFilter
+			var actualResult []match.IgnoreFilter
 			for _, p := range tt.pkgs {
-				matches, ignores, err := apkMatcher.Match(vp, p)
+				_, ignores, err := apkMatcher.Match(vp, p)
 				require.NoError(t, err)
-				allMatches = append(allMatches, matches...)
-				allIgnores = append(allIgnores, ignores...)
+				actualResult = append(actualResult, ignores...)
 			}
 
-			actualResult := map[string][]string{}
-			for _, ignore := range allIgnores {
-				rule, ok := ignore.(match.IgnoreRule)
-				if !ok {
-					require.Fail(t, "expected ignore to be of type IgnoreRule")
-				}
-				if rule.Package.Location == "" {
-					require.Fail(t, "expected package location to be set in ignore rule")
-				}
-				actualResult[rule.Package.Location] = append(actualResult[rule.Package.Location], rule.Vulnerability)
+			require.ElementsMatch(t, tt.expectedIgnores, actualResult)
+		})
+	}
+}
+
+func TestMatcherApk_DistroFixedIgnoreRules(t *testing.T) {
+	apkNamespace := "secdb:distro:wolfi:rolling"
+
+	apkFiles := pkg.ApkMetadata{Files: []pkg.ApkFileRecord{
+		{Path: "/usr/bin/kyverno"},
+		{Path: "/usr/lib/kyverno/config"},
+	}}
+
+	tests := []struct {
+		name                  string
+		p                     pkg.Package
+		vulnerabilities       []vulnerability.Vulnerability
+		expectedIgnoreVulnIDs []string
+		expectedMatchIDs      []string
+	}{
+		{
+			name: "package already at fixed version - should produce location-scoped ignore rules but no matches",
+			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "kyverno",
+				Version:  "1.15.3-r0",
+				Type:     syftPkg.ApkPkg,
+				Distro:   distro.New(distro.Wolfi, "", ""),
+				Metadata: apkFiles,
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "kyverno",
+					Constraint:  version.MustGetConstraint("< 1.15.3-r0", version.ApkFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2026-22039", Namespace: apkNamespace},
+				},
+			},
+			// one rule per owned path
+			expectedIgnoreVulnIDs: []string{"CVE-2026-22039"},
+			expectedMatchIDs:      nil,
+		},
+		{
+			name: "package still vulnerable - should produce matches but no ignore rules",
+			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "kyverno",
+				Version:  "1.14.5-r0",
+				Type:     syftPkg.ApkPkg,
+				Distro:   distro.New(distro.Wolfi, "", ""),
+				Metadata: apkFiles,
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "kyverno",
+					Constraint:  version.MustGetConstraint("< 1.15.3-r0", version.ApkFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2026-22039", Namespace: apkNamespace},
+				},
+			},
+			expectedIgnoreVulnIDs: nil,
+			expectedMatchIDs:      []string{"CVE-2026-22039"},
+		},
+		{
+			name: "no distro data for the package - no ignore rules (search miss allows GHSA to stand)",
+			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "something-obscure",
+				Version:  "1.0.0-r0",
+				Type:     syftPkg.ApkPkg,
+				Distro:   distro.New(distro.Wolfi, "", ""),
+				Metadata: apkFiles,
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "kyverno",
+					Constraint:  version.MustGetConstraint("< 1.15.3-r0", version.ApkFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2026-22039", Namespace: apkNamespace},
+				},
+			},
+			expectedIgnoreVulnIDs: nil,
+			expectedMatchIDs:      nil,
+		},
+		{
+			name: "upstream package is fixed - should produce location-scoped ignore rules",
+			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "kyverno-cli",
+				Version:  "1.15.3-r0",
+				Type:     syftPkg.ApkPkg,
+				Distro:   distro.New(distro.Wolfi, "", ""),
+				Metadata: apkFiles,
+				Upstreams: []pkg.UpstreamPackage{
+					{
+						Name:    "kyverno",
+						Version: "1.15.3-r0",
+					},
+				},
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "kyverno",
+					Constraint:  version.MustGetConstraint("< 1.15.3-r0", version.ApkFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2026-22039", Namespace: apkNamespace},
+				},
+			},
+			// one rule per owned path
+			expectedIgnoreVulnIDs: []string{"CVE-2026-22039"},
+			expectedMatchIDs:      nil,
+		},
+		{
+			name: "fixed CVE with related GHSA - ignore rules include both IDs at all paths",
+			p: pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "kyverno",
+				Version:  "1.15.3-r0",
+				Type:     syftPkg.ApkPkg,
+				Distro:   distro.New(distro.Wolfi, "", ""),
+				Metadata: apkFiles,
+			},
+			vulnerabilities: []vulnerability.Vulnerability{
+				{
+					PackageName: "kyverno",
+					Constraint:  version.MustGetConstraint("< 1.15.3-r0", version.ApkFormat),
+					Reference:   vulnerability.Reference{ID: "CVE-2026-22039", Namespace: apkNamespace},
+					RelatedVulnerabilities: []vulnerability.Reference{
+						{ID: "GHSA-8p9x-46gm-qfx2", Namespace: "github:language:go"},
+					},
+				},
+			},
+			// 2 IDs × 2 paths = 4 rules
+			expectedIgnoreVulnIDs: []string{"CVE-2026-22039", "GHSA-8p9x-46gm-qfx2"},
+			expectedMatchIDs:      nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			matcher := Matcher{}
+
+			store := mock.VulnerabilityProvider(test.vulnerabilities...)
+			matches, ignoreFilters, err := matcher.Match(store, test.p)
+			require.NoError(t, err)
+
+			// verify matches
+			var gotMatchIDs []string
+			for _, m := range matches {
+				gotMatchIDs = append(gotMatchIDs, m.Vulnerability.ID)
 			}
-			require.Equal(t, tt.expectedLocationIgnores, actualResult)
+			if test.expectedMatchIDs == nil {
+				assert.Empty(t, gotMatchIDs, "expected no matches")
+			} else {
+				assert.ElementsMatch(t, test.expectedMatchIDs, gotMatchIDs, "unexpected match IDs")
+			}
+
+			// verify ignore rules - filter to only DistroPackageFixed rules (not NAK rules)
+			gotIgnoreIDs := strset.New()
+			for _, filter := range ignoreFilters {
+				related, ok := filter.(match.IgnoreRelatedPackage)
+				if ok {
+					gotIgnoreIDs.Add(related.VulnerabilityID)
+					continue
+				}
+				rule, ok := filter.(match.IgnoreRule)
+				require.True(t, ok, "expected IgnoreRule or IgnoreRelatedPackage types")
+				gotIgnoreIDs.Add(rule.Vulnerability)
+				assert.True(t, rule.IncludeAliases, "expected IncludeAliases to be true")
+				assert.NotEmpty(t, rule.Package.Location, "expected location to be set on DistroPackageFixed rule")
+			}
+			if test.expectedIgnoreVulnIDs == nil {
+				assert.Empty(t, gotIgnoreIDs.List(), "expected no ignore rules")
+			} else {
+				assert.ElementsMatch(t, test.expectedIgnoreVulnIDs, gotIgnoreIDs.List(), "unexpected ignore rule vulnerability IDs")
+			}
 		})
 	}
 }

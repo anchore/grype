@@ -989,7 +989,7 @@ func TestFromCollection_DoesNotPanic(t *testing.T) {
 	collection.Add(examplePackage)
 
 	assert.NotPanics(t, func() {
-		_ = FromCollection(collection, SynthesisConfig{})
+		_ = FromCollection(collection, nil, SynthesisConfig{})
 	})
 }
 
@@ -1010,12 +1010,12 @@ func TestFromCollection_GeneratesCPEs(t *testing.T) {
 	})
 
 	// doesn't generate cpes when no flag
-	pkgs := FromCollection(collection, SynthesisConfig{})
+	pkgs := FromCollection(collection, nil, SynthesisConfig{})
 	assert.Len(t, pkgs[0].CPEs, 1)
 	assert.Len(t, pkgs[1].CPEs, 0)
 
 	// does generate cpes with the flag
-	pkgs = FromCollection(collection, SynthesisConfig{
+	pkgs = FromCollection(collection, nil, SynthesisConfig{
 		GenerateMissingCPEs: true,
 	})
 	assert.Len(t, pkgs[0].CPEs, 1)
@@ -1059,6 +1059,281 @@ func Test_getNameAndELVersion(t *testing.T) {
 
 func intRef(i int) *int {
 	return &i
+}
+
+func TestFromPackages_OwnershipByFileOverlap(t *testing.T) {
+	tests := []struct {
+		name                   string
+		syftPkgs               []syftPkg.Package
+		relationships          []artifact.Relationship
+		expectOverlapRelated   map[string][]string // pkg name -> names of related packages via overlap
+		expectNoOverlapRelated []string            // pkg names that should have no overlap relationships
+	}{
+		{
+			name: "recreates overlap relationships from owned files when no overlap relationships exist",
+			syftPkgs: func() []syftPkg.Package {
+				// APK package that owns /usr/bin/python3
+				apk := syftPkg.Package{
+					Name:    "python3",
+					Version: "3.9.2",
+					Type:    syftPkg.ApkPkg,
+					Metadata: syftPkg.ApkDBEntry{
+						Files: []syftPkg.ApkFileRecord{
+							{Path: "/usr/bin/python3"},
+						},
+					},
+				}
+				apk.SetID()
+
+				// binary package located at /usr/bin/python3
+				bin := syftPkg.Package{
+					Name:    "python",
+					Version: "3.9.2",
+					Type:    syftPkg.BinaryPkg,
+					Locations: file.NewLocationSet(
+						file.NewLocation("/usr/bin/python3"),
+					),
+				}
+				bin.SetID()
+
+				return []syftPkg.Package{apk, bin}
+			}(),
+			relationships: nil, // no relationships provided
+			expectOverlapRelated: map[string][]string{
+				"python": {"python3"}, // binary pkg should have overlap relationship to apk pkg
+			},
+			expectNoOverlapRelated: []string{"python3"},
+		},
+		{
+			name: "does not recreate overlap when overlap relationships already exist",
+			syftPkgs: func() []syftPkg.Package {
+				apk := syftPkg.Package{
+					Name:    "python3",
+					Version: "3.9.2",
+					Type:    syftPkg.ApkPkg,
+					Metadata: syftPkg.ApkDBEntry{
+						Files: []syftPkg.ApkFileRecord{
+							{Path: "/usr/bin/python3"},
+						},
+					},
+				}
+				apk.SetID()
+
+				bin := syftPkg.Package{
+					Name:    "python",
+					Version: "3.9.2",
+					Type:    syftPkg.BinaryPkg,
+					Locations: file.NewLocationSet(
+						file.NewLocation("/usr/bin/python3"),
+					),
+				}
+				bin.SetID()
+
+				return []syftPkg.Package{apk, bin}
+			}(),
+			relationships: func() []artifact.Relationship {
+				apk := syftPkg.Package{
+					Name:    "python3",
+					Version: "3.9.2",
+					Type:    syftPkg.ApkPkg,
+					Metadata: syftPkg.ApkDBEntry{
+						Files: []syftPkg.ApkFileRecord{
+							{Path: "/usr/bin/python3"},
+						},
+					},
+				}
+				apk.SetID()
+
+				bin := syftPkg.Package{
+					Name:    "python",
+					Version: "3.9.2",
+					Type:    syftPkg.BinaryPkg,
+					Locations: file.NewLocationSet(
+						file.NewLocation("/usr/bin/python3"),
+					),
+				}
+				bin.SetID()
+
+				return []artifact.Relationship{
+					{
+						From: apk,
+						To:   bin,
+						Type: artifact.OwnershipByFileOverlapRelationship,
+					},
+				}
+			}(),
+			// when relationships already exist, the existing relationship is used (inverted: bin -> apk)
+			expectOverlapRelated: map[string][]string{
+				"python": {"python3"},
+			},
+			expectNoOverlapRelated: []string{"python3"},
+		},
+		{
+			name: "no overlap relationship when locations do not match owned files",
+			syftPkgs: func() []syftPkg.Package {
+				apk := syftPkg.Package{
+					Name:    "python3",
+					Version: "3.9.2",
+					Type:    syftPkg.ApkPkg,
+					Metadata: syftPkg.ApkDBEntry{
+						Files: []syftPkg.ApkFileRecord{
+							{Path: "/usr/bin/python3"},
+						},
+					},
+				}
+				apk.SetID()
+
+				bin := syftPkg.Package{
+					Name:    "node",
+					Version: "18.0.0",
+					Type:    syftPkg.BinaryPkg,
+					Locations: file.NewLocationSet(
+						file.NewLocation("/usr/bin/node"), // different path
+					),
+				}
+				bin.SetID()
+
+				return []syftPkg.Package{apk, bin}
+			}(),
+			relationships:          nil,
+			expectNoOverlapRelated: []string{"python3", "node"},
+		},
+		{
+			name: "does not create self-referencing overlap relationship",
+			syftPkgs: func() []syftPkg.Package {
+				// package that owns the same location it is found at
+				apk := syftPkg.Package{
+					Name:    "bash",
+					Version: "5.1",
+					Type:    syftPkg.ApkPkg,
+					Locations: file.NewLocationSet(
+						file.NewLocation("/usr/bin/bash"),
+					),
+					Metadata: syftPkg.ApkDBEntry{
+						Files: []syftPkg.ApkFileRecord{
+							{Path: "/usr/bin/bash"},
+						},
+					},
+				}
+				apk.SetID()
+
+				return []syftPkg.Package{apk}
+			}(),
+			relationships:          nil,
+			expectNoOverlapRelated: []string{"bash"},
+		},
+		{
+			name: "multiple packages sharing owned file location",
+			syftPkgs: func() []syftPkg.Package {
+				apk := syftPkg.Package{
+					Name:    "openssl",
+					Version: "1.1.1",
+					Type:    syftPkg.ApkPkg,
+					Metadata: syftPkg.ApkDBEntry{
+						Files: []syftPkg.ApkFileRecord{
+							{Path: "/usr/lib/libssl.so"},
+						},
+					},
+				}
+				apk.SetID()
+
+				apk2 := syftPkg.Package{
+					Name:    "openssl-libs",
+					Version: "1.1.1",
+					Type:    syftPkg.ApkPkg,
+					Metadata: syftPkg.ApkDBEntry{
+						Files: []syftPkg.ApkFileRecord{
+							{Path: "/usr/lib/libssl.so"},
+						},
+					},
+				}
+				apk2.SetID()
+
+				bin := syftPkg.Package{
+					Name:    "openssl-binary",
+					Version: "1.1.1",
+					Type:    syftPkg.BinaryPkg,
+					Locations: file.NewLocationSet(
+						file.NewLocation("/usr/lib/libssl.so"),
+					),
+				}
+				bin.SetID()
+
+				return []syftPkg.Package{apk, apk2, bin}
+			}(),
+			relationships: nil,
+			expectOverlapRelated: map[string][]string{
+				"openssl-binary": {"openssl", "openssl-libs"},
+			},
+			expectNoOverlapRelated: []string{"openssl", "openssl-libs"},
+		},
+		{
+			name: "package without FileOwner metadata does not create overlap",
+			syftPkgs: func() []syftPkg.Package {
+				npm := syftPkg.Package{
+					Name:    "lodash",
+					Version: "4.17.21",
+					Type:    syftPkg.NpmPkg,
+					Locations: file.NewLocationSet(
+						file.NewLocation("/app/node_modules/lodash"),
+					),
+				}
+				npm.SetID()
+
+				npm2 := syftPkg.Package{
+					Name:    "underscore",
+					Version: "1.13.0",
+					Type:    syftPkg.NpmPkg,
+					Locations: file.NewLocationSet(
+						file.NewLocation("/app/node_modules/underscore"),
+					),
+				}
+				npm2.SetID()
+
+				return []syftPkg.Package{npm, npm2}
+			}(),
+			relationships:          nil,
+			expectNoOverlapRelated: []string{"lodash", "underscore"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pkgs := FromPackages(tt.syftPkgs, tt.relationships, SynthesisConfig{})
+
+			pkgByName := map[string]Package{}
+			for _, p := range pkgs {
+				pkgByName[p.Name] = p
+			}
+
+			for pkgName, expectedRelated := range tt.expectOverlapRelated {
+				p, ok := pkgByName[pkgName]
+				if !ok {
+					t.Fatalf("expected package %q not found in results", pkgName)
+				}
+
+				related := p.RelatedPackages[artifact.OwnershipByFileOverlapRelationship]
+				var relatedNames []string
+				for _, r := range related {
+					relatedNames = append(relatedNames, r.Name)
+				}
+
+				assert.ElementsMatch(t, expectedRelated, relatedNames,
+					"package %q should have overlap relationships with %v, got %v", pkgName, expectedRelated, relatedNames)
+			}
+
+			for _, pkgName := range tt.expectNoOverlapRelated {
+				p, ok := pkgByName[pkgName]
+				if !ok {
+					t.Fatalf("expected package %q not found in results", pkgName)
+				}
+
+				related := p.RelatedPackages[artifact.OwnershipByFileOverlapRelationship]
+				assert.Empty(t, related,
+					"package %q should have no overlap relationships, got %d", pkgName, len(related))
+			}
+		})
+	}
 }
 
 func Test_RemovePackagesByOverlap(t *testing.T) {
@@ -1163,7 +1438,7 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			d := distro.FromRelease(test.sbom.Artifacts.LinuxDistribution, distro.DefaultFixChannels())
 			catalog := removePackagesByOverlap(test.sbom.Artifacts.Packages, test.sbom.Relationships, d)
-			pkgs := FromCollection(catalog, SynthesisConfig{})
+			pkgs := FromCollection(catalog, test.sbom.Relationships, SynthesisConfig{})
 			var pkgNames []string
 			for _, p := range pkgs {
 				pkgNames = append(pkgNames, fmt.Sprintf("%s:%s@%s", p.Type, p.Name, p.Version))

@@ -1,0 +1,44 @@
+{
+    "Vulnerability": {
+        "Name": "AVG-2780",
+        "NamespaceName": "arch:rolling",
+        "Description": "unknown",
+        "Severity": "Unknown",
+        "Link": "https://security.archlinux.org/AVG-2780",
+        "CVSS": [],
+        "FixedIn": [
+            {
+                "Name": "wpewebkit",
+                "NamespaceName": "arch:rolling",
+                "VersionFormat": "pacman",
+                "Version": "2.36.4-1",
+                "Module": "",
+                "VendorAdvisory": {
+                    "NoAdvisory": false,
+                    "AdvisorySummary": []
+                },
+                "VulnerableRange": null,
+                "Available": {
+                    "Date": "2026-01-27",
+                    "Kind": "first-observed"
+                }
+            }
+        ],
+        "Metadata": {
+            "CVE": [
+                {
+                    "Name": "CVE-2022-26710",
+                    "Link": "https://nvd.nist.gov/vuln/detail/CVE-2022-26710"
+                },
+                {
+                    "Name": "CVE-2022-22677",
+                    "Link": "https://nvd.nist.gov/vuln/detail/CVE-2022-22677"
+                },
+                {
+                    "Name": "CVE-2022-22662",
+                    "Link": "https://nvd.nist.gov/vuln/detail/CVE-2022-22662"
+                }
+            ]
+        }
+    }
+}

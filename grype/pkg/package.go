@@ -42,6 +42,9 @@ type Package struct {
 	PURL      string       // the Package URL (see https://github.com/package-url/purl-spec)
 	Upstreams []UpstreamPackage
 	Metadata  interface{} // This is NOT 1-for-1 the syft metadata! Only the select data needed for vulnerability matching
+
+	// Related packages may be used for scanning
+	RelatedPackages map[artifact.RelationshipType][]*Package
 }
 
 type Enhancer func(out *Package, purl packageurl.PackageURL, pkg syftPkg.Package)
@@ -60,7 +63,7 @@ func New(p syftPkg.Package, enhancers ...Enhancer) Package {
 	}
 
 	out := Package{
-		ID:        ID(p.ID()),
+		ID:        grypeID(p),
 		Name:      p.Name,
 		Version:   p.Version,
 		Locations: p.Locations,
@@ -86,15 +89,25 @@ func New(p syftPkg.Package, enhancers ...Enhancer) Package {
 	return out
 }
 
-func FromCollection(catalog *syftPkg.Collection, config SynthesisConfig, enhancers ...Enhancer) []Package {
-	return FromPackages(catalog.Sorted(), config, enhancers...)
+func FromCollection(catalog *syftPkg.Collection, relationships []artifact.Relationship, config SynthesisConfig, enhancers ...Enhancer) []Package {
+	return FromPackages(catalog.Sorted(), relationships, config, enhancers...)
 }
 
-func FromPackages(syftPkgs []syftPkg.Package, config SynthesisConfig, enhancers ...Enhancer) []Package {
+// FromPackages creates grype packages from syft packages, including relevant relationship mappings
+//
+//nolint:gocognit,funlen
+func FromPackages(syftPkgs []syftPkg.Package, relationships []artifact.Relationship, config SynthesisConfig, enhancers ...Enhancer) []Package {
 	var pkgs []Package
 
 	// if the user provided a distro explicitly, then use that over any distro that may be inferred from a package url
 	enhancers = append([]Enhancer{applyDistroOverride(config.Distro.Override)}, enhancers...)
+
+	// we track ID to index rather than pointer, since the package may be copied during append operations
+	pkgIdx := make(map[ID]int)
+
+	// use metadata FileOwner to synthesize missing ownership-by-file-overlap relationships in cases
+	// these are not included in the SBOM
+	ownedLocations := map[string][]int{}
 
 	for _, p := range syftPkgs {
 		if len(p.CPEs) == 0 {
@@ -106,7 +119,62 @@ func FromPackages(syftPkgs []syftPkg.Package, config SynthesisConfig, enhancers 
 			}
 		}
 
-		pkgs = append(pkgs, New(p, enhancers...))
+		grypePkg := New(p, enhancers...)
+		idx := len(pkgs)
+		pkgIdx[grypePkg.ID] = idx
+		pkgs = append(pkgs, grypePkg)
+
+		// track all owned locations
+		if owner, ok := p.Metadata.(FileOwner); ok {
+			for _, loc := range owner.OwnedFiles() {
+				ownedLocations[loc] = append(ownedLocations[loc], idx)
+			}
+		}
+	}
+
+	hasOverlapRelationships := false
+	for _, r := range relationships {
+		if !retainRelationshipType(r.Type) {
+			continue
+		}
+		fromPkg, fromOK := pkgIdx[grypeID(r.From)]
+		toPkg, toOK := pkgIdx[grypeID(r.To)]
+		if !fromOK || !toOK {
+			continue
+		}
+
+		if invertRelationship(r.Type) {
+			fromPkg, toPkg = toPkg, fromPkg
+		}
+
+		if pkgs[fromPkg].RelatedPackages == nil {
+			pkgs[fromPkg].RelatedPackages = map[artifact.RelationshipType][]*Package{}
+		}
+
+		// not all SBOMs include this relationship, we want to recreate this if it's missing
+		if r.Type == artifact.OwnershipByFileOverlapRelationship {
+			hasOverlapRelationships = true
+		}
+		pkgs[fromPkg].RelatedPackages[r.Type] = append(pkgs[fromPkg].RelatedPackages[r.Type], &pkgs[toPkg])
+	}
+
+	// recreate overlap-by-file-ownership based on owned files for SBOMs without these relationships
+	if !hasOverlapRelationships && len(ownedLocations) > 0 {
+		for i := range pkgs {
+			for _, loc := range pkgs[i].Locations.ToUnorderedSlice() {
+				if contained, ok := ownedLocations[loc.RealPath]; ok {
+					for _, ownerPackageIndex := range contained {
+						if ownerPackageIndex == i {
+							continue
+						}
+						if pkgs[i].RelatedPackages == nil {
+							pkgs[i].RelatedPackages = map[artifact.RelationshipType][]*Package{}
+						}
+						pkgs[i].RelatedPackages[artifact.OwnershipByFileOverlapRelationship] = append(pkgs[i].RelatedPackages[artifact.OwnershipByFileOverlapRelationship], &pkgs[ownerPackageIndex])
+					}
+				}
+			}
+		}
 	}
 
 	return pkgs
@@ -523,5 +591,29 @@ func applyDistroOverride(override *distro.Distro) Enhancer {
 		}
 		// allow downstream matchers to always consider the given user distro
 		out.Distro = override
+	}
+}
+
+func invertRelationship(relationshipType artifact.RelationshipType) bool {
+	switch relationshipType {
+	case artifact.ContainsRelationship,
+		artifact.OwnershipByFileOverlapRelationship:
+		return true
+	default:
+		return false
+	}
+}
+
+func grypeID(identifiable artifact.Identifiable) ID {
+	return ID(identifiable.ID())
+}
+
+func retainRelationshipType(relationshipType artifact.RelationshipType) bool {
+	switch relationshipType {
+	case artifact.ContainsRelationship,
+		artifact.OwnershipByFileOverlapRelationship:
+		return true
+	default:
+		return false
 	}
 }

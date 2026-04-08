@@ -5,6 +5,7 @@ import (
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
 )
@@ -67,6 +68,17 @@ func (s Set) ToMatches() []match.Match {
 		}
 	}
 
+	return out
+}
+
+// Vulnerabilities returns a flattened slice of all vulnerabilities in the set
+func (s Set) Vulnerabilities() []vulnerability.Vulnerability {
+	var out []vulnerability.Vulnerability
+	for _, results := range s {
+		for _, r := range results {
+			out = append(out, r.Vulnerabilities...)
+		}
+	}
 	return out
 }
 
@@ -262,7 +274,7 @@ func (s Set) Filter(criteria ...vulnerability.Criteria) Set {
 		var filteredResults []Result
 
 		for _, result := range results {
-			vulns, err := filterVulns(result.Vulnerabilities, criteria)
+			vulns, details, err := filterVulns(result.Vulnerabilities, result.Details, criteria)
 			if err != nil {
 				log.WithFields("vulnerability", result.ID, "error", err).Debug("failed to filter vulns")
 				// if there was an error filtering vulnerabilities, keep them all
@@ -275,7 +287,8 @@ func (s Set) Filter(criteria ...vulnerability.Criteria) Set {
 			filteredResults = append(filteredResults, Result{
 				ID:              result.ID,
 				Vulnerabilities: vulns,
-				Details:         result.Details,
+				Details:         details,
+				Package:         result.Package,
 			})
 		}
 
@@ -288,21 +301,51 @@ func (s Set) Filter(criteria ...vulnerability.Criteria) Set {
 	return out
 }
 
-func filterVulns(vulnerabilities []vulnerability.Vulnerability, criteria []vulnerability.Criteria) ([]vulnerability.Vulnerability, error) {
+func filterVulns(vulnerabilities []vulnerability.Vulnerability, details match.Details, criteria []vulnerability.Criteria) ([]vulnerability.Vulnerability, match.Details, error) {
 	var out []vulnerability.Vulnerability
 nextVulnerability:
 	for _, v := range vulnerabilities {
 		for _, c := range criteria {
 			matches, dropReason, err := c.MatchesVulnerability(v)
 			if err != nil {
-				return nil, err
+				return nil, details, err
 			}
 			if !matches {
 				vulnerability.LogDropped(v.ID, "filterVulns", dropReason, c)
 				continue nextVulnerability
 			}
+
+			if versionCriteria, ok := c.(*search.VersionCriteria); ok {
+				// version info needs to be captured when applicable, until there is a better audit mechanism
+				details = patchDetailVersion(details, versionCriteria.Version.Raw)
+			}
 		}
 		out = append(out, v)
 	}
-	return out, nil
+	return out, details, nil
+}
+
+// patchDetailVersion fills in the searched-by package version on match details that are missing it.
+func patchDetailVersion(details match.Details, version string) match.Details {
+	for i := range details {
+		d := &details[i]
+		switch sb := d.SearchedBy.(type) {
+		case match.DistroParameters:
+			if sb.Package.Version == "" {
+				sb.Package.Version = version
+				d.SearchedBy = sb
+			}
+		case match.EcosystemParameters:
+			if sb.Package.Version == "" {
+				sb.Package.Version = version
+				d.SearchedBy = sb
+			}
+		case match.CPEParameters:
+			if sb.Package.Version == "" {
+				sb.Package.Version = version
+				d.SearchedBy = sb
+			}
+		}
+	}
+	return details
 }

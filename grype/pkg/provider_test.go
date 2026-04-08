@@ -1,14 +1,17 @@
 package pkg
 
 import (
+	"os"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/version"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/stereoscope/pkg/imagetest"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/cataloging"
@@ -76,7 +79,51 @@ func TestProviderLocationExcludes(t *testing.T) {
 			}
 
 			var pkgNames []string
+			for _, pkg := range pkgs {
+				pkgNames = append(pkgNames, pkg.Name)
+			}
 
+			assert.ElementsMatch(t, pkgNames, test.expected)
+		})
+	}
+}
+
+func TestProvideFromReader(t *testing.T) {
+	tests := []struct {
+		name     string
+		fixture  string
+		expected []string
+		wantErr  assert.ErrorAssertionFunc
+	}{
+		{
+			name:     "reads packages from reader",
+			fixture:  "testdata/syft-spring.json",
+			expected: []string{"charsets", "tomcat-embed-el"},
+		},
+		{
+			name:    "invalid SBOM returns error",
+			fixture: "testdata/bad-sbom.json",
+			wantErr: assert.Error,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			f, err := os.Open(test.fixture)
+			require.NoError(t, err)
+			defer log.CloseAndLogError(f, test.fixture)
+
+			if test.wantErr == nil {
+				test.wantErr = assert.NoError
+			}
+
+			pkgs, _, _, err := ProvideFromReader(f, ProviderConfig{})
+			test.wantErr(t, err)
+			if err != nil {
+				return
+			}
+
+			var pkgNames []string
 			for _, pkg := range pkgs {
 				pkgNames = append(pkgNames, pkg.Name)
 			}

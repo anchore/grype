@@ -3,6 +3,7 @@ package pkg
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/bmatcuk/doublestar/v2"
@@ -41,6 +42,44 @@ func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom
 
 		if config.Distro.Override == nil {
 			log.Infof("using distro: %s", ctx.Distro.String())
+		}
+	}
+
+	return packages, ctx, s, nil
+}
+
+// ProvideFromReader is like Provide but reads an SBOM directly from the given reader
+// instead of resolving a user input string to a file path.
+func ProvideFromReader(reader io.ReadSeeker, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
+	applyChannel := getDistroChannelApplier(config.Distro.FixChannels)
+	if config.Distro.Override != nil {
+		applyChannel(config.Distro.Override)
+		log.Infof("using distro: %s", config.Distro.Override.String())
+	}
+
+	packages, ctx, s, err := syftSBOMProviderFromReader(reader, config, applyChannel)
+	if err != nil {
+		return nil, Context{}, nil, err
+	}
+	setContextDistro(packages, &ctx)
+
+	if ctx.Distro != nil {
+		for i := range packages {
+			if packages[i].Distro == nil {
+				packages[i].Distro = ctx.Distro
+			}
+		}
+
+		if config.Distro.Override == nil {
+			log.Infof("using distro: %s", ctx.Distro.String())
+		}
+	}
+
+	if len(config.Exclusions) > 0 {
+		var exclusionsErr error
+		packages, exclusionsErr = filterPackageExclusions(packages, config.Exclusions)
+		if exclusionsErr != nil {
+			return nil, ctx, s, exclusionsErr
 		}
 	}
 
@@ -141,9 +180,9 @@ func provide(userInput string, config ProviderConfig, applyChannel func(d *distr
 		return packages, ctx, s, err
 	}
 
-	packages, ctx, s, err = cpeProvider(userInput)
+	packages, ctx, s, err = cpeProvider(userInput, config)
 	if !errors.Is(err, errDoesNotProvide) {
-		log.WithFields("input", userInput).Trace("interpreting input as a CPE")
+		log.WithFields("input", userInput).Trace("interpreting input as a one or more CPEs")
 		return packages, ctx, s, err
 	}
 
