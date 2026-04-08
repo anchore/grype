@@ -102,9 +102,12 @@ func FromPackages(syftPkgs []syftPkg.Package, relationships []artifact.Relations
 	// if the user provided a distro explicitly, then use that over any distro that may be inferred from a package url
 	enhancers = append([]Enhancer{applyDistroOverride(config.Distro.Override)}, enhancers...)
 
-	ownedLocations := map[string][]int{}
-
+	// we track ID to index rather than pointer, since the package may be copied during append operations
 	pkgIdx := make(map[ID]int)
+
+	// use metadata FileOwner to synthesize missing ownership-by-file-overlap relationships in cases
+	// these are not included in the SBOM
+	ownedLocations := map[string][]int{}
 
 	for _, p := range syftPkgs {
 		if len(p.CPEs) == 0 {
