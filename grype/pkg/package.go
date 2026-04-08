@@ -93,13 +93,21 @@ func FromCollection(catalog *syftPkg.Collection, relationships []artifact.Relati
 	return FromPackages(catalog.Sorted(), relationships, config, enhancers...)
 }
 
+// FromPackages creates grype packages from syft packages, including relevant relationship mappings
+//
+//nolint:gocognit,funlen
 func FromPackages(syftPkgs []syftPkg.Package, relationships []artifact.Relationship, config SynthesisConfig, enhancers ...Enhancer) []Package {
 	var pkgs []Package
 
 	// if the user provided a distro explicitly, then use that over any distro that may be inferred from a package url
 	enhancers = append([]Enhancer{applyDistroOverride(config.Distro.Override)}, enhancers...)
 
+	// we track ID to index rather than pointer, since the package may be copied during append operations
 	pkgIdx := make(map[ID]int)
+
+	// use metadata FileOwner to synthesize missing ownership-by-file-overlap relationships in cases
+	// these are not included in the SBOM
+	ownedLocations := map[string][]int{}
 
 	for _, p := range syftPkgs {
 		if len(p.CPEs) == 0 {
@@ -112,10 +120,19 @@ func FromPackages(syftPkgs []syftPkg.Package, relationships []artifact.Relations
 		}
 
 		grypePkg := New(p, enhancers...)
-		pkgIdx[grypePkg.ID] = len(pkgs)
+		idx := len(pkgs)
+		pkgIdx[grypePkg.ID] = idx
 		pkgs = append(pkgs, grypePkg)
+
+		// track all owned locations
+		if owner, ok := p.Metadata.(FileOwner); ok {
+			for _, loc := range owner.OwnedFiles() {
+				ownedLocations[loc] = append(ownedLocations[loc], idx)
+			}
+		}
 	}
 
+	hasOverlapRelationships := false
 	for _, r := range relationships {
 		if !retainRelationshipType(r.Type) {
 			continue
@@ -134,7 +151,30 @@ func FromPackages(syftPkgs []syftPkg.Package, relationships []artifact.Relations
 			pkgs[fromPkg].RelatedPackages = map[artifact.RelationshipType][]*Package{}
 		}
 
+		// not all SBOMs include this relationship, we want to recreate this if it's missing
+		if r.Type == artifact.OwnershipByFileOverlapRelationship {
+			hasOverlapRelationships = true
+		}
 		pkgs[fromPkg].RelatedPackages[r.Type] = append(pkgs[fromPkg].RelatedPackages[r.Type], &pkgs[toPkg])
+	}
+
+	// recreate overlap-by-file-ownership based on owned files for SBOMs without these relationships
+	if !hasOverlapRelationships && len(ownedLocations) > 0 {
+		for i := range pkgs {
+			for _, loc := range pkgs[i].Locations.ToUnorderedSlice() {
+				if contained, ok := ownedLocations[loc.RealPath]; ok {
+					for _, ownerPackageIndex := range contained {
+						if ownerPackageIndex == i {
+							continue
+						}
+						if pkgs[i].RelatedPackages == nil {
+							pkgs[i].RelatedPackages = map[artifact.RelationshipType][]*Package{}
+						}
+						pkgs[i].RelatedPackages[artifact.OwnershipByFileOverlapRelationship] = append(pkgs[i].RelatedPackages[artifact.OwnershipByFileOverlapRelationship], &pkgs[ownerPackageIndex])
+					}
+				}
+			}
+		}
 	}
 
 	return pkgs

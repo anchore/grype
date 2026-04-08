@@ -705,6 +705,63 @@ func TestSet_Filter(t *testing.T) {
 			want: Set{},
 		},
 		{
+			name: "filter with version criteria patches match detail version",
+			receiver: Set{
+				"vuln-1": []Result{
+					{
+						ID: "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference:   vulnerability.Reference{ID: "CVE-2021-1"},
+								PackageName: "test-Package",
+								Constraint:  version.MustGetConstraint("< 2.0.0", version.SemanticFormat),
+							},
+						},
+						Details: match.Details{
+							{
+								Type: match.ExactDirectMatch,
+								SearchedBy: match.EcosystemParameters{
+									Package: match.PackageParameter{
+										Name:    "test-Package",
+										Version: "",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			criteria: []vulnerability.Criteria{
+				search.ByPackageName("test-Package"),
+				search.ByVersion(*version.New("1.0.0", version.SemanticFormat)),
+			},
+			want: Set{
+				"vuln-1": []Result{
+					{
+						ID: "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{
+								Reference:   vulnerability.Reference{ID: "CVE-2021-1"},
+								PackageName: "test-Package",
+								Constraint:  version.MustGetConstraint("< 2.0.0", version.SemanticFormat),
+							},
+						},
+						Details: match.Details{
+							{
+								Type: match.ExactDirectMatch,
+								SearchedBy: match.EcosystemParameters{
+									Package: match.PackageParameter{
+										Name:    "test-Package",
+										Version: "1.0.0",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "filter with no criteria returns original set",
 			receiver: Set{
 				"vuln-1": []Result{
