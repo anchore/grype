@@ -9,16 +9,16 @@ require (
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 	github.com/adrg/xdg v0.5.3
-	github.com/anchore/bubbly v0.0.0-20250717181826-8a411f9d8cbf
-	github.com/anchore/clio v0.0.0-20250715152405-a0fa658e5084
-	github.com/anchore/fangs v0.0.0-20250716230140-94c22408c232
-	github.com/anchore/go-collections v0.0.0-20251016125210-a3c352120e8c
-	github.com/anchore/go-homedir v0.0.0-20250319154043-c29668562e4d
-	github.com/anchore/go-logger v0.0.0-20250318195838-07ae343dd722
+	github.com/anchore/bubbly v0.2.0
+	github.com/anchore/clio v0.1.0
+	github.com/anchore/fangs v0.1.0
+	github.com/anchore/go-collections v0.1.0
+	github.com/anchore/go-homedir v0.1.0
+	github.com/anchore/go-logger v0.1.0
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
-	github.com/anchore/packageurl-go v0.1.1-0.20250220190351-d62adb6e1115
+	github.com/anchore/packageurl-go v0.2.0
 	github.com/anchore/stereoscope v0.1.22
-	github.com/anchore/syft v1.42.3
+	github.com/anchore/syft v1.42.4
 	github.com/aquasecurity/go-pep440-version v0.0.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/bitnami/go-version v0.0.0-20250505154626-452e8c5ee607
@@ -107,10 +107,10 @@ require (
 	github.com/acobaugh/osrelease v0.1.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/anchore/go-lzo v0.1.0 // indirect
-	github.com/anchore/go-macholibre v0.0.0-20250320151634-807da7ad2331 // indirect
-	github.com/anchore/go-rpmdb v0.0.0-20250516171929-f77691e1faec // indirect
+	github.com/anchore/go-macholibre v0.1.0 // indirect
+	github.com/anchore/go-rpmdb v0.1.0 // indirect
 	github.com/anchore/go-struct-converter v0.1.0 // indirect
-	github.com/anchore/go-sync v0.0.0-20250714163430-add63db73ad1 // indirect
+	github.com/anchore/go-sync v0.1.0 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/aquasecurity/go-version v0.0.1 // indirect
@@ -338,8 +338,8 @@ require (
 	google.golang.org/grpc v1.79.3 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	modernc.org/libc v1.67.6 // indirect
+	modernc.org/libc v1.70.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
-	modernc.org/sqlite v1.46.1 // indirect
+	modernc.org/sqlite v1.46.2 // indirect
 )
