@@ -1,6 +1,7 @@
 package rootio
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/anchore/grype/grype/pkg"
@@ -37,7 +38,7 @@ func (r rootIO) Satisfied(p pkg.Package) (bool, error) {
 
 	// NAK Pattern: If vuln requires Root IO but package is NOT Root IO,
 	// suppress the match
-	if !isRootIOPackage(p) {
+	if !IsRootIOPackage(p) {
 		return false, nil
 	}
 
@@ -45,9 +46,9 @@ func (r rootIO) Satisfied(p pkg.Package) (bool, error) {
 	return true, nil
 }
 
-// isRootIOPackage detects if a package is a Root IO package by checking name prefixes and version suffixes.
+// IsRootIOPackage detects if a package is a Root IO package by checking name prefixes and version suffixes.
 // It uses multiple detection strategies to identify Root IO packages across different ecosystems.
-func isRootIOPackage(p pkg.Package) bool {
+func IsRootIOPackage(p pkg.Package) bool {
 	// Strategy 1: Name prefix detection (most reliable)
 	if hasRootIOPrefix(p.Name, p.Type) {
 		return true
@@ -61,13 +62,39 @@ func isRootIOPackage(p pkg.Package) bool {
 	return false
 }
 
+// StripPrefix removes the rootio-specific name prefix from a package name,
+// returning the bare upstream package name.
+func StripPrefix(name string, pkgType syftPkg.Type) string {
+	switch pkgType {
+	case syftPkg.NpmPkg:
+		if strings.HasPrefix(name, "@rootio/") {
+			bare := strings.TrimPrefix(name, "@rootio/")
+			// Scoped packages were encoded with __ separator: babel__core -> @babel/core
+			if idx := strings.Index(bare, "__"); idx > 0 {
+				return fmt.Sprintf("@%s/%s", bare[:idx], bare[idx+2:])
+			}
+			return bare
+		}
+		return strings.TrimPrefix(name, "rootio-")
+
+	case syftPkg.PythonPkg:
+		return strings.TrimPrefix(name, "rootio_")
+
+	case syftPkg.JavaPkg:
+		return strings.TrimPrefix(name, "io.root.")
+
+	default:
+		return strings.TrimPrefix(name, "rootio-")
+	}
+}
+
 // hasRootIOPrefix checks if the package name has a Root IO prefix.
 // Different ecosystems use different prefixes:
 // - OS packages (Alpine, Debian, Ubuntu): "rootio-" prefix
-// - NPM scoped packages: "@rootio/" prefix
+// - NPM scoped packages: "@rootio/" prefix (e.g. "@rootio/express", "@rootio/babel__core")
 // - NPM unscoped packages: "rootio-" prefix
-// - PyPI packages: "rootio-" prefix
-// - Java packages: TBD (placeholder returns false)
+// - PyPI packages: "rootio_" prefix (underscore, e.g. "rootio_requests")
+// - Java/Maven packages: "io.root." prefix on groupId (e.g. "io.root.org.springframework:spring-core")
 func hasRootIOPrefix(name string, pkgType syftPkg.Type) bool {
 	switch pkgType {
 	case syftPkg.NpmPkg:
@@ -79,13 +106,12 @@ func hasRootIOPrefix(name string, pkgType syftPkg.Type) bool {
 		return strings.HasPrefix(name, "rootio-")
 
 	case syftPkg.PythonPkg:
-		// PyPI packages use rootio- prefix
-		return strings.HasPrefix(name, "rootio-")
+		// PyPI packages use rootio_ prefix (underscore, per PyPI naming convention)
+		return strings.HasPrefix(name, "rootio_")
 
 	case syftPkg.JavaPkg:
-		// Java/Maven packages - placeholder until pattern is specified
-		// TODO: Java/Maven detection pattern to be specified by Root IO team
-		return false
+		// Maven packages use io.root. prefix on the groupId
+		return strings.HasPrefix(name, "io.root.")
 
 	default:
 		// For unknown package types, check generic rootio- prefix
@@ -139,8 +165,8 @@ func hasRootIOVersionSuffix(version string, pkgType syftPkg.Type) bool {
 		return false
 
 	case syftPkg.JavaPkg:
-		// Java/Maven packages - placeholder until pattern is specified
-		// TODO: Java/Maven detection pattern to be specified by Root IO team
+		// Java/Maven packages are identified by the "io.root." groupId prefix alone;
+		// no version suffix convention has been defined.
 		return false
 
 	default:

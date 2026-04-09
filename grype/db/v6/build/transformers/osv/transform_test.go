@@ -789,28 +789,47 @@ func TestIsRootIORecord(t *testing.T) {
 
 func TestTransformRootIOFixtures(t *testing.T) {
 	tests := []struct {
-		name        string
-		fixturePath string
+		name               string
+		fixturePath        string
+		expectedPkgName    string
+		expectedCVE        string
+		expectedFixVersion string
 	}{
 		{
-			name:        "Root IO Alpine OS package",
-			fixturePath: "test-fixtures/ROOT-OS-ALPINE-318-CVE-2000-0548.json",
+			name:               "Root IO Alpine OS package",
+			fixturePath:        "test-fixtures/ROOT-OS-ALPINE-318-CVE-2000-0548.json",
+			expectedPkgName:    "rootio-util-linux",
+			expectedCVE:        "CVE-2000-0548",
+			expectedFixVersion: "2.38.1-r10071",
 		},
 		{
-			name:        "Root IO NPM package",
-			fixturePath: "test-fixtures/ROOT-APP-NPM-CVE-2022-25883.json",
+			name:               "Root IO NPM package",
+			fixturePath:        "test-fixtures/ROOT-APP-NPM-CVE-2022-25883.json",
+			expectedPkgName:    "@rootio/semver",
+			expectedCVE:        "CVE-2022-25883",
+			expectedFixVersion: "7.5.2-root.io.1",
 		},
 		{
 			name:        "Root IO PyPI package",
 			fixturePath: "test-fixtures/ROOT-APP-PYPI-CVE-2025-30473.json",
+			// PEP 503 normalization converts rootio_requests → rootio-requests
+			expectedPkgName:    "rootio-requests",
+			expectedCVE:        "CVE-2025-30473",
+			expectedFixVersion: "2.31.0+root.io.1",
 		},
 		{
-			name:        "Root IO Debian package",
-			fixturePath: "test-fixtures/ROOT-OS-DEBIAN-bookworm-CVE-2025-53014.json",
+			name:               "Root IO Debian package",
+			fixturePath:        "test-fixtures/ROOT-OS-DEBIAN-bookworm-CVE-2025-53014.json",
+			expectedPkgName:    "rootio-imagemagick",
+			expectedCVE:        "CVE-2025-53014",
+			expectedFixVersion: "8:7.1.1.43+dfsg1-1+deb13u1.root.io.1",
 		},
 		{
-			name:        "Root IO Ubuntu package",
-			fixturePath: "test-fixtures/ROOT-OS-UBUNTU-2004-CVE-2024-12345.json",
+			name:               "Root IO Ubuntu package",
+			fixturePath:        "test-fixtures/ROOT-OS-UBUNTU-2004-CVE-2024-12345.json",
+			expectedPkgName:    "rootio-openssl",
+			expectedCVE:        "CVE-2024-12345",
+			expectedFixVersion: "1.1.1f-1ubuntu2.root.io.1",
 		},
 	}
 
@@ -818,41 +837,48 @@ func TestTransformRootIOFixtures(t *testing.T) {
 		test := testToRun
 		t.Run(test.name, func(tt *testing.T) {
 			vulns := loadFixture(t, test.fixturePath)
-			require.NotEmpty(t, vulns, "fixture should contain at least one vulnerability")
+			require.Len(tt, vulns, 1, "fixture should contain exactly one vulnerability")
 
-			for _, vuln := range vulns {
-				// Verify it's detected as Root IO record
-				require.True(t, isRootIORecord(vuln), "should be detected as Root IO record")
+			vuln := vulns[0]
+			require.True(tt, isRootIORecord(vuln), "should be detected as Root IO record")
 
-				// Transform the vulnerability
-				entries, err := Transform(vuln, inputProviderState())
-				require.NoError(t, err, "Transform should not return error")
-				require.NotEmpty(t, entries, "Transform should return at least one entry")
+			entries, err := Transform(vuln, inputProviderState())
+			require.NoError(tt, err)
+			// one entry: the RelatedEntries wrapping VulnerabilityHandle + UnaffectedPackageHandle(s)
+			require.Len(tt, entries, 1)
 
-				// Verify structure
-				for _, entry := range entries {
-					relatedEntries, ok := entry.Data.(transformers.RelatedEntries)
-					require.True(t, ok, "entry data should be RelatedEntries")
+			relatedEntries, ok := entries[0].Data.(transformers.RelatedEntries)
+			require.True(tt, ok, "entry data should be RelatedEntries")
 
-					// Verify vulnerability handle
-					require.NotNil(t, relatedEntries.VulnerabilityHandle, "VulnerabilityHandle should not be nil")
-					require.Equal(t, "osv", relatedEntries.VulnerabilityHandle.ProviderID)
-					require.NotNil(t, relatedEntries.VulnerabilityHandle.BlobValue)
+			// VulnerabilityHandle assertions
+			require.NotNil(tt, relatedEntries.VulnerabilityHandle)
+			require.Equal(tt, "osv", relatedEntries.VulnerabilityHandle.ProviderID)
+			require.NotNil(tt, relatedEntries.VulnerabilityHandle.BlobValue)
+			require.Contains(tt, relatedEntries.VulnerabilityHandle.BlobValue.Aliases, test.expectedCVE)
 
-					// Verify related packages
-					require.NotEmpty(t, relatedEntries.Related, "should have at least one related package")
+			// Must produce UnaffectedPackageHandle (NAK), not AffectedPackageHandle
+			require.Len(tt, relatedEntries.Related, 1, "should have exactly one related unaffected package")
+			uph, ok := relatedEntries.Related[0].(db.UnaffectedPackageHandle)
+			require.True(tt, ok, "related entry must be UnaffectedPackageHandle, not AffectedPackageHandle")
 
-					for _, rel := range relatedEntries.Related {
-						aph, ok := rel.(db.AffectedPackageHandle)
-						require.True(t, ok, "related entry should be AffectedPackageHandle")
-						require.NotNil(t, aph.Package, "Package should not be nil")
-						require.NotEmpty(t, aph.Package.Name, "Package name should not be empty")
-						require.NotNil(t, aph.BlobValue, "BlobValue should not be nil")
-						require.NotEmpty(t, aph.BlobValue.CVEs, "CVEs should not be empty")
-						require.NotEmpty(t, aph.BlobValue.Ranges, "Ranges should not be empty")
-					}
-				}
-			}
+			// Package assertions
+			require.NotNil(tt, uph.Package)
+			require.Equal(tt, test.expectedPkgName, uph.Package.Name)
+
+			// Blob assertions
+			require.NotNil(tt, uph.BlobValue)
+			require.Contains(tt, uph.BlobValue.CVEs, test.expectedCVE)
+
+			// Qualifier must mark this as a rootio NAK
+			require.NotNil(tt, uph.BlobValue.Qualifiers, "rootio unaffected record must carry rootio qualifier")
+			require.NotNil(tt, uph.BlobValue.Qualifiers.RootIO)
+			require.True(tt, *uph.BlobValue.Qualifiers.RootIO)
+
+			// Range must use >= (unaffected: versions at or above fix are safe)
+			require.Len(tt, uph.BlobValue.Ranges, 1)
+			constraint := uph.BlobValue.Ranges[0].Version.Constraint
+			require.Contains(tt, constraint, ">=", "unaffected range constraint must use >=")
+			require.Contains(tt, constraint, test.expectedFixVersion)
 		})
 	}
 }

@@ -246,18 +246,18 @@ func TestIsRootIOPackage(t *testing.T) {
 			expectedResult: false,
 		},
 		{
-			name: "PyPI: rootio- prefix with +root.io.N suffix",
+			name: "PyPI: rootio_ prefix with +root.io.N suffix",
 			pkg: pkg.Package{
-				Name:    "rootio-requests",
+				Name:    "rootio_requests",
 				Version: "2.31.0+root.io.1",
 				Type:    syftPkg.PythonPkg,
 			},
 			expectedResult: true,
 		},
 		{
-			name: "PyPI: rootio- prefix only",
+			name: "PyPI: rootio_ prefix only",
 			pkg: pkg.Package{
-				Name:    "rootio-requests",
+				Name:    "rootio_requests",
 				Version: "2.31.0",
 				Type:    syftPkg.PythonPkg,
 			},
@@ -282,10 +282,19 @@ func TestIsRootIOPackage(t *testing.T) {
 			expectedResult: false,
 		},
 		{
-			name: "Java: placeholder returns false",
+			name: "Java: io.root. prefix on groupId",
 			pkg: pkg.Package{
-				Name:    "rootio-jackson-databind",
-				Version: "2.14.0",
+				Name:    "io.root.org.springframework:spring-core",
+				Version: "5.3.30",
+				Type:    syftPkg.JavaPkg,
+			},
+			expectedResult: true,
+		},
+		{
+			name: "Java: standard package without io.root. prefix",
+			pkg: pkg.Package{
+				Name:    "org.springframework:spring-core",
+				Version: "5.3.30",
 				Type:    syftPkg.JavaPkg,
 			},
 			expectedResult: false,
@@ -294,7 +303,7 @@ func TestIsRootIOPackage(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := isRootIOPackage(tt.pkg)
+			result := IsRootIOPackage(tt.pkg)
 			assert.Equal(t, tt.expectedResult, result)
 		})
 	}
@@ -332,8 +341,8 @@ func TestHasRootIOPrefix(t *testing.T) {
 			expectedResult: true,
 		},
 		{
-			name:           "rootio- prefix for PyPI",
-			packageName:    "rootio-requests",
+			name:           "rootio_ prefix for PyPI",
+			packageName:    "rootio_requests",
 			pkgType:        syftPkg.PythonPkg,
 			expectedResult: true,
 		},
@@ -350,8 +359,14 @@ func TestHasRootIOPrefix(t *testing.T) {
 			expectedResult: false,
 		},
 		{
-			name:           "Java placeholder returns false",
-			packageName:    "rootio-jackson-databind",
+			name:           "Java: io.root. prefix on groupId",
+			packageName:    "io.root.org.springframework:spring-core",
+			pkgType:        syftPkg.JavaPkg,
+			expectedResult: true,
+		},
+		{
+			name:           "Java: standard groupId without io.root. prefix",
+			packageName:    "org.springframework:spring-core",
 			pkgType:        syftPkg.JavaPkg,
 			expectedResult: false,
 		},

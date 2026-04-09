@@ -7,6 +7,7 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/pkg/qualifier/rootio"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -17,7 +18,20 @@ func MatchPackageByLanguage(store vulnerability.Provider, p pkg.Package, matcher
 	var matches []match.Match
 	var ignored []match.IgnoreFilter
 
-	for _, name := range store.PackageSearchNames(p) {
+	searchNames := store.PackageSearchNames(p)
+
+	// For rootio language packages, also search by the bare upstream name so that
+	// CVE records stored without the rootio prefix (e.g. "semver", "requests") are found.
+	// The NAK subtraction in MatchPackageByEcosystemPackageName handles suppression of
+	// vulns that rootio has already fixed.
+	if rootio.IsRootIOPackage(p) {
+		strippedName := rootio.StripPrefix(p.Name, p.Type)
+		if strippedName != p.Name && !slices.Contains(searchNames, strippedName) {
+			searchNames = append(searchNames, strippedName)
+		}
+	}
+
+	for _, name := range searchNames {
 		nameMatches, nameIgnores, err := MatchPackageByEcosystemPackageName(store, p, name, matcherType)
 		if err != nil {
 			return nil, nil, err
@@ -62,10 +76,10 @@ func MatchPackageByEcosystemPackageName(vp vulnerability.Provider, p pkg.Package
 	// remove any disclosures that have been explicitly nacked
 	remaining := disclosures.Remove(unaffected)
 
-	return remaining.ToMatches(), constructIgnoreFilters(unaffected, p), err
+	return remaining.ToMatches(), ConstructIgnoreFilters(unaffected, p), err
 }
 
-func constructIgnoreFilters(unaffectedVulns result.Set, p pkg.Package) []match.IgnoreFilter {
+func ConstructIgnoreFilters(unaffectedVulns result.Set, p pkg.Package) []match.IgnoreFilter {
 	var ignores []match.IgnoreFilter
 
 	// collect all IDs to exclude

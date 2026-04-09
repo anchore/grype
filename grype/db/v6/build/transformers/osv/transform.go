@@ -32,6 +32,7 @@ func Transform(vulnerability unmarshal.OSVVulnerability, state provider.State) (
 	}
 
 	isAdvisory := isAdvisoryRecord(vulnerability)
+	isRootIO := isRootIORecord(vulnerability)
 	aliases := vulnerability.Aliases
 
 	if isAdvisory {
@@ -57,14 +58,11 @@ func Transform(vulnerability unmarshal.OSVVulnerability, state provider.State) (
 		},
 	}
 
-	// Check if this is an advisory record
-	if isAdvisory {
-		// For advisory records, emit unaffected packages
+	if isAdvisory || isRootIO {
 		for _, u := range getUnaffectedPackages(vulnerability) {
 			in = append(in, u)
 		}
 	} else {
-		// For vulnerability records, emit affected packages
 		for _, a := range getAffectedPackages(vulnerability) {
 			in = append(in, a)
 		}

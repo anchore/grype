@@ -5,7 +5,9 @@ import (
 	"strings"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/pkg/qualifier/rootio"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -93,4 +95,73 @@ func distroMatchDetails(upstreamMatcher match.MatcherType, searchPkg pkg.Package
 
 func isUnknownVersion(v string) bool {
 	return strings.ToLower(v) == "unknown"
+}
+
+// MatchRootIOPackageByDistro performs a two-pass distro match for rootio packages:
+//  1. Searches upstream distro vulns using the stripped (non-rootio) package name
+//  2. Searches rootio unaffected records using the original rootio-prefixed name
+//
+// NAKs from pass 2 are subtracted from matches in pass 1.
+func MatchRootIOPackageByDistro(vp vulnerability.Provider, p pkg.Package, catalogPkg *pkg.Package, matcherType match.MatcherType, cfg *version.ComparisonConfig) ([]match.Match, []match.IgnoreFilter, error) {
+	if p.Distro == nil {
+		return nil, nil, nil
+	}
+	if isUnknownVersion(p.Version) {
+		log.WithFields("package", p.Name).Trace("skipping rootio package with unknown version")
+		return nil, nil, nil
+	}
+
+	// The cataloged package is used for match attribution in results
+	cataloged := p
+	if catalogPkg != nil {
+		cataloged = *catalogPkg
+	}
+
+	strippedName := rootio.StripPrefix(p.Name, p.Type)
+
+	var pkgVersion *version.Version
+	if cfg != nil {
+		pkgVersion = version.NewWithConfig(p.Version, pkg.VersionFormat(p), *cfg)
+	} else {
+		pkgVersion = version.New(p.Version, pkg.VersionFormat(p))
+	}
+
+	// Use a stripped copy of the package for OnlyQualifiedPackages in pass 1,
+	// so plain distro vuln records (which have no rootio qualifier) pass the check.
+	strippedPkg := p
+	strippedPkg.Name = strippedName
+
+	provider := result.NewProvider(vp, cataloged, matcherType)
+
+	// Pass 1: find upstream distro vulns using stripped name
+	affectedCriteria := []vulnerability.Criteria{
+		search.ByPackageName(strippedName),
+		search.ByDistro(*p.Distro),
+		OnlyQualifiedPackages(strippedPkg),
+		OnlyVulnerableVersions(pkgVersion),
+		OnlyNonWithdrawnVulnerabilities(),
+	}
+	disclosures, err := provider.FindResults(affectedCriteria...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q (rootio): %w", p.Distro, strippedName, err)
+	}
+
+	// Pass 2: find rootio unaffected records using original rootio-prefixed name.
+	// The original package p has the rootio qualifier satisfied, so OnlyQualifiedPackages passes.
+	nakCriteria := []vulnerability.Criteria{
+		search.ByPackageName(p.Name),
+		search.ByDistro(*p.Distro),
+		OnlyQualifiedPackages(p),
+		OnlyVulnerableVersions(pkgVersion),
+		OnlyNonWithdrawnVulnerabilities(),
+		search.ForUnaffected(),
+	}
+	naks, err := provider.FindResults(nakCriteria...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("matcher failed to fetch rootio naks distro=%q pkg=%q: %w", p.Distro, p.Name, err)
+	}
+
+	remaining := disclosures.Remove(naks)
+
+	return remaining.ToMatches(), ConstructIgnoreFilters(naks, cataloged), nil
 }
