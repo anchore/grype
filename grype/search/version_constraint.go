@@ -106,7 +106,12 @@ func (f *constraintFuncCriteria) MatchesVulnerability(value vulnerability.Vulner
 		return false, "no version constraint", nil
 	}
 	matches, err := f.fn(value.Constraint)
-	// TODO: should we do something about this?
+	if err != nil {
+		// TODO this is probably not the correct behavior, but it's what the VulnProvider is doing today: dropping vulns when a version error occurs
+		// See: vulnerability_provider.go filterAffectedPackageRanges -- if we change the VP behavior, we need to change this behavior, too
+		log.WithFields("error", err, "constraint", value.Constraint).Debug("match constraint error")
+		return false, "version check error", nil
+	}
 	return matches, "", err
 }
 
