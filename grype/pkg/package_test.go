@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/anchore/packageurl-go"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/grype/grype/distro"
@@ -1351,9 +1352,9 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 		},
 		{
 			name: "excludes single package by overlap",
-			sbom: catalogWithOverlaps(
+			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"apk:go@1.18", "apk:node@19.2-r1", "binary:node@19.2"},
-				[]string{"apk:node@19.2-r1 -> binary:node@19.2"}),
+				[]string{"apk:node@19.2-r1 -> binary:node@19.2"}), "rhel"),
 			expectedPackages: []string{"apk:go@1.18", "apk:node@19.2-r1"},
 		},
 		{
@@ -1365,16 +1366,16 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 		},
 		{
 			name: "does not exclude if owning package is non-OS",
-			sbom: catalogWithOverlaps(
+			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"python:urllib3@1.2.3", "python:otherlib@1.2.3"},
-				[]string{"python:urllib3@1.2.3 -> python:otherlib@1.2.3"}),
+				[]string{"python:urllib3@1.2.3 -> python:otherlib@1.2.3"}), "rhel"),
 			expectedPackages: []string{"python:otherlib@1.2.3", "python:urllib3@1.2.3"},
 		},
 		{
 			name: "excludes multiple package by overlap",
-			sbom: catalogWithOverlaps(
+			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"apk:go@1.18", "apk:node@19.2-r1", "binary:node@19.2", "apk:python@3.9-r9", "binary:python@3.9"},
-				[]string{"apk:node@19.2-r1 -> binary:node@19.2", "apk:python@3.9-r9 -> binary:python@3.9"}),
+				[]string{"apk:node@19.2-r1 -> binary:node@19.2", "apk:python@3.9-r9 -> binary:python@3.9"}), "rhel"),
 			expectedPackages: []string{"apk:go@1.18", "apk:node@19.2-r1", "apk:python@3.9-r9"},
 		},
 		{
@@ -1437,8 +1438,9 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			d := distro.FromRelease(test.sbom.Artifacts.LinuxDistribution, distro.DefaultFixChannels())
-			catalog := removePackagesByOverlap(test.sbom.Artifacts.Packages, test.sbom.Relationships, d)
-			pkgs := FromCollection(catalog, test.sbom.Relationships, SynthesisConfig{})
+			pkgs := FromCollection(test.sbom.Artifacts.Packages, test.sbom.Relationships, SynthesisConfig{}, func(out *Package, purl packageurl.PackageURL, pkg syftPkg.Package) {
+				out.Distro = d
+			})
 			var pkgNames []string
 			for _, p := range pkgs {
 				pkgNames = append(pkgNames, fmt.Sprintf("%s:%s@%s", p.Type, p.Name, p.Version))

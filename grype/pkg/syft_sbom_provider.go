@@ -38,14 +38,12 @@ func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func
 
 	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
-	catalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
-
 	var enhancers []Enhancer
 	if fmtID != syftjson.ID {
 		enhancers = purlEnhancers(applyChannel)
 	}
 
-	return FromCollection(catalog, s.Relationships, config.SynthesisConfig, enhancers...), Context{
+	return FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig, enhancers...), Context{
 		Source:                &src,
 		Distro:                d,
 		DistroDetectionFailed: distroDetectionFailed,
@@ -60,8 +58,6 @@ func syftSBOMProviderFromReader(reader io.ReadSeeker, config ProviderConfig, app
 
 	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
-	catalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
-
 	var enhancers []Enhancer
 	if fmtID != syftjson.ID {
 		enhancers = purlEnhancers(applyChannel)
@@ -69,7 +65,7 @@ func syftSBOMProviderFromReader(reader io.ReadSeeker, config ProviderConfig, app
 
 	src := s.Source
 
-	return FromCollection(catalog, s.Relationships, config.SynthesisConfig, enhancers...), Context{
+	return FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig, enhancers...), Context{
 		Source:                &src,
 		Distro:                d,
 		DistroDetectionFailed: distroDetectionFailed,
