@@ -79,7 +79,10 @@ require (
 	gorm.io/gorm v1.31.1
 )
 
-require github.com/bmatcuk/doublestar/v4 v4.10.0
+require (
+	github.com/bmatcuk/doublestar/v4 v4.10.0
+	github.com/mark3labs/mcp-go v0.47.1
+)
 
 require (
 	cel.dev/expr v0.25.1 // indirect
@@ -199,6 +202,7 @@ require (
 	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
+	github.com/google/jsonschema-go v0.4.2 // indirect
 	github.com/google/licensecheck v0.3.1 // indirect
 	github.com/google/pprof v0.0.0-20250630185457-6e76a2b096b5 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
@@ -307,6 +311,7 @@ require (
 	github.com/wk8/go-ordered-map/v2 v2.1.8 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
+	github.com/yosida95/uritemplate/v3 v3.0.2 // indirect
 	github.com/zclconf/go-cty v1.16.3 // indirect
 	github.com/zyedidia/generic v1.2.2-0.20230320175451-4410d2372cb1 // indirect
 	go.etcd.io/bbolt v1.4.3 // indirect
