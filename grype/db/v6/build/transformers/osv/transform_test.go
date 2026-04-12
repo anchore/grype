@@ -883,6 +883,59 @@ func TestTransformRootIOFixtures(t *testing.T) {
 	}
 }
 
+// TestRootIORelatedAliases verifies that Related CVE IDs are included in the
+// VulnerabilityHandle aliases for RootIO records (the real-world case where the
+// upstream CVE appears in Related, not Aliases).
+func TestRootIORelatedAliases(t *testing.T) {
+	vuln := unmarshal.OSVVulnerability{}
+	vuln.ID = "ROOT-OS-UBUNTU-2204-CVE-2024-2236"
+	vuln.Related = []string{"CVE-2024-2236"}
+	vuln.DatabaseSpecific = map[string]interface{}{
+		"source": "Root",
+	}
+	vuln.Affected = []models.Affected{
+		{
+			Package: models.Package{
+				Ecosystem: "Ubuntu:22.04",
+				Name:      "rootio-libgcrypt20",
+			},
+			Ranges: []models.Range{
+				{
+					Type: models.RangeEcosystem,
+					Events: []models.Event{
+						{Introduced: "0"},
+						{Fixed: "1.9.4-3ubuntu3.root.io.2"},
+					},
+				},
+			},
+		},
+	}
+
+	require.True(t, isRootIORecord(vuln))
+
+	entries, err := Transform(vuln, inputProviderState())
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+
+	relatedEntries, ok := entries[0].Data.(transformers.RelatedEntries)
+	require.True(t, ok)
+	require.NotNil(t, relatedEntries.VulnerabilityHandle)
+	require.NotNil(t, relatedEntries.VulnerabilityHandle.BlobValue)
+
+	// The upstream CVE must be in the VulnerabilityHandle aliases
+	require.Contains(t, relatedEntries.VulnerabilityHandle.BlobValue.Aliases, "CVE-2024-2236",
+		"related CVE IDs must be included in VulnerabilityHandle aliases for RootIO records")
+
+	// The upstream CVE must also be in the UnaffectedPackageHandle CVEs so that
+	// disclosures.Remove(naks) can match by identity in the distro matcher.
+	require.Len(t, relatedEntries.Related, 1)
+	uph, ok := relatedEntries.Related[0].(db.UnaffectedPackageHandle)
+	require.True(t, ok, "related entry must be UnaffectedPackageHandle")
+	require.NotNil(t, uph.BlobValue)
+	require.Contains(t, uph.BlobValue.CVEs, "CVE-2024-2236",
+		"related CVE IDs must be in UnaffectedPackageHandle CVEs so Remove() can match by identity")
+}
+
 func stringRef(s string) *string {
 	return &s
 }

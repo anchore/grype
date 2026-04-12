@@ -35,7 +35,7 @@ func Transform(vulnerability unmarshal.OSVVulnerability, state provider.State) (
 	isRootIO := isRootIORecord(vulnerability)
 	aliases := vulnerability.Aliases
 
-	if isAdvisory {
+	if isAdvisory || isRootIO {
 		aliases = append(aliases, vulnerability.Related...)
 	}
 
@@ -59,7 +59,7 @@ func Transform(vulnerability unmarshal.OSVVulnerability, state provider.State) (
 	}
 
 	if isAdvisory || isRootIO {
-		for _, u := range getUnaffectedPackages(vulnerability) {
+		for _, u := range getUnaffectedPackages(vulnerability, aliases) {
 			in = append(in, u)
 		}
 	} else {
@@ -574,8 +574,10 @@ func isAdvisoryRecord(vuln unmarshal.OSVVulnerability) bool {
 	return recordTypeStr == "advisory"
 }
 
-// getUnaffectedPackages creates UnaffectedPackageHandle entries for advisory records
-func getUnaffectedPackages(vuln unmarshal.OSVVulnerability) []db.UnaffectedPackageHandle {
+// getUnaffectedPackages creates UnaffectedPackageHandle entries for advisory records.
+// aliases should be the augmented alias list (vuln.Aliases + vuln.Related) so that
+// NAK records carry the upstream CVE ID and disclosures.Remove(naks) can match by identity.
+func getUnaffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string) []db.UnaffectedPackageHandle {
 	if len(vuln.Affected) == 0 {
 		return nil
 	}
@@ -585,7 +587,7 @@ func getUnaffectedPackages(vuln unmarshal.OSVVulnerability) []db.UnaffectedPacka
 		uph := db.UnaffectedPackageHandle{
 			Package:         getPackage(affected.Package),
 			OperatingSystem: getOperatingSystemFromEcosystem(string(affected.Package.Ecosystem)),
-			BlobValue:       getUnaffectedBlob(vuln.Aliases, affected.Ranges, affected, vuln),
+			BlobValue:       getUnaffectedBlob(aliases, affected.Ranges, affected, vuln),
 		}
 		uphs = append(uphs, uph)
 	}

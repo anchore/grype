@@ -11,6 +11,9 @@ import (
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/version"
+	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/vulnerability/mock"
 	"github.com/anchore/grype/internal/stringutil"
 	syftCpe "github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -146,6 +149,69 @@ func TestMatcherDpkg_CPEFallbackWhenEOL(t *testing.T) {
 			} else {
 				assert.False(t, hasCPEMatch, "did not expect CPE matches")
 			}
+		})
+	}
+}
+
+func TestMatcherDpkg_RootIOPackage(t *testing.T) {
+	d := distro.New(distro.Debian, "12", "bookworm")
+
+	// upstream disclosure: CVE affects plain imagemagick on Debian
+	disclosure := vulnerability.Vulnerability{
+		Reference: vulnerability.Reference{
+			ID:        "CVE-2025-53014",
+			Namespace: "debian:distro:debian:12",
+		},
+		PackageName: "imagemagick",
+		Constraint:  version.MustGetConstraint("< 8:7.1.1.43+dfsg1-1+deb13u1", version.DebFormat),
+	}
+
+	// rootio NAK: rootio-imagemagick at or above rootio fix is unaffected
+	nak := vulnerability.Vulnerability{
+		Reference: vulnerability.Reference{
+			ID:        "ROOT-OS-DEBIAN-bookworm-CVE-2025-53014",
+			Namespace: "debian:distro:debian:12",
+		},
+		PackageName: "rootio-imagemagick",
+		Constraint:  version.MustGetConstraint(">= 8:7.1.1.43+dfsg1-1+deb13u1.root.io.1", version.DebFormat),
+		Unaffected:  true,
+	}
+
+	tests := []struct {
+		name          string
+		pkgVersion    string
+		vulns         []vulnerability.Vulnerability
+		expectMatches int
+	}{
+		{
+			name:          "rootio package below fix — vulnerable, no NAK applies",
+			pkgVersion:    "8:7.1.1.40+dfsg1-1",
+			vulns:         []vulnerability.Vulnerability{disclosure},
+			expectMatches: 1,
+		},
+		{
+			name:          "rootio package at rootio fix — NAK suppresses match",
+			pkgVersion:    "8:7.1.1.43+dfsg1-1+deb13u1.root.io.1",
+			vulns:         []vulnerability.Vulnerability{disclosure, nak},
+			expectMatches: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "rootio-imagemagick",
+				Version: tt.pkgVersion,
+				Type:    syftPkg.DebPkg,
+				Distro:  d,
+			}
+
+			vp := mock.VulnerabilityProvider(tt.vulns...)
+			m := NewDpkgMatcher(MatcherConfig{})
+			matches, _, err := m.Match(vp, p)
+			require.NoError(t, err)
+			assert.Len(t, matches, tt.expectMatches, "unexpected match count for %q", tt.name)
 		})
 	}
 }

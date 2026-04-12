@@ -392,3 +392,166 @@ func Test_unaffectedPackageIgnoreRules(t *testing.T) {
 		})
 	}
 }
+
+// TestMatchPackageByLanguage_RootIONPM verifies that a rootio npm package:
+// - finds upstream CVEs via the stripped package name
+// - has matches suppressed when a rootio NAK record covers the installed version
+func TestMatchPackageByLanguage_RootIONPM(t *testing.T) {
+	// upstream disclosure: CVE affects plain semver
+	disclosure := vulnerability.Vulnerability{
+		Reference: vulnerability.Reference{
+			ID:        "CVE-2022-25883",
+			Namespace: "github:language:javascript",
+		},
+		PackageName: "semver",
+		Constraint:  version.MustGetConstraint("< 7.5.2", version.SemanticFormat),
+	}
+
+	// rootio NAK: @rootio/semver at or above rootio fix is unaffected.
+	// RelatedVulnerabilities bridges ROOT-APP-NPM-... to CVE-2022-25883 so
+	// disclosures.Remove(naks) can match by identity.
+	nak := vulnerability.Vulnerability{
+		Reference: vulnerability.Reference{
+			ID:        "ROOT-APP-NPM-CVE-2022-25883",
+			Namespace: "github:language:javascript",
+		},
+		PackageName: "@rootio/semver",
+		Constraint:  version.MustGetConstraint(">= 7.5.2-root.io.1", version.SemanticFormat),
+		Unaffected:  true,
+		RelatedVulnerabilities: []vulnerability.Reference{
+			{ID: "CVE-2022-25883"},
+		},
+	}
+
+	tests := []struct {
+		name          string
+		pkgVersion    string
+		vulns         []vulnerability.Vulnerability
+		expectMatches int
+		expectIgnores int
+	}{
+		{
+			// Below the rootio fix: disclosure is found via stripped name "semver".
+			// No NAK applies, so no ignore filters.
+			name:          "rootio npm package below fix — disclosure found via stripped name",
+			pkgVersion:    "7.5.1",
+			vulns:         []vulnerability.Vulnerability{disclosure},
+			expectMatches: 1,
+			expectIgnores: 0,
+		},
+		{
+			// At the rootio fix: 7.5.2-root.io.1 is a semver pre-release, so it is
+			// still < 7.5.2 and the disclosure matches. The NAK produces an ignore
+			// filter (containing CVE-2022-25883) that the caller applies to suppress
+			// the match. This function returns the match + the ignore filter.
+			name:          "rootio npm package at rootio fix — disclosure matched but NAK ignore filter returned",
+			pkgVersion:    "7.5.2-root.io.1",
+			vulns:         []vulnerability.Vulnerability{disclosure, nak},
+			expectMatches: 1,
+			// ConstructIgnoreFilters produces one rule per ID:
+			// ROOT-APP-NPM-CVE-2022-25883 and CVE-2022-25883 (from RelatedVulnerabilities)
+			expectIgnores: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "@rootio/semver",
+				Version:  tt.pkgVersion,
+				Language: syftPkg.JavaScript,
+				Type:     syftPkg.NpmPkg,
+			}
+
+			vp := mock.VulnerabilityProvider(tt.vulns...)
+			matches, ignores, err := MatchPackageByLanguage(vp, p, match.JavascriptMatcher)
+			require.NoError(t, err)
+			assert.Len(t, matches, tt.expectMatches, "unexpected match count for %q", tt.name)
+			assert.Len(t, ignores, tt.expectIgnores, "unexpected ignore count for %q", tt.name)
+
+			// For the patched case, verify the ignore filter covers the upstream CVE
+			if tt.expectIgnores > 0 {
+				var ignoredIDs []string
+				for _, ig := range ignores {
+					if rule, ok := ig.(match.IgnoreRule); ok {
+						ignoredIDs = append(ignoredIDs, rule.Vulnerability)
+					}
+				}
+				assert.Contains(t, ignoredIDs, "CVE-2022-25883",
+					"ignore filters must cover the upstream CVE so the caller can suppress the match")
+			}
+		})
+	}
+}
+
+// TestMatchPackageByLanguage_RootIOPyPI verifies the same NAK suppression for rootio PyPI packages.
+func TestMatchPackageByLanguage_RootIOPyPI(t *testing.T) {
+	// upstream disclosure: CVE affects plain requests
+	disclosure := vulnerability.Vulnerability{
+		Reference: vulnerability.Reference{
+			ID:        "CVE-2025-30473",
+			Namespace: "github:language:python",
+		},
+		PackageName: "requests",
+		Constraint:  version.MustGetConstraint("< 2.31.0", version.PythonFormat),
+	}
+
+	// rootio NAK: rootio-requests at or above rootio fix is unaffected.
+	// PackageName uses the PEP 503 normalized form (hyphen) as stored in the DB.
+	// RelatedVulnerabilities bridges the rootio ID to the upstream CVE for Remove().
+	nak := vulnerability.Vulnerability{
+		Reference: vulnerability.Reference{
+			ID:        "ROOT-APP-PYPI-CVE-2025-30473",
+			Namespace: "github:language:python",
+		},
+		PackageName: "rootio-requests",
+		Constraint:  version.MustGetConstraint(">= 2.31.0+root.io.1", version.PythonFormat),
+		Unaffected:  true,
+		RelatedVulnerabilities: []vulnerability.Reference{
+			{ID: "CVE-2025-30473"},
+		},
+	}
+
+	tests := []struct {
+		name          string
+		pkgVersion    string
+		vulns         []vulnerability.Vulnerability
+		expectMatches int
+	}{
+		{
+			// rootio_requests (underscore) is detected as rootio by hasRootIOPrefix;
+			// StripPrefix("rootio_requests", PythonPkg) → "requests", enabling the
+			// stripped-name search that finds upstream CVE records.
+			name:          "rootio pypi package below fix — disclosure found via stripped name",
+			pkgVersion:    "2.28.0",
+			vulns:         []vulnerability.Vulnerability{disclosure},
+			expectMatches: 1,
+		},
+		{
+			name:          "rootio pypi package at rootio fix — not vulnerable (PEP 440 local version >= upstream fix)",
+			pkgVersion:    "2.31.0+root.io.1",
+			vulns:         []vulnerability.Vulnerability{disclosure, nak},
+			expectMatches: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Use underscore form: hasRootIOPrefix checks "rootio_" for PythonPkg.
+			// Syft reports PyPI packages with their raw (possibly underscored) name.
+			p := pkg.Package{
+				ID:       pkg.ID(uuid.NewString()),
+				Name:     "rootio_requests",
+				Version:  tt.pkgVersion,
+				Language: syftPkg.Python,
+				Type:     syftPkg.PythonPkg,
+			}
+
+			vp := mock.VulnerabilityProvider(tt.vulns...)
+			matches, _, err := MatchPackageByLanguage(vp, p, match.PythonMatcher)
+			require.NoError(t, err)
+			assert.Len(t, matches, tt.expectMatches, "unexpected match count for %q", tt.name)
+		})
+	}
+}
