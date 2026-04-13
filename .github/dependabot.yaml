@@ -1,30 +1,59 @@
+# Dependabot configuration
+#
+# Grouping behavior (see inline comments for details):
+#   - Minor + patch updates: grouped into a single PR per ecosystem
+#   - Major version bumps: individual PR per dependency
+#   - Security updates: individual PR per dependency
+#
+# Note: "patch" refers to semver version bumps (1.2.3 -> 1.2.4), not security fixes.
+# Security updates are identified separately via GitHub's Advisory Database and
+# can be any version bump (patch, minor, or major) that fixes a known CVE.
+
 version: 2
+
 updates:
-  - package-ecosystem: "github-actions"
+
+  - package-ecosystem: gomod
     directory: "/"
-    schedule:
-      interval: daily
     cooldown:
       default-days: 7
-
-  - package-ecosystem: "github-actions"
-    directory: "/.github/actions/bootstrap"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "friday"
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
-    cooldown:
-      default-days: 7
-
-  - package-ecosystem: "gomod"
-    directory: "/"
-    schedule:
-      interval: daily
-    cooldown:
-      default-days: 7
     ignore:
       - dependency-name: "github.com/aquasecurity/go-pep440-version"
       - dependency-name: "github.com/aquasecurity/go-version"
       - dependency-name: "github.com/knqyf263/go-apk-version"
       - dependency-name: "github.com/knqyf263/go-deb-version"
+    groups:
+      go-minor-patch:
+        applies-to: version-updates  # security updates get individual PRs
+        patterns:
+          - "*"
+        update-types:  # major omitted, gets individual PRs
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directories:
+      - "/"
+      - "/.github/actions/*"
+    cooldown:
+      default-days: 7
+    schedule:
+      interval: "weekly"
+      day: "friday"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+    groups:
+      actions-minor-patch:
+        applies-to: version-updates  # security updates get individual PRs
+        patterns:
+          - "*"
+        update-types:  # major omitted, gets individual PRs
+          - "minor"
+          - "patch"

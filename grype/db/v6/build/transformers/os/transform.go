@@ -242,7 +242,7 @@ func getPackageType(osName string) pkg.Type {
 	switch osName {
 	case "arch", "archlinux":
 		return pkg.AlpmPkg
-	case "redhat", "amazonlinux", "oraclelinux", "sles", "mariner", "azurelinux", "photon", "fedora", "rocky", "rockylinux", "almalinux", "centos":
+	case "redhat", "amazonlinux", "oraclelinux", "sles", "mariner", "azurelinux", "photon", "fedora", "rocky", "rockylinux", "almalinux", "centos", "hummingbird":
 		return pkg.RpmPkg
 	case "ubuntu", "debian", "echo":
 		return pkg.DebPkg
