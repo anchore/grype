@@ -20,7 +20,7 @@ import (
 )
 
 // zarfLocationPrefix is added to a synthetic Location on every package extracted
-// from a Zarf bundle, so consumers can resolve a finding back to the originating
+// from a Zarf package, so consumers can resolve a finding back to the originating
 // SBOM/artifact via the JSON output.
 const zarfLocationPrefix = "zarf:"
 
