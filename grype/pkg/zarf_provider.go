@@ -95,6 +95,7 @@ func readSBOMsFromTar(r io.Reader, config ProviderConfig, applyChannel func(*dis
 
 	var allPackages []Package
 	var mergedSBOM *sbom.SBOM
+	var decodedCount int
 
 	for {
 		hdr, err := sbomTar.Next()
@@ -122,6 +123,7 @@ func readSBOMsFromTar(r io.Reader, config ProviderConfig, applyChannel func(*dis
 			log.WithFields("entry", hdr.Name, "error", err).Warn("skipping unreadable SBOM entry in Zarf package")
 			continue
 		}
+		decodedCount++
 
 		d, _ := distroFromSBOM(s, config, applyChannel)
 		catalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
@@ -147,8 +149,12 @@ func readSBOMsFromTar(r io.Reader, config ProviderConfig, applyChannel func(*dis
 		}
 	}
 
+	if decodedCount == 0 {
+		return nil, nil, fmt.Errorf("no SBOMs could be parsed from Zarf package")
+	}
+
 	if len(allPackages) == 0 {
-		return nil, nil, fmt.Errorf("no valid SBOMs found in Zarf package")
+		log.WithFields("sboms", decodedCount).Debug("Zarf package SBOMs parsed successfully but contain no packages")
 	}
 
 	return allPackages, mergedSBOM, nil

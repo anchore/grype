@@ -3,6 +3,7 @@ package pkg
 import (
 	"archive/tar"
 	"bytes"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -216,4 +217,46 @@ func TestZarfProvider_PreservesPerSBOMDistro(t *testing.T) {
 
 	assert.Greater(t, distroCounts["alpine"], 0, "expected at least one package with alpine distro, got %v", distroCounts)
 	assert.Greater(t, distroCounts["debian"], 0, "expected at least one package with debian distro, got %v", distroCounts)
+}
+
+// TestZarfProvider_EmptySBOMYieldsNoFindings verifies that a Zarf package
+// containing only SBOMs with zero artifacts (e.g. FROM-scratch images) returns
+// an empty package list without erroring. Matches the behavior of the direct
+// `sbom:` provider on the same input.
+func TestZarfProvider_EmptySBOMYieldsNoFindings(t *testing.T) {
+	sbomContent, err := os.ReadFile("testdata/syft-multiple-ecosystems.json")
+	require.NoError(t, err)
+
+	// zero out the artifacts array to simulate an SBOM produced from a
+	// FROM-scratch image (no packages to catalog)
+	var raw map[string]any
+	require.NoError(t, json.Unmarshal(sbomContent, &raw))
+	raw["artifacts"] = []any{}
+	emptied, err := json.Marshal(raw)
+	require.NoError(t, err)
+
+	archivePath := createTestZarfPackage(t, map[string]string{
+		"empty-sbom.json": string(emptied),
+	})
+
+	applyChannel := getDistroChannelApplier(nil)
+	packages, ctx, _, err := zarfProvider("zarf:"+archivePath, ProviderConfig{}, applyChannel)
+	require.NoError(t, err)
+	assert.Empty(t, packages, "expected no packages from a zero-artifact SBOM")
+	assert.NotNil(t, ctx.Source, "expected source context to be populated even with empty packages")
+}
+
+// TestZarfProvider_AllEntriesInvalidReturnsError verifies that when no entries
+// in sboms.tar can be parsed as SBOMs (e.g. only HTML reports), the provider
+// returns an error so the user gets a signal that nothing was scanned.
+func TestZarfProvider_AllEntriesInvalidReturnsError(t *testing.T) {
+	archivePath := createTestZarfPackage(t, map[string]string{
+		"compare.html":    "<html><body>not an sbom</body></html>",
+		"not-an-sbom.txt": "random junk that isn't an SBOM",
+	})
+
+	applyChannel := getDistroChannelApplier(nil)
+	_, _, _, err := zarfProvider("zarf:"+archivePath, ProviderConfig{}, applyChannel)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no SBOMs could be parsed")
 }
