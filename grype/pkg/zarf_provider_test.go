@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/klauspost/compress/zstd"
@@ -141,4 +142,78 @@ func TestZarfProvider_MultiSBOM_MergesPackages(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Greater(t, len(doublePkgs), len(singlePkgs), "two SBOMs should produce more packages than one")
+}
+
+// TestZarfProvider_ProvenanceLocations verifies that every package returned from
+// a Zarf scan carries a synthetic `zarf:` Location identifying which bundled
+// SBOM it came from. The fixture has source.name=null, so the tar entry filename
+// is used as the fallback identifier.
+func TestZarfProvider_ProvenanceLocations(t *testing.T) {
+	sbomContent, err := os.ReadFile("testdata/syft-multiple-ecosystems.json")
+	require.NoError(t, err)
+
+	archivePath := createTestZarfPackage(t, map[string]string{
+		"sbom-image-a.json": string(sbomContent),
+		"sbom-image-b.json": string(sbomContent),
+	})
+
+	applyChannel := getDistroChannelApplier(nil)
+	packages, _, _, err := zarfProvider("zarf:"+archivePath, ProviderConfig{}, applyChannel)
+	require.NoError(t, err)
+	require.NotEmpty(t, packages)
+
+	expected := map[string]bool{
+		"zarf:sbom-image-a.json": false,
+		"zarf:sbom-image-b.json": false,
+	}
+
+	for _, pkg := range packages {
+		var foundZarfLoc bool
+		for _, loc := range pkg.Locations.ToSlice() {
+			if !strings.HasPrefix(loc.RealPath, zarfLocationPrefix) {
+				continue
+			}
+			foundZarfLoc = true
+			if _, ok := expected[loc.RealPath]; ok {
+				expected[loc.RealPath] = true
+			}
+		}
+		assert.True(t, foundZarfLoc, "package %q missing a zarf: provenance location (locations=%v)", pkg.Name, pkg.Locations.ToSlice())
+	}
+
+	for ident, seen := range expected {
+		assert.True(t, seen, "expected to see at least one package annotated with %q", ident)
+	}
+}
+
+// TestZarfProvider_PreservesPerSBOMDistro verifies that when a Zarf bundle
+// contains SBOMs from different distros, each package retains its own distro
+// context. This is the core correctness property the design hinges on.
+func TestZarfProvider_PreservesPerSBOMDistro(t *testing.T) {
+	alpineSBOM, err := os.ReadFile("testdata/syft-multiple-ecosystems.json") // alpine 3.12.0
+	require.NoError(t, err)
+	debianSBOM, err := os.ReadFile("testdata/syft-spring.json") // debian 9
+	require.NoError(t, err)
+
+	archivePath := createTestZarfPackage(t, map[string]string{
+		"sbom-alpine.json": string(alpineSBOM),
+		"sbom-debian.json": string(debianSBOM),
+	})
+
+	applyChannel := getDistroChannelApplier(nil)
+	packages, _, _, err := zarfProvider("zarf:"+archivePath, ProviderConfig{}, applyChannel)
+	require.NoError(t, err)
+	require.NotEmpty(t, packages)
+
+	distroCounts := map[string]int{}
+	for _, pkg := range packages {
+		if pkg.Distro == nil {
+			distroCounts["<nil>"]++
+			continue
+		}
+		distroCounts[string(pkg.Distro.Type)]++
+	}
+
+	assert.Greater(t, distroCounts["alpine"], 0, "expected at least one package with alpine distro, got %v", distroCounts)
+	assert.Greater(t, distroCounts["debian"], 0, "expected at least one package with debian distro, got %v", distroCounts)
 }
