@@ -1078,7 +1078,7 @@ func TestSet_Update(t *testing.T) {
 							},
 						},
 						Details: match.Details{
-							{Type: match.ExactDirectMatch, SearchedBy: map[string]interface{}{"key": "value"}},
+							{Type: match.ExactDirectMatch, SearchedBy: map[string]any{"key": "value"}},
 						},
 					},
 				},
@@ -1110,7 +1110,7 @@ func TestSet_Update(t *testing.T) {
 							},
 						},
 						Details: match.Details{
-							{Type: match.ExactDirectMatch, SearchedBy: map[string]interface{}{"key": "value"}},
+							{Type: match.ExactDirectMatch, SearchedBy: map[string]any{"key": "value"}},
 						},
 					},
 				},

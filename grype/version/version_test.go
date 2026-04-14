@@ -273,7 +273,7 @@ func TestVersion_Is(t *testing.T) {
 			version:  New("1.0.0", SemanticFormat),
 			operator: EQ,
 			other:    nil,
-			wantErr: func(t require.TestingT, err error, a ...interface{}) {
+			wantErr: func(t require.TestingT, err error, a ...any) {
 				require.ErrorIs(t, err, ErrNoVersionProvided, a...)
 			},
 		},
@@ -282,7 +282,7 @@ func TestVersion_Is(t *testing.T) {
 			version:  New("1.0.0", SemanticFormat),
 			operator: "!@#",
 			other:    New("1.0.0", SemanticFormat),
-			wantErr: func(t require.TestingT, err error, a ...interface{}) {
+			wantErr: func(t require.TestingT, err error, a ...any) {
 				require.ErrorContains(t, err, "unknown operator !@#", a...)
 			},
 		},
@@ -291,7 +291,7 @@ func TestVersion_Is(t *testing.T) {
 			version:  New("not-a-valid-version", SemanticFormat),
 			operator: EQ,
 			other:    New("1.0.0", SemanticFormat),
-			wantErr: func(t require.TestingT, err error, a ...interface{}) {
+			wantErr: func(t require.TestingT, err error, a ...any) {
 				require.ErrorContains(t, err, "unable to get comparator for Semantic", a...)
 			},
 		},

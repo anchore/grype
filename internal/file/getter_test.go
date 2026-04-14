@@ -151,11 +151,11 @@ func TestGetter_GetToDir_CertConcerns(t *testing.T) {
 	}
 }
 
-func assertUnknownAuthorityError(t assert.TestingT, err error, _ ...interface{}) bool {
+func assertUnknownAuthorityError(t assert.TestingT, err error, _ ...any) bool {
 	return assert.ErrorAs(t, err, &x509.UnknownAuthorityError{})
 }
 
-func assertErrNonArchiveSource(t assert.TestingT, err error, _ ...interface{}) bool {
+func assertErrNonArchiveSource(t assert.TestingT, err error, _ ...any) bool {
 	return assert.ErrorIs(t, err, ErrNonArchiveSource)
 }
 

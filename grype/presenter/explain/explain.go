@@ -419,9 +419,9 @@ func explainLocation(match models.Match, location file.Location) explainedEviden
 
 func formatCPEExplanation(m models.Match) string {
 	searchedBy := m.MatchDetails[0].SearchedBy
-	if mapResult, ok := searchedBy.(map[string]interface{}); ok {
+	if mapResult, ok := searchedBy.(map[string]any); ok {
 		if cpes, ok := mapResult["cpes"]; ok {
-			if cpeSlice, ok := cpes.([]interface{}); ok {
+			if cpeSlice, ok := cpes.([]any); ok {
 				if len(cpeSlice) > 0 {
 					return fmt.Sprintf("CPE match on `%s`.", cpeSlice[0])
 				}
@@ -434,9 +434,9 @@ func formatCPEExplanation(m models.Match) string {
 func sourcePackageNameAndVersion(md models.MatchDetails) (string, string) {
 	var name string
 	var version string
-	if mapResult, ok := md.SearchedBy.(map[string]interface{}); ok {
+	if mapResult, ok := md.SearchedBy.(map[string]any); ok {
 		if sourcePackage, ok := mapResult["package"]; ok {
-			if sourceMap, ok := sourcePackage.(map[string]interface{}); ok {
+			if sourceMap, ok := sourcePackage.(map[string]any); ok {
 				if maybeName, ok := sourceMap["name"]; ok {
 					name, _ = maybeName.(string)
 				}

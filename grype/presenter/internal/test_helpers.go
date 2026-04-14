@@ -143,13 +143,13 @@ func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches { // nolint
 				{
 					Type:    match.ExactDirectMatch,
 					Matcher: match.DpkgMatcher,
-					SearchedBy: map[string]interface{}{
+					SearchedBy: map[string]any{
 						"distro": map[string]string{
 							"type":    "ubuntu",
 							"version": "20.04",
 						},
 					},
-					Found: map[string]interface{}{
+					Found: map[string]any{
 						"constraint": ">= 20",
 					},
 				},
@@ -196,10 +196,10 @@ func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches { // nolint
 				{
 					Type:    match.ExactIndirectMatch,
 					Matcher: match.DpkgMatcher,
-					SearchedBy: map[string]interface{}{
+					SearchedBy: map[string]any{
 						"cpe": "somecpe",
 					},
-					Found: map[string]interface{}{
+					Found: map[string]any{
 						"constraint": "somecpe",
 					},
 				},
@@ -253,13 +253,13 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 					{
 						Type:    match.ExactDirectMatch,
 						Matcher: match.DpkgMatcher,
-						SearchedBy: map[string]interface{}{
+						SearchedBy: map[string]any{
 							"distro": map[string]string{
 								"type":    "ubuntu",
 								"version": "20.04",
 							},
 						},
-						Found: map[string]interface{}{
+						Found: map[string]any{
 							"constraint": ">= 20",
 						},
 					},
@@ -308,10 +308,10 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 					{
 						Type:    match.ExactDirectMatch,
 						Matcher: match.DpkgMatcher,
-						SearchedBy: map[string]interface{}{
+						SearchedBy: map[string]any{
 							"cpe": "somecpe",
 						},
-						Found: map[string]interface{}{
+						Found: map[string]any{
 							"constraint": "somecpe",
 						},
 					},
@@ -354,10 +354,10 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 					{
 						Type:    match.ExactDirectMatch,
 						Matcher: match.DpkgMatcher,
-						SearchedBy: map[string]interface{}{
+						SearchedBy: map[string]any{
 							"cpe": "somecpe",
 						},
-						Found: map[string]interface{}{
+						Found: map[string]any{
 							"constraint": "somecpe",
 						},
 					},

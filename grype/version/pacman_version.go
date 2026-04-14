@@ -109,7 +109,7 @@ func comparePacmanVersions(a, b string) int {
 	minSegs := min(len(segsa), len(segsb))
 
 	// compare each segment
-	for i := 0; i < minSegs; i++ {
+	for i := range minSegs {
 		a := segsa[i]
 		b := segsb[i]
 
