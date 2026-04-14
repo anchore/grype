@@ -22,7 +22,7 @@ func TestNew(t *testing.T) {
 	tests := []struct {
 		name      string
 		syftPkg   syftPkg.Package
-		metadata  interface{}
+		metadata  any
 		upstreams []UpstreamPackage
 	}{
 		{

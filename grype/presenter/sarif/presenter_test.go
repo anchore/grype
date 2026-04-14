@@ -37,7 +37,6 @@ func TestSarifPresenter(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			var buffer bytes.Buffer
 
@@ -265,7 +264,6 @@ func TestToSarifReport(t *testing.T) {
 	}
 
 	for _, tc := range tt {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 

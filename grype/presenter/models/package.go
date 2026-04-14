@@ -20,7 +20,7 @@ type Package struct {
 	PURL         string            `json:"purl"`
 	Upstreams    []UpstreamPackage `json:"upstreams"`
 	MetadataType string            `json:"metadataType,omitempty"`
-	Metadata     interface{}       `json:"metadata,omitempty"`
+	Metadata     any               `json:"metadata,omitempty"`
 }
 
 type UpstreamPackage struct {

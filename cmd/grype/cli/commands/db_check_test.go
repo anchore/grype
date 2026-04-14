@@ -125,7 +125,7 @@ No update available
 }
 
 func requireErrorContains(expected string) require.ErrorAssertionFunc {
-	return func(t require.TestingT, err error, msgAndArgs ...interface{}) {
+	return func(t require.TestingT, err error, msgAndArgs ...any) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), expected)
 	}
