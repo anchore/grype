@@ -43,7 +43,7 @@ func IsOpenVex(document string) bool {
 }
 
 // ReadVexDocuments reads and merges VEX documents
-func (ovm *Processor) ReadVexDocuments(docs []string) (interface{}, error) {
+func (ovm *Processor) ReadVexDocuments(docs []string) (any, error) {
 	// Combine all VEX documents into a single VEX document
 	vexdata, err := openvex.MergeFiles(docs)
 	if err != nil {
@@ -204,7 +204,7 @@ func findMatchingStatement(doc *openvex.VEX, vulnID string, products []string, s
 // FilterMatches takes a set of scanning results and moves any results marked in
 // the VEX data as fixed or not_affected to the ignored list.
 func (ovm *Processor) FilterMatches(
-	docRaw interface{}, ignoreRules []match.IgnoreRule, pkgContext *pkg.Context, matches *match.Matches, ignoredMatches []match.IgnoredMatch,
+	docRaw any, ignoreRules []match.IgnoreRule, pkgContext *pkg.Context, matches *match.Matches, ignoredMatches []match.IgnoredMatch,
 ) (*match.Matches, []match.IgnoredMatch, error) {
 	doc, ok := docRaw.(*openvex.VEX)
 	if !ok {
@@ -316,7 +316,7 @@ func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, statement *open
 // about an affected VEX product is found on loaded VEX documents. Matches
 // are moved from the ignore list or synthesized when no previous data is found.
 func (ovm *Processor) AugmentMatches(
-	docRaw interface{}, ignoreRules []match.IgnoreRule, pkgContext *pkg.Context, remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch,
+	docRaw any, ignoreRules []match.IgnoreRule, pkgContext *pkg.Context, remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch,
 ) (*match.Matches, []match.IgnoredMatch, error) {
 	doc, ok := docRaw.(*openvex.VEX)
 	if !ok {

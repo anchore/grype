@@ -54,7 +54,7 @@ func TestBuildGrypeNamespace(t *testing.T) {
 		},
 		{
 			group: "github:github-action",
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				assert.Error(t, err)
 				assert.ErrorIs(t, errSkip, err)
 			},

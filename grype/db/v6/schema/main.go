@@ -198,9 +198,9 @@ func buildUnifiedBlobSchema(version string, comments map[string]map[string]strin
 	}
 
 	// Reflect all three blob types to get their definitions
-	vulnBlobSchema := reflector.ReflectFromType(reflect.TypeOf(v6.VulnerabilityBlob{}))
-	packageBlobSchema := reflector.ReflectFromType(reflect.TypeOf(v6.PackageBlob{}))
-	kevBlobSchema := reflector.ReflectFromType(reflect.TypeOf(v6.KnownExploitedVulnerabilityBlob{}))
+	vulnBlobSchema := reflector.ReflectFromType(reflect.TypeFor[v6.VulnerabilityBlob]())
+	packageBlobSchema := reflector.ReflectFromType(reflect.TypeFor[v6.PackageBlob]())
+	kevBlobSchema := reflector.ReflectFromType(reflect.TypeFor[v6.KnownExploitedVulnerabilityBlob]())
 
 	// Create the unified schema with oneOf
 	unifiedSchema := &jsonschema.Schema{
@@ -234,7 +234,7 @@ func generateDiffSchema(version string, comments map[string]map[string]string) e
 		},
 	}
 
-	diffSchema := reflector.ReflectFromType(reflect.TypeOf(diff.Result{}))
+	diffSchema := reflector.ReflectFromType(reflect.TypeFor[diff.Result]())
 
 	applyComments(diffSchema.Definitions, comments)
 

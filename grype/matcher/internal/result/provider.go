@@ -70,7 +70,7 @@ func extractSearchParameters(criteriaSet []vulnerability.Criteria, vuln vulnerab
 	var ecosystemParams []match.EcosystemParameters
 	var pkgParams *match.PackageParameter
 
-	for i := 0; i < len(criteriaSet); i++ {
+	for i := range criteriaSet {
 		switch c := criteriaSet[i].(type) {
 		case *search.PackageNameCriteria:
 			if pkgParams == nil {

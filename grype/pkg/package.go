@@ -41,7 +41,7 @@ type Package struct {
 	CPEs      []cpe.CPE    // all possible Common Platform Enumerators
 	PURL      string       // the Package URL (see https://github.com/package-url/purl-spec)
 	Upstreams []UpstreamPackage
-	Metadata  interface{} // This is NOT 1-for-1 the syft metadata! Only the select data needed for vulnerability matching
+	Metadata  any // This is NOT 1-for-1 the syft metadata! Only the select data needed for vulnerability matching
 
 	// Related packages may be used for scanning
 	RelatedPackages map[artifact.RelationshipType][]*Package
@@ -291,7 +291,7 @@ func isOSPackage(p syftPkg.Package) bool {
 }
 
 func dataFromPkg(p syftPkg.Package) (any, []UpstreamPackage) {
-	var metadata interface{}
+	var metadata any
 	var upstreams []UpstreamPackage
 
 	// use the metadata to determine the type of package
@@ -344,7 +344,7 @@ func javaVMDataFromPkg(p syftPkg.Package) any {
 	return nil
 }
 
-func apkMetadataFromPkg(p syftPkg.Package) interface{} {
+func apkMetadataFromPkg(p syftPkg.Package) any {
 	if m, ok := p.Metadata.(syftPkg.ApkDBEntry); ok {
 		metadata := ApkMetadata{}
 
@@ -362,7 +362,7 @@ func apkMetadataFromPkg(p syftPkg.Package) interface{} {
 	return nil
 }
 
-func golangMetadataFromPkg(p syftPkg.Package) interface{} {
+func golangMetadataFromPkg(p syftPkg.Package) any {
 	switch value := p.Metadata.(type) {
 	case syftPkg.GolangBinaryBuildinfoEntry:
 		metadata := GolangBinMetadata{}

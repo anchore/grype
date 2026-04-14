@@ -59,14 +59,14 @@ func (pres *Presenter) Present(output io.Writer) error {
 // FuncMap is a function that returns template.FuncMap with custom functions available to template authors.
 var FuncMap = func() template.FuncMap {
 	f := sprig.HermeticTxtFuncMap()
-	f["getLastIndex"] = func(collection interface{}) int {
+	f["getLastIndex"] = func(collection any) int {
 		if v := reflect.ValueOf(collection); v.Kind() == reflect.Slice {
 			return v.Len() - 1
 		}
 
 		return 0
 	}
-	f["byMatchName"] = func(collection interface{}) interface{} {
+	f["byMatchName"] = func(collection any) any {
 		matches, ok := collection.([]models.Match)
 		if !ok {
 			return collection

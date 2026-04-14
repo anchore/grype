@@ -34,7 +34,7 @@ func IsCSAF(document string) bool {
 }
 
 // ReadVexDocuments reads different files and creates a collection of advisories based on them.
-func (*Processor) ReadVexDocuments(docs []string) (interface{}, error) {
+func (*Processor) ReadVexDocuments(docs []string) (any, error) {
 	var advs advisories
 
 	for _, doc := range docs {
@@ -80,7 +80,7 @@ func newerCurrentReleaseDateFirst(a, b *csaf.Advisory) int {
 // FilterMatches takes a set of scanning results and moves any results marked in
 // the VEX data as fixed or not_affected to the ignored list.
 func (*Processor) FilterMatches(
-	docRaw interface{}, ignoreRules []match.IgnoreRule, _ *pkg.Context, matches *match.Matches, ignoredMatches []match.IgnoredMatch,
+	docRaw any, ignoreRules []match.IgnoreRule, _ *pkg.Context, matches *match.Matches, ignoredMatches []match.IgnoredMatch,
 ) (*match.Matches, []match.IgnoredMatch, error) {
 	advisories, ok := docRaw.(advisories)
 	if !ok {
@@ -123,7 +123,7 @@ func (*Processor) FilterMatches(
 // about an affected VEX product is found on loaded VEX documents. Matches
 // are moved from the ignore list back to active matches.
 func (*Processor) AugmentMatches(
-	docRaw interface{}, ignoreRules []match.IgnoreRule, _ *pkg.Context, matches *match.Matches, ignoredMatches []match.IgnoredMatch,
+	docRaw any, ignoreRules []match.IgnoreRule, _ *pkg.Context, matches *match.Matches, ignoredMatches []match.IgnoredMatch,
 ) (*match.Matches, []match.IgnoredMatch, error) {
 	advisories, ok := docRaw.(advisories)
 	if !ok {
