@@ -45,6 +45,8 @@ func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom
 		}
 	}
 
+	packages = removePackagesByOverlap(packages)
+
 	return FromPtrs(packages), ctx, s, nil
 }
 
@@ -74,6 +76,8 @@ func ProvideFromReader(reader io.ReadSeeker, config ProviderConfig) ([]Package, 
 			log.Infof("using distro: %s", ctx.Distro.String())
 		}
 	}
+
+	packages = removePackagesByOverlap(packages)
 
 	if len(config.Exclusions) > 0 {
 		var exclusionsErr error

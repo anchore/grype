@@ -174,8 +174,6 @@ func FromPackages(syftPkgs []syftPkg.Package, relationships []artifact.Relations
 		}
 	}
 
-	pkgs = removePackagesByOverlap(pkgs)
-
 	return pkgs
 }
 
