@@ -22,12 +22,12 @@ func TestParseSyftJSON(t *testing.T) {
 
 	tests := []struct {
 		Fixture  string
-		Packages []Package
+		Packages []*Package
 		Context  Context
 	}{
 		{
 			Fixture: "testdata/syft-multiple-ecosystems.json",
-			Packages: []Package{
+			Packages: []*Package{
 				{
 					Name:    "alpine-baselayout",
 					Version: "3.2.0-r6",
@@ -279,11 +279,11 @@ func TestParseSyftJSON_BadCPEs(t *testing.T) {
 // and package IDs are removed so that the test case variable isn't unwieldingly huge.
 var springImageTestCase = struct {
 	Fixture  string
-	Packages []Package
+	Packages []*Package
 	Context  Context
 }{
 	Fixture: "testdata/syft-spring.json",
-	Packages: []Package{
+	Packages: []*Package{
 		{
 			Name:    "charsets",
 			Version: "",

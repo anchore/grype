@@ -17,7 +17,7 @@ type CPELiteralMetadata struct {
 	CPE string
 }
 
-func cpeProvider(userInput string, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
+func cpeProvider(userInput string, config ProviderConfig) ([]*Package, Context, *sbom.SBOM, error) {
 	reader, ctx, err := getCPEReader(userInput)
 	if err != nil {
 		return nil, Context{}, nil, err

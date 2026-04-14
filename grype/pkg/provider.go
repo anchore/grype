@@ -45,7 +45,7 @@ func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom
 		}
 	}
 
-	return packages, ctx, s, nil
+	return FromPtrs(packages), ctx, s, nil
 }
 
 // ProvideFromReader is like Provide but reads an SBOM directly from the given reader
@@ -83,7 +83,31 @@ func ProvideFromReader(reader io.ReadSeeker, config ProviderConfig) ([]Package, 
 		}
 	}
 
-	return packages, ctx, s, nil
+	return FromPtrs(packages), ctx, s, nil
+}
+
+// FromPtrs converts a slice of Package pointers to a slice of Package structs,
+// including re-pointing related package pointers to the corresponding struct within the slice
+func FromPtrs(packages []*Package) []Package {
+	if len(packages) == 0 {
+		return nil
+	}
+	out := make([]Package, len(packages))
+	pkgIdx := make(map[*Package]int, len(packages))
+	for i, p := range packages {
+		pkgIdx[p] = i
+		out[i] = *p
+	}
+	for i := range out {
+		for m := range out[i].RelatedPackages {
+			for relatedIdx, p := range out[i].RelatedPackages[m] {
+				if idx, ok := pkgIdx[p]; ok {
+					out[i].RelatedPackages[m][relatedIdx] = &out[idx]
+				}
+			}
+		}
+	}
+	return out
 }
 
 // buildChannelIndex creates a map of distro IDs to their applicable fix channels
@@ -173,7 +197,7 @@ func applyChannelsToDistro(d *distro.Distro, channels distro.FixChannels) bool {
 }
 
 // Provide a set of packages and context metadata describing where they were sourced from.
-func provide(userInput string, config ProviderConfig, applyChannel func(d *distro.Distro) bool) ([]Package, Context, *sbom.SBOM, error) {
+func provide(userInput string, config ProviderConfig, applyChannel func(d *distro.Distro) bool) ([]*Package, Context, *sbom.SBOM, error) {
 	packages, ctx, s, err := purlProvider(userInput, config, applyChannel)
 	if !errors.Is(err, errDoesNotProvide) {
 		log.WithFields("input", userInput).Trace("interpreting input as one or more PURLs")
@@ -206,8 +230,8 @@ func provide(userInput string, config ProviderConfig, applyChannel func(d *distr
 // This will filter the provided packages list based on a set of exclusion expressions. Globs
 // are allowed for the exclusions. A package will be *excluded* only if *all locations* match
 // one of the provided exclusions.
-func filterPackageExclusions(packages []Package, exclusions []string) ([]Package, error) {
-	var out []Package
+func filterPackageExclusions(packages []*Package, exclusions []string) ([]*Package, error) {
+	var out []*Package
 	for _, pkg := range packages {
 		includePackage := true
 		locations := pkg.Locations.ToSlice()
@@ -252,7 +276,7 @@ func locationMatches(location file.Location, exclusion string) (bool, error) {
 	return matchesRealPath || matchesVirtualPath, nil
 }
 
-func setContextDistro(packages []Package, ctx *Context) {
+func setContextDistro(packages []*Package, ctx *Context) {
 	if ctx.Distro != nil {
 		return
 	}

@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anchore/packageurl-go"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
@@ -1302,7 +1302,7 @@ func TestFromPackages_OwnershipByFileOverlap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			pkgs := FromPackages(tt.syftPkgs, tt.relationships, SynthesisConfig{})
 
-			pkgByName := map[string]Package{}
+			pkgByName := map[string]*Package{}
 			for _, p := range pkgs {
 				pkgByName[p.Name] = p
 			}

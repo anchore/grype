@@ -15,7 +15,7 @@ import (
 	"github.com/anchore/syft/syft/source/sourceproviders"
 )
 
-func syftProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]Package, Context, *sbom.SBOM, error) {
+func syftProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]*Package, Context, *sbom.SBOM, error) {
 	src, err := getSource(userInput, config)
 	if err != nil {
 		return nil, Context{}, nil, err

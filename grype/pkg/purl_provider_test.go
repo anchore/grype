@@ -25,7 +25,7 @@ func Test_PurlProvider(t *testing.T) {
 		userInput   string
 		channels    []distro.FixChannel
 		wantContext Context
-		wantPkgs    []Package
+		wantPkgs    []*Package
 		wantErr     require.ErrorAssertionFunc
 	}{
 		{
@@ -39,7 +39,7 @@ func Test_PurlProvider(t *testing.T) {
 					},
 				},
 			},
-			wantPkgs: []Package{
+			wantPkgs: []*Package{
 				{
 					Name:    "curl",
 					Version: "7.61.1",
@@ -59,7 +59,7 @@ func Test_PurlProvider(t *testing.T) {
 					},
 				},
 			},
-			wantPkgs: []Package{
+			wantPkgs: []*Package{
 				{
 					Name:    "commons-lang3",
 					Version: "3.12.0",
@@ -83,7 +83,7 @@ func Test_PurlProvider(t *testing.T) {
 					},
 				},
 			},
-			wantPkgs: []Package{
+			wantPkgs: []*Package{
 				{
 					Name:    "sysv-rc",
 					Version: "2.88dsf-59",
@@ -109,7 +109,7 @@ func Test_PurlProvider(t *testing.T) {
 					},
 				},
 			},
-			wantPkgs: []Package{
+			wantPkgs: []*Package{
 				{
 					Name:    "libcrypto3",
 					Version: "3.3.2",
@@ -134,7 +134,7 @@ func Test_PurlProvider(t *testing.T) {
 					},
 				},
 			},
-			wantPkgs: []Package{
+			wantPkgs: []*Package{
 				{
 					Name:    "libcrypto3",
 					Version: "3.3.2",
@@ -160,7 +160,7 @@ func Test_PurlProvider(t *testing.T) {
 					},
 				},
 			},
-			wantPkgs: []Package{
+			wantPkgs: []*Package{
 				{
 					Name:    "systemd-x",
 					Version: "239-82.el8_10.2",
@@ -187,7 +187,7 @@ func Test_PurlProvider(t *testing.T) {
 					},
 				},
 			},
-			wantPkgs: []Package{
+			wantPkgs: []*Package{
 				{
 					Name:    "dbus-common",
 					Version: "1:1.12.8-26.el8",
@@ -214,7 +214,7 @@ func Test_PurlProvider(t *testing.T) {
 					},
 				},
 			},
-			wantPkgs: []Package{
+			wantPkgs: []*Package{
 				{
 					Name:    "httpd",
 					Version: "2.4.37-51",
@@ -238,7 +238,7 @@ func Test_PurlProvider(t *testing.T) {
 					},
 				},
 			},
-			wantPkgs: []Package{
+			wantPkgs: []*Package{
 				{
 					Name:    "curl",
 					Version: "7.61.1",
@@ -257,7 +257,7 @@ func Test_PurlProvider(t *testing.T) {
 					Metadata: PURLLiteralMetadata{PURL: "pkg:golang/k8s.io/ingress-nginx@v1.11.2"},
 				},
 			},
-			wantPkgs: []Package{
+			wantPkgs: []*Package{
 				{
 					Name:    "k8s.io/ingress-nginx",
 					Version: "v1.11.2",
@@ -275,7 +275,7 @@ func Test_PurlProvider(t *testing.T) {
 					Metadata: PURLLiteralMetadata{PURL: "pkg:golang/github.com/wazuh/wazuh@v4.5.0"},
 				},
 			},
-			wantPkgs: []Package{
+			wantPkgs: []*Package{
 				{
 					Name:    "github.com/wazuh/wazuh",
 					Version: "v4.5.0",
@@ -293,7 +293,7 @@ func Test_PurlProvider(t *testing.T) {
 					Metadata: PURLLiteralMetadata{PURL: "pkg:golang/wazuh@v4.5.0"},
 				},
 			},
-			wantPkgs: []Package{
+			wantPkgs: []*Package{
 				{
 					Name:    "wazuh",
 					Version: "v4.5.0",
@@ -313,7 +313,7 @@ func Test_PurlProvider(t *testing.T) {
 					},
 				},
 			},
-			wantPkgs: []Package{
+			wantPkgs: []*Package{
 				{
 					Name:    "systemd-x",
 					Version: "239-82.el8_10.2",
@@ -340,7 +340,7 @@ func Test_PurlProvider(t *testing.T) {
 					},
 				},
 			},
-			wantPkgs: []Package{
+			wantPkgs: []*Package{
 				{
 					Name:    "systemd-x",
 					Version: "239-82.el8_10.2",
@@ -367,7 +367,7 @@ func Test_PurlProvider(t *testing.T) {
 					},
 				},
 			},
-			wantPkgs: []Package{
+			wantPkgs: []*Package{
 				{
 					Name:    "systemd-x",
 					Version: "239-82.el8_10.2",
@@ -395,7 +395,7 @@ func Test_PurlProvider(t *testing.T) {
 					},
 				},
 			},
-			wantPkgs: []Package{
+			wantPkgs: []*Package{
 				{
 					Name:    "systemd-x",
 					Version: "239-82.el8_10.2",

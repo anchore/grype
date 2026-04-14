@@ -90,14 +90,14 @@ func New(p syftPkg.Package, enhancers ...Enhancer) Package {
 	return out
 }
 
-func FromCollection(catalog *syftPkg.Collection, relationships []artifact.Relationship, config SynthesisConfig, enhancers ...Enhancer) []Package {
+func FromCollection(catalog *syftPkg.Collection, relationships []artifact.Relationship, config SynthesisConfig, enhancers ...Enhancer) []*Package {
 	return FromPackages(catalog.Sorted(), relationships, config, enhancers...)
 }
 
 // FromPackages creates grype packages from syft packages, including relevant relationship mappings
 //
 //nolint:gocognit,funlen
-func FromPackages(syftPkgs []syftPkg.Package, relationships []artifact.Relationship, config SynthesisConfig, enhancers ...Enhancer) []Package {
+func FromPackages(syftPkgs []syftPkg.Package, relationships []artifact.Relationship, config SynthesisConfig, enhancers ...Enhancer) []*Package {
 	pkgs := make([]*Package, 0, len(syftPkgs))
 
 	// if the user provided a distro explicitly, then use that over any distro that may be inferred from a package url
@@ -176,21 +176,7 @@ func FromPackages(syftPkgs []syftPkg.Package, relationships []artifact.Relations
 
 	pkgs = removePackagesByOverlap(pkgs)
 
-	// return non-pointer structs; update pointers to point to the packages in the slice
-	out := make([]Package, len(pkgs))
-	pkgIdx := map[*Package]int{}
-	for i := range pkgs {
-		out[i] = *pkgs[i]
-		pkgIdx[pkgs[i]] = i
-	}
-	for i := range out {
-		for r := range out[i].RelatedPackages {
-			for j := range out[i].RelatedPackages[r] {
-				out[i].RelatedPackages[r][j] = &out[pkgIdx[out[i].RelatedPackages[r][j]]]
-			}
-		}
-	}
-	return out
+	return pkgs
 }
 
 func (p Package) String() string {
