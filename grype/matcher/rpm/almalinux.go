@@ -116,7 +116,6 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 		search.ByPackageName(binaryPkg.Name),
 		search.ByExactDistro(*binaryPkg.Distro), // use exact AlmaLinux distro for unaffected lookup (no aliases)
 		internal.OnlyQualifiedPackages(binaryPkg),
-		internal.OnlyVulnerableVersions(pkgVersion),
 		search.ForUnaffected(),
 	)
 	if err != nil {
@@ -128,20 +127,22 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 	// Step 4: Find AlmaLinux unaffected records for related packages (source/binary relationships)
 	// This handles cases where AlmaLinux publishes unaffected records for binary packages (e.g., python3-tkinter)
 	// but the disclosure is for the source package (e.g., python3)
-	relatedUnaffected := findRelatedUnaffectedPackages(provider, binaryPkg, pkgVersion)
+	relatedUnaffected := findRelatedUnaffectedPackages(provider, binaryPkg)
 
 	// Merge all unaffected results
 	allUnaffected := directUnaffected.Merge(relatedUnaffected)
-	ignored = append(ignored, internal.OwnershipIgnores(binaryPkg, "Distro Fixed", allUnaffected.Vulnerabilities()...)...)
 
 	// Step 5: Apply filtering logic: if disclosure exists and no fix applies, the package is vulnerable
 	updatedDisclosures := applyAlmaLinuxUnaffectedFiltering(allDisclosures, allUnaffected, pkgVersion)
+
+	// allUnaffected is not filtered by version constraint, but the correct set gets applied to updatedDisclosures
+	ignored = append(ignored, internal.OwnershipIgnores(binaryPkg, "Alma Unaffected", allUnaffected.Remove(updatedDisclosures).Vulnerabilities()...)...)
 
 	return updatedDisclosures.ToMatches(), ignored, nil
 }
 
 // findRelatedUnaffectedPackages searches for unaffected packages using source/binary RPM relationships
-func findRelatedUnaffectedPackages(provider result.Provider, searchPkg pkg.Package, searchVersion *version.Version) result.Set {
+func findRelatedUnaffectedPackages(provider result.Provider, searchPkg pkg.Package) result.Set {
 	allResults := make(result.Set)
 
 	// Get all related package names (source RPM, binary RPM patterns, etc.)
@@ -157,7 +158,6 @@ func findRelatedUnaffectedPackages(provider result.Provider, searchPkg pkg.Packa
 			search.ByPackageName(relatedName),
 			search.ByExactDistro(*searchPkg.Distro), // use exact distro to avoid alias mapping
 			internal.OnlyQualifiedPackages(searchPkg),
-			internal.OnlyVulnerableVersions(searchVersion),
 			search.ForUnaffected(),
 		)
 		if err != nil {
