@@ -35,7 +35,7 @@ func TestMatcherDpkg_matchBySourceIndirection(t *testing.T) {
 	}
 
 	vp := newMockProvider()
-	actual, err := matcher.matchUpstreamPackages(vp, p)
+	actual, _, err := matcher.matchUpstreamPackages(vp, p)
 	assert.NoError(t, err, "unexpected err from matchUpstreamPackages", err)
 
 	assert.Len(t, actual, 2, "unexpected indirect matches count")

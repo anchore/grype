@@ -38,6 +38,8 @@ func alpineCPEComparableVersion(version string) string {
 var ErrEmptyCPEMatch = errors.New("attempted CPE match against package with no CPEs")
 
 // MatchPackageByCPEs retrieves all vulnerabilities that match any of the provided package's CPEs
+//
+//nolint:funlen
 func MatchPackageByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
 	provider := result.NewProvider(vulnProvider, p, upstreamMatcher)
 
@@ -84,19 +86,32 @@ func MatchPackageByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upst
 			verObj = version.New(searchVersion, format)
 		}
 
-		// find all vulnerability records in the DB for the given CPE (not including version comparisons)
-		all, err := provider.FindResults(
+		criteria := []vulnerability.Criteria{
 			search.ByCPE(c),
 			OnlyVulnerableTargets(p),
 			OnlyQualifiedPackages(p),
 			OnlyNonWithdrawnVulnerabilities(),
-		)
+		}
+
+		versionCriteria := OnlyVulnerableVersions(verObj)
+
+		// find all vulnerability records in the DB for the given CPE (not including version comparisons)
+		all, err := provider.FindResults(criteria...)
 		if err != nil {
 			return nil, nil, fmt.Errorf("matcher failed to fetch by CPE pkg=%q: %w", p.Name, err)
 		}
 
-		vulns := all.Filter(OnlyVulnerableVersions(verObj))
-		ignores = append(ignores, OwnershipIgnores(p, "CPE not vulnerable", all.Remove(vulns).Vulnerabilities()...)...)
+		vulns := all.Filter(versionCriteria)
+
+		unaffected, err := provider.FindResults(
+			append(criteria, search.ForUnaffected(), versionCriteria)...,
+		)
+		if err != nil {
+			return nil, nil, fmt.Errorf("matcher failed to fetch unaffected CPE records for pkg=%q: %w", p.Name, err)
+		}
+
+		unaffected = all.Remove(vulns).Merge(unaffected)
+		ignores = append(ignores, OwnershipIgnores(p, "CPE not vulnerable", unaffected.Vulnerabilities()...)...)
 
 		// for each vulnerability record found, check the version constraint. If the constraint is satisfied
 		// relative to the current version information from the CPE (or the package) then the given package

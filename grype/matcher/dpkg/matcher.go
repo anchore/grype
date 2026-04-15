@@ -37,23 +37,20 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
-	var ignores []match.IgnoreFilter
-	matches := make([]match.Match, 0)
-
-	sourceMatches, err := m.matchUpstreamPackages(store, p)
+	matches, ignores, err := m.matchUpstreamPackages(store, p)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to match by source indirection: %w", err)
 	}
-	matches = append(matches, sourceMatches...)
 
 	versionConfig := version.ComparisonConfig{
 		MissingEpochStrategy: m.cfg.MissingEpochStrategy,
 	}
-	exactMatches, _, err := internal.MatchPackageByDistro(store, p, nil, m.Type(), &versionConfig)
+	exactMatches, exactIgnores, err := internal.MatchPackageByDistro(store, p, nil, m.Type(), &versionConfig)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
 	}
 	matches = append(matches, exactMatches...)
+	ignores = append(ignores, exactIgnores...)
 
 	// if configured, also search by CPEs for packages from EOL distros
 	if m.cfg.UseCPEsForEOL && internal.IsDistroEOL(store, p.Distro) {
@@ -73,23 +70,25 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	return matches, ignores, nil
 }
 
-func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	var matches []match.Match
+	var ignores []match.IgnoreFilter
 
 	versionConfig := version.ComparisonConfig{
 		MissingEpochStrategy: m.cfg.MissingEpochStrategy,
 	}
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, _, err := internal.MatchPackageByDistro(store, indirectPackage, &p, m.Type(), &versionConfig)
+		indirectMatches, ignored, err := internal.MatchPackageByDistro(store, indirectPackage, &p, m.Type(), &versionConfig)
 		if err != nil {
-			return nil, fmt.Errorf("failed to find vulnerabilities for dpkg upstream source package: %w", err)
+			return nil, nil, fmt.Errorf("failed to find vulnerabilities for dpkg upstream source package: %w", err)
 		}
 		matches = append(matches, indirectMatches...)
+		ignores = append(ignores, ignored...)
 	}
 
 	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package)
 	// however, we also want to keep the indirect package around for future reference
 	match.ConvertToIndirectMatches(matches, p)
 
-	return matches, nil
+	return matches, ignores, nil
 }
