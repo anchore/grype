@@ -264,13 +264,13 @@ func epssPercentile(es []EPSS) float64 {
 	if len(es) == 0 {
 		return 0.0
 	}
-	max := es[0].Percentile
+	maxPercentile := es[0].Percentile
 	for _, e := range es[1:] {
-		if e.Percentile > max {
-			max = e.Percentile
+		if e.Percentile > maxPercentile {
+			maxPercentile = e.Percentile
 		}
 	}
-	return max
+	return maxPercentile
 }
 
 // severityPriority maps severity strings to numeric priority for comparison (the lowest value is most severe)
