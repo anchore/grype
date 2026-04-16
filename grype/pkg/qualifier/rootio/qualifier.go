@@ -78,7 +78,8 @@ func StripPrefix(name string, pkgType syftPkg.Type) string {
 		return strings.TrimPrefix(name, "rootio-")
 
 	case syftPkg.PythonPkg:
-		return strings.TrimPrefix(name, "rootio_")
+		// Accept both rootio_ (canonical PyPI) and rootio- (PEP 426 normalized form)
+		return strings.TrimPrefix(strings.TrimPrefix(name, "rootio-"), "rootio_")
 
 	case syftPkg.JavaPkg:
 		return strings.TrimPrefix(name, "io.root.")
@@ -106,8 +107,10 @@ func hasRootIOPrefix(name string, pkgType syftPkg.Type) bool {
 		return strings.HasPrefix(name, "rootio-")
 
 	case syftPkg.PythonPkg:
-		// PyPI packages use rootio_ prefix (underscore, per PyPI naming convention)
-		return strings.HasPrefix(name, "rootio_")
+		// PyPI packages use rootio_ prefix (underscore, per PyPI naming convention),
+		// but after PEP 426 normalization runs of [-_.] become a single hyphen,
+		// so the normalized form is rootio- (hyphen). Accept both.
+		return strings.HasPrefix(name, "rootio_") || strings.HasPrefix(name, "rootio-")
 
 	case syftPkg.JavaPkg:
 		// Maven packages use io.root. prefix on the groupId
