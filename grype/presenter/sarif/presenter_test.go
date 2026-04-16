@@ -37,7 +37,6 @@ func TestSarifPresenter(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			var buffer bytes.Buffer
 
@@ -265,7 +264,6 @@ func TestToSarifReport(t *testing.T) {
 	}
 
 	for _, tc := range tt {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -424,6 +422,51 @@ func Test_cvssScore(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			score := cvssScore(test.match)
 			assert.Equal(t, test.expected, score)
+		})
+	}
+}
+
+func Test_helpURI(t *testing.T) {
+	tests := []struct {
+		name       string
+		dataSource string
+		urls       []string
+		expected   string
+	}{
+		{
+			name:       "dataSource preferred over urls",
+			dataSource: "https://nvd.nist.gov/vuln/detail/CVE-2021-1234",
+			urls:       []string{"https://example.com/advisory"},
+			expected:   "https://nvd.nist.gov/vuln/detail/CVE-2021-1234",
+		},
+		{
+			name:     "first url used when no dataSource",
+			urls:     []string{"https://github.com/advisories/GHSA-xxxx-yyyy-zzzz", "https://example.com/other"},
+			expected: "https://github.com/advisories/GHSA-xxxx-yyyy-zzzz",
+		},
+		{
+			name:       "dataSource used when no urls",
+			dataSource: "https://nvd.nist.gov/vuln/detail/CVE-2021-5678",
+			expected:   "https://nvd.nist.gov/vuln/detail/CVE-2021-5678",
+		},
+		{
+			name:     "fallback to grype repo when no dataSource or urls",
+			expected: "https://github.com/anchore/grype",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := models.Match{
+				Vulnerability: models.Vulnerability{
+					VulnerabilityMetadata: models.VulnerabilityMetadata{
+						ID:         "CVE-2021-0000",
+						DataSource: tc.dataSource,
+						URLs:       tc.urls,
+					},
+				},
+			}
+			assert.Equal(t, tc.expected, helpURI(m))
 		})
 	}
 }

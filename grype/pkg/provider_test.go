@@ -228,7 +228,7 @@ func Test_filterPackageExclusions(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			var packages []Package
+			var packages []*Package
 			for _, pkg := range test.locations {
 				locations := file.NewLocationSet()
 				for _, l := range pkg {
@@ -236,7 +236,7 @@ func Test_filterPackageExclusions(t *testing.T) {
 						file.NewVirtualLocation(l, l),
 					)
 				}
-				packages = append(packages, Package{Locations: locations})
+				packages = append(packages, &Package{Locations: locations})
 			}
 			filtered, err := filterPackageExclusions(packages, test.exclusions)
 

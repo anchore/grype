@@ -4,7 +4,7 @@ inputs:
   go-version:
     description: "Go version to install"
     required: true
-    default: "1.25.x"
+    default: "1.26.2"
   python-version:
     description: "Python version to install"
     required: true
@@ -27,7 +27,6 @@ inputs:
   bootstrap-apt-packages:
     description: "Space delimited list of tools to install via apt"
     default: "libxml2-utils"
-
 runs:
   using: "composite"
   steps:
@@ -37,11 +36,9 @@ runs:
       with:
         go-version: ${{ inputs.go-version }}
         check-latest: true
-
     - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
       with:
         python-version: ${{ inputs.python-version }}
-
     - name: Restore tool cache
       id: tool-cache
       uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
@@ -49,7 +46,6 @@ runs:
       with:
         path: ${{ github.workspace }}/.tool
         key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-tool-${{ hashFiles('.binny.yaml') }}
-
     - name: Install project tools
       if: inputs.tools == 'true'
       shell: bash
@@ -57,12 +53,10 @@ runs:
         make tools
         .tool/binny list
         .tool/binny check
-
     - name: Install go dependencies
       if: inputs.go-dependencies == 'true'
       shell: bash
       run: make ci-bootstrap-go
-
     - name: Install apt packages
       if: inputs.bootstrap-apt-packages != ''
       shell: bash
@@ -71,7 +65,6 @@ runs:
         DEBIAN_FRONTEND=noninteractive sudo apt update && sudo -E apt install -y "${PACKAGES[@]}"
       env:
         BOOTSTRAP_APT_PACKAGES: ${{ inputs.bootstrap-apt-packages }}
-
     - name: Create all cache fingerprints
       if: inputs.compute-fingerprints == 'true'
       shell: bash

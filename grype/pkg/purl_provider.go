@@ -27,7 +27,7 @@ func purlEnhancers(applyChannel func(*distro.Distro) bool) []Enhancer {
 	return []Enhancer{setUpstreamsFromPURL, setDistroFromPURL(applyChannel)}
 }
 
-func purlProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]Package, Context, *sbom.SBOM, error) {
+func purlProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]*Package, Context, *sbom.SBOM, error) {
 	reader, ctx, err := getPurlReader(userInput)
 	if err != nil {
 		return nil, Context{}, nil, err

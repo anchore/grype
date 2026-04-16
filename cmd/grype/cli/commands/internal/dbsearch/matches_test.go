@@ -264,7 +264,7 @@ func TestFilterCPEsByFixedState(t *testing.T) {
 
 func makeTestPackages(count int) []affectedPackageWithDecorations {
 	packages := make([]affectedPackageWithDecorations, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		packages[i] = affectedPackageWithDecorations{
 			AffectedPackageHandle: v6.AffectedPackageHandle{
 				BlobValue: &v6.PackageBlob{},
@@ -293,7 +293,7 @@ func makePackageWithFixState(state v6.FixStatus) affectedPackageWithDecorations 
 
 func makeTestCPEs(count int) []affectedCPEWithDecorations {
 	cpes := make([]affectedCPEWithDecorations, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		cpes[i] = affectedCPEWithDecorations{
 			AffectedCPEHandle: v6.AffectedCPEHandle{
 				BlobValue: &v6.PackageBlob{},

@@ -938,7 +938,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				Name: "some-package",
 			},
 			expected: nil,
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				if !errors.Is(err, ErrEmptyCPEMatch) {
 					t.Errorf("expected %v but got %v", ErrEmptyCPEMatch, err)
 					t.FailNow()

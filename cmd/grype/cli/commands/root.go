@@ -78,7 +78,7 @@ You can also explicitly specify the scheme to use:
 You can also pipe in Syft JSON directly:
 	syft yourimage:tag -o json | {{.appName}}
 
-`, map[string]interface{}{
+`, map[string]any{
 			"appName": app.ID().Name,
 		}),
 		Args:          validateRootArgs,
