@@ -26,6 +26,15 @@ const zarfLocationPrefix = "zarf:"
 
 const zarfInputPrefix = "zarf:"
 
+// maxSBOMEntryBytes is the maximum size of a single SBOM entry in sboms.tar.
+// This is arbitrarily selected and could be improved with empirical data from
+// large production Zarf packages.
+const maxSBOMEntryBytes = 256 << 20 // 256 MB
+
+// maxSBOMEntries is the maximum number of entries to process in sboms.tar,
+// as a safeguard against malformed archives with an excessive entry count.
+const maxSBOMEntries = 1000
+
 // ZarfPackageMetadata holds context about the source Zarf package.
 type ZarfPackageMetadata struct {
 	Path string
@@ -63,6 +72,11 @@ func readZarfPackage(archivePath string, config ProviderConfig, applyChannel fun
 	}
 	defer f.Close()
 
+	// NOTE: no decompressed-size limit is applied to the zstd reader. Zarf packages
+	// could exceed 50GB decompressed in production, and the outer tar stream includes
+	// OCI image layers that must be skipped to reach sboms.tar. The streaming reader
+	// does not hold the full decompressed output in memory, but a decompression bomb
+	// could cause sustained CPU usage.
 	zr, err := zstd.NewReader(f)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to create zstd reader: %w", err)
@@ -96,6 +110,7 @@ func readSBOMsFromTar(r io.Reader, config ProviderConfig, applyChannel func(*dis
 	var allPackages []*Package
 	var mergedSBOM *sbom.SBOM
 	var decodedCount int
+	var entryCount int
 
 	for {
 		hdr, err := sbomTar.Next()
@@ -106,13 +121,18 @@ func readSBOMsFromTar(r io.Reader, config ProviderConfig, applyChannel func(*dis
 			return nil, nil, fmt.Errorf("error reading sboms.tar: %w", err)
 		}
 
+		entryCount++
+		if entryCount > maxSBOMEntries {
+			return nil, nil, fmt.Errorf("sboms.tar contains more than %d entries, which exceeds the maximum", maxSBOMEntries)
+		}
+
 		if hdr.Typeflag != tar.TypeReg {
 			continue
 		}
 
 		log.WithFields("entry", hdr.Name).Debug("reading SBOM from Zarf package")
 
-		buf, err := io.ReadAll(sbomTar)
+		buf, err := io.ReadAll(io.LimitReader(sbomTar, maxSBOMEntryBytes))
 		if err != nil {
 			log.WithFields("entry", hdr.Name, "error", err).Warn("skipping unreadable SBOM entry in Zarf package")
 			continue
