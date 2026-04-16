@@ -173,7 +173,7 @@ func mergeSBOM(dst, src *sbom.SBOM) {
 // per-SBOM distro to any package that does not already carry one.
 func annotatePackagesFromZarfSBOM(packages []*Package, s *sbom.SBOM, entryName string, d *distro.Distro) {
 	identifier := s.Source.Name
-	if identifier == "" {
+	if identifier == "" || strings.HasPrefix(identifier, "/") {
 		identifier = entryName
 	}
 	loc := file.NewLocation(zarfLocationPrefix + identifier)
