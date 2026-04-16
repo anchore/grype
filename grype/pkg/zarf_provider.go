@@ -31,7 +31,7 @@ type ZarfPackageMetadata struct {
 	Path string
 }
 
-func zarfProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]Package, Context, *sbom.SBOM, error) {
+func zarfProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]*Package, Context, *sbom.SBOM, error) {
 	if !strings.HasPrefix(userInput, zarfInputPrefix) {
 		return nil, Context{}, nil, errDoesNotProvide
 	}
@@ -56,7 +56,7 @@ func zarfProvider(userInput string, config ProviderConfig, applyChannel func(*di
 
 // readZarfPackage opens a Zarf .tar.zst archive, locates sboms.tar within it,
 // and decodes each SBOM entry into a merged package list.
-func readZarfPackage(archivePath string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]Package, *sbom.SBOM, error) {
+func readZarfPackage(archivePath string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]*Package, *sbom.SBOM, error) {
 	f, err := os.Open(archivePath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to open Zarf package %s: %w", archivePath, err)
@@ -90,10 +90,10 @@ func readZarfPackage(archivePath string, config ProviderConfig, applyChannel fun
 
 // readSBOMsFromTar iterates over entries in sboms.tar, decoding each SBOM
 // and merging all packages into a single result set.
-func readSBOMsFromTar(r io.Reader, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]Package, *sbom.SBOM, error) {
+func readSBOMsFromTar(r io.Reader, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]*Package, *sbom.SBOM, error) {
 	sbomTar := tar.NewReader(r)
 
-	var allPackages []Package
+	var allPackages []*Package
 	var mergedSBOM *sbom.SBOM
 	var decodedCount int
 
@@ -126,14 +126,13 @@ func readSBOMsFromTar(r io.Reader, config ProviderConfig, applyChannel func(*dis
 		decodedCount++
 
 		d, _ := distroFromSBOM(s, config, applyChannel)
-		catalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
 
 		var enhancers []Enhancer
 		if fmtID != syftjson.ID {
 			enhancers = purlEnhancers(applyChannel)
 		}
 
-		packages := FromCollection(catalog, s.Relationships, config.SynthesisConfig, enhancers...)
+		packages := FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig, enhancers...)
 
 		// annotate each package with provenance back to the originating SBOM, and
 		// propagate the per-SBOM distro to packages that don't already have one
@@ -172,17 +171,17 @@ func mergeSBOM(dst, src *sbom.SBOM) {
 // back to the originating SBOM inside the Zarf archive (preferring the SBOM's
 // declared source name, falling back to the tar entry name), and propagates the
 // per-SBOM distro to any package that does not already carry one.
-func annotatePackagesFromZarfSBOM(packages []Package, s *sbom.SBOM, entryName string, d *distro.Distro) {
+func annotatePackagesFromZarfSBOM(packages []*Package, s *sbom.SBOM, entryName string, d *distro.Distro) {
 	identifier := s.Source.Name
 	if identifier == "" {
 		identifier = entryName
 	}
 	loc := file.NewLocation(zarfLocationPrefix + identifier)
 
-	for i := range packages {
-		packages[i].Locations.Add(loc)
-		if packages[i].Distro == nil && d != nil {
-			packages[i].Distro = d
+	for _, p := range packages {
+		p.Locations.Add(loc)
+		if p.Distro == nil && d != nil {
+			p.Distro = d
 		}
 	}
 }
