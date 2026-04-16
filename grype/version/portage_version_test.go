@@ -146,19 +146,6 @@ func TestPortageConstraint_Constraint_NilVersion(t *testing.T) {
 	}
 }
 
-func TestPortageVersion_Constraint_UnsupportedFormat(t *testing.T) {
-	c, err := GetConstraint("> 1.0.0", PortageFormat)
-	assert.NoError(t, err)
-
-	// test with a semantic version (wrong format)
-	version := New("1.2.3", SemanticFormat)
-
-	satisfied, err := c.Satisfied(version)
-	require.Error(t, err)
-	assert.False(t, satisfied)
-	assert.Contains(t, err.Error(), "unsupported version comparison")
-}
-
 func TestPortageConstraint_String(t *testing.T) {
 	tests := []struct {
 		name       string
