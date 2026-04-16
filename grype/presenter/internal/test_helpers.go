@@ -54,7 +54,7 @@ func GenerateAnalysis(t *testing.T, scheme SyftSource) (*sbom.SBOM, models.Docum
 		Source: *context.Source,
 	}
 
-	grypePackages := pkg.FromCollection(s.Artifacts.Packages, s.Relationships, pkg.SynthesisConfig{})
+	grypePackages := pkg.FromPtrs(pkg.FromCollection(s.Artifacts.Packages, s.Relationships, pkg.SynthesisConfig{}))
 
 	matches := generateMatches(t, grypePackages[0], grypePackages[1])
 
@@ -73,7 +73,7 @@ func GenerateAnalysisWithIgnoredMatches(t *testing.T, scheme SyftSource) models.
 		},
 	}
 
-	grypePackages := pkg.FromCollection(s.Artifacts.Packages, s.Relationships, pkg.SynthesisConfig{})
+	grypePackages := pkg.FromPtrs(pkg.FromCollection(s.Artifacts.Packages, s.Relationships, pkg.SynthesisConfig{}))
 
 	matches := generateMatches(t, grypePackages[0], grypePackages[1])
 	ignoredMatches := generateIgnoredMatches(t, grypePackages[1])

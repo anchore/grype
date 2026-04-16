@@ -19,7 +19,7 @@ func Test_CPEProvider(t *testing.T) {
 		name      string
 		userInput string
 		context   Context
-		pkgs      []Package
+		pkgs      []*Package
 		sbom      *sbom.SBOM
 		wantErr   require.ErrorAssertionFunc
 	}{
@@ -33,7 +33,7 @@ func Test_CPEProvider(t *testing.T) {
 					},
 				},
 			},
-			pkgs: []Package{
+			pkgs: []*Package{
 				{
 					Name:    "log4j",
 					Version: "2.14.1",
@@ -64,7 +64,7 @@ func Test_CPEProvider(t *testing.T) {
 					},
 				},
 			},
-			pkgs: []Package{
+			pkgs: []*Package{
 				{
 					Name: "log4j",
 					CPEs: []cpe.CPE{
@@ -93,7 +93,7 @@ func Test_CPEProvider(t *testing.T) {
 					},
 				},
 			},
-			pkgs: []Package{
+			pkgs: []*Package{
 				{
 					Name:    "log4j",
 					Version: "2.14.1",
@@ -126,7 +126,7 @@ func Test_CPEProvider(t *testing.T) {
 					},
 				},
 			},
-			pkgs: []Package{
+			pkgs: []*Package{
 				{
 					Name:    "log4j",
 					Version: "2.14.1",
