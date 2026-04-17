@@ -18,7 +18,7 @@ require (
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.2.0
 	github.com/anchore/stereoscope v0.1.23-0.20260401204556-32bc81fdad68
-	github.com/anchore/syft v1.42.5-0.20260412145408-e4203224943d
+	github.com/anchore/syft v1.42.4
 	github.com/aquasecurity/go-pep440-version v0.0.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/bitnami/go-version v0.0.0-20250505154626-452e8c5ee607
