@@ -238,10 +238,23 @@ func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Packag
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
+	unaffected, err := provider.FindResults(
+		search.ByPackageName(searchPkg.Name),
+		search.ByDistro(*searchPkg.Distro),
+		internal.OnlyQualifiedPackages(searchPkg),
+		internal.OnlyVulnerableVersions(pkgVersion),
+		search.ForUnaffected(),
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("matcher failed to fetch unaffected for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
+	}
 
 	disclosures := all.Filter(internal.OnlyVulnerableVersions(pkgVersion))
 
-	return disclosures.ToMatches(), internal.OwnershipIgnores(searchPkg, "Distro Not Vulnerable", all.Remove(disclosures).Vulnerabilities()...), nil
+	// return all unaffected vulns for this version
+	unaffected = unaffected.Merge(all.Remove(disclosures))
+
+	return disclosures.ToMatches(), internal.OwnershipIgnores(searchPkg, "Distro Not Vulnerable", unaffected.Vulnerabilities()...), nil
 }
 
 func addEpochIfApplicable(p *pkg.Package) {
