@@ -203,7 +203,7 @@ func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, advMatch *advis
 		// any status with any vulnerability. Alternatively, if the vulnerability
 		// is set, the rule applies if it is the same in the advisory match and the rule.
 		if rule.Vulnerability == "" || advMatch.cve() == rule.Vulnerability {
-			return &rule
+			return enrichRuleWithCSAFStatement(rule, advMatch)
 		}
 
 		// If the rule applies to a VEX justification it needs to match the
@@ -219,4 +219,13 @@ func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, advMatch *advis
 	}
 
 	return nil
+}
+
+func enrichRuleWithCSAFStatement(rule match.IgnoreRule, advMatch *advisoryMatch) *match.IgnoreRule {
+	if !matchesVexStatus(advMatch.Status, vexStatus.NotAffected) || rule.VexJustification != "" {
+		return &rule
+	}
+
+	rule.VexJustification = advMatch.statement()
+	return &rule
 }

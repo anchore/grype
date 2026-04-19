@@ -98,6 +98,19 @@ func TestNewIgnoreRule(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "vex fields",
+			input: match.IgnoreRule{
+				Namespace:        "vex",
+				VexStatus:        "not_affected",
+				VexJustification: "vulnerable_code_not_present",
+			},
+			expected: IgnoreRule{
+				Namespace:        "vex",
+				VexStatus:        "not_affected",
+				VexJustification: "vulnerable_code_not_present",
+			},
+		},
 	}
 
 	for _, testCase := range cases {

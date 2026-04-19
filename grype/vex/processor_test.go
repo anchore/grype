@@ -165,6 +165,30 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 			}},
 		},
 		{
+			name: "csaf-demo2 - ignore by not_affected status backfills vulnerable_code_not_present justification",
+			options: ProcessorOptions{
+				Documents: []string{
+					"testdata/vex-docs/csaf-demo2.json",
+				},
+				IgnoreRules: []match.IgnoreRule{{
+					VexStatus: string(status.NotAffected),
+				}},
+			},
+			args: args{
+				pkgContext: pkgContext,
+				matches:    getSubject(),
+			},
+			wantMatches: matchesRef(libCryptoCVE_2023_1255, libCryptoCVE_2023_2975),
+			wantIgnoredMatches: []match.IgnoredMatch{{
+				Match: libCryptoCVE_2023_3817,
+				AppliedIgnoreRules: []match.IgnoreRule{{
+					Namespace:        "vex",
+					VexStatus:        string(status.NotAffected),
+					VexJustification: "vulnerable_code_not_present",
+				}},
+			}},
+		},
+		{
 			name: "csaf-demo2 - ignore by not_affected status and vulnerable_code_not_present justification",
 			options: ProcessorOptions{
 				Documents: []string{
@@ -288,6 +312,30 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 					Namespace:     "vex",
 					Vulnerability: "CVE-2023-1255", // note: this is the difference between this test and the last test
 					VexStatus:     string(status.Fixed),
+				}},
+			}},
+		},
+		{
+			name: "openvex-demo2 - ignore by not_affected status backfills vulnerable_code_not_present justification",
+			options: ProcessorOptions{
+				Documents: []string{
+					"testdata/vex-docs/openvex-demo2.json",
+				},
+				IgnoreRules: []match.IgnoreRule{{
+					VexStatus: "not_affected",
+				}},
+			},
+			args: args{
+				pkgContext: pkgContext,
+				matches:    getSubject(),
+			},
+			wantMatches: matchesRef(libCryptoCVE_2023_2975, libCryptoCVE_2023_1255),
+			wantIgnoredMatches: []match.IgnoredMatch{{
+				Match: libCryptoCVE_2023_3817,
+				AppliedIgnoreRules: []match.IgnoreRule{{
+					Namespace:        "vex",
+					VexStatus:        "not_affected",
+					VexJustification: "vulnerable_code_not_present",
 				}},
 			}},
 		},

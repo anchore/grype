@@ -300,16 +300,25 @@ func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, statement *open
 		// If the vulnerability is blank in the rule it means we will honor
 		// any status with any vulnerability.
 		if rule.Vulnerability == "" {
-			return &rule
+			return enrichRuleWithOpenVEXStatement(rule, statement)
 		}
 
 		// If the vulnerability is set, the rule applies if it is the same
 		// in the statement and the rule.
 		if statement.Vulnerability.Matches(rule.Vulnerability) {
-			return &rule
+			return enrichRuleWithOpenVEXStatement(rule, statement)
 		}
 	}
 	return nil
+}
+
+func enrichRuleWithOpenVEXStatement(rule match.IgnoreRule, statement *openvex.Statement) *match.IgnoreRule {
+	if statement.Status != openvex.StatusNotAffected || rule.VexJustification != "" {
+		return &rule
+	}
+
+	rule.VexJustification = string(statement.Justification)
+	return &rule
 }
 
 // AugmentMatches adds results to the match.Matches array when matching data
