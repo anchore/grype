@@ -9,16 +9,16 @@ require (
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 	github.com/adrg/xdg v0.5.3
-	github.com/anchore/bubbly v0.2.1-0.20260408143551-344f363bf6ee
+	github.com/anchore/bubbly v0.2.1-0.20260420141409-bc02e6e5d201
 	github.com/anchore/clio v0.1.1-0.20260414122717-c63b2994e85a
-	github.com/anchore/fangs v0.1.0
+	github.com/anchore/fangs v0.1.1-0.20260420145255-95d6205159e7
 	github.com/anchore/go-collections v0.1.1-0.20260414124948-fc3f7459f372
 	github.com/anchore/go-homedir v0.1.0
-	github.com/anchore/go-logger v0.1.1-0.20260414131315-beb30ae87c9e
+	github.com/anchore/go-logger v0.1.1-0.20260420145518-5b8f4a66240b
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.2.0
 	github.com/anchore/stereoscope v0.1.23-0.20260414014649-aeb4170b528f
-	github.com/anchore/syft v1.42.5-0.20260418002121-076fb211ccf8
+	github.com/anchore/syft v1.42.5-0.20260420141326-66ba575ae24a
 	github.com/aquasecurity/go-pep440-version v0.0.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/bitnami/go-version v0.0.0-20250505154626-452e8c5ee607
