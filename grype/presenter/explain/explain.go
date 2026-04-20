@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"io"
+	"slices"
 	"sort"
 	"strings"
 	"text/template"
@@ -160,13 +161,7 @@ func (b *viewModelBuilder) isPrimaryAdd(candidate models.Match, userRequestedIDs
 		return true
 	}
 
-	idWasRequested := false
-	for _, id := range userRequestedIDs {
-		if candidate.Vulnerability.ID == id {
-			idWasRequested = true
-			break
-		}
-	}
+	idWasRequested := slices.Contains(userRequestedIDs, candidate.Vulnerability.ID)
 	// the user didn't ask about this ID, so it's not the primary one
 	if !idWasRequested && len(userRequestedIDs) > 0 {
 		return false
