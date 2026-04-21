@@ -4,5 +4,5 @@ package data
 type Entry struct {
 	DBSchemaVersion int
 	// Data is the specific payload that should be written (usually a grype-db v*.Entry struct)
-	Data interface{}
+	Data any
 }

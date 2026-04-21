@@ -31,7 +31,7 @@ func disableUI(app clio.Application) func(*cobra.Command, []string) error {
 	}
 }
 
-func stderrPrintLnf(message string, args ...interface{}) error {
+func stderrPrintLnf(message string, args ...any) error {
 	if !strings.HasSuffix(message, "\n") {
 		message += "\n"
 	}

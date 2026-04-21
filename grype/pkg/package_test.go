@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
 	"github.com/anchore/syft/syft/file"
@@ -22,7 +23,7 @@ func TestNew(t *testing.T) {
 	tests := []struct {
 		name      string
 		syftPkg   syftPkg.Package
-		metadata  interface{}
+		metadata  any
 		upstreams []UpstreamPackage
 	}{
 		{
@@ -1301,7 +1302,7 @@ func TestFromPackages_OwnershipByFileOverlap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			pkgs := FromPackages(tt.syftPkgs, tt.relationships, SynthesisConfig{})
 
-			pkgByName := map[string]Package{}
+			pkgByName := map[string]*Package{}
 			for _, p := range pkgs {
 				pkgByName[p.Name] = p
 			}
@@ -1351,9 +1352,9 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 		},
 		{
 			name: "excludes single package by overlap",
-			sbom: catalogWithOverlaps(
+			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"apk:go@1.18", "apk:node@19.2-r1", "binary:node@19.2"},
-				[]string{"apk:node@19.2-r1 -> binary:node@19.2"}),
+				[]string{"apk:node@19.2-r1 -> binary:node@19.2"}), "rhel"),
 			expectedPackages: []string{"apk:go@1.18", "apk:node@19.2-r1"},
 		},
 		{
@@ -1365,16 +1366,16 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 		},
 		{
 			name: "does not exclude if owning package is non-OS",
-			sbom: catalogWithOverlaps(
+			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"python:urllib3@1.2.3", "python:otherlib@1.2.3"},
-				[]string{"python:urllib3@1.2.3 -> python:otherlib@1.2.3"}),
+				[]string{"python:urllib3@1.2.3 -> python:otherlib@1.2.3"}), "rhel"),
 			expectedPackages: []string{"python:otherlib@1.2.3", "python:urllib3@1.2.3"},
 		},
 		{
 			name: "excludes multiple package by overlap",
-			sbom: catalogWithOverlaps(
+			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"apk:go@1.18", "apk:node@19.2-r1", "binary:node@19.2", "apk:python@3.9-r9", "binary:python@3.9"},
-				[]string{"apk:node@19.2-r1 -> binary:node@19.2", "apk:python@3.9-r9 -> binary:python@3.9"}),
+				[]string{"apk:node@19.2-r1 -> binary:node@19.2", "apk:python@3.9-r9 -> binary:python@3.9"}), "rhel"),
 			expectedPackages: []string{"apk:go@1.18", "apk:node@19.2-r1", "apk:python@3.9-r9"},
 		},
 		{
@@ -1437,8 +1438,10 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			d := distro.FromRelease(test.sbom.Artifacts.LinuxDistribution, distro.DefaultFixChannels())
-			catalog := removePackagesByOverlap(test.sbom.Artifacts.Packages, test.sbom.Relationships, d)
-			pkgs := FromCollection(catalog, test.sbom.Relationships, SynthesisConfig{})
+			pkgs := FromCollection(test.sbom.Artifacts.Packages, test.sbom.Relationships, SynthesisConfig{}, func(out *Package, purl packageurl.PackageURL, pkg syftPkg.Package) {
+				out.Distro = d
+			})
+			pkgs = removePackagesByOverlap(pkgs)
 			var pkgNames []string
 			for _, p := range pkgs {
 				pkgNames = append(pkgNames, fmt.Sprintf("%s:%s@%s", p.Type, p.Name, p.Version))
@@ -1446,6 +1449,128 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 			assert.EqualValues(t, test.expectedPackages, pkgNames)
 		})
 	}
+}
+
+func Test_ExcludeRetainsCorrectRelationships(t *testing.T) {
+	// Create an apk package that owns a python package via file overlap
+	apkPkg := syftPkg.Package{
+		Type:      syftPkg.ApkPkg,
+		Name:      "py3-pip",
+		Version:   "23.0-r0",
+		Locations: file.NewLocationSet(file.NewLocation("/lib/apk/db/installed")),
+	}
+	apkPkg.SetID()
+
+	pythonPkg := syftPkg.Package{
+		Type:      syftPkg.PythonPkg,
+		Name:      "pip",
+		Version:   "23.0",
+		Locations: file.NewLocationSet(file.NewLocation("/usr/lib/python3.11/site-packages/pip")),
+	}
+	pythonPkg.SetID()
+
+	// Create an rpm package that owns a npm package via file overlap
+	rpmPkg := syftPkg.Package{
+		Type:      syftPkg.RpmPkg,
+		Name:      "npm",
+		Version:   "3.0.",
+		PURL:      "pkg:rpm/npm@3.0.5-r0?distro=rhel:9",
+		Locations: file.NewLocationSet(file.NewLocation("/lib/rpmdb")),
+	}
+	rpmPkg.SetID()
+
+	npmPkg := syftPkg.Package{
+		Type:      syftPkg.NpmPkg,
+		Name:      "npm",
+		Version:   "3.0.5",
+		Locations: file.NewLocationSet(file.NewLocation("/usr/lib/npm")),
+	}
+	npmPkg.SetID()
+
+	// Additional packages at locations that will be excluded
+	excludedPkg1 := syftPkg.Package{
+		Type:      syftPkg.PythonPkg,
+		Name:      "requests",
+		Version:   "2.28.0",
+		Locations: file.NewLocationSet(file.NewLocation("/excluded/lib/python3.11/site-packages/requests")),
+	}
+	excludedPkg1.SetID()
+
+	excludedPkg2 := syftPkg.Package{
+		Type:      syftPkg.PythonPkg,
+		Name:      "urllib3",
+		Version:   "1.26.0",
+		Locations: file.NewLocationSet(file.NewLocation("/excluded/lib/python3.11/site-packages/urllib3")),
+	}
+	excludedPkg2.SetID()
+
+	catalog := syftPkg.NewCollection(excludedPkg1, excludedPkg2, rpmPkg, npmPkg, apkPkg, pythonPkg)
+
+	relationships := []artifact.Relationship{
+		{
+			From: apkPkg,
+			To:   pythonPkg,
+			Type: artifact.OwnershipByFileOverlapRelationship,
+		},
+		{
+			From: rpmPkg,
+			To:   npmPkg,
+			Type: artifact.OwnershipByFileOverlapRelationship,
+		},
+	}
+
+	s := &sbom.SBOM{
+		Artifacts: sbom.Artifacts{
+			Packages:          catalog,
+			LinuxDistribution: &linux.Release{ID: "alpine"},
+		},
+		Relationships: relationships,
+	}
+
+	d := distro.FromRelease(s.Artifacts.LinuxDistribution, nil)
+	pkgs := FromCollection(s.Artifacts.Packages, s.Relationships, SynthesisConfig{},
+		setDistroFromPURL(func(d *distro.Distro) bool { return true }),
+		func(out *Package, _ packageurl.PackageURL, _ syftPkg.Package) {
+			if out.Type == syftPkg.ApkPkg {
+				out.Distro = d
+			}
+		})
+
+	assert.Len(t, pkgs, 6)
+
+	// alpine is not a comprehensive distro and python is not a binary package,
+	// rpm is a comprehensive that should remove the overlapping npm package
+	pkgs = removePackagesByOverlap(pkgs)
+	assert.Len(t, pkgs, 5)
+
+	// apply exclusions to filter out packages at /excluded/**
+	filtered, err := filterPackageExclusions(pkgs, []string{"/excluded/**"})
+	assert.NoError(t, err)
+	assert.Len(t, filtered, 3)
+
+	// verify only the apk and python pip language packages remain
+	var apkGrypePkg, pythonGrypePkg, npmGrypePkg *Package
+	for _, p := range filtered {
+		switch p.Name {
+		case "py3-pip":
+			apkGrypePkg = p
+		case "pip":
+			pythonGrypePkg = p
+		case "npm":
+			npmGrypePkg = p
+		}
+	}
+	assert.NotNil(t, apkGrypePkg)
+	assert.NotNil(t, pythonGrypePkg)
+	assert.NotNil(t, npmGrypePkg)
+
+	// the python package should have the apk package as its overlap owner
+	// (OwnershipByFileOverlapRelationship is inverted in FromPackages: child -> parent)
+	overlapping := pythonGrypePkg.RelatedPackages[artifact.OwnershipByFileOverlapRelationship]
+	assert.Len(t, overlapping, 1)
+	assert.Equal(t, "py3-pip", overlapping[0].Name)
+	assert.NotEmpty(t, overlapping[0].ID)
+	assert.Equal(t, apkGrypePkg.ID, overlapping[0].ID)
 }
 
 func catalogWithOverlaps(packages []string, overlaps []string) *sbom.SBOM {

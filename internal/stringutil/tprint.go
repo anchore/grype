@@ -6,7 +6,7 @@ import (
 )
 
 // Tprintf renders a string from a given template string and field values
-func Tprintf(tmpl string, data map[string]interface{}) string {
+func Tprintf(tmpl string, data map[string]any) string {
 	t := template.Must(template.New("").Parse(tmpl))
 	buf := &bytes.Buffer{}
 	if err := t.Execute(buf, data); err != nil {

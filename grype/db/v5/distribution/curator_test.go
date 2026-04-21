@@ -357,7 +357,7 @@ func TestCurator_validateStaleness(t *testing.T) {
 				validateAge:     true,
 				md:              Metadata{Built: now.UTC().Add(-4 * time.Hour)},
 			},
-			wantErr: func(t assert.TestingT, err error, i ...interface{}) bool {
+			wantErr: func(t assert.TestingT, err error, i ...any) bool {
 				return assert.ErrorContains(t, err, "the vulnerability database was built")
 			},
 		},
