@@ -23,7 +23,7 @@ type SBOMFileMetadata struct {
 	Path string
 }
 
-func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]Package, Context, *sbom.SBOM, error) {
+func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]*Package, Context, *sbom.SBOM, error) {
 	s, fmtID, path, err := getSBOM(userInput)
 	if err != nil {
 		return nil, Context{}, nil, err
@@ -38,29 +38,25 @@ func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func
 
 	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
-	catalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
-
 	var enhancers []Enhancer
 	if fmtID != syftjson.ID {
 		enhancers = purlEnhancers(applyChannel)
 	}
 
-	return FromCollection(catalog, s.Relationships, config.SynthesisConfig, enhancers...), Context{
+	return FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig, enhancers...), Context{
 		Source:                &src,
 		Distro:                d,
 		DistroDetectionFailed: distroDetectionFailed,
 	}, s, nil
 }
 
-func syftSBOMProviderFromReader(reader io.ReadSeeker, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]Package, Context, *sbom.SBOM, error) {
+func syftSBOMProviderFromReader(reader io.ReadSeeker, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]*Package, Context, *sbom.SBOM, error) {
 	s, fmtID, err := readSBOM(reader)
 	if err != nil {
 		return nil, Context{}, nil, err
 	}
 
 	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
-
-	catalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
 
 	var enhancers []Enhancer
 	if fmtID != syftjson.ID {
@@ -69,7 +65,7 @@ func syftSBOMProviderFromReader(reader io.ReadSeeker, config ProviderConfig, app
 
 	src := s.Source
 
-	return FromCollection(catalog, s.Relationships, config.SynthesisConfig, enhancers...), Context{
+	return FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig, enhancers...), Context{
 		Source:                &src,
 		Distro:                d,
 		DistroDetectionFailed: distroDetectionFailed,

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -66,11 +67,8 @@ func packageLegacyDB(dbDir, publishBaseURL, overrideArchiveExtension string, com
 	}
 
 	var found bool
-	for _, valid := range []string{"tar.zst", "tar.gz"} {
-		if valid == extension {
-			found = true
-			break
-		}
+	if slices.Contains([]string{"tar.zst", "tar.gz"}, extension) {
+		found = true
 	}
 
 	if !found {

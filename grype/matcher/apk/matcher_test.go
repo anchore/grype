@@ -84,6 +84,41 @@ func TestSecDBOnlyMatch(t *testing.T) {
 	assertMatches(t, expected, actual)
 }
 
+func TestCPEConstraintVersionsOtherThanAPK(t *testing.T) {
+	nvdVuln := vulnerability.Vulnerability{
+		Reference: vulnerability.Reference{
+			ID:        "CVE-2020-1234",
+			Namespace: "nvd:cpe",
+		},
+		PackageName: "libvncserver",
+		Constraint:  version.MustGetConstraint("<= 0.9.11", version.GolangFormat),
+		CPEs: []cpe.CPE{
+			cpe.Must(`cpe:2.3:a:lib_vnc_project-\(server\):libvncserver:*:*:*:*:*:*:*:*`, ""),
+		},
+	}
+
+	vp := mock.VulnerabilityProvider(nvdVuln)
+
+	m := Matcher{}
+	d := distro.New(distro.Alpine, "3.12.0", "")
+
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "libvncserver",
+		Version: "0.9.9",
+		Type:    syftPkg.ApkPkg,
+		Distro:  d,
+		CPEs: []cpe.CPE{
+			cpe.Must("cpe:2.3:a:*:libvncserver:0.9.9:*:*:*:*:*:*:*", ""),
+		},
+	}
+
+	matches, _, err := m.Match(vp, p)
+	require.NoError(t, err)
+	require.Len(t, matches, 1)
+	require.Equal(t, nvdVuln, matches[0].Vulnerability)
+}
+
 func TestBothSecdbAndNvdMatches(t *testing.T) {
 	// NVD and Alpine's secDB both have the same CVE ID for the package
 	nvdVuln := vulnerability.Vulnerability{
