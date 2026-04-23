@@ -1362,3 +1362,72 @@ func TestMatcherApk_DistroFixedIgnoreRules(t *testing.T) {
 		})
 	}
 }
+
+func TestMatcherApk_RootIOPackage(t *testing.T) {
+	d := distro.New(distro.Alpine, "3.18.0", "")
+
+	// upstream disclosure: CVE affects plain util-linux on Alpine
+	disclosure := vulnerability.Vulnerability{
+		Reference: vulnerability.Reference{
+			ID:        "CVE-2000-0548",
+			Namespace: "secdb:distro:alpine:3.18",
+		},
+		PackageName: "util-linux",
+		Constraint:  version.MustGetConstraint("< 2.38.1-r10071", version.ApkFormat),
+	}
+
+	// rootio NAK: rootio-util-linux at or above the rootio fix is unaffected
+	nak := vulnerability.Vulnerability{
+		Reference: vulnerability.Reference{
+			ID:        "ROOT-OS-ALPINE-318-CVE-2000-0548",
+			Namespace: "secdb:distro:alpine:3.18",
+		},
+		PackageName: "rootio-util-linux",
+		Constraint:  version.MustGetConstraint(">= 2.38.1-r10071", version.ApkFormat),
+		Unaffected:  true,
+	}
+
+	tests := []struct {
+		name           string
+		pkgVersion     string
+		vulns          []vulnerability.Vulnerability
+		expectMatches  int
+	}{
+		{
+			name:          "rootio package below fix — vulnerable, no NAK applies",
+			pkgVersion:    "2.38.0-r0",
+			vulns:         []vulnerability.Vulnerability{disclosure},
+			expectMatches: 1,
+		},
+		{
+			name:          "rootio package at rootio fix — NAK suppresses match",
+			pkgVersion:    "2.38.1-r10071",
+			vulns:         []vulnerability.Vulnerability{disclosure, nak},
+			expectMatches: 0,
+		},
+		{
+			name:          "rootio package above rootio fix — NAK suppresses match",
+			pkgVersion:    "2.38.2-r0",
+			vulns:         []vulnerability.Vulnerability{disclosure, nak},
+			expectMatches: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := pkg.Package{
+				ID:      pkg.ID(uuid.NewString()),
+				Name:    "rootio-util-linux",
+				Version: tt.pkgVersion,
+				Type:    syftPkg.ApkPkg,
+				Distro:  d,
+			}
+
+			vp := mock.VulnerabilityProvider(tt.vulns...)
+			m := &Matcher{}
+			matches, _, err := m.Match(vp, p)
+			require.NoError(t, err)
+			assert.Len(t, matches, tt.expectMatches, "unexpected match count for %q", tt.name)
+		})
+	}
+}

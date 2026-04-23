@@ -712,12 +712,228 @@ func Test_getPackageQualifiers(t *testing.T) {
 	for _, testToRun := range tests {
 		test := testToRun
 		t.Run(test.name, func(tt *testing.T) {
-			got := getPackageQualifiers(test.affected, test.cpes, test.withCPE)
+			// Pass empty vuln for non-Root IO tests
+			emptyVuln := unmarshal.OSVVulnerability{}
+			got := getPackageQualifiers(test.affected, test.cpes, test.withCPE, emptyVuln)
 			if !reflect.DeepEqual(got, test.want) {
 				t.Errorf("getPackageQualifiers() = %v, want %v", got, test.want)
 			}
 		})
 	}
+}
+
+// Root IO Tests
+// ============================================================================
+
+func TestIsRootIORecord(t *testing.T) {
+	tests := []struct {
+		name string
+		vuln unmarshal.OSVVulnerability
+		want bool
+	}{
+		{
+			name: "Root IO record with database_specific.source",
+			vuln: unmarshal.OSVVulnerability{
+				DatabaseSpecific: map[string]interface{}{
+					"source": "Root",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "Non-Root IO record",
+			vuln: unmarshal.OSVVulnerability{
+				DatabaseSpecific: map[string]interface{}{
+					"source": "GitHub",
+				},
+			},
+			want: false,
+		},
+		{
+			name: "No database_specific field",
+			vuln: unmarshal.OSVVulnerability{
+				DatabaseSpecific: nil,
+			},
+			want: false,
+		},
+		{
+			name: "database_specific without source",
+			vuln: unmarshal.OSVVulnerability{
+				DatabaseSpecific: map[string]interface{}{
+					"other_field": "value",
+				},
+			},
+			want: false,
+		},
+		{
+			name: "database_specific source is not string",
+			vuln: unmarshal.OSVVulnerability{
+				DatabaseSpecific: map[string]interface{}{
+					"source": 123,
+				},
+			},
+			want: false,
+		},
+	}
+
+	for _, testToRun := range tests {
+		test := testToRun
+		t.Run(test.name, func(tt *testing.T) {
+			got := isRootIORecord(test.vuln)
+			if got != test.want {
+				t.Errorf("isRootIORecord() = %v, want %v", got, test.want)
+			}
+		})
+	}
+}
+
+func TestTransformRootIOFixtures(t *testing.T) {
+	tests := []struct {
+		name               string
+		fixturePath        string
+		expectedPkgName    string
+		expectedCVE        string
+		expectedFixVersion string
+	}{
+		{
+			name:               "Root IO Alpine OS package",
+			fixturePath:        "test-fixtures/ROOT-OS-ALPINE-318-CVE-2000-0548.json",
+			expectedPkgName:    "rootio-util-linux",
+			expectedCVE:        "CVE-2000-0548",
+			expectedFixVersion: "2.38.1-r10071",
+		},
+		{
+			name:               "Root IO NPM package",
+			fixturePath:        "test-fixtures/ROOT-APP-NPM-CVE-2022-25883.json",
+			expectedPkgName:    "@rootio/semver",
+			expectedCVE:        "CVE-2022-25883",
+			expectedFixVersion: "7.5.2-root.io.1",
+		},
+		{
+			name:        "Root IO PyPI package",
+			fixturePath: "test-fixtures/ROOT-APP-PYPI-CVE-2025-30473.json",
+			// PEP 503 normalization converts rootio_requests → rootio-requests
+			expectedPkgName:    "rootio-requests",
+			expectedCVE:        "CVE-2025-30473",
+			expectedFixVersion: "2.31.0+root.io.1",
+		},
+		{
+			name:               "Root IO Debian package",
+			fixturePath:        "test-fixtures/ROOT-OS-DEBIAN-bookworm-CVE-2025-53014.json",
+			expectedPkgName:    "rootio-imagemagick",
+			expectedCVE:        "CVE-2025-53014",
+			expectedFixVersion: "8:7.1.1.43+dfsg1-1+deb13u1.root.io.1",
+		},
+		{
+			name:               "Root IO Ubuntu package",
+			fixturePath:        "test-fixtures/ROOT-OS-UBUNTU-2004-CVE-2024-12345.json",
+			expectedPkgName:    "rootio-openssl",
+			expectedCVE:        "CVE-2024-12345",
+			expectedFixVersion: "1.1.1f-1ubuntu2.root.io.1",
+		},
+	}
+
+	for _, testToRun := range tests {
+		test := testToRun
+		t.Run(test.name, func(tt *testing.T) {
+			vulns := loadFixture(t, test.fixturePath)
+			require.Len(tt, vulns, 1, "fixture should contain exactly one vulnerability")
+
+			vuln := vulns[0]
+			require.True(tt, isRootIORecord(vuln), "should be detected as Root IO record")
+
+			entries, err := Transform(vuln, inputProviderState())
+			require.NoError(tt, err)
+			// one entry: the RelatedEntries wrapping VulnerabilityHandle + UnaffectedPackageHandle(s)
+			require.Len(tt, entries, 1)
+
+			relatedEntries, ok := entries[0].Data.(transformers.RelatedEntries)
+			require.True(tt, ok, "entry data should be RelatedEntries")
+
+			// VulnerabilityHandle assertions
+			require.NotNil(tt, relatedEntries.VulnerabilityHandle)
+			require.Equal(tt, "osv", relatedEntries.VulnerabilityHandle.ProviderID)
+			require.NotNil(tt, relatedEntries.VulnerabilityHandle.BlobValue)
+			require.Contains(tt, relatedEntries.VulnerabilityHandle.BlobValue.Aliases, test.expectedCVE)
+
+			// Must produce UnaffectedPackageHandle (NAK), not AffectedPackageHandle
+			require.Len(tt, relatedEntries.Related, 1, "should have exactly one related unaffected package")
+			uph, ok := relatedEntries.Related[0].(db.UnaffectedPackageHandle)
+			require.True(tt, ok, "related entry must be UnaffectedPackageHandle, not AffectedPackageHandle")
+
+			// Package assertions
+			require.NotNil(tt, uph.Package)
+			require.Equal(tt, test.expectedPkgName, uph.Package.Name)
+
+			// Blob assertions
+			require.NotNil(tt, uph.BlobValue)
+			require.Contains(tt, uph.BlobValue.CVEs, test.expectedCVE)
+
+			// Qualifier must mark this as a rootio NAK
+			require.NotNil(tt, uph.BlobValue.Qualifiers, "rootio unaffected record must carry rootio qualifier")
+			require.NotNil(tt, uph.BlobValue.Qualifiers.RootIO)
+			require.True(tt, *uph.BlobValue.Qualifiers.RootIO)
+
+			// Range must use >= (unaffected: versions at or above fix are safe)
+			require.Len(tt, uph.BlobValue.Ranges, 1)
+			constraint := uph.BlobValue.Ranges[0].Version.Constraint
+			require.Contains(tt, constraint, ">=", "unaffected range constraint must use >=")
+			require.Contains(tt, constraint, test.expectedFixVersion)
+		})
+	}
+}
+
+// TestRootIORelatedAliases verifies that Related CVE IDs are included in the
+// VulnerabilityHandle aliases for RootIO records (the real-world case where the
+// upstream CVE appears in Related, not Aliases).
+func TestRootIORelatedAliases(t *testing.T) {
+	vuln := unmarshal.OSVVulnerability{}
+	vuln.ID = "ROOT-OS-UBUNTU-2204-CVE-2024-2236"
+	vuln.Related = []string{"CVE-2024-2236"}
+	vuln.DatabaseSpecific = map[string]interface{}{
+		"source": "Root",
+	}
+	vuln.Affected = []models.Affected{
+		{
+			Package: models.Package{
+				Ecosystem: "Ubuntu:22.04",
+				Name:      "rootio-libgcrypt20",
+			},
+			Ranges: []models.Range{
+				{
+					Type: models.RangeEcosystem,
+					Events: []models.Event{
+						{Introduced: "0"},
+						{Fixed: "1.9.4-3ubuntu3.root.io.2"},
+					},
+				},
+			},
+		},
+	}
+
+	require.True(t, isRootIORecord(vuln))
+
+	entries, err := Transform(vuln, inputProviderState())
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+
+	relatedEntries, ok := entries[0].Data.(transformers.RelatedEntries)
+	require.True(t, ok)
+	require.NotNil(t, relatedEntries.VulnerabilityHandle)
+	require.NotNil(t, relatedEntries.VulnerabilityHandle.BlobValue)
+
+	// The upstream CVE must be in the VulnerabilityHandle aliases
+	require.Contains(t, relatedEntries.VulnerabilityHandle.BlobValue.Aliases, "CVE-2024-2236",
+		"related CVE IDs must be included in VulnerabilityHandle aliases for RootIO records")
+
+	// The upstream CVE must also be in the UnaffectedPackageHandle CVEs so that
+	// disclosures.Remove(naks) can match by identity in the distro matcher.
+	require.Len(t, relatedEntries.Related, 1)
+	uph, ok := relatedEntries.Related[0].(db.UnaffectedPackageHandle)
+	require.True(t, ok, "related entry must be UnaffectedPackageHandle")
+	require.NotNil(t, uph.BlobValue)
+	require.Contains(t, uph.BlobValue.CVEs, "CVE-2024-2236",
+		"related CVE IDs must be in UnaffectedPackageHandle CVEs so Remove() can match by identity")
 }
 
 func stringRef(s string) *string {

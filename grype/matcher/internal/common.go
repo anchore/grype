@@ -2,9 +2,11 @@ package internal
 
 import (
 	"errors"
+	"slices"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/pkg/qualifier/rootio"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
 )
@@ -13,7 +15,19 @@ func MatchPackageByEcosystemAndCPEs(store vulnerability.Provider, p pkg.Package,
 	var matches []match.Match
 	var ignored []match.IgnoreFilter
 
-	for _, name := range store.PackageSearchNames(p) {
+	searchNames := store.PackageSearchNames(p)
+
+	// For rootio language packages, also search by the bare upstream name so that
+	// CVE records stored without the rootio prefix (e.g. "Jinja2", "requests") are found.
+	// The NAK subtraction handles suppression of vulns that rootio has already fixed.
+	if rootio.IsRootIOPackage(p) {
+		strippedName := rootio.StripPrefix(p.Name, p.Type)
+		if strippedName != p.Name && !slices.Contains(searchNames, strippedName) {
+			searchNames = append(searchNames, strippedName)
+		}
+	}
+
+	for _, name := range searchNames {
 		nameMatches, nameIgnores, err := MatchPackageByEcosystemPackageNameAndCPEs(store, p, name, matcher, includeCPEs)
 		if err != nil {
 			return nil, nil, err

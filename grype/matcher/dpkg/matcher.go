@@ -7,6 +7,7 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/pkg/qualifier/rootio"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
@@ -37,6 +38,10 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+	if rootio.IsRootIOPackage(p) {
+		return m.matchRootIOPackage(store, p)
+	}
+
 	matches := make([]match.Match, 0)
 
 	sourceMatches, err := m.matchUpstreamPackages(store, p)
@@ -69,6 +74,38 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	}
 
 	return matches, nil, nil
+}
+
+func (m *Matcher) matchRootIOPackage(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+	versionConfig := version.ComparisonConfig{
+		MissingEpochStrategy: m.cfg.MissingEpochStrategy,
+	}
+
+	var allMatches []match.Match
+	var allIgnores []match.IgnoreFilter
+
+	// Direct match
+	directMatches, directIgnores, err := internal.MatchRootIOPackageByDistro(store, p, nil, m.Type(), &versionConfig)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to match rootio dpkg package: %w", err)
+	}
+	allMatches = append(allMatches, directMatches...)
+	allIgnores = append(allIgnores, directIgnores...)
+
+	// Upstream package matches
+	var upstreamMatches []match.Match
+	for _, indirectPackage := range pkg.UpstreamPackages(p) {
+		indirectMatches, indirectIgnores, err := internal.MatchRootIOPackageByDistro(store, indirectPackage, &p, m.Type(), &versionConfig)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to match rootio dpkg upstream package: %w", err)
+		}
+		upstreamMatches = append(upstreamMatches, indirectMatches...)
+		allIgnores = append(allIgnores, indirectIgnores...)
+	}
+	match.ConvertToIndirectMatches(upstreamMatches, p)
+	allMatches = append(allMatches, upstreamMatches...)
+
+	return allMatches, allIgnores, nil
 }
 
 func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Package) ([]match.Match, error) {

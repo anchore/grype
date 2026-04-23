@@ -32,9 +32,10 @@ func Transform(vulnerability unmarshal.OSVVulnerability, state provider.State) (
 	}
 
 	isAdvisory := isAdvisoryRecord(vulnerability)
+	isRootIO := isRootIORecord(vulnerability)
 	aliases := vulnerability.Aliases
 
-	if isAdvisory {
+	if isAdvisory || isRootIO {
 		aliases = append(aliases, vulnerability.Related...)
 	}
 
@@ -57,14 +58,11 @@ func Transform(vulnerability unmarshal.OSVVulnerability, state provider.State) (
 		},
 	}
 
-	// Check if this is an advisory record
-	if isAdvisory {
-		// For advisory records, emit unaffected packages
-		for _, u := range getUnaffectedPackages(vulnerability) {
+	if isAdvisory || isRootIO {
+		for _, u := range getUnaffectedPackages(vulnerability, aliases) {
 			in = append(in, u)
 		}
 	} else {
-		// For vulnerability records, emit affected packages
 		for _, a := range getAffectedPackages(vulnerability) {
 			in = append(in, a)
 		}
@@ -94,8 +92,8 @@ func getAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHa
 			BlobValue:       &db.PackageBlob{CVEs: vuln.Aliases},
 		}
 
-		// Extract qualifiers (CPE and RPM modularity)
-		qualifiers := getPackageQualifiers(affected, cpes, withCPE)
+		// Extract qualifiers (CPE, RPM modularity, and Root IO)
+		qualifiers := getPackageQualifiers(affected, cpes, withCPE, vuln)
 		if qualifiers != nil {
 			aph.BlobValue.Qualifiers = qualifiers
 		}
@@ -115,8 +113,8 @@ func getAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHa
 }
 
 // getPackageQualifiers extracts package qualifiers from affected package data
-// including CPE information and RPM modularity
-func getPackageQualifiers(affected models.Affected, cpes any, withCPE bool) *db.PackageQualifiers {
+// including CPE information, RPM modularity, and Root IO markers
+func getPackageQualifiers(affected models.Affected, cpes any, withCPE bool, vuln unmarshal.OSVVulnerability) *db.PackageQualifiers {
 	var qualifiers *db.PackageQualifiers
 
 	// Handle CPE qualifiers (existing logic)
@@ -133,6 +131,15 @@ func getPackageQualifiers(affected models.Affected, cpes any, withCPE bool) *db.
 			qualifiers = &db.PackageQualifiers{}
 		}
 		qualifiers.RpmModularity = &rpmModularity
+	}
+
+	// Check if this is a Root IO package
+	if isRootIORecord(vuln) {
+		if qualifiers == nil {
+			qualifiers = &db.PackageQualifiers{}
+		}
+		rootIO := true
+		qualifiers.RootIO = &rootIO
 	}
 
 	return qualifiers
@@ -364,24 +371,45 @@ func getPackage(p models.Package) *db.Package {
 }
 
 // getPackageTypeFromEcosystem determines package type from OSV ecosystem
-// Currently only supports AlmaLinux; other ecosystems use PURL-based detection
+// Supports AlmaLinux and Root IO OS ecosystems (Alpine, Debian, Ubuntu)
+// Also supports Root IO language ecosystems (npm, pypi, maven)
 func getPackageTypeFromEcosystem(ecosystem string) pkg.Type {
 	if ecosystem == "" {
 		return ""
 	}
 
-	// Split ecosystem by colon to get OS name
-	parts := strings.Split(ecosystem, ":")
-	osName := strings.ToLower(parts[0])
+	ecosystemLower := strings.ToLower(ecosystem)
 
-	// Only handle AlmaLinux
-	if osName == almaLinux {
-		return pkg.RpmPkg
+	// Check for language ecosystems (Root IO)
+	switch ecosystemLower {
+	case "npm":
+		return pkg.NpmPkg
+	case "pypi", "python", "pip":
+		return pkg.PythonPkg
+	case "maven", "java":
+		return pkg.JavaPkg
 	}
 
-	// For other ecosystems (like Bitnami, npm, pypi, etc.), return empty type
-	// The package type will be determined from PURL if available
-	return ""
+	// Split ecosystem by colon to get OS name
+	parts := strings.Split(ecosystem, ":")
+	if len(parts) < 2 {
+		return ""
+	}
+	osName := strings.ToLower(parts[0])
+
+	// Handle OS ecosystems
+	switch osName {
+	case almaLinux:
+		return pkg.RpmPkg
+	case "alpine":
+		return pkg.ApkPkg
+	case "debian", "ubuntu":
+		return pkg.DebPkg
+	default:
+		// For other ecosystems (like Bitnami), return empty type
+		// The package type will be determined from PURL if available
+		return ""
+	}
 }
 
 func getReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
@@ -465,8 +493,8 @@ func getSeverities(vuln unmarshal.OSVVulnerability) ([]db.Severity, error) {
 }
 
 // getOperatingSystemFromEcosystem extracts operating system information from OSV ecosystem field
-// Currently only supports AlmaLinux ecosystems
-// Example: "AlmaLinux:8" -> almalinux 8
+// Supports AlmaLinux and Root IO OS ecosystems (Alpine, Debian, Ubuntu)
+// Examples: "AlmaLinux:8" -> almalinux 8, "Alpine:3.18" -> alpine 3.18, "Ubuntu:20.04" -> ubuntu 20.04
 func getOperatingSystemFromEcosystem(ecosystem string) *db.OperatingSystem {
 	if ecosystem == "" {
 		return nil
@@ -480,8 +508,11 @@ func getOperatingSystemFromEcosystem(ecosystem string) *db.OperatingSystem {
 
 	osName := strings.ToLower(parts[0])
 
-	// Only handle AlmaLinux
-	if osName != almaLinux {
+	// Check if this is a supported OS
+	switch osName {
+	case almaLinux, "alpine", "debian", "ubuntu":
+		// Supported OS, continue processing
+	default:
 		return nil
 	}
 
@@ -515,16 +546,8 @@ func getOperatingSystemFromEcosystem(ecosystem string) *db.OperatingSystem {
 }
 
 // normalizeOSName normalizes operating system names for consistency
-// Currently only supports AlmaLinux
 func normalizeOSName(osName string) string {
-	osName = strings.ToLower(osName)
-
-	// Only handle AlmaLinux
-	if osName == almaLinux {
-		return almaLinux
-	}
-
-	return osName
+	return strings.ToLower(osName)
 }
 
 // isAdvisoryRecord checks if the OSV record is marked as an advisory
@@ -556,8 +579,10 @@ func isAdvisoryRecord(vuln unmarshal.OSVVulnerability) bool {
 	return recordTypeStr == "advisory"
 }
 
-// getUnaffectedPackages creates UnaffectedPackageHandle entries for advisory records
-func getUnaffectedPackages(vuln unmarshal.OSVVulnerability) []db.UnaffectedPackageHandle {
+// getUnaffectedPackages creates UnaffectedPackageHandle entries for advisory records.
+// aliases should be the augmented alias list (vuln.Aliases + vuln.Related) so that
+// NAK records carry the upstream CVE ID and disclosures.Remove(naks) can match by identity.
+func getUnaffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string) []db.UnaffectedPackageHandle {
 	if len(vuln.Affected) == 0 {
 		return nil
 	}
@@ -567,7 +592,7 @@ func getUnaffectedPackages(vuln unmarshal.OSVVulnerability) []db.UnaffectedPacka
 		uph := db.UnaffectedPackageHandle{
 			Package:         getPackage(affected.Package),
 			OperatingSystem: getOperatingSystemFromEcosystem(string(affected.Package.Ecosystem)),
-			BlobValue:       getUnaffectedBlob(vuln.Aliases, affected.Ranges, affected),
+			BlobValue:       getUnaffectedBlob(aliases, affected.Ranges, affected, vuln),
 		}
 		uphs = append(uphs, uph)
 	}
@@ -580,15 +605,15 @@ func getUnaffectedPackages(vuln unmarshal.OSVVulnerability) []db.UnaffectedPacka
 
 // getUnaffectedBlob creates a package blob for unaffected packages (advisories)
 // For advisories, we need to invert the ranges to represent unaffected versions
-func getUnaffectedBlob(aliases []string, ranges []models.Range, affected models.Affected) *db.PackageBlob {
+func getUnaffectedBlob(aliases []string, ranges []models.Range, affected models.Affected, vuln unmarshal.OSVVulnerability) *db.PackageBlob {
 	var grypeRanges []db.Range
 	ecosystem := string(affected.Package.Ecosystem)
 	for _, r := range ranges {
 		grypeRanges = append(grypeRanges, getGrypeUnaffectedRangesFromRange(r, ecosystem)...)
 	}
 
-	// Extract qualifiers including RPM modularity
-	qualifiers := getPackageQualifiers(affected, nil, false)
+	// Extract qualifiers including RPM modularity and Root IO
+	qualifiers := getPackageQualifiers(affected, nil, false, vuln)
 
 	return &db.PackageBlob{
 		CVEs:       aliases,
@@ -691,4 +716,26 @@ func createUnaffectedRange(fixedVersion string, fixByVersion map[string]db.FixAv
 			Constraint: normalizeConstraint(constraint, rangeType),
 		},
 	}
+}
+
+// ============================================================================
+// Root IO Detection
+// ============================================================================
+
+const rootIOSourceIdentifier = "Root"
+
+// isRootIORecord checks if an OSV record is from Root IO by examining database_specific.source
+// This is used to apply Root IO-specific package qualifiers
+func isRootIORecord(vuln unmarshal.OSVVulnerability) bool {
+	if vuln.DatabaseSpecific == nil {
+		return false
+	}
+
+	source, ok := vuln.DatabaseSpecific["source"]
+	if !ok {
+		return false
+	}
+
+	sourceStr, ok := source.(string)
+	return ok && sourceStr == rootIOSourceIdentifier
 }

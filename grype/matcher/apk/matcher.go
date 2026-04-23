@@ -7,6 +7,7 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/pkg/qualifier/rootio"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -34,6 +35,10 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+	if rootio.IsRootIOPackage(p) {
+		return m.matchRootIOPackage(store, p)
+	}
+
 	var matches []match.Match
 	var ignoreFilters []match.IgnoreFilter
 
@@ -62,6 +67,34 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	ignoreFilters = append(ignoreFilters, naks...)
 
 	return matches, ignoreFilters, nil
+}
+
+func (m *Matcher) matchRootIOPackage(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+	var allMatches []match.Match
+	var allIgnores []match.IgnoreFilter
+
+	// Direct match — APK doesn't use epochs, so pass nil for config
+	directMatches, directIgnores, err := internal.MatchRootIOPackageByDistro(store, p, nil, m.Type(), nil)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to match rootio apk package: %w", err)
+	}
+	allMatches = append(allMatches, directMatches...)
+	allIgnores = append(allIgnores, directIgnores...)
+
+	// Upstream package matches
+	var upstreamMatches []match.Match
+	for _, indirectPackage := range pkg.UpstreamPackages(p) {
+		indirectMatches, indirectIgnores, err := internal.MatchRootIOPackageByDistro(store, indirectPackage, &p, m.Type(), nil)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to match rootio apk upstream package: %w", err)
+		}
+		upstreamMatches = append(upstreamMatches, indirectMatches...)
+		allIgnores = append(allIgnores, indirectIgnores...)
+	}
+	match.ConvertToIndirectMatches(upstreamMatches, p)
+	allMatches = append(allMatches, upstreamMatches...)
+
+	return allMatches, allIgnores, nil
 }
 
 //nolint:funlen,gocognit

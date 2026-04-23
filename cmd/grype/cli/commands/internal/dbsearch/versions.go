@@ -2,7 +2,7 @@ package dbsearch
 
 const (
 	// MatchesSchemaVersion is the schema version for the `db search` command
-	MatchesSchemaVersion = "1.1.3"
+	MatchesSchemaVersion = "1.1.4"
 
 	// MatchesSchemaVersion Changelog:
 	// 1.0.0 - Initial schema 🎉
@@ -13,6 +13,7 @@ const (
 	// 1.1.1 - Add unaffected package and unaffected cpe to output
 	// 1.1.2 - Add CWE IDs to vulnerability output
 	// 1.1.3 - Add ID field to Reference (for advisory IDs like RHSA-2023:5455)
+	// 1.1.4 - Add RootIO qualifier field to PackageQualifiers
 
 	// VulnerabilitiesSchemaVersion is the schema version for the `db search vuln` command
 	VulnerabilitiesSchemaVersion = "1.0.5"
