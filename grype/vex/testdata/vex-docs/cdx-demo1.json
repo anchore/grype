@@ -1,0 +1,58 @@
+{
+  "$schema": "https://cyclonedx.org/schema/bom-1.6.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "serialNumber": "urn:uuid:123e4567-e89b-12d3-a456-426614174000",
+  "metadata": {
+    "timestamp": "2026-04-23T00:00:00Z",
+    "tools": [
+      {
+        "vendor": "ExampleCorp",
+        "name": "Sample VEX Generator",
+        "version": "1.0.0"
+      }
+    ],
+    "authors": [
+      {
+        "name": "Sample Security Team"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "bom-ref": "pkg:generic/sample-app@1.0.0",
+      "name": "sample-app",
+      "version": "1.0.0"
+    }
+  },
+  "vulnerabilities": [
+    {
+      "id": "CVE-2026-12345",
+      "source": {
+        "name": "NVD",
+        "url": "https://nvd.nist.gov/"
+      },
+      "ratings": [
+        {
+          "severity": "high",
+          "score": 8.8,
+          "method": "CVSSv3",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+        }
+      ],
+      "analysis": {
+        "state": "not_affected",
+        "justification": "code_not_present",
+        "response": [
+          "will_not_fix"
+        ],
+        "detail": "The affected library is not included in this distribution."
+      },
+      "affects": [
+        {
+          "ref": "pkg:generic/sample-app@1.0.0"
+        }
+      ]
+    }
+  ]
+}
