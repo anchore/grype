@@ -90,6 +90,11 @@ func TestTransform(t *testing.T) {
 		ReleaseID:    "fedora",
 		MajorVersion: "39",
 	}
+	archLinux := &db.OperatingSystem{
+		Name:         "archlinux",
+		ReleaseID:    "arch",
+		LabelVersion: "rolling",
+	}
 	tests := []struct {
 		name     string
 		provider string
@@ -1184,6 +1189,55 @@ func TestTransform(t *testing.T) {
 														URL:  "https://bodhi.fedoraproject.org/updates/FEDORA-2024-fd2569c4e9",
 														Tags: []string{db.AdvisoryReferenceTag},
 													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					),
+				},
+			},
+		},
+		{
+			name:     "testdata/archlinux.json",
+			provider: "arch",
+			want: []transformers.RelatedEntries{
+				{
+					VulnerabilityHandle: &db.VulnerabilityHandle{
+						Name:       "AVG-2780",
+						Status:     "active",
+						ProviderID: "arch",
+						Provider:   expectedProvider("arch"),
+						BlobValue: &db.VulnerabilityBlob{
+							ID:          "AVG-2780",
+							Description: "unknown",
+							Aliases:     []string{"CVE-2022-26710", "CVE-2022-22677", "CVE-2022-22662"},
+							References: []db.Reference{
+								{URL: "https://security.archlinux.org/AVG-2780"},
+								{URL: "https://nvd.nist.gov/vuln/detail/CVE-2022-26710"},
+								{URL: "https://nvd.nist.gov/vuln/detail/CVE-2022-22677"},
+								{URL: "https://nvd.nist.gov/vuln/detail/CVE-2022-22662"},
+							},
+						},
+					},
+					Related: affectedPkgSlice(
+						db.AffectedPackageHandle{
+							OperatingSystem: archLinux,
+							Package:         &db.Package{Ecosystem: "alpm", Name: "wpewebkit"},
+							BlobValue: &db.PackageBlob{
+								CVEs: []string{"CVE-2022-26710", "CVE-2022-22677", "CVE-2022-22662"},
+								Ranges: []db.Range{
+									{
+										Version: db.Version{Type: "pacman", Constraint: "< 2.36.4-1"},
+										Fix: &db.Fix{
+											Version: "2.36.4-1",
+											State:   db.FixedStatus,
+											Detail: &db.FixDetail{
+												Available: &db.FixAvailability{
+													Date: timeRef(time.Date(2026, 1, 27, 0, 0, 0, 0, time.UTC)),
+													Kind: "first-observed",
 												},
 											},
 										},

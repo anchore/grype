@@ -31,7 +31,7 @@ func disableUI(app clio.Application) func(*cobra.Command, []string) error {
 	}
 }
 
-func stderrPrintLnf(message string, args ...interface{}) error {
+func stderrPrintLnf(message string, args ...any) error {
 	if !strings.HasSuffix(message, "\n") {
 		message += "\n"
 	}
@@ -91,6 +91,7 @@ func appendErrors(errs error, err ...error) error {
 func newTable(output io.Writer, columns []string) *tablewriter.Table {
 	return tablewriter.NewTable(output,
 		tablewriter.WithHeader(columns),
+		tablewriter.WithHeaderAlignment(tw.AlignLeft),
 		tablewriter.WithHeaderAutoWrap(tw.WrapNone),
 		tablewriter.WithRowAutoWrap(tw.WrapNone),
 		tablewriter.WithAutoHide(tw.On),

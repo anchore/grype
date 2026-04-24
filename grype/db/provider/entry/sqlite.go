@@ -205,15 +205,15 @@ func (l logAdapter) LogMode(logger.LogLevel) logger.Interface {
 	return l
 }
 
-func (l logAdapter) Info(_ context.Context, _ string, _ ...interface{}) {
+func (l logAdapter) Info(_ context.Context, _ string, _ ...any) {
 	// unimplemented
 }
 
-func (l logAdapter) Warn(_ context.Context, fmt string, v ...interface{}) {
+func (l logAdapter) Warn(_ context.Context, fmt string, v ...any) {
 	log.Warnf("gorm: "+fmt, v...)
 }
 
-func (l logAdapter) Error(_ context.Context, fmt string, v ...interface{}) {
+func (l logAdapter) Error(_ context.Context, fmt string, v ...any) {
 	log.Errorf("gorm: "+fmt, v...)
 }
 

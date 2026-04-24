@@ -1,0 +1,35 @@
+{
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/annotated-openvex/schema-1.0.0.json",
+  "identifier": "chainguard-libraries:pypi/CGA-v587-68x3-qwqr",
+  "item": {
+    "document": {
+      "vulnerability": {
+        "name": "CGA-v587-68x3-qwqr",
+        "aliases": [
+          "CGA-4v2j-w7vm-9pwj",
+          "CVE-2022-22817",
+          "GHSA-8vj2-vxx3-667w"
+        ]
+      },
+      "products": [
+        {
+          "identifiers": {
+            "purl": "pkg:pypi/pillow@8.4.0%2Bcgr.2"
+          }
+        }
+      ],
+      "status": "fixed",
+      "timestamp": "2025-11-30T06:01:35.698Z",
+      "last_updated": "2025-11-30T06:01:35.698Z"
+    },
+    "fixes": [
+      {
+        "product": "pkg:pypi/pillow@8.4.0%2Bcgr.2",
+        "available": {
+          "date": "2025-11-30",
+          "kind": "advisory"
+        }
+      }
+    ]
+  }
+}

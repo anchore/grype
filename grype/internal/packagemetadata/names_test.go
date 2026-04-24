@@ -41,27 +41,27 @@ func TestReflectTypeFromJSONName(t *testing.T) {
 		{
 			name:       "GolangBinMetadata lookup",
 			lookup:     "GolangBinMetadata",
-			wantRecord: reflect.TypeOf(pkg.GolangBinMetadata{}),
+			wantRecord: reflect.TypeFor[pkg.GolangBinMetadata](),
 		},
 		{
 			name:       "GolangModMetadata lookup",
 			lookup:     "GolangModMetadata",
-			wantRecord: reflect.TypeOf(pkg.GolangModMetadata{}),
+			wantRecord: reflect.TypeFor[pkg.GolangModMetadata](),
 		},
 		{
 			name:       "JavaMetadata lookup",
 			lookup:     "JavaMetadata",
-			wantRecord: reflect.TypeOf(pkg.JavaMetadata{}),
+			wantRecord: reflect.TypeFor[pkg.JavaMetadata](),
 		},
 		{
 			name:       "RpmMetadata lookup",
 			lookup:     "RpmMetadata",
-			wantRecord: reflect.TypeOf(pkg.RpmMetadata{}),
+			wantRecord: reflect.TypeFor[pkg.RpmMetadata](),
 		},
 		{
 			name:       "JavaVMInstallationMetadata lookup",
 			lookup:     "JavaVMInstallationMetadata",
-			wantRecord: reflect.TypeOf(pkg.JavaVMInstallationMetadata{}),
+			wantRecord: reflect.TypeFor[pkg.JavaVMInstallationMetadata](),
 		},
 	}
 	for _, tt := range tests {

@@ -1,0 +1,59 @@
+{
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/os/schema-1.1.0.json",
+  "identifier": "ol:10/elsa-2025-19720",
+  "item": {
+    "Vulnerability": {
+      "Severity": "Low",
+      "NamespaceName": "ol:10",
+      "FixedIn": [
+        {
+          "Name": "libsoup3",
+          "Version": "0:3.6.5-3.el10_0.9",
+          "Module": null,
+          "VersionFormat": "rpm",
+          "NamespaceName": "ol:10",
+          "Available": {
+            "Date": "2025-11-04",
+            "Kind": "advisory"
+          }
+        },
+        {
+          "Name": "libsoup3-devel",
+          "Version": "0:3.6.5-3.el10_0.9",
+          "Module": null,
+          "VersionFormat": "rpm",
+          "NamespaceName": "ol:10",
+          "Available": {
+            "Date": "2025-11-04",
+            "Kind": "advisory"
+          }
+        },
+        {
+          "Name": "libsoup3-doc",
+          "Version": "0:3.6.5-3.el10_0.9",
+          "Module": null,
+          "VersionFormat": "rpm",
+          "NamespaceName": "ol:10",
+          "Available": {
+            "Date": "2025-11-04",
+            "Kind": "advisory"
+          }
+        }
+      ],
+      "Link": "https://linux.oracle.com/errata/ELSA-2025-19720.html",
+      "Description": "[3.6.5-9]\n- Revert 'Fix handling of invalid dates in cookie expires attribute\n  (CVE-2025-11021)'\n\n[3.6.5-8]\n- Fix integer overflow in date/time parsing\n\n[3.6.5-7]\n- Fix handling of invalid dates in cookie expires attribute\n  (CVE-2025-11021)\n\n[3.6.5-6]\n- Add patch for CVE-2025-32907\n\n[3.6.5-5]\n- Fix release field\n\n[3.6.5-4]\n- Fix several CVEs",
+      "Metadata": {
+        "Issued": "2025-11-04",
+        "RefId": "ELSA-2025-19720",
+        "CVE": [
+          {
+            "Name": "CVE-2025-4945",
+            "Link": "https://linux.oracle.com/cve/CVE-2025-4945.html"
+          }
+        ]
+      },
+      "Name": "ELSA-2025-19720",
+      "CVSS": []
+    }
+  }
+}

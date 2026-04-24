@@ -23,7 +23,7 @@ type SBOMFileMetadata struct {
 	Path string
 }
 
-func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]Package, Context, *sbom.SBOM, error) {
+func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]*Package, Context, *sbom.SBOM, error) {
 	s, fmtID, path, err := getSBOM(userInput)
 	if err != nil {
 		return nil, Context{}, nil, err
@@ -38,14 +38,34 @@ func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func
 
 	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
-	catalog := removePackagesByOverlap(s.Artifacts.Packages, s.Relationships, d)
+	var enhancers []Enhancer
+	if fmtID != syftjson.ID {
+		enhancers = purlEnhancers(applyChannel)
+	}
+
+	return FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig, enhancers...), Context{
+		Source:                &src,
+		Distro:                d,
+		DistroDetectionFailed: distroDetectionFailed,
+	}, s, nil
+}
+
+func syftSBOMProviderFromReader(reader io.ReadSeeker, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]*Package, Context, *sbom.SBOM, error) {
+	s, fmtID, err := readSBOM(reader)
+	if err != nil {
+		return nil, Context{}, nil, err
+	}
+
+	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
 	var enhancers []Enhancer
 	if fmtID != syftjson.ID {
 		enhancers = purlEnhancers(applyChannel)
 	}
 
-	return FromCollection(catalog, config.SynthesisConfig, enhancers...), Context{
+	src := s.Source
+
+	return FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig, enhancers...), Context{
 		Source:                &src,
 		Distro:                d,
 		DistroDetectionFailed: distroDetectionFailed,
@@ -89,6 +109,10 @@ func getSBOMReader(userInput string) (io.ReadSeeker, string, error) {
 
 	case explicitlySpecifyingPurlList(userInput):
 		filepath := strings.TrimPrefix(userInput, purlInputPrefix)
+		return openFile(filepath)
+
+	case explicitlySpecifyingCPEList(userInput):
+		filepath := strings.TrimPrefix(userInput, cpeListPrefix)
 		return openFile(filepath)
 
 	case explicitlySpecifyingSBOM(userInput):
@@ -177,4 +201,8 @@ func explicitlySpecifyingSBOM(userInput string) bool {
 
 func explicitlySpecifyingPurlList(userInput string) bool {
 	return strings.HasPrefix(userInput, purlInputPrefix)
+}
+
+func explicitlySpecifyingCPEList(userInput string) bool {
+	return strings.HasPrefix(userInput, cpeListPrefix)
 }

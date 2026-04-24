@@ -709,7 +709,7 @@ func TestGetRanges(t *testing.T) {
 	}
 	var errors []error
 	for _, fixedIn := range advisory.Advisory.FixedIn {
-		rng, err := getRanges(fixedIn)
+		rng, err := getRanges(fixedIn, advisory.Advisory.GhsaID)
 		if err != nil {
 			errors = append(errors, err)
 		}

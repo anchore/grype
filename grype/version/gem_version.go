@@ -205,12 +205,9 @@ func trimIntermediateZeros(segments []any, isPrerelease bool) []any {
 }
 
 func compareSegments(left, right []any) (result int, allEqual bool, err error) {
-	limit := len(left)
-	if len(right) < limit {
-		limit = len(right)
-	}
+	limit := min(len(right), len(left))
 
-	for i := 0; i < limit; i++ {
+	for i := range limit {
 		l := left[i]
 		r := right[i]
 
