@@ -5,7 +5,9 @@ import (
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
+	"github.com/anchore/syft/syft/file"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -27,9 +29,10 @@ var (
 	Alpine318 = distro.New(distro.Alpine, "3.18", "")
 	Alpine319 = distro.New(distro.Alpine, "3.19", "")
 
-	RHEL7 = distro.New(distro.RedHat, "7", "")
-	RHEL8 = distro.New(distro.RedHat, "8", "")
-	RHEL9 = distro.New(distro.RedHat, "9", "")
+	RHEL7  = distro.New(distro.RedHat, "7", "")
+	RHEL8  = distro.New(distro.RedHat, "8", "")
+	RHEL9  = distro.New(distro.RedHat, "9", "")
+	RHEL10 = distro.New(distro.RedHat, "10", "")
 )
 
 // PackageBuilder provides a fluent API for building test packages.
@@ -111,7 +114,27 @@ func (b *PackageBuilder) WithLicenses(licenses ...string) *PackageBuilder {
 	return b
 }
 
+// WithLocation adds a file location to the package.
+func (b *PackageBuilder) WithLocation(path string) *PackageBuilder {
+	b.pkg.Locations = file.NewLocationSet(
+		append(b.pkg.Locations.ToSlice(), file.NewLocation(path))...,
+	)
+	return b
+}
+
+// WithRelatedPackage adds a related package via the given relationship type.
+func (b *PackageBuilder) WithRelatedPackage(relationshipType artifact.RelationshipType, related *pkg.Package) *PackageBuilder {
+	if b.pkg.RelatedPackages == nil {
+		b.pkg.RelatedPackages = make(map[artifact.RelationshipType][]*pkg.Package)
+	}
+	b.pkg.RelatedPackages[relationshipType] = append(b.pkg.RelatedPackages[relationshipType], related)
+	return b
+}
+
 // Build returns the constructed package.
 func (b *PackageBuilder) Build() pkg.Package {
+	if b.pkg.ID == "" {
+		b.pkg.ID = pkg.ID(uuid.New().String())
+	}
 	return b.pkg
 }
