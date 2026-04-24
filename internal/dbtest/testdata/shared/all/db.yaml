@@ -1,0 +1,12 @@
+auto-generate: true
+extractions:
+  debian:
+    - "debian:10/CVE-2024-0727"
+    - "debian:11/CVE-2024-0727"
+    - "debian:11/CVE-2022-0778"
+    - "debian:11/CVE-2023-0286"
+    - "debian:12/CVE-2024-0727"
+  nvd:
+    - "CVE-2024-0727"
+    - "CVE-2022-0778"
+    - "CVE-2023-0286"

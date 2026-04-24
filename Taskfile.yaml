@@ -256,6 +256,25 @@ tasks:
 
   ## Test-fixture-related targets #################################
 
+  fixture-status:
+    desc: Show status of all database test fixtures
+    cmds:
+      - go run ./internal/dbtest/cmd/manager status
+
+  regenerate-fixtures:
+    desc: Regenerate all reproducible database test fixtures from vunnel cache
+    vars:
+      VUNNEL_DATA: '{{.VUNNEL_DATA | default "~/vunnel/data"}}'
+    cmds:
+      - go run ./internal/dbtest/cmd/manager regenerate --vunnel-data {{.VUNNEL_DATA}}
+
+  regenerate-fixtures-dry-run:
+    desc: Show what fixtures would be regenerated (dry run)
+    vars:
+      VUNNEL_DATA: '{{.VUNNEL_DATA | default "~/vunnel/data"}}'
+    cmds:
+      - go run ./internal/dbtest/cmd/manager regenerate --vunnel-data {{.VUNNEL_DATA}} --dry-run
+
   fingerprints:
     desc: Generate test fixture fingerprints
     generates:
