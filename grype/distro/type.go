@@ -16,6 +16,7 @@ const (
 	CentOS       Type = "centos"
 	Fedora       Type = "fedora"
 	Alpine       Type = "alpine"
+	Alpaquita    Type = "alpaquita"
 	Busybox      Type = "busybox"
 	AmazonLinux  Type = "amazonlinux"
 	OracleLinux  Type = "oraclelinux"
@@ -48,6 +49,7 @@ var All = []Type{
 	CentOS,
 	Fedora,
 	Alpine,
+	Alpaquita,
 	Busybox,
 	AmazonLinux,
 	OracleLinux,
@@ -80,6 +82,8 @@ var IDMapping = map[string]Type{
 	"centos":        CentOS,
 	"fedora":        Fedora,
 	"alpine":        Alpine,
+	"alpaquita":     Alpaquita,
+	//"bellsoft-hardened-containers": Alpaquita,
 	"busybox":       Busybox,
 	"amzn":          AmazonLinux,
 	"ol":            OracleLinux,
@@ -106,6 +110,7 @@ var IDMapping = map[string]Type{
 // aliasTypes maps common aliases to their corresponding Type.
 var aliasTypes = map[string]Type{
 	"Alpine Linux":     Alpine, // needed for CPE matching (see #2039)
+	"BellSoft Hardened Containers": Alpaquita,
 	"windows":          Windows,
 	"scientific linux": Scientific, // Scientific linux prior to v7 didn't have an os-release file and syft raises up "scientific linux" as the release id as parsed from /etc/redhat-release
 }
