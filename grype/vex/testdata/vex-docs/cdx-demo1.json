@@ -47,12 +47,7 @@
           "will_not_fix"
         ],
         "detail": "The affected library is not included in this distribution."
-      },
-      "affects": [
-        {
-          "ref": "pkg:generic/sample-app@1.0.0"
-        }
-      ]
+      }
     }
   ]
 }
