@@ -3,11 +3,9 @@ package cyclonedx
 import (
 	"bytes"
 	"flag"
-	"fmt"
-	"os/exec"
-	"strings"
 	"testing"
 
+	cyclonedx "github.com/CycloneDX/cyclonedx-go"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 
@@ -19,31 +17,31 @@ import (
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for cyclonedx presenters")
-var validatorImage = "cyclonedx/cyclonedx-cli:0.27.2@sha256:829c9ea8f2104698bc3c1228575bfa495f6cc4ec151329323c013ca94408477f"
 
 func Test_CycloneDX_Valid(t *testing.T) {
-	if _, err := exec.LookPath("docker"); err != nil {
-		t.Skip("docker not available")
-	}
-
 	tests := []struct {
 		name   string
+		format cyclonedx.BOMFileFormat
 		scheme internal.SyftSource
 	}{
 		{
 			name:   "json directory",
+			format: cyclonedx.BOMFileFormatJSON,
 			scheme: internal.DirectorySource,
 		},
 		{
 			name:   "json image",
+			format: cyclonedx.BOMFileFormatJSON,
 			scheme: internal.ImageSource,
 		},
 		{
 			name:   "xml directory",
+			format: cyclonedx.BOMFileFormatXML,
 			scheme: internal.DirectorySource,
 		},
 		{
 			name:   "xml image",
+			format: cyclonedx.BOMFileFormatXML,
 			scheme: internal.ImageSource,
 		},
 	}
@@ -52,41 +50,26 @@ func Test_CycloneDX_Valid(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			format := strings.Split(tc.name, " ")[0]
 			var buffer bytes.Buffer
 
 			pb := internal.GeneratePresenterConfig(t, tc.scheme)
 
 			var pres *Presenter
-			switch format {
-			case "json":
+			switch tc.format {
+			case cyclonedx.BOMFileFormatJSON:
 				pres = NewJSONPresenter(pb)
-			case "xml":
+			case cyclonedx.BOMFileFormatXML:
 				pres = NewXMLPresenter(pb)
 			default:
-				t.Fatalf("invalid format: %s", format)
+				t.Fatalf("invalid format: %v", tc.format)
 			}
 
 			err := pres.Present(&buffer)
 			require.NoError(t, err)
 
-			contents := buffer.String()
-
-			cmd := exec.Command("docker", "run", "--rm", "-i", "--entrypoint", "/bin/sh", validatorImage,
-				"-c", fmt.Sprintf("tee &> /dev/null && cyclonedx validate --input-version v1_6 --fail-on-errors --input-format %s", format))
-
-			out := bytes.Buffer{}
-			cmd.Stdout = &out
-			cmd.Stderr = &out
-
-			// pipe to the docker command
-			cmd.Stdin = strings.NewReader(contents)
-
-			err = cmd.Run()
-			if err != nil || cmd.ProcessState.ExitCode() != 0 {
-				// not valid
-				t.Fatalf("error validating CycloneDX %s document: %s \nBOM:\n%s", format, out.String(), contents)
-			}
+			var bom cyclonedx.BOM
+			err = cyclonedx.NewBOMDecoder(&buffer, tc.format).Decode(&bom)
+			require.NoError(t, err, "CycloneDX %s output is not valid", tc.name)
 		})
 	}
 }
