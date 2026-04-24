@@ -30,6 +30,11 @@ func newSource(src syftSource.Description) (source, error) {
 			Type:   "cpe",
 			Target: m.CPE,
 		}, nil
+	case pkg.ZarfPackageMetadata:
+		return source{
+			Type:   "zarf-package",
+			Target: m.Path,
+		}, nil
 	case syftSource.ImageMetadata:
 		// ensure that empty collections are not shown as null
 		if m.RepoDigests == nil {
