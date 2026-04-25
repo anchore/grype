@@ -69,6 +69,62 @@ func TestHasNonEmptyCredentials(t *testing.T) {
 	}
 }
 
+func Test_registry_insecureTransportWarning(t *testing.T) {
+	tests := []struct {
+		name  string
+		input registry
+		want  string
+	}{
+		{
+			name:  "no insecure options set",
+			input: registry{},
+			want:  "",
+		},
+		{
+			name:  "only InsecureSkipTLSVerify set",
+			input: registry{InsecureSkipTLSVerify: true},
+			want:  "registry communication is insecure: insecure-skip-tls-verify enabled",
+		},
+		{
+			name:  "only InsecureUseHTTP set",
+			input: registry{InsecureUseHTTP: true},
+			want:  "registry communication is insecure: insecure-use-http enabled",
+		},
+		{
+			name:  "both insecure options set",
+			input: registry{InsecureSkipTLSVerify: true, InsecureUseHTTP: true},
+			want:  "registry communication is insecure: insecure-skip-tls-verify, insecure-use-http enabled",
+		},
+		{
+			name: "credentials present but no insecure options",
+			input: registry{
+				Auth: []RegistryCredentials{{Authority: "example.com", Username: "user", Password: "pass"}},
+			},
+			want: "",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert.Equal(t, test.want, test.input.insecureTransportWarning())
+		})
+	}
+}
+
+func Test_registry_PostLoad_returnsNoError(t *testing.T) {
+	// PostLoad should never return an error for the insecure transport warning;
+	// the warning is a side effect and should not block config loading.
+	tests := []registry{
+		{},
+		{InsecureSkipTLSVerify: true},
+		{InsecureUseHTTP: true},
+		{InsecureSkipTLSVerify: true, InsecureUseHTTP: true},
+	}
+	for _, cfg := range tests {
+		assert.NoError(t, cfg.PostLoad())
+	}
+}
+
 func Test_registry_ToOptions(t *testing.T) {
 	tests := []struct {
 		name     string
