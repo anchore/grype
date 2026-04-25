@@ -1,9 +1,12 @@
 package options
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/stereoscope/pkg/image"
 )
 
@@ -53,7 +56,30 @@ func (cfg *registry) PostLoad() error {
 			},
 		}, cfg.Auth...)
 	}
+
+	if msg := cfg.insecureTransportWarning(); msg != "" {
+		log.Warn(msg)
+	}
+
 	return nil
+}
+
+// insecureTransportWarning returns a warning message listing any insecure registry transport
+// flags that are enabled, or an empty string if none are. These flags may be picked up from a
+// config file or environment variable without the user realizing, so surfacing them in CI/CD
+// output makes the risk visible.
+func (cfg *registry) insecureTransportWarning() string {
+	var flags []string
+	if cfg.InsecureSkipTLSVerify {
+		flags = append(flags, "insecure-skip-tls-verify")
+	}
+	if cfg.InsecureUseHTTP {
+		flags = append(flags, "insecure-use-http")
+	}
+	if len(flags) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("registry communication is insecure: %s enabled", strings.Join(flags, ", "))
 }
 
 func (cfg *registry) DescribeFields(descriptions clio.FieldDescriptionSet) {
