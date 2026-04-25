@@ -68,6 +68,11 @@ func TestFuzzyVersionComparison(t *testing.T) {
 		{"1.0.2k", "1.0.2l", -1},
 		// 1.1.1w is a later patch on 1.1.1
 		{"1.1.1", "1.1.1w", -1},
+		// uppercase V prefix should be stripped the same as lowercase v
+		{"V1.2.3", "v1.2.3", 0},
+		{"V1.2.3", "1.2.3", 0},
+		{"V1.2.3", "V1.2.4", -1},
+		{"V2.0.0", "v1.9.9", 1},
 	}
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%q vs %q", c.v1, c.v2), func(t *testing.T) {
@@ -381,6 +386,24 @@ func TestFuzzyVersion_Constraint(t *testing.T) {
 			constraint: "<0.0.0-20230922105210-14b16010c2ee",
 			satisfied:  false,
 		},
+		{
+			name:       "uppercase V prefix on version matches constraint",
+			version:    "V1.5.0",
+			constraint: "> 1.0, < 2.0",
+			satisfied:  true,
+		},
+		{
+			name:       "uppercase V prefix on both version and constraint",
+			version:    "V1.5.0",
+			constraint: "> V1.0, < V2.0",
+			satisfied:  true,
+		},
+		{
+			name:       "uppercase V prefix on version out of range",
+			version:    "V3.0.0",
+			constraint: "> 1.0, < 2.0",
+			satisfied:  false,
+		},
 	}
 
 	for _, test := range tests {
@@ -401,6 +424,8 @@ func TestPseudoSemverPattern(t *testing.T) {
 	}{
 		{name: "rc candidates are valid semver", version: "1.2.3-rc1", valid: true},
 		{name: "rc candidates with no dash are valid semver", version: "1.2.3rc1", valid: true},
+		{name: "uppercase V prefix is valid semver", version: "V1.2.3", valid: true},
+		{name: "lowercase v prefix is valid semver", version: "v1.2.3", valid: true},
 	}
 
 	for _, test := range tests {
