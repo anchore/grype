@@ -106,7 +106,13 @@ func (f *constraintFuncCriteria) MatchesVulnerability(value vulnerability.Vulner
 		return false, "no version constraint", nil
 	}
 	matches, err := f.fn(value.Constraint)
-	// TODO: should we do something about this?
+	if err != nil {
+		// TODO revisit this. Returning no error has the effect of dropping the vulnerability in the case an error occurs parsing a package or other version.
+		// this replicates the existing VulnerabilityProvider behavior; see: vulnerability_provider.go filterAffectedPackageRanges
+		// if we change the VP behavior, we need to change this behavior, too
+		log.WithFields("error", err, "constraint", value.Constraint).Debug("match constraint error")
+		return false, "version check error", nil
+	}
 	return matches, "", err
 }
 
