@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/owenrumney/go-sarif/sarif"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -64,6 +64,9 @@ func TestSarifPresenter(t *testing.T) {
 }
 
 func Test_SarifIsValid(t *testing.T) {
+	sch, err := jsonschema.NewCompiler().Compile("testdata/sarif-schema-2.1.0.json")
+	require.NoError(t, err)
+
 	tests := []struct {
 		name   string
 		scheme internal.SyftSource
@@ -88,8 +91,11 @@ func Test_SarifIsValid(t *testing.T) {
 			err := pres.Present(&buffer)
 			require.NoError(t, err)
 
-			_, err = sarif.FromBytes(buffer.Bytes())
-			require.NoError(t, err, "SARIF output is not valid")
+			inst, err := jsonschema.UnmarshalJSON(bytes.NewReader(buffer.Bytes()))
+			require.NoError(t, err)
+
+			err = sch.Validate(inst)
+			require.NoError(t, err, "SARIF output does not conform to schema")
 		})
 	}
 }

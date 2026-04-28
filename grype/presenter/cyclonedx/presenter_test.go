@@ -3,10 +3,12 @@ package cyclonedx
 import (
 	"bytes"
 	"flag"
+	"os"
 	"testing"
 
-	cyclonedx "github.com/CycloneDX/cyclonedx-go"
+	cyclonedxlib "github.com/CycloneDX/cyclonedx-go"
 	"github.com/google/go-cmp/cmp"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/presenter/internal"
@@ -18,30 +20,61 @@ import (
 
 var update = flag.Bool("update", false, "update the *.golden files for cyclonedx presenters")
 
+func compileCycloneDXSchema(t *testing.T) *jsonschema.Schema {
+	t.Helper()
+
+	c := jsonschema.NewCompiler()
+
+	// the CycloneDX schema references these sub-schemas by URL; pre-load them from vendored files
+	// so the compiler doesn't try to fetch from the network
+	for _, sub := range []struct {
+		url  string
+		file string
+	}{
+		{"http://cyclonedx.org/schema/jsf-0.82.schema.json", "testdata/jsf-0.82.schema.json"},
+		{"http://cyclonedx.org/schema/spdx.schema.json", "testdata/spdx.schema.json"},
+	} {
+		f, err := os.Open(sub.file)
+		require.NoError(t, err)
+		defer f.Close()
+
+		doc, err := jsonschema.UnmarshalJSON(f)
+		require.NoError(t, err)
+
+		require.NoError(t, c.AddResource(sub.url, doc))
+	}
+
+	sch, err := c.Compile("testdata/bom-1.6.schema.json")
+	require.NoError(t, err)
+	return sch
+}
+
 func Test_CycloneDX_Valid(t *testing.T) {
+	sch := compileCycloneDXSchema(t)
+
 	tests := []struct {
 		name   string
-		format cyclonedx.BOMFileFormat
+		format cyclonedxlib.BOMFileFormat
 		scheme internal.SyftSource
 	}{
 		{
 			name:   "json directory",
-			format: cyclonedx.BOMFileFormatJSON,
+			format: cyclonedxlib.BOMFileFormatJSON,
 			scheme: internal.DirectorySource,
 		},
 		{
 			name:   "json image",
-			format: cyclonedx.BOMFileFormatJSON,
+			format: cyclonedxlib.BOMFileFormatJSON,
 			scheme: internal.ImageSource,
 		},
 		{
 			name:   "xml directory",
-			format: cyclonedx.BOMFileFormatXML,
+			format: cyclonedxlib.BOMFileFormatXML,
 			scheme: internal.DirectorySource,
 		},
 		{
 			name:   "xml image",
-			format: cyclonedx.BOMFileFormatXML,
+			format: cyclonedxlib.BOMFileFormatXML,
 			scheme: internal.ImageSource,
 		},
 	}
@@ -56,9 +89,9 @@ func Test_CycloneDX_Valid(t *testing.T) {
 
 			var pres *Presenter
 			switch tc.format {
-			case cyclonedx.BOMFileFormatJSON:
+			case cyclonedxlib.BOMFileFormatJSON:
 				pres = NewJSONPresenter(pb)
-			case cyclonedx.BOMFileFormatXML:
+			case cyclonedxlib.BOMFileFormatXML:
 				pres = NewXMLPresenter(pb)
 			default:
 				t.Fatalf("invalid format: %v", tc.format)
@@ -67,9 +100,29 @@ func Test_CycloneDX_Valid(t *testing.T) {
 			err := pres.Present(&buffer)
 			require.NoError(t, err)
 
-			var bom cyclonedx.BOM
-			err = cyclonedx.NewBOMDecoder(&buffer, tc.format).Decode(&bom)
-			require.NoError(t, err, "CycloneDX %s output is not valid", tc.name)
+			var jsonBytes []byte
+			if tc.format == cyclonedxlib.BOMFileFormatXML {
+				// decode XML into a BOM, then re-encode as JSON so we can validate against the JSON schema;
+				// bomFormat is a JSON-only field (xml:"-"), so we must set it after decoding
+				var bom cyclonedxlib.BOM
+				err = cyclonedxlib.NewBOMDecoder(bytes.NewReader(buffer.Bytes()), cyclonedxlib.BOMFileFormatXML).Decode(&bom)
+				require.NoError(t, err, "CycloneDX XML output could not be decoded")
+
+				bom.BOMFormat = cyclonedxlib.BOMFormat
+
+				var jsonBuf bytes.Buffer
+				err = cyclonedxlib.NewBOMEncoder(&jsonBuf, cyclonedxlib.BOMFileFormatJSON).Encode(&bom)
+				require.NoError(t, err, "could not re-encode BOM as JSON")
+				jsonBytes = jsonBuf.Bytes()
+			} else {
+				jsonBytes = buffer.Bytes()
+			}
+
+			inst, err := jsonschema.UnmarshalJSON(bytes.NewReader(jsonBytes))
+			require.NoError(t, err)
+
+			err = sch.Validate(inst)
+			require.NoError(t, err, "CycloneDX %s output does not conform to schema", tc.name)
 		})
 	}
 }
