@@ -14,6 +14,7 @@ import (
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/grype/vulnerability/mock"
+	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -1439,6 +1440,99 @@ func TestCPESearchHit_Equals(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.expected, test.current.Equals(test.other))
+		})
+	}
+}
+
+func TestMatchPackageByCPEs_IgnoreFilters(t *testing.T) {
+	store := mock.VulnerabilityProvider([]vulnerability.Vulnerability{
+		{
+			Reference:   vulnerability.Reference{ID: "CVE-MATCH", Namespace: "nvd:cpe"},
+			PackageName: "libfoo",
+			Constraint:  version.MustGetConstraint("< 2.0.0", version.UnknownFormat),
+			CPEs:        []cpe.CPE{cpe.Must("cpe:2.3:a:vendor:libfoo:*:*:*:*:*:*:*:*", "")},
+		},
+		{
+			Reference:   vulnerability.Reference{ID: "CVE-NO-MATCH", Namespace: "nvd:cpe"},
+			PackageName: "libfoo",
+			Constraint:  version.MustGetConstraint("< 1.0.0", version.UnknownFormat),
+			CPEs:        []cpe.CPE{cpe.Must("cpe:2.3:a:vendor:libfoo:*:*:*:*:*:*:*:*", "")},
+		},
+		{
+			Reference:   vulnerability.Reference{ID: "CVE-UNAFFECTED", Namespace: "nvd:cpe"},
+			PackageName: "libfoo",
+			Constraint:  version.MustGetConstraint("> 0.5.0", version.UnknownFormat),
+			CPEs:        []cpe.CPE{cpe.Must("cpe:2.3:a:vendor:libfoo:*:*:*:*:*:*:*:*", "")},
+			Unaffected:  true,
+		},
+	}...)
+
+	tests := []struct {
+		name            string
+		p               pkg.Package
+		expectedIgnores []match.IgnoreFilter
+	}{
+		{
+			name: "version outside constraint produces ignore",
+			p: pkg.Package{
+				Name:    "libfoo",
+				Version: "1.5.0",
+				Type:    syftPkg.BinaryPkg,
+				CPEs:    []cpe.CPE{cpe.Must("cpe:2.3:a:vendor:libfoo:*:*:*:*:*:*:*:*", "")},
+			},
+			// 1.5.0 < 2.0.0 → CVE-MATCH is a match (not ignored)
+			// 1.5.0 >= 1.0.0 → CVE-NO-MATCH is not vulnerable → ignored
+			// 1.5.0 >= 0.5.0 → CVE-UNAFFECTED is not vulnerable → ignored
+			expectedIgnores: []match.IgnoreFilter{
+				match.IgnoreRelatedPackage{
+					Reason:           "CPE not vulnerable",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "CVE-NO-MATCH",
+				},
+				match.IgnoreRelatedPackage{
+					Reason:           "CPE not vulnerable",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "CVE-UNAFFECTED",
+				},
+			},
+		},
+		{
+			name: "no ignores when all vulns match, unaffected doesn't match",
+			p: pkg.Package{
+				Name:    "libfoo",
+				Version: "0.5.0",
+				Type:    syftPkg.BinaryPkg,
+				CPEs:    []cpe.CPE{cpe.Must("cpe:2.3:a:vendor:libfoo:*:*:*:*:*:*:*:*", "")},
+			},
+			// 0.5.0 < 2.0.0 → match, 0.5.0 < 1.0.0 → match; both vulnerable, no ignores
+			// 0.5.0 < 0.5.0 → CVE-UNAFFECTED is not unaffected, no ignores
+			expectedIgnores: nil,
+		},
+		{
+			name: "only unaffected matches",
+			p: pkg.Package{
+				Name:    "libfoo",
+				Version: "0.6.0",
+				Type:    syftPkg.BinaryPkg,
+				CPEs:    []cpe.CPE{cpe.Must("cpe:2.3:a:vendor:libfoo:*:*:*:*:*:*:*:*", "")},
+			},
+			// 0.6.0 > 0.5.0 → CVE-UNAFFECTED is unaffected → ignores
+			expectedIgnores: []match.IgnoreFilter{
+				match.IgnoreRelatedPackage{
+					Reason:           "CPE not vulnerable",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "CVE-UNAFFECTED",
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, ignores, err := MatchPackageByCPEs(store, test.p, match.StockMatcher)
+			require.NoError(t, err)
+
+			require.ElementsMatch(t, test.expectedIgnores, ignores)
 		})
 	}
 }

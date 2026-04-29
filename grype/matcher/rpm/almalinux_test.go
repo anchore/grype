@@ -17,6 +17,7 @@ import (
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/grype/vulnerability/mock"
+	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/file"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -1613,4 +1614,418 @@ func createExpectedDetails(pkg pkg.Package, vuln vulnerability.Vulnerability) []
 
 func strPtr(s string) *string {
 	return &s
+}
+
+func TestAlmaLinuxIgnoreFilters(t *testing.T) {
+	tests := []struct {
+		name      string
+		pkg       pkg.Package
+		rhelVulns []vulnerability.Vulnerability
+		almaVulns []vulnerability.Vulnerability
+
+		expectedIgnores []match.IgnoreFilter
+	}{
+		{
+			name: "no ignores when package is vulnerable and no unaffected record",
+
+			pkg: pkg.Package{
+				ID:      pkg.ID("httpd-no-ignores"),
+				Name:    "httpd",
+				Version: "2.4.37-10.el8",
+				Type:    syftPkg.RpmPkg,
+				Distro: &distro.Distro{
+					Type:    distro.AlmaLinux,
+					Version: "8",
+				},
+			},
+
+			rhelVulns: []vulnerability.Vulnerability{
+				{
+					PackageName: "httpd",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2023-1234",
+						Namespace: "redhat:distro:redhat:8",
+					},
+					Constraint: createConstraint(t, ">= 0", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State: vulnerability.FixStateNotFixed,
+					},
+				},
+				{
+					PackageName: "not-httpd",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2023-1234",
+						Namespace: "redhat:distro:redhat:8",
+					},
+					Constraint: createConstraint(t, ">= 0", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State: vulnerability.FixStateNotFixed,
+					},
+				},
+			},
+
+			almaVulns: []vulnerability.Vulnerability{},
+
+			expectedIgnores: nil,
+		},
+		{
+			name: "ignore when RHEL not vulnerable",
+
+			pkg: pkg.Package{
+				ID:      pkg.ID("httpd-distro-fixed"),
+				Name:    "httpd",
+				Version: "2.4.37-51.el8",
+				Type:    syftPkg.RpmPkg,
+				Distro: &distro.Distro{
+					Type:    distro.AlmaLinux,
+					Version: "8",
+				},
+			},
+
+			rhelVulns: []vulnerability.Vulnerability{
+				{
+					PackageName: "httpd",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2023-1234",
+						Namespace: "redhat:distro:redhat:8",
+					},
+					Constraint: createConstraint(t, "< 2.4.37-50.el8", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						Versions: []string{"2.4.37-50.el8"},
+						State:    vulnerability.FixStateFixed,
+					},
+				},
+			},
+
+			almaVulns: []vulnerability.Vulnerability{},
+
+			expectedIgnores: []match.IgnoreFilter{
+				match.IgnoreRelatedPackage{
+					Reason:           "Distro Fixed",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "CVE-2023-1234",
+					RelatedPackageID: pkg.ID("httpd-distro-fixed"),
+				},
+			},
+		},
+		{
+			name: "ignore when alma fixed and unaffected",
+
+			pkg: pkg.Package{
+				ID:      pkg.ID("open-vm-tools-unaffected"),
+				Name:    "open-vm-tools",
+				Version: "12.3.5-2.el8.alma.1",
+				Type:    syftPkg.RpmPkg,
+				Distro: &distro.Distro{
+					Type:    distro.AlmaLinux,
+					Version: "8.0",
+				},
+			},
+
+			rhelVulns: []vulnerability.Vulnerability{
+				{
+					PackageName: "open-vm-tools",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2025-22247",
+						Namespace: "redhat:distro:redhat:8",
+					},
+					Constraint: createConstraint(t, ">= 0", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State: vulnerability.FixStateNotFixed,
+					},
+				},
+			},
+
+			almaVulns: []vulnerability.Vulnerability{
+				{
+					PackageName: "open-vm-tools",
+					Reference: vulnerability.Reference{
+						ID:        "ALSA-2025:A001",
+						Namespace: "almalinux:distro:almalinux:8",
+					},
+					RelatedVulnerabilities: []vulnerability.Reference{
+						{ID: "CVE-2025-22247"},
+					},
+					Constraint: createConstraint(t, ">= 12.3.5-2.el8.alma.1", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						Versions: []string{"12.3.5-2.el8.alma.1"},
+						State:    vulnerability.FixStateFixed,
+					},
+					Unaffected: true,
+				},
+			},
+
+			expectedIgnores: []match.IgnoreFilter{
+				match.IgnoreRelatedPackage{
+					Reason:           "Alma Unaffected",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "ALSA-2025:A001",
+					RelatedPackageID: pkg.ID("open-vm-tools-unaffected"),
+				},
+				match.IgnoreRelatedPackage{
+					Reason:           "Alma Unaffected",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "CVE-2025-22247",
+					RelatedPackageID: pkg.ID("open-vm-tools-unaffected"),
+				},
+			},
+		},
+		{
+			name: "ignore with multiple related CVEs",
+
+			pkg: pkg.Package{
+				ID:      pkg.ID("python38-multi-cve"),
+				Name:    "python38",
+				Version: "3.8.17-2.module_el8.9.0+3633+e453b53a",
+				Type:    syftPkg.RpmPkg,
+				Distro: &distro.Distro{
+					Type:    distro.AlmaLinux,
+					Version: "8.9",
+				},
+				Metadata: pkg.RpmMetadata{
+					ModularityLabel: strPtr("python38:3.8:8090020230810123456:3b72e4d2"),
+				},
+			},
+
+			rhelVulns: []vulnerability.Vulnerability{
+				{
+					PackageName: "python38",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2007-4559",
+						Namespace: "redhat:distro:redhat:8",
+					},
+					Constraint: createConstraint(t, ">= 0", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State: vulnerability.FixStateNotFixed,
+					},
+				},
+			},
+
+			almaVulns: []vulnerability.Vulnerability{
+				{
+					PackageName: "python38",
+					Reference: vulnerability.Reference{
+						ID:        "ALSA-2023:7050",
+						Namespace: "almalinux:distro:almalinux:8",
+					},
+					RelatedVulnerabilities: []vulnerability.Reference{
+						{ID: "CVE-2007-4559"},
+						{ID: "CVE-2023-32681"},
+					},
+					Constraint: createConstraint(t, ">= 3.8.17-2.module_el8.9.0+3633+e453b53a", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						Versions: []string{"3.8.17-2.module_el8.9.0+3633+e453b53a"},
+						State:    vulnerability.FixStateFixed,
+					},
+					Unaffected: true,
+				},
+			},
+
+			expectedIgnores: []match.IgnoreFilter{
+				match.IgnoreRelatedPackage{
+					Reason:           "Alma Unaffected",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "ALSA-2023:7050",
+					RelatedPackageID: pkg.ID("python38-multi-cve"),
+				},
+				match.IgnoreRelatedPackage{
+					Reason:           "Alma Unaffected",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "CVE-2007-4559",
+					RelatedPackageID: pkg.ID("python38-multi-cve"),
+				},
+				match.IgnoreRelatedPackage{
+					Reason:           "Alma Unaffected",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "CVE-2023-32681",
+					RelatedPackageID: pkg.ID("python38-multi-cve"),
+				},
+			},
+		},
+		{
+			name: "mixed ignores: Distro Fixed from RHEL and Alma Unaffected from AlmaLinux",
+
+			pkg: pkg.Package{
+				ID:      pkg.ID("httpd-mixed"),
+				Name:    "httpd",
+				Version: "2.4.37-47.el8.alma",
+				Type:    syftPkg.RpmPkg,
+				Distro: &distro.Distro{
+					Type:    distro.AlmaLinux,
+					Version: "8.7",
+				},
+			},
+
+			rhelVulns: []vulnerability.Vulnerability{
+				{
+					// pkg version 47 < 50 → vulnerable per RHEL, becomes a disclosure
+					PackageName: "httpd",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2023-1234",
+						Namespace: "redhat:distro:redhat:8",
+					},
+					Constraint: createConstraint(t, "< 2.4.37-50.el8", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						Versions: []string{"2.4.37-50.el8"},
+						State:    vulnerability.FixStateFixed,
+					},
+				},
+				{
+					// pkg version 47 >= 45 → NOT vulnerable per RHEL, filtered as "Distro Fixed"
+					PackageName: "httpd",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2022-9999",
+						Namespace: "redhat:distro:redhat:8",
+					},
+					Constraint: createConstraint(t, "< 2.4.37-45.el8", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						Versions: []string{"2.4.37-45.el8"},
+						State:    vulnerability.FixStateFixed,
+					},
+				},
+			},
+
+			almaVulns: []vulnerability.Vulnerability{
+				{
+					// AlmaLinux says CVE-2023-1234 is unaffected at >= 40, pkg is 47 → filtered as "Alma Unaffected"
+					PackageName: "httpd",
+					Reference: vulnerability.Reference{
+						ID:        "ALSA-2023:1234",
+						Namespace: "almalinux:distro:almalinux:8",
+					},
+					RelatedVulnerabilities: []vulnerability.Reference{
+						{ID: "CVE-2023-1234"},
+					},
+					Constraint: createConstraint(t, ">= 2.4.37-40.el8.alma", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						Versions: []string{"2.4.37-40.el8.alma"},
+						State:    vulnerability.FixStateFixed,
+					},
+					Unaffected: true,
+				},
+			},
+
+			expectedIgnores: []match.IgnoreFilter{
+				// CVE-2022-9999: pkg version already past RHEL fix → Distro Fixed
+				match.IgnoreRelatedPackage{
+					Reason:           "Distro Fixed",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "CVE-2022-9999",
+					RelatedPackageID: pkg.ID("httpd-mixed"),
+				},
+				// CVE-2023-1234: vulnerable per RHEL but AlmaLinux marks as unaffected → Alma Unaffected
+				match.IgnoreRelatedPackage{
+					Reason:           "Alma Unaffected",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "ALSA-2023:1234",
+					RelatedPackageID: pkg.ID("httpd-mixed"),
+				},
+				match.IgnoreRelatedPackage{
+					Reason:           "Alma Unaffected",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "CVE-2023-1234",
+					RelatedPackageID: pkg.ID("httpd-mixed"),
+				},
+			},
+		},
+		{
+			name: "upstream RHEL ignore",
+			pkg: pkg.Package{
+				ID:      pkg.ID("perl-errno-upstream-fixed"),
+				Name:    "perl-Errno",
+				Version: "0:1.28-422.el8.0.1",
+				Type:    syftPkg.RpmPkg,
+				Distro: &distro.Distro{
+					Type:    distro.AlmaLinux,
+					Version: "8.10",
+				},
+				Upstreams: []pkg.UpstreamPackage{
+					{
+						Name:    "perl",
+						Version: "5.26.3-422.el8.0.1",
+					},
+				},
+				Metadata: pkg.RpmMetadata{
+					Epoch: intPtr(0),
+				},
+			},
+
+			rhelVulns: []vulnerability.Vulnerability{
+				{
+					PackageName: "perl",
+					Reference: vulnerability.Reference{
+						ID:        "CVE-2020-10543",
+						Namespace: "redhat:distro:redhat:8",
+					},
+					Constraint: createConstraint(t, "< 4:5.26.3-419.el8", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						Versions: []string{"4:5.26.3-419.el8"},
+						State:    vulnerability.FixStateFixed,
+					},
+				},
+			},
+
+			almaVulns: []vulnerability.Vulnerability{},
+
+			expectedIgnores: []match.IgnoreFilter{
+				match.IgnoreRelatedPackage{
+					Reason:           "Distro Fixed",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "CVE-2020-10543",
+					RelatedPackageID: pkg.ID("perl-errno-upstream-fixed"),
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			allVulns := append(tt.rhelVulns, tt.almaVulns...)
+			mockProvider := &MockProvider{
+				findResultsFunc: func(criteria ...vulnerability.Criteria) (result.Set, error) {
+					vulnProvider := mock.VulnerabilityProvider(allVulns...)
+					vulns, err := vulnProvider.FindVulnerabilities(criteria...)
+					if err != nil {
+						return nil, err
+					}
+
+					resultSet := make(result.Set)
+					for _, vuln := range vulns {
+						r := result.Result{
+							ID:              vuln.ID,
+							Vulnerabilities: []vulnerability.Vulnerability{vuln},
+							Package:         &tt.pkg,
+							Details: []match.Detail{{
+								Type:    match.ExactDirectMatch,
+								Matcher: match.RpmMatcher,
+								SearchedBy: match.DistroParameters{
+									Distro: match.DistroIdentification{
+										Type:    tt.pkg.Distro.Type.String(),
+										Version: tt.pkg.Distro.Version,
+									},
+									Package: match.PackageParameter{
+										Name:    tt.pkg.Name,
+										Version: tt.pkg.Version,
+									},
+									Namespace: vuln.Namespace,
+								},
+								Found: match.DistroResult{
+									VulnerabilityID:   vuln.ID,
+									VersionConstraint: vuln.Constraint.String(),
+								},
+								Confidence: 1.0,
+							}},
+						}
+						resultSet[vuln.ID] = append(resultSet[vuln.ID], r)
+					}
+					return resultSet, nil
+				},
+			}
+
+			_, ignores, err := almaLinuxMatchesWithUpstreams(mockProvider, tt.pkg)
+			require.NoError(t, err)
+
+			require.ElementsMatch(t, tt.expectedIgnores, ignores)
+		})
+	}
 }
