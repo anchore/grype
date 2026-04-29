@@ -16,6 +16,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/syft/syft/artifact"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -1504,6 +1505,101 @@ func TestRedhatEUSMatches(t *testing.T) {
 			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
 				t.Errorf("redhatEUSMatches() mismatch (-want +got):\n%s", diff)
 			}
+		})
+	}
+}
+
+func TestRedhatEUSIgnoreFilters(t *testing.T) {
+	tests := []struct {
+		name            string
+		pkg             pkg.Package
+		disclosureVulns []vulnerability.Vulnerability
+		resolutionVulns []vulnerability.Vulnerability
+		expectedIgnores []match.IgnoreFilter
+	}{
+		{
+			name: "fixed EUS vulnerability produces ignore",
+			pkg: pkg.Package{
+				ID:      pkg.ID("kernel-fixed"),
+				Name:    "kernel",
+				Version: "5.14.0-503.11.1.el9_5",
+				Type:    syftPkg.RpmPkg,
+				Distro:  newEUSDistro("9.4"),
+			},
+			disclosureVulns: []vulnerability.Vulnerability{
+				{
+					Reference:   vulnerability.Reference{ID: "CVE-2024-1111", Namespace: "ns"},
+					PackageName: "kernel",
+					Constraint:  version.MustGetConstraint("< 5.14.0-600.el9", version.RpmFormat),
+					Fix:         vulnerability.Fix{State: vulnerability.FixStateUnknown},
+				},
+			},
+			resolutionVulns: []vulnerability.Vulnerability{
+				{
+					Reference:   vulnerability.Reference{ID: "CVE-2024-1111", Namespace: "ns"},
+					PackageName: "kernel",
+					Constraint:  version.MustGetConstraint("< 5.14.0-400.el9_4", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateFixed,
+						Versions: []string{"5.14.0-400.el9_4"},
+					},
+				},
+			},
+			// pkg version 503 > fix 400 → EUS fix already applied → ignore
+			expectedIgnores: []match.IgnoreFilter{
+				match.IgnoreRelatedPackage{
+					Reason:           "Distro Not Vulnerable",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "CVE-2024-1111",
+					RelatedPackageID: pkg.ID("kernel-fixed"),
+				},
+			},
+		},
+		{
+			name: "no ignores when package is still vulnerable",
+			pkg: pkg.Package{
+				ID:      pkg.ID("kernel-vuln"),
+				Name:    "kernel",
+				Version: "5.14.0-200.el9_4",
+				Type:    syftPkg.RpmPkg,
+				Distro:  newEUSDistro("9.4"),
+			},
+			disclosureVulns: []vulnerability.Vulnerability{
+				{
+					Reference:   vulnerability.Reference{ID: "CVE-2024-2222", Namespace: "ns"},
+					PackageName: "kernel",
+					Constraint:  version.MustGetConstraint("< 5.14.0-600.el9", version.RpmFormat),
+					Fix:         vulnerability.Fix{State: vulnerability.FixStateUnknown},
+				},
+			},
+			resolutionVulns: []vulnerability.Vulnerability{
+				{
+					Reference:   vulnerability.Reference{ID: "CVE-2024-2222", Namespace: "ns"},
+					PackageName: "kernel",
+					Constraint:  version.MustGetConstraint("< 5.14.0-400.el9_4", version.RpmFormat),
+					Fix: vulnerability.Fix{
+						State:    vulnerability.FixStateFixed,
+						Versions: []string{"5.14.0-400.el9_4"},
+					},
+				},
+			},
+			// pkg version 200 < fix 400 → still vulnerable → no ignores
+			expectedIgnores: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vulnProvider := newMockVulnProvider()
+			vulnProvider.setDisclosureVulns(tt.disclosureVulns)
+			vulnProvider.setResolutionVulns(tt.resolutionVulns)
+
+			resultProvider := result.NewProvider(vulnProvider, tt.pkg, match.RpmMatcher)
+
+			_, ignores, err := redhatEUSMatches(resultProvider, tt.pkg, "zero")
+			require.NoError(t, err)
+
+			require.ElementsMatch(t, tt.expectedIgnores, ignores)
 		})
 	}
 }
