@@ -12,6 +12,7 @@ import (
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
+	"github.com/anchore/grype/grype/pkg/qualifier/rpmarch"
 )
 
 var timeVal = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -421,4 +422,195 @@ func TestTransform_FixDateParsing(t *testing.T) {
 	if diff := cmp.Diff(expected, fix.Detail.Available.Date); diff != "" {
 		t.Errorf("fix date mismatch (-want +got):\n%s", diff)
 	}
+}
+
+// glibcMixedSrcAndBinaryTree models the shape of the real cve-2026-5928 advisory: hummingbird
+// platform contains both `glibc.src` (source RPM) and `glibc` + `glibc-common` (binary RPMs)
+// alongside each other. RHEL platforms only carry the source RPM (the typical src-granularity
+// disclosure pattern).
+func glibcMixedSrcAndBinaryTree() unmarshal.CSAFProductTree {
+	return unmarshal.CSAFProductTree{
+		Branches: []unmarshal.CSAFBranch{
+			{
+				Category: "vendor",
+				Name:     "Red Hat",
+				Branches: []unmarshal.CSAFBranch{
+					{
+						Category: "product_name",
+						Name:     "Red Hat Hardened Images",
+						Product: &unmarshal.CSAFProduct{
+							Name:      "Red Hat Hardened Images",
+							ProductID: "hummingbird-1",
+							ProductIdentificationHelper: &unmarshal.CSAFProductIdentificationHelper{
+								CPE: "cpe:/a:redhat:hummingbird:1",
+							},
+						},
+					},
+					{
+						Category: "product_name",
+						Name:     "Red Hat Enterprise Linux 9.7.z",
+						Product: &unmarshal.CSAFProduct{
+							Name:      "Red Hat Enterprise Linux 9.7.z",
+							ProductID: "rhel-9.7.z",
+							ProductIdentificationHelper: &unmarshal.CSAFProductIdentificationHelper{
+								CPE: "cpe:/o:redhat:enterprise_linux:9",
+							},
+						},
+					},
+					{
+						Category: "product_version",
+						Name:     "glibc",
+						Product: &unmarshal.CSAFProduct{
+							Name:      "glibc",
+							ProductID: "glibc",
+							ProductIdentificationHelper: &unmarshal.CSAFProductIdentificationHelper{
+								PURL: "pkg:rpm/redhat/glibc",
+							},
+						},
+					},
+					{
+						Category: "product_version",
+						Name:     "glibc-common",
+						Product: &unmarshal.CSAFProduct{
+							Name:      "glibc-common",
+							ProductID: "glibc-common",
+							ProductIdentificationHelper: &unmarshal.CSAFProductIdentificationHelper{
+								PURL: "pkg:rpm/redhat/glibc-common",
+							},
+						},
+					},
+					{
+						Category: "product_version",
+						Name:     "glibc",
+						Product: &unmarshal.CSAFProduct{
+							Name:      "glibc",
+							ProductID: "glibc.src",
+							ProductIdentificationHelper: &unmarshal.CSAFProductIdentificationHelper{
+								PURL: "pkg:rpm/redhat/glibc?arch=src",
+							},
+						},
+					},
+				},
+			},
+		},
+		Relationships: []unmarshal.CSAFRelationship{
+			{
+				Category:                  "default_component_of",
+				FullProductName:           unmarshal.CSAFProduct{Name: "glibc as a component of Red Hat Hardened Images", ProductID: "hummingbird-1:glibc"},
+				ProductReference:          "glibc",
+				RelatesToProductReference: "hummingbird-1",
+			},
+			{
+				Category:                  "default_component_of",
+				FullProductName:           unmarshal.CSAFProduct{Name: "glibc-common as a component of Red Hat Hardened Images", ProductID: "hummingbird-1:glibc-common"},
+				ProductReference:          "glibc-common",
+				RelatesToProductReference: "hummingbird-1",
+			},
+			{
+				Category:                  "default_component_of",
+				FullProductName:           unmarshal.CSAFProduct{Name: "glibc.src as a component of Red Hat Hardened Images", ProductID: "hummingbird-1:glibc.src"},
+				ProductReference:          "glibc.src",
+				RelatesToProductReference: "hummingbird-1",
+			},
+			{
+				Category:                  "default_component_of",
+				FullProductName:           unmarshal.CSAFProduct{Name: "glibc.src as a component of Red Hat Enterprise Linux 9.7.z", ProductID: "rhel-9.7.z:glibc.src"},
+				ProductReference:          "glibc.src",
+				RelatesToProductReference: "rhel-9.7.z",
+			},
+		},
+	}
+}
+
+func TestTransform_DropsSrcWhenSameNameBinaryPresent(t *testing.T) {
+	// hummingbird-1 platform has both glibc (binary) and glibc.src (source); the redundant
+	// src must be dropped so upstream-search filtering doesn't FP-match siblings like
+	// glibc-minimal-langpack via upstream=glibc. The RHEL platform's glibc.src has no sibling
+	// binary in this advisory and must be retained — that's the standard src-granularity
+	// disclosure pattern that grype's RPM matcher relies on for indirect upstream matches.
+	tree := glibcMixedSrcAndBinaryTree()
+	advisory := makeAdvisory([]unmarshal.CSAFVulnerability{
+		{
+			CVE: "CVE-2026-5928",
+			ProductStatus: &unmarshal.CSAFProductStatus{
+				KnownAffected: []string{
+					"hummingbird-1:glibc",
+					"hummingbird-1:glibc-common",
+					"hummingbird-1:glibc.src",
+					"rhel-9.7.z:glibc.src",
+				},
+			},
+		},
+	}, tree)
+
+	got, err := Transform(advisory, inputProviderState())
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	e := got[0].Data.(transformers.RelatedEntries)
+
+	type emitted struct {
+		name string
+		os   string
+		arch string
+	}
+	var seen []emitted
+	for _, r := range e.Related {
+		aph, ok := r.(db.AffectedPackageHandle)
+		if !ok {
+			continue
+		}
+		osName := ""
+		if aph.OperatingSystem != nil {
+			osName = aph.OperatingSystem.Name
+		}
+		var arch string
+		if aph.BlobValue != nil && aph.BlobValue.Qualifiers != nil && aph.BlobValue.Qualifiers.RpmArch != nil {
+			arch = *aph.BlobValue.Qualifiers.RpmArch
+		}
+		seen = append(seen, emitted{name: aph.Package.Name, os: osName, arch: arch})
+	}
+
+	want := []emitted{
+		{name: "glibc", os: "hummingbird", arch: rpmarch.ArchBinaryNoArchSpecified},
+		{name: "glibc-common", os: "hummingbird", arch: rpmarch.ArchBinaryNoArchSpecified},
+		{name: "glibc", os: "enterprise_linux", arch: rpmarch.ArchSource},
+	}
+
+	require.ElementsMatch(t, want, seen, "hummingbird:glibc.src should be dropped (sibling binary present); rhel-9.7.z:glibc.src should survive")
+}
+
+func TestTransform_RpmArchTaggingForFixedAndUnaffected(t *testing.T) {
+	// Verify the rpmarch tag is set for the fixed and known_not_affected paths too — not
+	// just known_affected — and that the value follows the same arch-from-PURL rule.
+	tree := hummingbirdProductTree()
+	advisory := makeAdvisory([]unmarshal.CSAFVulnerability{
+		{
+			CVE:         "CVE-2026-77777",
+			ReleaseDate: "2026-03-01T00:00:00+00:00",
+			ProductStatus: &unmarshal.CSAFProductStatus{
+				Fixed:            []string{"hummingbird-1:testpkg-0:1.2.3-1.hum1.src"},
+				KnownNotAffected: []string{"hummingbird-1:otherpkg"},
+			},
+		},
+	}, tree)
+
+	got, err := Transform(advisory, inputProviderState())
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	e := got[0].Data.(transformers.RelatedEntries)
+	require.Len(t, e.Related, 2)
+
+	aph, ok := e.Related[0].(db.AffectedPackageHandle)
+	require.True(t, ok)
+	require.NotNil(t, aph.BlobValue.Qualifiers)
+	require.NotNil(t, aph.BlobValue.Qualifiers.RpmArch)
+	require.Equal(t, rpmarch.ArchSource, *aph.BlobValue.Qualifiers.RpmArch, "fixed src rpm should carry rpmarch=src")
+
+	uph, ok := e.Related[1].(db.UnaffectedPackageHandle)
+	require.True(t, ok)
+	require.NotNil(t, uph.BlobValue.Qualifiers)
+	require.NotNil(t, uph.BlobValue.Qualifiers.RpmArch)
+	require.Equal(t, rpmarch.ArchBinaryNoArchSpecified, *uph.BlobValue.Qualifiers.RpmArch, "binary rpm without an arch qualifier should carry the synthesized sentinel")
 }

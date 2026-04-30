@@ -146,6 +146,15 @@ type PackageQualifiers struct {
 
 	// PlatformCPEs lists Common Platform Enumeration (CPE) identifiers for affected platforms.
 	PlatformCPEs []string `json:"platform_cpes,omitempty"`
+
+	// RpmArch is the architecture of the affected RPM, copied from the source PURL's `arch`
+	// qualifier when present (e.g. "src", "x86_64") or set to a synthesized sentinel like
+	// "binary-no-arch-specified" when a binary RPM was disclosed without an explicit arch.
+	// Upstream-indirected RPM matches drop entries tagged with any arch other than "src",
+	// so providers that disclose at binary granularity (e.g. hummingbird CSAF VEX) avoid
+	// FP-matching unrelated sibling binaries built from the same source. See
+	// pkg/qualifier/rpmarch for the constants.
+	RpmArch *string `json:"rpm_arch,omitempty"`
 }
 
 // Range defines a specific range of package versions pertaining to a vulnerability.
