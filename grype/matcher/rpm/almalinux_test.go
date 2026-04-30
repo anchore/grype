@@ -252,6 +252,78 @@ func TestAlmaLinuxMatching_UpstreamMatchWithFixReplacement(t *testing.T) {
 		})
 }
 
+// TestAlmaLinuxMatching_LowerAlmaModuleBuildFiltersVulnerability is the
+// canonical reason the alma matcher exists rather than "just use the RHEL
+// data". RHEL and AlmaLinux ship the same source build for a given fix (same
+// hash suffix in the module version, e.g. "+7adc332a") but use different
+// module build counters: RHEL uses higher counters than AlmaLinux. For
+// CVE-2021-27928 mariadb:10.3:
+//
+//	rhel:  3:10.3.28-1.module+el8.3.0+10472+7adc332a   (build 10472)
+//	alma:  3:10.3.28-1.module_el8.3.0+2177+7adc332a    (build 2177)
+//
+// A package on AlmaLinux at the alma fix version (build 2177) is at the
+// equivalent fix in alma terms, but a naive RHEL-only comparison would say it
+// is BELOW the RHEL fix (2177 < 10472) and report a false-positive
+// vulnerability. The alma matcher must recognize the alma build as the fix
+// and produce only ignores. Asserts: 0 matches, 2 "Alma Unaffected" ignores
+// (the ALSA itself plus the alias-unwound CVE).
+func TestAlmaLinuxMatching_LowerAlmaModuleBuildFiltersVulnerability(t *testing.T) {
+	dbtest.DBs(t, "alma8").
+		SelectOnly("rhel:8/cve-2021-27928", "almalinux8/alsa-2021:1242").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			pkgID := pkg.ID("mariadb-at-alma-fix")
+			p := dbtest.NewPackage("mariadb", "3:10.3.28-1.module_el8.3.0+2177+7adc332a", syftPkg.RpmPkg).
+				WithID(pkgID).
+				WithDistro(dbtest.AlmaLinux8).
+				WithMetadata(pkg.RpmMetadata{
+					Epoch:           intPtr(3),
+					ModularityLabel: strPtr("mariadb:10.3:1234:abcd"),
+				}).
+				Build()
+
+			findings := db.Match(t, &matcher, p)
+			findings.IsEmpty()
+
+			igs := findings.Ignores().HasCount(2)
+			igs.SelectRelatedPackageIgnore("Alma Unaffected", "ALSA-2021:1242").ForPackage(pkgID)
+			igs.SelectRelatedPackageIgnore("Alma Unaffected", "CVE-2021-27928").ForPackage(pkgID)
+		})
+}
+
+// TestAlmaLinuxMatching_BelowBothModuleBuildsStillVulnerable is the companion
+// to LowerAlmaModuleBuildFiltersVulnerability: a package at a version below
+// BOTH the rhel fix and the alma fix is still reported as vulnerable, with
+// the alma fix info replacing the rhel fix info (same fix-replacement path
+// covered by NonModular tests, but exercised here on a modular package where
+// the build-counter difference is real).
+func TestAlmaLinuxMatching_BelowBothModuleBuildsStillVulnerable(t *testing.T) {
+	dbtest.DBs(t, "alma8").
+		SelectOnly("rhel:8/cve-2021-27928", "almalinux8/alsa-2021:1242").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			// 10.3.27 < both fix versions (alma 10.3.28 and rhel 10.3.28)
+			p := dbtest.NewPackage("mariadb", "3:10.3.27-3.module_el8.3.0+1234+abcdef", syftPkg.RpmPkg).
+				WithDistro(dbtest.AlmaLinux8).
+				WithMetadata(pkg.RpmMetadata{
+					Epoch:           intPtr(3),
+					ModularityLabel: strPtr("mariadb:10.3:1234:abcd"),
+				}).
+				Build()
+
+			findings := db.Match(t, &matcher, p).
+				SkipCompleteness().
+				ContainsVulnerabilities("CVE-2021-27928")
+			findings.Ignores().IsEmpty()
+
+			m := findings.Matches()[0]
+			require.Equal(t, vulnerability.FixStateFixed, m.Vulnerability.Fix.State)
+			require.Equal(t, []string{"3:10.3.28-1.module_el8.3.0+2177+7adc332a"}, m.Vulnerability.Fix.Versions,
+				"fix info should reflect the alma build (2177), not the rhel build (10472)")
+		})
+}
+
 // TestAlmaLinuxMatching_DebuginfoSkipped verifies that -debuginfo and
 // -debugsource packages are skipped (AlmaLinux never publishes advisories for
 // debug-only RPMs).

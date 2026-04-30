@@ -1,7 +1,7 @@
 {
   "provider": "rhel",
   "version": 1,
-  "processor": "vunnel@0.55.3.post12+15bf0b9",
+  "processor": "vunnel@0.56.0.post6+8bb089e",
   "schema": {
     "version": "1.0.3",
     "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
@@ -12,7 +12,7 @@
   "timestamp": "2026-04-29T16:40:47Z",
   "listing": {
     "path": "results/listing.xxh64",
-    "digest": "96bba8ef6cb74319",
+    "digest": "4cd4696fb157f46f",
     "algorithm": "xxh64"
   },
   "store": "flat-file"
