@@ -56,9 +56,6 @@ func TestShouldUseAlmaLinuxMatching(t *testing.T) {
 	}
 }
 
-// alma8 is used by tests below.
-var alma8 = distro.New(distro.AlmaLinux, "8", "")
-
 // TestAlmaLinuxMatching_ModularVulnerable verifies that a modular package whose
 // version is below both the RHEL and AlmaLinux fix versions reports as
 // vulnerable, and that the AlmaLinux fix info (with .alma suffix) replaces
@@ -70,10 +67,10 @@ func TestAlmaLinuxMatching_ModularVulnerable(t *testing.T) {
 			matcher := Matcher{}
 			// httpd 2.4.37-30 is below both RHEL fix (-39) and AlmaLinux fix (-43)
 			p := dbtest.NewPackage("httpd", "2.4.37-30.module_el8.3.0+1234+abcd", syftPkg.RpmPkg).
-				WithDistro(alma8).
+				WithDistro(dbtest.AlmaLinux8).
 				WithMetadata(pkg.RpmMetadata{
-					Epoch:           intRef(0),
-					ModularityLabel: strRef("httpd:2.4:1234:5678"),
+					Epoch:           intPtr(0),
+					ModularityLabel: strPtr("httpd:2.4:1234:5678"),
 				}).
 				Build()
 
@@ -104,30 +101,21 @@ func TestAlmaLinuxMatching_ModularFixed(t *testing.T) {
 			// httpd at exact AlmaLinux fix version (which is past the RHEL fix)
 			pkgID := pkg.ID("httpd-fixed")
 			p := dbtest.NewPackage("httpd", "2.4.37-43.module_el8.5.0+2597+c4b14997.alma", syftPkg.RpmPkg).
-				WithDistro(alma8).
+				WithID(pkgID).
+				WithDistro(dbtest.AlmaLinux8).
 				WithMetadata(pkg.RpmMetadata{
-					Epoch:           intRef(0),
-					ModularityLabel: strRef("httpd:2.4:1234:5678"),
+					Epoch:           intPtr(0),
+					ModularityLabel: strPtr("httpd:2.4:1234:5678"),
 				}).
 				Build()
-			p.ID = pkgID
 
-			matches, ignores, err := matcher.Match(db, p)
-			require.NoError(t, err)
-			assert.Empty(t, matches, "fixed package should not produce matches")
-			assert.NotEmpty(t, ignores, "fixed package should produce ignore filter")
-
+			findings := db.Match(t, &matcher, p)
+			findings.IsEmpty()
 			// the rhel disclosure path produces "Distro Fixed" since the binary
 			// package version is past the RHEL fix
-			foundDistroFixed := false
-			for _, ig := range ignores {
-				if irp, ok := ig.(match.IgnoreRelatedPackage); ok {
-					if irp.Reason == "Distro Fixed" && irp.VulnerabilityID == "CVE-2021-40438" {
-						foundDistroFixed = true
-					}
-				}
-			}
-			assert.True(t, foundDistroFixed, "expected Distro Fixed ignore filter for CVE-2021-40438")
+			findings.Ignores().SkipCompleteness().
+				SelectRelatedPackageIgnore("Distro Fixed", "CVE-2021-40438").
+				ForPackage(pkgID)
 		})
 }
 
@@ -140,10 +128,10 @@ func TestAlmaLinuxMatching_ModularityMismatch(t *testing.T) {
 			matcher := Matcher{}
 			// httpd in a different module - no match
 			p := dbtest.NewPackage("httpd", "2.4.37-30.module_el8.3.0+1234+abcd", syftPkg.RpmPkg).
-				WithDistro(alma8).
+				WithDistro(dbtest.AlmaLinux8).
 				WithMetadata(pkg.RpmMetadata{
-					Epoch:           intRef(0),
-					ModularityLabel: strRef("httpd:2.6:1234:5678"),
+					Epoch:           intPtr(0),
+					ModularityLabel: strPtr("httpd:2.6:1234:5678"),
 				}).
 				Build()
 
@@ -163,7 +151,7 @@ func TestAlmaLinuxMatching_NonModularVulnerable(t *testing.T) {
 			matcher := Matcher{}
 			// patch 2.7.6-10 < fix 2.7.6-11
 			p := dbtest.NewPackage("patch", "2.7.6-10.el8", syftPkg.RpmPkg).
-				WithDistro(alma8).
+				WithDistro(dbtest.AlmaLinux8).
 				Build()
 
 			matches, _, err := matcher.Match(db, p)
@@ -188,24 +176,15 @@ func TestAlmaLinuxMatching_NonModularFixed(t *testing.T) {
 			matcher := Matcher{}
 			pkgID := pkg.ID("patch-fixed")
 			p := dbtest.NewPackage("patch", "2.7.6-11.el8", syftPkg.RpmPkg).
-				WithDistro(alma8).
+				WithID(pkgID).
+				WithDistro(dbtest.AlmaLinux8).
 				Build()
-			p.ID = pkgID
 
-			matches, ignores, err := matcher.Match(db, p)
-			require.NoError(t, err)
-			assert.Empty(t, matches, "fixed package should not produce matches")
-			require.NotEmpty(t, ignores, "fixed package should produce ignore filter")
-
-			foundDistroFixed := false
-			for _, ig := range ignores {
-				if irp, ok := ig.(match.IgnoreRelatedPackage); ok {
-					if irp.Reason == "Distro Fixed" && irp.VulnerabilityID == "CVE-2019-13636" {
-						foundDistroFixed = true
-					}
-				}
-			}
-			assert.True(t, foundDistroFixed, "expected Distro Fixed ignore for CVE-2019-13636")
+			findings := db.Match(t, &matcher, p)
+			findings.IsEmpty()
+			findings.Ignores().SkipCompleteness().
+				SelectRelatedPackageIgnore("Distro Fixed", "CVE-2019-13636").
+				ForPackage(pkgID)
 		})
 }
 
@@ -218,8 +197,8 @@ func TestAlmaLinuxMatching_WontFixPassesThrough(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("tar", "2:1.30-5.el8", syftPkg.RpmPkg).
-				WithDistro(alma8).
-				WithMetadata(pkg.RpmMetadata{Epoch: intRef(2)}).
+				WithDistro(dbtest.AlmaLinux8).
+				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(2)}).
 				Build()
 
 			matches, _, err := matcher.Match(db, p)
@@ -232,6 +211,47 @@ func TestAlmaLinuxMatching_WontFixPassesThrough(t *testing.T) {
 		})
 }
 
+// TestAlmaLinuxMatching_UpstreamMatchWithFixReplacement verifies the upstream
+// path of alma matching with fix replacement: a binary package (httpd-tools)
+// reaches a vulnerable source package (httpd) via upstream, the alma matcher
+// finds it through the source RPM relation, and the resulting Match's fix info
+// is replaced with the alma-specific fix (ALSA-2021:4537's
+// "2.4.37-43.module_el8.5.0+2597+c4b14997.alma") rather than the RHEL fix
+// ("0:2.4.37-39.module+el8.4.0+9658+b87b2deb").
+func TestAlmaLinuxMatching_UpstreamMatchWithFixReplacement(t *testing.T) {
+	dbtest.DBs(t, "alma8").
+		SelectOnly("rhel:8/cve-2021-40438", "almalinux8/alsa-2021:4537").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			// httpd-tools binary at the same vulnerable version, upstream is httpd
+			p := dbtest.NewPackage("httpd-tools", "2.4.37-30.module_el8.3.0+1234+abcd", syftPkg.RpmPkg).
+				WithDistro(dbtest.AlmaLinux8).
+				WithUpstream("httpd", "2.4.37-30.module_el8.3.0+1234+abcd").
+				WithMetadata(pkg.RpmMetadata{
+					Epoch:           intPtr(0),
+					ModularityLabel: strPtr("httpd:2.4:1234:5678"),
+				}).
+				Build()
+
+			findings := db.Match(t, &matcher, p).
+				SkipCompleteness().
+				ContainsVulnerabilities("CVE-2021-40438")
+
+			m := findings.Matches()[0]
+			require.Equal(t, vulnerability.FixStateFixed, m.Vulnerability.Fix.State)
+			require.Equal(t, []string{"2.4.37-43.module_el8.5.0+2597+c4b14997.alma"}, m.Vulnerability.Fix.Versions,
+				"alma fix version should replace the rhel fix on upstream-resolved matches")
+
+			hasIndirect := false
+			for _, d := range m.Details {
+				if d.Type == match.ExactIndirectMatch {
+					hasIndirect = true
+				}
+			}
+			assert.True(t, hasIndirect, "expected ExactIndirectMatch detail on upstream-resolved alma match")
+		})
+}
+
 // TestAlmaLinuxMatching_DebuginfoSkipped verifies that -debuginfo and
 // -debugsource packages are skipped (AlmaLinux never publishes advisories for
 // debug-only RPMs).
@@ -241,7 +261,7 @@ func TestAlmaLinuxMatching_DebuginfoSkipped(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("patch-debuginfo", "2.7.6-10.el8", syftPkg.RpmPkg).
-				WithDistro(alma8).
+				WithDistro(dbtest.AlmaLinux8).
 				WithUpstream("patch", "2.7.6-10.el8").
 				Build()
 
@@ -259,13 +279,12 @@ func TestAlmaLinuxIgnoreFilters_NoIgnoresWhenVulnerable(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("patch", "2.7.6-1.el8", syftPkg.RpmPkg).
-				WithDistro(alma8).
+				WithDistro(dbtest.AlmaLinux8).
 				Build()
 
-			matches, ignores, err := matcher.Match(db, p)
-			require.NoError(t, err)
-			require.NotEmpty(t, matches, "vulnerable package should produce a match")
-			require.Empty(t, ignores, "vulnerable package should not produce ignore filters")
+			findings := db.Match(t, &matcher, p)
+			findings.SkipCompleteness().ContainsVulnerabilities("CVE-2019-13636")
+			findings.Ignores().IsEmpty()
 		})
 }
 
@@ -278,23 +297,67 @@ func TestAlmaLinuxIgnoreFilters_DistroFixedIgnore(t *testing.T) {
 			matcher := Matcher{}
 			pkgID := pkg.ID("patch-fixed")
 			p := dbtest.NewPackage("patch", "2.7.6-12.el8", syftPkg.RpmPkg).
-				WithDistro(alma8).
+				WithID(pkgID).
+				WithDistro(dbtest.AlmaLinux8).
 				Build()
-			p.ID = pkgID
 
-			matches, ignores, err := matcher.Match(db, p)
-			require.NoError(t, err)
-			assert.Empty(t, matches, "fixed package should not produce matches")
+			findings := db.Match(t, &matcher, p)
+			findings.IsEmpty()
+			findings.Ignores().SkipCompleteness().
+				SelectRelatedPackageIgnore("Distro Fixed", "CVE-2019-13636").
+				ForPackage(pkgID)
+		})
+}
 
-			// expect Distro Fixed ignore for CVE-2019-13636
-			distroFixedFound := false
-			for _, ig := range ignores {
-				if irp, ok := ig.(match.IgnoreRelatedPackage); ok {
-					if irp.Reason == "Distro Fixed" && irp.VulnerabilityID == "CVE-2019-13636" && irp.RelatedPackageID == pkgID {
-						distroFixedFound = true
-					}
-				}
-			}
-			assert.True(t, distroFixedFound, "expected Distro Fixed ignore filter")
+// TestAlmaLinuxIgnoreFilters_AlmaUnaffectedAndAliasUnwind covers two related
+// alma-specific behaviors at once:
+//   - the "Alma Unaffected" ignore reason (alma matcher emits this when the
+//     ALSA's fix range marks the package as not vulnerable)
+//   - alias unwinding: ALSA-2021:4537 references three CVEs (40438, 26691,
+//     20325). When the ALSA marks the package unaffected, the matcher emits
+//     a separate "Alma Unaffected" ignore for the ALSA itself plus one for
+//     each related CVE.
+//
+// The fixture also has RHEL disclosures for CVE-2021-40438 and CVE-2021-26691
+// that the package is past, so those produce additional "Distro Fixed"
+// ignores - exercising the "mixed reasons in one call" path simultaneously.
+// CVE-2021-20325 has no rhel-namespace disclosure that intersects this pkg
+// version, so it only appears via the alma alias unwind.
+func TestAlmaLinuxIgnoreFilters_AlmaUnaffectedAndAliasUnwind(t *testing.T) {
+	dbtest.DBs(t, "alma8").
+		SelectOnly(
+			"rhel:8/cve-2021-40438",
+			"rhel:8/cve-2021-26691",
+			"rhel:8/cve-2021-20325",
+			"almalinux8/alsa-2021:4537",
+		).
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			pkgID := pkg.ID("httpd-multi-cve-fixed")
+			p := dbtest.NewPackage("httpd", "2.4.37-43.module_el8.5.0+2597+c4b14997.alma", syftPkg.RpmPkg).
+				WithID(pkgID).
+				WithDistro(dbtest.AlmaLinux8).
+				WithMetadata(pkg.RpmMetadata{
+					Epoch:           intPtr(0),
+					ModularityLabel: strPtr("httpd:2.4:1234:5678"),
+				}).
+				Build()
+
+			findings := db.Match(t, &matcher, p)
+			findings.IsEmpty()
+
+			igs := findings.Ignores().HasCount(6)
+
+			// the rhel disclosure path emits "Distro Fixed" for the two CVEs
+			// whose RHEL fix the package is past
+			igs.SelectRelatedPackageIgnore("Distro Fixed", "CVE-2021-40438").ForPackage(pkgID)
+			igs.SelectRelatedPackageIgnore("Distro Fixed", "CVE-2021-26691").ForPackage(pkgID)
+
+			// the alma matcher emits "Alma Unaffected" for the ALSA itself
+			// AND for each CVE the ALSA references (alias unwind)
+			igs.SelectRelatedPackageIgnore("Alma Unaffected", "ALSA-2021:4537").ForPackage(pkgID)
+			igs.SelectRelatedPackageIgnore("Alma Unaffected", "CVE-2021-40438").ForPackage(pkgID)
+			igs.SelectRelatedPackageIgnore("Alma Unaffected", "CVE-2021-26691").ForPackage(pkgID)
+			igs.SelectRelatedPackageIgnore("Alma Unaffected", "CVE-2021-20325").ForPackage(pkgID)
 		})
 }

@@ -1,7 +1,6 @@
 package rpm
 
 import (
-	"sort"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -773,6 +772,23 @@ func TestResolveEUSDisclosures(t *testing.T) {
 	}
 }
 
+// assertEUSDualDistroDetails verifies a finding's details include searches
+// against both the base RHEL distro version and the +eus variant. This is the
+// signal that EUS resolution actually engaged (rather than just a plain RHEL
+// match). Used by every EUS test that produces a match.
+func assertEUSDualDistroDetails(t *testing.T, m match.Match, baseVersion string) {
+	t.Helper()
+	require.GreaterOrEqual(t, len(m.Details), 2, "EUS matches should have details for both base and +eus distros")
+	versions := map[string]bool{}
+	for _, d := range m.Details {
+		if dp, ok := d.SearchedBy.(match.DistroParameters); ok {
+			versions[dp.Distro.Version] = true
+		}
+	}
+	assert.Contains(t, versions, baseVersion, "expected detail searched against base distro %q", baseVersion)
+	assert.Contains(t, versions, baseVersion+"+eus", "expected detail searched against EUS distro %q", baseVersion+"+eus")
+}
+
 // TestRedhatEUSMatches_VulnerableOnEUS verifies that a kernel package below the
 // EUS fix version produces a match using real RHEL EUS data.
 func TestRedhatEUSMatches_VulnerableOnEUS(t *testing.T) {
@@ -783,29 +799,53 @@ func TestRedhatEUSMatches_VulnerableOnEUS(t *testing.T) {
 			// EUS 9.4 fix is 5.14.0-427.68.1.el9_4; 100 < 427 → vulnerable
 			p := dbtest.NewPackage("kernel", "0:5.14.0-100.el9_4", syftPkg.RpmPkg).
 				WithDistro(newEUSDistro("9.4")).
-				WithMetadata(pkg.RpmMetadata{Epoch: intRef(0)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 				Build()
 
-			matches, _, err := matcher.Match(db, p)
-			require.NoError(t, err)
-			require.Len(t, matches, 1)
+			findings := db.Match(t, &matcher, p).
+				SkipCompleteness().
+				HasCount(1).
+				ContainsVulnerabilities("CVE-2024-0340")
+			findings.Ignores().IsEmpty()
 
-			m := matches[0]
-			assert.Equal(t, "CVE-2024-0340", m.Vulnerability.ID)
+			m := findings.Matches()[0]
 			// fix info should reflect the EUS-reachable fix
 			assert.Equal(t, vulnerability.FixStateFixed, m.Vulnerability.Fix.State)
 			assert.Equal(t, []string{"0:5.14.0-427.68.1.el9_4"}, m.Vulnerability.Fix.Versions)
+			assertEUSDualDistroDetails(t, m, "9.4")
+		})
+}
 
-			// match details should include both base RHEL distro and EUS distro
-			require.GreaterOrEqual(t, len(m.Details), 2)
-			distroVersions := map[string]bool{}
+// TestRedhatEUSMatches_IndirectMatchBySource verifies that a binary RPM
+// (kernel-tools) reaches an EUS-tracked CVE through its upstream source RPM
+// (kernel). CVE-2024-0340's FixedIn has only "kernel" (the source); the binary
+// must match via upstream, producing an ExactIndirectMatch.
+func TestRedhatEUSMatches_IndirectMatchBySource(t *testing.T) {
+	dbtest.DBs(t, "rhel9-eus").
+		SelectOnly("CVE-2024-0340").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			p := dbtest.NewPackage("kernel-tools", "0:5.14.0-100.el9_4", syftPkg.RpmPkg).
+				WithDistro(newEUSDistro("9.4")).
+				WithUpstream("kernel", "0:5.14.0-100.el9_4").
+				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+				Build()
+
+			findings := db.Match(t, &matcher, p).
+				SkipCompleteness().
+				ContainsVulnerabilities("CVE-2024-0340")
+			findings.Ignores().IsEmpty()
+
+			m := findings.Matches()[0]
+			// expect at least one detail of type ExactIndirectMatch
+			hasIndirect := false
 			for _, d := range m.Details {
-				if dp, ok := d.SearchedBy.(match.DistroParameters); ok {
-					distroVersions[dp.Distro.Version] = true
+				if d.Type == match.ExactIndirectMatch {
+					hasIndirect = true
 				}
 			}
-			assert.Contains(t, distroVersions, "9.4")
-			assert.Contains(t, distroVersions, "9.4+eus")
+			assert.True(t, hasIndirect, "expected ExactIndirectMatch in details")
+			assertEUSDualDistroDetails(t, m, "9.4")
 		})
 }
 
@@ -819,12 +859,10 @@ func TestRedhatEUSMatches_FixedOnEUS(t *testing.T) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("kernel", "0:5.14.0-427.68.1.el9_4", syftPkg.RpmPkg).
 				WithDistro(newEUSDistro("9.4")).
-				WithMetadata(pkg.RpmMetadata{Epoch: intRef(0)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 				Build()
 
-			matches, _, err := matcher.Match(db, p)
-			require.NoError(t, err)
-			assert.Empty(t, matches, "package at EUS fix should not be vulnerable")
+			db.Match(t, &matcher, p).IsEmpty()
 		})
 }
 
@@ -839,35 +877,56 @@ func TestRedhatEUSMatches_BetweenEUSAndMainFix(t *testing.T) {
 			// 450 > EUS fix 427.68 but < main fix 503.11 → resolved per EUS
 			p := dbtest.NewPackage("kernel", "0:5.14.0-450.el9_4", syftPkg.RpmPkg).
 				WithDistro(newEUSDistro("9.4")).
-				WithMetadata(pkg.RpmMetadata{Epoch: intRef(0)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 				Build()
 
-			matches, _, err := matcher.Match(db, p)
-			require.NoError(t, err)
-			assert.Empty(t, matches, "package past EUS fix should not be vulnerable")
+			db.Match(t, &matcher, p).IsEmpty()
 		})
 }
 
-// TestRedhatEUSMatches_MultipleCVEsMixed verifies that when multiple EUS CVEs
-// affect a package, only the still-vulnerable ones are reported.
-func TestRedhatEUSMatches_MultipleCVEsMixed(t *testing.T) {
+// TestRedhatEUSMatches_MultipleCVEsAllVulnerable verifies that when multiple
+// EUS-tracked CVEs all apply (pkg below all fixes), the matcher reports them
+// all as matches with no ignores. Uses the rhel9-eus fixture in full (no
+// SelectOnly), which contains CVE-2024-0340 (EUS fix at 427.68) and
+// CVE-2021-47527 (Version "None"). Pkg at 300 < 427 → both apply.
+func TestRedhatEUSMatches_MultipleCVEsAllVulnerable(t *testing.T) {
 	dbtest.DBs(t, "rhel9-eus").Run(func(t *testing.T, db *dbtest.DB) {
 		matcher := Matcher{}
-		// 5.14.0-500.el9_4 is past both EUS fixes (427.x range), so all should be ignored
-		p := dbtest.NewPackage("kernel", "0:5.14.0-500.el9_4", syftPkg.RpmPkg).
+		p := dbtest.NewPackage("kernel", "0:5.14.0-300.el9_4", syftPkg.RpmPkg).
 			WithDistro(newEUSDistro("9.4")).
-			WithMetadata(pkg.RpmMetadata{Epoch: intRef(0)}).
+			WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 			Build()
 
-		matches, ignores, err := matcher.Match(db, p)
-		require.NoError(t, err)
+		findings := db.Match(t, &matcher, p).
+			SkipCompleteness().
+			OnlyHasVulnerabilities("CVE-2024-0340", "CVE-2021-47527")
+		findings.Ignores().IsEmpty()
+	})
+}
 
-		// stable order
-		sort.Sort(match.ByElements(matches))
+// TestRedhatEUSMatches_MultipleCVEsAllIgnored verifies that when a package is
+// past all EUS fixes for the CVEs it would otherwise be susceptible to, every
+// CVE becomes a "Distro Not Vulnerable" ignore. Pkg at 500 > EUS fix 427.68
+// for CVE-2024-0340; CVE-2021-47527 has no fix recorded (Version "None") and
+// flows through the same not-vulnerable path once disclosures are filtered.
+func TestRedhatEUSMatches_MultipleCVEsAllIgnored(t *testing.T) {
+	dbtest.DBs(t, "rhel9-eus").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		pkgID := pkg.ID("kernel-past-fixes")
+		p := dbtest.NewPackage("kernel", "0:5.14.0-500.el9_4", syftPkg.RpmPkg).
+			WithID(pkgID).
+			WithDistro(newEUSDistro("9.4")).
+			WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+			Build()
 
-		assert.Empty(t, matches, "package past all EUS fixes should not be vulnerable")
-		// ignores produced because RHEL CVEs apply but EUS resolution clears them
-		require.NotEmpty(t, ignores, "expected ignore filters when EUS resolves the CVE")
+		findings := db.Match(t, &matcher, p)
+		findings.IsEmpty()
+		// both EUS CVEs should produce ignores against this package
+		igs := findings.Ignores().HasCount(2)
+		igs.SelectRelatedPackageIgnore("Distro Not Vulnerable", "CVE-2024-0340").
+			ForPackage(pkgID)
+		igs.SelectRelatedPackageIgnore("Distro Not Vulnerable", "CVE-2021-47527").
+			ForPackage(pkgID)
 	})
 }
 
@@ -880,25 +939,16 @@ func TestRedhatEUSIgnoreFilters_FixedProducesIgnore(t *testing.T) {
 			matcher := Matcher{}
 			pkgID := pkg.ID("kernel-eus-fixed")
 			p := dbtest.NewPackage("kernel", "0:5.14.0-427.68.1.el9_4", syftPkg.RpmPkg).
+				WithID(pkgID).
 				WithDistro(newEUSDistro("9.4")).
-				WithMetadata(pkg.RpmMetadata{Epoch: intRef(0)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 				Build()
-			p.ID = pkgID
 
-			matches, ignores, err := matcher.Match(db, p)
-			require.NoError(t, err)
-			require.Empty(t, matches)
-			require.NotEmpty(t, ignores)
-
-			found := false
-			for _, ig := range ignores {
-				if irp, ok := ig.(match.IgnoreRelatedPackage); ok {
-					if irp.Reason == "Distro Not Vulnerable" && irp.VulnerabilityID == "CVE-2024-0340" && irp.RelatedPackageID == pkgID {
-						found = true
-					}
-				}
-			}
-			assert.True(t, found, "expected Distro Not Vulnerable ignore for CVE-2024-0340")
+			findings := db.Match(t, &matcher, p)
+			findings.IsEmpty()
+			findings.Ignores().SkipCompleteness().
+				SelectRelatedPackageIgnore("Distro Not Vulnerable", "CVE-2024-0340").
+				ForPackage(pkgID)
 		})
 }
 
@@ -911,22 +961,14 @@ func TestRedhatEUSIgnoreFilters_VulnerablePackageNoIgnores(t *testing.T) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("kernel", "0:5.14.0-200.el9_4", syftPkg.RpmPkg).
 				WithDistro(newEUSDistro("9.4")).
-				WithMetadata(pkg.RpmMetadata{Epoch: intRef(0)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 				Build()
 
-			matches, ignores, err := matcher.Match(db, p)
-			require.NoError(t, err)
-			require.NotEmpty(t, matches)
-			assert.Empty(t, ignores, "vulnerable package should not produce ignore filters")
+			findings := db.Match(t, &matcher, p).
+				SkipCompleteness().
+				ContainsVulnerabilities("CVE-2024-0340")
+			findings.Ignores().IsEmpty()
 		})
-}
-
-func strRef(s string) *string {
-	return &s
-}
-
-func intRef(s int) *int {
-	return &s
 }
 
 // newEUSDistro creates a properly initialized RHEL EUS distro using distro.New().

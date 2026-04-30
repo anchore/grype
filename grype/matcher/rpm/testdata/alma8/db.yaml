@@ -7,3 +7,5 @@ extractions:
         - rhel:8/cve-2021-40438
         - rhel:8/cve-2019-13636
         - rhel:8/cve-2005-2541
+        - rhel:8/cve-2021-26691
+        - rhel:8/cve-2021-20325

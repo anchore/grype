@@ -10,6 +10,7 @@ import (
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/syft/syft/artifact"
 )
 
 // TestingT is the interface required for assertions, satisfied by *testing.T and mock implementations.
@@ -44,10 +45,15 @@ type FindingsAssertion struct {
 	t       TestingT
 	pkg     pkg.Package
 	matches []match.Match
+	ignores []match.IgnoreFilter
 
 	// tracking for completeness check
 	assertedMatches  map[int]*singleFindingTracker
 	skipCompleteness bool
+
+	// ignoresAssertion is created lazily on the first call to Ignores().
+	// When non-nil, the cleanup hook also enforces ignore-filter completeness.
+	ignoresAssertion *IgnoreFiltersAssertion
 }
 
 // AssertFindings creates a new FindingsAssertion for API-agnostic assertions.
@@ -58,6 +64,13 @@ type FindingsAssertion struct {
 // Use complete() to enable completeness checking, which verifies that all matches
 // and details were asserted.
 func AssertFindings(t TestingT, matches []match.Match, p pkg.Package) *FindingsAssertion {
+	return AssertFindingsAndIgnores(t, matches, nil, p)
+}
+
+// AssertFindingsAndIgnores is the same as AssertFindings but also captures the
+// ignore filters returned by the matcher so they can be asserted on via
+// FindingsAssertion.Ignores().
+func AssertFindingsAndIgnores(t TestingT, matches []match.Match, ignores []match.IgnoreFilter, p pkg.Package) *FindingsAssertion {
 	t.Helper()
 
 	if p.Name == "" {
@@ -76,6 +89,7 @@ func AssertFindings(t TestingT, matches []match.Match, p pkg.Package) *FindingsA
 		t:               t,
 		pkg:             p,
 		matches:         matches,
+		ignores:         ignores,
 		assertedMatches: make(map[int]*singleFindingTracker),
 	}
 	f.complete()
@@ -112,39 +126,154 @@ func (f *FindingsAssertion) complete() {
 }
 
 // checkCompleteness verifies that all matches and their details were asserted.
+// If Ignores() was called and SkipCompleteness was not, also verifies that all
+// ignore filters were asserted.
 func (f *FindingsAssertion) checkCompleteness() {
 	f.t.Helper()
 
-	if f.skipCompleteness {
-		return
-	}
-
-	if len(f.matches) == 0 {
-		return
-	}
-
 	var missed []string
 
-	for i, m := range f.matches {
-		tracker, matchAsserted := f.assertedMatches[i]
-		if !matchAsserted {
-			missed = append(missed, fmt.Sprintf("  - match[%d]: %s (not selected)", i, m.Vulnerability.ID))
-			continue
-		}
+	if !f.skipCompleteness && len(f.matches) > 0 {
+		for i, m := range f.matches {
+			tracker, matchAsserted := f.assertedMatches[i]
+			if !matchAsserted {
+				missed = append(missed, fmt.Sprintf("  - match[%d]: %s (not selected)", i, m.Vulnerability.ID))
+				continue
+			}
 
-		// check details for this match - must be both selected AND completed
-		for j, d := range m.Details {
-			if !tracker.selectedDetails[j] {
-				missed = append(missed, fmt.Sprintf("  - match[%d]/%s detail[%d]: type=%s (not selected)", i, m.Vulnerability.ID, j, d.Type))
-			} else if !tracker.completedDetails[j] {
-				missed = append(missed, fmt.Sprintf("  - match[%d]/%s detail[%d]: type=%s (selected but As*Search not called)", i, m.Vulnerability.ID, j, d.Type))
+			// check details for this match - must be both selected AND completed
+			for j, d := range m.Details {
+				if !tracker.selectedDetails[j] {
+					missed = append(missed, fmt.Sprintf("  - match[%d]/%s detail[%d]: type=%s (not selected)", i, m.Vulnerability.ID, j, d.Type))
+				} else if !tracker.completedDetails[j] {
+					missed = append(missed, fmt.Sprintf("  - match[%d]/%s detail[%d]: type=%s (selected but As*Search not called)", i, m.Vulnerability.ID, j, d.Type))
+				}
+			}
+		}
+	}
+
+	if f.ignoresAssertion != nil && !f.ignoresAssertion.skipCompleteness {
+		for i, ig := range f.ignoresAssertion.ignores {
+			if !f.ignoresAssertion.asserted[i] {
+				missed = append(missed, fmt.Sprintf("  - ignore[%d]: %T %s (not asserted)", i, ig, ignoreSummary(ig)))
 			}
 		}
 	}
 
 	if len(missed) > 0 {
-		f.t.Errorf("incomplete assertions - the following matches/details were not asserted:\n%s", strings.Join(missed, "\n"))
+		f.t.Errorf("incomplete assertions - the following items were not asserted:\n%s", strings.Join(missed, "\n"))
 	}
+}
+
+// Ignores returns an IgnoreFiltersAssertion for asserting on the ignore filters
+// returned alongside the matches. Calling this opts the assertion chain into
+// completeness checking on ignore filters - if any ignore was not asserted by
+// test end, the test fails. Use SkipCompleteness on the returned assertion to
+// disable that check (e.g., when the test only cares about a subset).
+func (f *FindingsAssertion) Ignores() *IgnoreFiltersAssertion {
+	if f.ignoresAssertion == nil {
+		f.ignoresAssertion = &IgnoreFiltersAssertion{
+			t:        f.t,
+			ignores:  f.ignores,
+			asserted: make(map[int]bool),
+		}
+	}
+	return f.ignoresAssertion
+}
+
+// IgnoreFiltersAssertion provides assertions on the ignore filters returned by
+// a matcher. Like FindingsAssertion, it tracks which ignores were asserted and
+// fails the test if any were missed (unless SkipCompleteness is called).
+type IgnoreFiltersAssertion struct {
+	t                TestingT
+	ignores          []match.IgnoreFilter
+	asserted         map[int]bool
+	skipCompleteness bool
+}
+
+// SkipCompleteness disables the completeness check for ignore filters.
+func (i *IgnoreFiltersAssertion) SkipCompleteness() *IgnoreFiltersAssertion {
+	i.skipCompleteness = true
+	return i
+}
+
+// IsEmpty asserts there are no ignore filters.
+func (i *IgnoreFiltersAssertion) IsEmpty() *IgnoreFiltersAssertion {
+	i.t.Helper()
+	assert.Empty(i.t, i.ignores, "expected no ignore filters, got %d", len(i.ignores))
+	return i
+}
+
+// HasCount asserts the number of ignore filters.
+func (i *IgnoreFiltersAssertion) HasCount(n int) *IgnoreFiltersAssertion {
+	i.t.Helper()
+	require.Len(i.t, i.ignores, n, "expected %d ignore filters, got %d", n, len(i.ignores))
+	return i
+}
+
+// SelectRelatedPackageIgnore finds an IgnoreRelatedPackage with the given reason
+// and vulnerability ID. Fails if not exactly one matches. The returned assertion
+// can be further qualified with ForPackage and WithRelationshipType.
+func (i *IgnoreFiltersAssertion) SelectRelatedPackageIgnore(reason, vulnID string) *IgnoreRelatedPackageAssertion {
+	i.t.Helper()
+	matchedIdx := -1
+	for idx, ig := range i.ignores {
+		irp, ok := ig.(match.IgnoreRelatedPackage)
+		if !ok {
+			continue
+		}
+		if irp.Reason == reason && irp.VulnerabilityID == vulnID {
+			if matchedIdx != -1 {
+				i.t.Fatalf("expected exactly one IgnoreRelatedPackage{Reason=%q, VulnerabilityID=%q}, found multiple", reason, vulnID)
+				return nil
+			}
+			matchedIdx = idx
+		}
+	}
+	if matchedIdx == -1 {
+		i.t.Fatalf("expected IgnoreRelatedPackage{Reason=%q, VulnerabilityID=%q}, not found", reason, vulnID)
+		return nil
+	}
+	i.asserted[matchedIdx] = true
+	return &IgnoreRelatedPackageAssertion{
+		t:      i.t,
+		filter: i.ignores[matchedIdx].(match.IgnoreRelatedPackage),
+	}
+}
+
+// IgnoreRelatedPackageAssertion provides assertions on a single
+// match.IgnoreRelatedPackage that has already been selected by reason+vuln.
+type IgnoreRelatedPackageAssertion struct {
+	t      TestingT
+	filter match.IgnoreRelatedPackage
+}
+
+// ForPackage asserts the related package ID matches the given pkg.ID. This is
+// the most common follow-up assertion: tests typically capture the package ID
+// when constructing the test package and then assert that the ignore points
+// back at it.
+func (a *IgnoreRelatedPackageAssertion) ForPackage(pkgID pkg.ID) *IgnoreRelatedPackageAssertion {
+	a.t.Helper()
+	assert.Equal(a.t, pkgID, a.filter.RelatedPackageID, "unexpected related package ID")
+	return a
+}
+
+// WithRelationshipType asserts the ignore filter's relationship type.
+// The vast majority of cases use OwnershipByFileOverlapRelationship so this is
+// only needed for the rare cases that use a different relationship.
+func (a *IgnoreRelatedPackageAssertion) WithRelationshipType(rt artifact.RelationshipType) *IgnoreRelatedPackageAssertion {
+	a.t.Helper()
+	assert.Equal(a.t, rt, a.filter.RelationshipType, "unexpected relationship type")
+	return a
+}
+
+// ignoreSummary returns a short, human-readable description of an IgnoreFilter
+// for use in error messages from completeness checking.
+func ignoreSummary(ig match.IgnoreFilter) string {
+	if irp, ok := ig.(match.IgnoreRelatedPackage); ok {
+		return fmt.Sprintf("Reason=%q, VulnerabilityID=%q, RelatedPackageID=%q", irp.Reason, irp.VulnerabilityID, irp.RelatedPackageID)
+	}
+	return fmt.Sprintf("%+v", ig)
 }
 
 // HasCount asserts that there are exactly n findings.

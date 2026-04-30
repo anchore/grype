@@ -33,6 +33,9 @@ var (
 	RHEL8  = distro.New(distro.RedHat, "8", "")
 	RHEL9  = distro.New(distro.RedHat, "9", "")
 	RHEL10 = distro.New(distro.RedHat, "10", "")
+
+	AlmaLinux8 = distro.New(distro.AlmaLinux, "8", "")
+	AlmaLinux9 = distro.New(distro.AlmaLinux, "9", "")
 )
 
 // PackageBuilder provides a fluent API for building test packages.
@@ -56,6 +59,14 @@ func NewPackage(name, version string, t syftPkg.Type) *PackageBuilder {
 // WithType sets the package type (e.g., syftPkg.ApkPkg, syftPkg.RpmPkg).
 func (b *PackageBuilder) WithType(t syftPkg.Type) *PackageBuilder {
 	b.pkg.Type = t
+	return b
+}
+
+// WithID overrides the auto-generated package ID. Use this when a test needs
+// a stable, comparable ID (e.g., to assert against an IgnoreFilter that
+// references the package by ID).
+func (b *PackageBuilder) WithID(id pkg.ID) *PackageBuilder {
+	b.pkg.ID = id
 	return b
 }
 
