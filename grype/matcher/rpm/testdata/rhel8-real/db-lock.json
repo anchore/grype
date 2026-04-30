@@ -1,0 +1,14 @@
+{
+  "content_hash": "99f0ad91b4f0e658",
+  "created_at": "2026-04-30T00:24:14.294324307Z",
+  "providers": {
+    "nvd": {
+      "vunnel_version": "vunnel@0.55.3.post12+15bf0b9",
+      "timestamp": "2026-04-29T17:22:33.703016Z"
+    },
+    "rhel": {
+      "vunnel_version": "vunnel@0.55.3.post12+15bf0b9",
+      "timestamp": "2026-04-29T16:40:47.257644Z"
+    }
+  }
+}
