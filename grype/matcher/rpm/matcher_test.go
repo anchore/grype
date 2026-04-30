@@ -16,7 +16,7 @@ import (
 )
 
 func TestMatcherRpm_DirectMatch(t *testing.T) {
-	dbtest.DBs(t, "rhel8-real").
+	dbtest.DBs(t, "rhel8").
 		SelectOnly("rhel:8/cve-2018-0735").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -37,7 +37,7 @@ func TestMatcherRpm_IndirectMatchBySource(t *testing.T) {
 	// the openssl-libs binary RPM is owned by upstream openssl source RPM;
 	// the RHEL secdb only carries the source-level entry, so this exercises
 	// the upstream/source indirection path.
-	dbtest.DBs(t, "rhel8-real").
+	dbtest.DBs(t, "rhel8").
 		SelectOnly("rhel:8/cve-2018-0735").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -55,7 +55,7 @@ func TestMatcherRpm_IndirectMatchBySource(t *testing.T) {
 }
 
 func TestMatcherRpm_FixedVersionNoMatch(t *testing.T) {
-	dbtest.DBs(t, "rhel8-real").
+	dbtest.DBs(t, "rhel8").
 		SelectOnly("rhel:8/cve-2018-0735").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -70,7 +70,7 @@ func TestMatcherRpm_FixedVersionNoMatch(t *testing.T) {
 }
 
 func TestMatcherRpm_ModularityLabelMatchesVulnInSameModule(t *testing.T) {
-	dbtest.DBs(t, "rhel8-real").
+	dbtest.DBs(t, "rhel8").
 		SelectOnly("rhel:8/cve-2018-17199").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -92,7 +92,7 @@ func TestMatcherRpm_ModularityLabelMatchesVulnInSameModule(t *testing.T) {
 
 func TestMatcherRpm_ModularityLabelMismatchSkipsVuln(t *testing.T) {
 	// the vuln is for httpd:2.4 module; package in a different module should not match
-	dbtest.DBs(t, "rhel8-real").
+	dbtest.DBs(t, "rhel8").
 		SelectOnly("rhel:8/cve-2018-17199").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -111,7 +111,7 @@ func TestMatcherRpm_ModularityLabelMismatchSkipsVuln(t *testing.T) {
 func TestMatcherRpm_PackageWithoutEpochAssumesZero(t *testing.T) {
 	// glibc fix is "0:2.28-151.el8"; package has no epoch metadata,
 	// so the matcher should treat it as epoch 0
-	dbtest.DBs(t, "rhel8-real").
+	dbtest.DBs(t, "rhel8").
 		SelectOnly("rhel:8/cve-2016-10228").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -132,7 +132,7 @@ func TestMatcherRpm_PackageWithoutEpochAssumesZero(t *testing.T) {
 // IgnoreRelatedPackage filter so consumers can suppress related-package matches
 // (e.g. GHSA-language matches that overlap by file ownership).
 func TestMatcherRpm_DistroNotVulnerableIgnore(t *testing.T) {
-	dbtest.DBs(t, "rhel8-real").
+	dbtest.DBs(t, "rhel8").
 		SelectOnly("rhel:8/cve-2018-0735").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -163,7 +163,7 @@ func TestMatcherRpm_DistroNotVulnerableIgnore(t *testing.T) {
 // behavior is produced when the package itself is a binary RPM and the fix
 // applies via the upstream (source) package.
 func TestMatcherRpm_DistroNotVulnerableIgnoreViaUpstream(t *testing.T) {
-	dbtest.DBs(t, "rhel8-real").
+	dbtest.DBs(t, "rhel8").
 		SelectOnly("rhel:8/cve-2018-0735").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -194,7 +194,7 @@ func TestMatcherRpm_DistroNotVulnerableIgnoreViaUpstream(t *testing.T) {
 // TestMatcherRpm_NoIgnoresWhenVulnerable verifies that a still-vulnerable
 // package version produces a match and no ignore filters.
 func TestMatcherRpm_NoIgnoresWhenVulnerable(t *testing.T) {
-	dbtest.DBs(t, "rhel8-real").
+	dbtest.DBs(t, "rhel8").
 		SelectOnly("rhel:8/cve-2018-0735").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}

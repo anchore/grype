@@ -776,7 +776,7 @@ func TestResolveEUSDisclosures(t *testing.T) {
 // TestRedhatEUSMatches_VulnerableOnEUS verifies that a kernel package below the
 // EUS fix version produces a match using real RHEL EUS data.
 func TestRedhatEUSMatches_VulnerableOnEUS(t *testing.T) {
-	dbtest.DBs(t, "rhel-eus-real").
+	dbtest.DBs(t, "rhel9-eus").
 		SelectOnly("CVE-2024-0340").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -813,7 +813,7 @@ func TestRedhatEUSMatches_VulnerableOnEUS(t *testing.T) {
 // version is not vulnerable - the EUS resolution overrides the broader RHEL
 // disclosure.
 func TestRedhatEUSMatches_FixedOnEUS(t *testing.T) {
-	dbtest.DBs(t, "rhel-eus-real").
+	dbtest.DBs(t, "rhel9-eus").
 		SelectOnly("CVE-2024-0340").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -832,7 +832,7 @@ func TestRedhatEUSMatches_FixedOnEUS(t *testing.T) {
 // mainline fix but at-or-past the EUS fix is treated as resolved (the EUS
 // resolution wins because the user is on EUS).
 func TestRedhatEUSMatches_BetweenEUSAndMainFix(t *testing.T) {
-	dbtest.DBs(t, "rhel-eus-real").
+	dbtest.DBs(t, "rhel9-eus").
 		SelectOnly("CVE-2024-0340").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -851,7 +851,7 @@ func TestRedhatEUSMatches_BetweenEUSAndMainFix(t *testing.T) {
 // TestRedhatEUSMatches_MultipleCVEsMixed verifies that when multiple EUS CVEs
 // affect a package, only the still-vulnerable ones are reported.
 func TestRedhatEUSMatches_MultipleCVEsMixed(t *testing.T) {
-	dbtest.DBs(t, "rhel-eus-real").Run(func(t *testing.T, db *dbtest.DB) {
+	dbtest.DBs(t, "rhel9-eus").Run(func(t *testing.T, db *dbtest.DB) {
 		matcher := Matcher{}
 		// 5.14.0-500.el9_4 is past both EUS fixes (427.x range), so all should be ignored
 		p := dbtest.NewPackage("kernel", "0:5.14.0-500.el9_4", syftPkg.RpmPkg).
@@ -874,7 +874,7 @@ func TestRedhatEUSMatches_MultipleCVEsMixed(t *testing.T) {
 // TestRedhatEUSIgnoreFilters_FixedProducesIgnore verifies that an EUS-fixed
 // package produces a "Distro Not Vulnerable" IgnoreRelatedPackage filter.
 func TestRedhatEUSIgnoreFilters_FixedProducesIgnore(t *testing.T) {
-	dbtest.DBs(t, "rhel-eus-real").
+	dbtest.DBs(t, "rhel9-eus").
 		SelectOnly("CVE-2024-0340").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -905,7 +905,7 @@ func TestRedhatEUSIgnoreFilters_FixedProducesIgnore(t *testing.T) {
 // TestRedhatEUSIgnoreFilters_VulnerablePackageNoIgnores verifies that a
 // still-vulnerable EUS package produces a match and no ignore filters.
 func TestRedhatEUSIgnoreFilters_VulnerablePackageNoIgnores(t *testing.T) {
-	dbtest.DBs(t, "rhel-eus-real").
+	dbtest.DBs(t, "rhel9-eus").
 		SelectOnly("CVE-2024-0340").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}

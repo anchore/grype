@@ -64,7 +64,7 @@ var alma8 = distro.New(distro.AlmaLinux, "8", "")
 // vulnerable, and that the AlmaLinux fix info (with .alma suffix) replaces
 // the RHEL fix info on the resulting Match.
 func TestAlmaLinuxMatching_ModularVulnerable(t *testing.T) {
-	dbtest.DBs(t, "alma8-real").
+	dbtest.DBs(t, "alma8").
 		SelectOnly("rhel:8/cve-2021-40438", "almalinux8/alsa-2021:4537").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -97,7 +97,7 @@ func TestAlmaLinuxMatching_ModularVulnerable(t *testing.T) {
 // (the package is not vulnerable per RHEL, so AlmaLinux logic isn't even
 // reached for filtering).
 func TestAlmaLinuxMatching_ModularFixed(t *testing.T) {
-	dbtest.DBs(t, "alma8-real").
+	dbtest.DBs(t, "alma8").
 		SelectOnly("rhel:8/cve-2021-40438", "almalinux8/alsa-2021:4537").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -134,7 +134,7 @@ func TestAlmaLinuxMatching_ModularFixed(t *testing.T) {
 // TestAlmaLinuxMatching_ModularityMismatch verifies that a package in a
 // different module than the vulnerability does not match.
 func TestAlmaLinuxMatching_ModularityMismatch(t *testing.T) {
-	dbtest.DBs(t, "alma8-real").
+	dbtest.DBs(t, "alma8").
 		SelectOnly("rhel:8/cve-2021-40438", "almalinux8/alsa-2021:4537").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -157,7 +157,7 @@ func TestAlmaLinuxMatching_ModularityMismatch(t *testing.T) {
 // vulnerable package matches via AlmaLinux logic and the fix info is preserved
 // (the AlmaLinux fix here matches the RHEL fix exactly, so no replacement).
 func TestAlmaLinuxMatching_NonModularVulnerable(t *testing.T) {
-	dbtest.DBs(t, "alma8-real").
+	dbtest.DBs(t, "alma8").
 		SelectOnly("rhel:8/cve-2019-13636", "almalinux8/alsa-2020:1852").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -182,7 +182,7 @@ func TestAlmaLinuxMatching_NonModularVulnerable(t *testing.T) {
 // TestAlmaLinuxMatching_NonModularFixed verifies that a non-modular package at
 // the fix version is not vulnerable and produces an ignore filter.
 func TestAlmaLinuxMatching_NonModularFixed(t *testing.T) {
-	dbtest.DBs(t, "alma8-real").
+	dbtest.DBs(t, "alma8").
 		SelectOnly("rhel:8/cve-2019-13636", "almalinux8/alsa-2020:1852").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -213,7 +213,7 @@ func TestAlmaLinuxMatching_NonModularFixed(t *testing.T) {
 // vulnerability with no AlmaLinux advisory still reports the vulnerability with
 // the won't-fix state preserved.
 func TestAlmaLinuxMatching_WontFixPassesThrough(t *testing.T) {
-	dbtest.DBs(t, "alma8-real").
+	dbtest.DBs(t, "alma8").
 		SelectOnly("rhel:8/cve-2005-2541").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -236,7 +236,7 @@ func TestAlmaLinuxMatching_WontFixPassesThrough(t *testing.T) {
 // -debugsource packages are skipped (AlmaLinux never publishes advisories for
 // debug-only RPMs).
 func TestAlmaLinuxMatching_DebuginfoSkipped(t *testing.T) {
-	dbtest.DBs(t, "alma8-real").
+	dbtest.DBs(t, "alma8").
 		SelectOnly("rhel:8/cve-2019-13636", "almalinux8/alsa-2020:1852").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -254,7 +254,7 @@ func TestAlmaLinuxMatching_DebuginfoSkipped(t *testing.T) {
 // TestAlmaLinuxIgnoreFilters_NoIgnoresWhenVulnerable verifies that a still-
 // vulnerable package produces a match and no ignore filters.
 func TestAlmaLinuxIgnoreFilters_NoIgnoresWhenVulnerable(t *testing.T) {
-	dbtest.DBs(t, "alma8-real").
+	dbtest.DBs(t, "alma8").
 		SelectOnly("rhel:8/cve-2019-13636", "almalinux8/alsa-2020:1852").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
@@ -272,7 +272,7 @@ func TestAlmaLinuxIgnoreFilters_NoIgnoresWhenVulnerable(t *testing.T) {
 // TestAlmaLinuxIgnoreFilters_DistroFixedIgnore verifies that a non-vulnerable
 // (already-fixed) package produces a "Distro Fixed" IgnoreRelatedPackage.
 func TestAlmaLinuxIgnoreFilters_DistroFixedIgnore(t *testing.T) {
-	dbtest.DBs(t, "alma8-real").
+	dbtest.DBs(t, "alma8").
 		SelectOnly("rhel:8/cve-2019-13636", "almalinux8/alsa-2020:1852").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
