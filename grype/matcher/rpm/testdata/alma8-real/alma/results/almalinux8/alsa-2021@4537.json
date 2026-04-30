@@ -1,0 +1,297 @@
+{
+  "identifier": "almalinux8/alsa-2021:4537",
+  "item": {
+    "affected": [
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "httpd:2.4"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "httpd"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "2.4.37-43.module_el8.5.0+2597+c4b14997.alma"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "httpd:2.4"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "httpd-devel"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "2.4.37-43.module_el8.5.0+2597+c4b14997.alma"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "httpd:2.4"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "httpd-filesystem"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "2.4.37-43.module_el8.5.0+2597+c4b14997.alma"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "httpd:2.4"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "httpd-manual"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "2.4.37-43.module_el8.5.0+2597+c4b14997.alma"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "httpd:2.4"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "httpd-tools"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "2.4.37-43.module_el8.5.0+2597+c4b14997.alma"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "httpd:2.4"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mod_http2"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1.15.7-3.module_el8.5.0+2609+b30d9eec"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "httpd:2.4"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mod_ldap"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "2.4.37-43.module_el8.5.0+2597+c4b14997.alma"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "httpd:2.4"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mod_md"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1:2.0.8-8.module_el8.5.0+2609+b30d9eec"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "httpd:2.4"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mod_md"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1:2.0.8-8.module_el8.6.0+2872+fe0ff7aa"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "httpd:2.4"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mod_proxy_html"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1:2.4.37-43.module_el8.5.0+2597+c4b14997.alma"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "httpd:2.4"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mod_session"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "2.4.37-43.module_el8.5.0+2597+c4b14997.alma"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "httpd:2.4"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mod_ssl"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1:2.4.37-43.module_el8.5.0+2597+c4b14997.alma"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      }
+    ],
+    "database_specific": {
+      "anchore": {
+        "record_type": "advisory"
+      }
+    },
+    "details": "The httpd packages provide the Apache HTTP Server, a powerful, efficient, and extensible web server.\n\nSecurity Fix(es):\n\n* httpd: Regression of CVE-2021-40438 and CVE-2021-26691 fixes in AlmaLinux (CVE-2021-20325)\n\nFor more details about the security issue(s), including the impact, a CVSS score, acknowledgments, and other related information, refer to the CVE page(s) listed in the References section.",
+    "id": "ALSA-2021:4537",
+    "modified": "2022-01-26T07:27:24Z",
+    "published": "2021-11-09T19:25:44Z",
+    "references": [
+      {
+        "type": "ADVISORY",
+        "url": "https://errata.almalinux.org/8/ALSA-2021-4537.html"
+      },
+      {
+        "type": "REPORT",
+        "url": "https://vulners.com/cve/CVE-2021-20325"
+      }
+    ],
+    "related": [
+      "CVE-2021-40438",
+      "CVE-2021-26691",
+      "CVE-2021-20325"
+    ],
+    "summary": "Important: httpd:2.4 security update"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.7.0.json"
+}

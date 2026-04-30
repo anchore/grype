@@ -1,0 +1,8 @@
+auto-generate: true
+extractions:
+    eol:
+        - rhel:7
+    nvd:
+        - CVE-2018-0735
+    rhel:
+        - rhel:7/cve-2018-0735

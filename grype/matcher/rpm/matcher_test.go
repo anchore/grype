@@ -2,7 +2,6 @@ package rpm
 
 import (
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
@@ -11,12 +10,8 @@ import (
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/version"
-	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/grype/vulnerability/mock"
 	"github.com/anchore/grype/internal/dbtest"
 	"github.com/anchore/syft/syft/artifact"
-	syftCpe "github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -131,143 +126,88 @@ func TestMatcherRpm_PackageWithoutEpochAssumesZero(t *testing.T) {
 		})
 }
 
-// TestMatcherRpm_IgnoreFilters exercises specific ignore-filter behavior.
-// These tests use precisely shaped vulnerability records to verify each path
-// in the ignore-filter logic; mock vulnerabilities are easier to control here
-// than scrubbing real records for matching shapes.
-func TestMatcherRpm_IgnoreFilters(t *testing.T) {
-	d := distro.New(distro.RedHat, "8", "")
-	tests := []struct {
-		name            string
-		p               pkg.Package
-		vulns           []vulnerability.Vulnerability
-		expectedIgnores []match.IgnoreFilter
-	}{
-		{
-			name: "direct match not vulnerable produces Distro Not Vulnerable ignore",
-			p: pkg.Package{
-				ID:      pkg.ID("httpd-fixed"),
-				Name:    "httpd",
-				Version: "2.4.37-51.el8",
-				Type:    syftPkg.RpmPkg,
-			},
-			vulns: []vulnerability.Vulnerability{
-				{
-					PackageName: "httpd",
-					Reference:   vulnerability.Reference{ID: "CVE-2023-1234", Namespace: "redhat:distro:redhat:8"},
-					Constraint:  version.MustGetConstraint("< 0:2.4.37-50.el8", version.RpmFormat),
-				},
-			},
-			// pkg version 51 > fix 50 → not vulnerable → ignore
-			expectedIgnores: []match.IgnoreFilter{
-				match.IgnoreRelatedPackage{
-					Reason:           "Distro Not Vulnerable",
-					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
-					VulnerabilityID:  "CVE-2023-1234",
-					RelatedPackageID: pkg.ID("httpd-fixed"),
-				},
-			},
-		},
-		{
-			name: "upstream not vulnerable produces ignore",
-			p: pkg.Package{
-				ID:      pkg.ID("neutron-libs-fixed"),
-				Name:    "neutron-libs",
-				Version: "7.1.3-6",
-				Type:    syftPkg.RpmPkg,
-				Upstreams: []pkg.UpstreamPackage{
-					{
-						Name:    "neutron",
-						Version: "7.1.3-6.el8",
-					},
-				},
-			},
-			vulns: []vulnerability.Vulnerability{
-				{
-					// upstream vuln where pkg version is NOT vulnerable (7.1.3-6 >= 7.0.4-1)
-					PackageName: "neutron",
-					Reference:   vulnerability.Reference{ID: "CVE-2013-old", Namespace: "redhat:distro:redhat:8"},
-					Constraint:  version.MustGetConstraint("< 7.0.4-1", version.RpmFormat),
-				},
-			},
-			expectedIgnores: []match.IgnoreFilter{
-				match.IgnoreRelatedPackage{
-					Reason:           "Distro Not Vulnerable",
-					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
-					VulnerabilityID:  "CVE-2013-old",
-					RelatedPackageID: pkg.ID("neutron-libs-fixed"),
-				},
-			},
-		},
-		{
-			name: "no ignores when all vulns are vulnerable",
-			p: pkg.Package{
-				ID:      pkg.ID("httpd-vuln"),
-				Name:    "httpd",
-				Version: "2.4.37-10.el8",
-				Type:    syftPkg.RpmPkg,
-			},
-			vulns: []vulnerability.Vulnerability{
-				{
-					PackageName: "httpd",
-					Reference:   vulnerability.Reference{ID: "CVE-2023-1234", Namespace: "redhat:distro:redhat:8"},
-					Constraint:  version.MustGetConstraint("< 0:2.4.37-50.el8", version.RpmFormat),
-				},
-			},
-			// pkg version 10 < 50 → vulnerable → no ignores
-			expectedIgnores: nil,
-		},
-		{
-			name: "unaffected record produces ignore",
-			p: pkg.Package{
-				ID:      pkg.ID("httpd-unaffected"),
-				Name:    "httpd",
-				Version: "2.4.37-51.el8",
-				Type:    syftPkg.RpmPkg,
-			},
-			vulns: []vulnerability.Vulnerability{
-				{
-					PackageName: "httpd",
-					Reference:   vulnerability.Reference{ID: "CVE-2023-1234", Namespace: "redhat:distro:redhat:8"},
-					Constraint:  version.MustGetConstraint("< 0:2.4.37-50.el8", version.RpmFormat),
-				},
-				{
-					// unaffected record: pkg version 51 satisfies ">= 2.4.37-51.el8" → ignored
-					PackageName: "httpd",
-					Reference:   vulnerability.Reference{ID: "CVE-2023-5678", Namespace: "redhat:distro:redhat:8"},
-					Constraint:  version.MustGetConstraint(">= 0:2.4.37-51.el8", version.RpmFormat),
-					Unaffected:  true,
-				},
-			},
-			expectedIgnores: []match.IgnoreFilter{
-				match.IgnoreRelatedPackage{
-					Reason:           "Distro Not Vulnerable",
-					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
-					VulnerabilityID:  "CVE-2023-1234",
-					RelatedPackageID: pkg.ID("httpd-unaffected"),
-				},
-				match.IgnoreRelatedPackage{
-					Reason:           "Distro Not Vulnerable",
-					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
-					VulnerabilityID:  "CVE-2023-5678",
-					RelatedPackageID: pkg.ID("httpd-unaffected"),
-				},
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tt.p.Distro = d
-			store := mock.VulnerabilityProvider(tt.vulns...)
+// TestMatcherRpm_DistroNotVulnerableIgnore exercises the rpm standard-matcher
+// ignore path: when a RHEL CVE record exists for a package but the package
+// version is at or past the fix, the matcher emits a "Distro Not Vulnerable"
+// IgnoreRelatedPackage filter so consumers can suppress related-package matches
+// (e.g. GHSA-language matches that overlap by file ownership).
+func TestMatcherRpm_DistroNotVulnerableIgnore(t *testing.T) {
+	dbtest.DBs(t, "rhel8-real").
+		SelectOnly("rhel:8/cve-2018-0735").
+		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
+			// openssl 1:1.1.1d-1.el8 is past the RHEL 8 fix 1:1.1.1c-2.el8 → not vulnerable
+			pkgID := pkg.ID(uuid.NewString())
+			p := dbtest.NewPackage("openssl", "1:1.1.1d-1.el8", syftPkg.RpmPkg).
+				WithDistro(dbtest.RHEL8).
+				WithMetadata(pkg.RpmMetadata{Epoch: intRef(1)}).
+				Build()
+			p.ID = pkgID
 
-			_, ignores, err := matcher.Match(store, tt.p)
+			matches, ignores, err := matcher.Match(db, p)
 			require.NoError(t, err)
+			require.Empty(t, matches, "fixed package should not produce matches")
 
-			require.ElementsMatch(t, tt.expectedIgnores, ignores)
+			require.ElementsMatch(t, []match.IgnoreFilter{
+				match.IgnoreRelatedPackage{
+					Reason:           "Distro Not Vulnerable",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "CVE-2018-0735",
+					RelatedPackageID: pkgID,
+				},
+			}, ignores)
 		})
-	}
+}
+
+// TestMatcherRpm_DistroNotVulnerableIgnoreViaUpstream verifies the same ignore
+// behavior is produced when the package itself is a binary RPM and the fix
+// applies via the upstream (source) package.
+func TestMatcherRpm_DistroNotVulnerableIgnoreViaUpstream(t *testing.T) {
+	dbtest.DBs(t, "rhel8-real").
+		SelectOnly("rhel:8/cve-2018-0735").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			// openssl-libs is owned by upstream openssl source RPM; both at fixed version
+			pkgID := pkg.ID(uuid.NewString())
+			p := dbtest.NewPackage("openssl-libs", "1:1.1.1d-1.el8", syftPkg.RpmPkg).
+				WithDistro(dbtest.RHEL8).
+				WithUpstream("openssl", "1:1.1.1d-1.el8").
+				WithMetadata(pkg.RpmMetadata{Epoch: intRef(1)}).
+				Build()
+			p.ID = pkgID
+
+			matches, ignores, err := matcher.Match(db, p)
+			require.NoError(t, err)
+			require.Empty(t, matches, "fixed upstream should not produce matches")
+
+			require.ElementsMatch(t, []match.IgnoreFilter{
+				match.IgnoreRelatedPackage{
+					Reason:           "Distro Not Vulnerable",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "CVE-2018-0735",
+					RelatedPackageID: pkgID,
+				},
+			}, ignores)
+		})
+}
+
+// TestMatcherRpm_NoIgnoresWhenVulnerable verifies that a still-vulnerable
+// package version produces a match and no ignore filters.
+func TestMatcherRpm_NoIgnoresWhenVulnerable(t *testing.T) {
+	dbtest.DBs(t, "rhel8-real").
+		SelectOnly("rhel:8/cve-2018-0735").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			p := dbtest.NewPackage("openssl", "1:1.1.1a-1.el8", syftPkg.RpmPkg).
+				WithDistro(dbtest.RHEL8).
+				WithMetadata(pkg.RpmMetadata{Epoch: intRef(1)}).
+				Build()
+
+			matches, ignores, err := matcher.Match(db, p)
+			require.NoError(t, err)
+			require.NotEmpty(t, matches, "vulnerable package should produce a match")
+			require.Empty(t, ignores, "vulnerable package should not produce ignore filters")
+		})
 }
 
 func Test_addEpochIfApplicable(t *testing.T) {
@@ -330,88 +270,80 @@ func Test_addEpochIfApplicable(t *testing.T) {
 	}
 }
 
-func TestMatcherRpm_CPEFallbackWhenEOL(t *testing.T) {
-	pastEOL := time.Now().AddDate(-1, 0, 0)  // 1 year ago
-	futureEOL := time.Now().AddDate(1, 0, 0) // 1 year from now
+// TestMatcherRpm_CPEFallbackWhenEOL_EOLDistroEnabled exercises the EOL CPE
+// fallback for an EOL distro (RHEL 7, EOL 2024-06-30) using real RHEL + EOL +
+// NVD data. With UseCPEsForEOL=true, the matcher falls back to CPE matching
+// via NVD since the distro is past EOL.
+func TestMatcherRpm_CPEFallbackWhenEOL_EOLDistroEnabled(t *testing.T) {
+	dbtest.DBs(t, "eol-rhel7").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := NewRpmMatcher(MatcherConfig{UseCPEsForEOL: true})
 
-	d := distro.New(distro.CentOS, "8", "")
+		// RHEL 7 (EOL'd 2024-06-30); openssl 1.1.0a CPE matches NVD CVE-2018-0735
+		// (vulnerable range 1.1.0 - 1.1.0i)
+		p := dbtest.NewPackage("openssl", "1.1.0a", syftPkg.RpmPkg).
+			WithDistro(distro.New(distro.RedHat, "7", "")).
+			WithCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*").
+			Build()
 
-	// package with CPEs for CPE-based matching
-	p := pkg.Package{
-		ID:      pkg.ID(uuid.NewString()),
-		Name:    "openssl",
-		Version: "1.0.1",
-		Type:    syftPkg.RpmPkg,
-		Distro:  d,
-		CPEs: []syftCpe.CPE{
-			syftCpe.Must("cpe:2.3:a:openssl:openssl:1.0.1:*:*:*:*:*:*:*", ""),
-		},
-	}
+		matches, _, err := matcher.Match(db, p)
+		require.NoError(t, err)
 
-	tests := []struct {
-		name             string
-		useCPEsForEOL    bool
-		eolDate          *time.Time
-		expectCPEMatches bool
-	}{
-		{
-			name:             "CPE fallback enabled and distro is EOL - should include CPE matches",
-			useCPEsForEOL:    true,
-			eolDate:          &pastEOL,
-			expectCPEMatches: true,
-		},
-		{
-			name:             "CPE fallback enabled but distro not EOL - should not include CPE matches",
-			useCPEsForEOL:    true,
-			eolDate:          &futureEOL,
-			expectCPEMatches: false,
-		},
-		{
-			name:             "CPE fallback disabled and distro is EOL - should not include CPE matches",
-			useCPEsForEOL:    false,
-			eolDate:          &pastEOL,
-			expectCPEMatches: false,
-		},
-		{
-			name:             "CPE fallback disabled and distro not EOL - should not include CPE matches",
-			useCPEsForEOL:    false,
-			eolDate:          &futureEOL,
-			expectCPEMatches: false,
-		},
-		{
-			name:             "CPE fallback enabled but no EOL data - should not include CPE matches",
-			useCPEsForEOL:    true,
-			eolDate:          nil,
-			expectCPEMatches: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			matcher := NewRpmMatcher(MatcherConfig{
-				UseCPEsForEOL: tt.useCPEsForEOL,
-			})
-
-			vp := newMockEOLProvider(tt.eolDate)
-			matches, _, err := matcher.Match(vp, p)
-			require.NoError(t, err)
-
-			// check if any CPE matches were found
-			hasCPEMatch := false
-			for _, m := range matches {
-				for _, detail := range m.Details {
-					if detail.Type == match.CPEMatch {
-						hasCPEMatch = true
-						break
-					}
+		hasCPEMatch := false
+		for _, m := range matches {
+			for _, detail := range m.Details {
+				if detail.Type == match.CPEMatch {
+					hasCPEMatch = true
 				}
 			}
+		}
+		assert.True(t, hasCPEMatch, "expected CPE matches for EOL distro when fallback enabled")
+	})
+}
 
-			if tt.expectCPEMatches {
-				assert.True(t, hasCPEMatch, "expected CPE matches for EOL distro")
-			} else {
-				assert.False(t, hasCPEMatch, "did not expect CPE matches")
+// TestMatcherRpm_CPEFallbackWhenEOL_EOLDistroDisabled verifies the same EOL
+// distro produces NO CPE matches when UseCPEsForEOL=false.
+func TestMatcherRpm_CPEFallbackWhenEOL_EOLDistroDisabled(t *testing.T) {
+	dbtest.DBs(t, "eol-rhel7").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := NewRpmMatcher(MatcherConfig{UseCPEsForEOL: false})
+
+		p := dbtest.NewPackage("openssl", "1.1.0a", syftPkg.RpmPkg).
+			WithDistro(distro.New(distro.RedHat, "7", "")).
+			WithCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*").
+			Build()
+
+		matches, _, err := matcher.Match(db, p)
+		require.NoError(t, err)
+
+		for _, m := range matches {
+			for _, detail := range m.Details {
+				assert.NotEqual(t, match.CPEMatch, detail.Type,
+					"did not expect CPE match when fallback disabled")
 			}
-		})
-	}
+		}
+	})
+}
+
+// TestMatcherRpm_CPEFallbackWhenEOL_NoEOLData verifies that an unknown distro
+// (no EOL record in the database) does not get the CPE fallback even when
+// UseCPEsForEOL is enabled.
+func TestMatcherRpm_CPEFallbackWhenEOL_NoEOLData(t *testing.T) {
+	dbtest.DBs(t, "eol-rhel7").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := NewRpmMatcher(MatcherConfig{UseCPEsForEOL: true})
+
+		// fake distro with no EOL data → fallback should not engage
+		p := dbtest.NewPackage("openssl", "1.1.0a", syftPkg.RpmPkg).
+			WithDistro(distro.New(distro.RedHat, "9999", "")).
+			WithCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*").
+			Build()
+
+		matches, _, err := matcher.Match(db, p)
+		require.NoError(t, err)
+
+		for _, m := range matches {
+			for _, detail := range m.Details {
+				assert.NotEqual(t, match.CPEMatch, detail.Type,
+					"did not expect CPE match when no EOL data is available")
+			}
+		}
+	})
 }

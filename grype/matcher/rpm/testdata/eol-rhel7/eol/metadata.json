@@ -1,0 +1,19 @@
+{
+  "provider": "eol",
+  "version": 1,
+  "processor": "vunnel@0.55.3.post12+15bf0b9",
+  "schema": {
+    "version": "1.0.3",
+    "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
+  },
+  "urls": [
+    "https://endoflife.date/api/v1/products/full"
+  ],
+  "timestamp": "2026-04-29T00:45:41Z",
+  "listing": {
+    "path": "results/listing.xxh64",
+    "digest": "47b8ee9c9ecaf124",
+    "algorithm": "xxh64"
+  },
+  "store": "flat-file"
+}

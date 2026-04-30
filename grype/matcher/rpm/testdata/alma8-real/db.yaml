@@ -1,0 +1,9 @@
+auto-generate: true
+extractions:
+    alma:
+        - almalinux8/alsa-2021:4537
+        - almalinux8/alsa-2020:1852
+    rhel:
+        - rhel:8/cve-2021-40438
+        - rhel:8/cve-2019-13636
+        - rhel:8/cve-2005-2541
