@@ -110,7 +110,7 @@ func TestMatcherJava_matchUpstreamMavenPackage(t *testing.T) {
 				matcher := newMatcher(mockMavenSearcher{
 					pkg: p.packages[0],
 				})
-				actual, _ := matcher.matchUpstreamMavenPackages(store, p.packages[0])
+				actual, _, _ := matcher.matchUpstreamMavenPackages(store, p.packages[0])
 
 				assert.Len(t, actual, 2, "unexpected matches count")
 
@@ -145,7 +145,7 @@ func TestMatcherJava_matchUpstreamMavenPackage(t *testing.T) {
 			t.Run(p.testname, func(t *testing.T) {
 				matcher := newMatcher(mockMavenSearcher{simulateRateLimiting: true})
 
-				_, err := matcher.matchUpstreamMavenPackages(store, p.packages[0])
+				_, _, err := matcher.matchUpstreamMavenPackages(store, p.packages[0])
 
 				if p.testExpectRateLimit {
 					assert.Errorf(t, err, "should have gotten an error from the rate limiting")

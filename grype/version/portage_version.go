@@ -54,7 +54,7 @@ func comparePortageVersions(a, b string) int {
 	vlist2 := strings.Split(match2[2], ".")[1:]
 	vlistMaxLen := max(len(vlist2), len(vlist1))
 
-	for index := 0; index < vlistMaxLen; index++ {
+	for index := range vlistMaxLen {
 		switch {
 		case len(vlist1) <= index:
 			list1 = append(list1, big.NewInt(-1))

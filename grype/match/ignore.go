@@ -2,6 +2,7 @@ package match
 
 import (
 	"regexp"
+	"slices"
 
 	"github.com/bmatcuk/doublestar/v2"
 
@@ -354,12 +355,7 @@ func isLikelyARegex(s string) bool {
 
 func ifMatchTypeApplies(matchType Type) ignoreCondition {
 	return func(match Match) bool {
-		for _, mType := range match.Details.Types() {
-			if mType == matchType {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(match.Details.Types(), matchType)
 	}
 }
 

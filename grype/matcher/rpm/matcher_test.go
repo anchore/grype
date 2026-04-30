@@ -11,7 +11,10 @@ import (
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/vulnerability/mock"
+	"github.com/anchore/syft/syft/artifact"
 	syftCpe "github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -323,6 +326,141 @@ func TestMatcherRpm(t *testing.T) {
 			if t.Failed() {
 				t.Logf("discovered CVES: %+v", actual)
 			}
+		})
+	}
+}
+
+func TestMatcherRpm_IgnoreFilters(t *testing.T) {
+	d := distro.New(distro.RedHat, "8", "")
+	tests := []struct {
+		name            string
+		p               pkg.Package
+		vulns           []vulnerability.Vulnerability
+		expectedIgnores []match.IgnoreFilter
+	}{
+		{
+			name: "direct match not vulnerable produces Distro Not Vulnerable ignore",
+			p: pkg.Package{
+				ID:      pkg.ID("httpd-fixed"),
+				Name:    "httpd",
+				Version: "2.4.37-51.el8",
+				Type:    syftPkg.RpmPkg,
+			},
+			vulns: []vulnerability.Vulnerability{
+				{
+					PackageName: "httpd",
+					Reference:   vulnerability.Reference{ID: "CVE-2023-1234", Namespace: "redhat:distro:redhat:8"},
+					Constraint:  version.MustGetConstraint("< 0:2.4.37-50.el8", version.RpmFormat),
+				},
+			},
+			// pkg version 51 > fix 50 → not vulnerable → ignore
+			expectedIgnores: []match.IgnoreFilter{
+				match.IgnoreRelatedPackage{
+					Reason:           "Distro Not Vulnerable",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "CVE-2023-1234",
+					RelatedPackageID: pkg.ID("httpd-fixed"),
+				},
+			},
+		},
+		{
+			name: "upstream not vulnerable produces ignore",
+			p: pkg.Package{
+				ID:      pkg.ID("neutron-libs-fixed"),
+				Name:    "neutron-libs",
+				Version: "7.1.3-6",
+				Type:    syftPkg.RpmPkg,
+				Upstreams: []pkg.UpstreamPackage{
+					{
+						Name:    "neutron",
+						Version: "7.1.3-6.el8",
+					},
+				},
+			},
+			vulns: []vulnerability.Vulnerability{
+				{
+					// upstream vuln where pkg version is NOT vulnerable (7.1.3-6 >= 7.0.4-1)
+					PackageName: "neutron",
+					Reference:   vulnerability.Reference{ID: "CVE-2013-old", Namespace: "redhat:distro:redhat:8"},
+					Constraint:  version.MustGetConstraint("< 7.0.4-1", version.RpmFormat),
+				},
+			},
+			expectedIgnores: []match.IgnoreFilter{
+				match.IgnoreRelatedPackage{
+					Reason:           "Distro Not Vulnerable",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "CVE-2013-old",
+					RelatedPackageID: pkg.ID("neutron-libs-fixed"),
+				},
+			},
+		},
+		{
+			name: "no ignores when all vulns are vulnerable",
+			p: pkg.Package{
+				ID:      pkg.ID("httpd-vuln"),
+				Name:    "httpd",
+				Version: "2.4.37-10.el8",
+				Type:    syftPkg.RpmPkg,
+			},
+			vulns: []vulnerability.Vulnerability{
+				{
+					PackageName: "httpd",
+					Reference:   vulnerability.Reference{ID: "CVE-2023-1234", Namespace: "redhat:distro:redhat:8"},
+					Constraint:  version.MustGetConstraint("< 0:2.4.37-50.el8", version.RpmFormat),
+				},
+			},
+			// pkg version 10 < 50 → vulnerable → no ignores
+			expectedIgnores: nil,
+		},
+		{
+			name: "unaffected record produces ignore",
+			p: pkg.Package{
+				ID:      pkg.ID("httpd-unaffected"),
+				Name:    "httpd",
+				Version: "2.4.37-51.el8",
+				Type:    syftPkg.RpmPkg,
+			},
+			vulns: []vulnerability.Vulnerability{
+				{
+					PackageName: "httpd",
+					Reference:   vulnerability.Reference{ID: "CVE-2023-1234", Namespace: "redhat:distro:redhat:8"},
+					Constraint:  version.MustGetConstraint("< 0:2.4.37-50.el8", version.RpmFormat),
+				},
+				{
+					// unaffected record: pkg version 51 satisfies ">= 2.4.37-51.el8" → ignored
+					PackageName: "httpd",
+					Reference:   vulnerability.Reference{ID: "CVE-2023-5678", Namespace: "redhat:distro:redhat:8"},
+					Constraint:  version.MustGetConstraint(">= 0:2.4.37-51.el8", version.RpmFormat),
+					Unaffected:  true,
+				},
+			},
+			expectedIgnores: []match.IgnoreFilter{
+				match.IgnoreRelatedPackage{
+					Reason:           "Distro Not Vulnerable",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "CVE-2023-1234",
+					RelatedPackageID: pkg.ID("httpd-unaffected"),
+				},
+				match.IgnoreRelatedPackage{
+					Reason:           "Distro Not Vulnerable",
+					RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+					VulnerabilityID:  "CVE-2023-5678",
+					RelatedPackageID: pkg.ID("httpd-unaffected"),
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.p.Distro = d
+			store := mock.VulnerabilityProvider(tt.vulns...)
+			matcher := Matcher{}
+
+			_, ignores, err := matcher.Match(store, tt.p)
+			require.NoError(t, err)
+
+			require.ElementsMatch(t, tt.expectedIgnores, ignores)
 		})
 	}
 }

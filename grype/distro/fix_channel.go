@@ -1,6 +1,7 @@
 package distro
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/scylladb/go-set/strset"
@@ -80,11 +81,8 @@ func applyChannels(release linux.Release, ver *version.Version, existingChannels
 
 	for _, channel := range channels {
 		var found bool
-		for _, channelID := range channel.IDs {
-			if release.ID == channelID {
-				found = true
-				break
-			}
+		if slices.Contains(channel.IDs, release.ID) {
+			found = true
 		}
 		if !found {
 			continue
