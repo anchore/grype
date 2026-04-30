@@ -100,10 +100,14 @@ func extractSearchParameters(criteriaSet []vulnerability.Criteria, vuln vulnerab
 
 		case *search.DistroCriteria:
 			for _, d := range c.Distros {
+				version := d.VersionString()
+				if version == "rolling" { // rolling is a made-up term to find records in the database
+					version = ""
+				}
 				distroParams = append(distroParams, match.DistroParameters{
 					Distro: match.DistroIdentification{
 						Type:    d.Type.String(),
-						Version: d.VersionString(),
+						Version: version,
 					},
 					Namespace: vuln.Namespace, // TODO: this is a holdover and will be removed in the future
 				})

@@ -272,7 +272,7 @@ func TestMatchPackageByDistroWithIgnoreRules(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			store := mock.VulnerabilityProvider(test.vulnerabilities...)
 
-			matches, ignoreFilters, err := MatchPackageByDistroWithOwnedFiles(store, test.pkg, nil, match.PythonMatcher, nil)
+			matches, ignoreFilters, err := MatchPackageByDistro(store, test.pkg, nil, match.PythonMatcher, nil)
 			require.NoError(t, err)
 
 			// verify matches
