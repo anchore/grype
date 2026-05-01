@@ -39,6 +39,7 @@ var (
 
 	SLES156 = distro.New(distro.SLES, "15.6", "")
 	SLES157 = distro.New(distro.SLES, "15.7", "")
+	Hummingbird1 = distro.New(distro.Hummingbird, "1", "")
 )
 
 // PackageBuilder provides a fluent API for building test packages.

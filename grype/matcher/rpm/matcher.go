@@ -215,7 +215,7 @@ func (m *Matcher) matchUpstreamPackages(vp vulnerability.Provider, p pkg.Package
 	var ignored []match.IgnoreFilter
 
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, ignores, err := m.findMatches(provider, indirectPackage)
+		indirectMatches, ignores, err := m.findMatches(provider, indirectPackage, internal.SourceOrUnspecifiedArch())
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
 		}
@@ -226,7 +226,7 @@ func (m *Matcher) matchUpstreamPackages(vp vulnerability.Provider, p pkg.Package
 	return matches, ignored, nil
 }
 
-func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package, extra ...vulnerability.Criteria) ([]match.Match, []match.IgnoreFilter, error) {
 	if searchPkg.Distro == nil {
 		return nil, nil, nil
 	}
@@ -237,13 +237,13 @@ func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) (
 
 	switch {
 	case shouldUseRedhatEUSMatching(searchPkg.Distro):
-		return redhatEUSMatches(provider, searchPkg, m.cfg.MissingEpochStrategy)
+		return redhatEUSMatches(provider, searchPkg, m.cfg.MissingEpochStrategy, extra...)
 	default:
-		return m.standardMatches(provider, searchPkg)
+		return m.standardMatches(provider, searchPkg, extra...)
 	}
 }
 
-func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Package, extra ...vulnerability.Criteria) ([]match.Match, []match.IgnoreFilter, error) {
 	// Create version with config embedded
 	pkgVersion := version.NewWithConfig(
 		searchPkg.Version,
@@ -253,21 +253,28 @@ func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Packag
 		},
 	)
 
-	all, err := provider.FindResults(
+	disclosureCriteria := []vulnerability.Criteria{
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
 		internal.OnlyQualifiedPackages(searchPkg),
-	)
+	}
+	disclosureCriteria = append(disclosureCriteria, extra...)
+
+	all, err := provider.FindResults(disclosureCriteria...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
-	unaffected, err := provider.FindResults(
+
+	unaffectedCriteria := []vulnerability.Criteria{
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
 		internal.OnlyQualifiedPackages(searchPkg),
 		internal.OnlyVulnerableVersions(pkgVersion),
 		search.ForUnaffected(),
-	)
+	}
+	unaffectedCriteria = append(unaffectedCriteria, extra...)
+
+	unaffected, err := provider.FindResults(unaffectedCriteria...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch unaffected for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
