@@ -36,6 +36,8 @@ var (
 
 	AlmaLinux8 = distro.New(distro.AlmaLinux, "8", "")
 	AlmaLinux9 = distro.New(distro.AlmaLinux, "9", "")
+
+	Hummingbird1 = distro.New(distro.Hummingbird, "1", "")
 )
 
 // PackageBuilder provides a fluent API for building test packages.

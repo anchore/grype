@@ -1,0 +1,5 @@
+auto-generate: true
+extractions:
+    hummingbird:
+        - cve-2026-5928
+        - cve-2018-18311
