@@ -499,12 +499,25 @@ func (s *SingleFindingAssertion) SelectDetailByType(matchType ...match.Type) *Si
 	return &SingleDetailAssertion{t: s.t, pkg: s.pkg, detail: &s.match.Details[idx], detailIdx: idx, tracker: s.tracker, vulnID: s.vulnID}
 }
 
-// SelectDetailByDistro finds a detail where SearchedBy is DistroParameters matching the given
-// distro type and version, and validates the found vulnerability.
-// Fails if not exactly one detail matches.
-// Takes an optional version constraint to validate (0 = no assertion, 1 = assert, 2+ = error).
+// SelectDetailByDistro finds a detail where SearchedBy is DistroParameters
+// matching the given distro type and version, and validates the found
+// vulnerability. Fails if not exactly one detail matches.
+//
+// Takes an optional version constraint. When provided, the constraint serves
+// as BOTH a selection filter (the matched detail must have this exact
+// Found.VersionConstraint) AND a validation - so callers can disambiguate
+// findings that produce multiple details with the same (distro, version) but
+// different version constraints, like RHEL EUS findings whose details cover
+// the EUS-overlay fix and the mainline fix paths in the same match.
+//
+// At most one constraint may be passed.
 func (s *SingleFindingAssertion) SelectDetailByDistro(distroType, distroVersion string, constraint ...string) *DistroDetailAssertion {
 	s.t.Helper()
+
+	if len(constraint) > 1 {
+		s.t.Fatalf("SelectDetailByDistro accepts at most one constraint argument, got %d", len(constraint))
+		return nil
+	}
 
 	var matchedIdx = -1
 	var matched *match.Detail
@@ -517,25 +530,37 @@ func (s *SingleFindingAssertion) SelectDetailByDistro(distroType, distroVersion 
 		if !ok {
 			continue
 		}
-		if sb.Distro.Type == distroType && sb.Distro.Version == distroVersion {
-			if matched != nil {
-				s.t.Fatalf("SelectDetailByDistro expected exactly one detail with distro %s:%s, but found multiple", distroType, distroVersion)
-				return nil
-			}
-			matchedIdx = i
-			matched = d
-			searchedBy = sb
-			f, ok := d.Found.(match.DistroResult)
-			if !ok {
-				s.t.Fatalf("expected Found to be DistroResult, got %T", d.Found)
-				return nil
-			}
-			found = f
+		if sb.Distro.Type != distroType || sb.Distro.Version != distroVersion {
+			continue
 		}
+		f, ok := d.Found.(match.DistroResult)
+		if !ok {
+			s.t.Fatalf("expected Found to be DistroResult, got %T", d.Found)
+			return nil
+		}
+		if len(constraint) == 1 && f.VersionConstraint != constraint[0] {
+			continue
+		}
+		if matched != nil {
+			if len(constraint) == 1 {
+				s.t.Fatalf("SelectDetailByDistro expected exactly one detail with distro %s:%s and constraint %q, but found multiple", distroType, distroVersion, constraint[0])
+			} else {
+				s.t.Fatalf("SelectDetailByDistro expected exactly one detail with distro %s:%s, but found multiple (pass a constraint to disambiguate)", distroType, distroVersion)
+			}
+			return nil
+		}
+		matchedIdx = i
+		matched = d
+		searchedBy = sb
+		found = f
 	}
 
 	if matched == nil {
-		s.t.Fatalf("SelectDetailByDistro found no detail with distro %s:%s", distroType, distroVersion)
+		if len(constraint) == 1 {
+			s.t.Fatalf("SelectDetailByDistro found no detail with distro %s:%s and constraint %q", distroType, distroVersion, constraint[0])
+		} else {
+			s.t.Fatalf("SelectDetailByDistro found no detail with distro %s:%s", distroType, distroVersion)
+		}
 		return nil
 	}
 
@@ -684,6 +709,7 @@ func (d *SingleDetailAssertion) AsDistroSearch(constraint ...string) *DistroDeta
 	// mark as completed
 	d.tracker.completedDetails[d.detailIdx] = true
 
+	assertSearchedDistroMatchesPackage(d.t, d.pkg, searchedBy)
 	result := newDistroDetailAssertion(d.t, d.pkg, d.detail, searchedBy, found)
 	result.foundVulnerability(d.vulnID, constraint...)
 	return result
@@ -747,17 +773,31 @@ type DistroDetailAssertion struct {
 	found      match.DistroResult
 }
 
-// newDistroDetailAssertion creates a DistroDetailAssertion and asserts that the searched
-// distro matches the package's distro (if the package has distro info).
+// newDistroDetailAssertion creates a DistroDetailAssertion. Callers that want
+// the package-distro vs. searched-by-distro consistency check should call
+// AsDistroSearch (which goes through assertSearchedDistroMatchesPackage). The
+// constructor itself doesn't validate, so paths like SelectDetailByDistro -
+// which already filter by an explicit distro that may diverge from the
+// package's distro (e.g., AlmaLinux packages searched against rhel) - don't
+// trip the consistency check.
 func newDistroDetailAssertion(t TestingT, p pkg.Package, detail *match.Detail, searchedBy match.DistroParameters, found match.DistroResult) *DistroDetailAssertion {
 	t.Helper()
-	if p.Distro != nil {
-		assert.Equal(t, string(p.Distro.Type), searchedBy.Distro.Type, "unexpected distro type in SearchedBy")
-		if p.Distro.Version != "" {
-			assert.Equal(t, p.Distro.Version, searchedBy.Distro.Version, "unexpected distro version in SearchedBy")
-		}
-	}
 	return &DistroDetailAssertion{t: t, pkg: p, detail: detail, searchedBy: searchedBy, found: found}
+}
+
+// assertSearchedDistroMatchesPackage validates that the SearchedBy distro
+// matches the package's distro - the common case where a matcher queries the
+// distro namespace declared on the package. Cross-namespace matchers
+// (AlmaLinux -> rhel; EUS -> base + +eus) shouldn't go through this path.
+func assertSearchedDistroMatchesPackage(t TestingT, p pkg.Package, searchedBy match.DistroParameters) {
+	t.Helper()
+	if p.Distro == nil {
+		return
+	}
+	assert.Equal(t, string(p.Distro.Type), searchedBy.Distro.Type, "unexpected distro type in SearchedBy")
+	if p.Distro.Version != "" {
+		assert.Equal(t, p.Distro.Version, searchedBy.Distro.Version, "unexpected distro version in SearchedBy")
+	}
 }
 
 // foundVulnerability asserts the found vulnerability ID and optionally the version constraint.

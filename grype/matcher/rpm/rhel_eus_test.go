@@ -6,7 +6,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
@@ -772,21 +771,30 @@ func TestResolveEUSDisclosures(t *testing.T) {
 	}
 }
 
-// assertEUSDualDistroDetails verifies a finding's details include searches
-// against both the base RHEL distro version and the +eus variant. This is the
-// signal that EUS resolution actually engaged (rather than just a plain RHEL
-// match). Used by every EUS test that produces a match.
-func assertEUSDualDistroDetails(t *testing.T, m match.Match, baseVersion string) {
+// EUS findings consistently produce three details per match: a base-distro
+// lookup against the EUS-overlay fix, a +eus-distro lookup against the same
+// EUS-overlay fix, and a base-distro lookup against the mainline RHEL fix.
+// These constants name the constraint strings that disambiguate them - tests
+// use them with SelectDetailByDistro to assert each detail explicitly.
+const (
+	eus94CVE20240340OverlayConstraint   = "< 0:5.14.0-427.68.1.el9_4 (rpm)"
+	eus94CVE20240340MainlineConstraint  = "< 0:5.14.0-503.11.1.el9_5 (rpm)"
+	eus94CVE202147527OverlayConstraint  = "< 0:5.14.0-427.81.1.el9_4 (rpm)"
+	eus94CVE202147527MainlineConstraint = "none (unknown)" // no mainline fix
+)
+
+// assertEUSTriplet asserts the three-detail shape of an EUS match: one detail
+// at the base distro searched against the EUS-overlay fix constraint, one at
+// the +eus distro for the same overlay fix, and one at the base distro
+// searched against the mainline RHEL fix constraint. All three details should
+// have the same match type. Each call to SelectDetailByDistro both selects
+// (using the constraint to disambiguate) and marks the detail as completed,
+// so the FindingsAssertion's completeness check passes for the match.
+func assertEUSTriplet(t *testing.T, sf *dbtest.SingleFindingAssertion, baseVersion, overlayConstraint, mainlineConstraint string, mt match.Type) {
 	t.Helper()
-	require.GreaterOrEqual(t, len(m.Details), 2, "EUS matches should have details for both base and +eus distros")
-	versions := map[string]bool{}
-	for _, d := range m.Details {
-		if dp, ok := d.SearchedBy.(match.DistroParameters); ok {
-			versions[dp.Distro.Version] = true
-		}
-	}
-	assert.Contains(t, versions, baseVersion, "expected detail searched against base distro %q", baseVersion)
-	assert.Contains(t, versions, baseVersion+"+eus", "expected detail searched against EUS distro %q", baseVersion+"+eus")
+	sf.SelectDetailByDistro("redhat", baseVersion, overlayConstraint).HasMatchType(mt)
+	sf.SelectDetailByDistro("redhat", baseVersion+"+eus", overlayConstraint).HasMatchType(mt)
+	sf.SelectDetailByDistro("redhat", baseVersion, mainlineConstraint).HasMatchType(mt)
 }
 
 // TestRedhatEUSMatches_VulnerableOnEUS verifies that a kernel package below the
@@ -803,23 +811,28 @@ func TestRedhatEUSMatches_VulnerableOnEUS(t *testing.T) {
 				Build()
 
 			findings := db.Match(t, &matcher, p).
-				SkipCompleteness().
 				HasCount(1).
 				ContainsVulnerabilities("CVE-2024-0340")
 			findings.Ignores().IsEmpty()
 
-			m := findings.Matches()[0]
+			sf := findings.SelectMatch("CVE-2024-0340")
+			assertEUSTriplet(t, sf, "9.4",
+				eus94CVE20240340OverlayConstraint,
+				eus94CVE20240340MainlineConstraint,
+				match.ExactDirectMatch)
+
 			// fix info should reflect the EUS-reachable fix
+			m := findings.Matches()[0]
 			assert.Equal(t, vulnerability.FixStateFixed, m.Vulnerability.Fix.State)
 			assert.Equal(t, []string{"0:5.14.0-427.68.1.el9_4"}, m.Vulnerability.Fix.Versions)
-			assertEUSDualDistroDetails(t, m, "9.4")
 		})
 }
 
 // TestRedhatEUSMatches_IndirectMatchBySource verifies that a binary RPM
 // (kernel-tools) reaches an EUS-tracked CVE through its upstream source RPM
 // (kernel). CVE-2024-0340's FixedIn has only "kernel" (the source); the binary
-// must match via upstream, producing an ExactIndirectMatch.
+// must match via upstream, producing an ExactIndirectMatch on each of the
+// three EUS-triplet details.
 func TestRedhatEUSMatches_IndirectMatchBySource(t *testing.T) {
 	dbtest.DBs(t, "rhel9-eus").
 		SelectOnly("CVE-2024-0340").
@@ -832,20 +845,15 @@ func TestRedhatEUSMatches_IndirectMatchBySource(t *testing.T) {
 				Build()
 
 			findings := db.Match(t, &matcher, p).
-				SkipCompleteness().
+				HasCount(1).
 				ContainsVulnerabilities("CVE-2024-0340")
 			findings.Ignores().IsEmpty()
 
-			m := findings.Matches()[0]
-			// expect at least one detail of type ExactIndirectMatch
-			hasIndirect := false
-			for _, d := range m.Details {
-				if d.Type == match.ExactIndirectMatch {
-					hasIndirect = true
-				}
-			}
-			assert.True(t, hasIndirect, "expected ExactIndirectMatch in details")
-			assertEUSDualDistroDetails(t, m, "9.4")
+			sf := findings.SelectMatch("CVE-2024-0340")
+			assertEUSTriplet(t, sf, "9.4",
+				eus94CVE20240340OverlayConstraint,
+				eus94CVE20240340MainlineConstraint,
+				match.ExactIndirectMatch)
 		})
 }
 
@@ -898,9 +906,17 @@ func TestRedhatEUSMatches_MultipleCVEsAllVulnerable(t *testing.T) {
 			Build()
 
 		findings := db.Match(t, &matcher, p).
-			SkipCompleteness().
 			OnlyHasVulnerabilities("CVE-2024-0340", "CVE-2021-47527")
 		findings.Ignores().IsEmpty()
+
+		assertEUSTriplet(t, findings.SelectMatch("CVE-2024-0340"), "9.4",
+			eus94CVE20240340OverlayConstraint,
+			eus94CVE20240340MainlineConstraint,
+			match.ExactDirectMatch)
+		assertEUSTriplet(t, findings.SelectMatch("CVE-2021-47527"), "9.4",
+			eus94CVE202147527OverlayConstraint,
+			eus94CVE202147527MainlineConstraint,
+			match.ExactDirectMatch)
 	})
 }
 
@@ -946,7 +962,8 @@ func TestRedhatEUSIgnoreFilters_FixedProducesIgnore(t *testing.T) {
 
 			findings := db.Match(t, &matcher, p)
 			findings.IsEmpty()
-			findings.Ignores().SkipCompleteness().
+			findings.Ignores().
+				HasCount(1).
 				SelectRelatedPackageIgnore("Distro Not Vulnerable", "CVE-2024-0340").
 				ForPackage(pkgID)
 		})
@@ -965,9 +982,14 @@ func TestRedhatEUSIgnoreFilters_VulnerablePackageNoIgnores(t *testing.T) {
 				Build()
 
 			findings := db.Match(t, &matcher, p).
-				SkipCompleteness().
+				HasCount(1).
 				ContainsVulnerabilities("CVE-2024-0340")
 			findings.Ignores().IsEmpty()
+
+			assertEUSTriplet(t, findings.SelectMatch("CVE-2024-0340"), "9.4",
+				eus94CVE20240340OverlayConstraint,
+				eus94CVE20240340MainlineConstraint,
+				match.ExactDirectMatch)
 		})
 }
 

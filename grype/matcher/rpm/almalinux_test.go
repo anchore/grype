@@ -113,7 +113,8 @@ func TestAlmaLinuxMatching_ModularFixed(t *testing.T) {
 			findings.IsEmpty()
 			// the rhel disclosure path produces "Distro Fixed" since the binary
 			// package version is past the RHEL fix
-			findings.Ignores().SkipCompleteness().
+			findings.Ignores().
+				HasCount(1).
 				SelectRelatedPackageIgnore("Distro Fixed", "CVE-2021-40438").
 				ForPackage(pkgID)
 		})
@@ -182,7 +183,8 @@ func TestAlmaLinuxMatching_NonModularFixed(t *testing.T) {
 
 			findings := db.Match(t, &matcher, p)
 			findings.IsEmpty()
-			findings.Ignores().SkipCompleteness().
+			findings.Ignores().
+				HasCount(1).
 				SelectRelatedPackageIgnore("Distro Fixed", "CVE-2019-13636").
 				ForPackage(pkgID)
 		})
@@ -233,22 +235,16 @@ func TestAlmaLinuxMatching_UpstreamMatchWithFixReplacement(t *testing.T) {
 				}).
 				Build()
 
-			findings := db.Match(t, &matcher, p).
-				SkipCompleteness().
-				ContainsVulnerabilities("CVE-2021-40438")
+			findings := db.Match(t, &matcher, p)
+			findings.SelectMatch("CVE-2021-40438").
+				SelectDetailByDistro("redhat", "8"). // alma matching queries the rhel namespace
+				HasMatchType(match.ExactIndirectMatch)
+			findings.Ignores().IsEmpty()
 
 			m := findings.Matches()[0]
 			require.Equal(t, vulnerability.FixStateFixed, m.Vulnerability.Fix.State)
 			require.Equal(t, []string{"2.4.37-43.module_el8.5.0+2597+c4b14997.alma"}, m.Vulnerability.Fix.Versions,
 				"alma fix version should replace the rhel fix on upstream-resolved matches")
-
-			hasIndirect := false
-			for _, d := range m.Details {
-				if d.Type == match.ExactIndirectMatch {
-					hasIndirect = true
-				}
-			}
-			assert.True(t, hasIndirect, "expected ExactIndirectMatch detail on upstream-resolved alma match")
 		})
 }
 
@@ -312,9 +308,10 @@ func TestAlmaLinuxMatching_BelowBothModuleBuildsStillVulnerable(t *testing.T) {
 				}).
 				Build()
 
-			findings := db.Match(t, &matcher, p).
-				SkipCompleteness().
-				ContainsVulnerabilities("CVE-2021-27928")
+			findings := db.Match(t, &matcher, p)
+			findings.SelectMatch("CVE-2021-27928").
+				SelectDetailByDistro("redhat", "8"). // alma matching queries the rhel namespace
+				HasMatchType(match.ExactDirectMatch)
 			findings.Ignores().IsEmpty()
 
 			m := findings.Matches()[0]
@@ -355,7 +352,9 @@ func TestAlmaLinuxIgnoreFilters_NoIgnoresWhenVulnerable(t *testing.T) {
 				Build()
 
 			findings := db.Match(t, &matcher, p)
-			findings.SkipCompleteness().ContainsVulnerabilities("CVE-2019-13636")
+			findings.SelectMatch("CVE-2019-13636").
+				SelectDetailByDistro("redhat", "8"). // alma matching queries the rhel namespace
+				HasMatchType(match.ExactDirectMatch)
 			findings.Ignores().IsEmpty()
 		})
 }
@@ -375,7 +374,8 @@ func TestAlmaLinuxIgnoreFilters_DistroFixedIgnore(t *testing.T) {
 
 			findings := db.Match(t, &matcher, p)
 			findings.IsEmpty()
-			findings.Ignores().SkipCompleteness().
+			findings.Ignores().
+				HasCount(1).
 				SelectRelatedPackageIgnore("Distro Fixed", "CVE-2019-13636").
 				ForPackage(pkgID)
 		})
