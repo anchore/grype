@@ -24,7 +24,7 @@ const (
 	Revision = 1
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 4
+	Addition = 5
 
 	// v6 model changelog:
 	// 6.0.0: Initial version 🎉
@@ -37,6 +37,9 @@ const (
 	// 6.1.2: Add CWEs
 	// 6.1.3: Add ID field to Reference (for advisory IDs like RHSA-2023:5455)
 	// 6.1.4: Add EOLDate and EOASDate fields to OperatingSystem model
+	// 6.1.5: Add RpmArch field to PackageQualifiers (used by the CSAF VEX transformer to tag
+	//        source vs. binary RPM entries; the RPM matcher's upstream-search path filters
+	//        out non-source entries so binary-granular advisories don't FP-match siblings)
 )
 
 const (
