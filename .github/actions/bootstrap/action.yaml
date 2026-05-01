@@ -46,7 +46,7 @@ runs:
         python-version: ${{ inputs.python-version }}
     - name: Restore tool cache
       id: tool-cache
-      uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       if: inputs.tools == 'true'
       with:
         path: ${{ github.workspace }}/.tool
@@ -73,7 +73,7 @@ runs:
 
     - name: Restore test fixture cache
       id: test-fixture-cache
-      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       if: inputs.cache-test-fixtures == 'true'
       with:
         path: |
