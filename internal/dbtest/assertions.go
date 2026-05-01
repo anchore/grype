@@ -152,48 +152,68 @@ func (f *FindingsAssertion) complete() {
 func (f *FindingsAssertion) checkCompleteness() {
 	f.t.Helper()
 
-	var missed []string
-	if len(f.matches) > 0 {
-		for i, m := range f.matches {
-			tracker, matchAsserted := f.assertedMatches[i]
-			if !matchAsserted {
-				missed = append(missed, fmt.Sprintf("  - match[%d]: %s (not selected)", i, m.Vulnerability.ID))
-				continue
-			}
-
-			// check details for this match - must be both selected AND completed
-			for j, d := range m.Details {
-				if !tracker.selectedDetails[j] {
-					missed = append(missed, fmt.Sprintf("  - match[%d]/%s detail[%d]: type=%s (not selected)", i, m.Vulnerability.ID, j, d.Type))
-				} else if !tracker.completedDetails[j] {
-					missed = append(missed, fmt.Sprintf("  - match[%d]/%s detail[%d]: type=%s (selected but As*Search not called)", i, m.Vulnerability.ID, j, d.Type))
-				}
-			}
-		}
-	}
-
-	if f.skipCompleteness {
-		if len(f.matches) > 0 && len(missed) == 0 {
-			f.t.Errorf("SkipCompleteness was called but every match and detail was asserted - drop the SkipCompleteness call")
-		}
-	} else if len(missed) > 0 {
-		f.t.Errorf("incomplete assertions - the following items were not asserted:\n%s", strings.Join(missed, "\n"))
-	}
+	f.reportCompleteness(len(f.matches), f.collectMissedMatches(), f.skipCompleteness,
+		"incomplete assertions - the following items were not asserted",
+		"SkipCompleteness was called but every match and detail was asserted - drop the SkipCompleteness call")
 
 	if f.ignoresAssertion != nil {
-		var ignoresMissed []string
-		for i, ig := range f.ignoresAssertion.ignores {
-			if !f.ignoresAssertion.asserted[i] {
-				ignoresMissed = append(ignoresMissed, fmt.Sprintf("  - ignore[%d]: %T %s (not asserted)", i, ig, ignoreSummary(ig)))
+		f.reportCompleteness(len(f.ignoresAssertion.ignores), f.collectMissedIgnores(), f.ignoresAssertion.skipCompleteness,
+			"incomplete ignore-filter assertions - the following items were not asserted",
+			"SkipCompleteness was called on Ignores() but every ignore filter was asserted - drop the SkipCompleteness call")
+	}
+}
+
+// collectMissedMatches returns one entry per match or detail that the chain
+// failed to assert on. Used by checkCompleteness for the matches-side report.
+func (f *FindingsAssertion) collectMissedMatches() []string {
+	var missed []string
+	for i, m := range f.matches {
+		tracker, matchAsserted := f.assertedMatches[i]
+		if !matchAsserted {
+			missed = append(missed, fmt.Sprintf("  - match[%d]: %s (not selected)", i, m.Vulnerability.ID))
+			continue
+		}
+		// each detail must be both selected AND completed (As*Search called)
+		for j, d := range m.Details {
+			switch {
+			case !tracker.selectedDetails[j]:
+				missed = append(missed, fmt.Sprintf("  - match[%d]/%s detail[%d]: type=%s (not selected)", i, m.Vulnerability.ID, j, d.Type))
+			case !tracker.completedDetails[j]:
+				missed = append(missed, fmt.Sprintf("  - match[%d]/%s detail[%d]: type=%s (selected but As*Search not called)", i, m.Vulnerability.ID, j, d.Type))
 			}
 		}
-		if f.ignoresAssertion.skipCompleteness {
-			if len(f.ignoresAssertion.ignores) > 0 && len(ignoresMissed) == 0 {
-				f.t.Errorf("SkipCompleteness was called on Ignores() but every ignore filter was asserted - drop the SkipCompleteness call")
-			}
-		} else if len(ignoresMissed) > 0 {
-			f.t.Errorf("incomplete ignore-filter assertions - the following items were not asserted:\n%s", strings.Join(ignoresMissed, "\n"))
+	}
+	return missed
+}
+
+// collectMissedIgnores returns one entry per ignore filter the chain failed to
+// assert on. Used by checkCompleteness for the ignores-side report.
+func (f *FindingsAssertion) collectMissedIgnores() []string {
+	var missed []string
+	for i, ig := range f.ignoresAssertion.ignores {
+		if !f.ignoresAssertion.asserted[i] {
+			missed = append(missed, fmt.Sprintf("  - ignore[%d]: %T %s (not asserted)", i, ig, ignoreSummary(ig)))
 		}
+	}
+	return missed
+}
+
+// reportCompleteness fires the right failure (incomplete assertions, or dead-
+// weight SkipCompleteness) for one domain - matches or ignores - given that
+// domain's universe size, the items it failed to assert on, and whether
+// SkipCompleteness was opted into for that domain. With nothing in the
+// universe (e.g., zero matches), there is nothing to be partial about, so
+// neither failure mode fires.
+func (f *FindingsAssertion) reportCompleteness(total int, missed []string, skip bool, incompleteMsg, deadWeightMsg string) {
+	f.t.Helper()
+	if total == 0 {
+		return
+	}
+	switch {
+	case skip && len(missed) == 0:
+		f.t.Errorf("%s", deadWeightMsg)
+	case !skip && len(missed) > 0:
+		f.t.Errorf("%s:\n%s", incompleteMsg, strings.Join(missed, "\n"))
 	}
 }
 
