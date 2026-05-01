@@ -37,8 +37,8 @@ var (
 	AlmaLinux8 = distro.New(distro.AlmaLinux, "8", "")
 	AlmaLinux9 = distro.New(distro.AlmaLinux, "9", "")
 
-	SLES156 = distro.New(distro.SLES, "15.6", "")
-	SLES157 = distro.New(distro.SLES, "15.7", "")
+	SLES156      = distro.New(distro.SLES, "15.6", "")
+	SLES157      = distro.New(distro.SLES, "15.7", "")
 	Hummingbird1 = distro.New(distro.Hummingbird, "1", "")
 )
 
