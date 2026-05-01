@@ -1,0 +1,82 @@
+{
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json",
+  "identifier": "github:python/ghsa-2g68-c3qc-8985",
+  "item": {
+    "Vulnerability": {},
+    "Advisory": {
+      "Classification": "GENERAL",
+      "Severity": "High",
+      "CVSS": {
+        "version": "3.1",
+        "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:H/A:H",
+        "base_metrics": {
+          "base_score": 7.5,
+          "exploitability_score": 1.6,
+          "impact_score": 5.9,
+          "base_severity": "High"
+        },
+        "status": "N/A"
+      },
+      "cvss_severities": [
+        {
+          "version": "3.1",
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:H/A:H"
+        }
+      ],
+      "FixedIn": [
+        {
+          "name": "Werkzeug",
+          "identifier": "3.0.3",
+          "ecosystem": "python",
+          "namespace": "github:python",
+          "range": "< 3.0.3",
+          "available": {
+            "date": "2024-05-07",
+            "kind": "first-observed"
+          }
+        }
+      ],
+      "Summary": "Werkzeug debugger vulnerable to remote execution when interacting with attacker controlled domain",
+      "url": "https://github.com/advisories/GHSA-2g68-c3qc-8985",
+      "CVE": [
+        "CVE-2024-34069"
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2024-34069"
+        ]
+      },
+      "ghsaId": "GHSA-2g68-c3qc-8985",
+      "published": "2024-05-06T14:21:27Z",
+      "updated": "2025-02-21T21:00:48Z",
+      "withdrawn": null,
+      "references": [
+        {
+          "url": "https://github.com/pallets/werkzeug/security/advisories/GHSA-2g68-c3qc-8985"
+        },
+        {
+          "url": "https://github.com/pallets/werkzeug/commit/3386395b24c7371db11a5b8eaac0c91da5362692"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-34069"
+        },
+        {
+          "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/H4SH32AM3CTPMAAEOIDAN7VU565LO4IR"
+        },
+        {
+          "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/HFERFN7PINV4MOGMGA3DPIXJPDCYOEJZ"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20240614-0004"
+        },
+        {
+          "url": "https://lists.debian.org/debian-lts-announce/2025/02/msg00026.html"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-2g68-c3qc-8985"
+        }
+      ],
+      "namespace": "github:python"
+    }
+  }
+}
