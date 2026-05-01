@@ -290,6 +290,79 @@ func (a *IgnoreRelatedPackageAssertion) WithRelationshipType(rt artifact.Relatio
 	return a
 }
 
+// SelectRelatedPackageIgnores selects a batch of IgnoreRelatedPackage filters
+// that share a reason and lets the caller assert on the whole batch with one
+// chain. This is the right shape for cases like AlmaLinux alias unwinding,
+// where one ALSA emits an ignore for the ALSA itself plus one per aliased CVE
+// - all with the same reason, same package, and the same relationship type.
+// Fails fatally if any of the requested vulnerability IDs is missing or
+// duplicated under that reason. Each selected ignore is registered for
+// completeness tracking. Pass at least one vulnerability ID; for a single ID,
+// the singular SelectRelatedPackageIgnore reads cleaner.
+func (i *IgnoreFiltersAssertion) SelectRelatedPackageIgnores(reason string, vulnIDs ...string) *IgnoreRelatedPackagesAssertion {
+	i.t.Helper()
+
+	if len(vulnIDs) == 0 {
+		i.t.Fatalf("SelectRelatedPackageIgnores requires at least one vulnerability ID")
+		return nil
+	}
+
+	filters := make([]match.IgnoreRelatedPackage, 0, len(vulnIDs))
+	for _, vulnID := range vulnIDs {
+		matchedIdx := -1
+		for idx, ig := range i.ignores {
+			irp, ok := ig.(match.IgnoreRelatedPackage)
+			if !ok {
+				continue
+			}
+			if irp.Reason == reason && irp.VulnerabilityID == vulnID {
+				if matchedIdx != -1 {
+					i.t.Fatalf("expected exactly one IgnoreRelatedPackage{Reason=%q, VulnerabilityID=%q}, found multiple", reason, vulnID)
+					return nil
+				}
+				matchedIdx = idx
+			}
+		}
+		if matchedIdx == -1 {
+			i.t.Fatalf("expected IgnoreRelatedPackage{Reason=%q, VulnerabilityID=%q}, not found", reason, vulnID)
+			return nil
+		}
+		i.asserted[matchedIdx] = true
+		filters = append(filters, i.ignores[matchedIdx].(match.IgnoreRelatedPackage))
+	}
+
+	return &IgnoreRelatedPackagesAssertion{t: i.t, filters: filters}
+}
+
+// IgnoreRelatedPackagesAssertion fans assertions out over a batch of
+// IgnoreRelatedPackage filters that were selected together via
+// SelectRelatedPackageIgnores. Each method applies to every filter in the
+// batch.
+type IgnoreRelatedPackagesAssertion struct {
+	t       TestingT
+	filters []match.IgnoreRelatedPackage
+}
+
+// ForPackage asserts that every filter in the batch has the given related
+// package ID.
+func (a *IgnoreRelatedPackagesAssertion) ForPackage(pkgID pkg.ID) *IgnoreRelatedPackagesAssertion {
+	a.t.Helper()
+	for _, f := range a.filters {
+		assert.Equal(a.t, pkgID, f.RelatedPackageID, "unexpected related package ID for IgnoreRelatedPackage{Reason=%q, VulnerabilityID=%q}", f.Reason, f.VulnerabilityID)
+	}
+	return a
+}
+
+// WithRelationshipType asserts that every filter in the batch has the given
+// relationship type.
+func (a *IgnoreRelatedPackagesAssertion) WithRelationshipType(rt artifact.RelationshipType) *IgnoreRelatedPackagesAssertion {
+	a.t.Helper()
+	for _, f := range a.filters {
+		assert.Equal(a.t, rt, f.RelationshipType, "unexpected relationship type for IgnoreRelatedPackage{Reason=%q, VulnerabilityID=%q}", f.Reason, f.VulnerabilityID)
+	}
+	return a
+}
+
 // ignoreSummary returns a short, human-readable description of an IgnoreFilter
 // for use in error messages from completeness checking.
 func ignoreSummary(ig match.IgnoreFilter) string {

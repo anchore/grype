@@ -935,10 +935,10 @@ func TestRedhatEUSMatches_MultipleCVEsAllIgnored(t *testing.T) {
 		findings := db.Match(t, &matcher, p)
 		findings.IsEmpty()
 		// both EUS CVEs should produce ignores against this package
-		igs := findings.Ignores().HasCount(2)
-		igs.SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2024-0340").
-			ForPackage(pkgID)
-		igs.SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2021-47527").
+		findings.Ignores().HasCount(2).
+			SelectRelatedPackageIgnores(IgnoreReasonDistroNotVulnerable,
+				"CVE-2024-0340",
+				"CVE-2021-47527").
 			ForPackage(pkgID)
 	})
 }

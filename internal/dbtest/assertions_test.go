@@ -1302,3 +1302,79 @@ func TestSelectMatches_WithDetailType_NoMatch(t *testing.T) {
 
 	assert.True(t, mockT.fataled, "expected WithDetailType to fatal when no match has a detail of that type")
 }
+
+// TestSelectRelatedPackageIgnores covers the variadic batch helper: same
+// reason + same package, different vuln IDs, with one trailing ForPackage to
+// fan over the whole set. This is the alma alias-unwind shape.
+func TestSelectRelatedPackageIgnores(t *testing.T) {
+	const reason = "Alma Unaffected"
+	pkgID := pkg.ID("pkg-1")
+	p := pkg.Package{Name: "httpd"}
+	ignores := []match.IgnoreFilter{
+		match.IgnoreRelatedPackage{Reason: reason, VulnerabilityID: "ALSA-2021:4537", RelatedPackageID: pkgID},
+		match.IgnoreRelatedPackage{Reason: reason, VulnerabilityID: "CVE-2021-40438", RelatedPackageID: pkgID},
+		match.IgnoreRelatedPackage{Reason: reason, VulnerabilityID: "CVE-2021-26691", RelatedPackageID: pkgID},
+	}
+
+	AssertFindingsAndIgnores(t, nil, ignores, p).
+		Ignores().
+		HasCount(3).
+		SelectRelatedPackageIgnores(reason,
+			"ALSA-2021:4537",
+			"CVE-2021-40438",
+			"CVE-2021-26691").
+		ForPackage(pkgID)
+}
+
+// TestSelectRelatedPackageIgnores_NoIDs fatals when called with no
+// vulnerability IDs - it's a footgun otherwise (an empty batch silently
+// asserts nothing).
+func TestSelectRelatedPackageIgnores_NoIDs(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "httpd"}
+
+	AssertFindingsAndIgnores(mockT, nil, nil, p).
+		Ignores().SkipCompleteness().
+		SelectRelatedPackageIgnores("Alma Unaffected")
+
+	assert.True(t, mockT.fataled, "expected SelectRelatedPackageIgnores to fatal when called with no vulnerability IDs")
+}
+
+// TestSelectRelatedPackageIgnores_MissingFatal fatals as soon as one of the
+// requested vulnerability IDs is missing from the ignore set.
+func TestSelectRelatedPackageIgnores_MissingFatal(t *testing.T) {
+	mockT := newMockT()
+	const reason = "Alma Unaffected"
+	pkgID := pkg.ID("pkg-1")
+	p := pkg.Package{Name: "httpd"}
+	ignores := []match.IgnoreFilter{
+		match.IgnoreRelatedPackage{Reason: reason, VulnerabilityID: "ALSA-2021:4537", RelatedPackageID: pkgID},
+	}
+
+	AssertFindingsAndIgnores(mockT, nil, ignores, p).
+		Ignores().SkipCompleteness().
+		SelectRelatedPackageIgnores(reason, "ALSA-2021:4537", "CVE-9999-9999")
+
+	assert.True(t, mockT.fataled, "expected SelectRelatedPackageIgnores to fatal when one of the IDs is missing")
+}
+
+// TestSelectRelatedPackageIgnores_ForPackageMismatch reports a per-filter
+// failure naming the offending vuln ID, not a generic mismatch.
+func TestSelectRelatedPackageIgnores_ForPackageMismatch(t *testing.T) {
+	mockT := newMockT()
+	const reason = "Alma Unaffected"
+	wantID := pkg.ID("pkg-1")
+	otherID := pkg.ID("pkg-2")
+	p := pkg.Package{Name: "httpd"}
+	ignores := []match.IgnoreFilter{
+		match.IgnoreRelatedPackage{Reason: reason, VulnerabilityID: "ALSA-2021:4537", RelatedPackageID: wantID},
+		match.IgnoreRelatedPackage{Reason: reason, VulnerabilityID: "CVE-2021-40438", RelatedPackageID: otherID},
+	}
+
+	AssertFindingsAndIgnores(mockT, nil, ignores, p).
+		Ignores().
+		SelectRelatedPackageIgnores(reason, "ALSA-2021:4537", "CVE-2021-40438").
+		ForPackage(wantID)
+
+	assert.True(t, mockT.Failed(), "expected ForPackage to fail when one filter in the batch points at a different package")
+}

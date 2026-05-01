@@ -186,6 +186,8 @@ findings.SelectMatch("CVE-2024-1234").
 | `HasOnlyMatchTypes(types...)` | Assert all details have one of these types |
 | `SkipCompleteness()` | Assert this chain is intentionally partial; fails if the chain is actually exhaustive |
 
+For ignore filters, `Ignores().SelectRelatedPackageIgnore(reason, vulnID)` selects one ignore for fine-grained assertions; `Ignores().SelectRelatedPackageIgnores(reason, vulnIDs...)` selects a batch sharing a reason and fans `ForPackage`/`WithRelationshipType` over all of them — useful for AlmaLinux alias unwinding where one ALSA emits ignores for itself plus each aliased CVE.
+
 ### Extracting Fixtures from Vunnel Cache
 
 Use `FixtureExtractor` to create fixtures from a vunnel data directory:
