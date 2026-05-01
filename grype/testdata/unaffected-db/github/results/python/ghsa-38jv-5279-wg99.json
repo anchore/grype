@@ -1,0 +1,77 @@
+{
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json",
+  "identifier": "github:python/ghsa-38jv-5279-wg99",
+  "item": {
+    "Vulnerability": {},
+    "Advisory": {
+      "Classification": "GENERAL",
+      "Severity": "High",
+      "CVSS": {
+        "version": "3.1",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "base_metrics": {
+          "base_score": 7.5,
+          "exploitability_score": 3.9,
+          "impact_score": 3.6,
+          "base_severity": "High"
+        },
+        "status": "N/A"
+      },
+      "cvss_severities": [
+        {
+          "version": "3.1",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+        },
+        {
+          "version": "4.0",
+          "vector": "CVSS:4.0/AV:N/AC:L/AT:P/PR:N/UI:N/VC:N/VI:N/VA:H/SC:N/SI:N/SA:H"
+        }
+      ],
+      "FixedIn": [
+        {
+          "name": "urllib3",
+          "identifier": "2.6.3",
+          "ecosystem": "python",
+          "namespace": "github:python",
+          "range": ">= 1.22 < 2.6.3",
+          "available": {
+            "date": "2026-01-08",
+            "kind": "first-observed"
+          }
+        }
+      ],
+      "Summary": "Decompression-bomb safeguards bypassed when following HTTP redirects (streaming API)",
+      "url": "https://github.com/advisories/GHSA-38jv-5279-wg99",
+      "CVE": [
+        "CVE-2026-21441"
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2026-21441"
+        ]
+      },
+      "ghsaId": "GHSA-38jv-5279-wg99",
+      "published": "2026-01-07T19:18:14Z",
+      "updated": "2026-01-23T16:05:22Z",
+      "withdrawn": null,
+      "references": [
+        {
+          "url": "https://github.com/urllib3/urllib3/security/advisories/GHSA-38jv-5279-wg99"
+        },
+        {
+          "url": "https://github.com/urllib3/urllib3/commit/8864ac407bba8607950025e0979c4c69bc7abc7b"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-21441"
+        },
+        {
+          "url": "https://lists.debian.org/debian-lts-announce/2026/01/msg00017.html"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-38jv-5279-wg99"
+        }
+      ],
+      "namespace": "github:python"
+    }
+  }
+}
