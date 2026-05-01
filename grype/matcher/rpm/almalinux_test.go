@@ -80,7 +80,6 @@ func TestAlmaLinuxMatching_ModularVulnerable(t *testing.T) {
 				HasAdvisories("ALSA-2021:4537")
 			sf.SelectDetailByDistro("redhat", "8"). // alma matching queries the rhel namespace
 								HasMatchType(match.ExactDirectMatch)
-			findings.Ignores().IsEmpty()
 		})
 }
 
@@ -105,11 +104,9 @@ func TestAlmaLinuxMatching_ModularFixed(t *testing.T) {
 				Build()
 
 			findings := db.Match(t, &matcher, p)
-			findings.IsEmpty()
 			// the rhel disclosure path produces "Distro Fixed" since the binary
 			// package version is past the RHEL fix
 			findings.Ignores().
-				HasCount(1).
 				SelectRelatedPackageIgnore(IgnoreReasonDistroFixed, "CVE-2021-40438").
 				ForPackage(pkgID)
 		})
@@ -154,7 +151,6 @@ func TestAlmaLinuxMatching_NonModularVulnerable(t *testing.T) {
 				InNamespace("redhat:distro:redhat:8").
 				SelectDetailByDistro("redhat", "8").
 				HasMatchType(match.ExactDirectMatch)
-			findings.Ignores().IsEmpty()
 		})
 }
 
@@ -172,9 +168,7 @@ func TestAlmaLinuxMatching_NonModularFixed(t *testing.T) {
 				Build()
 
 			findings := db.Match(t, &matcher, p)
-			findings.IsEmpty()
 			findings.Ignores().
-				HasCount(1).
 				SelectRelatedPackageIgnore(IgnoreReasonDistroFixed, "CVE-2019-13636").
 				ForPackage(pkgID)
 		})
@@ -198,7 +192,6 @@ func TestAlmaLinuxMatching_WontFixPassesThrough(t *testing.T) {
 			sf.HasFix(vulnerability.FixStateWontFix)
 			sf.SelectDetailByDistro("redhat", "8").
 				HasMatchType(match.ExactDirectMatch)
-			findings.Ignores().IsEmpty()
 		})
 }
 
@@ -230,7 +223,6 @@ func TestAlmaLinuxMatching_UpstreamMatchWithFixReplacement(t *testing.T) {
 			sf.HasFix(vulnerability.FixStateFixed, "2.4.37-43.module_el8.5.0+2597+c4b14997.alma")
 			sf.SelectDetailByDistro("redhat", "8"). // alma matching queries the rhel namespace
 								HasMatchType(match.ExactIndirectMatch)
-			findings.Ignores().IsEmpty()
 		})
 }
 
@@ -266,12 +258,10 @@ func TestAlmaLinuxMatching_LowerAlmaModuleBuildFiltersVulnerability(t *testing.T
 				Build()
 
 			findings := db.Match(t, &matcher, p)
-			findings.IsEmpty()
-
-			igs := findings.Ignores().HasCount(2)
-			igs.SelectRelatedPackageIgnores(IgnoreReasonAlmaUnaffected,
-				"ALSA-2021:1242",
-				"CVE-2021-27928").
+			findings.Ignores().
+				SelectRelatedPackageIgnores(IgnoreReasonAlmaUnaffected,
+					"ALSA-2021:1242",
+					"CVE-2021-27928").
 				ForPackage(pkgID)
 		})
 }
@@ -302,7 +292,6 @@ func TestAlmaLinuxMatching_BelowBothModuleBuildsStillVulnerable(t *testing.T) {
 			sf.HasFix(vulnerability.FixStateFixed, "3:10.3.28-1.module_el8.3.0+2177+7adc332a")
 			sf.SelectDetailByDistro("redhat", "8"). // alma matching queries the rhel namespace
 								HasMatchType(match.ExactDirectMatch)
-			findings.Ignores().IsEmpty()
 		})
 }
 
@@ -338,7 +327,6 @@ func TestAlmaLinuxIgnoreFilters_NoIgnoresWhenVulnerable(t *testing.T) {
 			findings.SelectMatch("CVE-2019-13636").
 				SelectDetailByDistro("redhat", "8"). // alma matching queries the rhel namespace
 				HasMatchType(match.ExactDirectMatch)
-			findings.Ignores().IsEmpty()
 		})
 }
 
@@ -356,9 +344,7 @@ func TestAlmaLinuxIgnoreFilters_DistroFixedIgnore(t *testing.T) {
 				Build()
 
 			findings := db.Match(t, &matcher, p)
-			findings.IsEmpty()
 			findings.Ignores().
-				HasCount(1).
 				SelectRelatedPackageIgnore(IgnoreReasonDistroFixed, "CVE-2019-13636").
 				ForPackage(pkgID)
 		})
@@ -398,10 +384,7 @@ func TestAlmaLinuxIgnoreFilters_AlmaUnaffectedAndAliasUnwind(t *testing.T) {
 				}).
 				Build()
 
-			findings := db.Match(t, &matcher, p)
-			findings.IsEmpty()
-
-			igs := findings.Ignores().HasCount(6)
+			igs := db.Match(t, &matcher, p).Ignores()
 
 			// the rhel disclosure path emits "Distro Fixed" for the two CVEs
 			// whose RHEL fix the package is past

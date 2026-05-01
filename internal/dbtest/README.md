@@ -175,8 +175,7 @@ findings.SelectMatch("CVE-2024-1234").
 
 | Method | Description |
 |--------|-------------|
-| `HasCount(n)` | Assert exactly n matches |
-| `IsEmpty()` | Assert no matches |
+| `IsEmpty()` | Assert the matcher produced nothing — no matches AND no ignore filters |
 | `ContainsVulnerabilities(ids...)` | Assert these CVEs are present (others may exist) |
 | `OnlyHasVulnerabilities(ids...)` | Assert exactly these CVEs and no others |
 | `DoesNotHaveAnyVulnerabilities(ids...)` | Assert these CVEs are not present |
@@ -186,7 +185,11 @@ findings.SelectMatch("CVE-2024-1234").
 | `HasOnlyMatchTypes(types...)` | Assert all details have one of these types |
 | `SkipCompleteness()` | Assert this chain is intentionally partial; fails if the chain is actually exhaustive |
 
+`IsEmpty()` covers the **whole result** — both matches and ignore filters. For tests that expect zero matches but ≥1 ignore filter, just skip `IsEmpty()` and assert on the ignores via `Ignores()`; matches-side completeness checking will still enforce that no matches were produced.
+
 For ignore filters, `Ignores().SelectRelatedPackageIgnore(reason, vulnID)` selects one ignore for fine-grained assertions; `Ignores().SelectRelatedPackageIgnores(reason, vulnIDs...)` selects a batch sharing a reason and fans `ForPackage`/`WithRelationshipType` over all of them — useful for AlmaLinux alias unwinding where one ALSA emits ignores for itself plus each aliased CVE.
+
+**Ignore-completeness is on by default** — every matcher-emitted ignore must be asserted on, even by tests that never call `Ignores()` explicitly. Tests that produce zero ignores don't need `Ignores().IsEmpty()` boilerplate; the completeness check fails if any unasserted ignore is emitted.
 
 #### Extending the API (no escape hatches)
 
@@ -199,12 +202,11 @@ If you find yourself reaching for raw struct fields, stop and add the helper. A 
 
 #### Universe-level vs. element-level assertions
 
-When the chain ends in one or more `SelectMatch` / `SelectMatches` calls that fully cover the universe, the universe-level assertions (`HasCount(N)`, `ContainsVulnerabilities`, `OnlyHasVulnerabilities`) are dead weight — completeness checking already proves them. Drop them:
+When the chain ends in one or more `SelectMatch` / `SelectMatches` calls that fully cover the universe, universe-level assertions (`ContainsVulnerabilities`, `OnlyHasVulnerabilities`) are dead weight — completeness checking already proves them. Drop them:
 
 ```go
-// dead weight - HasCount(1) and ContainsVulnerabilities are subsumed
+// dead weight - ContainsVulnerabilities is subsumed by SelectMatch + completeness
 findings := db.Match(t, &matcher, p).
-    HasCount(1).
     ContainsVulnerabilities("CVE-2024-0340")
 findings.SelectMatch("CVE-2024-0340")...
 
@@ -213,7 +215,7 @@ findings := db.Match(t, &matcher, p)
 findings.SelectMatch("CVE-2024-0340")...
 ```
 
-The same applies on the matches side of `SelectMatches(id).HasCount(n)`, but **not** on the ignores side: `Ignores().HasCount(n)` is worth keeping because it documents the expected ignore count and produces a clearer fast-fail than the completeness diagnostic.
+The same logic applies to `Ignores()`: with ignore-completeness on by default, any explicit ignore-side count assertion is subsumed by the exhaustive `SelectRelatedPackageIgnore`/`SelectRelatedPackageIgnores` chain. There is intentionally no `HasCount` method on any of these assertion types — if the count matters, prove it by asserting on each entry.
 
 ### Extracting Fixtures from Vunnel Cache
 

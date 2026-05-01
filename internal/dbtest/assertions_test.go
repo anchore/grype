@@ -82,16 +82,6 @@ func makeVuln(id, namespace string) vulnerability.Vulnerability {
 	}
 }
 
-func TestAssertFindings_HasCount(t *testing.T) {
-	p := pkg.Package{Name: "curl"}
-	matches := []match.Match{
-		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p},
-		{Vulnerability: makeVuln("CVE-2024-0002", ""), Package: p},
-	}
-
-	AssertFindings(t, matches, p).SkipCompleteness().HasCount(2)
-}
-
 func TestAssertFindings_IsEmpty(t *testing.T) {
 	var matches []match.Match
 	// empty package = assert empty matches
@@ -172,7 +162,6 @@ func TestAssertFindings_Chaining(t *testing.T) {
 	}
 
 	AssertFindings(t, matches, p).SkipCompleteness().
-		HasCount(2).
 		OnlyHasVulnerabilities("CVE-2024-0001", "CVE-2024-0002").
 		DoesNotHaveAnyVulnerabilities("CVE-2024-9999")
 }
@@ -471,18 +460,6 @@ func TestComplete(t *testing.T) {
 }
 
 // Failure path tests - these verify that assertions correctly fail when conditions are not met
-
-func TestAssertFindings_HasCount_Failure(t *testing.T) {
-	mockT := newMockT()
-	p := pkg.Package{Name: "curl"}
-	matches := []match.Match{
-		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p},
-	}
-
-	AssertFindings(mockT, matches, p).SkipCompleteness().HasCount(5)
-
-	assert.True(t, mockT.Failed(), "expected HasCount to fail when count is wrong")
-}
 
 func TestAssertFindings_IsEmpty_Failure(t *testing.T) {
 	mockT := newMockT()
@@ -1220,7 +1197,7 @@ func TestSelectMatches_DisambiguatesByDetailType(t *testing.T) {
 	}
 
 	findings := AssertFindings(t, matches, p)
-	ms := findings.SelectMatches("CVE-2018-0735").HasCount(2)
+	ms := findings.SelectMatches("CVE-2018-0735")
 	ms.WithDetailType(match.CPEMatch).
 		SelectDetailByCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*")
 	ms.WithDetailType(match.ExactDirectMatch).
@@ -1239,22 +1216,6 @@ func TestSelectMatches_NotFound(t *testing.T) {
 		SelectMatches("CVE-2024-9999")
 
 	assert.True(t, mockT.fataled, "expected SelectMatches to fatal when no matches share the vulnerability ID")
-}
-
-// TestSelectMatches_HasCount_Failure confirms that an unexpected subset size
-// is reported as a count mismatch on the SelectMatches subset itself, not on
-// the parent FindingsAssertion.
-func TestSelectMatches_HasCount_Failure(t *testing.T) {
-	mockT := newMockT()
-	p := pkg.Package{Name: "curl"}
-	matches := []match.Match{
-		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p},
-	}
-
-	AssertFindings(mockT, matches, p).SkipCompleteness().
-		SelectMatches("CVE-2024-0001").HasCount(2)
-
-	assert.True(t, mockT.Failed(), "expected HasCount on the SelectMatches subset to fail when the count is wrong")
 }
 
 // TestSelectMatches_WithDetailType_Ambiguous fatals when multiple matches in
@@ -1318,7 +1279,6 @@ func TestSelectRelatedPackageIgnores(t *testing.T) {
 
 	AssertFindingsAndIgnores(t, nil, ignores, p).
 		Ignores().
-		HasCount(3).
 		SelectRelatedPackageIgnores(reason,
 			"ALSA-2021:4537",
 			"CVE-2021-40438",

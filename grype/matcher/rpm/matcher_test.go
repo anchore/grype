@@ -57,13 +57,16 @@ func TestMatcherRpm_FixedVersionNoMatch(t *testing.T) {
 		SelectOnly("rhel:8/cve-2018-0735").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
-			// version newer than fix - not vulnerable
+			// version newer than fix - not vulnerable, but matcher still emits
+			// a "Distro Not Vulnerable" ignore so consumers can suppress related
+			// matches (e.g., GHSA-language matches that overlap by file ownership)
 			p := dbtest.NewPackage("openssl", "1:1.1.1c-2.el8", syftPkg.RpmPkg).
 				WithDistro(dbtest.RHEL8).
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(1)}).
 				Build()
 
-			db.Match(t, &matcher, p).IsEmpty()
+			db.Match(t, &matcher, p).Ignores().
+				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2018-0735")
 		})
 }
 
@@ -189,7 +192,9 @@ func TestMatcherRpm_PackageHigherEpochNoMatch(t *testing.T) {
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(2)}).
 				Build()
 
-			db.Match(t, &matcher, p).IsEmpty()
+			// not vulnerable -> "Distro Not Vulnerable" ignore (no match)
+			db.Match(t, &matcher, p).Ignores().
+				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2018-0735")
 		})
 }
 
@@ -212,9 +217,7 @@ func TestMatcherRpm_DistroNotVulnerableIgnore(t *testing.T) {
 				Build()
 
 			findings := db.Match(t, &matcher, p)
-			findings.IsEmpty()
 			findings.Ignores().
-				HasCount(1).
 				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2018-0735").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
@@ -239,9 +242,7 @@ func TestMatcherRpm_DistroNotVulnerableIgnoreViaUpstream(t *testing.T) {
 				Build()
 
 			findings := db.Match(t, &matcher, p)
-			findings.IsEmpty()
 			findings.Ignores().
-				HasCount(1).
 				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2018-0735").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
@@ -268,9 +269,7 @@ func TestMatcherRpm_UnaffectedRecordProducesIgnore(t *testing.T) {
 				Build()
 
 			findings := db.Match(t, &matcher, p)
-			findings.IsEmpty()
 			findings.Ignores().
-				HasCount(1).
 				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-1999-0199").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
@@ -301,7 +300,6 @@ func TestMatcherRpm_VulnerableAndUnaffectedInSameCall(t *testing.T) {
 				SelectDetailByType(match.ExactDirectMatch).
 				AsDistroSearch()
 			findings.Ignores().
-				HasCount(1).
 				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-1999-0199").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
@@ -324,7 +322,6 @@ func TestMatcherRpm_NoIgnoresWhenVulnerable(t *testing.T) {
 			findings.SelectMatch("CVE-2018-0735").
 				SelectDetailByType(match.ExactDirectMatch).
 				AsDistroSearch()
-			findings.Ignores().IsEmpty()
 		})
 }
 
@@ -405,14 +402,13 @@ func TestMatcherRpm_CPEFallbackWhenEOL_EOLDistroEnabled(t *testing.T) {
 			Build()
 
 		findings := db.Match(t, matcher, p)
-		ms := findings.SelectMatches("CVE-2018-0735").HasCount(2)
+		ms := findings.SelectMatches("CVE-2018-0735")
 		ms.WithDetailType(match.CPEMatch).
 			SelectDetailByCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*").
 			HasMatchType(match.CPEMatch)
 		ms.WithDetailType(match.ExactDirectMatch).
 			SelectDetailByDistro("redhat", "7").
 			HasMatchType(match.ExactDirectMatch)
-		findings.Ignores().IsEmpty()
 	})
 }
 
@@ -432,7 +428,6 @@ func TestMatcherRpm_CPEFallbackWhenEOL_EOLDistroDisabled(t *testing.T) {
 		findings.SelectMatch("CVE-2018-0735").
 			SelectDetailByDistro("redhat", "7").
 			HasMatchType(match.ExactDirectMatch)
-		findings.Ignores().IsEmpty()
 	})
 }
 

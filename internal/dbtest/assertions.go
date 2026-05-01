@@ -93,14 +93,28 @@ func AssertFindingsAndIgnores(t TestingT, matches []match.Match, ignores []match
 		ignores:         ignores,
 		assertedMatches: make(map[int]*singleFindingTracker),
 	}
+	// Ignore-completeness is on by default: any matcher-emitted ignore that the
+	// test didn't assert on fails the test, just like for matches. Tests that
+	// produce zero ignores don't need to opt in or write a trailing
+	// findings.Ignores().IsEmpty() - completeness handles it.
+	f.ignoresAssertion = &IgnoreFiltersAssertion{
+		t:        t,
+		ignores:  ignores,
+		asserted: make(map[int]bool),
+	}
 	f.complete()
 	return f
 }
 
-// IsEmpty asserts that there are no findings.
+// IsEmpty asserts that the matcher returned nothing - no matches AND no
+// ignores. Use this when the matcher is expected to be a complete no-op for
+// the input. For "no matches but some ignores expected", just skip IsEmpty
+// and assert on the ignores via Ignores(); the matches-side completeness
+// check will enforce that no matches were produced.
 func (f *FindingsAssertion) IsEmpty() *FindingsAssertion {
 	f.t.Helper()
-	assert.Empty(f.t, f.matches, "expected no findings, got %d", len(f.matches))
+	assert.Empty(f.t, f.matches, "expected no matches, got %d", len(f.matches))
+	assert.Empty(f.t, f.ignores, "expected no ignore filters, got %d", len(f.ignores))
 	return f
 }
 
@@ -144,11 +158,11 @@ func (f *FindingsAssertion) complete() {
 }
 
 // checkCompleteness verifies that the assertion chain matched its declared
-// completeness intent. By default (SkipCompleteness not called), every match
-// and detail must be asserted on. If SkipCompleteness was called, at least one
-// match or detail must remain un-asserted - otherwise the call is dead weight
-// and the test fails so the author removes it. Ignore-filter completeness
-// follows the same rule once Ignores() has been opted into.
+// completeness intent for both matches and ignore filters. By default
+// (SkipCompleteness not called), every match, detail, and ignore filter must
+// be asserted on. If SkipCompleteness was called, at least one item must
+// remain un-asserted - otherwise the call is dead weight and the test fails
+// so the author removes it.
 func (f *FindingsAssertion) checkCompleteness() {
 	f.t.Helper()
 
@@ -156,11 +170,9 @@ func (f *FindingsAssertion) checkCompleteness() {
 		"incomplete assertions - the following items were not asserted",
 		"SkipCompleteness was called but every match and detail was asserted - drop the SkipCompleteness call")
 
-	if f.ignoresAssertion != nil {
-		f.reportCompleteness(len(f.ignoresAssertion.ignores), f.collectMissedIgnores(), f.ignoresAssertion.skipCompleteness,
-			"incomplete ignore-filter assertions - the following items were not asserted",
-			"SkipCompleteness was called on Ignores() but every ignore filter was asserted - drop the SkipCompleteness call")
-	}
+	f.reportCompleteness(len(f.ignoresAssertion.ignores), f.collectMissedIgnores(), f.ignoresAssertion.skipCompleteness,
+		"incomplete ignore-filter assertions - the following items were not asserted",
+		"SkipCompleteness was called on Ignores() but every ignore filter was asserted - drop the SkipCompleteness call")
 }
 
 // collectMissedMatches returns one entry per match or detail that the chain
@@ -217,19 +229,14 @@ func (f *FindingsAssertion) reportCompleteness(total int, missed []string, skip 
 	}
 }
 
-// Ignores returns an IgnoreFiltersAssertion for asserting on the ignore filters
-// returned alongside the matches. Calling this opts the assertion chain into
-// completeness checking on ignore filters - if any ignore was not asserted by
-// test end, the test fails. Use SkipCompleteness on the returned assertion to
-// disable that check (e.g., when the test only cares about a subset).
+// Ignores returns an IgnoreFiltersAssertion for asserting on the ignore
+// filters returned alongside the matches. Ignore-side completeness is always
+// on (set up at construction time), so a test that produces zero ignores does
+// not need to call this at all - completeness fails the test if any unasserted
+// ignore is emitted by the matcher. Tests that expect ≥1 ignore must use this
+// to assert on each one. Use SkipCompleteness on the returned assertion to
+// scope to a subset.
 func (f *FindingsAssertion) Ignores() *IgnoreFiltersAssertion {
-	if f.ignoresAssertion == nil {
-		f.ignoresAssertion = &IgnoreFiltersAssertion{
-			t:        f.t,
-			ignores:  f.ignores,
-			asserted: make(map[int]bool),
-		}
-	}
 	return f.ignoresAssertion
 }
 
@@ -257,13 +264,6 @@ func (i *IgnoreFiltersAssertion) SkipCompleteness() *IgnoreFiltersAssertion {
 func (i *IgnoreFiltersAssertion) IsEmpty() *IgnoreFiltersAssertion {
 	i.t.Helper()
 	assert.Empty(i.t, i.ignores, "expected no ignore filters, got %d", len(i.ignores))
-	return i
-}
-
-// HasCount asserts the number of ignore filters.
-func (i *IgnoreFiltersAssertion) HasCount(n int) *IgnoreFiltersAssertion {
-	i.t.Helper()
-	require.Len(i.t, i.ignores, n, "expected %d ignore filters, got %d", n, len(i.ignores))
 	return i
 }
 
@@ -403,13 +403,6 @@ func ignoreSummary(ig match.IgnoreFilter) string {
 		return fmt.Sprintf("Reason=%q, VulnerabilityID=%q, RelatedPackageID=%q", irp.Reason, irp.VulnerabilityID, irp.RelatedPackageID)
 	}
 	return fmt.Sprintf("%+v", ig)
-}
-
-// HasCount asserts that there are exactly n findings.
-func (f *FindingsAssertion) HasCount(n int) *FindingsAssertion {
-	f.t.Helper()
-	require.Len(f.t, f.matches, n, "expected %d findings, got %d", n, len(f.matches))
-	return f
 }
 
 // ContainsVulnerabilities asserts that findings with all the given vulnerability IDs exist.
@@ -556,13 +549,6 @@ type MultipleFindingAssertion struct {
 	parent  *FindingsAssertion
 	indices []int
 	vulnID  string
-}
-
-// HasCount asserts the number of matches in this subset.
-func (m *MultipleFindingAssertion) HasCount(n int) *MultipleFindingAssertion {
-	m.t.Helper()
-	require.Len(m.t, m.indices, n, "SelectMatches(%q) expected %d matches, got %d", m.vulnID, n, len(m.indices))
-	return m
 }
 
 // WithDetailType narrows the subset to the single match that has at least one

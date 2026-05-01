@@ -818,7 +818,6 @@ func TestRedhatEUSMatches_VulnerableOnEUS(t *testing.T) {
 				eus94CVE20240340OverlayConstraint,
 				eus94CVE20240340MainlineConstraint,
 				match.ExactDirectMatch)
-			findings.Ignores().IsEmpty()
 		})
 }
 
@@ -843,13 +842,12 @@ func TestRedhatEUSMatches_IndirectMatchBySource(t *testing.T) {
 				eus94CVE20240340OverlayConstraint,
 				eus94CVE20240340MainlineConstraint,
 				match.ExactIndirectMatch)
-			findings.Ignores().IsEmpty()
 		})
 }
 
 // TestRedhatEUSMatches_FixedOnEUS verifies that a package at the EUS fix
 // version is not vulnerable - the EUS resolution overrides the broader RHEL
-// disclosure.
+// disclosure - and the matcher emits a "Distro Not Vulnerable" ignore.
 func TestRedhatEUSMatches_FixedOnEUS(t *testing.T) {
 	dbtest.DBs(t, "rhel9-eus").
 		SelectOnly("CVE-2024-0340").
@@ -860,13 +858,15 @@ func TestRedhatEUSMatches_FixedOnEUS(t *testing.T) {
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 				Build()
 
-			db.Match(t, &matcher, p).IsEmpty()
+			db.Match(t, &matcher, p).Ignores().
+				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2024-0340")
 		})
 }
 
 // TestRedhatEUSMatches_BetweenEUSAndMainFix verifies that a package below the
 // mainline fix but at-or-past the EUS fix is treated as resolved (the EUS
-// resolution wins because the user is on EUS).
+// resolution wins because the user is on EUS) and the matcher emits the
+// corresponding "Distro Not Vulnerable" ignore.
 func TestRedhatEUSMatches_BetweenEUSAndMainFix(t *testing.T) {
 	dbtest.DBs(t, "rhel9-eus").
 		SelectOnly("CVE-2024-0340").
@@ -878,7 +878,8 @@ func TestRedhatEUSMatches_BetweenEUSAndMainFix(t *testing.T) {
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 				Build()
 
-			db.Match(t, &matcher, p).IsEmpty()
+			db.Match(t, &matcher, p).Ignores().
+				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2024-0340")
 		})
 }
 
@@ -904,7 +905,6 @@ func TestRedhatEUSMatches_MultipleCVEsAllVulnerable(t *testing.T) {
 			eus94CVE202147527OverlayConstraint,
 			eus94CVE202147527MainlineConstraint,
 			match.ExactDirectMatch)
-		findings.Ignores().IsEmpty()
 	})
 }
 
@@ -924,9 +924,8 @@ func TestRedhatEUSMatches_MultipleCVEsAllIgnored(t *testing.T) {
 			Build()
 
 		findings := db.Match(t, &matcher, p)
-		findings.IsEmpty()
 		// both EUS CVEs should produce ignores against this package
-		findings.Ignores().HasCount(2).
+		findings.Ignores().
 			SelectRelatedPackageIgnores(IgnoreReasonDistroNotVulnerable,
 				"CVE-2024-0340",
 				"CVE-2021-47527").
@@ -949,9 +948,7 @@ func TestRedhatEUSIgnoreFilters_FixedProducesIgnore(t *testing.T) {
 				Build()
 
 			findings := db.Match(t, &matcher, p)
-			findings.IsEmpty()
 			findings.Ignores().
-				HasCount(1).
 				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2024-0340").
 				ForPackage(pkgID)
 		})
@@ -974,7 +971,6 @@ func TestRedhatEUSIgnoreFilters_VulnerablePackageNoIgnores(t *testing.T) {
 				eus94CVE20240340OverlayConstraint,
 				eus94CVE20240340MainlineConstraint,
 				match.ExactDirectMatch)
-			findings.Ignores().IsEmpty()
 		})
 }
 
