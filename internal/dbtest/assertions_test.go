@@ -82,16 +82,6 @@ func makeVuln(id, namespace string) vulnerability.Vulnerability {
 	}
 }
 
-func TestAssertFindings_HasCount(t *testing.T) {
-	p := pkg.Package{Name: "curl"}
-	matches := []match.Match{
-		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p},
-		{Vulnerability: makeVuln("CVE-2024-0002", ""), Package: p},
-	}
-
-	AssertFindings(t, matches, p).SkipCompleteness().HasCount(2)
-}
-
 func TestAssertFindings_IsEmpty(t *testing.T) {
 	var matches []match.Match
 	// empty package = assert empty matches
@@ -172,7 +162,6 @@ func TestAssertFindings_Chaining(t *testing.T) {
 	}
 
 	AssertFindings(t, matches, p).SkipCompleteness().
-		HasCount(2).
 		OnlyHasVulnerabilities("CVE-2024-0001", "CVE-2024-0002").
 		DoesNotHaveAnyVulnerabilities("CVE-2024-9999")
 }
@@ -471,18 +460,6 @@ func TestComplete(t *testing.T) {
 }
 
 // Failure path tests - these verify that assertions correctly fail when conditions are not met
-
-func TestAssertFindings_HasCount_Failure(t *testing.T) {
-	mockT := newMockT()
-	p := pkg.Package{Name: "curl"}
-	matches := []match.Match{
-		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p},
-	}
-
-	AssertFindings(mockT, matches, p).SkipCompleteness().HasCount(5)
-
-	assert.True(t, mockT.Failed(), "expected HasCount to fail when count is wrong")
-}
 
 func TestAssertFindings_IsEmpty_Failure(t *testing.T) {
 	mockT := newMockT()
@@ -1068,4 +1045,296 @@ func TestPackageVersionMismatch_Failure(t *testing.T) {
 	AssertFindings(mockT, matches, p).SkipCompleteness().SelectMatch()
 
 	assert.True(t, mockT.Failed(), "expected assertion to fail when package version doesn't match")
+}
+
+// TestSkipCompleteness_DeadWeightFails covers the inverted SkipCompleteness
+// contract: if the chain ends up asserting on every match and detail, the
+// SkipCompleteness call is dead weight and the test must fail.
+func TestSkipCompleteness_DeadWeightFails(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl", Version: "7.88.1"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", "debian:11"),
+			Package:       p,
+			Details: []match.Detail{
+				{
+					Type: match.ExactDirectMatch,
+					SearchedBy: match.DistroParameters{
+						Package: match.PackageParameter{Name: "curl", Version: "7.88.1"},
+						Distro:  match.DistroIdentification{Type: "debian", Version: "11"},
+					},
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2024-0001",
+						VersionConstraint: "< 8.0.0",
+					},
+				},
+			},
+		},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatch().
+		SelectDetailByType().
+		AsDistroSearch()
+
+	mockT.runCleanups()
+
+	assert.True(t, mockT.Failed(), "expected SkipCompleteness to fail when nothing was actually missed")
+}
+
+// TestSkipCompleteness_PartialPasses confirms the other side of the inversion:
+// when at least one match or detail remains un-asserted, SkipCompleteness has
+// done its job and the test passes cleanly.
+func TestSkipCompleteness_PartialPasses(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl", Version: "7.88.1"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", "debian:11"),
+			Package:       p,
+			Details: []match.Detail{
+				{
+					Type: match.ExactDirectMatch,
+					SearchedBy: match.DistroParameters{
+						Package: match.PackageParameter{Name: "curl", Version: "7.88.1"},
+						Distro:  match.DistroIdentification{Type: "debian", Version: "11"},
+					},
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2024-0001",
+						VersionConstraint: "< 8.0.0",
+					},
+				},
+			},
+		},
+		{
+			Vulnerability: makeVuln("CVE-2024-0002", "debian:11"),
+			Package:       p,
+			Details:       []match.Detail{{Type: match.ExactDirectMatch}},
+		},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatch("CVE-2024-0001").
+		SelectDetailByType().
+		AsDistroSearch() // CVE-2024-0002 left intentionally un-asserted
+
+	mockT.runCleanups()
+
+	assert.False(t, mockT.Failed(), "expected SkipCompleteness to pass when something is genuinely un-asserted")
+}
+
+// TestIgnoresSkipCompleteness_DeadWeightFails mirrors
+// TestSkipCompleteness_DeadWeightFails for ignore filters: opting into
+// Ignores().SkipCompleteness() while asserting on every ignore is dead weight.
+func TestIgnoresSkipCompleteness_DeadWeightFails(t *testing.T) {
+	// synthetic reason - this package can't import grype/matcher/rpm without
+	// inverting the dbtest -> matcher layering, so we use a local constant to
+	// keep the produced/asserted strings paired.
+	const reason = "Distro Fixed"
+
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	pkgID := pkg.ID("pkg-1")
+	ignores := []match.IgnoreFilter{
+		match.IgnoreRelatedPackage{
+			Reason:           reason,
+			VulnerabilityID:  "CVE-2024-0001",
+			RelatedPackageID: pkgID,
+		},
+	}
+
+	AssertFindingsAndIgnores(mockT, nil, ignores, p).
+		Ignores().
+		SkipCompleteness().
+		SelectRelatedPackageIgnore(reason, "CVE-2024-0001").
+		ForPackage(pkgID)
+
+	mockT.runCleanups()
+
+	assert.True(t, mockT.Failed(), "expected SkipCompleteness on Ignores() to fail when nothing was missed")
+}
+
+// TestSelectMatches_DisambiguatesByDetailType is the end-to-end use case the
+// helper was added for: a matcher emits two findings for the same CVE (e.g., a
+// distro disclosure plus a CPE-fallback NVD finding), and SelectMatch can't
+// pick between them. SelectMatches + WithDetailType should narrow to each in
+// turn so the chain can be exhaustive without raw match introspection.
+func TestSelectMatches_DisambiguatesByDetailType(t *testing.T) {
+	p := pkg.Package{Name: "openssl", Version: "1.1.0a"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2018-0735", "redhat:distro:redhat:7"),
+			Package:       p,
+			Details: []match.Detail{{
+				Type: match.ExactDirectMatch,
+				SearchedBy: match.DistroParameters{
+					Package: match.PackageParameter{Name: "openssl", Version: "1.1.0a"},
+					Distro:  match.DistroIdentification{Type: "redhat", Version: "7"},
+				},
+				Found: match.DistroResult{
+					VulnerabilityID:   "CVE-2018-0735",
+					VersionConstraint: "< 1.1.0j",
+				},
+			}},
+		},
+		{
+			Vulnerability: makeVuln("CVE-2018-0735", "nvd:cpe"),
+			Package:       p,
+			Details: []match.Detail{{
+				Type: match.CPEMatch,
+				SearchedBy: match.CPEParameters{
+					Package: match.PackageParameter{Name: "openssl", Version: "1.1.0a"},
+					CPEs:    []string{"cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*"},
+				},
+				Found: match.CPEResult{
+					VulnerabilityID:   "CVE-2018-0735",
+					VersionConstraint: "< 1.1.0j",
+					CPEs:              []string{"cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*"},
+				},
+			}},
+		},
+	}
+
+	findings := AssertFindings(t, matches, p)
+	ms := findings.SelectMatches("CVE-2018-0735")
+	ms.WithDetailType(match.CPEMatch).
+		SelectDetailByCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*")
+	ms.WithDetailType(match.ExactDirectMatch).
+		SelectDetailByDistro("redhat", "7")
+}
+
+// TestSelectMatches_NotFound fatals when the vulnerability ID has no matches.
+func TestSelectMatches_NotFound(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatches("CVE-2024-9999")
+
+	assert.True(t, mockT.fataled, "expected SelectMatches to fatal when no matches share the vulnerability ID")
+}
+
+// TestSelectMatches_WithDetailType_Ambiguous fatals when multiple matches in
+// the subset share the requested detail type - the helper picks exactly one
+// match by detail type and refuses to silently pick.
+func TestSelectMatches_WithDetailType_Ambiguous(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", "ns1"),
+			Package:       p,
+			Details:       []match.Detail{{Type: match.ExactDirectMatch}},
+		},
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", "ns2"),
+			Package:       p,
+			Details:       []match.Detail{{Type: match.ExactDirectMatch}}, // same detail type
+		},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatches("CVE-2024-0001").
+		WithDetailType(match.ExactDirectMatch)
+
+	assert.True(t, mockT.fataled, "expected WithDetailType to fatal when multiple matches share the detail type")
+}
+
+// TestSelectMatches_WithDetailType_NoMatch fatals when no match in the subset
+// has a detail of the requested type.
+func TestSelectMatches_WithDetailType_NoMatch(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", ""),
+			Package:       p,
+			Details:       []match.Detail{{Type: match.ExactDirectMatch}},
+		},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatches("CVE-2024-0001").
+		WithDetailType(match.CPEMatch)
+
+	assert.True(t, mockT.fataled, "expected WithDetailType to fatal when no match has a detail of that type")
+}
+
+// TestSelectRelatedPackageIgnores covers the variadic batch helper: same
+// reason + same package, different vuln IDs, with one trailing ForPackage to
+// fan over the whole set. This is the alma alias-unwind shape.
+func TestSelectRelatedPackageIgnores(t *testing.T) {
+	const reason = "Alma Unaffected"
+	pkgID := pkg.ID("pkg-1")
+	p := pkg.Package{Name: "httpd"}
+	ignores := []match.IgnoreFilter{
+		match.IgnoreRelatedPackage{Reason: reason, VulnerabilityID: "ALSA-2021:4537", RelatedPackageID: pkgID},
+		match.IgnoreRelatedPackage{Reason: reason, VulnerabilityID: "CVE-2021-40438", RelatedPackageID: pkgID},
+		match.IgnoreRelatedPackage{Reason: reason, VulnerabilityID: "CVE-2021-26691", RelatedPackageID: pkgID},
+	}
+
+	AssertFindingsAndIgnores(t, nil, ignores, p).
+		Ignores().
+		SelectRelatedPackageIgnores(reason,
+			"ALSA-2021:4537",
+			"CVE-2021-40438",
+			"CVE-2021-26691").
+		ForPackage(pkgID)
+}
+
+// TestSelectRelatedPackageIgnores_NoIDs fatals when called with no
+// vulnerability IDs - it's a footgun otherwise (an empty batch silently
+// asserts nothing).
+func TestSelectRelatedPackageIgnores_NoIDs(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "httpd"}
+
+	AssertFindingsAndIgnores(mockT, nil, nil, p).
+		Ignores().SkipCompleteness().
+		SelectRelatedPackageIgnores("Alma Unaffected")
+
+	assert.True(t, mockT.fataled, "expected SelectRelatedPackageIgnores to fatal when called with no vulnerability IDs")
+}
+
+// TestSelectRelatedPackageIgnores_MissingFatal fatals as soon as one of the
+// requested vulnerability IDs is missing from the ignore set.
+func TestSelectRelatedPackageIgnores_MissingFatal(t *testing.T) {
+	mockT := newMockT()
+	const reason = "Alma Unaffected"
+	pkgID := pkg.ID("pkg-1")
+	p := pkg.Package{Name: "httpd"}
+	ignores := []match.IgnoreFilter{
+		match.IgnoreRelatedPackage{Reason: reason, VulnerabilityID: "ALSA-2021:4537", RelatedPackageID: pkgID},
+	}
+
+	AssertFindingsAndIgnores(mockT, nil, ignores, p).
+		Ignores().SkipCompleteness().
+		SelectRelatedPackageIgnores(reason, "ALSA-2021:4537", "CVE-9999-9999")
+
+	assert.True(t, mockT.fataled, "expected SelectRelatedPackageIgnores to fatal when one of the IDs is missing")
+}
+
+// TestSelectRelatedPackageIgnores_ForPackageMismatch reports a per-filter
+// failure naming the offending vuln ID, not a generic mismatch.
+func TestSelectRelatedPackageIgnores_ForPackageMismatch(t *testing.T) {
+	mockT := newMockT()
+	const reason = "Alma Unaffected"
+	wantID := pkg.ID("pkg-1")
+	otherID := pkg.ID("pkg-2")
+	p := pkg.Package{Name: "httpd"}
+	ignores := []match.IgnoreFilter{
+		match.IgnoreRelatedPackage{Reason: reason, VulnerabilityID: "ALSA-2021:4537", RelatedPackageID: wantID},
+		match.IgnoreRelatedPackage{Reason: reason, VulnerabilityID: "CVE-2021-40438", RelatedPackageID: otherID},
+	}
+
+	AssertFindingsAndIgnores(mockT, nil, ignores, p).
+		Ignores().
+		SelectRelatedPackageIgnores(reason, "ALSA-2021:4537", "CVE-2021-40438").
+		ForPackage(wantID)
+
+	assert.True(t, mockT.Failed(), "expected ForPackage to fail when one filter in the batch points at a different package")
 }

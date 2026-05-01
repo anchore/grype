@@ -218,7 +218,7 @@ func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package, missingEp
 	// Note: we pass searchPkg.Distro (the EUS distro) to filter out fixes not reachable for this EUS version
 	remaining = remaining.Merge(resolutions, mergeEUSAdvisoriesIntoMainDisclosures(pkgVersion, searchPkg.Distro))
 
-	return remaining.ToMatches(), internal.OwnershipIgnores(searchPkg, "Distro Not Vulnerable", eusFixes.Vulnerabilities()...), err
+	return remaining.ToMatches(), internal.OwnershipIgnores(searchPkg, IgnoreReasonDistroNotVulnerable, eusFixes.Vulnerabilities()...), err
 }
 
 // mergeEUSAdvisoriesIntoMainDisclosures returns a function that will filter disclosures based on the provided advisory information (by fix version only).

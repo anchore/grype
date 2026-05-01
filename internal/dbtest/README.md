@@ -128,11 +128,24 @@ db.Match(t, &matcher, pkg).
     SelectMatch("CVE-2024-1234").
     SelectDetailByType().
     AsDistroSearch()
-
-// use SkipCompleteness() when you only care about specific matches
-db.Match(t, &matcher, pkg).SkipCompleteness().
-    ContainsVulnerabilities("CVE-2024-1234")  // other matches OK
 ```
+
+`SkipCompleteness()` inverts the contract: it asserts the chain is **intentionally partial**, and fails if every match and detail ended up being asserted on anyway. This keeps `SkipCompleteness` calls from rotting in tests that have grown into being exhaustive — drop the call once your chain covers everything:
+
+```go
+// passes: only CVE-2024-1234 was asserted, others left alone
+db.Match(t, &matcher, pkg).SkipCompleteness().
+    ContainsVulnerabilities("CVE-2024-1234")
+
+// fails: SkipCompleteness was called but the chain ended up exhaustive,
+// so the SkipCompleteness call is dead weight and should be removed
+db.Match(t, &matcher, pkg).SkipCompleteness().
+    SelectMatch("CVE-2024-1234").
+    SelectDetailByType().
+    AsDistroSearch()
+```
+
+The same inversion applies to `Ignores().SkipCompleteness()`.
 
 #### Detail Assertions
 
@@ -162,15 +175,47 @@ findings.SelectMatch("CVE-2024-1234").
 
 | Method | Description |
 |--------|-------------|
-| `HasCount(n)` | Assert exactly n matches |
-| `IsEmpty()` | Assert no matches |
+| `IsEmpty()` | Assert the matcher produced nothing — no matches AND no ignore filters |
 | `ContainsVulnerabilities(ids...)` | Assert these CVEs are present (others may exist) |
 | `OnlyHasVulnerabilities(ids...)` | Assert exactly these CVEs and no others |
 | `DoesNotHaveAnyVulnerabilities(ids...)` | Assert these CVEs are not present |
-| `SelectMatch(id)` | Select a specific match for detail assertions |
+| `SelectMatch(id)` | Select a specific match for detail assertions; fails if multiple matches share the ID |
+| `SelectMatches(id)` | Select the subset of matches with a vulnerability ID; chain `WithDetailType` to disambiguate |
 | `HasMatchType(type)` | Assert at least one detail has this match type |
 | `HasOnlyMatchTypes(types...)` | Assert all details have one of these types |
-| `SkipCompleteness()` | Disable completeness checking |
+| `SkipCompleteness()` | Assert this chain is intentionally partial; fails if the chain is actually exhaustive |
+
+`IsEmpty()` covers the **whole result** — both matches and ignore filters. For tests that expect zero matches but ≥1 ignore filter, just skip `IsEmpty()` and assert on the ignores via `Ignores()`; matches-side completeness checking will still enforce that no matches were produced.
+
+For ignore filters, `Ignores().SelectRelatedPackageIgnore(reason, vulnID)` selects one ignore for fine-grained assertions; `Ignores().SelectRelatedPackageIgnores(reason, vulnIDs...)` selects a batch sharing a reason and fans `ForPackage`/`WithRelationshipType` over all of them — useful for AlmaLinux alias unwinding where one ALSA emits ignores for itself plus each aliased CVE.
+
+**Ignore-completeness is on by default** — every matcher-emitted ignore must be asserted on, even by tests that never call `Ignores()` explicitly. Tests that produce zero ignores don't need `Ignores().IsEmpty()` boilerplate; the completeness check fails if any unasserted ignore is emitted.
+
+#### Extending the API (no escape hatches)
+
+The assertion API is a **façade** over `match.Match` and `vulnerability.Vulnerability`. The whole point is to let grype refactor those internal types without touching tests. Two consequences:
+
+- **There is no `Match()` accessor on `SingleFindingAssertion` and there should never be one.** `FindingsAssertion.Matches()` exists as a deprecated escape hatch and is not used anywhere — leave it that way.
+- **When a test needs a new assertion, add a focused helper.** That is the documented extension story. `HasFix`, `HasAdvisories`, `InNamespace`, `SelectMatches.WithDetailType`, `SelectDetailBy{Distro,CPE,Ecosystem}`, `SelectRelatedPackageIgnores` were all added this way. Hypothetical future helpers: `HasSeverity`, `HasCVSSScore`, `HasRelatedVulnerabilities`, `HasFixAvailableDate`.
+
+If you find yourself reaching for raw struct fields, stop and add the helper. A 5-line addition to `assertions.go` is cheaper than a 50-test sweep next time the underlying struct moves.
+
+#### Universe-level vs. element-level assertions
+
+When the chain ends in one or more `SelectMatch` / `SelectMatches` calls that fully cover the universe, universe-level assertions (`ContainsVulnerabilities`, `OnlyHasVulnerabilities`) are dead weight — completeness checking already proves them. Drop them:
+
+```go
+// dead weight - ContainsVulnerabilities is subsumed by SelectMatch + completeness
+findings := db.Match(t, &matcher, p).
+    ContainsVulnerabilities("CVE-2024-0340")
+findings.SelectMatch("CVE-2024-0340")...
+
+// preferred
+findings := db.Match(t, &matcher, p)
+findings.SelectMatch("CVE-2024-0340")...
+```
+
+The same logic applies to `Ignores()`: with ignore-completeness on by default, any explicit ignore-side count assertion is subsumed by the exhaustive `SelectRelatedPackageIgnore`/`SelectRelatedPackageIgnores` chain. There is intentionally no `HasCount` method on any of these assertion types — if the count matters, prove it by asserting on each entry.
 
 ### Extracting Fixtures from Vunnel Cache
 

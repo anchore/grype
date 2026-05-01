@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -301,6 +302,19 @@ func (b *Builder) createFilteredWorkspace(states provider.States) string {
 	return dir
 }
 
+// relativeResultPath returns the path of a fixture result file relative to its
+// provider's "results/" directory (e.g. "rhel@9/cve-2024-0340.json"). If the
+// "results/" segment is not present in the path, only the basename is returned
+// to fall back to the prior behavior.
+func relativeResultPath(path string) string {
+	const sep = string(filepath.Separator) + "results" + string(filepath.Separator)
+	idx := strings.LastIndex(path, sep)
+	if idx < 0 {
+		return filepath.Base(path)
+	}
+	return path[idx+len(sep):]
+}
+
 // copyFilteredWorkspace copies matching records from states into outputDir.
 func copyFilteredWorkspace(outputDir string, states provider.States, selections []string) (string, error) {
 	for _, state := range states {
@@ -313,7 +327,15 @@ func copyFilteredWorkspace(outputDir string, states provider.States, selections 
 
 		var files []provider.File
 		for _, path := range matchedPaths {
-			file, err := writer.CopyResultFrom(path)
+			// preserve relative subdirectory structure under "results/" (e.g.
+			// "rhel@9.4+eus/cve-2024-0340.json") so namespace-prefixed result
+			// files don't collide on filepath.Base() and overwrite each other.
+			relPath := relativeResultPath(path)
+			content, err := os.ReadFile(path) //nolint:gosec // path comes from filterResultFiles over the fixture's own results
+			if err != nil {
+				return "", fmt.Errorf("read result %q: %w", path, err)
+			}
+			file, err := writer.WriteResult(relPath, content)
 			if err != nil {
 				return "", fmt.Errorf("copy result %q: %w", path, err)
 			}
