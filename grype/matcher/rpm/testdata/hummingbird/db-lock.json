@@ -1,0 +1,10 @@
+{
+  "content_hash": "9b0d1a0959d00005",
+  "created_at": "2026-05-01T11:30:26.650872657Z",
+  "providers": {
+    "hummingbird": {
+      "vunnel_version": "vunnel@0.55.3.post7+4441053",
+      "timestamp": "2026-04-30T13:37:21.549052Z"
+    }
+  }
+}
