@@ -128,11 +128,24 @@ db.Match(t, &matcher, pkg).
     SelectMatch("CVE-2024-1234").
     SelectDetailByType().
     AsDistroSearch()
-
-// use SkipCompleteness() when you only care about specific matches
-db.Match(t, &matcher, pkg).SkipCompleteness().
-    ContainsVulnerabilities("CVE-2024-1234")  // other matches OK
 ```
+
+`SkipCompleteness()` inverts the contract: it asserts the chain is **intentionally partial**, and fails if every match and detail ended up being asserted on anyway. This keeps `SkipCompleteness` calls from rotting in tests that have grown into being exhaustive — drop the call once your chain covers everything:
+
+```go
+// passes: only CVE-2024-1234 was asserted, others left alone
+db.Match(t, &matcher, pkg).SkipCompleteness().
+    ContainsVulnerabilities("CVE-2024-1234")
+
+// fails: SkipCompleteness was called but the chain ended up exhaustive,
+// so the SkipCompleteness call is dead weight and should be removed
+db.Match(t, &matcher, pkg).SkipCompleteness().
+    SelectMatch("CVE-2024-1234").
+    SelectDetailByType().
+    AsDistroSearch()
+```
+
+The same inversion applies to `Ignores().SkipCompleteness()`.
 
 #### Detail Assertions
 
@@ -167,10 +180,11 @@ findings.SelectMatch("CVE-2024-1234").
 | `ContainsVulnerabilities(ids...)` | Assert these CVEs are present (others may exist) |
 | `OnlyHasVulnerabilities(ids...)` | Assert exactly these CVEs and no others |
 | `DoesNotHaveAnyVulnerabilities(ids...)` | Assert these CVEs are not present |
-| `SelectMatch(id)` | Select a specific match for detail assertions |
+| `SelectMatch(id)` | Select a specific match for detail assertions; fails if multiple matches share the ID |
+| `SelectMatches(id)` | Select the subset of matches with a vulnerability ID; chain `WithDetailType` to disambiguate |
 | `HasMatchType(type)` | Assert at least one detail has this match type |
 | `HasOnlyMatchTypes(types...)` | Assert all details have one of these types |
-| `SkipCompleteness()` | Disable completeness checking |
+| `SkipCompleteness()` | Assert this chain is intentionally partial; fails if the chain is actually exhaustive |
 
 ### Extracting Fixtures from Vunnel Cache
 

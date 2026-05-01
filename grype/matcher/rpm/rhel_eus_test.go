@@ -816,15 +816,12 @@ func TestRedhatEUSMatches_VulnerableOnEUS(t *testing.T) {
 			findings.Ignores().IsEmpty()
 
 			sf := findings.SelectMatch("CVE-2024-0340")
+			// fix info should reflect the EUS-reachable fix, not the mainline one
+			sf.HasFix(vulnerability.FixStateFixed, "0:5.14.0-427.68.1.el9_4")
 			assertEUSTriplet(t, sf, "9.4",
 				eus94CVE20240340OverlayConstraint,
 				eus94CVE20240340MainlineConstraint,
 				match.ExactDirectMatch)
-
-			// fix info should reflect the EUS-reachable fix
-			m := findings.Matches()[0]
-			assert.Equal(t, vulnerability.FixStateFixed, m.Vulnerability.Fix.State)
-			assert.Equal(t, []string{"0:5.14.0-427.68.1.el9_4"}, m.Vulnerability.Fix.Versions)
 		})
 }
 

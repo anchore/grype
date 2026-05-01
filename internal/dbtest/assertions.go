@@ -10,6 +10,7 @@ import (
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/artifact"
 )
 
@@ -110,8 +111,12 @@ func (f *FindingsAssertion) Matches() []match.Match {
 	return f.matches
 }
 
-// SkipCompleteness disables the completeness check for this assertion chain.
-// Use this when you only want to assert on a subset of matches/details.
+// SkipCompleteness asserts that this chain is intentionally checking only a
+// subset of matches/details. The default mode requires every match and detail
+// to be asserted; calling SkipCompleteness inverts that contract: the chain
+// fails if everything happened to be asserted anyway. The inversion exists so
+// that SkipCompleteness calls don't rot in tests that have grown into being
+// exhaustive - if the chain is fully asserting, drop the SkipCompleteness call.
 func (f *FindingsAssertion) SkipCompleteness() *FindingsAssertion {
 	f.skipCompleteness = true
 	return f
@@ -125,15 +130,17 @@ func (f *FindingsAssertion) complete() {
 	})
 }
 
-// checkCompleteness verifies that all matches and their details were asserted.
-// If Ignores() was called and SkipCompleteness was not, also verifies that all
-// ignore filters were asserted.
+// checkCompleteness verifies that the assertion chain matched its declared
+// completeness intent. By default (SkipCompleteness not called), every match
+// and detail must be asserted on. If SkipCompleteness was called, at least one
+// match or detail must remain un-asserted - otherwise the call is dead weight
+// and the test fails so the author removes it. Ignore-filter completeness
+// follows the same rule once Ignores() has been opted into.
 func (f *FindingsAssertion) checkCompleteness() {
 	f.t.Helper()
 
 	var missed []string
-
-	if !f.skipCompleteness && len(f.matches) > 0 {
+	if len(f.matches) > 0 {
 		for i, m := range f.matches {
 			tracker, matchAsserted := f.assertedMatches[i]
 			if !matchAsserted {
@@ -152,16 +159,28 @@ func (f *FindingsAssertion) checkCompleteness() {
 		}
 	}
 
-	if f.ignoresAssertion != nil && !f.ignoresAssertion.skipCompleteness {
-		for i, ig := range f.ignoresAssertion.ignores {
-			if !f.ignoresAssertion.asserted[i] {
-				missed = append(missed, fmt.Sprintf("  - ignore[%d]: %T %s (not asserted)", i, ig, ignoreSummary(ig)))
-			}
+	if f.skipCompleteness {
+		if len(f.matches) > 0 && len(missed) == 0 {
+			f.t.Errorf("SkipCompleteness was called but every match and detail was asserted - drop the SkipCompleteness call")
 		}
+	} else if len(missed) > 0 {
+		f.t.Errorf("incomplete assertions - the following items were not asserted:\n%s", strings.Join(missed, "\n"))
 	}
 
-	if len(missed) > 0 {
-		f.t.Errorf("incomplete assertions - the following items were not asserted:\n%s", strings.Join(missed, "\n"))
+	if f.ignoresAssertion != nil {
+		var ignoresMissed []string
+		for i, ig := range f.ignoresAssertion.ignores {
+			if !f.ignoresAssertion.asserted[i] {
+				ignoresMissed = append(ignoresMissed, fmt.Sprintf("  - ignore[%d]: %T %s (not asserted)", i, ig, ignoreSummary(ig)))
+			}
+		}
+		if f.ignoresAssertion.skipCompleteness {
+			if len(f.ignoresAssertion.ignores) > 0 && len(ignoresMissed) == 0 {
+				f.t.Errorf("SkipCompleteness was called on Ignores() but every ignore filter was asserted - drop the SkipCompleteness call")
+			}
+		} else if len(ignoresMissed) > 0 {
+			f.t.Errorf("incomplete ignore-filter assertions - the following items were not asserted:\n%s", strings.Join(ignoresMissed, "\n"))
+		}
 	}
 }
 
@@ -191,7 +210,11 @@ type IgnoreFiltersAssertion struct {
 	skipCompleteness bool
 }
 
-// SkipCompleteness disables the completeness check for ignore filters.
+// SkipCompleteness asserts that this ignore-filter chain is intentionally
+// partial. Mirrors the inverted semantics of FindingsAssertion.SkipCompleteness:
+// the default requires every ignore filter to be asserted, and calling this
+// flips the contract so the chain fails if everything happened to be asserted
+// anyway. Drop the call once you are exhaustively asserting on ignores.
 func (i *IgnoreFiltersAssertion) SkipCompleteness() *IgnoreFiltersAssertion {
 	i.skipCompleteness = true
 	return i
@@ -390,6 +413,88 @@ func (f *FindingsAssertion) SelectMatch(vulnIDs ...string) *SingleFindingAsserti
 	return newSingleFindingAssertion(f.t, f.pkg, &f.matches[idx], idx, tracker)
 }
 
+// SelectMatches returns the subset of matches with the given vulnerability ID.
+// Unlike SelectMatch, which fatals when multiple matches share an ID,
+// SelectMatches accepts any non-zero count and lets callers narrow further via
+// WithDetailType. The returned MultipleFindingAssertion participates in
+// completeness tracking; selecting a sub-match here is what marks the
+// underlying match as asserted.
+func (f *FindingsAssertion) SelectMatches(vulnID string) *MultipleFindingAssertion {
+	f.t.Helper()
+
+	var indices []int
+	for i := range f.matches {
+		if f.matches[i].Vulnerability.ID == vulnID {
+			indices = append(indices, i)
+		}
+	}
+	if len(indices) == 0 {
+		f.t.Fatalf("SelectMatches expected to find at least one match with vulnerability ID %q, but none were found", vulnID)
+		return nil
+	}
+
+	return &MultipleFindingAssertion{
+		t:       f.t,
+		parent:  f,
+		indices: indices,
+		vulnID:  vulnID,
+	}
+}
+
+// MultipleFindingAssertion is a subset of a FindingsAssertion's matches that
+// share a vulnerability ID. Used to disambiguate the otherwise-ambiguous case
+// where one matcher emits multiple findings for the same CVE (e.g., a distro
+// disclosure plus a CPE-fallback NVD finding for an EOL distro).
+type MultipleFindingAssertion struct {
+	t       TestingT
+	parent  *FindingsAssertion
+	indices []int
+	vulnID  string
+}
+
+// HasCount asserts the number of matches in this subset.
+func (m *MultipleFindingAssertion) HasCount(n int) *MultipleFindingAssertion {
+	m.t.Helper()
+	require.Len(m.t, m.indices, n, "SelectMatches(%q) expected %d matches, got %d", m.vulnID, n, len(m.indices))
+	return m
+}
+
+// WithDetailType narrows the subset to the single match that has at least one
+// detail of the given type. Fatals if zero or more than one match in the
+// subset has a detail of that type. The selected match (and the detail used to
+// pick it) become tracked for completeness purposes.
+func (m *MultipleFindingAssertion) WithDetailType(detailType match.Type) *SingleFindingAssertion {
+	m.t.Helper()
+
+	matchIdx := -1
+	for _, idx := range m.indices {
+		for _, d := range m.parent.matches[idx].Details {
+			if d.Type == detailType {
+				if matchIdx != -1 && matchIdx != idx {
+					m.t.Fatalf("SelectMatches(%q).WithDetailType(%q) expected exactly one match with that detail type, but found multiple", m.vulnID, detailType)
+					return nil
+				}
+				matchIdx = idx
+			}
+		}
+	}
+	if matchIdx == -1 {
+		m.t.Fatalf("SelectMatches(%q).WithDetailType(%q) found no match with that detail type", m.vulnID, detailType)
+		return nil
+	}
+
+	tracker := m.parent.assertedMatches[matchIdx]
+	if tracker == nil {
+		tracker = &singleFindingTracker{
+			selectedDetails:  make(map[int]bool),
+			completedDetails: make(map[int]bool),
+		}
+		m.parent.assertedMatches[matchIdx] = tracker
+	}
+
+	return newSingleFindingAssertion(m.t, m.parent.pkg, &m.parent.matches[matchIdx], matchIdx, tracker)
+}
+
 // SingleFindingAssertion provides detailed string-based assertions on a single finding.
 type SingleFindingAssertion struct {
 	t        TestingT
@@ -449,6 +554,39 @@ func (s *SingleFindingAssertion) HasOnlyMatchTypes(matchTypes ...match.Type) *Si
 			s.t.Errorf("unexpected match type %q found in details", d.Type)
 		}
 	}
+	return s
+}
+
+// HasFix asserts the match's vulnerability has the expected fix state and (if
+// any are passed) the exact set of fix versions in order.
+func (s *SingleFindingAssertion) HasFix(state vulnerability.FixState, versions ...string) *SingleFindingAssertion {
+	s.t.Helper()
+	assert.Equal(s.t, state, s.match.Vulnerability.Fix.State, "unexpected fix state")
+	if len(versions) > 0 {
+		assert.Equal(s.t, versions, s.match.Vulnerability.Fix.Versions, "unexpected fix versions")
+	}
+	return s
+}
+
+// HasAdvisories asserts the match's vulnerability has exactly the given
+// advisory IDs (order doesn't matter, but the count must match).
+func (s *SingleFindingAssertion) HasAdvisories(ids ...string) *SingleFindingAssertion {
+	s.t.Helper()
+	got := make([]string, 0, len(s.match.Vulnerability.Advisories))
+	for _, a := range s.match.Vulnerability.Advisories {
+		got = append(got, a.ID)
+	}
+	assert.ElementsMatch(s.t, ids, got, "unexpected advisory IDs")
+	return s
+}
+
+// InNamespace asserts the match's vulnerability lives in the expected
+// namespace - useful when one matcher's results are scoped to a different
+// namespace than the package's distro (e.g., AlmaLinux disclosures live in
+// the rhel namespace).
+func (s *SingleFindingAssertion) InNamespace(namespace string) *SingleFindingAssertion {
+	s.t.Helper()
+	assert.Equal(s.t, namespace, s.match.Vulnerability.Namespace, "unexpected vulnerability namespace")
 	return s
 }
 

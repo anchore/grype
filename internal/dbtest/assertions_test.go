@@ -1069,3 +1069,231 @@ func TestPackageVersionMismatch_Failure(t *testing.T) {
 
 	assert.True(t, mockT.Failed(), "expected assertion to fail when package version doesn't match")
 }
+
+// TestSkipCompleteness_DeadWeightFails covers the inverted SkipCompleteness
+// contract: if the chain ends up asserting on every match and detail, the
+// SkipCompleteness call is dead weight and the test must fail.
+func TestSkipCompleteness_DeadWeightFails(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl", Version: "7.88.1"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", "debian:11"),
+			Package:       p,
+			Details: []match.Detail{
+				{
+					Type: match.ExactDirectMatch,
+					SearchedBy: match.DistroParameters{
+						Package: match.PackageParameter{Name: "curl", Version: "7.88.1"},
+						Distro:  match.DistroIdentification{Type: "debian", Version: "11"},
+					},
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2024-0001",
+						VersionConstraint: "< 8.0.0",
+					},
+				},
+			},
+		},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatch().
+		SelectDetailByType().
+		AsDistroSearch()
+
+	mockT.runCleanups()
+
+	assert.True(t, mockT.Failed(), "expected SkipCompleteness to fail when nothing was actually missed")
+}
+
+// TestSkipCompleteness_PartialPasses confirms the other side of the inversion:
+// when at least one match or detail remains un-asserted, SkipCompleteness has
+// done its job and the test passes cleanly.
+func TestSkipCompleteness_PartialPasses(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl", Version: "7.88.1"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", "debian:11"),
+			Package:       p,
+			Details: []match.Detail{
+				{
+					Type: match.ExactDirectMatch,
+					SearchedBy: match.DistroParameters{
+						Package: match.PackageParameter{Name: "curl", Version: "7.88.1"},
+						Distro:  match.DistroIdentification{Type: "debian", Version: "11"},
+					},
+					Found: match.DistroResult{
+						VulnerabilityID:   "CVE-2024-0001",
+						VersionConstraint: "< 8.0.0",
+					},
+				},
+			},
+		},
+		{
+			Vulnerability: makeVuln("CVE-2024-0002", "debian:11"),
+			Package:       p,
+			Details:       []match.Detail{{Type: match.ExactDirectMatch}},
+		},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatch("CVE-2024-0001").
+		SelectDetailByType().
+		AsDistroSearch() // CVE-2024-0002 left intentionally un-asserted
+
+	mockT.runCleanups()
+
+	assert.False(t, mockT.Failed(), "expected SkipCompleteness to pass when something is genuinely un-asserted")
+}
+
+// TestIgnoresSkipCompleteness_DeadWeightFails mirrors
+// TestSkipCompleteness_DeadWeightFails for ignore filters: opting into
+// Ignores().SkipCompleteness() while asserting on every ignore is dead weight.
+func TestIgnoresSkipCompleteness_DeadWeightFails(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	pkgID := pkg.ID("pkg-1")
+	ignores := []match.IgnoreFilter{
+		match.IgnoreRelatedPackage{
+			Reason:           "Distro Fixed",
+			VulnerabilityID:  "CVE-2024-0001",
+			RelatedPackageID: pkgID,
+		},
+	}
+
+	AssertFindingsAndIgnores(mockT, nil, ignores, p).
+		Ignores().
+		SkipCompleteness().
+		SelectRelatedPackageIgnore("Distro Fixed", "CVE-2024-0001").
+		ForPackage(pkgID)
+
+	mockT.runCleanups()
+
+	assert.True(t, mockT.Failed(), "expected SkipCompleteness on Ignores() to fail when nothing was missed")
+}
+
+// TestSelectMatches_DisambiguatesByDetailType is the end-to-end use case the
+// helper was added for: a matcher emits two findings for the same CVE (e.g., a
+// distro disclosure plus a CPE-fallback NVD finding), and SelectMatch can't
+// pick between them. SelectMatches + WithDetailType should narrow to each in
+// turn so the chain can be exhaustive without raw match introspection.
+func TestSelectMatches_DisambiguatesByDetailType(t *testing.T) {
+	p := pkg.Package{Name: "openssl", Version: "1.1.0a"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2018-0735", "redhat:distro:redhat:7"),
+			Package:       p,
+			Details: []match.Detail{{
+				Type: match.ExactDirectMatch,
+				SearchedBy: match.DistroParameters{
+					Package: match.PackageParameter{Name: "openssl", Version: "1.1.0a"},
+					Distro:  match.DistroIdentification{Type: "redhat", Version: "7"},
+				},
+				Found: match.DistroResult{
+					VulnerabilityID:   "CVE-2018-0735",
+					VersionConstraint: "< 1.1.0j",
+				},
+			}},
+		},
+		{
+			Vulnerability: makeVuln("CVE-2018-0735", "nvd:cpe"),
+			Package:       p,
+			Details: []match.Detail{{
+				Type: match.CPEMatch,
+				SearchedBy: match.CPEParameters{
+					Package: match.PackageParameter{Name: "openssl", Version: "1.1.0a"},
+					CPEs:    []string{"cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*"},
+				},
+				Found: match.CPEResult{
+					VulnerabilityID:   "CVE-2018-0735",
+					VersionConstraint: "< 1.1.0j",
+					CPEs:              []string{"cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*"},
+				},
+			}},
+		},
+	}
+
+	findings := AssertFindings(t, matches, p)
+	ms := findings.SelectMatches("CVE-2018-0735").HasCount(2)
+	ms.WithDetailType(match.CPEMatch).
+		SelectDetailByCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*")
+	ms.WithDetailType(match.ExactDirectMatch).
+		SelectDetailByDistro("redhat", "7")
+}
+
+// TestSelectMatches_NotFound fatals when the vulnerability ID has no matches.
+func TestSelectMatches_NotFound(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatches("CVE-2024-9999")
+
+	assert.True(t, mockT.fataled, "expected SelectMatches to fatal when no matches share the vulnerability ID")
+}
+
+// TestSelectMatches_HasCount_Failure confirms that an unexpected subset size
+// is reported as a count mismatch on the SelectMatches subset itself, not on
+// the parent FindingsAssertion.
+func TestSelectMatches_HasCount_Failure(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{Vulnerability: makeVuln("CVE-2024-0001", ""), Package: p},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatches("CVE-2024-0001").HasCount(2)
+
+	assert.True(t, mockT.Failed(), "expected HasCount on the SelectMatches subset to fail when the count is wrong")
+}
+
+// TestSelectMatches_WithDetailType_Ambiguous fatals when multiple matches in
+// the subset share the requested detail type - the helper picks exactly one
+// match by detail type and refuses to silently pick.
+func TestSelectMatches_WithDetailType_Ambiguous(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", "ns1"),
+			Package:       p,
+			Details:       []match.Detail{{Type: match.ExactDirectMatch}},
+		},
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", "ns2"),
+			Package:       p,
+			Details:       []match.Detail{{Type: match.ExactDirectMatch}}, // same detail type
+		},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatches("CVE-2024-0001").
+		WithDetailType(match.ExactDirectMatch)
+
+	assert.True(t, mockT.fataled, "expected WithDetailType to fatal when multiple matches share the detail type")
+}
+
+// TestSelectMatches_WithDetailType_NoMatch fatals when no match in the subset
+// has a detail of the requested type.
+func TestSelectMatches_WithDetailType_NoMatch(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", ""),
+			Package:       p,
+			Details:       []match.Detail{{Type: match.ExactDirectMatch}},
+		},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatches("CVE-2024-0001").
+		WithDetailType(match.CPEMatch)
+
+	assert.True(t, mockT.fataled, "expected WithDetailType to fatal when no match has a detail of that type")
+}

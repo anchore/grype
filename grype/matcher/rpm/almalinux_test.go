@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
@@ -74,18 +73,14 @@ func TestAlmaLinuxMatching_ModularVulnerable(t *testing.T) {
 				}).
 				Build()
 
-			matches, _, err := matcher.Match(db, p)
-			require.NoError(t, err)
-			require.Len(t, matches, 1, "expected one match")
-
-			m := matches[0]
-			assert.Equal(t, "CVE-2021-40438", m.Vulnerability.ID)
+			findings := db.Match(t, &matcher, p).HasCount(1)
+			sf := findings.SelectMatch("CVE-2021-40438")
 			// fix info should be from AlmaLinux ALSA, not RHEL
-			require.Equal(t, vulnerability.FixStateFixed, m.Vulnerability.Fix.State)
-			require.Equal(t, []string{"2.4.37-43.module_el8.5.0+2597+c4b14997.alma"}, m.Vulnerability.Fix.Versions)
-			// advisory should reference ALSA-2021:4537
-			require.Len(t, m.Vulnerability.Advisories, 1)
-			assert.Equal(t, "ALSA-2021:4537", m.Vulnerability.Advisories[0].ID)
+			sf.HasFix(vulnerability.FixStateFixed, "2.4.37-43.module_el8.5.0+2597+c4b14997.alma").
+				HasAdvisories("ALSA-2021:4537")
+			sf.SelectDetailByDistro("redhat", "8"). // alma matching queries the rhel namespace
+								HasMatchType(match.ExactDirectMatch)
+			findings.Ignores().IsEmpty()
 		})
 }
 
@@ -136,9 +131,7 @@ func TestAlmaLinuxMatching_ModularityMismatch(t *testing.T) {
 				}).
 				Build()
 
-			matches, _, err := matcher.Match(db, p)
-			require.NoError(t, err)
-			assert.Empty(t, matches, "module mismatch should not match")
+			db.Match(t, &matcher, p).IsEmpty()
 		})
 }
 
@@ -155,16 +148,13 @@ func TestAlmaLinuxMatching_NonModularVulnerable(t *testing.T) {
 				WithDistro(dbtest.AlmaLinux8).
 				Build()
 
-			matches, _, err := matcher.Match(db, p)
-			require.NoError(t, err)
-			require.Len(t, matches, 1)
-
-			m := matches[0]
-			assert.Equal(t, "CVE-2019-13636", m.Vulnerability.ID)
-			// AlmaLinux matching searches the RHEL namespace for disclosures
-			assert.Equal(t, "redhat:distro:redhat:8", m.Vulnerability.Namespace)
-			require.NotEmpty(t, m.Details)
-			assert.Equal(t, match.ExactDirectMatch, m.Details[0].Type)
+			findings := db.Match(t, &matcher, p).HasCount(1)
+			findings.SelectMatch("CVE-2019-13636").
+				// AlmaLinux matching searches the RHEL namespace for disclosures
+				InNamespace("redhat:distro:redhat:8").
+				SelectDetailByDistro("redhat", "8").
+				HasMatchType(match.ExactDirectMatch)
+			findings.Ignores().IsEmpty()
 		})
 }
 
@@ -203,13 +193,12 @@ func TestAlmaLinuxMatching_WontFixPassesThrough(t *testing.T) {
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(2)}).
 				Build()
 
-			matches, _, err := matcher.Match(db, p)
-			require.NoError(t, err)
-			require.Len(t, matches, 1)
-
-			m := matches[0]
-			assert.Equal(t, "CVE-2005-2541", m.Vulnerability.ID)
-			assert.Equal(t, vulnerability.FixStateWontFix, m.Vulnerability.Fix.State)
+			findings := db.Match(t, &matcher, p).HasCount(1)
+			sf := findings.SelectMatch("CVE-2005-2541")
+			sf.HasFix(vulnerability.FixStateWontFix)
+			sf.SelectDetailByDistro("redhat", "8").
+				HasMatchType(match.ExactDirectMatch)
+			findings.Ignores().IsEmpty()
 		})
 }
 
@@ -235,16 +224,13 @@ func TestAlmaLinuxMatching_UpstreamMatchWithFixReplacement(t *testing.T) {
 				}).
 				Build()
 
-			findings := db.Match(t, &matcher, p)
-			findings.SelectMatch("CVE-2021-40438").
-				SelectDetailByDistro("redhat", "8"). // alma matching queries the rhel namespace
-				HasMatchType(match.ExactIndirectMatch)
+			findings := db.Match(t, &matcher, p).HasCount(1)
+			sf := findings.SelectMatch("CVE-2021-40438")
+			// alma fix version should replace the rhel fix on upstream-resolved matches
+			sf.HasFix(vulnerability.FixStateFixed, "2.4.37-43.module_el8.5.0+2597+c4b14997.alma")
+			sf.SelectDetailByDistro("redhat", "8"). // alma matching queries the rhel namespace
+								HasMatchType(match.ExactIndirectMatch)
 			findings.Ignores().IsEmpty()
-
-			m := findings.Matches()[0]
-			require.Equal(t, vulnerability.FixStateFixed, m.Vulnerability.Fix.State)
-			require.Equal(t, []string{"2.4.37-43.module_el8.5.0+2597+c4b14997.alma"}, m.Vulnerability.Fix.Versions,
-				"alma fix version should replace the rhel fix on upstream-resolved matches")
 		})
 }
 
@@ -308,16 +294,13 @@ func TestAlmaLinuxMatching_BelowBothModuleBuildsStillVulnerable(t *testing.T) {
 				}).
 				Build()
 
-			findings := db.Match(t, &matcher, p)
-			findings.SelectMatch("CVE-2021-27928").
-				SelectDetailByDistro("redhat", "8"). // alma matching queries the rhel namespace
-				HasMatchType(match.ExactDirectMatch)
+			findings := db.Match(t, &matcher, p).HasCount(1)
+			sf := findings.SelectMatch("CVE-2021-27928")
+			// fix info should reflect the alma build (2177), not the rhel build (10472)
+			sf.HasFix(vulnerability.FixStateFixed, "3:10.3.28-1.module_el8.3.0+2177+7adc332a")
+			sf.SelectDetailByDistro("redhat", "8"). // alma matching queries the rhel namespace
+								HasMatchType(match.ExactDirectMatch)
 			findings.Ignores().IsEmpty()
-
-			m := findings.Matches()[0]
-			require.Equal(t, vulnerability.FixStateFixed, m.Vulnerability.Fix.State)
-			require.Equal(t, []string{"3:10.3.28-1.module_el8.3.0+2177+7adc332a"}, m.Vulnerability.Fix.Versions,
-				"fix info should reflect the alma build (2177), not the rhel build (10472)")
 		})
 }
 
@@ -334,9 +317,7 @@ func TestAlmaLinuxMatching_DebuginfoSkipped(t *testing.T) {
 				WithUpstream("patch", "2.7.6-10.el8").
 				Build()
 
-			matches, _, err := matcher.Match(db, p)
-			require.NoError(t, err)
-			assert.Empty(t, matches, "-debuginfo packages should be skipped by AlmaLinux matching")
+			db.Match(t, &matcher, p).IsEmpty()
 		})
 }
 

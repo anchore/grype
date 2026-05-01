@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
@@ -393,7 +392,8 @@ func Test_addEpochIfApplicable(t *testing.T) {
 // TestMatcherRpm_CPEFallbackWhenEOL_EOLDistroEnabled exercises the EOL CPE
 // fallback for an EOL distro (RHEL 7, EOL 2024-06-30) using real RHEL + EOL +
 // NVD data. With UseCPEsForEOL=true, the matcher falls back to CPE matching
-// via NVD since the distro is past EOL.
+// via NVD since the distro is past EOL, so we expect both the rhel:7 distro
+// disclosure AND the nvd CPE finding for the same CVE.
 func TestMatcherRpm_CPEFallbackWhenEOL_EOLDistroEnabled(t *testing.T) {
 	dbtest.DBs(t, "eol-rhel7").Run(func(t *testing.T, db *dbtest.DB) {
 		matcher := NewRpmMatcher(MatcherConfig{UseCPEsForEOL: true})
@@ -405,23 +405,21 @@ func TestMatcherRpm_CPEFallbackWhenEOL_EOLDistroEnabled(t *testing.T) {
 			WithCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*").
 			Build()
 
-		matches, _, err := matcher.Match(db, p)
-		require.NoError(t, err)
-
-		hasCPEMatch := false
-		for _, m := range matches {
-			for _, detail := range m.Details {
-				if detail.Type == match.CPEMatch {
-					hasCPEMatch = true
-				}
-			}
-		}
-		assert.True(t, hasCPEMatch, "expected CPE matches for EOL distro when fallback enabled")
+		findings := db.Match(t, matcher, p)
+		ms := findings.SelectMatches("CVE-2018-0735").HasCount(2)
+		ms.WithDetailType(match.CPEMatch).
+			SelectDetailByCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*").
+			HasMatchType(match.CPEMatch)
+		ms.WithDetailType(match.ExactDirectMatch).
+			SelectDetailByDistro("redhat", "7").
+			HasMatchType(match.ExactDirectMatch)
+		findings.Ignores().IsEmpty()
 	})
 }
 
 // TestMatcherRpm_CPEFallbackWhenEOL_EOLDistroDisabled verifies the same EOL
-// distro produces NO CPE matches when UseCPEsForEOL=false.
+// distro produces only the rhel:7 distro match (no CPE fallback) when
+// UseCPEsForEOL=false.
 func TestMatcherRpm_CPEFallbackWhenEOL_EOLDistroDisabled(t *testing.T) {
 	dbtest.DBs(t, "eol-rhel7").Run(func(t *testing.T, db *dbtest.DB) {
 		matcher := NewRpmMatcher(MatcherConfig{UseCPEsForEOL: false})
@@ -431,21 +429,18 @@ func TestMatcherRpm_CPEFallbackWhenEOL_EOLDistroDisabled(t *testing.T) {
 			WithCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*").
 			Build()
 
-		matches, _, err := matcher.Match(db, p)
-		require.NoError(t, err)
-
-		for _, m := range matches {
-			for _, detail := range m.Details {
-				assert.NotEqual(t, match.CPEMatch, detail.Type,
-					"did not expect CPE match when fallback disabled")
-			}
-		}
+		findings := db.Match(t, matcher, p)
+		findings.SelectMatch("CVE-2018-0735").
+			SelectDetailByDistro("redhat", "7").
+			HasMatchType(match.ExactDirectMatch)
+		findings.Ignores().IsEmpty()
 	})
 }
 
 // TestMatcherRpm_CPEFallbackWhenEOL_NoEOLData verifies that an unknown distro
 // (no EOL record in the database) does not get the CPE fallback even when
-// UseCPEsForEOL is enabled.
+// UseCPEsForEOL is enabled. With no rhel:9999 disclosures in the fixture and
+// no EOL fallback, the matcher returns nothing.
 func TestMatcherRpm_CPEFallbackWhenEOL_NoEOLData(t *testing.T) {
 	dbtest.DBs(t, "eol-rhel7").Run(func(t *testing.T, db *dbtest.DB) {
 		matcher := NewRpmMatcher(MatcherConfig{UseCPEsForEOL: true})
@@ -456,15 +451,7 @@ func TestMatcherRpm_CPEFallbackWhenEOL_NoEOLData(t *testing.T) {
 			WithCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*").
 			Build()
 
-		matches, _, err := matcher.Match(db, p)
-		require.NoError(t, err)
-
-		for _, m := range matches {
-			for _, detail := range m.Details {
-				assert.NotEqual(t, match.CPEMatch, detail.Type,
-					"did not expect CPE match when no EOL data is available")
-			}
-		}
+		db.Match(t, matcher, p).IsEmpty()
 	})
 }
 
@@ -473,7 +460,8 @@ func TestMatcherRpm_CPEFallbackWhenEOL_NoEOLData(t *testing.T) {
 // The eol-rhel7 fixture also carries the real rhel:9 EOL record (eolFrom
 // 2032-05-31), so RHEL 9 is a clean "we know about this distro and it's not
 // EOL" case. With UseCPEsForEOL=true, the matcher must still skip CPE matching
-// because the distro is supported.
+// because the distro is supported. Combined with the absence of rhel:9
+// disclosures in the fixture, we expect zero findings.
 func TestMatcherRpm_CPEFallbackWhenEOL_DistroNotEOL_FlagEnabled(t *testing.T) {
 	dbtest.DBs(t, "eol-rhel7").Run(func(t *testing.T, db *dbtest.DB) {
 		matcher := NewRpmMatcher(MatcherConfig{UseCPEsForEOL: true})
@@ -483,15 +471,7 @@ func TestMatcherRpm_CPEFallbackWhenEOL_DistroNotEOL_FlagEnabled(t *testing.T) {
 			WithCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*").
 			Build()
 
-		matches, _, err := matcher.Match(db, p)
-		require.NoError(t, err)
-
-		for _, m := range matches {
-			for _, detail := range m.Details {
-				assert.NotEqual(t, match.CPEMatch, detail.Type,
-					"did not expect CPE match when distro is not EOL even with fallback enabled")
-			}
-		}
+		db.Match(t, matcher, p).IsEmpty()
 	})
 }
 
@@ -507,14 +487,6 @@ func TestMatcherRpm_CPEFallbackWhenEOL_DistroNotEOL_FlagDisabled(t *testing.T) {
 			WithCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*").
 			Build()
 
-		matches, _, err := matcher.Match(db, p)
-		require.NoError(t, err)
-
-		for _, m := range matches {
-			for _, detail := range m.Details {
-				assert.NotEqual(t, match.CPEMatch, detail.Type,
-					"did not expect CPE match when distro is not EOL")
-			}
-		}
+		db.Match(t, matcher, p).IsEmpty()
 	})
 }
