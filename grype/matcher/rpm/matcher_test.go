@@ -296,8 +296,7 @@ func TestMatcherRpm_VulnerableAndUnaffectedInSameCall(t *testing.T) {
 				WithDistro(dbtest.RHEL8).
 				Build()
 
-			findings := db.Match(t, &matcher, p).
-				HasCount(1)
+			findings := db.Match(t, &matcher, p)
 			findings.SelectMatch("CVE-2016-10228").
 				SelectDetailByType(match.ExactDirectMatch).
 				AsDistroSearch()

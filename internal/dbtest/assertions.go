@@ -104,8 +104,21 @@ func (f *FindingsAssertion) IsEmpty() *FindingsAssertion {
 	return f
 }
 
-// Matches returns the underlying matches for direct assertions if needed, but using this is not recommended as it
-// bypasses the completeness checking and makes tests more fragile to internal API changes.
+// Matches returns the underlying []match.Match. It is an intentional escape
+// hatch and should be avoided.
+//
+// The point of this assertion API is to be a façade over match.Match and
+// vulnerability.Vulnerability so that the internal struct layout can be
+// refactored (e.g., the v1 API rewrite) without touching tests. Every caller
+// of Matches() is one more test that locks itself to today's struct shape.
+//
+// If you find yourself wanting raw matches, the right move is almost always
+// to add a focused helper instead - HasFix, HasAdvisories, InNamespace,
+// SelectMatches+WithDetailType, SelectDetailBy* and friends were all added
+// this way. There is intentionally no equivalent on SingleFindingAssertion.
+//
+// Bypasses completeness checking, which is the other reason it makes tests
+// fragile.
 func (f *FindingsAssertion) Matches() []match.Match {
 	f.t.Helper()
 	return f.matches
@@ -568,7 +581,12 @@ func (m *MultipleFindingAssertion) WithDetailType(detailType match.Type) *Single
 	return newSingleFindingAssertion(m.t, m.parent.pkg, &m.parent.matches[matchIdx], matchIdx, tracker)
 }
 
-// SingleFindingAssertion provides detailed string-based assertions on a single finding.
+// SingleFindingAssertion provides detailed string-based assertions on a single
+// finding. There is intentionally no Match() accessor returning the underlying
+// match.Match: the assertion API is a façade so that the internal struct
+// layout can be refactored without touching tests. When a new assertion is
+// needed (e.g., severity, CVSS, alias IDs), the right move is to add a
+// focused method here rather than reach into the struct.
 type SingleFindingAssertion struct {
 	t        TestingT
 	pkg      pkg.Package

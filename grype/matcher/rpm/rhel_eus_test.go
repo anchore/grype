@@ -810,11 +810,7 @@ func TestRedhatEUSMatches_VulnerableOnEUS(t *testing.T) {
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 				Build()
 
-			findings := db.Match(t, &matcher, p).
-				HasCount(1).
-				ContainsVulnerabilities("CVE-2024-0340")
-			findings.Ignores().IsEmpty()
-
+			findings := db.Match(t, &matcher, p)
 			sf := findings.SelectMatch("CVE-2024-0340")
 			// fix info should reflect the EUS-reachable fix, not the mainline one
 			sf.HasFix(vulnerability.FixStateFixed, "0:5.14.0-427.68.1.el9_4")
@@ -822,6 +818,7 @@ func TestRedhatEUSMatches_VulnerableOnEUS(t *testing.T) {
 				eus94CVE20240340OverlayConstraint,
 				eus94CVE20240340MainlineConstraint,
 				match.ExactDirectMatch)
+			findings.Ignores().IsEmpty()
 		})
 }
 
@@ -841,16 +838,12 @@ func TestRedhatEUSMatches_IndirectMatchBySource(t *testing.T) {
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 				Build()
 
-			findings := db.Match(t, &matcher, p).
-				HasCount(1).
-				ContainsVulnerabilities("CVE-2024-0340")
-			findings.Ignores().IsEmpty()
-
-			sf := findings.SelectMatch("CVE-2024-0340")
-			assertEUSTriplet(t, sf, "9.4",
+			findings := db.Match(t, &matcher, p)
+			assertEUSTriplet(t, findings.SelectMatch("CVE-2024-0340"), "9.4",
 				eus94CVE20240340OverlayConstraint,
 				eus94CVE20240340MainlineConstraint,
 				match.ExactIndirectMatch)
+			findings.Ignores().IsEmpty()
 		})
 }
 
@@ -902,10 +895,7 @@ func TestRedhatEUSMatches_MultipleCVEsAllVulnerable(t *testing.T) {
 			WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 			Build()
 
-		findings := db.Match(t, &matcher, p).
-			OnlyHasVulnerabilities("CVE-2024-0340", "CVE-2021-47527")
-		findings.Ignores().IsEmpty()
-
+		findings := db.Match(t, &matcher, p)
 		assertEUSTriplet(t, findings.SelectMatch("CVE-2024-0340"), "9.4",
 			eus94CVE20240340OverlayConstraint,
 			eus94CVE20240340MainlineConstraint,
@@ -914,6 +904,7 @@ func TestRedhatEUSMatches_MultipleCVEsAllVulnerable(t *testing.T) {
 			eus94CVE202147527OverlayConstraint,
 			eus94CVE202147527MainlineConstraint,
 			match.ExactDirectMatch)
+		findings.Ignores().IsEmpty()
 	})
 }
 
@@ -978,15 +969,12 @@ func TestRedhatEUSIgnoreFilters_VulnerablePackageNoIgnores(t *testing.T) {
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 				Build()
 
-			findings := db.Match(t, &matcher, p).
-				HasCount(1).
-				ContainsVulnerabilities("CVE-2024-0340")
-			findings.Ignores().IsEmpty()
-
+			findings := db.Match(t, &matcher, p)
 			assertEUSTriplet(t, findings.SelectMatch("CVE-2024-0340"), "9.4",
 				eus94CVE20240340OverlayConstraint,
 				eus94CVE20240340MainlineConstraint,
 				match.ExactDirectMatch)
+			findings.Ignores().IsEmpty()
 		})
 }
 

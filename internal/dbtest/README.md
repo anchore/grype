@@ -188,6 +188,33 @@ findings.SelectMatch("CVE-2024-1234").
 
 For ignore filters, `Ignores().SelectRelatedPackageIgnore(reason, vulnID)` selects one ignore for fine-grained assertions; `Ignores().SelectRelatedPackageIgnores(reason, vulnIDs...)` selects a batch sharing a reason and fans `ForPackage`/`WithRelationshipType` over all of them — useful for AlmaLinux alias unwinding where one ALSA emits ignores for itself plus each aliased CVE.
 
+#### Extending the API (no escape hatches)
+
+The assertion API is a **façade** over `match.Match` and `vulnerability.Vulnerability`. The whole point is to let grype refactor those internal types without touching tests. Two consequences:
+
+- **There is no `Match()` accessor on `SingleFindingAssertion` and there should never be one.** `FindingsAssertion.Matches()` exists as a deprecated escape hatch and is not used anywhere — leave it that way.
+- **When a test needs a new assertion, add a focused helper.** That is the documented extension story. `HasFix`, `HasAdvisories`, `InNamespace`, `SelectMatches.WithDetailType`, `SelectDetailBy{Distro,CPE,Ecosystem}`, `SelectRelatedPackageIgnores` were all added this way. Hypothetical future helpers: `HasSeverity`, `HasCVSSScore`, `HasRelatedVulnerabilities`, `HasFixAvailableDate`.
+
+If you find yourself reaching for raw struct fields, stop and add the helper. A 5-line addition to `assertions.go` is cheaper than a 50-test sweep next time the underlying struct moves.
+
+#### Universe-level vs. element-level assertions
+
+When the chain ends in one or more `SelectMatch` / `SelectMatches` calls that fully cover the universe, the universe-level assertions (`HasCount(N)`, `ContainsVulnerabilities`, `OnlyHasVulnerabilities`) are dead weight — completeness checking already proves them. Drop them:
+
+```go
+// dead weight - HasCount(1) and ContainsVulnerabilities are subsumed
+findings := db.Match(t, &matcher, p).
+    HasCount(1).
+    ContainsVulnerabilities("CVE-2024-0340")
+findings.SelectMatch("CVE-2024-0340")...
+
+// preferred
+findings := db.Match(t, &matcher, p)
+findings.SelectMatch("CVE-2024-0340")...
+```
+
+The same applies on the matches side of `SelectMatches(id).HasCount(n)`, but **not** on the ignores side: `Ignores().HasCount(n)` is worth keeping because it documents the expected ignore count and produces a clearer fast-fail than the completeness diagnostic.
+
 ### Extracting Fixtures from Vunnel Cache
 
 Use `FixtureExtractor` to create fixtures from a vunnel data directory:
