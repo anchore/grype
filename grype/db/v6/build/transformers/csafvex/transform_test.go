@@ -424,10 +424,17 @@ func TestTransform_FixDateParsing(t *testing.T) {
 	}
 }
 
-// glibcMixedSrcAndBinaryTree models the shape of the real cve-2026-5928 advisory: hummingbird
-// platform contains both `glibc.src` (source RPM) and `glibc` + `glibc-common` (binary RPMs)
-// alongside each other. RHEL platforms only carry the source RPM (the typical src-granularity
-// disclosure pattern).
+// glibcMixedSrcAndBinaryTree models the shape of a hummingbird CSAF VEX advisory across
+// two hummingbird platforms. hummingbird-1 carries the typical mix vunnel emits today:
+// `glibc.src` plus a same-named binary `glibc` plus a sibling binary `glibc-common`.
+// hummingbird-2 carries only `glibc.src` to anchor the platform-scoped negative case for
+// the dedup logic — a src with no sibling binary in its own platform must survive.
+//
+// The fixture deliberately stays inside the hummingbird CPE family. RHEL platforms are
+// stripped by vunnel's hummingbird parser before they ever reach this transformer (see
+// vunnel/src/vunnel/providers/hummingbird/parser.py:_subset_document), and RHEL CSAF data
+// flows through a different transformer entirely (the `os` schema processor), so RHEL
+// branches don't model anything the csafvex transformer actually handles in production.
 func glibcMixedSrcAndBinaryTree() unmarshal.CSAFProductTree {
 	return unmarshal.CSAFProductTree{
 		Branches: []unmarshal.CSAFBranch{
@@ -437,9 +444,9 @@ func glibcMixedSrcAndBinaryTree() unmarshal.CSAFProductTree {
 				Branches: []unmarshal.CSAFBranch{
 					{
 						Category: "product_name",
-						Name:     "Red Hat Hardened Images",
+						Name:     "Red Hat Hardened Images 1",
 						Product: &unmarshal.CSAFProduct{
-							Name:      "Red Hat Hardened Images",
+							Name:      "Red Hat Hardened Images 1",
 							ProductID: "hummingbird-1",
 							ProductIdentificationHelper: &unmarshal.CSAFProductIdentificationHelper{
 								CPE: "cpe:/a:redhat:hummingbird:1",
@@ -448,12 +455,12 @@ func glibcMixedSrcAndBinaryTree() unmarshal.CSAFProductTree {
 					},
 					{
 						Category: "product_name",
-						Name:     "Red Hat Enterprise Linux 9.7.z",
+						Name:     "Red Hat Hardened Images 2",
 						Product: &unmarshal.CSAFProduct{
-							Name:      "Red Hat Enterprise Linux 9.7.z",
-							ProductID: "rhel-9.7.z",
+							Name:      "Red Hat Hardened Images 2",
+							ProductID: "hummingbird-2",
 							ProductIdentificationHelper: &unmarshal.CSAFProductIdentificationHelper{
-								CPE: "cpe:/o:redhat:enterprise_linux:9",
+								CPE: "cpe:/a:redhat:hummingbird:2",
 							},
 						},
 					},
@@ -496,38 +503,37 @@ func glibcMixedSrcAndBinaryTree() unmarshal.CSAFProductTree {
 		Relationships: []unmarshal.CSAFRelationship{
 			{
 				Category:                  "default_component_of",
-				FullProductName:           unmarshal.CSAFProduct{Name: "glibc as a component of Red Hat Hardened Images", ProductID: "hummingbird-1:glibc"},
+				FullProductName:           unmarshal.CSAFProduct{Name: "glibc as a component of Red Hat Hardened Images 1", ProductID: "hummingbird-1:glibc"},
 				ProductReference:          "glibc",
 				RelatesToProductReference: "hummingbird-1",
 			},
 			{
 				Category:                  "default_component_of",
-				FullProductName:           unmarshal.CSAFProduct{Name: "glibc-common as a component of Red Hat Hardened Images", ProductID: "hummingbird-1:glibc-common"},
+				FullProductName:           unmarshal.CSAFProduct{Name: "glibc-common as a component of Red Hat Hardened Images 1", ProductID: "hummingbird-1:glibc-common"},
 				ProductReference:          "glibc-common",
 				RelatesToProductReference: "hummingbird-1",
 			},
 			{
 				Category:                  "default_component_of",
-				FullProductName:           unmarshal.CSAFProduct{Name: "glibc.src as a component of Red Hat Hardened Images", ProductID: "hummingbird-1:glibc.src"},
+				FullProductName:           unmarshal.CSAFProduct{Name: "glibc.src as a component of Red Hat Hardened Images 1", ProductID: "hummingbird-1:glibc.src"},
 				ProductReference:          "glibc.src",
 				RelatesToProductReference: "hummingbird-1",
 			},
 			{
 				Category:                  "default_component_of",
-				FullProductName:           unmarshal.CSAFProduct{Name: "glibc.src as a component of Red Hat Enterprise Linux 9.7.z", ProductID: "rhel-9.7.z:glibc.src"},
+				FullProductName:           unmarshal.CSAFProduct{Name: "glibc.src as a component of Red Hat Hardened Images 2", ProductID: "hummingbird-2:glibc.src"},
 				ProductReference:          "glibc.src",
-				RelatesToProductReference: "rhel-9.7.z",
+				RelatesToProductReference: "hummingbird-2",
 			},
 		},
 	}
 }
 
 func TestTransform_DropsSrcWhenSameNameBinaryPresent(t *testing.T) {
-	// hummingbird-1 platform has both glibc (binary) and glibc.src (source); the redundant
-	// src must be dropped so upstream-search filtering doesn't FP-match siblings like
-	// glibc-minimal-langpack via upstream=glibc. The RHEL platform's glibc.src has no sibling
-	// binary in this advisory and must be retained — that's the standard src-granularity
-	// disclosure pattern that grype's RPM matcher relies on for indirect upstream matches.
+	// hummingbird-1 has both glibc (binary) and glibc.src (source); the redundant src must
+	// be dropped so upstream-search filtering doesn't FP-match siblings like
+	// glibc-minimal-langpack via upstream=glibc. hummingbird-2's glibc.src has no sibling
+	// binary in this advisory and must be retained — that proves the dedup is per-platform.
 	tree := glibcMixedSrcAndBinaryTree()
 	advisory := makeAdvisory([]unmarshal.CSAFVulnerability{
 		{
@@ -537,7 +543,7 @@ func TestTransform_DropsSrcWhenSameNameBinaryPresent(t *testing.T) {
 					"hummingbird-1:glibc",
 					"hummingbird-1:glibc-common",
 					"hummingbird-1:glibc.src",
-					"rhel-9.7.z:glibc.src",
+					"hummingbird-2:glibc.src",
 				},
 			},
 		},
@@ -550,9 +556,10 @@ func TestTransform_DropsSrcWhenSameNameBinaryPresent(t *testing.T) {
 	e := got[0].Data.(transformers.RelatedEntries)
 
 	type emitted struct {
-		name string
-		os   string
-		arch string
+		name    string
+		os      string
+		osMajor string
+		arch    string
 	}
 	var seen []emitted
 	for _, r := range e.Related {
@@ -560,24 +567,25 @@ func TestTransform_DropsSrcWhenSameNameBinaryPresent(t *testing.T) {
 		if !ok {
 			continue
 		}
-		osName := ""
+		var osName, osMajor string
 		if aph.OperatingSystem != nil {
 			osName = aph.OperatingSystem.Name
+			osMajor = aph.OperatingSystem.MajorVersion
 		}
 		var arch string
 		if aph.BlobValue != nil && aph.BlobValue.Qualifiers != nil && aph.BlobValue.Qualifiers.RpmArch != nil {
 			arch = *aph.BlobValue.Qualifiers.RpmArch
 		}
-		seen = append(seen, emitted{name: aph.Package.Name, os: osName, arch: arch})
+		seen = append(seen, emitted{name: aph.Package.Name, os: osName, osMajor: osMajor, arch: arch})
 	}
 
 	want := []emitted{
-		{name: "glibc", os: "hummingbird", arch: rpmarch.ArchBinaryNoArchSpecified},
-		{name: "glibc-common", os: "hummingbird", arch: rpmarch.ArchBinaryNoArchSpecified},
-		{name: "glibc", os: "enterprise_linux", arch: rpmarch.ArchSource},
+		{name: "glibc", os: "hummingbird", osMajor: "1", arch: rpmarch.ArchBinaryNoArchSpecified},
+		{name: "glibc-common", os: "hummingbird", osMajor: "1", arch: rpmarch.ArchBinaryNoArchSpecified},
+		{name: "glibc", os: "hummingbird", osMajor: "2", arch: rpmarch.ArchSource},
 	}
 
-	require.ElementsMatch(t, want, seen, "hummingbird:glibc.src should be dropped (sibling binary present); rhel-9.7.z:glibc.src should survive")
+	require.ElementsMatch(t, want, seen, "hummingbird-1:glibc.src should be dropped (sibling binary present); hummingbird-2:glibc.src should survive (no sibling binary on that platform)")
 }
 
 func TestTransform_RpmArchTaggingForFixedAndUnaffected(t *testing.T) {
