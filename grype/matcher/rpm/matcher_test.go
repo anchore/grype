@@ -215,7 +215,7 @@ func TestMatcherRpm_DistroNotVulnerableIgnore(t *testing.T) {
 			findings.IsEmpty()
 			findings.Ignores().
 				HasCount(1).
-				SelectRelatedPackageIgnore("Distro Not Vulnerable", "CVE-2018-0735").
+				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2018-0735").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
 		})
@@ -242,7 +242,7 @@ func TestMatcherRpm_DistroNotVulnerableIgnoreViaUpstream(t *testing.T) {
 			findings.IsEmpty()
 			findings.Ignores().
 				HasCount(1).
-				SelectRelatedPackageIgnore("Distro Not Vulnerable", "CVE-2018-0735").
+				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2018-0735").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
 		})
@@ -271,7 +271,7 @@ func TestMatcherRpm_UnaffectedRecordProducesIgnore(t *testing.T) {
 			findings.IsEmpty()
 			findings.Ignores().
 				HasCount(1).
-				SelectRelatedPackageIgnore("Distro Not Vulnerable", "CVE-1999-0199").
+				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-1999-0199").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
 		})
@@ -303,7 +303,7 @@ func TestMatcherRpm_VulnerableAndUnaffectedInSameCall(t *testing.T) {
 				AsDistroSearch()
 			findings.Ignores().
 				HasCount(1).
-				SelectRelatedPackageIgnore("Distro Not Vulnerable", "CVE-1999-0199").
+				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-1999-0199").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
 		})

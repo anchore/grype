@@ -110,7 +110,7 @@ func TestAlmaLinuxMatching_ModularFixed(t *testing.T) {
 			// package version is past the RHEL fix
 			findings.Ignores().
 				HasCount(1).
-				SelectRelatedPackageIgnore("Distro Fixed", "CVE-2021-40438").
+				SelectRelatedPackageIgnore(IgnoreReasonDistroFixed, "CVE-2021-40438").
 				ForPackage(pkgID)
 		})
 }
@@ -175,7 +175,7 @@ func TestAlmaLinuxMatching_NonModularFixed(t *testing.T) {
 			findings.IsEmpty()
 			findings.Ignores().
 				HasCount(1).
-				SelectRelatedPackageIgnore("Distro Fixed", "CVE-2019-13636").
+				SelectRelatedPackageIgnore(IgnoreReasonDistroFixed, "CVE-2019-13636").
 				ForPackage(pkgID)
 		})
 }
@@ -269,8 +269,8 @@ func TestAlmaLinuxMatching_LowerAlmaModuleBuildFiltersVulnerability(t *testing.T
 			findings.IsEmpty()
 
 			igs := findings.Ignores().HasCount(2)
-			igs.SelectRelatedPackageIgnore("Alma Unaffected", "ALSA-2021:1242").ForPackage(pkgID)
-			igs.SelectRelatedPackageIgnore("Alma Unaffected", "CVE-2021-27928").ForPackage(pkgID)
+			igs.SelectRelatedPackageIgnore(IgnoreReasonAlmaUnaffected, "ALSA-2021:1242").ForPackage(pkgID)
+			igs.SelectRelatedPackageIgnore(IgnoreReasonAlmaUnaffected, "CVE-2021-27928").ForPackage(pkgID)
 		})
 }
 
@@ -357,7 +357,7 @@ func TestAlmaLinuxIgnoreFilters_DistroFixedIgnore(t *testing.T) {
 			findings.IsEmpty()
 			findings.Ignores().
 				HasCount(1).
-				SelectRelatedPackageIgnore("Distro Fixed", "CVE-2019-13636").
+				SelectRelatedPackageIgnore(IgnoreReasonDistroFixed, "CVE-2019-13636").
 				ForPackage(pkgID)
 		})
 }
@@ -403,14 +403,14 @@ func TestAlmaLinuxIgnoreFilters_AlmaUnaffectedAndAliasUnwind(t *testing.T) {
 
 			// the rhel disclosure path emits "Distro Fixed" for the two CVEs
 			// whose RHEL fix the package is past
-			igs.SelectRelatedPackageIgnore("Distro Fixed", "CVE-2021-40438").ForPackage(pkgID)
-			igs.SelectRelatedPackageIgnore("Distro Fixed", "CVE-2021-26691").ForPackage(pkgID)
+			igs.SelectRelatedPackageIgnore(IgnoreReasonDistroFixed, "CVE-2021-40438").ForPackage(pkgID)
+			igs.SelectRelatedPackageIgnore(IgnoreReasonDistroFixed, "CVE-2021-26691").ForPackage(pkgID)
 
 			// the alma matcher emits "Alma Unaffected" for the ALSA itself
 			// AND for each CVE the ALSA references (alias unwind)
-			igs.SelectRelatedPackageIgnore("Alma Unaffected", "ALSA-2021:4537").ForPackage(pkgID)
-			igs.SelectRelatedPackageIgnore("Alma Unaffected", "CVE-2021-40438").ForPackage(pkgID)
-			igs.SelectRelatedPackageIgnore("Alma Unaffected", "CVE-2021-26691").ForPackage(pkgID)
-			igs.SelectRelatedPackageIgnore("Alma Unaffected", "CVE-2021-20325").ForPackage(pkgID)
+			igs.SelectRelatedPackageIgnore(IgnoreReasonAlmaUnaffected, "ALSA-2021:4537").ForPackage(pkgID)
+			igs.SelectRelatedPackageIgnore(IgnoreReasonAlmaUnaffected, "CVE-2021-40438").ForPackage(pkgID)
+			igs.SelectRelatedPackageIgnore(IgnoreReasonAlmaUnaffected, "CVE-2021-26691").ForPackage(pkgID)
+			igs.SelectRelatedPackageIgnore(IgnoreReasonAlmaUnaffected, "CVE-2021-20325").ForPackage(pkgID)
 		})
 }

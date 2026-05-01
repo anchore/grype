@@ -1151,12 +1151,17 @@ func TestSkipCompleteness_PartialPasses(t *testing.T) {
 // TestSkipCompleteness_DeadWeightFails for ignore filters: opting into
 // Ignores().SkipCompleteness() while asserting on every ignore is dead weight.
 func TestIgnoresSkipCompleteness_DeadWeightFails(t *testing.T) {
+	// synthetic reason - this package can't import grype/matcher/rpm without
+	// inverting the dbtest -> matcher layering, so we use a local constant to
+	// keep the produced/asserted strings paired.
+	const reason = "Distro Fixed"
+
 	mockT := newMockT()
 	p := pkg.Package{Name: "curl"}
 	pkgID := pkg.ID("pkg-1")
 	ignores := []match.IgnoreFilter{
 		match.IgnoreRelatedPackage{
-			Reason:           "Distro Fixed",
+			Reason:           reason,
 			VulnerabilityID:  "CVE-2024-0001",
 			RelatedPackageID: pkgID,
 		},
@@ -1165,7 +1170,7 @@ func TestIgnoresSkipCompleteness_DeadWeightFails(t *testing.T) {
 	AssertFindingsAndIgnores(mockT, nil, ignores, p).
 		Ignores().
 		SkipCompleteness().
-		SelectRelatedPackageIgnore("Distro Fixed", "CVE-2024-0001").
+		SelectRelatedPackageIgnore(reason, "CVE-2024-0001").
 		ForPackage(pkgID)
 
 	mockT.runCleanups()

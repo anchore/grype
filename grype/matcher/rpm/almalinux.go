@@ -73,7 +73,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 	}
 
 	binaryDisclosures := all.Filter(internal.OnlyVulnerableVersions(pkgVersion))
-	ignored = append(ignored, internal.OwnershipIgnores(binaryPkg, "Distro Fixed", all.Remove(binaryDisclosures).Vulnerabilities()...)...)
+	ignored = append(ignored, internal.OwnershipIgnores(binaryPkg, IgnoreReasonDistroFixed, all.Remove(binaryDisclosures).Vulnerabilities()...)...)
 
 	// Step 2: Find RHEL disclosures for upstream (source) packages (indirect match)
 	// Note: We do NOT add epochs to upstream package versions because sourceRPMs often omit epochs
@@ -96,7 +96,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 		}
 
 		upstreamResults := all.Filter(internal.OnlyVulnerableVersions(upstreamVersion))
-		ignored = append(ignored, internal.OwnershipIgnores(binaryPkg, "Distro Fixed", all.Remove(upstreamResults).Vulnerabilities()...)...)
+		ignored = append(ignored, internal.OwnershipIgnores(binaryPkg, IgnoreReasonDistroFixed, all.Remove(upstreamResults).Vulnerabilities()...)...)
 
 		// Mark these as indirect matches since they came from upstream package search
 		upstreamResults = markAsIndirectMatches(upstreamResults)
@@ -136,7 +136,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 	updatedDisclosures := applyAlmaLinuxUnaffectedFiltering(allDisclosures, allUnaffected, pkgVersion)
 
 	// allUnaffected is not filtered by version constraint, but the correct set gets applied to updatedDisclosures
-	ignored = append(ignored, internal.OwnershipIgnores(binaryPkg, "Alma Unaffected", allUnaffected.Remove(updatedDisclosures).Vulnerabilities()...)...)
+	ignored = append(ignored, internal.OwnershipIgnores(binaryPkg, IgnoreReasonAlmaUnaffected, allUnaffected.Remove(updatedDisclosures).Vulnerabilities()...)...)
 
 	return updatedDisclosures.ToMatches(), ignored, nil
 }
