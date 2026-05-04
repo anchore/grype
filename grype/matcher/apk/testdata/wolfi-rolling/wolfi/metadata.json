@@ -1,0 +1,19 @@
+{
+  "provider": "wolfi",
+  "version": 1,
+  "processor": "vunnel@0.56.0.post18+f819175",
+  "schema": {
+    "version": "1.0.3",
+    "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
+  },
+  "urls": [
+    "https://packages.wolfi.dev/os/security.json"
+  ],
+  "timestamp": "2026-05-04T00:44:58Z",
+  "listing": {
+    "path": "results/listing.xxh64",
+    "digest": "4567e011e165dcb1",
+    "algorithm": "xxh64"
+  },
+  "store": "flat-file"
+}
