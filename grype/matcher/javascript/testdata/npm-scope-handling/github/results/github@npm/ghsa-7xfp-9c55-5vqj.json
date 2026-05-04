@@ -1,0 +1,87 @@
+{
+  "identifier": "github:npm/ghsa-7xfp-9c55-5vqj",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2017-16026"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 5.9,
+          "base_severity": "Medium",
+          "exploitability_score": 2.2,
+          "impact_score": 3.6
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.0/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+        "version": "3.0"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2020-07-28",
+            "kind": "first-observed"
+          },
+          "ecosystem": "npm",
+          "identifier": "2.68.0",
+          "name": "request",
+          "namespace": "github:npm",
+          "range": "\u003e= 2.49.0 \u003c 2.68.0"
+        },
+        {
+          "available": {
+            "date": "2020-07-28",
+            "kind": "first-observed"
+          },
+          "ecosystem": "npm",
+          "identifier": "2.68.0",
+          "name": "request",
+          "namespace": "github:npm",
+          "range": "\u003e= 2.2.6 \u003c 2.47.0"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2017-16026"
+        ]
+      },
+      "Severity": "Medium",
+      "Summary": "Remote Memory Exposure in request",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.0/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+          "version": "3.0"
+        }
+      ],
+      "ghsaId": "GHSA-7xfp-9c55-5vqj",
+      "namespace": "github:npm",
+      "published": "2018-11-09T17:44:01Z",
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2017-16026"
+        },
+        {
+          "url": "https://github.com/request/request/issues/1904"
+        },
+        {
+          "url": "https://github.com/request/request/pull/2018"
+        },
+        {
+          "url": "https://github.com/request/request/pull/2022"
+        },
+        {
+          "url": "https://github.com/request/request/commit/29d81814bc16bc79cb112b4face8be6fc00061dd"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-7xfp-9c55-5vqj"
+        }
+      ],
+      "updated": "2023-09-12T18:48:47Z",
+      "url": "https://github.com/advisories/GHSA-7xfp-9c55-5vqj",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

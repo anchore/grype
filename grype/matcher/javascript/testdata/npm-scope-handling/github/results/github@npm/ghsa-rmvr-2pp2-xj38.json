@@ -1,0 +1,93 @@
+{
+  "identifier": "github:npm/ghsa-rmvr-2pp2-xj38",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2025-25290"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 5.3,
+          "base_severity": "Medium",
+          "exploitability_score": 3.9,
+          "impact_score": 1.4
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2025-02-15",
+            "kind": "first-observed"
+          },
+          "ecosystem": "npm",
+          "identifier": "9.2.1",
+          "name": "@octokit/request",
+          "namespace": "github:npm",
+          "range": "\u003e= 9.0.0-beta.1 \u003c 9.2.1"
+        },
+        {
+          "available": {
+            "date": "2025-02-19",
+            "kind": "first-observed"
+          },
+          "ecosystem": "npm",
+          "identifier": "8.4.1",
+          "name": "@octokit/request",
+          "namespace": "github:npm",
+          "range": "\u003e= 1.0.0 \u003c 8.4.1"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2025-25290"
+        ]
+      },
+      "Severity": "Medium",
+      "Summary": "@octokit/request has a Regular Expression in fetchWrapper that Leads to ReDoS Vulnerability Due to Catastrophic Backtracking",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:L",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-rmvr-2pp2-xj38",
+      "namespace": "github:npm",
+      "published": "2025-02-14T18:00:18Z",
+      "references": [
+        {
+          "url": "https://github.com/octokit/request.js/security/advisories/GHSA-rmvr-2pp2-xj38"
+        },
+        {
+          "url": "https://github.com/octokit/request.js/commit/34ff07ee86fc5c20865982d77391bc910ef19c68"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-25290"
+        },
+        {
+          "url": "https://github.com/octokit/request.js/releases/tag/v8.4.1"
+        },
+        {
+          "url": "https://github.com/octokit/request.js/commit/356411e3217019aa9fc8a68f4236af82490873c2"
+        },
+        {
+          "url": "https://github.com/octokit/request.js/commit/6bb29ba92a52f7bf94469c3433707c682c17126c"
+        },
+        {
+          "url": "https://github.com/octokit/request.js/releases/tag/v9.2.1"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-rmvr-2pp2-xj38"
+        }
+      ],
+      "updated": "2026-01-16T17:29:37Z",
+      "url": "https://github.com/advisories/GHSA-rmvr-2pp2-xj38",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

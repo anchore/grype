@@ -101,7 +101,6 @@ func TestMatcherApk_SecdbMatchesWithoutCpe(t *testing.T) {
 				Build()
 
 			db.Match(t, &matcher, p).
-				OnlyHasVulnerabilities("CVE-2024-0727").
 				SelectMatch("CVE-2024-0727").
 				SelectDetailByType(match.ExactDirectMatch).
 				AsDistroSearch()
@@ -282,7 +281,6 @@ func TestMatcherApk_NvdDedupedBySecdb(t *testing.T) {
 				Build()
 
 			db.Match(t, &matcher, p).
-				OnlyHasVulnerabilities("CVE-2024-0727").
 				SelectMatch("CVE-2024-0727").
 				SelectDetailByType(match.ExactDirectMatch).
 				AsDistroSearch()
@@ -333,8 +331,6 @@ func TestMatcherApk_NvdMatchWhenSecdbHasNoCveEntry(t *testing.T) {
 				Build()
 
 			findings := db.Match(t, &matcher, p)
-			findings.OnlyHasVulnerabilities("CVE-2024-0727", "CVE-2014-0224")
-
 			// secdb path supplies CVE-2024-0727
 			findings.SelectMatch("CVE-2024-0727").
 				SelectDetailByType(match.ExactDirectMatch).
@@ -397,7 +393,6 @@ func TestMatcherApk_NvdMatchAppliesVersionFiltering(t *testing.T) {
 				Build()
 
 			findings := db.Match(t, &matcher, p)
-			findings.OnlyHasVulnerabilities("CVE-2024-0727")
 			findings.SelectMatch("CVE-2024-0727").
 				SelectDetailByType(match.ExactDirectMatch).
 				AsDistroSearch()

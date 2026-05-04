@@ -396,11 +396,74 @@ func (a *IgnoreRelatedPackagesAssertion) WithRelationshipType(rt artifact.Relati
 	return a
 }
 
+// SelectIgnoreRule finds an IgnoreRule with the given reason and
+// vulnerability ID. Fails if not exactly one matches. The returned
+// assertion can be further qualified with ForPackage. Use this for
+// matchers that emit match.IgnoreRule (e.g., the language ecosystem
+// path's UnaffectedPackageEntry rules); use SelectRelatedPackageIgnore
+// for matchers that emit match.IgnoreRelatedPackage.
+func (i *IgnoreFiltersAssertion) SelectIgnoreRule(reason, vulnID string) *IgnoreRuleAssertion {
+	i.t.Helper()
+	matchedIdx := -1
+	for idx, ig := range i.ignores {
+		ir, ok := ig.(match.IgnoreRule)
+		if !ok {
+			continue
+		}
+		if ir.Reason == reason && ir.Vulnerability == vulnID {
+			if matchedIdx != -1 {
+				i.t.Fatalf("expected exactly one IgnoreRule{Reason=%q, Vulnerability=%q}, found multiple", reason, vulnID)
+				return nil
+			}
+			matchedIdx = idx
+		}
+	}
+	if matchedIdx == -1 {
+		i.t.Fatalf("expected IgnoreRule{Reason=%q, Vulnerability=%q}, not found", reason, vulnID)
+		return nil
+	}
+	i.asserted[matchedIdx] = true
+	return &IgnoreRuleAssertion{
+		t:    i.t,
+		rule: i.ignores[matchedIdx].(match.IgnoreRule),
+	}
+}
+
+// IgnoreRuleAssertion provides assertions on a single match.IgnoreRule
+// that has already been selected by reason+vulnerability.
+type IgnoreRuleAssertion struct {
+	t    TestingT
+	rule match.IgnoreRule
+}
+
+// ForPackage asserts the rule's package identification matches the
+// given name and version. This is the most common follow-up assertion
+// for VEX/unaffected ignore rules, where the package coordinates pin
+// the rule to the specific scanned artifact.
+func (a *IgnoreRuleAssertion) ForPackage(name, version string) *IgnoreRuleAssertion {
+	a.t.Helper()
+	assert.Equal(a.t, name, a.rule.Package.Name, "unexpected package name on ignore rule")
+	assert.Equal(a.t, version, a.rule.Package.Version, "unexpected package version on ignore rule")
+	return a
+}
+
+// IncludesAliases asserts the rule will fan out to aliased
+// vulnerability IDs (the common case for VEX/unaffected entries that
+// suppress a primary advisory along with all its aliases).
+func (a *IgnoreRuleAssertion) IncludesAliases() *IgnoreRuleAssertion {
+	a.t.Helper()
+	assert.True(a.t, a.rule.IncludeAliases, "expected IgnoreRule.IncludeAliases to be true")
+	return a
+}
+
 // ignoreSummary returns a short, human-readable description of an IgnoreFilter
 // for use in error messages from completeness checking.
 func ignoreSummary(ig match.IgnoreFilter) string {
 	if irp, ok := ig.(match.IgnoreRelatedPackage); ok {
 		return fmt.Sprintf("Reason=%q, VulnerabilityID=%q, RelatedPackageID=%q", irp.Reason, irp.VulnerabilityID, irp.RelatedPackageID)
+	}
+	if ir, ok := ig.(match.IgnoreRule); ok {
+		return fmt.Sprintf("Reason=%q, Vulnerability=%q, Package=%s@%s", ir.Reason, ir.Vulnerability, ir.Package.Name, ir.Package.Version)
 	}
 	return fmt.Sprintf("%+v", ig)
 }

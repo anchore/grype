@@ -1,0 +1,64 @@
+{
+  "identifier": "github:go/ghsa-fgw5-hp8f-xfhc",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2026-41413"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 5,
+          "base_severity": "Medium",
+          "exploitability_score": 3.1,
+          "impact_score": 1.4
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:L/I:N/A:N",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2026-04-17",
+            "kind": "first-observed"
+          },
+          "ecosystem": "go",
+          "identifier": "0.0.0-20260410004459-189832a289c1",
+          "name": "istio.io/istio",
+          "namespace": "github:go",
+          "range": "\u003c 0.0.0-20260410004459-189832a289c1"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2026-41413"
+        ]
+      },
+      "Severity": "Medium",
+      "Summary": "Istio: SSRF via RequestAuthentication jwksUri",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:L/I:N/A:N",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-fgw5-hp8f-xfhc",
+      "namespace": "github:go",
+      "published": "2026-04-16T21:38:09Z",
+      "references": [
+        {
+          "url": "https://github.com/istio/istio/security/advisories/GHSA-fgw5-hp8f-xfhc"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-fgw5-hp8f-xfhc"
+        }
+      ],
+      "updated": "2026-04-27T16:17:34Z",
+      "url": "https://github.com/advisories/GHSA-fgw5-hp8f-xfhc",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}
