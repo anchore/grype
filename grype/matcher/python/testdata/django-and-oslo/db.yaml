@@ -1,0 +1,10 @@
+auto-generate: true
+extractions:
+  github:
+    # Django <= 1.2.7 (case-insensitive lookup; GHSA stores "Django"
+    # capitalized).
+    - github:python/GHSA-h95j-h2rv-qrg4
+    # oslo.utils < 0.2.0 - the GHSA name uses a dot, so PEP 503
+    # normalization (dots/underscores -> hyphen) is required for a
+    # package named "oslo.utils" or "oslo_utils" to match.
+    - github:python/GHSA-v933-vx5p-j7w2

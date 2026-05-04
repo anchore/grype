@@ -1,0 +1,19 @@
+{
+  "provider": "github",
+  "version": 2,
+  "processor": "vunnel@0.56.0.post18+f819175",
+  "schema": {
+    "version": "1.0.3",
+    "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
+  },
+  "urls": [
+    "https://api.github.com/graphql"
+  ],
+  "timestamp": "2026-05-04T08:53:31Z",
+  "listing": {
+    "path": "results/listing.xxh64",
+    "digest": "7d2b0ff0154dbf86",
+    "algorithm": "xxh64"
+  },
+  "store": "flat-file"
+}

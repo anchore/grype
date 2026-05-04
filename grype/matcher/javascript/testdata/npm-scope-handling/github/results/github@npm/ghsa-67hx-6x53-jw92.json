@@ -1,0 +1,106 @@
+{
+  "identifier": "github:npm/ghsa-67hx-6x53-jw92",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2023-45133"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 9.3,
+          "base_severity": "Critical",
+          "exploitability_score": 2.5,
+          "impact_score": 6
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2023-10-17",
+            "kind": "first-observed"
+          },
+          "ecosystem": "npm",
+          "identifier": "7.23.2",
+          "name": "@babel/traverse",
+          "namespace": "github:npm",
+          "range": "\u003c 7.23.2"
+        },
+        {
+          "available": {
+            "date": "2023-10-17",
+            "kind": "first-observed"
+          },
+          "ecosystem": "npm",
+          "identifier": "8.0.0-alpha.4",
+          "name": "@babel/traverse",
+          "namespace": "github:npm",
+          "range": "\u003e= 8.0.0-alpha.0 \u003c 8.0.0-alpha.4"
+        },
+        {
+          "ecosystem": "npm",
+          "identifier": "None",
+          "name": "babel-traverse",
+          "namespace": "github:npm",
+          "range": "\u003c 7.23.2"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2023-45133"
+        ]
+      },
+      "Severity": "Critical",
+      "Summary": "Babel vulnerable to arbitrary code execution when compiling specifically crafted malicious code",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-67hx-6x53-jw92",
+      "namespace": "github:npm",
+      "published": "2023-10-16T13:55:36Z",
+      "references": [
+        {
+          "url": "https://github.com/babel/babel/security/advisories/GHSA-67hx-6x53-jw92"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-45133"
+        },
+        {
+          "url": "https://github.com/babel/babel/pull/16033"
+        },
+        {
+          "url": "https://github.com/babel/babel/commit/b13376b346946e3f62fc0848c1d2a23223314c82"
+        },
+        {
+          "url": "https://github.com/babel/babel/releases/tag/v7.23.2"
+        },
+        {
+          "url": "https://github.com/babel/babel/releases/tag/v8.0.0-alpha.4"
+        },
+        {
+          "url": "https://www.debian.org/security/2023/dsa-5528"
+        },
+        {
+          "url": "https://lists.debian.org/debian-lts-announce/2023/10/msg00026.html"
+        },
+        {
+          "url": "https://babeljs.io/blog/2023/10/16/cve-2023-45133"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-67hx-6x53-jw92"
+        }
+      ],
+      "updated": "2024-04-04T14:26:11Z",
+      "url": "https://github.com/advisories/GHSA-67hx-6x53-jw92",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

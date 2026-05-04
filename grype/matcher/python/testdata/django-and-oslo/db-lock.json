@@ -1,0 +1,11 @@
+{
+  "content_hash": "4a8033989f8b5f4d",
+  "created_at": "2026-05-04T12:06:59.337209916Z",
+  "regenerated_at": "2026-05-04T12:06:59.337209916Z",
+  "providers": {
+    "github": {
+      "vunnel_version": "vunnel@0.56.0.post18+f819175",
+      "timestamp": "2026-05-04T08:53:31.108979Z"
+    }
+  }
+}
