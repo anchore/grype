@@ -143,6 +143,84 @@ func TestMatcherJava_matchUpstreamMavenPackage(t *testing.T) {
 	})
 }
 
+// TestMatcherJava_ChainguardLibrariesSuppressesUpstreamGhsa exercises
+// the chainguard-libraries (annotated-openvex) suppression flow for
+// maven packages. CGA-3mj7-wxw9-qjx2 declares
+// pkg:maven/org.springframework.security/spring-security-web@5.8.16-0.cgr.1
+// status=fixed for the upstream GHSA-mf92-479x-3373 (CVE-2026-22732).
+// The v6 build pipeline must record the unaffected handle under the
+// same "groupId:artifactId" name that the github advisory transformer
+// uses for Java packages, otherwise the matcher's name-keyed search
+// would silently miss the VEX statement and the upstream GHSA would
+// still fire on the rebuilt artifact. This test pins both halves of
+// that contract:
+//
+//   - vanilla spring-security-web 5.8.16 still matches the upstream
+//     GHSA (no chainguard rebuild involved).
+//   - the chainguard rebuild 5.8.16-0.cgr.1 emits no matches and
+//     surfaces three UnaffectedPackageEntry IgnoreRules - one per
+//     alias on the CGA (CGA-3mj7-wxw9-qjx2, CVE-2026-22732,
+//     GHSA-mf92-479x-3373) - all keyed to the scanned package
+//     coordinates so consumers can carry the suppression forward.
+//   - past the upstream fix (7.0.4) the package is clean.
+//
+// The sample SBOMs in /Users/williammurphy/work/tools/sample-material
+// drive the same scenario with a Spring Boot 3 / spring-security 6.4.x
+// app: the cgr-rebuilt jar (6.4.13-0.cgr.1) only suppresses upstream
+// findings if the chainguard-libraries provider has published a CGA
+// for that exact rebuild, which it has not yet at the time of writing
+// for the 6.4 line. The 5.8.16-0.cgr.1 pairing here is used because
+// it is the cleanest currently-published example.
+func TestMatcherJava_ChainguardLibrariesSuppressesUpstreamGhsa(t *testing.T) {
+	const (
+		chainguardCGA  = "CGA-3mj7-wxw9-qjx2"
+		upstreamCVE    = "CVE-2026-22732"
+		upstreamGHSA   = "GHSA-mf92-479x-3373"
+		unaffectedRule = "UnaffectedPackageEntry"
+	)
+
+	mk := func(version string) pkg.Package {
+		return dbtest.NewPackage("org.springframework.security.spring-security-web", version, syftPkg.JavaPkg).
+			WithLanguage(syftPkg.Java).
+			WithMetadata(pkg.JavaMetadata{
+				PomArtifactID: "spring-security-web",
+				PomGroupID:    "org.springframework.security",
+			}).
+			Build()
+	}
+
+	dbtest.DBs(t, "spring-security-and-vex").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := NewJavaMatcher(MatcherConfig{})
+
+			t.Run("vanilla 5.8.16 still matches the upstream GHSA", func(t *testing.T) {
+				db.Match(t, matcher, mk("5.8.16")).
+					SelectMatch(upstreamGHSA).
+					SelectDetailByType(match.ExactDirectMatch).
+					AsEcosystemSearch()
+			})
+
+			t.Run("chainguard rebuild 5.8.16-0.cgr.1 drops the GHSA and emits VEX-style ignore rules", func(t *testing.T) {
+				const cgrVersion = "5.8.16-0.cgr.1"
+				findings := db.Match(t, matcher, mk(cgrVersion))
+				ignores := findings.Ignores()
+				ignores.SelectIgnoreRule(unaffectedRule, chainguardCGA).
+					ForPackage("org.springframework.security.spring-security-web", cgrVersion).
+					IncludesAliases()
+				ignores.SelectIgnoreRule(unaffectedRule, upstreamCVE).
+					ForPackage("org.springframework.security.spring-security-web", cgrVersion).
+					IncludesAliases()
+				ignores.SelectIgnoreRule(unaffectedRule, upstreamGHSA).
+					ForPackage("org.springframework.security.spring-security-web", cgrVersion).
+					IncludesAliases()
+			})
+
+			t.Run("spring-security-web past upstream fix is clean - no match, no ignore", func(t *testing.T) {
+				db.Match(t, matcher, mk("7.0.4")).IsEmpty()
+			})
+		})
+}
+
 // TestMatcherJava_shouldSearchMavenBySha is a pure helper test - it does
 // not invoke the matcher and never touches a vulnerability provider, so
 // no fixture or mock is involved.

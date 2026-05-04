@@ -1,0 +1,35 @@
+{
+  "identifier": "chainguard-libraries:maven/CGA-3mj7-wxw9-qjx2",
+  "item": {
+    "document": {
+      "last_updated": "2026-05-02T06:03:05.151Z",
+      "products": [
+        {
+          "identifiers": {
+            "purl": "pkg:maven/org.springframework.security/spring-security-web@5.8.16-0.cgr.1"
+          }
+        }
+      ],
+      "status": "fixed",
+      "timestamp": "2026-04-23T07:51:30.674Z",
+      "vulnerability": {
+        "aliases": [
+          "CGA-j87j-7fw6-jfqx",
+          "CVE-2026-22732",
+          "GHSA-mf92-479x-3373"
+        ],
+        "name": "CGA-3mj7-wxw9-qjx2"
+      }
+    },
+    "fixes": [
+      {
+        "available": {
+          "date": "2026-04-23",
+          "kind": "advisory"
+        },
+        "product": "pkg:maven/org.springframework.security/spring-security-web@5.8.16-0.cgr.1"
+      }
+    ]
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/annotated-openvex/schema-1.0.0.json"
+}
