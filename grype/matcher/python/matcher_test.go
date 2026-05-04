@@ -69,16 +69,18 @@ func TestMatcher_PEP503Normalization(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			dbtest.DBs(t, "django-and-oslo").Run(func(t *testing.T, db *dbtest.DB) {
-				matcher := NewPythonMatcher(MatcherConfig{})
-				p := dbtest.NewPackage(c.pkgName, c.pkgVersion, syftPkg.PythonPkg).
-					WithLanguage(syftPkg.Python).
-					Build()
-				db.Match(t, matcher, p).
-					SelectMatch(c.expectGHSAID).
-					SelectDetailByType(match.ExactDirectMatch).
-					AsEcosystemSearch()
-			})
+			dbtest.DBs(t, "python-name-and-vex").
+				SelectOnly("github:python/GHSA-h95j-h2rv-qrg4", "github:python/GHSA-v933-vx5p-j7w2").
+				Run(func(t *testing.T, db *dbtest.DB) {
+					matcher := NewPythonMatcher(MatcherConfig{})
+					p := dbtest.NewPackage(c.pkgName, c.pkgVersion, syftPkg.PythonPkg).
+						WithLanguage(syftPkg.Python).
+						Build()
+					db.Match(t, matcher, p).
+						SelectMatch(c.expectGHSAID).
+						SelectDetailByType(match.ExactDirectMatch).
+						AsEcosystemSearch()
+				})
 		})
 	}
 }
@@ -87,7 +89,7 @@ func TestMatcher_PEP503Normalization(t *testing.T) {
 // matching is paired with proper range filtering: a Django at the fix
 // version produces no match.
 func TestMatcher_VersionFilteringApplies(t *testing.T) {
-	dbtest.DBs(t, "django-and-oslo").
+	dbtest.DBs(t, "python-name-and-vex").
 		SelectOnly("github:python/GHSA-h95j-h2rv-qrg4").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := NewPythonMatcher(MatcherConfig{})
@@ -97,5 +99,88 @@ func TestMatcher_VersionFilteringApplies(t *testing.T) {
 				WithLanguage(syftPkg.Python).
 				Build()
 			db.Match(t, matcher, p).IsEmpty()
+		})
+}
+
+// TestMatcher_ChainguardLibrariesSuppressesUpstreamGhsa exercises the
+// VEX/unaffected suppression path that the chainguard-libraries
+// provider drives. chainguard-libraries publishes annotated-openvex
+// statements declaring that specific Chainguard rebuilds (the +cgr.N
+// variants) are status=fixed for upstream advisories - the v6
+// transformer turns each statement into a UnaffectedPackageHandle
+// keyed by the exact rebuilt version, with the upstream advisory IDs
+// (CVE / GHSA) as aliases.
+//
+// The python matcher's findUnaffected query intersects those
+// UnaffectedPackageHandle rows with the regular github:python
+// disclosures by alias, so a `certifi 2020.12.5+cgr.1` package has the
+// upstream GHSA-xqr8-7jwr-rhp7 / CVE-2023-37920 dropped from matches
+// and surfaced as ignore filters instead. A vanilla `certifi 2020.12.5`
+// (no `+cgr` suffix) does not satisfy the unaffected entry's exact-
+// version constraint, so it still gets flagged as vulnerable - this
+// is the contrast that proves the VEX statement is what's doing the
+// work.
+//
+// The matcher emits one match.IgnoreRule per alias on the unaffected
+// entry: the chainguard advisory itself (CGA-22g9-8qhp-q56g), the
+// upstream CVE, and the upstream GHSA - all keyed back to the
+// scanned package coordinates so VEX consumers can carry the
+// suppression forward.
+func TestMatcher_ChainguardLibrariesSuppressesUpstreamGhsa(t *testing.T) {
+	const (
+		chainguardCGA  = "CGA-22g9-8qhp-q56g"
+		upstreamCVE    = "CVE-2023-37920"
+		upstreamGHSA   = "GHSA-xqr8-7jwr-rhp7"
+		unaffectedRule = "UnaffectedPackageEntry"
+	)
+
+	dbtest.DBs(t, "python-name-and-vex").
+		SelectOnly(
+			"github:python/GHSA-xqr8-7jwr-rhp7",
+			"chainguard-libraries:pypi/CGA-22g9-8qhp-q56g",
+		).
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := NewPythonMatcher(MatcherConfig{})
+
+			t.Run("vanilla 2020.12.5 still matches the upstream GHSA", func(t *testing.T) {
+				p := dbtest.NewPackage("certifi", "2020.12.5", syftPkg.PythonPkg).
+					WithLanguage(syftPkg.Python).
+					Build()
+				db.Match(t, matcher, p).
+					SelectMatch(upstreamGHSA).
+					SelectDetailByType(match.ExactDirectMatch).
+					AsEcosystemSearch()
+			})
+
+			t.Run("chainguard rebuild 2020.12.5+cgr.1 drops the GHSA and emits VEX-style ignore rules", func(t *testing.T) {
+				const cgrVersion = "2020.12.5+cgr.1"
+				p := dbtest.NewPackage("certifi", cgrVersion, syftPkg.PythonPkg).
+					WithLanguage(syftPkg.Python).
+					Build()
+
+				findings := db.Match(t, matcher, p)
+				ignores := findings.Ignores()
+				// the unaffected handle's own ID
+				ignores.SelectIgnoreRule(unaffectedRule, chainguardCGA).
+					ForPackage("certifi", cgrVersion).
+					IncludesAliases()
+				// fanned-out alias entries that suppress the upstream IDs
+				ignores.SelectIgnoreRule(unaffectedRule, upstreamCVE).
+					ForPackage("certifi", cgrVersion).
+					IncludesAliases()
+				ignores.SelectIgnoreRule(unaffectedRule, upstreamGHSA).
+					ForPackage("certifi", cgrVersion).
+					IncludesAliases()
+			})
+
+			t.Run("certifi past upstream fix is clean - no match, no ignore", func(t *testing.T) {
+				// 2023.7.22 is the fixed version per GHSA-xqr8-7jwr-rhp7;
+				// no chainguard-libraries entry covers it either, so the
+				// package should be vulnerability-free.
+				p := dbtest.NewPackage("certifi", "2023.7.22", syftPkg.PythonPkg).
+					WithLanguage(syftPkg.Python).
+					Build()
+				db.Match(t, matcher, p).IsEmpty()
+			})
 		})
 }
