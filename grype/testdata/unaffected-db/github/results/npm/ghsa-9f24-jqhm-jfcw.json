@@ -1,0 +1,76 @@
+{
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json",
+  "identifier": "github:npm/ghsa-9f24-jqhm-jfcw",
+  "item": {
+    "Vulnerability": {},
+    "Advisory": {
+      "Classification": "GENERAL",
+      "Severity": "Medium",
+      "CVSS": {
+        "version": "3.1",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H",
+        "base_metrics": {
+          "base_score": 6.5,
+          "exploitability_score": 2.8,
+          "impact_score": 3.6,
+          "base_severity": "Medium"
+        },
+        "status": "N/A"
+      },
+      "cvss_severities": [
+        {
+          "version": "3.1",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:N/A:H"
+        }
+      ],
+      "FixedIn": [
+        {
+          "name": "undici",
+          "identifier": "6.6.1",
+          "ecosystem": "npm",
+          "namespace": "github:npm",
+          "range": ">= 6.0.0 <= 6.6.0",
+          "available": {
+            "date": "2024-02-17",
+            "kind": "first-observed"
+          }
+        }
+      ],
+      "Summary": "fetch(url) leads to a memory leak in undici",
+      "url": "https://github.com/advisories/GHSA-9f24-jqhm-jfcw",
+      "CVE": [
+        "CVE-2024-24750"
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2024-24750"
+        ]
+      },
+      "ghsaId": "GHSA-9f24-jqhm-jfcw",
+      "published": "2024-02-16T15:59:38Z",
+      "updated": "2026-03-20T05:06:24Z",
+      "withdrawn": null,
+      "references": [
+        {
+          "url": "https://github.com/nodejs/undici/security/advisories/GHSA-9f24-jqhm-jfcw"
+        },
+        {
+          "url": "https://github.com/nodejs/undici/commit/87a48113f1f68f60aa09abb07276d7c35467c663"
+        },
+        {
+          "url": "https://github.com/nodejs/undici/releases/tag/v6.6.1"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-24750"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20240419-0006"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-9f24-jqhm-jfcw"
+        }
+      ],
+      "namespace": "github:npm"
+    }
+  }
+}

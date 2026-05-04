@@ -1130,6 +1130,14 @@ func Test_ignoreFilters(t *testing.T) {
 			vulns: []vulnerability.Vulnerability{
 				{
 					Reference: vulnerability.Reference{
+						ID:        "GHSA-2014-fake-2",
+						Namespace: "wolfi:distro:wolfi:rolling",
+					},
+					PackageName: "not-foo",
+					Constraint:  version.MustGetConstraint("< 0", version.ApkFormat),
+				},
+				{
+					Reference: vulnerability.Reference{
 						ID:        "GHSA-2014-fake-3",
 						Namespace: "wolfi:distro:wolfi:rolling",
 					},

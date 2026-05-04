@@ -1,0 +1,20 @@
+{
+  "provider": "debian",
+  "version": 1,
+  "processor": "vunnel@0.55.2.post5+b0ff778",
+  "schema": {
+    "version": "1.0.3",
+    "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
+  },
+  "urls": [
+    "https://security-tracker.debian.org/tracker/data/json",
+    "https://salsa.debian.org/security-tracker-team/security-tracker/raw/master/data/DSA/list"
+  ],
+  "timestamp": "2026-03-11T00:28:00Z",
+  "listing": {
+    "path": "results/listing.xxh64",
+    "digest": "e50f04bfd9b9d849",
+    "algorithm": "xxh64"
+  },
+  "store": "flat-file"
+}

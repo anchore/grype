@@ -1,0 +1,11 @@
+auto-generate: true
+extractions:
+    nvd:
+        - CVE-2018-0735
+        - CVE-2018-17199
+        - CVE-2016-10228
+    rhel:
+        - rhel:8/cve-2018-0735
+        - rhel:8/cve-2018-17199
+        - rhel:8/cve-2016-10228
+        - rhel:8/cve-1999-0199

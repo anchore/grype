@@ -52,9 +52,10 @@ func (m *Matcher) Type() match.MatcherType {
 
 func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	var matches []match.Match
+	var ignores []match.IgnoreFilter
 
 	if m.cfg.SearchMavenUpstream {
-		upstreamMatches, err := m.matchUpstreamMavenPackages(store, p)
+		upstreamMatches, ignored, err := m.matchUpstreamMavenPackages(store, p)
 		if err != nil {
 			if strings.Contains(err.Error(), "no artifact found") {
 				log.Debugf("no upstream maven artifact found for %s", p.Name)
@@ -63,21 +64,24 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 			}
 		} else {
 			matches = append(matches, upstreamMatches...)
+			ignores = append(ignores, ignored...)
 		}
 	}
 
-	criteriaMatches, ignores, err := internal.MatchPackageByEcosystemAndCPEs(store, p, m.Type(), m.cfg.UseCPEs)
+	criteriaMatches, ignored, err := internal.MatchPackageByEcosystemAndCPEs(store, p, m.Type(), m.cfg.UseCPEs)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to match by exact package: %w", err)
 	}
 
 	matches = append(matches, criteriaMatches...)
+	ignores = append(ignores, ignored...)
 
 	return matches, ignores, nil
 }
 
-func (m *Matcher) matchUpstreamMavenPackages(store vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) matchUpstreamMavenPackages(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	var matches []match.Match
+	var ignores []match.IgnoreFilter
 
 	ctx := context.Background()
 
@@ -89,26 +93,28 @@ func (m *Matcher) matchUpstreamMavenPackages(store vulnerability.Provider, p pkg
 			log.Debugf("searching maven, POM data missing for %s", p.Name)
 			indirectPackage, err := m.GetMavenPackageBySha(ctx, digest)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
-			indirectMatches, _, err := internal.MatchPackageByLanguage(store, *indirectPackage, m.Type())
+			indirectMatches, ignored, err := internal.MatchPackageByLanguage(store, *indirectPackage, m.Type())
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			matches = append(matches, indirectMatches...)
+			ignores = append(ignores, ignored...)
 		}
 	} else {
 		log.Debugf("skipping maven search, POM data present for %s", p.Name)
-		indirectMatches, _, err := internal.MatchPackageByLanguage(store, p, m.Type())
+		indirectMatches, ignored, err := internal.MatchPackageByLanguage(store, p, m.Type())
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		matches = append(matches, indirectMatches...)
+		ignores = append(ignores, ignored...)
 	}
 
 	match.ConvertToIndirectMatches(matches, p)
 
-	return matches, nil
+	return matches, ignores, nil
 }
 
 func (m *Matcher) shouldSearchMavenBySha(p pkg.Package) (bool, []string) {

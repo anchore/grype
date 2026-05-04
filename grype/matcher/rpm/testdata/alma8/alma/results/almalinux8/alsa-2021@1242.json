@@ -1,0 +1,549 @@
+{
+  "identifier": "almalinux8/alsa-2021:1242",
+  "item": {
+    "affected": [
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "Judy"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1.0.5-18.module_el8.6.0+2867+72759d2f"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "Judy"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1.0.5-18.module_el8.3.0+2028+5e3224e9"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "Judy"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1.0.5-18.module_el8.5.0+2632+14ced695"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "Judy"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1.0.5-18.module_el8.6.0+2761+593e5e59"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "Judy-devel"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1.0.5-18.module_el8.6.0+3072+3c630e87"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "Judy-devel"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1.0.5-18.module_el8.6.0+2867+72759d2f"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "Judy-devel"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1.0.5-18.module_el8.3.0+2028+5e3224e9"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "asio-devel"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1.10.8-7.module_el8.6.0+2867+72759d2f"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "asio-devel"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1.10.8-7.module_el8.6.0+3072+3c630e87"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "galera"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "25.3.32-1.module_el8.3.0+2177+7adc332a"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mariadb"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3:10.3.28-1.module_el8.3.0+2177+7adc332a"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mariadb-backup"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3:10.3.28-1.module_el8.3.0+2177+7adc332a"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mariadb-common"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3:10.3.28-1.module_el8.3.0+2177+7adc332a"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mariadb-devel"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3:10.3.28-1.module_el8.3.0+2177+7adc332a"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mariadb-embedded"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3:10.3.28-1.module_el8.3.0+2177+7adc332a"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mariadb-embedded-devel"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3:10.3.28-1.module_el8.3.0+2177+7adc332a"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mariadb-errmsg"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3:10.3.28-1.module_el8.3.0+2177+7adc332a"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mariadb-gssapi-server"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3:10.3.28-1.module_el8.3.0+2177+7adc332a"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mariadb-oqgraph-engine"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3:10.3.28-1.module_el8.3.0+2177+7adc332a"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mariadb-server"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3:10.3.28-1.module_el8.3.0+2177+7adc332a"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mariadb-server-galera"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3:10.3.28-1.module_el8.3.0+2177+7adc332a"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mariadb-server-utils"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3:10.3.28-1.module_el8.3.0+2177+7adc332a"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "ecosystem_specific": {
+          "rpm_modularity": "mariadb:10.3"
+        },
+        "package": {
+          "ecosystem": "AlmaLinux:8",
+          "name": "mariadb-test"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3:10.3.28-1.module_el8.3.0+2177+7adc332a"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      }
+    ],
+    "database_specific": {
+      "anchore": {
+        "record_type": "advisory"
+      }
+    },
+    "details": "MariaDB is a multi-user, multi-threaded SQL database server that is binary compatible with MySQL. \nThe following packages have been upgraded to a later upstream version: mariadb (10.3.28), galera (25.3.32).\nSecurity Fix(es):\n* mariadb: writable system variables allows a database user with SUPER privilege to execute arbitrary code as the system mysql user (CVE-2021-27928)\nFor more details about the security issue(s), including the impact, a CVSS score, acknowledgments, and other related information, refer to the CVE page(s) listed in the References section.",
+    "id": "ALSA-2021:1242",
+    "modified": "2023-03-13T16:34:13Z",
+    "published": "2021-04-19T00:00:00Z",
+    "references": [
+      {
+        "type": "ADVISORY",
+        "url": "https://access.redhat.com/errata/RHSA-2021:1242"
+      },
+      {
+        "type": "REPORT",
+        "url": "https://access.redhat.com/security/cve/CVE-2021-27928"
+      },
+      {
+        "type": "REPORT",
+        "url": "https://bugzilla.redhat.com/1940909"
+      },
+      {
+        "type": "ADVISORY",
+        "url": "https://errata.almalinux.org/8/ALSA-2021-1242.html"
+      },
+      {
+        "type": "REPORT",
+        "url": "https://vulners.com/cve/CVE-2021-27928"
+      }
+    ],
+    "related": [
+      "CVE-2021-27928"
+    ],
+    "summary": "Important: mariadb:10.3 and mariadb-devel:10.3 security update"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.7.0.json"
+}

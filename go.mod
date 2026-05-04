@@ -1,6 +1,6 @@
 module github.com/anchore/grype
 
-go 1.26.2
+go 1.25.8
 
 require (
 	github.com/CycloneDX/cyclonedx-go v0.10.0
@@ -9,16 +9,16 @@ require (
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 	github.com/adrg/xdg v0.5.3
-	github.com/anchore/bubbly v0.2.1-0.20260420141409-bc02e6e5d201
-	github.com/anchore/clio v0.1.1-0.20260414122717-c63b2994e85a
-	github.com/anchore/fangs v0.1.1-0.20260420145255-95d6205159e7
-	github.com/anchore/go-collections v0.1.1-0.20260414124948-fc3f7459f372
+	github.com/anchore/bubbly v0.2.0
+	github.com/anchore/clio v0.1.0
+	github.com/anchore/fangs v0.1.0
+	github.com/anchore/go-collections v0.1.0
 	github.com/anchore/go-homedir v0.1.0
-	github.com/anchore/go-logger v0.1.1-0.20260420145518-5b8f4a66240b
+	github.com/anchore/go-logger v0.1.0
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.2.0
-	github.com/anchore/stereoscope v0.1.23-0.20260414014649-aeb4170b528f
-	github.com/anchore/syft v1.42.5-0.20260420141326-66ba575ae24a
+	github.com/anchore/stereoscope v0.1.23
+	github.com/anchore/syft v1.44.0
 	github.com/aquasecurity/go-pep440-version v0.0.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/bitnami/go-version v0.0.0-20250505154626-452e8c5ee607
@@ -37,7 +37,7 @@ require (
 	github.com/gocsaf/csaf/v3 v3.5.1
 	github.com/gohugoio/hashstructure v0.6.0
 	github.com/google/go-cmp v0.7.0
-	github.com/google/go-containerregistry v0.21.4
+	github.com/google/go-containerregistry v0.21.5
 	github.com/google/osv-scanner v1.9.2
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.6.0
@@ -82,6 +82,7 @@ require (
 require (
 	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/mark3labs/mcp-go v0.47.1
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
 )
 
 require (
@@ -110,7 +111,7 @@ require (
 	github.com/acobaugh/osrelease v0.1.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/anchore/go-lzo v0.1.0 // indirect
-	github.com/anchore/go-macholibre v0.1.1-0.20260413185634-25fb39cdef19 // indirect
+	github.com/anchore/go-macholibre v0.1.0 // indirect
 	github.com/anchore/go-rpmdb v0.1.0 // indirect
 	github.com/anchore/go-struct-converter v0.1.0 // indirect
 	github.com/anchore/go-sync v0.1.0 // indirect
@@ -158,13 +159,13 @@ require (
 	github.com/cncf/xds/go v0.0.0-20251210132809-ee656c7534f5 // indirect
 	github.com/containerd/cgroups/v3 v3.1.2 // indirect
 	github.com/containerd/containerd/api v1.10.0 // indirect
-	github.com/containerd/containerd/v2 v2.2.1 // indirect
+	github.com/containerd/containerd/v2 v2.2.2 // indirect
 	github.com/containerd/continuity v0.4.5 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/fifo v1.1.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
-	github.com/containerd/platforms v1.0.0-rc.2 // indirect
+	github.com/containerd/platforms v1.0.0-rc.4 // indirect
 	github.com/containerd/plugin v1.0.0 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.18.2 // indirect
 	github.com/containerd/ttrpc v1.2.7 // indirect
@@ -174,7 +175,7 @@ require (
 	github.com/deitch/magic v0.0.0-20240306090643-c67ab88f10cb // indirect
 	github.com/diskfs/go-diskfs v1.7.0 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/docker/cli v29.3.1+incompatible // indirect
+	github.com/docker/cli v29.4.0+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.5 // indirect
 	github.com/docker/go-connections v0.6.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
@@ -242,8 +243,8 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/locker v1.0.1 // indirect
-	github.com/moby/moby/api v1.54.0 // indirect
-	github.com/moby/moby/client v0.3.0 // indirect
+	github.com/moby/moby/api v1.54.1 // indirect
+	github.com/moby/moby/client v0.4.0 // indirect
 	github.com/moby/sys/atomicwriter v0.1.0 // indirect
 	github.com/moby/sys/mountinfo v0.7.2 // indirect
 	github.com/moby/sys/sequential v0.6.0 // indirect
@@ -282,7 +283,6 @@ require (
 	github.com/rust-secure-code/go-rustaudit v0.0.0-20250226111315-e20ec32e963c // indirect
 	github.com/sagikazarmark/locafero v0.11.0 // indirect
 	github.com/saintfish/chardet v0.0.0-20230101081208-5e3ef4b5456d // indirect
-	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/sassoftware/go-rpmutils v0.4.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect

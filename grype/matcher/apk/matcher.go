@@ -65,14 +65,14 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 }
 
 //nolint:funlen,gocognit
-func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	// find CPE-indexed vulnerability matches specific to the given package name and version
-	cpeMatches, err := internal.MatchPackageByCPEs(provider, p, m.Type())
+	cpeMatches, ignored, err := internal.MatchPackageByCPEs(provider, p, m.Type())
 	if err != nil {
 		log.WithFields("package", p.Name, "error", err).Debug("failed to find CPE matches for package")
 	}
 	if p.Distro == nil {
-		return cpeMatches, nil
+		return cpeMatches, ignored, nil
 	}
 
 	cpeMatchesByID := matchesByID(cpeMatches)
@@ -83,7 +83,7 @@ func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, p
 		search.ByPackageName(p.Name),
 		search.ByDistro(*p.Distro))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
@@ -91,7 +91,7 @@ func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, p
 			search.ByPackageName(upstreamPkg.Name),
 			search.ByDistro(*upstreamPkg.Distro))
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		secDBVulnerabilities = append(secDBVulnerabilities, secDBVulnerabilitiesForUpstream...)
 	}
@@ -131,7 +131,7 @@ cveLoop:
 			// ...is the current package vulnerable?
 			vulnerable, err := vuln.Constraint.Satisfied(verObj)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			if vulnerable {
@@ -141,7 +141,7 @@ cveLoop:
 			}
 		}
 	}
-	return finalCpeMatches, nil
+	return finalCpeMatches, ignored, nil
 }
 
 func deduplicateMatches(secDBMatches, cpeMatches []match.Match) (matches []match.Match) {
@@ -179,13 +179,13 @@ func vulnerabilitiesByID(vulns []vulnerability.Vulnerability) map[string][]vulne
 func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Package, catalogPkg *pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	// find SecDB matches for the given package name and version
 	// APK doesn't use epochs, so pass nil for the config
-	secDBMatches, secDBIgnores, err := internal.MatchPackageByDistroWithOwnedFiles(store, p, catalogPkg, m.Type(), nil)
+	secDBMatches, secDBIgnores, err := internal.MatchPackageByDistro(store, p, catalogPkg, m.Type(), nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// TODO: are there other errors that we should handle here that causes this to short circuit
-	cpeMatches, err := m.cpeMatchesWithoutSecDBFixes(store, p)
+	cpeMatches, cpeIgnores, err := m.cpeMatchesWithoutSecDBFixes(store, p)
 	if err != nil && !errors.Is(err, internal.ErrEmptyCPEMatch) {
 		return nil, nil, err
 	}
@@ -198,7 +198,7 @@ func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Pack
 	// keep only unique CPE matches
 	matches = append(matches, deduplicateMatches(secDBMatches, cpeMatches)...)
 
-	return matches, secDBIgnores, nil
+	return matches, append(secDBIgnores, cpeIgnores...), nil
 }
 
 func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, catalogPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
