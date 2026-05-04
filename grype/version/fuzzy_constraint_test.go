@@ -68,6 +68,11 @@ func TestFuzzyVersionComparison(t *testing.T) {
 		{"1.0.2k", "1.0.2l", -1},
 		// 1.1.1w is a later patch on 1.1.1
 		{"1.1.1", "1.1.1w", -1},
+		// Issue #3037: an uppercase 'V' prefix should be stripped just like 'v'
+		// (e.g. NEXO-OS V1500-SP2 vs 1500-SP2 should compare equal).
+		{"V1500-SP2", "1500-SP2", 0},
+		{"V1500-SP2", "v1500-SP2", 0},
+		{"V1500-SP1", "V1500-SP2", -1},
 	}
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%q vs %q", c.v1, c.v2), func(t *testing.T) {
@@ -401,6 +406,9 @@ func TestPseudoSemverPattern(t *testing.T) {
 	}{
 		{name: "rc candidates are valid semver", version: "1.2.3-rc1", valid: true},
 		{name: "rc candidates with no dash are valid semver", version: "1.2.3rc1", valid: true},
+		// Issue #3037: uppercase V prefix should be accepted just like lowercase v.
+		{name: "lowercase v prefix is valid", version: "v1.2.3", valid: true},
+		{name: "uppercase V prefix is valid", version: "V1.2.3", valid: true},
 	}
 
 	for _, test := range tests {
