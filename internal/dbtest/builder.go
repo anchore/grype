@@ -403,12 +403,13 @@ func buildDatabase(schema int, outputDir string, states provider.States) error {
 	}
 
 	cfg := db.BuildConfig{
-		SchemaVersion:   schema,
-		Directory:       outputDir,
-		States:          states,
-		Timestamp:       time.Now(),
-		Hydrate:         true,
-		IncludeCPEParts: []string{"a", "h", "o"},
+		SchemaVersion:       schema,
+		Directory:           outputDir,
+		States:              states,
+		Timestamp:           time.Now(),
+		Hydrate:             true,
+		IncludeCPEParts:     []string{"a", "h", "o"},
+		InferNVDFixVersions: true, // match grype-db's production default so NVD fix metadata reaches matchers
 	}
 
 	return db.Build(cfg)

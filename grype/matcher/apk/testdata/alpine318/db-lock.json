@@ -1,0 +1,15 @@
+{
+  "content_hash": "42e0e77731864681",
+  "created_at": "2026-05-04T10:29:53.133860222Z",
+  "regenerated_at": "2026-05-04T11:03:44.198056565Z",
+  "providers": {
+    "alpine": {
+      "vunnel_version": "vunnel@0.56.0.post18+f819175",
+      "timestamp": "2026-05-04T00:45:37.229086Z"
+    },
+    "nvd": {
+      "vunnel_version": "vunnel@0.56.0.post18+f819175",
+      "timestamp": "2026-05-04T08:54:11.776981Z"
+    }
+  }
+}

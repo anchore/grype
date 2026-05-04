@@ -1,0 +1,15 @@
+{
+  "content_hash": "549e2e36b61969b6",
+  "created_at": "2026-05-04T10:30:03.047571685Z",
+  "regenerated_at": "2026-05-04T11:03:54.326266195Z",
+  "providers": {
+    "nvd": {
+      "vunnel_version": "vunnel@0.56.0.post18+f819175",
+      "timestamp": "2026-05-04T08:54:11.776981Z"
+    },
+    "wolfi": {
+      "vunnel_version": "vunnel@0.56.0.post18+f819175",
+      "timestamp": "2026-05-04T00:44:58.262909Z"
+    }
+  }
+}
