@@ -9,16 +9,16 @@ require (
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 	github.com/adrg/xdg v0.5.3
-	github.com/anchore/bubbly v0.2.0
-	github.com/anchore/clio v0.1.0
-	github.com/anchore/fangs v0.1.0
-	github.com/anchore/go-collections v0.1.0
+	github.com/anchore/bubbly v0.2.1-0.20260504182807-592ebe682ba3
+	github.com/anchore/clio v0.1.1-0.20260504182755-7cb7d0cde064
+	github.com/anchore/fangs v0.1.1-0.20260504182751-1e09e278aac6
+	github.com/anchore/go-collections v0.1.1-0.20260504182834-dca4515fddb5
 	github.com/anchore/go-homedir v0.1.0
-	github.com/anchore/go-logger v0.1.0
+	github.com/anchore/go-logger v0.1.1-0.20260504182741-37233957c290
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.2.0
-	github.com/anchore/stereoscope v0.1.23
-	github.com/anchore/syft v1.44.0
+	github.com/anchore/stereoscope v0.1.24-0.20260504183053-ff85d01db29e
+	github.com/anchore/syft v1.44.1-0.20260504183107-f878197150f7
 	github.com/aquasecurity/go-pep440-version v0.0.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/bitnami/go-version v0.0.0-20250505154626-452e8c5ee607
@@ -109,11 +109,11 @@ require (
 	github.com/STARRY-S/zip v0.2.3 // indirect
 	github.com/acobaugh/osrelease v0.1.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
-	github.com/anchore/go-lzo v0.1.0 // indirect
-	github.com/anchore/go-macholibre v0.1.0 // indirect
+	github.com/anchore/go-lzo v0.1.1-0.20260504182939-893fd2c642ad // indirect
+	github.com/anchore/go-macholibre v0.1.1-0.20260504182843-2bd04319aa30 // indirect
 	github.com/anchore/go-rpmdb v0.1.0 // indirect
 	github.com/anchore/go-struct-converter v0.1.0 // indirect
-	github.com/anchore/go-sync v0.1.0 // indirect
+	github.com/anchore/go-sync v0.1.1-0.20260504182851-346cda793b9b // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/aquasecurity/go-version v0.0.1 // indirect
