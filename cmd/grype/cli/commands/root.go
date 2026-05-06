@@ -239,7 +239,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 	// clear out the registry auth information to avoid including possibly sensitive information in the report
 	opts.Registry.Auth = nil
 
-	if opts.HideIgnoredMatches {
+	if opts.DropIgnoredMatches {
 		ignoredMatches = []match.IgnoredMatch{}
 	}
 
