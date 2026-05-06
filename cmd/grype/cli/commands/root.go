@@ -241,6 +241,10 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		return fmt.Errorf("failed to create document: %w", err)
 	}
 
+	if opts.DropIgnoredMatches {
+		ignoredMatches = []match.IgnoredMatch{}
+	}
+
 	if err = writer.Write(models.PresenterConfig{
 		ID:       app.ID(),
 		Document: model,
