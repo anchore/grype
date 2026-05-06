@@ -31,7 +31,8 @@ type Grype struct {
 	FailOn                     string             `yaml:"fail-on-severity" json:"fail-on-severity" mapstructure:"fail-on-severity"`
 	Registry                   registry           `yaml:"registry" json:"registry" mapstructure:"registry"`
 	ShowSuppressed             bool               `yaml:"show-suppressed" json:"show-suppressed" mapstructure:"show-suppressed"`
-	ByCVE                      bool               `yaml:"by-cve" json:"by-cve" mapstructure:"by-cve"` // --by-cve, indicates if the original match vulnerability IDs should be preserved or the CVE should be used instead
+	HideIgnoredMatches         bool               `yaml:"hide-ignored-matches" json:"hide-ignored-matches" mapstructure:"hide-ignored-matches"` // --hide-ignored-matches, omit the ignoredMatches array from structured output formats (e.g. json, template)
+	ByCVE                      bool               `yaml:"by-cve" json:"by-cve" mapstructure:"by-cve"`                                           // --by-cve, indicates if the original match vulnerability IDs should be preserved or the CVE should be used instead
 	SortBy                     SortBy             `yaml:",inline" json:",inline" mapstructure:",squash"`
 	Name                       string             `yaml:"name" json:"name" mapstructure:"name"`
 	DefaultImagePullSource     string             `yaml:"default-image-pull-source" json:"default-image-pull-source" mapstructure:"default-image-pull-source"`
@@ -141,6 +142,11 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 		"show suppressed/ignored vulnerabilities in the output (only supported with table output format)",
 	)
 
+	flags.BoolVarP(&o.HideIgnoredMatches,
+		"hide-ignored-matches", "",
+		"omit supporessed/ignored vulnerabilities in the output (e.g. json, template)",
+	)
+
 	flags.StringArrayVarP(&o.Exclusions,
 		"exclude", "",
 		"exclude paths from being scanned using a glob expression",
@@ -210,6 +216,7 @@ VEX fields apply when Grype reads vex data:
 `)
 	descriptions.Add(&o.VexAdd, `VEX statuses to consider as ignored rules`)
 	descriptions.Add(&o.MatchUpstreamKernelHeaders, `match kernel-header packages with upstream kernel as kernel vulnerabilities`)
+	descriptions.Add(&o.HideIgnoredMatches, `omit the ignoredMatches array from structured output formats (e.g. json, template)`)
 }
 
 func (o Grype) FailOnSeverity() *vulnerability.Severity {
