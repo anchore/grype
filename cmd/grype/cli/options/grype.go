@@ -144,7 +144,7 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 
 	flags.BoolVarP(&o.DropIgnoredMatches,
 		"drop-ignored-matches", "",
-		"omit supporessed/ignored vulnerabilities in the output (e.g. json, template)",
+		"omit suppressed/ignored vulnerabilities in the output (e.g. json, template); also drops ignored matches early during scanning to reduce memory usage",
 	)
 
 	flags.StringArrayVarP(&o.Exclusions,
@@ -216,7 +216,7 @@ VEX fields apply when Grype reads vex data:
 `)
 	descriptions.Add(&o.VexAdd, `VEX statuses to consider as ignored rules`)
 	descriptions.Add(&o.MatchUpstreamKernelHeaders, `match kernel-header packages with upstream kernel as kernel vulnerabilities`)
-	descriptions.Add(&o.DropIgnoredMatches, `omit the ignoredMatches array from structured output formats (e.g. json, template)`)
+	descriptions.Add(&o.DropIgnoredMatches, `omit the ignoredMatches array from structured output formats (e.g. json, template); also drops ignored matches early during scanning to reduce memory usage`)
 }
 
 func (o Grype) FailOnSeverity() *vulnerability.Severity {

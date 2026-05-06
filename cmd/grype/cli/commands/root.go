@@ -223,6 +223,7 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 		FailSeverity:          opts.FailOnSeverity(),
 		Matchers:              getMatchers(opts),
 		VexProcessor:          vexProcessor,
+		DropIgnoredMatches:    opts.DropIgnoredMatches,
 	}
 
 	remainingMatches, ignoredMatches, err := vulnMatcher.FindMatches(packages, pkgContext)
@@ -238,10 +239,6 @@ func runGrype(app clio.Application, opts *options.Grype, userInput string) (errs
 
 	// clear out the registry auth information to avoid including possibly sensitive information in the report
 	opts.Registry.Auth = nil
-
-	if opts.DropIgnoredMatches {
-		ignoredMatches = []match.IgnoredMatch{}
-	}
 
 	model, err := models.NewDocument(app.ID(), packages, pkgContext, *remainingMatches, ignoredMatches, vp, opts, dbInfo(status, vp), models.SortStrategy(opts.SortBy.Criteria), opts.Timestamp)
 	if err != nil {
