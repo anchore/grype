@@ -432,10 +432,10 @@ func TestFuzzyVersionComparison_UppercaseV(t *testing.T) {
 		a, b string
 		want int
 	}{
-		{"v1.2.3", "V1.2.3", 0},  
-		{"V1.2.3", "1.2.3", 0},   
-		{"V1.2.3", "v1.2.4", -1}, 
-		{"v2.0", "V1.9.9", 1},    
+		{"v1.2.3", "V1.2.3", 0},
+		{"V1.2.3", "1.2.3", 0},
+		{"V1.2.3", "v1.2.4", -1},
+		{"v2.0", "V1.9.9", 1},
 	}
 
 	for _, c := range cases {
@@ -445,4 +445,3 @@ func TestFuzzyVersionComparison_UppercaseV(t *testing.T) {
 		}
 	}
 }
-
