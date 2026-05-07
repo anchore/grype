@@ -9,18 +9,19 @@ import (
 
 // Package is meant to be only the fields that are needed when displaying a single pkg.Package object for the JSON presenter.
 type Package struct {
-	ID           string            `json:"id"`
-	Name         string            `json:"name"`
-	Version      string            `json:"version"`
-	Type         syftPkg.Type      `json:"type"`
-	Locations    file.Locations    `json:"locations"`
-	Language     syftPkg.Language  `json:"language"`
-	Licenses     []string          `json:"licenses"`
-	CPEs         []string          `json:"cpes"`
-	PURL         string            `json:"purl"`
-	Upstreams    []UpstreamPackage `json:"upstreams"`
-	MetadataType string            `json:"metadataType,omitempty"`
-	Metadata     any               `json:"metadata,omitempty"`
+	ID           string              `json:"id"`
+	Name         string              `json:"name"`
+	Version      string              `json:"version"`
+	Type         syftPkg.Type        `json:"type"`
+	Locations    file.Locations      `json:"locations"`
+	Language     syftPkg.Language    `json:"language"`
+	Licenses     []string            `json:"licenses"`
+	CPEs         []string            `json:"cpes"`
+	PURL         string              `json:"purl"`
+	Upstreams    []UpstreamPackage   `json:"upstreams"`
+	MetadataType string              `json:"metadataType,omitempty"`
+	Metadata     any                 `json:"metadata,omitempty"`
+	Annotations  map[string][]string `json:"annotations,omitempty"`
 }
 
 type UpstreamPackage struct {
@@ -61,5 +62,6 @@ func newPackage(p pkg.Package) Package {
 		Upstreams:    upstreams,
 		MetadataType: packagemetadata.JSONName(p.Metadata),
 		Metadata:     p.Metadata,
+		Annotations:  p.Annotations,
 	}
 }

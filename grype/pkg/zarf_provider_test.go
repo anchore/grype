@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/klauspost/compress/zstd"
@@ -120,11 +119,13 @@ func TestZarfProvider(t *testing.T) {
 	}
 }
 
-func TestZarfProvider_MultiSBOM_MergesPackages(t *testing.T) {
+// TestZarfProvider_MultiSBOM_DedupesByID verifies that two copies of the same
+// SBOM yield the same package count as one copy: shared package IDs are folded
+// onto a single Package entry whose annotation list captures both sources.
+func TestZarfProvider_MultiSBOM_DedupesByID(t *testing.T) {
 	sbomContent, err := os.ReadFile("testdata/syft-multiple-ecosystems.json")
 	require.NoError(t, err)
 
-	// single SBOM baseline
 	singlePath := createTestZarfPackage(t, map[string]string{
 		"sbom-a.json": string(sbomContent),
 	})
@@ -133,7 +134,6 @@ func TestZarfProvider_MultiSBOM_MergesPackages(t *testing.T) {
 	singlePkgs, _, _, err := zarfProvider("zarf:"+singlePath, ProviderConfig{}, applyChannel)
 	require.NoError(t, err)
 
-	// two copies of the same SBOM should yield roughly double the packages
 	doublePath := createTestZarfPackage(t, map[string]string{
 		"sbom-a.json": string(sbomContent),
 		"sbom-b.json": string(sbomContent),
@@ -142,14 +142,20 @@ func TestZarfProvider_MultiSBOM_MergesPackages(t *testing.T) {
 	doublePkgs, _, _, err := zarfProvider("zarf:"+doublePath, ProviderConfig{}, applyChannel)
 	require.NoError(t, err)
 
-	assert.Greater(t, len(doublePkgs), len(singlePkgs), "two SBOMs should produce more packages than one")
+	assert.Equal(t, len(singlePkgs), len(doublePkgs), "duplicate SBOMs should not increase package count after dedupe")
+
+	for _, p := range doublePkgs {
+		sources := p.Annotations[zarfSBOMSourceAnnotation]
+		assert.Equal(t, []string{"sbom-a.json", "sbom-b.json"}, sources, "package %q should carry both source identifiers", p.Name)
+	}
 }
 
-// TestZarfProvider_ProvenanceLocations verifies that every package returned from
-// a Zarf scan carries a synthetic `zarf:` Location identifying which bundled
-// SBOM it came from. The fixture has source.name=null, so the tar entry filename
-// is used as the fallback identifier.
-func TestZarfProvider_ProvenanceLocations(t *testing.T) {
+// TestZarfProvider_Annotations verifies that every package returned from a Zarf
+// scan carries a `zarf-sbom-source` annotation identifying which bundled SBOM
+// it came from. The fixture has source.name=null, so the tar entry filename is
+// used as the fallback identifier. When the same package ID appears in multiple
+// SBOMs, the annotation values are unioned onto a single package entry.
+func TestZarfProvider_Annotations(t *testing.T) {
 	sbomContent, err := os.ReadFile("testdata/syft-multiple-ecosystems.json")
 	require.NoError(t, err)
 
@@ -163,27 +169,11 @@ func TestZarfProvider_ProvenanceLocations(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, packages)
 
-	expected := map[string]bool{
-		"zarf:sbom-image-a.json": false,
-		"zarf:sbom-image-b.json": false,
-	}
-
 	for _, pkg := range packages {
-		var foundZarfLoc bool
-		for _, loc := range pkg.Locations.ToSlice() {
-			if !strings.HasPrefix(loc.RealPath, zarfLocationPrefix) {
-				continue
-			}
-			foundZarfLoc = true
-			if _, ok := expected[loc.RealPath]; ok {
-				expected[loc.RealPath] = true
-			}
-		}
-		assert.True(t, foundZarfLoc, "package %q missing a zarf: provenance location (locations=%v)", pkg.Name, pkg.Locations.ToSlice())
-	}
-
-	for ident, seen := range expected {
-		assert.True(t, seen, "expected to see at least one package annotated with %q", ident)
+		sources := pkg.Annotations[zarfSBOMSourceAnnotation]
+		assert.NotEmpty(t, sources, "package %q missing zarf-sbom-source annotation (annotations=%v)", pkg.Name, pkg.Annotations)
+		// since both SBOMs are identical, every shared package ID should carry both source identifiers
+		assert.Equal(t, []string{"sbom-image-a.json", "sbom-image-b.json"}, sources, "package %q has unexpected source list", pkg.Name)
 	}
 }
 

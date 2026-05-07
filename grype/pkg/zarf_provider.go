@@ -13,16 +13,15 @@ import (
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/internal/log"
-	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/format/syftjson"
 	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
 
-// zarfLocationPrefix is added to a synthetic Location on every package extracted
-// from a Zarf package, so consumers can resolve a finding back to the originating
-// SBOM/artifact via the JSON output.
-const zarfLocationPrefix = "zarf:"
+// zarfSBOMSourceAnnotation identifies which bundled SBOM (and the image, file,
+// or binary it describes) inside a Zarf archive a package came from. Surfaces
+// in JSON output as `artifact.annotations["zarf-sbom-source"]`.
+const zarfSBOMSourceAnnotation = "zarf-sbom-source"
 
 const zarfInputPrefix = "zarf:"
 
@@ -108,6 +107,7 @@ func readSBOMsFromTar(r io.Reader, config ProviderConfig, applyChannel func(*dis
 	sbomTar := tar.NewReader(r)
 
 	var allPackages []*Package
+	pkgIndex := map[ID]*Package{}
 	var mergedSBOM *sbom.SBOM
 	var decodedCount int
 	var entryCount int
@@ -154,12 +154,26 @@ func readSBOMsFromTar(r io.Reader, config ProviderConfig, applyChannel func(*dis
 
 		packages := FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig, enhancers...)
 
-		// annotate each package with provenance back to the originating SBOM, and
-		// propagate the per-SBOM distro to packages that don't already have one
+		// annotate each package with provenance back to the originating SBOM and
+		// propagate the per-SBOM distro to packages that don't already carry one
 		// (e.g. syft-JSON SBOMs, where distro is at the SBOM level rather than per-PURL).
-		annotatePackagesFromZarfSBOM(packages, s, hdr.Name, d)
+		sourceID := zarfSBOMSourceID(s, hdr.Name)
+		for _, p := range packages {
+			p.AddAnnotation(zarfSBOMSourceAnnotation, sourceID)
+			if p.Distro == nil && d != nil {
+				p.Distro = d
+			}
 
-		allPackages = append(allPackages, packages...)
+			// when the same package ID appears in multiple bundled SBOMs (typical
+			// for shared base-image content), union annotations onto the first
+			// occurrence so downstream pkg.ByID lookups see the full source list.
+			if existing, ok := pkgIndex[p.ID]; ok {
+				existing.AddAnnotation(zarfSBOMSourceAnnotation, sourceID)
+				continue
+			}
+			pkgIndex[p.ID] = p
+			allPackages = append(allPackages, p)
+		}
 
 		if mergedSBOM == nil {
 			mergedSBOM = s
@@ -187,21 +201,13 @@ func mergeSBOM(dst, src *sbom.SBOM) {
 	dst.Relationships = append(dst.Relationships, src.Relationships...)
 }
 
-// annotatePackagesFromZarfSBOM adds a synthetic Location to each package pointing
-// back to the originating SBOM inside the Zarf archive (preferring the SBOM's
-// declared source name, falling back to the tar entry name), and propagates the
-// per-SBOM distro to any package that does not already carry one.
-func annotatePackagesFromZarfSBOM(packages []*Package, s *sbom.SBOM, entryName string, d *distro.Distro) {
+// zarfSBOMSourceID returns the identifier used as the annotation value for a
+// package extracted from the given SBOM, preferring the SBOM's declared source
+// name and falling back to the tar entry filename.
+func zarfSBOMSourceID(s *sbom.SBOM, entryName string) string {
 	identifier := s.Source.Name
 	if identifier == "" || strings.HasPrefix(identifier, "/") {
 		identifier = entryName
 	}
-	loc := file.NewLocation(zarfLocationPrefix + identifier)
-
-	for _, p := range packages {
-		p.Locations.Add(loc)
-		if p.Distro == nil && d != nil {
-			p.Distro = d
-		}
-	}
+	return identifier
 }

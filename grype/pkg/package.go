@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
+	"sort"
 	"strings"
 
 	"github.com/anchore/grype/grype/distro"
@@ -43,6 +44,10 @@ type Package struct {
 	PURL      string       // the Package URL (see https://github.com/package-url/purl-spec)
 	Upstreams []UpstreamPackage
 	Metadata  any // This is NOT 1-for-1 the syft metadata! Only the select data needed for vulnerability matching
+
+	// Annotations carries provider-supplied per-package metadata; values are slices to
+	// retain multiple sources when the same package is contributed by more than one origin.
+	Annotations map[string][]string
 
 	// Related packages may be used for scanning
 	RelatedPackages map[artifact.RelationshipType][]*Package
@@ -175,6 +180,20 @@ func FromPackages(syftPkgs []syftPkg.Package, relationships []artifact.Relations
 	}
 
 	return pkgs
+}
+
+// AddAnnotation appends value under key, keeping the slice sorted and de-duplicated.
+func (p *Package) AddAnnotation(key, value string) {
+	if p.Annotations == nil {
+		p.Annotations = map[string][]string{}
+	}
+	existing := p.Annotations[key]
+	if slices.Contains(existing, value) {
+		return
+	}
+	existing = append(existing, value)
+	sort.Strings(existing)
+	p.Annotations[key] = existing
 }
 
 func (p Package) String() string {
