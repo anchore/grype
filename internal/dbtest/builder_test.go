@@ -53,6 +53,99 @@ func TestPackageBuilder(t *testing.T) {
 	assert.NotEmpty(t, p.ID)
 }
 
+func TestPackageBuilder_WithID(t *testing.T) {
+	p := NewPackage("test-pkg", "1.0.0", syftPkg.DebPkg).
+		WithID(pkg.ID("stable-id")).
+		Build()
+
+	assert.Equal(t, pkg.ID("stable-id"), p.ID)
+}
+
+func TestRelativeResultPath(t *testing.T) {
+	tests := []struct {
+		name string
+		path string
+		want string
+	}{
+		{
+			name: "results subdir is preserved (namespace prefix kept)",
+			path: "/tmp/fixture/rhel/results/rhel@9.4+eus/cve-2024-0340.json",
+			want: "rhel@9.4+eus/cve-2024-0340.json",
+		},
+		{
+			name: "no namespace subdir means just the basename",
+			path: "/tmp/fixture/rhel/results/rhel@9_cve-2024-0340.json",
+			want: "rhel@9_cve-2024-0340.json",
+		},
+		{
+			name: "no results segment falls back to basename",
+			path: "/tmp/fixture/rhel/cve-2024-0340.json",
+			want: "cve-2024-0340.json",
+		},
+		{
+			name: "deeply nested below results/",
+			path: "/tmp/fixture/rhel/results/a/b/cve.json",
+			want: "a/b/cve.json",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := relativeResultPath(tt.path)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// TestSortStatesEOLLast verifies that the workspace state ordering forces the
+// "eol" provider to the end of the slice. The v6 build pipeline's EOL processor
+// only updates existing OS rows; if it runs before the OS provider that creates
+// those rows, the EOL date is silently dropped.
+func TestSortStatesEOLLast(t *testing.T) {
+	tests := []struct {
+		name  string
+		input []string
+		want  []string
+	}{
+		{
+			name:  "alphabetical eol gets sorted to the end",
+			input: []string{"eol", "nvd", "rhel"},
+			want:  []string{"nvd", "rhel", "eol"},
+		},
+		{
+			name:  "no eol provider - alphabetical order",
+			input: []string{"rhel", "alma", "nvd"},
+			want:  []string{"alma", "nvd", "rhel"},
+		},
+		{
+			name:  "eol already last is preserved",
+			input: []string{"alma", "rhel", "eol"},
+			want:  []string{"alma", "rhel", "eol"},
+		},
+		{
+			name:  "single eol provider stays single",
+			input: []string{"eol"},
+			want:  []string{"eol"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			states := make(provider.States, 0, len(tt.input))
+			for _, name := range tt.input {
+				states = append(states, provider.State{Provider: name})
+			}
+
+			sortStatesEOLLast(states)
+
+			got := make([]string, len(states))
+			for i, s := range states {
+				got[i] = s.Provider
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestGenerateListingFile(t *testing.T) {
 	// create test results directory
 	resultsDir := filepath.Join(t.TempDir(), "results")

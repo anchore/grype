@@ -1,0 +1,101 @@
+{
+  "identifier": "github:gem/ghsa-wpv5-97wm-hp9c",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2025-61772"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 7.5,
+          "base_severity": "High",
+          "exploitability_score": 3.9,
+          "impact_score": 3.6
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2025-10-08",
+            "kind": "first-observed"
+          },
+          "ecosystem": "gem",
+          "identifier": "2.2.19",
+          "name": "rack",
+          "namespace": "github:gem",
+          "range": "\u003c 2.2.19"
+        },
+        {
+          "available": {
+            "date": "2025-10-08",
+            "kind": "first-observed"
+          },
+          "ecosystem": "gem",
+          "identifier": "3.1.17",
+          "name": "rack",
+          "namespace": "github:gem",
+          "range": "\u003e= 3.1 \u003c 3.1.17"
+        },
+        {
+          "available": {
+            "date": "2025-10-08",
+            "kind": "first-observed"
+          },
+          "ecosystem": "gem",
+          "identifier": "3.2.2",
+          "name": "rack",
+          "namespace": "github:gem",
+          "range": "\u003e= 3.2 \u003c 3.2.2"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2025-61772"
+        ]
+      },
+      "Severity": "High",
+      "Summary": "Rack's multipart parser buffers unbounded per-part headers, enabling DoS (memory exhaustion)",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-wpv5-97wm-hp9c",
+      "namespace": "github:gem",
+      "published": "2025-10-07T17:28:06Z",
+      "references": [
+        {
+          "url": "https://github.com/rack/rack/security/advisories/GHSA-wpv5-97wm-hp9c"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-61772"
+        },
+        {
+          "url": "https://github.com/rack/rack/commit/589127f4ac8b5cf11cf88fb0cd116ffed4d2181e"
+        },
+        {
+          "url": "https://github.com/rack/rack/commit/d869fed663b113b95a74ad53e1b5cae6ab31f29e"
+        },
+        {
+          "url": "https://github.com/rack/rack/commit/e08f78c656c9394d6737c022bde087e0f33336fd"
+        },
+        {
+          "url": "https://github.com/rubysec/ruby-advisory-db/blob/master/gems/rack/CVE-2025-61772.yml"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-wpv5-97wm-hp9c"
+        }
+      ],
+      "updated": "2025-10-13T15:30:02Z",
+      "url": "https://github.com/advisories/GHSA-wpv5-97wm-hp9c",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

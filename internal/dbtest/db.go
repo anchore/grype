@@ -69,12 +69,14 @@ func (db *DB) String() string {
 }
 
 // Match calls matcher.Match using this DB as the provider and returns a FindingsAssertion
-// for fluent assertions. Fails the test on error. Drops the IgnoreFilter return value for convenience.
+// for fluent assertions. Fails the test on error. The returned assertion captures both
+// the matches and the ignore filters; use FindingsAssertion.Ignores() to assert on the
+// latter. Ignore-filter completeness is only enforced once Ignores() is called.
 func (db *DB) Match(t *testing.T, matcher Matcher, p grypePkg.Package) *FindingsAssertion {
 	t.Helper()
-	matches, _, err := matcher.Match(db, p)
+	matches, ignores, err := matcher.Match(db, p)
 	require.NoError(t, err)
-	return AssertFindings(t, matches, p)
+	return AssertFindingsAndIgnores(t, matches, ignores, p)
 }
 
 // GetOperatingSystemEOL returns the EOL and EOAS dates for the given distro.

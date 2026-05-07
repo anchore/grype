@@ -1,0 +1,19 @@
+{
+  "provider": "hummingbird",
+  "version": 2,
+  "processor": "vunnel@0.55.3.post7+4441053",
+  "schema": {
+    "version": "1.0.3",
+    "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
+  },
+  "urls": [
+    "https://security.access.redhat.com/data/csaf/v2/vex-feed/archive_latest.txt"
+  ],
+  "timestamp": "2026-04-30T13:37:21Z",
+  "listing": {
+    "path": "results/listing.xxh64",
+    "digest": "4d193f8b4e17122f",
+    "algorithm": "xxh64"
+  },
+  "store": "flat-file"
+}

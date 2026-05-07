@@ -16,6 +16,29 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
+// IgnoreRelatedPackage reasons emitted by the rpm matcher family. Exported so
+// callers and tests can reference the same strings without drift. Each reason
+// flags vulnerabilities that should be suppressed on related packages (e.g.,
+// language-ecosystem GHSAs that overlap a distro RPM by file ownership).
+const (
+	// IgnoreReasonDistroFixed - the RHEL/AlmaLinux disclosure marks the
+	// package as already fixed at or past the package's version. Emitted by
+	// the AlmaLinux matcher when the rhel disclosure path resolves a package
+	// as no-longer-vulnerable.
+	IgnoreReasonDistroFixed = "Distro Fixed"
+
+	// IgnoreReasonDistroNotVulnerable - the distro vendor explicitly says the
+	// package is unaffected (UnaffectedPackageHandle in v6, or the EUS-overlay
+	// "fixed" rows in rhel_eus). Emitted by the standard rpm matcher and the
+	// EUS matcher.
+	IgnoreReasonDistroNotVulnerable = "Distro Not Vulnerable"
+
+	// IgnoreReasonAlmaUnaffected - the AlmaLinux ALSA marks the package as
+	// unaffected, including the ALSA itself plus each CVE the ALSA references
+	// (alias unwind). Emitted only by the AlmaLinux matcher.
+	IgnoreReasonAlmaUnaffected = "Alma Unaffected"
+)
+
 type Matcher struct {
 	cfg MatcherConfig
 }
@@ -192,7 +215,7 @@ func (m *Matcher) matchUpstreamPackages(vp vulnerability.Provider, p pkg.Package
 	var ignored []match.IgnoreFilter
 
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, ignores, err := m.findMatches(provider, indirectPackage)
+		indirectMatches, ignores, err := m.findMatches(provider, indirectPackage, internal.SourceOrUnspecifiedArch())
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
 		}
@@ -203,7 +226,7 @@ func (m *Matcher) matchUpstreamPackages(vp vulnerability.Provider, p pkg.Package
 	return matches, ignored, nil
 }
 
-func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package, extra ...vulnerability.Criteria) ([]match.Match, []match.IgnoreFilter, error) {
 	if searchPkg.Distro == nil {
 		return nil, nil, nil
 	}
@@ -214,13 +237,13 @@ func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) (
 
 	switch {
 	case shouldUseRedhatEUSMatching(searchPkg.Distro):
-		return redhatEUSMatches(provider, searchPkg, m.cfg.MissingEpochStrategy)
+		return redhatEUSMatches(provider, searchPkg, m.cfg.MissingEpochStrategy, extra...)
 	default:
-		return m.standardMatches(provider, searchPkg)
+		return m.standardMatches(provider, searchPkg, extra...)
 	}
 }
 
-func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Package, extra ...vulnerability.Criteria) ([]match.Match, []match.IgnoreFilter, error) {
 	// Create version with config embedded
 	pkgVersion := version.NewWithConfig(
 		searchPkg.Version,
@@ -230,21 +253,28 @@ func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Packag
 		},
 	)
 
-	all, err := provider.FindResults(
+	disclosureCriteria := []vulnerability.Criteria{
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
 		internal.OnlyQualifiedPackages(searchPkg),
-	)
+	}
+	disclosureCriteria = append(disclosureCriteria, extra...)
+
+	all, err := provider.FindResults(disclosureCriteria...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
-	unaffected, err := provider.FindResults(
+
+	unaffectedCriteria := []vulnerability.Criteria{
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
 		internal.OnlyQualifiedPackages(searchPkg),
 		internal.OnlyVulnerableVersions(pkgVersion),
 		search.ForUnaffected(),
-	)
+	}
+	unaffectedCriteria = append(unaffectedCriteria, extra...)
+
+	unaffected, err := provider.FindResults(unaffectedCriteria...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch unaffected for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
@@ -254,7 +284,7 @@ func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Packag
 	// return all unaffected vulns for this version
 	unaffected = unaffected.Merge(all.Remove(disclosures))
 
-	return disclosures.ToMatches(), internal.OwnershipIgnores(searchPkg, "Distro Not Vulnerable", unaffected.Vulnerabilities()...), nil
+	return disclosures.ToMatches(), internal.OwnershipIgnores(searchPkg, IgnoreReasonDistroNotVulnerable, unaffected.Vulnerabilities()...), nil
 }
 
 func addEpochIfApplicable(p *pkg.Package) {

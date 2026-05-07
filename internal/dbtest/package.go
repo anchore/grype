@@ -29,10 +29,21 @@ var (
 	Alpine318 = distro.New(distro.Alpine, "3.18", "")
 	Alpine319 = distro.New(distro.Alpine, "3.19", "")
 
+	// Wolfi is rolling; version is unused for matching but preserved here for
+	// readability at call sites.
+	WolfiRolling = distro.New(distro.Wolfi, "", "")
+
 	RHEL7  = distro.New(distro.RedHat, "7", "")
 	RHEL8  = distro.New(distro.RedHat, "8", "")
 	RHEL9  = distro.New(distro.RedHat, "9", "")
 	RHEL10 = distro.New(distro.RedHat, "10", "")
+
+	AlmaLinux8 = distro.New(distro.AlmaLinux, "8", "")
+	AlmaLinux9 = distro.New(distro.AlmaLinux, "9", "")
+
+	SLES156      = distro.New(distro.SLES, "15.6", "")
+	SLES157      = distro.New(distro.SLES, "15.7", "")
+	Hummingbird1 = distro.New(distro.Hummingbird, "1", "")
 )
 
 // PackageBuilder provides a fluent API for building test packages.
@@ -56,6 +67,14 @@ func NewPackage(name, version string, t syftPkg.Type) *PackageBuilder {
 // WithType sets the package type (e.g., syftPkg.ApkPkg, syftPkg.RpmPkg).
 func (b *PackageBuilder) WithType(t syftPkg.Type) *PackageBuilder {
 	b.pkg.Type = t
+	return b
+}
+
+// WithID overrides the auto-generated package ID. Use this when a test needs
+// a stable, comparable ID (e.g., to assert against an IgnoreFilter that
+// references the package by ID).
+func (b *PackageBuilder) WithID(id pkg.ID) *PackageBuilder {
+	b.pkg.ID = id
 	return b
 }
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/anchore/grype/grype/db/provider"
 )
@@ -45,7 +46,30 @@ func parseWorkspaceProviders(fixtureDir string) (provider.States, error) {
 		}
 	}
 
+	sortStatesEOLLast(states)
+
 	return states, nil
+}
+
+// sortStatesEOLLast orders provider states alphabetically with the "eol"
+// provider forced to the end of the slice.
+//
+// The v6 build pipeline iterates states in input order and the EOL processor
+// only updates existing OS records (it never creates them). If the EOL provider
+// is processed before the OS provider that supplies the matching
+// rhel/debian/etc. row, the EOL date is silently dropped. This mirrors the
+// upstream "EOL processor must be last" invariant declared in
+// grype/db/v6/build/processors.go.
+func sortStatesEOLLast(states provider.States) {
+	sort.SliceStable(states, func(i, j int) bool {
+		if states[i].Provider == "eol" {
+			return false
+		}
+		if states[j].Provider == "eol" {
+			return true
+		}
+		return states[i].Provider < states[j].Provider
+	})
 }
 
 // parseProviderState reads a provider directory and returns a provider.State.
