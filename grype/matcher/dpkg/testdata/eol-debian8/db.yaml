@@ -1,0 +1,8 @@
+auto-generate: true
+extractions:
+  debian:
+    - debian:8/CVE-1999-1332
+  eol:
+    - debian:8
+  nvd:
+    - CVE-2024-0727

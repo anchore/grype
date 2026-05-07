@@ -26,7 +26,7 @@ func (l *logAdapter) LogMode(level logger.LogLevel) logger.Interface {
 	return &newlogger
 }
 
-func (l logAdapter) Info(_ context.Context, fmt string, v ...interface{}) {
+func (l logAdapter) Info(_ context.Context, fmt string, v ...any) {
 	if l.level >= logger.Info {
 		if l.debug {
 			log.Infof("[sql] "+fmt, v...)
@@ -34,13 +34,13 @@ func (l logAdapter) Info(_ context.Context, fmt string, v ...interface{}) {
 	}
 }
 
-func (l logAdapter) Warn(_ context.Context, fmt string, v ...interface{}) {
+func (l logAdapter) Warn(_ context.Context, fmt string, v ...any) {
 	if l.level >= logger.Warn {
 		log.Warnf("[sql] "+fmt, v...)
 	}
 }
 
-func (l logAdapter) Error(_ context.Context, fmt string, v ...interface{}) {
+func (l logAdapter) Error(_ context.Context, fmt string, v ...any) {
 	if l.level >= logger.Error {
 		log.Errorf("[sql] "+fmt, v...)
 	}

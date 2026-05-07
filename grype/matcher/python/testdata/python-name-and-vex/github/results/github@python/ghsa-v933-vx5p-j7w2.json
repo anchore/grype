@@ -1,0 +1,63 @@
+{
+  "identifier": "github:python/ghsa-v933-vx5p-j7w2",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2014-7231"
+      ],
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2024-05-15",
+            "kind": "first-observed"
+          },
+          "ecosystem": "python",
+          "identifier": "0.2.0",
+          "name": "oslo.utils",
+          "namespace": "github:python",
+          "range": "\u003c 0.2.0"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2014-7231"
+        ]
+      },
+      "Severity": "Low",
+      "Summary": "OpenStack Oslo utility sensitive information exposure via log files",
+      "cvss_severities": [],
+      "ghsaId": "GHSA-v933-vx5p-j7w2",
+      "namespace": "github:python",
+      "published": "2022-05-14T01:58:44Z",
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2014-7231"
+        },
+        {
+          "url": "https://bugs.launchpad.net/oslo.utils/+bug/1345233"
+        },
+        {
+          "url": "https://exchange.xforce.ibmcloud.com/vulnerabilities/96726"
+        },
+        {
+          "url": "http://rhn.redhat.com/errata/RHSA-2014-1939.html"
+        },
+        {
+          "url": "http://seclists.org/oss-sec/2014/q3/853"
+        },
+        {
+          "url": "http://www.securityfocus.com/bid/70184"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-v933-vx5p-j7w2"
+        }
+      ],
+      "updated": "2024-05-14T21:24:40Z",
+      "url": "https://github.com/advisories/GHSA-v933-vx5p-j7w2",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

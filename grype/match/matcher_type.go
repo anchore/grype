@@ -18,6 +18,8 @@ const (
 	CsafVexMatcher     MatcherType = "csafvex-matcher"
 	RustMatcher        MatcherType = "rust-matcher"
 	BitnamiMatcher     MatcherType = "bitnami-matcher"
+	PacmanMatcher      MatcherType = "pacman-matcher"
+	HexMatcher         MatcherType = "hex-matcher"
 )
 
 var AllMatcherTypes = []MatcherType{
@@ -36,6 +38,8 @@ var AllMatcherTypes = []MatcherType{
 	CsafVexMatcher,
 	RustMatcher,
 	BitnamiMatcher,
+	PacmanMatcher,
+	HexMatcher,
 }
 
 type MatcherType string

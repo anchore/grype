@@ -1,0 +1,99 @@
+{
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json",
+  "identifier": "github:npm/ghsa-9qxr-qj54-h672",
+  "item": {
+    "Vulnerability": {},
+    "Advisory": {
+      "Classification": "GENERAL",
+      "Severity": "Low",
+      "CVSS": {
+        "version": "3.1",
+        "vector_string": "CVSS:3.1/AV:N/AC:H/PR:L/UI:R/S:U/C:N/I:L/A:N",
+        "base_metrics": {
+          "base_score": 2.6,
+          "exploitability_score": 1.2,
+          "impact_score": 1.4,
+          "base_severity": "Low"
+        },
+        "status": "N/A"
+      },
+      "cvss_severities": [
+        {
+          "version": "3.1",
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:L/UI:R/S:U/C:N/I:L/A:N"
+        }
+      ],
+      "FixedIn": [
+        {
+          "name": "undici",
+          "identifier": "5.28.4",
+          "ecosystem": "npm",
+          "namespace": "github:npm",
+          "range": "< 5.28.4",
+          "available": {
+            "date": "2024-04-05",
+            "kind": "first-observed"
+          }
+        },
+        {
+          "name": "undici",
+          "identifier": "6.11.1",
+          "ecosystem": "npm",
+          "namespace": "github:npm",
+          "range": ">= 6.0.0 < 6.11.1",
+          "available": {
+            "date": "2024-04-05",
+            "kind": "first-observed"
+          }
+        }
+      ],
+      "Summary": "Undici's fetch with integrity option is too lax when algorithm is specified but hash value is in incorrect",
+      "url": "https://github.com/advisories/GHSA-9qxr-qj54-h672",
+      "CVE": [
+        "CVE-2024-30261"
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2024-30261"
+        ]
+      },
+      "ghsaId": "GHSA-9qxr-qj54-h672",
+      "published": "2024-04-04T14:20:54Z",
+      "updated": "2025-11-04T19:44:42Z",
+      "withdrawn": null,
+      "references": [
+        {
+          "url": "https://github.com/nodejs/undici/security/advisories/GHSA-9qxr-qj54-h672"
+        },
+        {
+          "url": "https://github.com/nodejs/undici/commit/2b39440bd9ded841c93dd72138f3b1763ae26055"
+        },
+        {
+          "url": "https://github.com/nodejs/undici/commit/d542b8cd39ec1ba303f038ea26098c3f355974f3"
+        },
+        {
+          "url": "https://hackerone.com/reports/2377760"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-30261"
+        },
+        {
+          "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/HQVHWAS6WDXXIU7F72XI55VZ2LTZUB33"
+        },
+        {
+          "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/P6Q4RGETHVYVHDIQGTJGU5AV6NJEI67E"
+        },
+        {
+          "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/NC3V3HFZ5MOJRZDY5ZELL6REIRSPFROJ"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20240905-0008"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-9qxr-qj54-h672"
+        }
+      ],
+      "namespace": "github:npm"
+    }
+  }
+}

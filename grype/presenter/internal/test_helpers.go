@@ -54,11 +54,11 @@ func GenerateAnalysis(t *testing.T, scheme SyftSource) (*sbom.SBOM, models.Docum
 		Source: *context.Source,
 	}
 
-	grypePackages := pkg.FromCollection(s.Artifacts.Packages, pkg.SynthesisConfig{})
+	grypePackages := pkg.FromPtrs(pkg.FromCollection(s.Artifacts.Packages, s.Relationships, pkg.SynthesisConfig{}))
 
 	matches := generateMatches(t, grypePackages[0], grypePackages[1])
 
-	doc, err := models.NewDocument(clio.Identification{Name: "grype", Version: "[not provided]"}, grypePackages, context, matches, nil, models.NewMetadataMock(), nil, nil, models.SortByPackage, true)
+	doc, err := models.NewDocument(clio.Identification{Name: "grype", Version: "[not provided]"}, grypePackages, context, matches, nil, models.NewMetadataMock(), nil, nil, models.SortByPackage, true, nil)
 	require.NoError(t, err)
 
 	return s, doc
@@ -73,13 +73,13 @@ func GenerateAnalysisWithIgnoredMatches(t *testing.T, scheme SyftSource) models.
 		},
 	}
 
-	grypePackages := pkg.FromCollection(s.Artifacts.Packages, pkg.SynthesisConfig{})
+	grypePackages := pkg.FromPtrs(pkg.FromCollection(s.Artifacts.Packages, s.Relationships, pkg.SynthesisConfig{}))
 
 	matches := generateMatches(t, grypePackages[0], grypePackages[1])
 	ignoredMatches := generateIgnoredMatches(t, grypePackages[1])
 	context := generateContext(t, scheme)
 
-	doc, err := models.NewDocument(clio.Identification{Name: "grype", Version: "devel"}, grypePackages, context, matches, ignoredMatches, models.NewMetadataMock(), nil, nil, models.SortByPackage, true)
+	doc, err := models.NewDocument(clio.Identification{Name: "grype", Version: "devel"}, grypePackages, context, matches, ignoredMatches, models.NewMetadataMock(), nil, nil, models.SortByPackage, true, nil)
 	require.NoError(t, err)
 	return doc
 }
@@ -143,13 +143,13 @@ func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches { // nolint
 				{
 					Type:    match.ExactDirectMatch,
 					Matcher: match.DpkgMatcher,
-					SearchedBy: map[string]interface{}{
+					SearchedBy: map[string]any{
 						"distro": map[string]string{
 							"type":    "ubuntu",
 							"version": "20.04",
 						},
 					},
-					Found: map[string]interface{}{
+					Found: map[string]any{
 						"constraint": ">= 20",
 					},
 				},
@@ -196,10 +196,10 @@ func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches { // nolint
 				{
 					Type:    match.ExactIndirectMatch,
 					Matcher: match.DpkgMatcher,
-					SearchedBy: map[string]interface{}{
+					SearchedBy: map[string]any{
 						"cpe": "somecpe",
 					},
-					Found: map[string]interface{}{
+					Found: map[string]any{
 						"constraint": "somecpe",
 					},
 				},
@@ -253,13 +253,13 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 					{
 						Type:    match.ExactDirectMatch,
 						Matcher: match.DpkgMatcher,
-						SearchedBy: map[string]interface{}{
+						SearchedBy: map[string]any{
 							"distro": map[string]string{
 								"type":    "ubuntu",
 								"version": "20.04",
 							},
 						},
-						Found: map[string]interface{}{
+						Found: map[string]any{
 							"constraint": ">= 20",
 						},
 					},
@@ -308,10 +308,10 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 					{
 						Type:    match.ExactDirectMatch,
 						Matcher: match.DpkgMatcher,
-						SearchedBy: map[string]interface{}{
+						SearchedBy: map[string]any{
 							"cpe": "somecpe",
 						},
-						Found: map[string]interface{}{
+						Found: map[string]any{
 							"constraint": "somecpe",
 						},
 					},
@@ -354,10 +354,10 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 					{
 						Type:    match.ExactDirectMatch,
 						Matcher: match.DpkgMatcher,
-						SearchedBy: map[string]interface{}{
+						SearchedBy: map[string]any{
 							"cpe": "somecpe",
 						},
-						Found: map[string]interface{}{
+						Found: map[string]any{
 							"constraint": "somecpe",
 						},
 					},

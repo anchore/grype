@@ -1,0 +1,15 @@
+{
+  "content_hash": "9d79fbe98ef6640b",
+  "created_at": "2026-05-04T12:06:59.337209916Z",
+  "regenerated_at": "2026-05-04T12:21:54.144638593Z",
+  "providers": {
+    "chainguard-libraries": {
+      "vunnel_version": "vunnel@0.56.0.post18+f819175",
+      "timestamp": "2026-05-04T00:44:57.462635Z"
+    },
+    "github": {
+      "vunnel_version": "vunnel@0.56.0.post18+f819175",
+      "timestamp": "2026-05-04T08:53:31.108979Z"
+    }
+  }
+}

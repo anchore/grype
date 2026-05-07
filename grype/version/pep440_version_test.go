@@ -207,6 +207,77 @@ func TestPep440Version_Constraint(t *testing.T) {
 			version:    "2022.12.7",
 			constraint: ">=2017.11.05,<2022.12.07",
 		},
+		// regression (partial version with metadata should be valid)
+		// this is a fun one! PEP 440 has two different use cases for ordering semantics: direct versions and version specifiers.
+		// Take this python code for example:
+		//
+		// ```python
+		// from packaging.version import Version
+		// from packaging.specifiers import SpecifierSet
+		//
+		// # direct ordering comparison
+		// Version('6.4+cgr.1') <= Version('6.4.0')  # False
+		//
+		// # specifier matching
+		// Version('6.4+cgr.1') in SpecifierSet('<=6.4.0')  # True
+		// ```
+		//
+		// The root cause of the regression is that we have been doing direct version comparisons instead of specifier matching.
+		// The fix is to treat constraint matching as specifier matching (only consider the public version segment for
+		// constraint matching, not the local version segment).
+		//
+		// We want specifier semantics (ignore local) since 6.4+cgr.1 should be considered "the same release" as
+		// 6.4 for vulnerability matching applicability.
+		{
+			name:       "partial version with metadata",
+			version:    "6.4+cgr.1",
+			constraint: "<=6.4.0",
+			satisfied:  true,
+		},
+		// When constraint has a local version, require exact match (important for unaffected entries)
+		{
+			name:       "local version in constraint should not match version without local segment",
+			version:    "2.0.0",
+			constraint: "= 2.0.0+cgr.1",
+			satisfied:  false,
+		},
+		{
+			name:       "local version in constraint should match same local version",
+			version:    "2.0.0+cgr.1",
+			constraint: "= 2.0.0+cgr.1",
+			satisfied:  true,
+		},
+		{
+			name:       "version with local segment should match constraint without local segment",
+			version:    "2.0.0+cgr.1",
+			constraint: "= 2.0.0",
+			satisfied:  true,
+		},
+		{
+			name:       "version with local segment should satisfy less-than constraint",
+			version:    "2.0.0+cgr.1",
+			constraint: "< 2.0.1",
+			satisfied:  true,
+		},
+		{
+			name:       "different local versions should not match on equality",
+			version:    "2.0.0+other",
+			constraint: "= 2.0.0+cgr.1",
+			satisfied:  false,
+		},
+		// Local version segments compared per PEP 440 (numeric segments as integers)
+		{
+			name:       "local version segments compared numerically not lexicographically",
+			version:    "2.0.0+cgr.12",
+			constraint: "> 2.0.0+cgr.2",
+			satisfied:  true,
+		},
+		{
+			name:       "local version segment numeric comparison - less than",
+			version:    "2.0.0+cgr.2",
+			constraint: "< 2.0.0+cgr.12",
+			satisfied:  true,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {

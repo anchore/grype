@@ -1,0 +1,11 @@
+auto-generate: true
+extractions:
+  wolfi:
+    - wolfi:rolling/CVE-2024-0727
+    - wolfi:rolling/CVE-2024-47535
+  nvd:
+    - CVE-2024-0727
+    # CVE-2024-47535 is the same id as the wolfi NAK on akhq; in NVD it
+    # affects io.netty:netty-common < 4.1.115. Used by the
+    # upstream-NAK-cancels-NVD test.
+    - CVE-2024-47535

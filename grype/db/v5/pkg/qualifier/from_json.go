@@ -11,7 +11,7 @@ import (
 )
 
 func FromJSON(data []byte) ([]Qualifier, error) {
-	var records []map[string]interface{}
+	var records []map[string]any
 	if err := json.Unmarshal(data, &records); err != nil {
 		return nil, err
 	}

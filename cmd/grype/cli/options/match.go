@@ -1,6 +1,11 @@
 package options
 
-import "github.com/anchore/clio"
+import (
+	"fmt"
+
+	"github.com/anchore/clio"
+	"github.com/anchore/grype/grype/version"
+)
 
 // matchConfig contains all matching-related configuration options available to the user via the application config.
 type matchConfig struct {
@@ -12,11 +17,15 @@ type matchConfig struct {
 	Python     matcherConfig `yaml:"python" json:"python" mapstructure:"python"`             // settings for the python matcher
 	Ruby       matcherConfig `yaml:"ruby" json:"ruby" mapstructure:"ruby"`                   // settings for the ruby matcher
 	Rust       matcherConfig `yaml:"rust" json:"rust" mapstructure:"rust"`                   // settings for the rust matcher
+	Hex        matcherConfig `yaml:"hex" json:"hex" mapstructure:"hex"`                      // settings for the hex matcher (Elixir/Erlang)
 	Stock      matcherConfig `yaml:"stock" json:"stock" mapstructure:"stock"`                // settings for the default/stock matcher
+	Dpkg       dpkgConfig    `yaml:"dpkg" json:"dpkg" mapstructure:"dpkg"`                   // settings for the dpkg matcher
+	Rpm        rpmConfig     `yaml:"rpm" json:"rpm" mapstructure:"rpm"`                      // settings for the rpm matcher
 }
 
 var _ interface {
 	clio.FieldDescriber
+	clio.PostLoader
 } = (*matchConfig)(nil)
 
 type matcherConfig struct {
@@ -29,6 +38,56 @@ type golangConfig struct {
 	AllowMainModulePseudoVersionComparison bool `yaml:"allow-main-module-pseudo-version-comparison" json:"allow-main-module-pseudo-version-comparison" mapstructure:"allow-main-module-pseudo-version-comparison"` // if pseudo versions should be compared
 }
 
+// dpkgConfig contains configuration for the dpkg matcher.
+type dpkgConfig struct {
+	matcherConfig `yaml:",inline" mapstructure:",squash"`
+	// MissingEpochStrategy controls how missing epochs in package versions are handled
+	// during vulnerability matching.
+	//
+	// Valid values:
+	//   - "zero" (default): Treat missing epochs as 0
+	//   - "auto": Assume missing epoch matches the constraint's epoch
+	//
+	// The "zero" strategy follows dpkg specification guidance and maintains backward
+	// compatibility with existing Grype behavior. The "auto" strategy reduces false
+	// positives by recognizing that distros rarely track multiple epochs of the same
+	// package in the same release.
+	//
+	// Example:
+	//   Package version: 2.0.0 (no epoch)
+	//   Constraint: < 1:1.5.0 (epoch 1)
+	//
+	//   With "zero": Treat package as 0:2.0.0 → MATCH (0 < 1)
+	//   With "auto": Treat package as 1:2.0.0 → NO MATCH (2.0.0 > 1.5.0)
+	MissingEpochStrategy version.MissingEpochStrategy `yaml:"missing-epoch-strategy" json:"missing-epoch-strategy" mapstructure:"missing-epoch-strategy"`
+	UseCPEsForEOL        bool                         `yaml:"use-cpes-for-eol" json:"use-cpes-for-eol" mapstructure:"use-cpes-for-eol"` // if CPEs should be used for EOL distro packages
+}
+
+// rpmConfig contains configuration for the RPM matcher.
+type rpmConfig struct {
+	matcherConfig `yaml:",inline" mapstructure:",squash"`
+	// MissingEpochStrategy controls how missing epochs in package versions are handled
+	// during vulnerability matching.
+	//
+	// Valid values:
+	//   - "zero" (default): Treat missing epochs as 0
+	//   - "auto": Assume missing epoch matches the constraint's epoch
+	//
+	// The "zero" strategy follows RPM specification guidance and maintains backward
+	// compatibility with existing Grype behavior. The "auto" strategy reduces false
+	// positives by recognizing that distros rarely track multiple epochs of the same
+	// package in the same release.
+	//
+	// Example:
+	//   Package version: 2.0.0 (no epoch)
+	//   Constraint: < 1:1.5.0 (epoch 1)
+	//
+	//   With "zero": Treat package as 0:2.0.0 → MATCH (0 < 1)
+	//   With "auto": Treat package as 1:2.0.0 → NO MATCH (2.0.0 > 1.5.0)
+	MissingEpochStrategy version.MissingEpochStrategy `yaml:"missing-epoch-strategy" json:"missing-epoch-strategy" mapstructure:"missing-epoch-strategy"`
+	UseCPEsForEOL        bool                         `yaml:"use-cpes-for-eol" json:"use-cpes-for-eol" mapstructure:"use-cpes-for-eol"` // if CPEs should be used for EOL distro packages
+}
+
 func defaultGolangConfig() golangConfig {
 	return golangConfig{
 		matcherConfig: matcherConfig{
@@ -36,6 +95,22 @@ func defaultGolangConfig() golangConfig {
 		},
 		AlwaysUseCPEForStdlib:                  true,
 		AllowMainModulePseudoVersionComparison: false,
+	}
+}
+
+func defaultRpmConfig() rpmConfig {
+	return rpmConfig{
+		matcherConfig:        matcherConfig{UseCPEs: false},
+		MissingEpochStrategy: version.MissingEpochStrategyAuto,
+		UseCPEsForEOL:        false,
+	}
+}
+
+func defaultDpkgConfig() dpkgConfig {
+	return dpkgConfig{
+		matcherConfig:        matcherConfig{UseCPEs: false},
+		MissingEpochStrategy: version.MissingEpochStrategyZero,
+		UseCPEsForEOL:        false,
 	}
 }
 
@@ -51,8 +126,39 @@ func defaultMatchConfig() matchConfig {
 		Python:     dontUseCpe,
 		Ruby:       dontUseCpe,
 		Rust:       dontUseCpe,
+		Hex:        dontUseCpe,
 		Stock:      useCpe,
+		Dpkg:       defaultDpkgConfig(),
+		Rpm:        defaultRpmConfig(),
 	}
+}
+
+func (cfg *matchConfig) PostLoad() error {
+	if err := cfg.Rpm.PostLoad(); err != nil {
+		return err
+	}
+	if err := cfg.Dpkg.PostLoad(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// PostLoad validates the RPM configuration.
+func (cfg *rpmConfig) PostLoad() error {
+	if cfg.MissingEpochStrategy != version.MissingEpochStrategyZero && cfg.MissingEpochStrategy != version.MissingEpochStrategyAuto {
+		return fmt.Errorf("invalid rpm.missing-epoch-strategy: %q (allowable: %s, %s)",
+			cfg.MissingEpochStrategy, version.MissingEpochStrategyZero, version.MissingEpochStrategyAuto)
+	}
+	return nil
+}
+
+// PostLoad validates the dpkg configuration.
+func (cfg *dpkgConfig) PostLoad() error {
+	if cfg.MissingEpochStrategy != version.MissingEpochStrategyZero && cfg.MissingEpochStrategy != version.MissingEpochStrategyAuto {
+		return fmt.Errorf("invalid dpkg.missing-epoch-strategy: %q (allowable: %s, %s)",
+			cfg.MissingEpochStrategy, version.MissingEpochStrategyZero, version.MissingEpochStrategyAuto)
+	}
+	return nil
 }
 
 func (cfg *matchConfig) DescribeFields(descriptions clio.FieldDescriptionSet) {
@@ -66,5 +172,14 @@ func (cfg *matchConfig) DescribeFields(descriptions clio.FieldDescriptionSet) {
 	descriptions.Add(&cfg.Python.UseCPEs, usingCpeDescription)
 	descriptions.Add(&cfg.Ruby.UseCPEs, usingCpeDescription)
 	descriptions.Add(&cfg.Rust.UseCPEs, usingCpeDescription)
+	descriptions.Add(&cfg.Hex.UseCPEs, usingCpeDescription)
 	descriptions.Add(&cfg.Stock.UseCPEs, usingCpeDescription)
+	descriptions.Add(&cfg.Dpkg.MissingEpochStrategy,
+		`strategy for handling missing epochs in dpkg package versions during matching (options: zero, auto)`)
+	descriptions.Add(&cfg.Rpm.MissingEpochStrategy,
+		`strategy for handling missing epochs in RPM package versions during matching (options: zero, auto)`)
+
+	eolCpeDescription := `use CPE matching for packages from end-of-life distributions`
+	descriptions.Add(&cfg.Dpkg.UseCPEsForEOL, eolCpeDescription)
+	descriptions.Add(&cfg.Rpm.UseCPEsForEOL, eolCpeDescription)
 }

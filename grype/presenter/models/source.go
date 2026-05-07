@@ -8,8 +8,8 @@ import (
 )
 
 type source struct {
-	Type   string      `json:"type"`
-	Target interface{} `json:"target"`
+	Type   string `json:"type"`
+	Target any    `json:"target"`
 }
 
 // newSource creates a new source object to be represented into JSON.
@@ -41,6 +41,19 @@ func newSource(src syftSource.Description) (source, error) {
 
 		return source{
 			Type:   "image",
+			Target: m,
+		}, nil
+	case syftSource.OCIModelMetadata:
+		// ensure that empty collections are not shown as null
+		if m.RepoDigests == nil {
+			m.RepoDigests = []string{}
+		}
+		if m.Tags == nil {
+			m.Tags = []string{}
+		}
+
+		return source{
+			Type:   "oci-model",
 			Target: m,
 		}, nil
 	case syftSource.DirectoryMetadata:

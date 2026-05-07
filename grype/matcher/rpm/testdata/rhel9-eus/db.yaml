@@ -1,0 +1,7 @@
+auto-generate: true
+extractions:
+    rhel:
+        - rhel:9/cve-2024-0340
+        - rhel:9.4+eus/cve-2024-0340
+        - rhel:9/cve-2021-47527
+        - rhel:9.4+eus/cve-2021-47527

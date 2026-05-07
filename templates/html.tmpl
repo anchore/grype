@@ -735,6 +735,10 @@
                         <span id="dateElement">{{.Descriptor.Timestamp}}</span>
                         <span id="prettyDateElement" style="display: none;"></span>
                     </dd>
+                    <dt>Grype Version:</dt>
+                    <dd>{{ .Descriptor.Version }}</dd>
+                    <dt>DB Built:</dt>
+                    <dd>{{ .Descriptor.DB.Status.Built }}</dd>
                 </dl>
             </div>
             <div class="heading-right">

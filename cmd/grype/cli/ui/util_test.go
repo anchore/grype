@@ -52,7 +52,7 @@ func flatten(p tea.Msg) (msgs []tea.Msg) {
 }
 
 func extractBatchMessages(m tea.Msg) (ret []tea.Msg) {
-	sliceMsgType := reflect.SliceOf(reflect.TypeOf(tea.Cmd(nil)))
+	sliceMsgType := reflect.SliceOf(reflect.TypeFor[tea.Cmd]())
 	value := reflect.ValueOf(m) // note: this is technically unaddressable
 
 	// make our own instance that is addressable

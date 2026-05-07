@@ -14,7 +14,7 @@ const lotsaParallel = 100
 
 func Test_lotsaLotsaParallel(t *testing.T) {
 	funcs := []func() error{}
-	for i := 0; i < lotsaParallel; i++ {
+	for range lotsaParallel {
 		funcs = append(funcs, func() error {
 			Test_lotsaParallel(t)
 			return nil
@@ -25,7 +25,7 @@ func Test_lotsaLotsaParallel(t *testing.T) {
 }
 
 func Test_lotsaParallel(t *testing.T) {
-	for i := 0; i < lotsaParallel; i++ {
+	for range lotsaParallel {
 		Test_parallel(t)
 	}
 }

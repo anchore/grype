@@ -1,0 +1,46 @@
+{
+  "Vulnerability": {},
+  "Advisory": {
+    "Classification": "GENERAL",
+    "Severity": "Medium",
+    "CVSS": {
+      "version": "3.1",
+      "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:L/A:N",
+      "base_metrics": {
+        "base_score": 6.5,
+        "exploitability_score": 3.9,
+        "impact_score": 2.5,
+        "base_severity": "Medium"
+      },
+      "status": "N/A"
+    },
+    "FixedIn": [
+      {
+        "name": "vantage6",
+        "identifier": "4.2.0",
+        "ecosystem": "python",
+        "namespace": "github:python",
+        "range": "< 4.2.0",
+        "available": {
+          "date": "2024-01-30T15:00:00Z",
+          "kind": "advisory"
+        }
+      }
+    ],
+    "Summary": "vantage6 has insecure SSH configuration for node and server containers",
+    "url": "https://github.com/advisories/GHSA-2wgc-48g2-cj5w",
+    "CVE": [
+      "CVE-2024-21653"
+    ],
+    "Metadata": {
+      "CVE": [
+        "CVE-2024-21653"
+      ]
+    },
+    "ghsaId": "GHSA-2wgc-48g2-cj5w",
+    "published": "2024-01-30T20:56:46Z",
+    "updated": "2024-02-08T22:48:31Z",
+    "withdrawn": null,
+    "namespace": "github:python"
+  }
+}

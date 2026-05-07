@@ -9,9 +9,9 @@ import (
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/go-testutils"
 	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/distribution"
+	"github.com/anchore/grype/internal/testutils"
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for diff presenter")
@@ -34,17 +34,17 @@ func Test_DifferDirectory(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = d.SetBaseDB("test-fixtures/dbs/base")
+	err = d.SetBaseDB("testdata/dbs/base")
 	require.NoError(t, err)
 
 	baseStatus := d.baseCurator.Status()
-	require.Equal(t, "test-fixtures/dbs/base/"+strconv.Itoa(v5.SchemaVersion), baseStatus.Location)
+	require.Equal(t, "testdata/dbs/base/"+strconv.Itoa(v5.SchemaVersion), baseStatus.Location)
 
-	err = d.SetTargetDB("test-fixtures/dbs/target")
+	err = d.SetTargetDB("testdata/dbs/target")
 	require.NoError(t, err)
 
 	targetStatus := d.targetCurator.Status()
-	require.Equal(t, "test-fixtures/dbs/target/"+strconv.Itoa(v5.SchemaVersion), targetStatus.Location)
+	require.Equal(t, "testdata/dbs/target/"+strconv.Itoa(v5.SchemaVersion), targetStatus.Location)
 }
 
 func TestPresent_Json(t *testing.T) {

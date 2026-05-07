@@ -1,0 +1,109 @@
+{
+  "cve": {
+    "id": "CVE-2003-0349",
+    "sourceIdentifier": "cve@mitre.org",
+    "published": "2003-07-24T04:00:00.000",
+    "lastModified": "2018-10-12T21:32:41.083",
+    "vulnStatus": "Modified",
+    "descriptions": [
+      {
+        "lang": "en",
+        "value": "Buffer overflow in the streaming media component for logging multicast requests in the ISAPI for the logging capability of Microsoft Windows Media Services (nsiislog.dll), as installed in IIS 5.0, allows remote attackers to execute arbitrary code via a large POST request to nsiislog.dll."
+      },
+      {
+        "lang": "es",
+        "value": "Desbordamiento de búfer en el componente de secuenciamiento (streaming) de medios para registrar peticiones de multidifusión en la librería ISAPI de la capacidad de registro (logging) de Microsoft Windows Media Services (nsiislog.dll), como el instalado en IIS 5.9, permite a atacantes remotos ejecutar código arbitrario mediante una petición POST larga a nsiislog.dll."
+      }
+    ],
+    "metrics": {
+      "cvssMetricV2": [
+        {
+          "source": "nvd@nist.gov",
+          "type": "Primary",
+          "cvssData": {
+            "version": "2.0",
+            "vectorString": "AV:N/AC:L/Au:N/C:P/I:P/A:P",
+            "accessVector": "NETWORK",
+            "accessComplexity": "LOW",
+            "authentication": "NONE",
+            "confidentialityImpact": "PARTIAL",
+            "integrityImpact": "PARTIAL",
+            "availabilityImpact": "PARTIAL",
+            "baseScore": 7.5
+          },
+          "baseSeverity": "HIGH",
+          "exploitabilityScore": 10.0,
+          "impactScore": 6.4,
+          "acInsufInfo": false,
+          "obtainAllPrivilege": false,
+          "obtainUserPrivilege": true,
+          "obtainOtherPrivilege": false,
+          "userInteractionRequired": false
+        }
+      ]
+    },
+    "weaknesses": [
+      {
+        "source": "nvd@nist.gov",
+        "type": "Primary",
+        "description": [
+          {
+            "lang": "en",
+            "value": "NVD-CWE-Other"
+          }
+        ]
+      }
+    ],
+    "configurations": [
+      {
+        "nodes": [
+          {
+            "operator": "OR",
+            "negate": false,
+            "cpeMatch": [
+              {
+                "vulnerable": true,
+                "criteria": "cpe:2.3:o:microsoft:windows_2000:*:*:*:*:*:*:*:*",
+                "matchCriteriaId": "4E545C63-FE9C-4CA1-AF0F-D999D84D2AFD"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "references": [
+      {
+        "url": "http://marc.info/?l=bugtraq&m=105665030925504&w=2",
+        "source": "cve@mitre.org"
+      },
+      {
+        "url": "http://securitytracker.com/id?1007059",
+        "source": "cve@mitre.org"
+      },
+      {
+        "url": "http://www.kb.cert.org/vuls/id/113716",
+        "source": "cve@mitre.org",
+        "tags": [
+          "US Government Resource"
+        ]
+      },
+      {
+        "url": "http://www.ntbugtraq.com/default.asp?pid=36&sid=1&A2=ind0306&L=NTBUGTRAQ&P=R4563",
+        "source": "cve@mitre.org",
+        "tags": [
+          "Exploit",
+          "Patch",
+          "Vendor Advisory"
+        ]
+      },
+      {
+        "url": "https://docs.microsoft.com/en-us/security-updates/securitybulletins/2003/ms03-022",
+        "source": "cve@mitre.org"
+      },
+      {
+        "url": "https://oval.cisecurity.org/repository/search/definition/oval%3Aorg.mitre.oval%3Adef%3A938",
+        "source": "cve@mitre.org"
+      }
+    ]
+  }
+}

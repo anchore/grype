@@ -1,0 +1,20 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://openvex.dev/docs/public/vex-package-product",
+  "author": "The OpenVEX Project <openvex@openssf.org>",
+  "timestamp": "2023-07-17T18:28:47.696004345-06:00",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2023-1255"
+      },
+      "products": [
+        {
+          "@id": "pkg:apk/alpine/libcrypto3@3.0.8-r3"
+        }
+      ],
+      "status": "fixed"
+    }
+  ]
+}

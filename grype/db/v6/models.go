@@ -558,6 +558,12 @@ type OperatingSystem struct {
 	// Channel is a string used to distinguish between fix and vulnerability data for the same OS release.
 	// such as RHEL-9.4+EUS vs RHEL-9
 	Channel string `gorm:"column:channel;index:os_idx,unique;index,collate:NOCASE"`
+
+	// EOLDate is when this OS release reaches end-of-life (no more security updates)
+	EOLDate *time.Time `gorm:"column:eol_date;index"`
+
+	// EOASDate is when this OS release reaches end-of-active-support (reduced support, before full EOL)
+	EOASDate *time.Time `gorm:"column:eoas_date"`
 }
 
 func (o *OperatingSystem) VersionNumber() string {
@@ -958,4 +964,23 @@ type CWEHandle struct {
 
 func (c CWEHandle) String() string {
 	return fmt.Sprintf("CWE(%s: %s, source=%s, type=%s)", c.CVE, c.CWE, c.Source, c.Type)
+}
+
+// OperatingSystemEOLHandle carries end-of-life data for an operating system.
+// This is not a GORM model - it's used to update existing OperatingSystem records.
+type OperatingSystemEOLHandle struct {
+	Name         string     // distro name (e.g., "debian", "ubuntu")
+	MajorVersion string     // major version (e.g., "12")
+	MinorVersion string     // minor version (e.g., "04" for ubuntu)
+	Codename     string     // optional codename
+	EOLDate      *time.Time // end-of-life date
+	EOASDate     *time.Time // end-of-active-support date
+}
+
+func (o OperatingSystemEOLHandle) String() string {
+	eol := "nil"
+	if o.EOLDate != nil {
+		eol = o.EOLDate.Format("2006-01-02")
+	}
+	return fmt.Sprintf("OSEol(%s %s.%s, eol=%s)", o.Name, o.MajorVersion, o.MinorVersion, eol)
 }

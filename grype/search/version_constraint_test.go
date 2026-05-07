@@ -36,6 +36,15 @@ func Test_ByVersion(t *testing.T) {
 			matches: false,
 			reason:  "", // we don't expect a reason to be raised up at this level
 		},
+		{
+			name:    "version parser failure does not return error",
+			version: "badverison-1&170",
+			input: vulnerability.Vulnerability{
+				Constraint: version.MustGetConstraint("< 2.0", version.SemanticFormat),
+			},
+			matches: false,
+			reason:  "version check error",
+		},
 	}
 
 	for _, tt := range tests {

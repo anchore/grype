@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -75,7 +76,7 @@ func TestPackagesAreSorted(t *testing.T) {
 			Metadata: syftSource.DirectoryMetadata{},
 		},
 	}
-	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil, SortByPackage, true)
+	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil, SortByPackage, true, nil)
 	if err != nil {
 		t.Fatalf("unable to get document: %+v", err)
 	}
@@ -131,7 +132,7 @@ func TestFixSuggestedVersion(t *testing.T) {
 			Metadata: syftSource.DirectoryMetadata{},
 		},
 	}
-	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil, SortByPackage, true)
+	doc, err := NewDocument(clio.Identification{}, packages, ctx, matches, nil, NewMetadataMock(), nil, nil, SortByPackage, true, nil)
 	if err != nil {
 		t.Fatalf("unable to get document: %+v", err)
 	}
@@ -149,7 +150,7 @@ func TestTimestampValidFormat(t *testing.T) {
 		Source: nil,
 	}
 
-	doc, err := NewDocument(clio.Identification{}, nil, ctx, matches, nil, nil, nil, nil, SortByPackage, true)
+	doc, err := NewDocument(clio.Identification{}, nil, ctx, matches, nil, nil, nil, nil, SortByPackage, true, nil)
 	if err != nil {
 		t.Fatalf("unable to get document: %+v", err)
 	}
@@ -171,11 +172,78 @@ func TestConfigurableTimestamp(t *testing.T) {
 		Distro: nil,
 	}
 
-	doc, err := NewDocument(clio.Identification{}, nil, ctx, matches, nil, nil, nil, nil, SortByPackage, false)
+	doc, err := NewDocument(clio.Identification{}, nil, ctx, matches, nil, nil, nil, nil, SortByPackage, false, nil)
 	if err != nil {
 		t.Fatalf("unable to get document: %+v", err)
 	}
 
 	assert.Empty(t, doc.Descriptor.Timestamp)
 
+}
+
+func TestBuildPackageAlerts(t *testing.T) {
+	ubuntu := &distro.Distro{Type: distro.Ubuntu, Version: "18.04"}
+
+	pkg1 := pkg.Package{
+		ID:      "pkg-1-id",
+		Name:    "openssl",
+		Version: "1.1.1",
+		Type:    syftPkg.DebPkg,
+		Distro:  ubuntu,
+	}
+
+	pkg2 := pkg.Package{
+		ID:      "pkg-2-id",
+		Name:    "curl",
+		Version: "7.60.0",
+		Type:    syftPkg.DebPkg,
+		Distro:  ubuntu,
+	}
+
+	tests := []struct {
+		name       string
+		data       *DistroAlertData
+		wantLen    int
+		wantAlerts map[string][]AlertType // package ID -> expected alert types
+	}{
+		{
+			name:       "no distro alert data",
+			data:       nil,
+			wantLen:    0,
+			wantAlerts: map[string][]AlertType{},
+		},
+		{
+			name: "EOL distro packages",
+			data: &DistroAlertData{
+				EOLDistroPackages: []pkg.Package{pkg1, pkg2},
+			},
+			wantLen: 2,
+			wantAlerts: map[string][]AlertType{
+				"pkg-1-id": {AlertTypeDistroEOL},
+				"pkg-2-id": {AlertTypeDistroEOL},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := buildPackageAlerts(tc.data)
+			assert.Len(t, result, tc.wantLen)
+
+			for _, pa := range result {
+				expectedAlerts, ok := tc.wantAlerts[pa.Package.ID]
+				assert.True(t, ok, "unexpected package in result: %s", pa.Package.ID)
+
+				if tc.wantLen > 0 {
+					assert.Len(t, pa.Alerts, len(expectedAlerts), "package should have expected number of alerts")
+					// Check alert types match
+					for i, expectedType := range expectedAlerts {
+						assert.Equal(t, expectedType, pa.Alerts[i].Type)
+						// Check message contains distro name
+						assert.Contains(t, pa.Alerts[i].Message, "ubuntu")
+					}
+				}
+			}
+		})
+	}
 }

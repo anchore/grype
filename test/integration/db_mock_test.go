@@ -174,6 +174,14 @@ func newMockDbProvider() vulnerability.Provider {
 		},
 		{
 			Reference: vulnerability.Reference{
+				ID:        "CVE-hex-plug",
+				Namespace: "github:language:elixir",
+			},
+			PackageName: "plug",
+			Constraint:  version.MustGetConstraint("< 1.12.0", version.UnknownFormat),
+		},
+		{
+			Reference: vulnerability.Reference{
 				ID:        "CVE-rust-sample-1",
 				Namespace: "github:language:rust",
 			},
@@ -219,6 +227,14 @@ func newMockDbProvider() vulnerability.Provider {
 			},
 			PackageName: "dive",
 			Constraint:  version.MustGetConstraint("<= 1.0.42", version.RpmFormat),
+		},
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-arch-xz-backdoor",
+				Namespace: "arch:distro:arch:rolling",
+			},
+			PackageName: "xz",
+			Constraint:  version.MustGetConstraint("< 5.6.1-2", version.PacmanFormat),
 		},
 	}...)
 }

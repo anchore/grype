@@ -2,11 +2,14 @@ package match
 
 import (
 	"regexp"
+	"slices"
 
 	"github.com/bmatcuk/doublestar/v2"
 
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/syft/syft/artifact"
 )
 
 // IgnoreFilter implementations are used to filter matches, returning all applicable IgnoreRule(s) that applied,
@@ -47,6 +50,53 @@ type IgnoreRulePackage struct {
 	Type         string `yaml:"type" json:"type" mapstructure:"type"`
 	Location     string `yaml:"location" json:"location" mapstructure:"location"`
 	UpstreamName string `yaml:"upstream-name" json:"upstream-name" mapstructure:"upstream-name"`
+}
+
+// IgnoreRelatedPackage is an IgnoreFilter that looks at package relationships to drop vulnerabilities on specific packages
+// that meet the specified relationship rules
+type IgnoreRelatedPackage struct {
+	Reason           string
+	RelationshipType artifact.RelationshipType `yaml:"relationship-type" json:"relationship-type" mapstructure:"relationship-type"`
+	VulnerabilityID  string                    `yaml:"vulnerability" json:"vulnerability" mapstructure:"vulnerability"`
+	RelatedPackageID pkg.ID                    `yaml:"related-package" json:"related-package" mapstructure:"related-package"`
+}
+
+func (i IgnoreRelatedPackage) IgnoreMatch(m Match) []IgnoreRule {
+	if m.Vulnerability.ID != i.VulnerabilityID {
+		matches := false
+		for _, related := range m.Vulnerability.RelatedVulnerabilities {
+			if related.ID == i.VulnerabilityID {
+				matches = true
+				break
+			}
+		}
+		if !matches {
+			return nil
+		}
+	}
+	relatedPackages := m.Package.RelatedPackages[i.RelationshipType]
+	if relatedPackages == nil {
+		return nil
+	}
+	// any findings for packages with files that this package owns by should be filtered out
+	overlaps := false
+	for _, ownerPkg := range relatedPackages {
+		if ownerPkg.ID == i.RelatedPackageID {
+			overlaps = true
+			break
+		}
+	}
+	if !overlaps {
+		return nil
+	}
+	return []IgnoreRule{
+		{
+			// details about why the vulnerability is being ignored
+			Vulnerability:  i.VulnerabilityID,
+			IncludeAliases: true,
+			Reason:         i.Reason,
+		},
+	}
 }
 
 // ApplyIgnoreRules iterates through the provided matches and, for each match,
@@ -305,12 +355,7 @@ func isLikelyARegex(s string) bool {
 
 func ifMatchTypeApplies(matchType Type) ignoreCondition {
 	return func(match Match) bool {
-		for _, mType := range match.Details.Types() {
-			if mType == matchType {
-				return true
-			}
-		}
-		return false
+		return slices.Contains(match.Details.Types(), matchType)
 	}
 }
 

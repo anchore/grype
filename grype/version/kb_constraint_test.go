@@ -13,7 +13,7 @@ func TestKbVersion_Constraint(t *testing.T) {
 			name:    "no constraint no version raises error",
 			version: "", constraint: "",
 			satisfied: false,
-			wantError: func(t require.TestingT, err error, msgAndArgs ...interface{}) {
+			wantError: func(t require.TestingT, err error, msgAndArgs ...any) {
 				var expectedError *NonFatalConstraintError
 				assert.ErrorAs(t, err, &expectedError, "Unexpected error type from kbConstraint.Satisfied: %v", err)
 			},
@@ -22,7 +22,7 @@ func TestKbVersion_Constraint(t *testing.T) {
 			name:    "no constraint with version raises error",
 			version: "878787", constraint: "",
 			satisfied: false,
-			wantError: func(t require.TestingT, err error, msgAndArgs ...interface{}) {
+			wantError: func(t require.TestingT, err error, msgAndArgs ...any) {
 				var expectedError *NonFatalConstraintError
 				assert.ErrorAs(t, err, &expectedError, "Unexpected error type from kbConstraint.Satisfied: %v", err)
 			},

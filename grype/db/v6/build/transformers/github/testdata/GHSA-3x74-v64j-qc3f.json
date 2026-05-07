@@ -1,0 +1,42 @@
+{
+  "Vulnerability": {},
+  "Advisory": {
+    "Classification": "GENERAL",
+    "Severity": "HIGH",
+    "CVSS": {
+      "version": "3.1",
+      "vector_string": "CVSS:3.1/AV:N/AC:L/PR:H/UI:N/S:U/C:H/I:H/A:H",
+      "base_metrics": {
+        "base_score": 9.8,
+        "exploitability_score": null,
+        "impact_score": null,
+        "base_severity": "HIGH"
+      },
+      "status": "N/A"
+    },
+    "FixedIn": [
+      {
+        "name": "craftcms/cms",
+        "identifier": "4.4.2",
+        "ecosystem": "Packagist",
+        "namespace": "github:Packagist",
+        "range": "< 4.4.2"
+      }
+    ],
+    "Summary": "Withdrawn Advisory: CraftCMS Server-Side Template Injection vulnerability",
+    "url": "https://github.com/advisories/GHSA-3x74-v64j-qc3f",
+    "CVE": [
+      "CVE-2023-30179"
+    ],
+    "Metadata": {
+      "CVE": [
+        "CVE-2023-30179"
+      ]
+    },
+    "ghsaId": "GHSA-3x74-v64j-qc3f",
+    "published": "2023-06-13T18:30:39Z",
+    "updated": "2024-03-21T17:48:19Z",
+    "withdrawn": "2023-06-28T23:54:39Z",
+    "namespace": "github:Packagist"
+  }
+}
