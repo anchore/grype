@@ -289,6 +289,22 @@ func TestSemanticVersion_Compare_EdgeCases(t *testing.T) {
 		errorSubstring string
 	}{
 		{
+			name: "uppercase V prefix comparison",
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				thisVer := New("1.5.0", SemanticFormat)
+				otherVer := New("V1.5.0", SemanticFormat)
+				return thisVer, otherVer
+			},
+		},
+		{
+			name: "uppercase V prefix on this version",
+			setupFunc: func(t testing.TB) (*Version, *Version) {
+				thisVer := New("V1.5.0", SemanticFormat)
+				otherVer := New("1.5.0", SemanticFormat)
+				return thisVer, otherVer
+			},
+		},
+		{
 			name: "nil version object",
 			setupFunc: func(t testing.TB) (*Version, *Version) {
 				thisVer := New("1.2.3", SemanticFormat)

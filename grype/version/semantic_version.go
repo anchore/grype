@@ -19,7 +19,7 @@ type semanticVersion struct {
 	obj *hashiVer.Version
 }
 
-var versionStartsWithV = regexp.MustCompile(`^v\d+`)
+var versionStartsWithV = regexp.MustCompile(`^[vV]\d+`)
 
 func newSemanticVersion(raw string, strict bool) (semanticVersion, error) {
 	clean := semverPrereleaseNormalizer.Replace(raw)
@@ -27,9 +27,9 @@ func newSemanticVersion(raw string, strict bool) (semanticVersion, error) {
 	var verObj *hashiVer.Version
 	var err error
 	if strict {
-		// we still want v-prefix processing
+		// we still want v-prefix processing for both lowercase and uppercase
 		if versionStartsWithV.MatchString(clean) {
-			clean = strings.TrimPrefix(clean, "v")
+			clean = clean[1:]  // remove leading v or V
 		}
 		verObj, err = hashiVer.NewSemver(clean)
 	} else {
