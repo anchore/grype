@@ -10,8 +10,7 @@ on:
       - '.github/workflows/**'
       - '.github/actions/**'
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   zizmor:
