@@ -3,10 +3,10 @@ package sarif
 import (
 	"bytes"
 	"flag"
-	"os/exec"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -19,7 +19,6 @@ import (
 )
 
 var updateSnapshot = flag.Bool("update", false, "update .golden files for sarif presenters")
-var validatorImage = "ghcr.io/anchore/sarif-validator:0.1.0@sha256:a0729d695e023740f5df6bcb50d134e88149bea59c63a896a204e88f62b564c6"
 
 func TestSarifPresenter(t *testing.T) {
 	tests := []struct {
@@ -65,9 +64,8 @@ func TestSarifPresenter(t *testing.T) {
 }
 
 func Test_SarifIsValid(t *testing.T) {
-	if _, err := exec.LookPath("docker"); err != nil {
-		t.Skip("docker not available")
-	}
+	sch, err := jsonschema.NewCompiler().Compile("testdata/sarif-schema-2.1.0.json")
+	require.NoError(t, err)
 
 	tests := []struct {
 		name   string
@@ -93,20 +91,11 @@ func Test_SarifIsValid(t *testing.T) {
 			err := pres.Present(&buffer)
 			require.NoError(t, err)
 
-			cmd := exec.Command("docker", "run", "--rm", "-i", validatorImage)
+			inst, err := jsonschema.UnmarshalJSON(bytes.NewReader(buffer.Bytes()))
+			require.NoError(t, err)
 
-			out := bytes.Buffer{}
-			cmd.Stdout = &out
-			cmd.Stderr = &out
-
-			// pipe to the docker command
-			cmd.Stdin = &buffer
-
-			err = cmd.Run()
-			if err != nil || cmd.ProcessState.ExitCode() != 0 {
-				// valid
-				t.Fatalf("error validating SARIF document: %s", out.String())
-			}
+			err = sch.Validate(inst)
+			require.NoError(t, err, "SARIF output does not conform to schema")
 		})
 	}
 }

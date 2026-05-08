@@ -1249,6 +1249,85 @@ func TestTransform(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:     "testdata/rhel-8-not-affected.json",
+			provider: "rhel",
+			want: []transformers.RelatedEntries{
+				{
+					VulnerabilityHandle: &db.VulnerabilityHandle{
+						Name:       "CVE-2020-99999",
+						Status:     "active",
+						ProviderID: "rhel",
+						Provider:   expectedProvider("rhel"),
+						BlobValue: &db.VulnerabilityBlob{
+							ID:          "CVE-2020-99999",
+							Description: "Test vulnerability with a not-affected package and an affected package.",
+							References: []db.Reference{
+								{URL: "https://access.redhat.com/security/cve/CVE-2020-99999"},
+							},
+							Severities: []db.Severity{
+								{
+									Scheme: db.SeveritySchemeCHMLN,
+									Value:  "medium",
+									Rank:   1,
+								},
+								{
+									Scheme: db.SeveritySchemeCVSS,
+									Value: db.CVSSSeverity{
+										Vector:  "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+										Version: "3.1",
+									},
+									Rank: 2,
+								},
+							},
+						},
+					},
+					Related: append(
+						affectedPkgSlice(
+							db.AffectedPackageHandle{
+								OperatingSystem: rhel8OS,
+								Package:         &db.Package{Ecosystem: "rpm", Name: "firefox"},
+								BlobValue: &db.PackageBlob{
+									Qualifiers: &db.PackageQualifiers{RpmModularity: strRef("")},
+									Ranges: []db.Range{
+										{
+											Version: db.Version{Type: "rpm", Constraint: "< 0:68.6.1-1.el8_1"},
+											Fix: &db.Fix{
+												Version: "0:68.6.1-1.el8_1",
+												State:   db.FixedStatus,
+												Detail: &db.FixDetail{
+													References: []db.Reference{
+														{
+															ID:   "RHSA-2020:1341",
+															URL:  "https://access.redhat.com/errata/RHSA-2020:1341",
+															Tags: []string{db.AdvisoryReferenceTag},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						),
+						unaffectedPkgSlice(
+							db.UnaffectedPackageHandle{
+								OperatingSystem: rhel8OS,
+								Package:         &db.Package{Ecosystem: "rpm", Name: "ghostscript"},
+								BlobValue: &db.PackageBlob{
+									Ranges: []db.Range{
+										{
+											Version: db.Version{Type: "rpm"},
+											Fix:     &db.Fix{State: db.NotAffectedFixStatus},
+										},
+									},
+								},
+							},
+						)...,
+					),
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -1710,6 +1789,14 @@ func TestGetFixWithDetailFixtures(t *testing.T) {
 }
 
 func affectedPkgSlice(a ...db.AffectedPackageHandle) []any {
+	var r []any
+	for _, v := range a {
+		r = append(r, v)
+	}
+	return r
+}
+
+func unaffectedPkgSlice(a ...db.UnaffectedPackageHandle) []any {
 	var r []any
 	for _, v := range a {
 		r = append(r, v)

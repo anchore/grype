@@ -1,0 +1,106 @@
+{
+  "identifier": "github:java/ghsa-7phw-cxx7-q9vq",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2023-20860"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 9.1,
+          "base_severity": "Critical",
+          "exploitability_score": 3.9,
+          "impact_score": 5.2
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2023-03-29",
+            "kind": "first-observed"
+          },
+          "ecosystem": "java",
+          "identifier": "6.0.7",
+          "name": "org.springframework:spring",
+          "namespace": "github:java",
+          "range": "\u003e= 6.0.0 \u003c 6.0.7"
+        },
+        {
+          "available": {
+            "date": "2023-03-29",
+            "kind": "first-observed"
+          },
+          "ecosystem": "java",
+          "identifier": "5.3.26",
+          "name": "org.springframework:spring",
+          "namespace": "github:java",
+          "range": "\u003e= 5.3.0 \u003c 5.3.26"
+        },
+        {
+          "available": {
+            "date": "2025-09-24",
+            "kind": "first-observed"
+          },
+          "ecosystem": "java",
+          "identifier": "6.0.7",
+          "name": "org.springframework:spring-webmvc",
+          "namespace": "github:java",
+          "range": "\u003e= 6.0.0 \u003c 6.0.7"
+        },
+        {
+          "available": {
+            "date": "2025-09-24",
+            "kind": "first-observed"
+          },
+          "ecosystem": "java",
+          "identifier": "5.3.26",
+          "name": "org.springframework:spring-webmvc",
+          "namespace": "github:java",
+          "range": "\u003e= 5.3.0 \u003c 5.3.26"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2023-20860"
+        ]
+      },
+      "Severity": "Critical",
+      "Summary": "Spring Framework is vulnerable to security bypass via mvcRequestMatcher pattern mismatch",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-7phw-cxx7-q9vq",
+      "namespace": "github:java",
+      "published": "2023-03-28T00:34:28Z",
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-20860"
+        },
+        {
+          "url": "https://spring.io/security/cve-2023-20860"
+        },
+        {
+          "url": "https://github.com/spring-projects/spring-framework/commit/202fa5cdb3a3d0cfe6967e85fa167d978244f28a"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20230505-0006"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-7phw-cxx7-q9vq"
+        }
+      ],
+      "updated": "2025-09-23T19:54:05Z",
+      "url": "https://github.com/advisories/GHSA-7phw-cxx7-q9vq",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

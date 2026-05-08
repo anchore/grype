@@ -13,7 +13,7 @@ import (
 // derived from https://semver.org/, but additionally matches:
 // - partial versions (e.g. "2.0")
 // - optional prefix "v" (e.g. "v1.0.0")
-var pseudoSemverPattern = regexp.MustCompile(`^v?(0|[1-9]\d*)(\.(0|[1-9]\d*))?(\.(0|[1-9]\d*))?(?:(-|alpha|beta|rc)((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`)
+var pseudoSemverPattern = regexp.MustCompile(`^[vV]?(0|[1-9]\d*)(\.(0|[1-9]\d*))?(\.(0|[1-9]\d*))?(?:(-|alpha|beta|rc)((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`)
 
 type fuzzyConstraint struct {
 	RawPhrase          string
@@ -211,7 +211,10 @@ func leftPad(s string, n int) string {
 }
 
 func stripLeadingV(ver string) string {
-	return strings.TrimPrefix(ver, "v")
+	if len(ver) > 0 && (ver[0] == 'v' || ver[0] == 'V') {
+		return ver[1:]
+	}
+	return ver
 }
 
 // hasPatchNumber returns true if the version segment looks like it has a patch number

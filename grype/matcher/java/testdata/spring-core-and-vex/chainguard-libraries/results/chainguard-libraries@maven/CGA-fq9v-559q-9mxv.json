@@ -1,0 +1,35 @@
+{
+  "identifier": "chainguard-libraries:maven/CGA-fq9v-559q-9mxv",
+  "item": {
+    "document": {
+      "last_updated": "2026-05-01T08:42:19.822Z",
+      "products": [
+        {
+          "identifiers": {
+            "purl": "pkg:maven/org.springframework/spring-core@5.3.39-0.cgr.4"
+          }
+        }
+      ],
+      "status": "fixed",
+      "timestamp": "2026-05-01T08:42:19.822Z",
+      "vulnerability": {
+        "aliases": [
+          "CGA-jv8r-5vrc-9287",
+          "CVE-2025-41249",
+          "GHSA-jmp9-x22r-554x"
+        ],
+        "name": "CGA-fq9v-559q-9mxv"
+      }
+    },
+    "fixes": [
+      {
+        "available": {
+          "date": "2026-05-01",
+          "kind": "advisory"
+        },
+        "product": "pkg:maven/org.springframework/spring-core@5.3.39-0.cgr.4"
+      }
+    ]
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/annotated-openvex/schema-1.0.0.json"
+}

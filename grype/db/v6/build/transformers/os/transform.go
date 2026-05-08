@@ -49,17 +49,56 @@ func Transform(vulnerability unmarshal.OSVulnerability, state provider.State) ([
 		},
 	}
 
-	for _, a := range getAffectedPackages(vulnerability) {
+	affected, unaffected := getPackages(vulnerability)
+	for _, a := range affected {
 		in = append(in, a)
+	}
+	for _, u := range unaffected {
+		in = append(in, u)
 	}
 
 	return transformers.NewEntries(in...), nil
 }
 
-func getAffectedPackages(vuln unmarshal.OSVulnerability) []db.AffectedPackageHandle {
+func isNotAffectedGroup(fixedIns []unmarshal.OSFixedIn) bool {
+	for _, f := range fixedIns {
+		if versionutil.CleanFixedInVersion(f.Version) != "0" {
+			return false
+		}
+	}
+	return true
+}
+
+func getPackages(vuln unmarshal.OSVulnerability) ([]db.AffectedPackageHandle, []db.UnaffectedPackageHandle) {
 	var afs []db.AffectedPackageHandle
+	var unafs []db.UnaffectedPackageHandle
 	groups := groupFixedIns(vuln)
 	for group, fixedIns := range groups {
+		// APK providers already handle not-affected signaling in their own matching layer,
+		// so skip emitting unaffected package handles for them.
+		pkgType := getPackageType(group.osName)
+		if pkgType != pkg.ApkPkg && isNotAffectedGroup(fixedIns) {
+			unafs = append(unafs, db.UnaffectedPackageHandle{
+				OperatingSystem: getOperatingSystem(group.osName, group.id, group.osVersion, group.osChannel),
+				Package:         getPackage(group),
+				BlobValue: &db.PackageBlob{
+					CVEs: getAliases(vuln),
+					Ranges: []db.Range{
+						{
+							Version: db.Version{
+								Type:       fixedIns[0].VersionFormat,
+								Constraint: "",
+							},
+							Fix: &db.Fix{
+								State: db.NotAffectedFixStatus,
+							},
+						},
+					},
+				},
+			})
+			continue
+		}
+
 		// we only care about a single qualifier: rpm modules. The important thing to note about this is that
 		// a package with no module vs a package with a module should be detectable in the DB.
 		var qualifiers *db.PackageQualifiers
@@ -99,8 +138,9 @@ func getAffectedPackages(vuln unmarshal.OSVulnerability) []db.AffectedPackageHan
 
 	// stable ordering
 	sort.Sort(internal.ByAffectedPackage(afs))
+	sort.Sort(internal.ByUnaffectedPackage(unafs))
 
-	return afs
+	return afs, unafs
 }
 
 func getFix(fixedInEntry unmarshal.OSFixedIn) *db.Fix {

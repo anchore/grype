@@ -1,14 +1,11 @@
 package rpm
 
 import (
-	"errors"
-	"sort"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
@@ -16,6 +13,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/dbtest"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -212,6 +210,11 @@ func TestIsFixReachableForEUS(t *testing.T) {
 	}
 }
 
+// TestResolveEUSDisclosures exercises mergeEUSAdvisoriesIntoMainDisclosures, a
+// pure data-merging helper that combines a base RHEL disclosure with an EUS
+// advisory overlay. The function operates on result.Result inputs (not the
+// DB), so synthetic inputs are appropriate here - these tests verify each
+// branch of the merge logic independent of any real-world data shape.
 func TestResolveEUSDisclosures(t *testing.T) {
 	tests := []struct {
 		name            string
@@ -384,7 +387,7 @@ func TestResolveEUSDisclosures(t *testing.T) {
 					Vulnerabilities: []vulnerability.Vulnerability{
 						{
 							Reference: vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.CombineConstraints( // important! we are combining the constraints
+							Constraint: version.CombineConstraints(
 								version.MustGetConstraint("< 1.5.0", version.RpmFormat),
 								version.MustGetConstraint("< 2.0.0", version.RpmFormat),
 								version.MustGetConstraint("< 1.4.2", version.RpmFormat),
@@ -402,7 +405,7 @@ func TestResolveEUSDisclosures(t *testing.T) {
 		},
 		{
 			name:           "advisory with wont-fix state - disclosure should be kept with patched fix state",
-			packageVersion: "1.0.0", // vulnerable since 1.0.0 < 2.0.0
+			packageVersion: "1.0.0",
 			disclosures: []result.Result{
 				{
 					ID: "CVE-2021-1",
@@ -411,7 +414,7 @@ func TestResolveEUSDisclosures(t *testing.T) {
 							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
 							Constraint: version.MustGetConstraint("< 2.0.0", version.RpmFormat),
 							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateUnknown, // important! the disclosure doesn't have good fix info
+								State:    vulnerability.FixStateUnknown,
 								Versions: []string{},
 							},
 						},
@@ -461,7 +464,7 @@ func TestResolveEUSDisclosures(t *testing.T) {
 					Vulnerabilities: []vulnerability.Vulnerability{
 						{
 							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
-							Constraint: version.MustGetConstraint("< 2.0.0", version.RpmFormat), // important!
+							Constraint: version.MustGetConstraint("< 2.0.0", version.RpmFormat),
 							Fix: vulnerability.Fix{
 								State:    vulnerability.FixStateUnknown,
 								Versions: []string{},
@@ -472,14 +475,14 @@ func TestResolveEUSDisclosures(t *testing.T) {
 				},
 			},
 			advisoryOverlay: []result.Result{
-				{ // ultimately, this advisory does not apply...
+				{
 					ID: "CVE-2021-1",
 					Vulnerabilities: []vulnerability.Vulnerability{
 						{
 							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
 							Constraint: version.MustGetConstraint("< 3.0.0", version.RpmFormat),
 							Fix: vulnerability.Fix{
-								State:    vulnerability.FixStateUnknown, // important!
+								State:    vulnerability.FixStateUnknown,
 								Versions: []string{},
 							},
 						},
@@ -531,7 +534,7 @@ func TestResolveEUSDisclosures(t *testing.T) {
 							Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
 							Fix: vulnerability.Fix{
 								State:    vulnerability.FixStateFixed,
-								Versions: []string{"", "1.5.0", ""}, // important!
+								Versions: []string{"", "1.5.0", ""},
 							},
 						},
 					},
@@ -768,805 +771,207 @@ func TestResolveEUSDisclosures(t *testing.T) {
 	}
 }
 
-func TestRedhatEUSMatches(t *testing.T) {
-	testPkg1 := pkg.Package{
-		ID:      pkg.ID("test-pkg-id"),
-		Name:    "test-pkg",
-		Version: "1.0.0",
-		Type:    syftPkg.RpmPkg,
-		Distro:  newEUSDistro("9.4"),
-	}
+// EUS findings consistently produce three details per match: a base-distro
+// lookup against the EUS-overlay fix, a +eus-distro lookup against the same
+// EUS-overlay fix, and a base-distro lookup against the mainline RHEL fix.
+// These constants name the constraint strings that disambiguate them - tests
+// use them with SelectDetailByDistro to assert each detail explicitly.
+const (
+	eus94CVE20240340OverlayConstraint   = "< 0:5.14.0-427.68.1.el9_4 (rpm)"
+	eus94CVE20240340MainlineConstraint  = "< 0:5.14.0-503.11.1.el9_5 (rpm)"
+	eus94CVE202147527OverlayConstraint  = "< 0:5.14.0-427.81.1.el9_4 (rpm)"
+	eus94CVE202147527MainlineConstraint = "none (unknown)" // no mainline fix
+)
 
-	tests := []struct {
-		name            string
-		catalogPkg      pkg.Package
-		searchPkg       *pkg.Package
-		disclosureVulns []vulnerability.Vulnerability
-		resolutionVulns []vulnerability.Vulnerability
-		disclosureError error
-		resolutionError error
-		want            []match.Match
-		wantErr         require.ErrorAssertionFunc
-	}{
-		{
-			name:            "empty set of disclosures and advisories",
-			catalogPkg:      testPkg1,
-			disclosureVulns: []vulnerability.Vulnerability{},
-			resolutionVulns: []vulnerability.Vulnerability{},
-			want:            nil,
-		},
-		{
-			name:       "successful EUS match with fix - direct match",
-			catalogPkg: testPkg1,
-			disclosureVulns: []vulnerability.Vulnerability{
-				{
-					Reference: vulnerability.Reference{
-						ID:        "CVE-2021-1",
-						Namespace: "namespace",
-					},
-					PackageName: "test-pkg", // same as searched package = direct match
-					Constraint:  version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-					Fix: vulnerability.Fix{
-						State:    vulnerability.FixStateUnknown,
-						Versions: []string{},
-					},
-				},
-			},
-			resolutionVulns: []vulnerability.Vulnerability{
-				{
-					Reference: vulnerability.Reference{
-						ID:        "CVE-2021-1",
-						Namespace: "namespace",
-					},
-					PackageName: "test-pkg", // same as searched package = direct match
-					Constraint:  version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-					Fix: vulnerability.Fix{
-						State:    vulnerability.FixStateFixed,
-						Versions: []string{"1.5.0"},
-					},
-				},
-			},
-			want: []match.Match{
-				{
-					Vulnerability: vulnerability.Vulnerability{
-						Reference: vulnerability.Reference{
-							ID:        "CVE-2021-1",
-							Namespace: "namespace",
-						},
-						PackageName: "test-pkg",
-						Fix: vulnerability.Fix{
-							State:    vulnerability.FixStateFixed,
-							Versions: []string{"1.5.0"},
-						},
-					},
-					Package: pkg.Package{
-						ID:      pkg.ID("test-pkg-id"),
-						Name:    "test-pkg",
-						Version: "1.0.0",
-						Type:    syftPkg.RpmPkg,
-						Distro:  newEUSDistro("9.4"),
-					},
-					Details: []match.Detail{
-						{
-							Type: match.ExactDirectMatch,
-							SearchedBy: match.DistroParameters{
-								Distro: match.DistroIdentification{
-									Type:    "redhat",
-									Version: "9.4",
-								},
-								Package: match.PackageParameter{
-									Name:    "test-pkg",
-									Version: "1.0.0",
-								},
-								Namespace: "namespace",
-							},
-							Found: match.DistroResult{
-								VulnerabilityID:   "CVE-2021-1",
-								VersionConstraint: "< 1.5.0 (rpm)",
-							},
-							Matcher:    match.RpmMatcher,
-							Confidence: 1,
-						},
-						{
-							Type: match.ExactDirectMatch,
-							SearchedBy: match.DistroParameters{
-								Distro: match.DistroIdentification{
-									Type:    "redhat",
-									Version: "9.4+eus",
-								},
-								Package: match.PackageParameter{
-									Name:    "test-pkg",
-									Version: "1.0.0",
-								},
-								Namespace: "namespace",
-							},
-							Found: match.DistroResult{
-								VulnerabilityID:   "CVE-2021-1",
-								VersionConstraint: "< 1.5.0 (rpm)",
-							},
-							Matcher:    match.RpmMatcher,
-							Confidence: 1,
-						},
-					},
-				},
-			},
-		},
-		{
-			name:       "successful EUS match with fix - indirect match",
-			catalogPkg: testPkg1,
-			searchPkg: &pkg.Package{
-				ID:      pkg.ID("indirect-test-pkg-id"),
-				Name:    "indirect-test-pkg", // important! this will be detected as an indirect match
-				Version: "1.0.0",
-				Type:    syftPkg.RpmPkg,
-				Distro:  newEUSDistro("9.4"),
-			},
-			disclosureVulns: []vulnerability.Vulnerability{
-				{
-					Reference: vulnerability.Reference{
-						ID:        "CVE-2021-1",
-						Namespace: "namespace",
-					},
-					PackageName: "indirect-test-pkg", // setup to match search package name
-					Constraint:  version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-					Fix: vulnerability.Fix{
-						State:    vulnerability.FixStateUnknown,
-						Versions: []string{},
-					},
-				},
-			},
-			resolutionVulns: []vulnerability.Vulnerability{
-				{
-					Reference: vulnerability.Reference{
-						ID:        "CVE-2021-1",
-						Namespace: "namespace",
-					},
-					PackageName: "indirect-test-pkg", // setup to match search package name
-					Constraint:  version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-					Fix: vulnerability.Fix{
-						State:    vulnerability.FixStateFixed,
-						Versions: []string{"1.5.0"},
-					},
-				},
-			},
-			want: []match.Match{
-				{
-					Vulnerability: vulnerability.Vulnerability{
-						Reference: vulnerability.Reference{
-							ID:        "CVE-2021-1",
-							Namespace: "namespace",
-						},
-						PackageName: "indirect-test-pkg",
-						Fix: vulnerability.Fix{
-							State:    vulnerability.FixStateFixed,
-							Versions: []string{"1.5.0"},
-						},
-					},
-					Package: pkg.Package{
-						ID:      pkg.ID("test-pkg-id"),
-						Name:    "test-pkg",
-						Version: "1.0.0",
-						Type:    syftPkg.RpmPkg,
-						Distro:  newEUSDistro("9.4"),
-					},
-					Details: []match.Detail{
-						{
-							Type: match.ExactIndirectMatch,
-							SearchedBy: match.DistroParameters{
-								Distro: match.DistroIdentification{
-									Type:    "redhat",
-									Version: "9.4",
-								},
-								Package: match.PackageParameter{
-									Name:    "indirect-test-pkg", // important! we used the indirect package as input
-									Version: "1.0.0",
-								},
-								Namespace: "namespace",
-							},
-							Found: match.DistroResult{
-								VulnerabilityID:   "CVE-2021-1",
-								VersionConstraint: "< 1.5.0 (rpm)",
-							},
-							Matcher:    match.RpmMatcher,
-							Confidence: 1,
-						},
-						{
-							Type: match.ExactIndirectMatch,
-							SearchedBy: match.DistroParameters{
-								Distro: match.DistroIdentification{
-									Type:    "redhat",
-									Version: "9.4+eus",
-								},
-								Package: match.PackageParameter{
-									Name:    "indirect-test-pkg", // important! we used the indirect package as input
-									Version: "1.0.0",
-								},
-								Namespace: "namespace",
-							},
-							Found: match.DistroResult{
-								VulnerabilityID:   "CVE-2021-1",
-								VersionConstraint: "< 1.5.0 (rpm)",
-							},
-							Matcher:    match.RpmMatcher,
-							Confidence: 1,
-						},
-					},
-				},
-			},
-		},
-		{
-			name:       "valid disclosures found but no resolutions",
-			catalogPkg: testPkg1,
-			disclosureVulns: []vulnerability.Vulnerability{
-				{
-					Reference: vulnerability.Reference{
-						ID:        "CVE-2021-1",
-						Namespace: "namespace",
-					},
-					PackageName: "test-pkg",                                       // direct match
-					Constraint:  version.MustGetConstraint("", version.RpmFormat), // no constraint, so always vulnerable
-					Fix: vulnerability.Fix{
-						State:    vulnerability.FixStateUnknown,
-						Versions: []string{},
-					},
-				},
-			},
-			resolutionVulns: []vulnerability.Vulnerability{},
-			want: []match.Match{ // keep the original disclosure as a match
-				{
-					Vulnerability: vulnerability.Vulnerability{
-						Reference: vulnerability.Reference{
-							ID:        "CVE-2021-1",
-							Namespace: "namespace",
-						},
-						PackageName: "test-pkg",
-						Constraint:  version.MustGetConstraint("", version.RpmFormat),
-						Fix: vulnerability.Fix{
-							State:    vulnerability.FixStateUnknown,
-							Versions: []string{},
-						},
-					},
-					Package: pkg.Package{
-						ID:      pkg.ID("test-pkg-id"),
-						Name:    "test-pkg",
-						Version: "1.0.0",
-						Type:    syftPkg.RpmPkg,
-						Distro:  newEUSDistro("9.4"),
-					},
-					Details: []match.Detail{
-						{
-							Type: match.ExactDirectMatch,
-							SearchedBy: match.DistroParameters{
-								Distro: match.DistroIdentification{
-									Type:    "redhat",
-									Version: "9.4",
-								},
-								Package: match.PackageParameter{
-									Name:    "test-pkg",
-									Version: "1.0.0",
-								},
-								Namespace: "namespace",
-							},
-							Found: match.DistroResult{
-								VulnerabilityID:   "CVE-2021-1",
-								VersionConstraint: "none (rpm)",
-							},
-							Matcher:    match.RpmMatcher,
-							Confidence: 1,
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "vulnerability resolved by EUS advisory",
-			catalogPkg: pkg.Package{
-				ID:      pkg.ID("test-pkg-id"),
-				Name:    "test-pkg",
-				Version: "2.0.0", // version higher than fix, so resolved
-				Type:    syftPkg.RpmPkg,
-				Distro:  newEUSDistro("9.4"),
-			},
-			disclosureVulns: []vulnerability.Vulnerability{
-				{
-					Reference: vulnerability.Reference{
-						ID:        "CVE-2021-1",
-						Namespace: "namespace",
-					},
-					PackageName: "test-pkg", // direct match
-					Fix: vulnerability.Fix{
-						State:    vulnerability.FixStateUnknown,
-						Versions: []string{},
-					},
-				},
-			},
-			resolutionVulns: []vulnerability.Vulnerability{
-				{
-					Reference: vulnerability.Reference{
-						ID:        "CVE-2021-1",
-						Namespace: "namespace",
-					},
-					PackageName: "test-pkg", // direct match
-					Constraint:  version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-					Fix: vulnerability.Fix{
-						State:    vulnerability.FixStateFixed,
-						Versions: []string{"1.5.0"},
-					},
-				},
-			},
-			want: []match.Match{}, // vulnerability is resolved because package version 2.0.0 > 1.5.0
-		},
-		{
-			name:       "multiple valid disclosures with mixed resolutions",
-			catalogPkg: testPkg1,
-			disclosureVulns: []vulnerability.Vulnerability{
-				{
-					Reference: vulnerability.Reference{
-						ID:        "CVE-2021-1",
-						Namespace: "namespace",
-					},
-					PackageName: "test-pkg", // direct match
-					Constraint:  version.MustGetConstraint("", version.RpmFormat),
-					Fix: vulnerability.Fix{
-						State:    vulnerability.FixStateUnknown,
-						Versions: []string{},
-					},
-				},
-				{
-					Reference: vulnerability.Reference{
-						ID:        "CVE-2021-2",
-						Namespace: "namespace",
-					},
-					PackageName: "test-pkg", // direct match
-					Constraint:  version.MustGetConstraint("", version.RpmFormat),
-					Fix: vulnerability.Fix{
-						State:    vulnerability.FixStateUnknown,
-						Versions: []string{},
-					},
-				},
-				{
-					Reference: vulnerability.Reference{
-						ID:        "CVE-2021-3",
-						Namespace: "namespace",
-					},
-					PackageName: "test-pkg", // direct match
-					Constraint:  nil,        // no constraint, so we assume we're never vulnerable to this
-					Fix: vulnerability.Fix{
-						State:    vulnerability.FixStateUnknown,
-						Versions: []string{},
-					},
-				},
-			},
-			resolutionVulns: []vulnerability.Vulnerability{
-				{
-					Reference: vulnerability.Reference{
-						ID:        "CVE-2021-1",
-						Namespace: "namespace",
-					},
-					PackageName: "test-pkg", // direct match
-					Constraint:  version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-					Fix: vulnerability.Fix{
-						State:    vulnerability.FixStateFixed,
-						Versions: []string{"1.5.0"},
-					},
-				},
-			},
-			want: []match.Match{
-				{
-					Vulnerability: vulnerability.Vulnerability{
-						Reference: vulnerability.Reference{
-							ID:        "CVE-2021-1",
-							Namespace: "namespace",
-						},
-						PackageName: "test-pkg",
-						Fix: vulnerability.Fix{
-							State:    vulnerability.FixStateFixed,
-							Versions: []string{"1.5.0"},
-						},
-					},
-					Package: pkg.Package{
-						ID:      pkg.ID("test-pkg-id"),
-						Name:    "test-pkg",
-						Version: "1.0.0",
-						Type:    syftPkg.RpmPkg,
-						Distro:  newEUSDistro("9.4"),
-					},
-					Details: []match.Detail{
-						{
-							Type: match.ExactDirectMatch,
-							SearchedBy: match.DistroParameters{
-								Distro: match.DistroIdentification{
-									Type:    "redhat",
-									Version: "9.4",
-								},
-								Package: match.PackageParameter{
-									Name:    "test-pkg",
-									Version: "1.0.0",
-								},
-								Namespace: "namespace",
-							},
-							Found: match.DistroResult{
-								VulnerabilityID:   "CVE-2021-1",
-								VersionConstraint: "< 1.5.0 (rpm)",
-							},
-							Matcher:    match.RpmMatcher,
-							Confidence: 1,
-						},
-						{
-							Type: match.ExactDirectMatch,
-							SearchedBy: match.DistroParameters{
-								Distro: match.DistroIdentification{
-									Type:    "redhat",
-									Version: "9.4+eus",
-								},
-								Package: match.PackageParameter{
-									Name:    "test-pkg",
-									Version: "1.0.0",
-								},
-								Namespace: "namespace",
-							},
-							Found: match.DistroResult{
-								VulnerabilityID:   "CVE-2021-1",
-								VersionConstraint: "< 1.5.0 (rpm)",
-							},
-							Matcher:    match.RpmMatcher,
-							Confidence: 1,
-						},
-						{
-							Type: match.ExactDirectMatch,
-							SearchedBy: match.DistroParameters{
-								Distro: match.DistroIdentification{
-									Type:    "redhat",
-									Version: "9.4",
-								},
-								Package: match.PackageParameter{
-									Name:    "test-pkg",
-									Version: "1.0.0",
-								},
-								Namespace: "namespace",
-							},
-							Found: match.DistroResult{
-								VulnerabilityID:   "CVE-2021-1",
-								VersionConstraint: "none (rpm)", // important! this is the disclosure with no constraint
-							},
-							Matcher:    match.RpmMatcher,
-							Confidence: 1,
-						},
-					},
-				},
-				{
-					Vulnerability: vulnerability.Vulnerability{
-						Reference: vulnerability.Reference{
-							ID:        "CVE-2021-2",
-							Namespace: "namespace",
-						},
-						PackageName: "test-pkg",
-						Fix: vulnerability.Fix{
-							State:    vulnerability.FixStateUnknown,
-							Versions: []string{},
-						},
-					},
-					Package: pkg.Package{
-						ID:      pkg.ID("test-pkg-id"),
-						Name:    "test-pkg",
-						Version: "1.0.0",
-						Type:    syftPkg.RpmPkg,
-						Distro:  newEUSDistro("9.4"),
-					},
-					Details: []match.Detail{
-						{
-							Type: match.ExactDirectMatch,
-							SearchedBy: match.DistroParameters{
-								Distro: match.DistroIdentification{
-									Type:    "redhat",
-									Version: "9.4",
-								},
-								Package: match.PackageParameter{
-									Name:    "test-pkg",
-									Version: "1.0.0",
-								},
-								Namespace: "namespace",
-							},
-							Found: match.DistroResult{
-								VulnerabilityID:   "CVE-2021-2",
-								VersionConstraint: "none (rpm)",
-							},
-							Matcher:    match.RpmMatcher,
-							Confidence: 1,
-						},
-					},
-				},
-			},
-		},
-		{
-			name:       "multiple advisories with mixed fix state relative to search package",
-			catalogPkg: testPkg1,
-			disclosureVulns: []vulnerability.Vulnerability{
-				{
-					Reference: vulnerability.Reference{
-						ID:        "CVE-2021-1",
-						Namespace: "namespace",
-					},
-					PackageName: "test-pkg", // direct match
-					Constraint:  version.MustGetConstraint("", version.RpmFormat),
-					Fix: vulnerability.Fix{
-						State:    vulnerability.FixStateUnknown,
-						Versions: []string{},
-					},
-				},
-			},
-			resolutionVulns: []vulnerability.Vulnerability{
-				{
-					Reference: vulnerability.Reference{
-						ID:        "CVE-2021-1",
-						Namespace: "namespace",
-					},
-					PackageName: "test-pkg", // direct match
-					Constraint:  version.MustGetConstraint("< 1.5.0", version.RpmFormat),
-					Fix: vulnerability.Fix{
-						State:    vulnerability.FixStateFixed,
-						Versions: []string{"1.5.0"},
-					},
-				},
-				{
-					Reference: vulnerability.Reference{
-						ID:        "CVE-2021-1",
-						Namespace: "namespace",
-					},
-					PackageName: "test-pkg", // direct match
-					Constraint:  version.MustGetConstraint("< 1.0.0", version.RpmFormat),
-					Fix: vulnerability.Fix{
-						State:    vulnerability.FixStateFixed,
-						Versions: []string{"1.0.0"},
-					},
-				},
-			},
-			want: []match.Match{},
-		},
-		{
-			name:            "error fetching disclosures",
-			catalogPkg:      testPkg1,
-			disclosureVulns: []vulnerability.Vulnerability{},
-			resolutionVulns: []vulnerability.Vulnerability{},
-			disclosureError: errors.New("disclosure error"),
-			want:            nil,
-			wantErr:         require.Error,
-		},
-		{
-			// This test case demonstrates issue #2847: when a user is on RHEL 9.4+eus and
-			// the only available fix is for RHEL 9.5 (indicated by el9_5 in the fix version),
-			// the vulnerability should NOT be reported as "Fixed" when using --only-fixed,
-			// because the EUS user cannot upgrade to RHEL 9.5.
-			name: "fix version for higher minor version should not be considered fixed for EUS - issue 2847",
-			catalogPkg: pkg.Package{
-				ID:      pkg.ID("kernel-id"),
-				Name:    "kernel",
-				Version: "5.14.0-427.79.1.el9_4", // user's current version on RHEL 9.4 EUS
-				Type:    syftPkg.RpmPkg,
-				Distro:  newEUSDistro("9.4"),
-			},
-			disclosureVulns: []vulnerability.Vulnerability{
-				{
-					Reference: vulnerability.Reference{
-						ID:        "CVE-2020-10135",
-						Namespace: "redhat:distro:redhat:9",
-					},
-					PackageName: "kernel",
-					Constraint:  version.MustGetConstraint("< 5.14.0-503.11.1.el9_5", version.RpmFormat),
-					Fix: vulnerability.Fix{
-						State:    vulnerability.FixStateUnknown,
-						Versions: []string{},
-					},
-				},
-			},
-			resolutionVulns: []vulnerability.Vulnerability{
-				{
-					// This fix is for RHEL 9.5 (indicated by el9_5 in the version),
-					// which is NOT available to RHEL 9.4 EUS users
-					Reference: vulnerability.Reference{
-						ID:        "CVE-2020-10135",
-						Namespace: "redhat:distro:redhat:9",
-					},
-					PackageName: "kernel",
-					Constraint:  version.MustGetConstraint("< 5.14.0-503.11.1.el9_5", version.RpmFormat),
-					Fix: vulnerability.Fix{
-						State:    vulnerability.FixStateFixed,
-						Versions: []string{"5.14.0-503.11.1.el9_5"}, // note: el9_5 indicates RHEL 9.5
-					},
-				},
-			},
-			// Expected behavior: since the fix requires upgrading to RHEL 9.5 and the user
-			// is on RHEL 9.4 EUS (can't upgrade to 9.5), the fix should NOT be considered
-			// valid and the FixState should be NotFixed (not Fixed).
-			want: []match.Match{
-				{
-					Vulnerability: vulnerability.Vulnerability{
-						Reference: vulnerability.Reference{
-							ID:        "CVE-2020-10135",
-							Namespace: "redhat:distro:redhat:9",
-						},
-						PackageName: "kernel",
-						Fix: vulnerability.Fix{
-							State:    vulnerability.FixStateNotFixed, // fix exists but not reachable for EUS 9.4
-							Versions: []string{},                     // no valid fixes for EUS 9.4
-						},
-					},
-					Package: pkg.Package{
-						ID:      pkg.ID("kernel-id"),
-						Name:    "kernel",
-						Version: "5.14.0-427.79.1.el9_4",
-						Type:    syftPkg.RpmPkg,
-						Distro:  newEUSDistro("9.4"),
-					},
-					Details: []match.Detail{
-						{
-							Type: match.ExactDirectMatch,
-							SearchedBy: match.DistroParameters{
-								Distro: match.DistroIdentification{
-									Type:    "redhat",
-									Version: "9.4",
-								},
-								Package: match.PackageParameter{
-									Name:    "kernel",
-									Version: "5.14.0-427.79.1.el9_4",
-								},
-								Namespace: "redhat:distro:redhat:9",
-							},
-							Found: match.DistroResult{
-								VulnerabilityID:   "CVE-2020-10135",
-								VersionConstraint: "< 5.14.0-503.11.1.el9_5 (rpm)",
-							},
-							Matcher:    match.RpmMatcher,
-							Confidence: 1,
-						},
-						{
-							Type: match.ExactDirectMatch,
-							SearchedBy: match.DistroParameters{
-								Distro: match.DistroIdentification{
-									Type:    "redhat",
-									Version: "9.4+eus",
-								},
-								Package: match.PackageParameter{
-									Name:    "kernel",
-									Version: "5.14.0-427.79.1.el9_4",
-								},
-								Namespace: "redhat:distro:redhat:9",
-							},
-							Found: match.DistroResult{
-								VulnerabilityID:   "CVE-2020-10135",
-								VersionConstraint: "< 5.14.0-503.11.1.el9_5 (rpm)",
-							},
-							Matcher:    match.RpmMatcher,
-							Confidence: 1,
-						},
-					},
-				},
-			},
-		},
-		{
-			name:       "error fetching resolutions",
-			catalogPkg: testPkg1,
-			disclosureVulns: []vulnerability.Vulnerability{
-				{
-					Reference: vulnerability.Reference{
-						ID:        "CVE-2021-1",
-						Namespace: "namespace",
-					},
-					PackageName: "test-pkg", // direct match
-					Fix: vulnerability.Fix{
-						State:    vulnerability.FixStateUnknown,
-						Versions: []string{},
-					},
-				},
-			},
-			resolutionVulns: []vulnerability.Vulnerability{},
-			resolutionError: errors.New("resolution error"),
-			want:            nil,
-			wantErr:         require.Error,
-		},
-	}
+// assertEUSTriplet asserts the three-detail shape of an EUS match: one detail
+// at the base distro searched against the EUS-overlay fix constraint, one at
+// the +eus distro for the same overlay fix, and one at the base distro
+// searched against the mainline RHEL fix constraint. All three details should
+// have the same match type. Each call to SelectDetailByDistro both selects
+// (using the constraint to disambiguate) and marks the detail as completed,
+// so the FindingsAssertion's completeness check passes for the match.
+func assertEUSTriplet(t *testing.T, sf *dbtest.SingleFindingAssertion, baseVersion, overlayConstraint, mainlineConstraint string, mt match.Type) {
+	t.Helper()
+	sf.SelectDetailByDistro("redhat", baseVersion, overlayConstraint).HasMatchType(mt)
+	sf.SelectDetailByDistro("redhat", baseVersion+"+eus", overlayConstraint).HasMatchType(mt)
+	sf.SelectDetailByDistro("redhat", baseVersion, mainlineConstraint).HasMatchType(mt)
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if tt.wantErr == nil {
-				tt.wantErr = require.NoError
-			}
+// TestRedhatEUSMatches_VulnerableOnEUS verifies that a kernel package below the
+// EUS fix version produces a match using real RHEL EUS data.
+func TestRedhatEUSMatches_VulnerableOnEUS(t *testing.T) {
+	dbtest.DBs(t, "rhel9-eus").
+		SelectOnly("CVE-2024-0340").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			// EUS 9.4 fix is 5.14.0-427.68.1.el9_4; 100 < 427 → vulnerable
+			p := dbtest.NewPackage("kernel", "0:5.14.0-100.el9_4", syftPkg.RpmPkg).
+				WithDistro(newEUSDistro("9.4")).
+				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+				Build()
 
-			if tt.searchPkg == nil {
-				tt.searchPkg = &tt.catalogPkg
-			}
-
-			vulnProvider := newMockVulnProvider()
-			vulnProvider.setDisclosureVulns(tt.disclosureVulns)
-			vulnProvider.setResolutionVulns(tt.resolutionVulns)
-			vulnProvider.setDisclosureError(tt.disclosureError)
-			vulnProvider.setResolutionError(tt.resolutionError)
-
-			resultProvider := result.NewProvider(vulnProvider, tt.catalogPkg, match.RpmMatcher)
-
-			got, err := redhatEUSMatches(resultProvider, *tt.searchPkg, "zero")
-			tt.wantErr(t, err)
-
-			if err != nil {
-				return
-			}
-
-			// need stable results for comparison
-			sort.Sort(match.ByElements(got))
-
-			opts := cmp.Options{
-				cmpopts.IgnoreUnexported(version.Version{}),
-				cmpopts.IgnoreUnexported(distro.Distro{}),
-				cmpopts.IgnoreFields(vulnerability.Vulnerability{}, "Constraint"),
-				cmpopts.IgnoreFields(pkg.Package{}, "Locations"),
-				cmpopts.EquateEmpty(),
-			}
-			if diff := cmp.Diff(tt.want, got, opts...); diff != "" {
-				t.Errorf("redhatEUSMatches() mismatch (-want +got):\n%s", diff)
-			}
+			findings := db.Match(t, &matcher, p)
+			sf := findings.SelectMatch("CVE-2024-0340")
+			// fix info should reflect the EUS-reachable fix, not the mainline one
+			sf.HasFix(vulnerability.FixStateFixed, "0:5.14.0-427.68.1.el9_4")
+			assertEUSTriplet(t, sf, "9.4",
+				eus94CVE20240340OverlayConstraint,
+				eus94CVE20240340MainlineConstraint,
+				match.ExactDirectMatch)
 		})
-	}
 }
 
-func strRef(s string) *string {
-	return &s
+// TestRedhatEUSMatches_IndirectMatchBySource verifies that a binary RPM
+// (kernel-tools) reaches an EUS-tracked CVE through its upstream source RPM
+// (kernel). CVE-2024-0340's FixedIn has only "kernel" (the source); the binary
+// must match via upstream, producing an ExactIndirectMatch on each of the
+// three EUS-triplet details.
+func TestRedhatEUSMatches_IndirectMatchBySource(t *testing.T) {
+	dbtest.DBs(t, "rhel9-eus").
+		SelectOnly("CVE-2024-0340").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			p := dbtest.NewPackage("kernel-tools", "0:5.14.0-100.el9_4", syftPkg.RpmPkg).
+				WithDistro(newEUSDistro("9.4")).
+				WithUpstream("kernel", "0:5.14.0-100.el9_4").
+				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+				Build()
+
+			findings := db.Match(t, &matcher, p)
+			assertEUSTriplet(t, findings.SelectMatch("CVE-2024-0340"), "9.4",
+				eus94CVE20240340OverlayConstraint,
+				eus94CVE20240340MainlineConstraint,
+				match.ExactIndirectMatch)
+		})
 }
 
-func intRef(s int) *int {
-	return &s
+// TestRedhatEUSMatches_FixedOnEUS verifies that a package at the EUS fix
+// version is not vulnerable - the EUS resolution overrides the broader RHEL
+// disclosure - and the matcher emits a "Distro Not Vulnerable" ignore.
+func TestRedhatEUSMatches_FixedOnEUS(t *testing.T) {
+	dbtest.DBs(t, "rhel9-eus").
+		SelectOnly("CVE-2024-0340").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			p := dbtest.NewPackage("kernel", "0:5.14.0-427.68.1.el9_4", syftPkg.RpmPkg).
+				WithDistro(newEUSDistro("9.4")).
+				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+				Build()
+
+			db.Match(t, &matcher, p).Ignores().
+				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2024-0340")
+		})
 }
 
-// Mock vulnerability provider for testing
-type mockVulnProvider struct {
-	// cheaply get a working interface that will panic when functionality is not overridden
-	vulnerability.Provider
+// TestRedhatEUSMatches_BetweenEUSAndMainFix verifies that a package below the
+// mainline fix but at-or-past the EUS fix is treated as resolved (the EUS
+// resolution wins because the user is on EUS) and the matcher emits the
+// corresponding "Distro Not Vulnerable" ignore.
+func TestRedhatEUSMatches_BetweenEUSAndMainFix(t *testing.T) {
+	dbtest.DBs(t, "rhel9-eus").
+		SelectOnly("CVE-2024-0340").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			// 450 > EUS fix 427.68 but < main fix 503.11 → resolved per EUS
+			p := dbtest.NewPackage("kernel", "0:5.14.0-450.el9_4", syftPkg.RpmPkg).
+				WithDistro(newEUSDistro("9.4")).
+				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+				Build()
 
-	disclosureVulns []vulnerability.Vulnerability
-	resolutionVulns []vulnerability.Vulnerability
-	disclosureError error
-	resolutionError error
-	callCount       int
+			db.Match(t, &matcher, p).Ignores().
+				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2024-0340")
+		})
 }
 
-func newMockVulnProvider() *mockVulnProvider {
-	return &mockVulnProvider{}
+// TestRedhatEUSMatches_MultipleCVEsAllVulnerable verifies that when multiple
+// EUS-tracked CVEs all apply (pkg below all fixes), the matcher reports them
+// all as matches with no ignores. Uses the rhel9-eus fixture in full (no
+// SelectOnly), which contains CVE-2024-0340 (EUS fix at 427.68) and
+// CVE-2021-47527 (Version "None"). Pkg at 300 < 427 → both apply.
+func TestRedhatEUSMatches_MultipleCVEsAllVulnerable(t *testing.T) {
+	dbtest.DBs(t, "rhel9-eus").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		p := dbtest.NewPackage("kernel", "0:5.14.0-300.el9_4", syftPkg.RpmPkg).
+			WithDistro(newEUSDistro("9.4")).
+			WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+			Build()
+
+		findings := db.Match(t, &matcher, p)
+		assertEUSTriplet(t, findings.SelectMatch("CVE-2024-0340"), "9.4",
+			eus94CVE20240340OverlayConstraint,
+			eus94CVE20240340MainlineConstraint,
+			match.ExactDirectMatch)
+		assertEUSTriplet(t, findings.SelectMatch("CVE-2021-47527"), "9.4",
+			eus94CVE202147527OverlayConstraint,
+			eus94CVE202147527MainlineConstraint,
+			match.ExactDirectMatch)
+	})
 }
 
-func (m *mockVulnProvider) setDisclosureVulns(vulns []vulnerability.Vulnerability) {
-	m.disclosureVulns = vulns
+// TestRedhatEUSMatches_MultipleCVEsAllIgnored verifies that when a package is
+// past all EUS fixes for the CVEs it would otherwise be susceptible to, every
+// CVE becomes a "Distro Not Vulnerable" ignore. Pkg at 500 > EUS fix 427.68
+// for CVE-2024-0340; CVE-2021-47527 has no fix recorded (Version "None") and
+// flows through the same not-vulnerable path once disclosures are filtered.
+func TestRedhatEUSMatches_MultipleCVEsAllIgnored(t *testing.T) {
+	dbtest.DBs(t, "rhel9-eus").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		pkgID := pkg.ID("kernel-past-fixes")
+		p := dbtest.NewPackage("kernel", "0:5.14.0-500.el9_4", syftPkg.RpmPkg).
+			WithID(pkgID).
+			WithDistro(newEUSDistro("9.4")).
+			WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+			Build()
+
+		findings := db.Match(t, &matcher, p)
+		// both EUS CVEs should produce ignores against this package
+		findings.Ignores().
+			SelectRelatedPackageIgnores(IgnoreReasonDistroNotVulnerable,
+				"CVE-2024-0340",
+				"CVE-2021-47527").
+			ForPackage(pkgID)
+	})
 }
 
-func (m *mockVulnProvider) setResolutionVulns(vulns []vulnerability.Vulnerability) {
-	m.resolutionVulns = vulns
+// TestRedhatEUSIgnoreFilters_FixedProducesIgnore verifies that an EUS-fixed
+// package produces a "Distro Not Vulnerable" IgnoreRelatedPackage filter.
+func TestRedhatEUSIgnoreFilters_FixedProducesIgnore(t *testing.T) {
+	dbtest.DBs(t, "rhel9-eus").
+		SelectOnly("CVE-2024-0340").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			pkgID := pkg.ID("kernel-eus-fixed")
+			p := dbtest.NewPackage("kernel", "0:5.14.0-427.68.1.el9_4", syftPkg.RpmPkg).
+				WithID(pkgID).
+				WithDistro(newEUSDistro("9.4")).
+				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+				Build()
+
+			findings := db.Match(t, &matcher, p)
+			findings.Ignores().
+				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2024-0340").
+				ForPackage(pkgID)
+		})
 }
 
-func (m *mockVulnProvider) setDisclosureError(err error) {
-	m.disclosureError = err
-}
+// TestRedhatEUSIgnoreFilters_VulnerablePackageNoIgnores verifies that a
+// still-vulnerable EUS package produces a match and no ignore filters.
+func TestRedhatEUSIgnoreFilters_VulnerablePackageNoIgnores(t *testing.T) {
+	dbtest.DBs(t, "rhel9-eus").
+		SelectOnly("CVE-2024-0340").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			p := dbtest.NewPackage("kernel", "0:5.14.0-200.el9_4", syftPkg.RpmPkg).
+				WithDistro(newEUSDistro("9.4")).
+				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+				Build()
 
-func (m *mockVulnProvider) setResolutionError(err error) {
-	m.resolutionError = err
-}
-
-func (m *mockVulnProvider) FindVulnerabilities(criteria ...vulnerability.Criteria) ([]vulnerability.Vulnerability, error) {
-	m.callCount++
-
-	// heuristic: first call is for disclosures (base distro), second is for resolutions (base + eus distro)
-	if m.callCount == 1 {
-		if m.disclosureError != nil {
-			return nil, m.disclosureError
-		}
-		return m.disclosureVulns, nil
-	}
-
-	if m.resolutionError != nil {
-		return nil, m.resolutionError
-	}
-	return m.resolutionVulns, nil
-}
-
-func channels(s ...string) []string {
-	return s
+			findings := db.Match(t, &matcher, p)
+			assertEUSTriplet(t, findings.SelectMatch("CVE-2024-0340"), "9.4",
+				eus94CVE20240340OverlayConstraint,
+				eus94CVE20240340MainlineConstraint,
+				match.ExactDirectMatch)
+		})
 }
 
 // newEUSDistro creates a properly initialized RHEL EUS distro using distro.New().

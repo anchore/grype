@@ -108,7 +108,7 @@ func getPackageHandle(product *govex.Product, vuln *unmarshal.OpenVEXVulnerabili
 
 	pkg := &db.Package{
 		Ecosystem: string(syftPkg.TypeFromPURL(purl.String())),
-		Name:      purl.Name,
+		Name:      packageNameFromPURL(purl),
 	}
 
 	aliases := []string{getName(vuln)}
@@ -134,6 +134,34 @@ func getPackageHandle(product *govex.Product, vuln *unmarshal.OpenVEXVulnerabili
 		err = fmt.Errorf("invalid vuln states %s", vuln.Status)
 	}
 	return aphs, uphs, err
+}
+
+// packageNameFromPURL reconstructs the package name in the form the rest
+// of the v6 build pipeline (and the matchers) expect for the package's
+// ecosystem. Most ecosystems are flat-namespaced and use purl.Name
+// directly. Maven (java) packages are stored as "groupId:artifactId" by
+// the github advisory transformer, so we mirror that here; otherwise
+// the openvex unaffected handle and the github affected handle would
+// land on different `packages` rows and the matcher's name search would
+// silently miss the VEX statement.
+//
+// npm scoped names (purl form pkg:npm/%40scope/name) are already round-
+// tripped by the packageurl library: purl.Namespace="@scope" and
+// purl.Name="name", and the github transformer stores the GHSA's
+// FixedIn name verbatim ("@scope/name"). Joining Namespace+"/"+Name
+// reproduces that string. Callers can extend this switch as more VEX
+// providers come online for additional ecosystems.
+func packageNameFromPURL(purl *packageurl.PackageURL) string {
+	if purl.Namespace == "" {
+		return purl.Name
+	}
+	switch purl.Type {
+	case packageurl.TypeMaven:
+		return purl.Namespace + ":" + purl.Name
+	case packageurl.TypeNPM:
+		return purl.Namespace + "/" + purl.Name
+	}
+	return purl.Name
 }
 
 // getPURL from either ID field or identifiers

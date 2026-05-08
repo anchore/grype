@@ -1,0 +1,8 @@
+auto-generate: true
+extractions:
+  github:
+    # both advisories cover spring-webmvc 5.3.x ranges, so a 5.3.20 package
+    # matches CVE-2025-41242 via GHSA-r936-gwx5-v52f and CVE-2023-20860 via
+    # GHSA-7phw-cxx7-q9vq.
+    - github:java/GHSA-r936-gwx5-v52f
+    - github:java/GHSA-7phw-cxx7-q9vq

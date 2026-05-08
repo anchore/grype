@@ -27,6 +27,45 @@ type results struct {
 	Record []byte `gorm:"column:record"`
 }
 
+// Record represents a single record from the SQLite results table.
+type Record struct {
+	ID      string // the identifier (e.g., "debian:10/CVE-2024-1234")
+	Content []byte // the raw vunnel envelope JSON
+}
+
+// QueryRecords returns records matching the given patterns using SQL LIKE.
+// Patterns are wrapped with % for partial matching: "CVE-2024" becomes "%CVE-2024%".
+// If no patterns are provided, all records are returned.
+func QueryRecords(dbPath string, patterns []string) ([]Record, error) {
+	db, err := openDB(dbPath)
+	if err != nil {
+		return nil, err
+	}
+
+	query := db.Model(&results{})
+
+	if len(patterns) > 0 {
+		var conditions []string
+		var args []interface{}
+		for _, p := range patterns {
+			conditions = append(conditions, "id LIKE ?")
+			args = append(args, "%"+p+"%")
+		}
+		query = query.Where(strings.Join(conditions, " OR "), args...)
+	}
+
+	var records []results
+	if err := query.Find(&records).Error; err != nil {
+		return nil, err
+	}
+
+	result := make([]Record, len(records))
+	for i, r := range records {
+		result[i] = Record{ID: r.ID, Content: r.Record}
+	}
+	return result, nil
+}
+
 type bytesOpener struct {
 	contents []byte
 	name     string

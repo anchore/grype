@@ -1,0 +1,6 @@
+auto-generate: true
+extractions:
+    chainguard-libraries:
+        - chainguard-libraries:maven/CGA-fq9v-559q-9mxv
+    github:
+        - github:java/ghsa-jmp9-x22r-554x

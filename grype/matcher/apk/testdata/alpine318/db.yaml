@@ -1,0 +1,10 @@
+auto-generate: true
+extractions:
+  alpine:
+    - 3.18/CVE-2024-0727
+    - 3.18/CVE-2019-6470
+  nvd:
+    - CVE-2024-0727
+    # CVE-2014-0224 is in NVD (openssl 1.0.1 < x < 1.0.1h) but not in alpine 3.18
+    # secdb. Used by the NVD-only / NVD-fix-dropped / NVD-version-filtering tests.
+    - CVE-2014-0224
