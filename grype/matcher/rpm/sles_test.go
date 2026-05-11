@@ -100,3 +100,61 @@ func TestMatcherRpm_SLES_NAKDoesNotCrossMinorVersion(t *testing.T) {
 			db.Match(t, &matcher, p).IsEmpty()
 		})
 }
+
+// TestMatcherRpm_SLES_DisclosureDoesCrossMinorVersion is the regression guard
+// for the other half of applyUnaffectedOSStrictness. The strict-NAK fix gates
+// itself on unaffectedOnly and must NEVER leak onto disclosure queries - if
+// it did, every cross-minor disclosure match for RHEL/SLES would silently
+// drop, which would be a serious regression invisible to existing CI (the
+// rest of the matcher tests put the package and the disclosure record on the
+// same minor).
+//
+// Setup mirrors the NAK-doesn't-cross test above (sles:15.7 scan against a
+// sles:15.6 record) but for the disclosure (CVE-2023-25577) instead of the
+// NAK. python311-Werkzeug at 2.3.0 is below the 15.6 fix at 2.3.6, so the
+// loose major-with-any-minor fallback must hit and emit a direct match. If
+// this test ever fails, look for someone extending DisableCrossMinorFallback
+// onto the non-unaffected code path.
+func TestMatcherRpm_SLES_DisclosureDoesCrossMinorVersion(t *testing.T) {
+	dbtest.DBs(t, "sles15").
+		SelectOnly("sles:15.6/cve-2023-25577").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			// 2.3.0 < SUSE 15.6 fix at 2.3.6 → vulnerable for CVE-2023-25577
+			p := dbtest.NewPackage("python311-Werkzeug", "0:2.3.0-150700.6.1.1", syftPkg.RpmPkg).
+				WithDistro(dbtest.SLES157).
+				Build()
+
+			db.Match(t, &matcher, p).
+				SelectMatch("CVE-2023-25577").
+				SelectDetailByType(match.ExactDirectMatch).
+				AsDistroSearch()
+		})
+}
+
+// TestMatcherRpm_SLES_DisclosureCrossesButNAKDoesNot ties both halves of the
+// asymmetric strict-NAK design together in one Match() call. With both the
+// 15.6 disclosure (CVE-2023-25577, real fix at 2.3.6) and the 15.6 NAK
+// (CVE-2024-49766, FixedIn Version="0") loaded, scanning a vulnerable
+// python311-Werkzeug on sles:15.7 must produce:
+//   - exactly one match for CVE-2023-25577 (disclosure crossed the minor)
+//   - zero ignores (NAK strictness held; the 15.6 NAK didn't bleed onto 15.7)
+//
+// Together with TestMatcherRpm_SLES_NAKDoesNotCrossMinorVersion (NAK-side
+// alone) and TestMatcherRpm_SLES_DisclosureDoesCrossMinorVersion (disclosure-
+// side alone), this brackets the asymmetric behavior end-to-end. The
+// matches-side and ignores-side completeness checks enforce no extras
+// snuck in.
+func TestMatcherRpm_SLES_DisclosureCrossesButNAKDoesNot(t *testing.T) {
+	dbtest.DBs(t, "sles15").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		p := dbtest.NewPackage("python311-Werkzeug", "0:2.3.0-150700.6.1.1", syftPkg.RpmPkg).
+			WithDistro(dbtest.SLES157).
+			Build()
+
+		db.Match(t, &matcher, p).
+			SelectMatch("CVE-2023-25577").
+			SelectDetailByType(match.ExactDirectMatch).
+			AsDistroSearch()
+	})
+}
