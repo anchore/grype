@@ -379,32 +379,13 @@ func (s *operatingSystemStore) searchForOSExactVersions(query *gorm.DB, d OSSpec
 	if d.MajorVersion != "" {
 		if d.MinorVersion != "" {
 			// non-empty major and minor versions
-			specificQuery := query.Session(&gorm.Session{}).Where("major_version = ? AND minor_version = ?", d.MajorVersion, d.MinorVersion)
-			result, err = handleQuery(specificQuery, "major and minor versions")
-			if err != nil || len(result) > 0 {
-				return result, err
-			}
-		} else {
-			// empty minor version - exact match for major-only distros (e.g., Debian 8, 9, 10...)
-			majorExclusiveQuery := query.Session(&gorm.Session{}).Where("major_version = ? AND minor_version = ?", d.MajorVersion, "")
-			result, err = handleQuery(majorExclusiveQuery, "major version with empty minor")
-			if err != nil || len(result) > 0 {
-				return result, err
-			}
+			specificQuery := query.Session(&gorm.Session{}).Where("major_version = ? AND (minor_version = ? OR minor_version = '')", d.MajorVersion, d.MinorVersion)
+			return handleQuery(specificQuery, "major and minor versions")
 		}
 
-		// when fallback is disabled, don't try less specific version matches
-		if d.DisableFallback {
-			return nil, nil
-		}
-
-		// fallback to major version only, requiring the minor version to be blank. Note: it is important that we don't
-		// match on any record with the given major version, we must only match on records that are intentionally empty
-		// minor version. For instance, the DB may have rhel 8.1, 8.2, 8.3, 8.4, etc. We don't want to arbitrarily match
-		// on one of these or match even the latest version, as even that may yield incorrect vulnerability matching
-		// results. We are only intending to allow matches for when the vulnerability data is only specified at the major version level.
+		// empty minor version - exact match for major-only distros (e.g., Debian 8, 9, 10...)
 		majorExclusiveQuery := query.Session(&gorm.Session{}).Where("major_version = ? AND minor_version = ?", d.MajorVersion, "")
-		result, err = handleQuery(majorExclusiveQuery, "exclusively major version")
+		result, err = handleQuery(majorExclusiveQuery, "major version with empty minor")
 		if err != nil || len(result) > 0 {
 			return result, err
 		}
