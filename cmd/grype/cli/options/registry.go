@@ -1,7 +1,6 @@
 package options
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
@@ -57,29 +56,20 @@ func (cfg *registry) PostLoad() error {
 		}, cfg.Auth...)
 	}
 
-	if msg := cfg.insecureTransportWarning(); msg != "" {
-		log.Warn(msg)
+	// these flags may be picked up from a config file or environment variable without the
+	// user realizing, so surfacing them makes unprotected registry traffic visible in CI/CD output
+	var insecureFlags []string
+	if cfg.InsecureSkipTLSVerify {
+		insecureFlags = append(insecureFlags, "insecure-skip-tls-verify")
+	}
+	if cfg.InsecureUseHTTP {
+		insecureFlags = append(insecureFlags, "insecure-use-http")
+	}
+	if len(insecureFlags) > 0 {
+		log.Warnf("registry communication is insecure: %s enabled", strings.Join(insecureFlags, ", "))
 	}
 
 	return nil
-}
-
-// insecureTransportWarning returns a warning message listing any insecure registry transport
-// flags that are enabled, or an empty string if none are. These flags may be picked up from a
-// config file or environment variable without the user realizing, so surfacing them in CI/CD
-// output makes the risk visible.
-func (cfg *registry) insecureTransportWarning() string {
-	var flags []string
-	if cfg.InsecureSkipTLSVerify {
-		flags = append(flags, "insecure-skip-tls-verify")
-	}
-	if cfg.InsecureUseHTTP {
-		flags = append(flags, "insecure-use-http")
-	}
-	if len(flags) == 0 {
-		return ""
-	}
-	return fmt.Sprintf("registry communication is insecure: %s enabled", strings.Join(flags, ", "))
 }
 
 func (cfg *registry) DescribeFields(descriptions clio.FieldDescriptionSet) {
