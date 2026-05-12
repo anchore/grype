@@ -344,67 +344,6 @@ func TestQueryBuilder_ExactDistroCriteria(t *testing.T) {
 	}
 }
 
-// TestApplyUnaffectedOSStrictness_DoesNotMutateSingletons locks in the
-// "Skips the AnyOSSpecified / NoOSSpecified" half of applyUnaffectedOSStrictness.
-// Both are package-level variables declared in package_store.go and are
-// shared across every query in the process. If applyUnaffectedOSStrictness
-// ever forgets the skip guard, the very first unaffected-only query would
-// mutate the singleton's DisableCrossMinorFallback field, and from that
-// moment on every subsequent OS-less query (including non-unaffected ones)
-// would carry the strict flag - a particularly poisonous bug because tests
-// would still pass in isolation but flake under parallel execution.
-//
-// NoOSSpecified is non-nil (a pointer to an empty struct) so it would silently
-// accept the mutation; this test catches that case. AnyOSSpecified is
-// literally nil, so a missing skip guard would panic at the assignment site -
-// the *spec == AnyOSSpecified branch in the guard is belt-and-braces for the
-// nil case, but exercising it here documents the contract.
-func TestApplyUnaffectedOSStrictness_DoesNotMutateSingletons(t *testing.T) {
-	// precondition - if a previous test in the package mutated the singleton,
-	// this will catch it and explain why later tests are about to fail
-	require.False(t, NoOSSpecified.DisableCrossMinorFallback,
-		"precondition: NoOSSpecified.DisableCrossMinorFallback must start false; an earlier test leaked")
-
-	// drive setDefaultOS to inject NoOSSpecified, then Build to run the
-	// strictness pass - this is the exact path taken by an unaffected query
-	// with no distro criteria
-	q1, _, err := newSearchQuery([]vulnerability.Criteria{
-		search.ForUnaffected(),
-	})
-	require.NoError(t, err)
-	require.True(t, q1.unaffectedOnly)
-	require.Len(t, q1.osSpecs, 1)
-	require.Same(t, NoOSSpecified, q1.osSpecs[0], "setDefaultOS should inject the singleton, not a copy")
-
-	require.False(t, NoOSSpecified.DisableCrossMinorFallback,
-		"NoOSSpecified must not be mutated - it's a shared global and would poison every subsequent query in the process")
-
-	// AnyOSSpecified is nil; a missing skip guard would panic on the field
-	// assignment. The (spec == nil) check in the guard covers this, but going
-	// through Build() with AnyOSSpecified in osSpecs verifies the contract
-	// end-to-end and would fail loudly if either guard branch were dropped.
-	b := newSearchQueryBuilder()
-	b.query.unaffectedOnly = true
-	b.query.osSpecs = OSSpecifiers{AnyOSSpecified}
-	require.NotPanics(t, func() {
-		_, _, err := b.Build()
-		require.NoError(t, err)
-	}, "Build() with AnyOSSpecified (nil) in osSpecs must not panic - the skip guard is what holds")
-
-	// final paranoia: a non-singleton spec in the same builder run still gets
-	// the flag set, proving the loop didn't bail out early
-	b2 := newSearchQueryBuilder()
-	b2.query.unaffectedOnly = true
-	real := &OSSpecifier{Name: "sles", MajorVersion: "15", MinorVersion: "6"}
-	b2.query.osSpecs = OSSpecifiers{NoOSSpecified, AnyOSSpecified, real}
-	_, _, err = b2.Build()
-	require.NoError(t, err)
-	require.True(t, real.DisableCrossMinorFallback,
-		"non-singleton spec mixed in with singletons must still receive the strict flag")
-	require.False(t, NoOSSpecified.DisableCrossMinorFallback,
-		"NoOSSpecified must remain unmutated even when other specs in the same slice are flipped")
-}
-
 func TestQueryBuilder_IntegrationWithRealCriteria(t *testing.T) {
 	// test the full flow that mimics parseCriteria behavior
 	criteria := []vulnerability.Criteria{

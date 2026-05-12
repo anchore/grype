@@ -11,3 +11,11 @@ extractions:
         # grype-db v6 turns it into an UnaffectedPackageHandle, the rpm
         # matcher emits a "Distro Not Vulnerable" IgnoreRelatedPackage filter.
         - sles:15.6/cve-2024-49766
+        # CVE-2024-2961: glibc disclosure on SLES 15.7. Unrelated to the
+        # python311-Werkzeug records above; its sole purpose is to make the
+        # operating_system table contain a sles:15.7 row, mirroring how the
+        # SUSE OVAL feed actually publishes per-minor data. With a real 15.7
+        # row in the table, queries for sles:15.7 packages hit the exact
+        # major+minor match step and never fall back to the loose any-minor
+        # path that would silently leak sles:15.6 records onto a 15.7 scan.
+        - sles:15.7/cve-2024-2961

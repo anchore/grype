@@ -211,34 +211,6 @@ func (b *searchQueryBuilder) Build() (*searchQuery, []vulnerability.Criteria, er
 	b.setDefaultOS()
 	b.normalizePackageName()
 	b.extractVersionMatcher()
-	b.applyUnaffectedOSStrictness()
 
 	return b.query, b.remainingCriteria, nil
-}
-
-// applyUnaffectedOSStrictness blocks the loose "major-with-any-minor"
-// fallback for unaffected/NAK lookups while preserving the major-only-empty-
-// minor fallback. A NAK in sles:15.6 must NOT apply to a sles:15.7 scan
-// (SUSE may not have re-analyzed for SP7, and silently extending the NAK
-// would falsely suppress a real GHSA finding on the bundled language-
-// ecosystem package). But a NAK in rhel:8 (publisher intentionally less-
-// specific - the entire major is unaffected) MUST still apply to a rhel:8.4
-// scan, since RHEL OVAL publishes most NAKs at major granularity. The
-// disclosure path is unchanged - cross-minor leakage is fine for "this CVE
-// affects rhel 8" → applies to all 8.x.
-//
-// Skips the AnyOSSpecified / NoOSSpecified package-level singletons - those
-// are shared globals (see package_store.go) used by setDefaultOS, and
-// mutating them here would leak the flag onto every subsequent query in
-// the process.
-func (b *searchQueryBuilder) applyUnaffectedOSStrictness() {
-	if !b.query.unaffectedOnly {
-		return
-	}
-	for _, spec := range b.query.osSpecs {
-		if spec == nil || spec == AnyOSSpecified || spec == NoOSSpecified {
-			continue
-		}
-		spec.DisableCrossMinorFallback = true
-	}
 }

@@ -76,24 +76,37 @@ func TestMatcherRpm_SLES_VulnerableAndUnaffectedInSameCall(t *testing.T) {
 	})
 }
 
-// TestMatcherRpm_SLES_NAKDoesNotCrossMinorVersion locks in the strict-by-default
-// scoping for unaffected/NAK lookups. SUSE publishes per-minor-version OVAL
-// feeds (sles:15.6, sles:15.7, ...). The NAK in sles:15.6 must NOT apply to a
-// scan of a sles:15.7 package because SUSE may not have re-confirmed the
-// not-affected status for SP7; silently extending the 15.6 NAK to a 15.7 scan
-// would falsely suppress GHSA findings on the bundled language-ecosystem
-// package.
+// TestMatcherRpm_SLES_RecordsDoNotCrossMinorVersion is the cross-minor scoping
+// guard for SLES. SUSE publishes per-minor-version OVAL feeds (sles:15.6,
+// sles:15.7, ...) and the v6 transformer creates a distinct operating_system
+// row for each. When the OS table contains a row for the scanned minor, the
+// exact-version branch in operating_system_store.searchForOSExactVersions
+// finds it and returns immediately - the loose "any minor with this major"
+// fallback never fires, so records published against sibling minors stay put.
 //
-// The disclosure-side fallback (sles:15.6 disclosure → applies to sles:15.7)
-// is unaffected by this; only the unaffected/NAK path is strict. See
-// applyUnaffectedOSStrictness in grype/db/v6/search_query.go.
-func TestMatcherRpm_SLES_NAKDoesNotCrossMinorVersion(t *testing.T) {
+// What this protects against: the loose fallback only fires when no OS row
+// matches the scanned version (exact, then empty-minor major). In a sparse
+// test fixture where only sles:15.6 is loaded, that fallback returns the
+// 15.6 row for a 15.7 query and any record on it (NAK or disclosure) leaks
+// onto the 15.7 scan. The fixture for this test loads a sles:15.7 record
+// (glibc/CVE-2024-2961, unrelated to python311-Werkzeug) precisely so the
+// 15.7 OS row exists - mirroring production where every supported minor has
+// its own feed - and asserting the leak does NOT happen. Drop the 15.7
+// fixture entry from sles15/db.yaml and this test fails, demonstrating the
+// hidden dependency.
+//
+// CVE-2024-49766 (the NAK from issue #2566) is published on sles:15.6 only;
+// scanning python311-Werkzeug on sles:15.7 must produce no match and no
+// ignore - the OS-row lookup hits sles:15.7 cleanly, finds no
+// python311-Werkzeug records there, and the 15.6 NAK is never consulted.
+func TestMatcherRpm_SLES_RecordsDoNotCrossMinorVersion(t *testing.T) {
 	dbtest.DBs(t, "sles15").
-		SelectOnly("sles:15.6/cve-2024-49766").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
-			// same package as the NAK, but on sles:15.7 (the NAK lives in sles:15.6)
-			p := dbtest.NewPackage("python311-Werkzeug", "0:2.3.6-150700.6.12.1", syftPkg.RpmPkg).
+			// same package as the 15.6 NAK and 15.6 disclosure, but scanned
+			// on 15.7; with the sles:15.7 fixture entry present, the OS-row
+			// lookup hits 15.7 directly and neither 15.6 record leaks.
+			p := dbtest.NewPackage("python311-Werkzeug", "0:2.3.0-150700.6.1.1", syftPkg.RpmPkg).
 				WithDistro(distro.New(distro.SLES, "15.7", "")).
 				Build()
 
@@ -101,60 +114,27 @@ func TestMatcherRpm_SLES_NAKDoesNotCrossMinorVersion(t *testing.T) {
 		})
 }
 
-// TestMatcherRpm_SLES_DisclosureDoesCrossMinorVersion is the regression guard
-// for the other half of applyUnaffectedOSStrictness. The strict-NAK fix gates
-// itself on unaffectedOnly and must NEVER leak onto disclosure queries - if
-// it did, every cross-minor disclosure match for RHEL/SLES would silently
-// drop, which would be a serious regression invisible to existing CI (the
-// rest of the matcher tests put the package and the disclosure record on the
-// same minor).
+// TestMatcherRpm_SLES_FixturePresenceOfMinorVersionRow verifies the test
+// setup itself: scanning glibc on sles:15.7 must find CVE-2024-2961, which
+// proves the sles:15.7 fixture entry is wired up and the OS table really
+// does contain a sles:15.7 row. Without this guard, a future fixture edit
+// could silently strip the 15.7 entry and TestMatcherRpm_SLES_RecordsDoNot
+// CrossMinorVersion above would still pass (it asserts emptiness, so it's
+// trivially true if nothing matches) - except the reason would be wrong:
+// no OS row at all rather than the cross-minor block we mean to lock in.
 //
-// Setup mirrors the NAK-doesn't-cross test above (sles:15.7 scan against a
-// sles:15.6 record) but for the disclosure (CVE-2023-25577) instead of the
-// NAK. python311-Werkzeug at 2.3.0 is below the 15.6 fix at 2.3.6, so the
-// loose major-with-any-minor fallback must hit and emit a direct match. If
-// this test ever fails, look for someone extending DisableCrossMinorFallback
-// onto the non-unaffected code path.
-func TestMatcherRpm_SLES_DisclosureDoesCrossMinorVersion(t *testing.T) {
+// glibc 2.36 is below the SUSE 15.7 fix at 2.38 -> vulnerable.
+func TestMatcherRpm_SLES_FixturePresenceOfMinorVersionRow(t *testing.T) {
 	dbtest.DBs(t, "sles15").
-		SelectOnly("sles:15.6/cve-2023-25577").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
-			// 2.3.0 < SUSE 15.6 fix at 2.3.6 → vulnerable for CVE-2023-25577
-			p := dbtest.NewPackage("python311-Werkzeug", "0:2.3.0-150700.6.1.1", syftPkg.RpmPkg).
+			p := dbtest.NewPackage("glibc", "0:2.36-150600.10.1.1", syftPkg.RpmPkg).
 				WithDistro(dbtest.SLES157).
 				Build()
 
 			db.Match(t, &matcher, p).
-				SelectMatch("CVE-2023-25577").
+				SelectMatch("CVE-2024-2961").
 				SelectDetailByType(match.ExactDirectMatch).
 				AsDistroSearch()
 		})
-}
-
-// TestMatcherRpm_SLES_DisclosureCrossesButNAKDoesNot ties both halves of the
-// asymmetric strict-NAK design together in one Match() call. With both the
-// 15.6 disclosure (CVE-2023-25577, real fix at 2.3.6) and the 15.6 NAK
-// (CVE-2024-49766, FixedIn Version="0") loaded, scanning a vulnerable
-// python311-Werkzeug on sles:15.7 must produce:
-//   - exactly one match for CVE-2023-25577 (disclosure crossed the minor)
-//   - zero ignores (NAK strictness held; the 15.6 NAK didn't bleed onto 15.7)
-//
-// Together with TestMatcherRpm_SLES_NAKDoesNotCrossMinorVersion (NAK-side
-// alone) and TestMatcherRpm_SLES_DisclosureDoesCrossMinorVersion (disclosure-
-// side alone), this brackets the asymmetric behavior end-to-end. The
-// matches-side and ignores-side completeness checks enforce no extras
-// snuck in.
-func TestMatcherRpm_SLES_DisclosureCrossesButNAKDoesNot(t *testing.T) {
-	dbtest.DBs(t, "sles15").Run(func(t *testing.T, db *dbtest.DB) {
-		matcher := Matcher{}
-		p := dbtest.NewPackage("python311-Werkzeug", "0:2.3.0-150700.6.1.1", syftPkg.RpmPkg).
-			WithDistro(dbtest.SLES157).
-			Build()
-
-		db.Match(t, &matcher, p).
-			SelectMatch("CVE-2023-25577").
-			SelectDetailByType(match.ExactDirectMatch).
-			AsDistroSearch()
-	})
 }

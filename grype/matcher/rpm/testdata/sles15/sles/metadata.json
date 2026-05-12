@@ -1,7 +1,7 @@
 {
   "provider": "sles",
   "version": 1,
-  "processor": "vunnel@0.56.0.post6+8bb089e",
+  "processor": "vunnel@0.57.0.post17+4dfefe4",
   "schema": {
     "version": "1.0.3",
     "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
@@ -14,7 +14,7 @@
   "timestamp": "2026-05-05T15:33:28Z",
   "listing": {
     "path": "results/listing.xxh64",
-    "digest": "bf54593f3498f456",
+    "digest": "3a6520d2546c6ef8",
     "algorithm": "xxh64"
   },
   "store": "flat-file"

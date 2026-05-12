@@ -42,16 +42,6 @@ type OSSpecifier struct {
 	// When set, only exact version matches are returned (no major-only fallback).
 	// Used for EOL lookups where we don't want e.g. Alpine 3.24 to match Alpine 3.12.
 	DisableFallback bool
-
-	// DisableCrossMinorFallback blocks the loose "any-minor-with-this-major"
-	// fallback while still allowing the major-only-empty-minor fallback. Used
-	// for unaffected/NAK lookups: a major-only record (e.g. rhel:8) is still
-	// applied to a minor-versioned scan (e.g. rhel 8.4) because the publisher
-	// intentionally chose not to be more specific, but a sibling-minor record
-	// (e.g. sles:15.6) is NOT applied to a different minor (sles:15.7) because
-	// the publisher said something specific about SP6, not SP7. See
-	// applyUnaffectedOSStrictness in search_query.go.
-	DisableCrossMinorFallback bool
 }
 
 func (d *OSSpecifier) clean() {
@@ -417,12 +407,6 @@ func (s *operatingSystemStore) searchForOSExactVersions(query *gorm.DB, d OSSpec
 		result, err = handleQuery(majorExclusiveQuery, "exclusively major version")
 		if err != nil || len(result) > 0 {
 			return result, err
-		}
-
-		// stop before the loose "any-minor" fallback when cross-minor matches
-		// are unsafe (used for unaffected/NAK lookups - see DisableCrossMinorFallback).
-		if d.DisableCrossMinorFallback {
-			return nil, nil
 		}
 
 		// fallback to major version for any minor version
