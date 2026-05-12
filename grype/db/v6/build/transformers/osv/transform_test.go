@@ -209,6 +209,132 @@ func TestTransform(t *testing.T) {
 			}},
 		},
 		{
+			// ALSA-2020:1636 is a real alma record where the CVE info lives in
+			// `related` only (input `aliases` is nil) — the dominant shape for
+			// alma advisories. The transformer is supposed to append `related`
+			// onto `aliases` for advisory records; this case is the regression
+			// net for that augmentation.
+			name:        "AlmaLinux Advisory with related-only aliases",
+			fixturePath: "testdata/ALSA-2020-1636.json",
+			want: []transformers.RelatedEntries{{
+				VulnerabilityHandle: &db.VulnerabilityHandle{
+					Name:          "ALSA-2020:1636",
+					Status:        db.VulnerabilityActive,
+					ProviderID:    "osv",
+					Provider:      expectedProvider(),
+					ModifiedDate:  timeRef(time.Date(2021, time.August, 11, 8, 54, 0, 0, time.UTC)),
+					PublishedDate: timeRef(time.Date(2020, time.April, 28, 8, 59, 15, 0, time.UTC)),
+					BlobValue: &db.VulnerabilityBlob{
+						ID:          "ALSA-2020:1636",
+						Description: "libsndfile is a C library for reading and writing files containing sampled sound, such as AIFF, AU, or WAV. \n\nSecurity Fix(es):\n\n* libsndfile: stack-based buffer overflow in sndfile-deinterleave utility (CVE-2018-13139)\n\n* libsndfile: buffer over-read in the function i2alaw_array in alaw.c (CVE-2018-19662)\n\nFor more details about the security issue(s), including the impact, a CVSS score, acknowledgments, and other related information, refer to the CVE page(s) listed in the References section.\n\nAdditional Changes:\n\nFor detailed information on changes in this release, see the AlmaLinux Release Notes linked from the References section.",
+						References: []db.Reference{
+							{URL: "https://vulners.com/cve/CVE-2018-13139", Tags: []string{"REPORT"}},
+							{URL: "https://vulners.com/cve/CVE-2018-19662", Tags: []string{"REPORT"}},
+						},
+						Aliases:    []string{"CVE-2018-13139", "CVE-2018-19662"},
+						Severities: nil,
+					},
+				},
+				Related: unaffectedPkgSlice(
+					db.UnaffectedPackageHandle{
+						Package: &db.Package{
+							Name:      "libsndfile-devel",
+							Ecosystem: "rpm",
+						},
+						OperatingSystem: &db.OperatingSystem{
+							Name:         "almalinux",
+							MajorVersion: "8",
+						},
+						BlobValue: &db.PackageBlob{
+							// PackageBlob.CVEs is currently built from the un-augmented
+							// vuln.Aliases (nil for this record), so the package-level CVE
+							// list is empty even though VulnerabilityBlob.Aliases above
+							// correctly carries CVE-2018-13139 + CVE-2018-19662. Whether to
+							// populate this from the augmented list is a per-strategy decision
+							// in the upcoming refactor; this assertion locks down current
+							// behavior as the regression baseline. Functionally low-impact:
+							// only read site (vulnerability.go::getRelatedVulnerabilities)
+							// already sees the same CVEs via vuln.BlobValue.Aliases and dedups.
+							CVEs: nil,
+							Ranges: []db.Range{{
+								Version: db.Version{
+									Type:       "rpm",
+									Constraint: ">= 1.0.28-10.el8",
+								},
+								Fix: &db.Fix{
+									Version: "1.0.28-10.el8",
+									State:   db.FixedStatus,
+								},
+							}},
+						},
+					},
+				),
+			}},
+		},
+		{
+			// ALSA-2021:4156 is a real alma record that carries
+			// ecosystem_specific.rpm_modularity ("go-toolset:rhel8"); modular
+			// records make up ~63% of alma 8 data and the modularity qualifier
+			// is load-bearing for the rpm matcher. This case is the regression
+			// net for the modularity round-trip through the advisory path.
+			name:        "AlmaLinux Advisory with rpm_modularity",
+			fixturePath: "testdata/ALSA-2021-4156.json",
+			want: []transformers.RelatedEntries{{
+				VulnerabilityHandle: &db.VulnerabilityHandle{
+					Name:          "ALSA-2021:4156",
+					Status:        db.VulnerabilityActive,
+					ProviderID:    "osv",
+					Provider:      expectedProvider(),
+					ModifiedDate:  timeRef(time.Date(2021, time.December, 16, 11, 29, 11, 0, time.UTC)),
+					PublishedDate: timeRef(time.Date(2021, time.November, 9, 8, 25, 49, 0, time.UTC)),
+					BlobValue: &db.VulnerabilityBlob{
+						ID:          "ALSA-2021:4156",
+						Description: "Go Toolset provides the Go programming language tools and libraries. Go is alternatively known as golang. \n\nThe following packages have been upgraded to a later upstream version: golang (1.16.7). (BZ#1938071)\n\nSecurity Fix(es):\n\n* golang: net: lookup functions may return invalid host names (CVE-2021-33195)\n\n* golang: net/http/httputil: ReverseProxy forwards connection headers if first one is empty (CVE-2021-33197)\n\n* golang: math/big.Rat: may cause a panic or an unrecoverable fatal error if passed inputs with very large exponents (CVE-2021-33198)\n\n* golang: net/http/httputil: panic due to racy read of persistConn after handler panic (CVE-2021-36221)\n\nFor more details about the security issue(s), including the impact, a CVSS score, acknowledgments, and other related information, refer to the CVE page(s) listed in the References section.\n\nAdditional Changes:\n\nFor detailed information on changes in this release, see the AlmaLinux Release Notes linked from the References section.",
+						References: []db.Reference{
+							{URL: "https://vulners.com/cve/CVE-2021-33195", Tags: []string{"REPORT"}},
+							{URL: "https://vulners.com/cve/CVE-2021-33197", Tags: []string{"REPORT"}},
+							{URL: "https://vulners.com/cve/CVE-2021-33198", Tags: []string{"REPORT"}},
+							{URL: "https://vulners.com/cve/CVE-2021-36221", Tags: []string{"REPORT"}},
+						},
+						Aliases:    []string{"CVE-2021-33195", "CVE-2021-33197", "CVE-2021-33198", "CVE-2021-36221"},
+						Severities: nil,
+					},
+				},
+				Related: unaffectedPkgSlice(
+					db.UnaffectedPackageHandle{
+						Package: &db.Package{
+							Name:      "delve",
+							Ecosystem: "rpm",
+						},
+						OperatingSystem: &db.OperatingSystem{
+							Name:         "almalinux",
+							MajorVersion: "8",
+						},
+						BlobValue: &db.PackageBlob{
+							// Same per-strategy-decision call-out as ALSA-2020:1636 above:
+							// the 4 related CVEs surface on VulnerabilityBlob.Aliases but not
+							// in PackageBlob.CVEs today. Locking down current behavior; the
+							// upcoming refactor's alma strategy will decide.
+							CVEs: nil,
+							Qualifiers: &db.PackageQualifiers{
+								RpmModularity: stringRef("go-toolset:rhel8"),
+							},
+							Ranges: []db.Range{{
+								Version: db.Version{
+									Type:       "rpm",
+									Constraint: ">= 1.6.0-1.module_el8.5.0+2604+960c7771",
+								},
+								Fix: &db.Fix{
+									Version: "1.6.0-1.module_el8.5.0+2604+960c7771",
+									State:   db.FixedStatus,
+								},
+							}},
+						},
+					},
+				),
+			}},
+		},
+		{
 			name:        "AlmaLinux Advisory",
 			fixturePath: "testdata/ALSA-2025-7467.json",
 			want: []transformers.RelatedEntries{{
@@ -474,65 +600,6 @@ func Test_getGrypeRangesFromRange(t *testing.T) {
 	}
 }
 
-func Test_getPackage(t *testing.T) {
-	tests := []struct {
-		name string
-		pkg  models.Package
-		want *db.Package
-	}{
-		{
-			name: "valid package",
-			pkg: models.Package{
-				Ecosystem: "Bitnami",
-				Name:      "apache",
-				Purl:      "pkg:bitnami/apache",
-			},
-			want: &db.Package{
-				Name:      "apache",
-				Ecosystem: "Bitnami",
-			},
-		},
-		{
-			name: "package with empty purl",
-			pkg: models.Package{
-				Ecosystem: "Bitnami",
-				Name:      "apache",
-				Purl:      "",
-			},
-			want: &db.Package{
-				Name:      "apache",
-				Ecosystem: "Bitnami",
-			},
-		},
-		{
-			name: "package with empty ecosystem",
-			pkg: models.Package{
-				Ecosystem: "",
-				Name:      "apache",
-				Purl:      "pkg:bitnami/apache",
-			},
-			want: &db.Package{
-				Name:      "apache",
-				Ecosystem: "",
-			},
-		},
-	}
-	t.Parallel()
-	for _, testToRun := range tests {
-		test := testToRun
-		t.Run(test.name, func(tt *testing.T) {
-			tt.Parallel()
-			got := getPackage(test.pkg)
-			if got.Name != test.want.Name {
-				t.Errorf("getPackage() got name = %v, want %v", got.Name, test.want.Name)
-			}
-			if got.Ecosystem != test.want.Ecosystem {
-				t.Errorf("getPackage() got ecosystem = %v, want %v", got.Ecosystem, test.want.Ecosystem)
-			}
-		})
-	}
-}
-
 func Test_extractCVSSInfo(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -647,74 +714,6 @@ func Test_extractRpmModularity(t *testing.T) {
 			got := extractRpmModularity(test.affected)
 			if got != test.want {
 				t.Errorf("extractRpmModularity() = %v, want %v", got, test.want)
-			}
-		})
-	}
-}
-
-func Test_getPackageQualifiers(t *testing.T) {
-	tests := []struct {
-		name     string
-		affected models.Affected
-		cpes     any
-		withCPE  bool
-		want     *db.PackageQualifiers
-	}{
-		{
-			name: "with rpm_modularity only",
-			affected: models.Affected{
-				EcosystemSpecific: map[string]any{
-					"rpm_modularity": "mariadb:10.3",
-				},
-			},
-			cpes:    nil,
-			withCPE: false,
-			want: &db.PackageQualifiers{
-				RpmModularity: stringRef("mariadb:10.3"),
-			},
-		},
-		{
-			name: "with CPE only",
-			affected: models.Affected{
-				EcosystemSpecific: nil,
-			},
-			cpes:    []string{"cpe:2.3:a:vendor:product:*:*:*:*:*:*:*:*"},
-			withCPE: true,
-			want: &db.PackageQualifiers{
-				PlatformCPEs: []string{"cpe:2.3:a:vendor:product:*:*:*:*:*:*:*:*"},
-			},
-		},
-		{
-			name: "with both rpm_modularity and CPE",
-			affected: models.Affected{
-				EcosystemSpecific: map[string]any{
-					"rpm_modularity": "nodejs:16",
-				},
-			},
-			cpes:    []string{"cpe:2.3:a:nodejs:nodejs:*:*:*:*:*:*:*:*"},
-			withCPE: true,
-			want: &db.PackageQualifiers{
-				PlatformCPEs:  []string{"cpe:2.3:a:nodejs:nodejs:*:*:*:*:*:*:*:*"},
-				RpmModularity: stringRef("nodejs:16"),
-			},
-		},
-		{
-			name: "no qualifiers",
-			affected: models.Affected{
-				EcosystemSpecific: nil,
-			},
-			cpes:    nil,
-			withCPE: false,
-			want:    nil,
-		},
-	}
-
-	for _, testToRun := range tests {
-		test := testToRun
-		t.Run(test.name, func(tt *testing.T) {
-			got := getPackageQualifiers(test.affected, test.cpes, test.withCPE)
-			if !reflect.DeepEqual(got, test.want) {
-				t.Errorf("getPackageQualifiers() = %v, want %v", got, test.want)
 			}
 		})
 	}

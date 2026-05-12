@@ -1,0 +1,60 @@
+{
+  "id": "ALSA-2021:4156",
+  "summary": "Moderate: go-toolset:rhel8 security, bug fix, and enhancement update",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "AlmaLinux:8",
+        "name": "delve"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "1.6.0-1.module_el8.5.0+2604+960c7771"
+            }
+          ]
+        }
+      ],
+      "ecosystem_specific": {
+        "rpm_modularity": "go-toolset:rhel8"
+      }
+    }
+  ],
+  "related": [
+    "CVE-2021-33195",
+    "CVE-2021-33197",
+    "CVE-2021-33198",
+    "CVE-2021-36221"
+  ],
+  "published": "2021-11-09T08:25:49Z",
+  "modified": "2021-12-16T11:29:11Z",
+  "details": "Go Toolset provides the Go programming language tools and libraries. Go is alternatively known as golang. \n\nThe following packages have been upgraded to a later upstream version: golang (1.16.7). (BZ#1938071)\n\nSecurity Fix(es):\n\n* golang: net: lookup functions may return invalid host names (CVE-2021-33195)\n\n* golang: net/http/httputil: ReverseProxy forwards connection headers if first one is empty (CVE-2021-33197)\n\n* golang: math/big.Rat: may cause a panic or an unrecoverable fatal error if passed inputs with very large exponents (CVE-2021-33198)\n\n* golang: net/http/httputil: panic due to racy read of persistConn after handler panic (CVE-2021-36221)\n\nFor more details about the security issue(s), including the impact, a CVSS score, acknowledgments, and other related information, refer to the CVE page(s) listed in the References section.\n\nAdditional Changes:\n\nFor detailed information on changes in this release, see the AlmaLinux Release Notes linked from the References section.",
+  "references": [
+    {
+      "url": "https://vulners.com/cve/CVE-2021-33195",
+      "type": "REPORT"
+    },
+    {
+      "url": "https://vulners.com/cve/CVE-2021-33197",
+      "type": "REPORT"
+    },
+    {
+      "url": "https://vulners.com/cve/CVE-2021-33198",
+      "type": "REPORT"
+    },
+    {
+      "url": "https://vulners.com/cve/CVE-2021-36221",
+      "type": "REPORT"
+    }
+  ],
+  "database_specific": {
+    "anchore": {
+      "record_type": "advisory"
+    }
+  }
+}
