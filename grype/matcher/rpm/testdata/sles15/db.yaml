@@ -19,3 +19,15 @@ extractions:
         # major+minor match step and never fall back to the loose any-minor
         # path that would silently leak sles:15.6 records onto a 15.7 scan.
         - sles:15.7/cve-2024-2961
+        # CVE-2024-49766 on the sles:15 namespace - that's SLES 15 GA / SP0
+        # specifically, NOT "all of SLES 15". Confirmed against the OVAL
+        # source: <platform>SUSE Linux Enterprise Server 15</platform> is
+        # listed alongside SP1, SP2, ... as a distinct entry, and the CPE
+        # is cpe:/o:suse:sles:15 (no SP suffix). A host running SLES 15 GA
+        # reports VERSION_ID="15" in /etc/os-release. This record's NAK is
+        # for python3-Werkzeug only (no python311-Werkzeug on the GA stream,
+        # which predates Python 3.11). Used by the SLES_GANamespace* tests
+        # to lock in (a) that scanning a GA host correctly picks up this
+        # NAK, and (b) the latent quirk that scanning an unknown future
+        # minor falls back to this GA row via the major+empty-minor step.
+        - sles:15/cve-2024-49766

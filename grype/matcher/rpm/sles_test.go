@@ -138,3 +138,80 @@ func TestMatcherRpm_SLES_FixturePresenceOfMinorVersionRow(t *testing.T) {
 				AsDistroSearch()
 		})
 }
+
+// TestMatcherRpm_SLES_GANamespaceAppliesToGAScan locks in that sles:15
+// records - vunnel namespaces with a blank minor - represent SLES 15 GA /
+// SP0 specifically, NOT "all of SLES 15.x". Evidence from the OVAL source
+// XML for CVE-2024-49766: <affected><platform> enumerates "SUSE Linux
+// Enterprise Server 15" alongside SP1, SP2, ..., SP6 as distinct entries,
+// and the corresponding CPE is cpe:/o:suse:sles:15 (no SP suffix). A host
+// actually running SLES 15 GA reports VERSION_ID="15" in /etc/os-release;
+// grype turns that into an OSSpecifier with MajorVersion="15" and
+// MinorVersion="", which lands directly in the "empty minor version -
+// exact match for major-only distros" branch of
+// operating_system_store.searchForOSExactVersions and returns the sles:15
+// OS row without falling back.
+//
+// The sles:15 record for CVE-2024-49766 carries only python3-Werkzeug as
+// a NAK (sles:15.6 separately adds python311-Werkzeug, which postdates
+// the GA stream - Python 3.11 wasn't in SLES 15 until later SPs). So
+// asserting the NAK fires here proves the lookup hit the sles:15 row
+// specifically, not the sles:15.6 row which also has python3-Werkzeug.
+func TestMatcherRpm_SLES_GANamespaceAppliesToGAScan(t *testing.T) {
+	dbtest.DBs(t, "sles15").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			pkgID := pkg.ID("python3-werkzeug-on-sles-15-ga")
+			// SLES 15 GA host: VERSION_ID="15" -> distro major=15, minor=""
+			p := dbtest.NewPackage("python3-Werkzeug", "0:0.16.1-150100.4.6.1", syftPkg.RpmPkg).
+				WithID(pkgID).
+				WithDistro(distro.New(distro.SLES, "15", "")).
+				Build()
+
+			db.Match(t, &matcher, p).Ignores().
+				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2024-49766").
+				ForPackage(pkgID).
+				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
+		})
+}
+
+// TestMatcherRpm_SLES_GANamespaceLeaksOntoUnknownMinor documents a latent
+// quirk in operating_system_store.searchForOSExactVersions, NOT a desired
+// behavior. The fallback chain has a "major version with empty minor"
+// step (between exact match and the loose any-minor fallback) that is
+// commented as the "publisher chose major-only granularity" case - true
+// for RHEL OVAL, false for SLES, where a blank-minor record is
+// specifically the GA release. When grype scans a SLES minor that has
+// no OS row in the DB (e.g. a notional 15.99 that hasn't been ingested
+// yet), step 1 returns empty and the fallback silently returns the
+// sles:15 GA row, applying its NAKs to the scan.
+//
+// This isn't currently a problem for users on any supported SLES minor
+// (15.1-15.7) because each has its own OS row and step 1 always matches.
+// But for a future SP that ships before grype's DB catches up, every
+// sles:15 NAK would falsely suppress real findings on the new SP. The
+// test is here so that the day someone teaches searchForOSExactVersions
+// the SLES per-minor publishing model (e.g. only allow the major-only
+// fallback when the publisher is known to use major-only granularity),
+// this assertion flips - the right replacement at that point is
+// IsEmpty() and a comment update explaining the fix.
+//
+// 15.99 was chosen as a clearly-notional minor that no SUSE feed will
+// ever publish, so this test won't quietly start passing for the wrong
+// reason if the fixture later gains a real high-numbered SP.
+func TestMatcherRpm_SLES_GANamespaceLeaksOntoUnknownMinor(t *testing.T) {
+	dbtest.DBs(t, "sles15").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			pkgID := pkg.ID("python3-werkzeug-on-unknown-sles-minor")
+			p := dbtest.NewPackage("python3-Werkzeug", "0:0.16.1-150100.4.6.1", syftPkg.RpmPkg).
+				WithID(pkgID).
+				WithDistro(distro.New(distro.SLES, "15.99", "")).
+				Build()
+
+			db.Match(t, &matcher, p).Ignores().
+				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2024-49766").
+				ForPackage(pkgID).
+				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
+		})
+}
