@@ -1,0 +1,70 @@
+{
+  "identifier": "bit-spark-2023-22946",
+  "item": {
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "Bitnami",
+          "name": "spark",
+          "purl": "pkg:bitnami/spark"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2024-03-06",
+                    "kind": "advisory",
+                    "version": "3.4.0"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3.4.0"
+              }
+            ],
+            "type": "SEMVER"
+          }
+        ],
+        "severity": [
+          {
+            "score": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H",
+            "type": "CVSS_V3"
+          }
+        ]
+      }
+    ],
+    "aliases": [
+      "CVE-2023-22946"
+    ],
+    "database_specific": {
+      "cpes": [
+        "cpe:2.3:a:apache:spark:*:*:*:*:*:*:*:*"
+      ],
+      "severity": "Critical"
+    },
+    "details": "In Apache Spark versions prior to 3.4.0, applications using spark-submit can specify a 'proxy-user' to run as, limiting privileges. The application can execute code with the privileges of the submitting user, however, by providing malicious configuration-related classes on the classpath. This affects architectures relying on proxy-user, for example those using Apache Livy to manage submitted applications.\n\nUpdate to Apache Spark 3.4.0 or later, and ensure that \nspark.submit.proxyUser.allowCustomClasspathInClusterMode is set to its \ndefault of \"false\", and is not overridden by submitted applications.",
+    "id": "BIT-spark-2023-22946",
+    "modified": "2025-05-20T10:02:07.006Z",
+    "published": "2024-03-06T11:05:18.484Z",
+    "references": [
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread/yllfl25xh5tbotjmg93zrq4bzwhqc0gv"
+      },
+      {
+        "type": "WEB",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-22946"
+      }
+    ],
+    "schema_version": "1.5.0",
+    "summary": "Apache Spark proxy-user privilege escalation from malicious configuration class"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.5.0.json"
+}

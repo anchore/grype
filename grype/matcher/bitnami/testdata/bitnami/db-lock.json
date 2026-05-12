@@ -1,0 +1,10 @@
+{
+  "content_hash": "9faf3b95d69779ba",
+  "created_at": "2026-05-12T15:55:22.232129421Z",
+  "providers": {
+    "bitnami": {
+      "vunnel_version": "vunnel@0.56.0.post18+f819175",
+      "timestamp": "2026-05-12T00:47:02.578474Z"
+    }
+  }
+}
