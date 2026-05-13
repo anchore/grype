@@ -47,7 +47,7 @@ func Test_newSBOMMultiWriter(t *testing.T) {
 	testName := func(options []scanResultWriterDescription, err bool) string {
 		var out []string
 		for _, opt := range options {
-			out = append(out, string(opt.Format)+"="+opt.Path)
+			out = append(out, opt.Format.String()+"="+opt.Path)
 		}
 		errs := ""
 		if err {
@@ -68,7 +68,7 @@ func Test_newSBOMMultiWriter(t *testing.T) {
 		{
 			outputs: []scanResultWriterDescription{
 				{
-					Format: "table",
+					Format: Format{name: "table", version: ""},
 					Path:   "",
 				},
 			},
@@ -81,7 +81,7 @@ func Test_newSBOMMultiWriter(t *testing.T) {
 		{
 			outputs: []scanResultWriterDescription{
 				{
-					Format: "json",
+					Format: Format{name: "json", version: ""},
 				},
 			},
 			expected: []writerConfig{
@@ -93,7 +93,7 @@ func Test_newSBOMMultiWriter(t *testing.T) {
 		{
 			outputs: []scanResultWriterDescription{
 				{
-					Format: "json",
+					Format: Format{name: "json", version: ""},
 					Path:   "test-2.json",
 				},
 			},
@@ -107,11 +107,11 @@ func Test_newSBOMMultiWriter(t *testing.T) {
 		{
 			outputs: []scanResultWriterDescription{
 				{
-					Format: "json",
+					Format: Format{name: "json", version: ""},
 					Path:   "test-3/1.json",
 				},
 				{
-					Format: "spdx-json",
+					Format: Format{name: "spdx-json", version: ""},
 					Path:   "test-3/2.json",
 				},
 			},
@@ -129,10 +129,10 @@ func Test_newSBOMMultiWriter(t *testing.T) {
 		{
 			outputs: []scanResultWriterDescription{
 				{
-					Format: "text",
+					Format: Format{name: "text", version: ""},
 				},
 				{
-					Format: "spdx-json",
+					Format: Format{name: "spdx-json", version: ""},
 					Path:   "test-4.json",
 				},
 			},
@@ -171,13 +171,13 @@ func Test_newSBOMMultiWriter(t *testing.T) {
 			for i, e := range test.expected {
 				switch w := mw.writers[i].(type) {
 				case *scanResultStreamWriter:
-					assert.Equal(t, string(w.format), e.format)
+					assert.Equal(t, w.format.String(), e.format)
 					assert.NotNil(t, w.out)
 					if e.file != "" {
 						assert.FileExists(t, tmp+e.file)
 					}
 				case *scanResultPublisher:
-					assert.Equal(t, string(w.format), e.format)
+					assert.Equal(t, w.format.String(), e.format)
 				default:
 					t.Fatalf("unknown writer type: %T", w)
 				}
@@ -211,7 +211,7 @@ func Test_newSBOMWriterDescription(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			o := newWriterDescription("table", tt.path, PresentationConfig{})
+			o := newWriterDescription(Format{name: "table", version: ""}, tt.path, PresentationConfig{})
 			assert.Equal(t, tt.expected, o.Path)
 		})
 	}
