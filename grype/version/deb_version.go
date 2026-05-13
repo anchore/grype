@@ -98,12 +98,12 @@ func normalizeComparison(cmp int) int {
 func extractDebEpoch(raw string) *int {
 	// Debian version format: [epoch:]upstream_version[-debian_revision]
 	// Epoch is optional and separated by a colon
-	colonIndex := strings.Index(raw, ":")
-	if colonIndex == -1 {
+	before, _, ok := strings.Cut(raw, ":")
+	if !ok {
 		return nil
 	}
 
-	epochStr := raw[:colonIndex]
+	epochStr := before
 	epoch, err := strconv.Atoi(epochStr)
 	if err != nil {
 		return nil

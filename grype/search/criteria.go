@@ -52,13 +52,13 @@ func processRemainingItem(row, criteria []vulnerability.Criteria, item vulnerabi
 	return true // continue
 }
 
-var allowedMultipleCriteria = []reflect.Type{reflect.TypeOf(funcCriteria{})}
+var allowedMultipleCriteria = []reflect.Type{reflect.TypeFor[funcCriteria]()}
 
 // ValidateCriteria asserts that there are no incorrect duplications of criteria
 // e.g. multiple ByPackageName() which would result in no matches, while Or(pkgName1, pkgName2) is allowed
 func ValidateCriteria(criteria []vulnerability.Criteria) error {
 	for _, row := range CriteriaIterator(criteria) { // process OR conditions into flattened lists of AND conditions
-		seenTypes := make(map[reflect.Type]interface{})
+		seenTypes := make(map[reflect.Type]any)
 
 		for _, criterion := range row {
 			criterionType := reflect.TypeOf(criterion)

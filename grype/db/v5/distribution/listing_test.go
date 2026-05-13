@@ -23,7 +23,7 @@ func TestNewListingFromPath(t *testing.T) {
 		err      bool
 	}{
 		{
-			fixture: "test-fixtures/listing.json",
+			fixture: "testdata/listing.json",
 			expected: Listing{
 				Available: map[int][]ListingEntry{
 					1: {
@@ -46,7 +46,7 @@ func TestNewListingFromPath(t *testing.T) {
 			},
 		},
 		{
-			fixture: "test-fixtures/listing-sorted.json",
+			fixture: "testdata/listing-sorted.json",
 			expected: Listing{
 				Available: map[int][]ListingEntry{
 					1: {
@@ -67,7 +67,7 @@ func TestNewListingFromPath(t *testing.T) {
 			},
 		},
 		{
-			fixture: "test-fixtures/listing-unsorted.json",
+			fixture: "testdata/listing-unsorted.json",
 			expected: Listing{
 				Available: map[int][]ListingEntry{
 					1: {
@@ -112,7 +112,7 @@ func TestListingBestUpdate(t *testing.T) {
 		expected   *ListingEntry
 	}{
 		{
-			fixture:    "test-fixtures/listing.json",
+			fixture:    "testdata/listing.json",
 			constraint: 2,
 			expected: &ListingEntry{
 				Built:    time.Date(2020, 06, 13, 17, 13, 13, 0, time.UTC),
@@ -122,7 +122,7 @@ func TestListingBestUpdate(t *testing.T) {
 			},
 		},
 		{
-			fixture:    "test-fixtures/listing.json",
+			fixture:    "testdata/listing.json",
 			constraint: 1,
 			expected: &ListingEntry{
 				Built:    time.Date(2020, 06, 12, 16, 12, 12, 0, time.UTC),

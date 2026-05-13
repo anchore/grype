@@ -1,0 +1,12 @@
+auto-generate: true
+extractions:
+    sles:
+        # python311-Werkzeug disclosure (real SUSE fix at 0:2.3.6-150400.6.6.1)
+        - sles:15.6/cve-2023-25577
+        # python311-Werkzeug NAK from issue #2566 (FixedIn Version="0")
+        - sles:15.6/cve-2024-49766
+        # glibc disclosure on 15.7 - exists to put a sles:15.7 OS row in the
+        # table so cross-minor leakage tests aren't trivially empty
+        - sles:15.7/cve-2024-2961
+        # python3-Werkzeug NAK on sles:15 (SLES 15 GA / SP0, NOT "all of 15.x")
+        - sles:15/cve-2024-49766

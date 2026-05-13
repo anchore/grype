@@ -1,0 +1,47 @@
+{
+  "identifier": "chainguard-libraries:pypi/CGA-22g9-8qhp-q56g",
+  "item": {
+    "document": {
+      "last_updated": "2025-10-23T06:01:32.326Z",
+      "products": [
+        {
+          "identifiers": {
+            "purl": "pkg:pypi/certifi@2020.12.5%2Bcgr.1"
+          }
+        },
+        {
+          "identifiers": {
+            "purl": "pkg:pypi/certifi@2021.10.8%2Bcgr.1"
+          }
+        }
+      ],
+      "status": "fixed",
+      "timestamp": "2025-10-23T06:01:32.326Z",
+      "vulnerability": {
+        "aliases": [
+          "CGA-fhcx-m79g-26vp",
+          "CVE-2023-37920",
+          "GHSA-xqr8-7jwr-rhp7"
+        ],
+        "name": "CGA-22g9-8qhp-q56g"
+      }
+    },
+    "fixes": [
+      {
+        "available": {
+          "date": "2025-10-23",
+          "kind": "advisory"
+        },
+        "product": "pkg:pypi/certifi@2020.12.5%2Bcgr.1"
+      },
+      {
+        "available": {
+          "date": "2025-10-23",
+          "kind": "advisory"
+        },
+        "product": "pkg:pypi/certifi@2021.10.8%2Bcgr.1"
+      }
+    ]
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/annotated-openvex/schema-1.0.0.json"
+}

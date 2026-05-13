@@ -22,7 +22,7 @@ func mockEOLProcessorTransform(entry unmarshal.EndOfLifeDateRelease, state provi
 }
 
 func TestEOLProcessor_Process(t *testing.T) {
-	f, err := os.Open("test-fixtures/eol.json")
+	f, err := os.Open("testdata/eol.json")
 	require.NoError(t, err)
 	defer f.Close()
 
@@ -50,7 +50,7 @@ func TestEOLProcessor_Process(t *testing.T) {
 
 func TestEOLProcessor_Process_EmptyEntry(t *testing.T) {
 	// Test that empty entries (product == "") are filtered out
-	f, err := os.Open("test-fixtures/eol-with-empty.json")
+	f, err := os.Open("testdata/eol-with-empty.json")
 	require.NoError(t, err)
 	defer f.Close()
 

@@ -414,7 +414,7 @@ func (s *packageStore) applyPackageAlias(d *PackageSpecifier) error {
 }
 
 func (s *packageStore) handlePreload(query *gorm.DB, config GetPackageOptions) *gorm.DB {
-	var limitArgs []interface{}
+	var limitArgs []any
 	if config.Limit > 0 {
 		query = query.Limit(config.Limit)
 		limitArgs = append(limitArgs, func(db *gorm.DB) *gorm.DB {

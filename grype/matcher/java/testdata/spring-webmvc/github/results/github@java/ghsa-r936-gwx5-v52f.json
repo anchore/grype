@@ -1,0 +1,88 @@
+{
+  "identifier": "github:java/ghsa-r936-gwx5-v52f",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2025-41242"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 5.9,
+          "base_severity": "Medium",
+          "exploitability_score": 2.2,
+          "impact_score": 3.6
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2025-08-19",
+            "kind": "first-observed"
+          },
+          "ecosystem": "java",
+          "identifier": "6.2.10",
+          "name": "org.springframework:spring-webmvc",
+          "namespace": "github:java",
+          "range": "\u003e= 6.2.0 \u003c 6.2.10"
+        },
+        {
+          "ecosystem": "java",
+          "identifier": "None",
+          "name": "org.springframework:spring-webmvc",
+          "namespace": "github:java",
+          "range": "\u003e= 6.1.0 \u003c= 6.1.21"
+        },
+        {
+          "ecosystem": "java",
+          "identifier": "None",
+          "name": "org.springframework:spring-webmvc",
+          "namespace": "github:java",
+          "range": "\u003e= 6.0.0 \u003c= 6.0.29"
+        },
+        {
+          "ecosystem": "java",
+          "identifier": "None",
+          "name": "org.springframework:spring-webmvc",
+          "namespace": "github:java",
+          "range": "\u003e= 5.3.0 \u003c= 5.3.43"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2025-41242"
+        ]
+      },
+      "Severity": "Medium",
+      "Summary": "Spring Framework MVC Applications Path Traversal Vulnerability",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-r936-gwx5-v52f",
+      "namespace": "github:java",
+      "published": "2025-08-18T09:31:44Z",
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-41242"
+        },
+        {
+          "url": "http://spring.io/security/cve-2025-41242"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-r936-gwx5-v52f"
+        }
+      ],
+      "updated": "2025-08-18T22:27:16Z",
+      "url": "https://github.com/advisories/GHSA-r936-gwx5-v52f",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

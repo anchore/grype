@@ -28,6 +28,9 @@ bin/
 /snapshot
 /.tool
 /.task
+/specs
+/extractor
+/manager
 
 # changelog generation
 /CHANGELOG.md
@@ -45,13 +48,16 @@ bin/
 coverage.txt
 *.log
 .server
+**/testdata/cache/
 
 # grype-db related
 /metadata.json
 /listing.json
 *.db
 *.db-journal
-!**/test-fixtures/**/*.db
+!**/testdata/**/*.db
+!**/testdata/**/bin/
+!**/testdata/**/*.jar
 
 # probable archives
 .images

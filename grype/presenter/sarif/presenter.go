@@ -99,7 +99,7 @@ func (p Presenter) sarifRules() (out []*sarif.ReportingDescriptor) {
 			descriptor := sarif.ReportingDescriptor{
 				ID:      ruleID,
 				Name:    sp(ruleName(m)),
-				HelpURI: sp("https://github.com/anchore/grype"),
+				HelpURI: sp(helpURI(m)),
 				// Title of the SARIF report
 				ShortDescription: &sarif.MultiformatMessageString{
 					Text: sp(shortDescription(m)),
@@ -124,6 +124,18 @@ func (p Presenter) sarifRules() (out []*sarif.ReportingDescriptor) {
 		}
 	}
 	return out
+}
+
+// helpURI returns the best available URL for a vulnerability: the DataSource link if present,
+// the first entry in URLs otherwise, and the Grype repository as a last resort.
+func helpURI(m models.Match) string {
+	if m.Vulnerability.DataSource != "" {
+		return m.Vulnerability.DataSource
+	}
+	if len(m.Vulnerability.URLs) > 0 {
+		return m.Vulnerability.URLs[0]
+	}
+	return "https://github.com/anchore/grype"
 }
 
 // ruleID creates a unique rule ID for a given match

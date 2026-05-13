@@ -1,0 +1,23 @@
+auto-generate: true
+extractions:
+  github:
+    # Django <= 1.2.7 (case-insensitive lookup; GHSA stores "Django"
+    # capitalized).
+    - github:python/GHSA-h95j-h2rv-qrg4
+    # oslo.utils < 0.2.0 - the GHSA name uses a dot, so PEP 503
+    # normalization (dots/underscores -> hyphen) is required for a
+    # package named "oslo.utils" or "oslo_utils" to match.
+    - github:python/GHSA-v933-vx5p-j7w2
+    # certifi >= 2015.4.28 < 2023.7.22 (CVE-2023-37920). Paired with the
+    # chainguard-libraries CGA below to test that a +cgr-rebuilt certifi
+    # has the upstream GHSA suppressed via the VEX/unaffected path while
+    # an unrebuilt 2020.12.5 still matches.
+    - github:python/GHSA-xqr8-7jwr-rhp7
+  chainguard-libraries:
+    # CGA-22g9-8qhp-q56g declares pkg:pypi/certifi@2020.12.5+cgr.1 (and
+    # 2021.10.8+cgr.1) status=fixed, with aliases that include the
+    # upstream CVE-2023-37920 / GHSA-xqr8-7jwr-rhp7. The OpenVEX
+    # transformer turns these into UnaffectedPackageHandle rows; the
+    # python matcher's ForUnaffected query uses them to suppress the
+    # upstream GHSA on packages at the matching cgr version.
+    - chainguard-libraries:pypi/CGA-22g9-8qhp-q56g

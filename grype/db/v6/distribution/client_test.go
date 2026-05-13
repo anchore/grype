@@ -73,7 +73,7 @@ func TestClient_Latest(t *testing.T) {
 			name:        "download error",
 			getFileErr:  errors.New("failed to download file"),
 			expectedDoc: nil,
-			expectedErr: func(t require.TestingT, err error, _ ...interface{}) {
+			expectedErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to download listing")
 			},
@@ -82,7 +82,7 @@ func TestClient_Latest(t *testing.T) {
 			name:           "malformed JSON response",
 			latestResponse: []byte("malformed json"),
 			expectedDoc:    nil,
-			expectedErr: func(t require.TestingT, err error, _ ...interface{}) {
+			expectedErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "invalid character 'm' looking for beginning of value")
 			},

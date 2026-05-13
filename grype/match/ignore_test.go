@@ -8,6 +8,7 @@ import (
 
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/file"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -1097,6 +1098,152 @@ func TestIsRegex(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := isLikelyARegex(tt.input)
 			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
+func TestIgnoreRelatedPackage(t *testing.T) {
+	ownerPkgID := pkg.ID("apk-httpie-pkg")
+	unrelatedPkgID := pkg.ID("unrelated-pkg")
+
+	matchWithRelationship := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2019-10751",
+				Namespace: "github:language:python",
+			},
+			RelatedVulnerabilities: []vulnerability.Reference{
+				{ID: "GHSA-xjjg-vmw6-c2p9"},
+			},
+		},
+		Package: pkg.Package{
+			ID:   pkg.ID("python-httpie-pkg"),
+			Name: "httpie",
+			RelatedPackages: map[artifact.RelationshipType][]*pkg.Package{
+				artifact.OwnershipByFileOverlapRelationship: {
+					{ID: ownerPkgID, Name: "httpie"},
+				},
+			},
+		},
+	}
+
+	matchNoRelationship := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2019-10751",
+				Namespace: "github:language:python",
+			},
+			RelatedVulnerabilities: []vulnerability.Reference{
+				{ID: "GHSA-xjjg-vmw6-c2p9"},
+			},
+		},
+		Package: pkg.Package{
+			ID:   pkg.ID("python-httpie-pkg-2"),
+			Name: "httpie",
+			// no RelatedPackages
+		},
+	}
+
+	matchDifferentVuln := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-OTHER",
+				Namespace: "github:language:python",
+			},
+		},
+		Package: pkg.Package{
+			ID:   pkg.ID("python-httpie-pkg-3"),
+			Name: "httpie",
+			RelatedPackages: map[artifact.RelationshipType][]*pkg.Package{
+				artifact.OwnershipByFileOverlapRelationship: {
+					{ID: ownerPkgID, Name: "httpie"},
+				},
+			},
+		},
+	}
+
+	matchDirectVulnID := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			Reference: vulnerability.Reference{
+				ID:        "GHSA-xjjg-vmw6-c2p9",
+				Namespace: "wolfi:distro:wolfi:rolling",
+			},
+		},
+		Package: pkg.Package{
+			ID:   pkg.ID("python-httpie-direct"),
+			Name: "httpie",
+			RelatedPackages: map[artifact.RelationshipType][]*pkg.Package{
+				artifact.OwnershipByFileOverlapRelationship: {
+					{ID: ownerPkgID, Name: "httpie"},
+				},
+			},
+		},
+	}
+
+	filter := IgnoreRelatedPackage{
+		Reason:           "Explicit APK NAK by Ownership",
+		RelationshipType: artifact.OwnershipByFileOverlapRelationship,
+		VulnerabilityID:  "GHSA-xjjg-vmw6-c2p9",
+		RelatedPackageID: ownerPkgID,
+	}
+
+	tests := []struct {
+		name          string
+		match         Match
+		expectIgnored bool
+	}{
+		{
+			name:          "ignores match with related vuln and ownership relationship",
+			match:         matchWithRelationship,
+			expectIgnored: true,
+		},
+		{
+			name:          "ignores match with direct vuln ID and ownership relationship",
+			match:         matchDirectVulnID,
+			expectIgnored: true,
+		},
+		{
+			name:          "does not ignore match without relationship",
+			match:         matchNoRelationship,
+			expectIgnored: false,
+		},
+		{
+			name:          "does not ignore match with different vulnerability",
+			match:         matchDifferentVuln,
+			expectIgnored: false,
+		},
+		{
+			name: "does not ignore match with wrong related package ID",
+			match: Match{
+				Vulnerability: vulnerability.Vulnerability{
+					Reference: vulnerability.Reference{
+						ID: "GHSA-xjjg-vmw6-c2p9",
+					},
+				},
+				Package: pkg.Package{
+					ID:   pkg.ID("some-pkg"),
+					Name: "httpie",
+					RelatedPackages: map[artifact.RelationshipType][]*pkg.Package{
+						artifact.OwnershipByFileOverlapRelationship: {
+							{ID: unrelatedPkgID, Name: "something-else"},
+						},
+					},
+				},
+			},
+			expectIgnored: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rules := filter.IgnoreMatch(tt.match)
+			if tt.expectIgnored {
+				assert.NotEmpty(t, rules, "expected match to be ignored")
+				assert.Equal(t, filter.VulnerabilityID, rules[0].Vulnerability)
+				assert.Equal(t, filter.Reason, rules[0].Reason)
+			} else {
+				assert.Empty(t, rules, "expected match to NOT be ignored")
+			}
 		})
 	}
 }

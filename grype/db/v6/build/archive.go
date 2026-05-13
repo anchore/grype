@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -99,11 +100,8 @@ func resolveExtension(overrideArchiveExtension string) (string, error) {
 	}
 
 	var found bool
-	for _, valid := range []string{"tar.zst", "tar.xz", "tar.gz"} {
-		if valid == extension {
-			found = true
-			break
-		}
+	if slices.Contains([]string{"tar.zst", "tar.xz", "tar.gz"}, extension) {
+		found = true
 	}
 
 	if !found {

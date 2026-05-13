@@ -3,23 +3,22 @@ package sarif
 import (
 	"bytes"
 	"flag"
-	"os/exec"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/presenter/internal"
 	"github.com/anchore/grype/grype/presenter/models"
+	"github.com/anchore/grype/internal/testutils"
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/source"
 	"github.com/anchore/syft/syft/source/directorysource"
 )
 
 var updateSnapshot = flag.Bool("update", false, "update .golden files for sarif presenters")
-var validatorImage = "ghcr.io/anchore/sarif-validator:0.1.0@sha256:a0729d695e023740f5df6bcb50d134e88149bea59c63a896a204e88f62b564c6"
 
 func TestSarifPresenter(t *testing.T) {
 	tests := []struct {
@@ -37,7 +36,6 @@ func TestSarifPresenter(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			var buffer bytes.Buffer
 
@@ -66,9 +64,8 @@ func TestSarifPresenter(t *testing.T) {
 }
 
 func Test_SarifIsValid(t *testing.T) {
-	if _, err := exec.LookPath("docker"); err != nil {
-		t.Skip("docker not available")
-	}
+	sch, err := jsonschema.NewCompiler().Compile("testdata/sarif-schema-2.1.0.json")
+	require.NoError(t, err)
 
 	tests := []struct {
 		name   string
@@ -94,20 +91,11 @@ func Test_SarifIsValid(t *testing.T) {
 			err := pres.Present(&buffer)
 			require.NoError(t, err)
 
-			cmd := exec.Command("docker", "run", "--rm", "-i", validatorImage)
+			inst, err := jsonschema.UnmarshalJSON(bytes.NewReader(buffer.Bytes()))
+			require.NoError(t, err)
 
-			out := bytes.Buffer{}
-			cmd.Stdout = &out
-			cmd.Stderr = &out
-
-			// pipe to the docker command
-			cmd.Stdin = &buffer
-
-			err = cmd.Run()
-			if err != nil || cmd.ProcessState.ExitCode() != 0 {
-				// valid
-				t.Fatalf("error validating SARIF document: %s", out.String())
-			}
+			err = sch.Validate(inst)
+			require.NoError(t, err, "SARIF output does not conform to schema")
 		})
 	}
 }
@@ -265,7 +253,6 @@ func TestToSarifReport(t *testing.T) {
 	}
 
 	for _, tc := range tt {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -477,6 +464,51 @@ func Test_findDescription(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.expected, findDescription(test.match))
+    })
+	}
+}
+
+func Test_helpURI(t *testing.T) {
+	tests := []struct {
+		name       string
+		dataSource string
+		urls       []string
+		expected   string
+	}{
+		{
+			name:       "dataSource preferred over urls",
+			dataSource: "https://nvd.nist.gov/vuln/detail/CVE-2021-1234",
+			urls:       []string{"https://example.com/advisory"},
+			expected:   "https://nvd.nist.gov/vuln/detail/CVE-2021-1234",
+		},
+		{
+			name:     "first url used when no dataSource",
+			urls:     []string{"https://github.com/advisories/GHSA-xxxx-yyyy-zzzz", "https://example.com/other"},
+			expected: "https://github.com/advisories/GHSA-xxxx-yyyy-zzzz",
+		},
+		{
+			name:       "dataSource used when no urls",
+			dataSource: "https://nvd.nist.gov/vuln/detail/CVE-2021-5678",
+			expected:   "https://nvd.nist.gov/vuln/detail/CVE-2021-5678",
+		},
+		{
+			name:     "fallback to grype repo when no dataSource or urls",
+			expected: "https://github.com/anchore/grype",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			m := models.Match{
+				Vulnerability: models.Vulnerability{
+					VulnerabilityMetadata: models.VulnerabilityMetadata{
+						ID:         "CVE-2021-0000",
+						DataSource: tc.dataSource,
+						URLs:       tc.urls,
+					},
+				},
+			}
+			assert.Equal(t, tc.expected, helpURI(m))
 		})
 	}
 }

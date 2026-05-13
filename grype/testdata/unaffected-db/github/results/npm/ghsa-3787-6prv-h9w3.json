@@ -1,0 +1,96 @@
+{
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json",
+  "identifier": "github:npm/ghsa-3787-6prv-h9w3",
+  "item": {
+    "Vulnerability": {},
+    "Advisory": {
+      "Classification": "GENERAL",
+      "Severity": "Low",
+      "CVSS": {
+        "version": "3.1",
+        "vector_string": "CVSS:3.1/AV:N/AC:H/PR:H/UI:R/S:U/C:L/I:L/A:L",
+        "base_metrics": {
+          "base_score": 3.9,
+          "exploitability_score": 0.5,
+          "impact_score": 3.4,
+          "base_severity": "Low"
+        },
+        "status": "N/A"
+      },
+      "cvss_severities": [
+        {
+          "version": "3.1",
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:H/UI:R/S:U/C:L/I:L/A:L"
+        }
+      ],
+      "FixedIn": [
+        {
+          "name": "undici",
+          "identifier": "5.28.3",
+          "ecosystem": "npm",
+          "namespace": "github:npm",
+          "range": "<= 5.28.2",
+          "available": {
+            "date": "2024-02-17",
+            "kind": "first-observed"
+          }
+        },
+        {
+          "name": "undici",
+          "identifier": "6.6.1",
+          "ecosystem": "npm",
+          "namespace": "github:npm",
+          "range": ">= 6.0.0 <= 6.6.0",
+          "available": {
+            "date": "2024-02-17",
+            "kind": "first-observed"
+          }
+        }
+      ],
+      "Summary": "Undici proxy-authorization header not cleared on cross-origin redirect in fetch",
+      "url": "https://github.com/advisories/GHSA-3787-6prv-h9w3",
+      "CVE": [
+        "CVE-2024-24758"
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2024-24758"
+        ]
+      },
+      "ghsaId": "GHSA-3787-6prv-h9w3",
+      "published": "2024-02-16T16:02:52Z",
+      "updated": "2026-03-18T05:06:59Z",
+      "withdrawn": null,
+      "references": [
+        {
+          "url": "https://github.com/nodejs/undici/security/advisories/GHSA-3787-6prv-h9w3"
+        },
+        {
+          "url": "https://github.com/nodejs/undici/commit/b9da3e40f1f096a06b4caedbb27c2568730434ef"
+        },
+        {
+          "url": "https://github.com/nodejs/undici/commit/d3aa574b1259c1d8d329a0f0f495ee82882b1458"
+        },
+        {
+          "url": "https://github.com/nodejs/undici/releases/tag/v5.28.3"
+        },
+        {
+          "url": "https://github.com/nodejs/undici/releases/tag/v6.6.1"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-24758"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20240419-0007"
+        },
+        {
+          "url": "http://www.openwall.com/lists/oss-security/2024/03/11/1"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-3787-6prv-h9w3"
+        }
+      ],
+      "namespace": "github:npm"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+[
+  {
+    "Vulnerability": {
+      "CVSS": [
+        {
+          "base_metrics": {
+            "base_score": 7.8,
+            "base_severity": "High",
+            "exploitability_score": 1.8,
+            "impact_score": 5.9
+          },
+          "status": "draft",
+          "vector_string": "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+          "version": "3.1"
+        }
+      ],
+      "Description": "Test vulnerability with a not-affected package and an affected package.",
+      "FixedIn": [
+        {
+          "Name": "ghostscript",
+          "NamespaceName": "rhel:8",
+          "VendorAdvisory": {
+            "AdvisorySummary": [],
+            "NoAdvisory": false
+          },
+          "Version": "0",
+          "VersionFormat": "rpm"
+        },
+        {
+          "Name": "firefox",
+          "NamespaceName": "rhel:8",
+          "VendorAdvisory": {
+            "AdvisorySummary": [
+              {
+                "ID": "RHSA-2020:1341",
+                "Link": "https://access.redhat.com/errata/RHSA-2020:1341"
+              }
+            ],
+            "NoAdvisory": false
+          },
+          "Version": "0:68.6.1-1.el8_1",
+          "VersionFormat": "rpm"
+        }
+      ],
+      "Link": "https://access.redhat.com/security/cve/CVE-2020-99999",
+      "Metadata": {},
+      "Name": "CVE-2020-99999",
+      "NamespaceName": "rhel:8",
+      "Severity": "Medium"
+    }
+  }
+]

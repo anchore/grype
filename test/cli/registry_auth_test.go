@@ -122,7 +122,7 @@ func TestRegistryAuthRedactions(t *testing.T) {
 	}{
 		{
 			name: "use creds",
-			args: []string{"-vv", "sbom:test-fixtures/sbom-grype-source.json", "-o", "json"},
+			args: []string{"-vv", "sbom:testdata/sbom-grype-source.json", "-o", "json"},
 			env: map[string]string{
 				"GRYPE_REGISTRY_AUTH_USERNAME": "foobar-username",
 				"GRYPE_REGISTRY_AUTH_PASSWORD": "foobar-password",
@@ -135,7 +135,7 @@ func TestRegistryAuthRedactions(t *testing.T) {
 		},
 		{
 			name: "use token",
-			args: []string{"-vv", "sbom:test-fixtures/sbom-grype-source.json", "-o", "json"},
+			args: []string{"-vv", "sbom:testdata/sbom-grype-source.json", "-o", "json"},
 			env: map[string]string{
 				"GRYPE_REGISTRY_AUTH_TOKEN": "foobar-token",
 			},
@@ -146,7 +146,7 @@ func TestRegistryAuthRedactions(t *testing.T) {
 		},
 		{
 			name: "use creds file",
-			args: []string{"-vv", "sbom:test-fixtures/sbom-grype-source.json", "-o", "json", "--file", tmp},
+			args: []string{"-vv", "sbom:testdata/sbom-grype-source.json", "-o", "json", "--file", tmp},
 			env: map[string]string{
 				"GRYPE_REGISTRY_AUTH_USERNAME": "foobar-username",
 				"GRYPE_REGISTRY_AUTH_PASSWORD": "foobar-password",
@@ -161,7 +161,7 @@ func TestRegistryAuthRedactions(t *testing.T) {
 		},
 		{
 			name: "use token file",
-			args: []string{"-vv", "sbom:test-fixtures/sbom-grype-source.json", "-o", "json", "--file", tmp},
+			args: []string{"-vv", "sbom:testdata/sbom-grype-source.json", "-o", "json", "--file", tmp},
 			env: map[string]string{
 				"GRYPE_REGISTRY_AUTH_TOKEN": "foobar-token",
 			},

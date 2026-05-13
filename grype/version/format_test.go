@@ -83,9 +83,21 @@ func TestParseFormat(t *testing.T) {
 			input:  "go",
 			format: GolangFormat,
 		},
+		{
+			input:  "go-module",
+			format: GolangFormat,
+		},
 		// MavenFormat cases
 		{
 			input:  "maven",
+			format: MavenFormat,
+		},
+		{
+			input:  "java-archive",
+			format: MavenFormat,
+		},
+		{
+			input:  "jenkins-plugin",
 			format: MavenFormat,
 		},
 		// RpmFormat cases
@@ -109,6 +121,10 @@ func TestParseFormat(t *testing.T) {
 		// KBFormat cases
 		{
 			input:  "kb",
+			format: KBFormat,
+		},
+		{
+			input:  "msrc-kb",
 			format: KBFormat,
 		},
 		// GemFormat cases
@@ -147,9 +163,17 @@ func TestParseFormat(t *testing.T) {
 			input:  "pacman",
 			format: PacmanFormat,
 		},
+		{
+			input:  "alpm",
+			format: PacmanFormat,
+		},
 		// UnknownFormat case
 		{
 			input:  "unknown",
+			format: UnknownFormat,
+		},
+		{
+			input:  "",
 			format: UnknownFormat,
 		},
 	}

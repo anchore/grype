@@ -23,7 +23,7 @@ func mockGithubProcessorTransform(vulnerability unmarshal.GitHubAdvisory) ([]dat
 }
 
 func TestGitHubProcessor_Process(t *testing.T) {
-	f, err := os.Open("test-fixtures/github.json")
+	f, err := os.Open("testdata/github.json")
 	require.NoError(t, err)
 	defer testutil.CloseFile(f)
 

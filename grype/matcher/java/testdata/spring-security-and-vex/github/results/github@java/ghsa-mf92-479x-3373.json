@@ -1,0 +1,106 @@
+{
+  "identifier": "github:java/ghsa-mf92-479x-3373",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2026-22732"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 9.1,
+          "base_severity": "Critical",
+          "exploitability_score": 3.9,
+          "impact_score": 5.2
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "ecosystem": "java",
+          "identifier": "None",
+          "name": "org.springframework.security:spring-security-web",
+          "namespace": "github:java",
+          "range": "\u003c= 5.7.14"
+        },
+        {
+          "ecosystem": "java",
+          "identifier": "None",
+          "name": "org.springframework.security:spring-security-web",
+          "namespace": "github:java",
+          "range": "\u003e= 5.8.0 \u003c= 5.8.16"
+        },
+        {
+          "ecosystem": "java",
+          "identifier": "None",
+          "name": "org.springframework.security:spring-security-web",
+          "namespace": "github:java",
+          "range": "\u003e= 6.0.0 \u003c= 6.3.10"
+        },
+        {
+          "ecosystem": "java",
+          "identifier": "None",
+          "name": "org.springframework.security:spring-security-web",
+          "namespace": "github:java",
+          "range": "\u003e= 6.4.0 \u003c= 6.4.13"
+        },
+        {
+          "available": {
+            "date": "2026-03-21",
+            "kind": "first-observed"
+          },
+          "ecosystem": "java",
+          "identifier": "6.5.9",
+          "name": "org.springframework.security:spring-security-web",
+          "namespace": "github:java",
+          "range": "\u003e= 6.5.0 \u003c 6.5.9"
+        },
+        {
+          "available": {
+            "date": "2026-03-21",
+            "kind": "first-observed"
+          },
+          "ecosystem": "java",
+          "identifier": "7.0.4",
+          "name": "org.springframework.security:spring-security-web",
+          "namespace": "github:java",
+          "range": "\u003e= 7.0.0 \u003c 7.0.4"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2026-22732"
+        ]
+      },
+      "Severity": "Critical",
+      "Summary": "Spring Security HTTP Headers Are not Written Under Some Conditions",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-mf92-479x-3373",
+      "namespace": "github:java",
+      "published": "2026-03-20T00:31:28Z",
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-22732"
+        },
+        {
+          "url": "https://spring.io/security/cve-2026-22732"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-mf92-479x-3373"
+        }
+      ],
+      "updated": "2026-03-20T20:42:26Z",
+      "url": "https://github.com/advisories/GHSA-mf92-479x-3373",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

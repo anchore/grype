@@ -1,0 +1,99 @@
+{
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json",
+  "identifier": "github:npm/ghsa-m4v8-wqvr-p9f7",
+  "item": {
+    "Vulnerability": {},
+    "Advisory": {
+      "Classification": "GENERAL",
+      "Severity": "Low",
+      "CVSS": {
+        "version": "3.1",
+        "vector_string": "CVSS:3.1/AV:N/AC:H/PR:H/UI:R/S:U/C:L/I:L/A:L",
+        "base_metrics": {
+          "base_score": 3.9,
+          "exploitability_score": 0.5,
+          "impact_score": 3.4,
+          "base_severity": "Low"
+        },
+        "status": "N/A"
+      },
+      "cvss_severities": [
+        {
+          "version": "3.1",
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:H/UI:R/S:U/C:L/I:L/A:L"
+        }
+      ],
+      "FixedIn": [
+        {
+          "name": "undici",
+          "identifier": "5.28.4",
+          "ecosystem": "npm",
+          "namespace": "github:npm",
+          "range": "< 5.28.4",
+          "available": {
+            "date": "2024-04-05",
+            "kind": "first-observed"
+          }
+        },
+        {
+          "name": "undici",
+          "identifier": "6.11.1",
+          "ecosystem": "npm",
+          "namespace": "github:npm",
+          "range": ">= 6.0.0 < 6.11.1",
+          "available": {
+            "date": "2024-04-05",
+            "kind": "first-observed"
+          }
+        }
+      ],
+      "Summary": "Undici's Proxy-Authorization header not cleared on cross-origin redirect for dispatch, request, stream, pipeline",
+      "url": "https://github.com/advisories/GHSA-m4v8-wqvr-p9f7",
+      "CVE": [
+        "CVE-2024-30260"
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2024-30260"
+        ]
+      },
+      "ghsaId": "GHSA-m4v8-wqvr-p9f7",
+      "published": "2024-04-04T14:20:39Z",
+      "updated": "2025-11-04T19:44:30Z",
+      "withdrawn": null,
+      "references": [
+        {
+          "url": "https://github.com/nodejs/undici/security/advisories/GHSA-m4v8-wqvr-p9f7"
+        },
+        {
+          "url": "https://github.com/nodejs/undici/commit/64e3402da4e032e68de46acb52800c9a06aaea3f"
+        },
+        {
+          "url": "https://github.com/nodejs/undici/commit/6805746680d27a5369d7fb67bc05f95a28247d75"
+        },
+        {
+          "url": "https://hackerone.com/reports/2408074"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-30260"
+        },
+        {
+          "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/HQVHWAS6WDXXIU7F72XI55VZ2LTZUB33"
+        },
+        {
+          "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/NC3V3HFZ5MOJRZDY5ZELL6REIRSPFROJ"
+        },
+        {
+          "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/P6Q4RGETHVYVHDIQGTJGU5AV6NJEI67E"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20240905-0008"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-m4v8-wqvr-p9f7"
+        }
+      ],
+      "namespace": "github:npm"
+    }
+  }
+}

@@ -1,0 +1,166 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:491fc8dc-9384-4f3d-a729-d2c5a83791d8",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-03-19T11:34:26-04:00",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "author": "anchore",
+          "name": "grype",
+          "version": "[not provided]"
+        }
+      ]
+    },
+    "component": {
+      "bom-ref": "1882f79f937f7d91",
+      "type": "container",
+      "name": "user-input",
+      "version": "sha256:ca738abb87a8d58f112d3400ebb079b61ceae7dc290beb34bda735be4b1941d5"
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "bbb0ba712c2b94ea",
+      "type": "library",
+      "name": "package-1",
+      "version": "1.1.1",
+      "cpe": "cpe:2.3:a:anchore\\:oss:anchore\\/engine:0.9.2:*:*:en:*:*:*:*",
+      "properties": [
+        {
+          "name": "syft:package:type",
+          "value": "rpm"
+        },
+        {
+          "name": "syft:package:metadataType",
+          "value": "rpm-db-entry"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/foo/bar/somefile-1.txt"
+        },
+        {
+          "name": "syft:metadata:epoch",
+          "value": "2"
+        },
+        {
+          "name": "syft:metadata:size",
+          "value": "0"
+        },
+        {
+          "name": "syft:metadata:sourceRpm",
+          "value": "some-source-rpm"
+        }
+      ]
+    },
+    {
+      "bom-ref": "pkg:deb/package-2@2.2.2?package-id=74378afe15713625",
+      "type": "library",
+      "name": "package-2",
+      "version": "2.2.2",
+      "licenses": [
+        {
+          "license": {
+            "id": "Apache-2.0"
+          }
+        },
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ],
+      "cpe": "cpe:2.3:a:anchore:engine:2.2.2:*:*:en:*:*:*:*",
+      "purl": "pkg:deb/package-2@2.2.2",
+      "properties": [
+        {
+          "name": "syft:package:type",
+          "value": "deb"
+        },
+        {
+          "name": "syft:location:0:path",
+          "value": "/foo/bar/somefile-2.txt"
+        }
+      ]
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "bom-ref": "urn:uuid:8f52aaa6-907a-43e7-8b48-836453a51bbf",
+      "id": "CVE-1999-0001",
+      "source": {},
+      "references": [
+        {
+          "id": "CVE-1999-0001",
+          "source": {}
+        }
+      ],
+      "ratings": [
+        {
+          "score": 8.2,
+          "severity": "low",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:H"
+        },
+        {
+          "source": {
+            "name": "FIRST",
+            "url": "https://www.first.org/epss/"
+          },
+          "score": 0.03,
+          "method": "other"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "bbb0ba712c2b94ea"
+        }
+      ]
+    },
+    {
+      "bom-ref": "urn:uuid:166daf49-c343-460e-b66a-c22247147678",
+      "id": "CVE-1999-0002",
+      "source": {},
+      "references": [
+        {
+          "id": "CVE-1999-0002",
+          "source": {}
+        }
+      ],
+      "ratings": [
+        {
+          "score": 8.5,
+          "severity": "critical",
+          "method": "CVSSv31",
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:H/I:H/A:H"
+        },
+        {
+          "source": {
+            "name": "FIRST",
+            "url": "https://www.first.org/epss/"
+          },
+          "score": 0.08,
+          "method": "other"
+        },
+        {
+          "source": {
+            "name": "CISA KEV Catalog",
+            "url": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog"
+          },
+          "score": 1,
+          "method": "other",
+          "justification": "Listed in CISA KEV"
+        }
+      ],
+      "affects": [
+        {
+          "ref": "pkg:deb/package-2@2.2.2?package-id=74378afe15713625"
+        }
+      ]
+    }
+  ]
+}

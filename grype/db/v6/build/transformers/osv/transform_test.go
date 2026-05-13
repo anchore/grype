@@ -85,7 +85,7 @@ func TestTransform(t *testing.T) {
 	}{
 		{
 			name:        "Apache 2020-11984",
-			fixturePath: "test-fixtures/BIT-apache-2020-11984.json",
+			fixturePath: "testdata/BIT-apache-2020-11984.json",
 			want: []transformers.RelatedEntries{{
 				VulnerabilityHandle: &db.VulnerabilityHandle{
 					Name:          "BIT-apache-2020-11984",
@@ -135,7 +135,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:        "Node 2020-8201",
-			fixturePath: "test-fixtures/BIT-node-2020-8201.json",
+			fixturePath: "testdata/BIT-node-2020-8201.json",
 			want: []transformers.RelatedEntries{{
 				VulnerabilityHandle: &db.VulnerabilityHandle{
 					Name:          "BIT-node-2020-8201",
@@ -210,7 +210,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:        "AlmaLinux Advisory",
-			fixturePath: "test-fixtures/ALSA-2025-7467.json",
+			fixturePath: "testdata/ALSA-2025-7467.json",
 			want: []transformers.RelatedEntries{{
 				VulnerabilityHandle: &db.VulnerabilityHandle{
 					Name:          "ALSA-2025:7467",
@@ -245,7 +245,7 @@ func TestTransform(t *testing.T) {
 							CVEs: []string{"CVE-2025-27144"},
 							Ranges: []db.Range{{
 								Version: db.Version{
-									Type:       "ecosystem",
+									Type:       "rpm",
 									Constraint: ">= 2:1.18.1-1.el10_0",
 								},
 								Fix: &db.Fix{
@@ -268,7 +268,7 @@ func TestTransform(t *testing.T) {
 							CVEs: []string{"CVE-2025-27144"},
 							Ranges: []db.Range{{
 								Version: db.Version{
-									Type:       "ecosystem",
+									Type:       "rpm",
 									Constraint: ">= 2:1.18.1-1.el10_0",
 								},
 								Fix: &db.Fix{
@@ -432,10 +432,10 @@ func Test_getGrypeRangesFromRange(t *testing.T) {
 				}, {
 					Fixed: "1.2.3",
 				}},
-				DatabaseSpecific: map[string]interface{}{
-					"anchore": map[string]interface{}{
-						"fixes": []interface{}{
-							map[string]interface{}{
+				DatabaseSpecific: map[string]any{
+					"anchore": map[string]any{
+						"fixes": []any{
+							map[string]any{
 								"version": "1.2.3",
 								"date":    "2023-06-15",
 								"kind":    "first-observed",
@@ -599,7 +599,7 @@ func Test_extractRpmModularity(t *testing.T) {
 		{
 			name: "with rpm_modularity",
 			affected: models.Affected{
-				EcosystemSpecific: map[string]interface{}{
+				EcosystemSpecific: map[string]any{
 					"rpm_modularity": "mariadb:10.3",
 				},
 			},
@@ -615,7 +615,7 @@ func Test_extractRpmModularity(t *testing.T) {
 		{
 			name: "no rpm_modularity key",
 			affected: models.Affected{
-				EcosystemSpecific: map[string]interface{}{
+				EcosystemSpecific: map[string]any{
 					"other_key": "some_value",
 				},
 			},
@@ -624,7 +624,7 @@ func Test_extractRpmModularity(t *testing.T) {
 		{
 			name: "rpm_modularity not string",
 			affected: models.Affected{
-				EcosystemSpecific: map[string]interface{}{
+				EcosystemSpecific: map[string]any{
 					"rpm_modularity": 123,
 				},
 			},
@@ -633,7 +633,7 @@ func Test_extractRpmModularity(t *testing.T) {
 		{
 			name: "nodejs modularity",
 			affected: models.Affected{
-				EcosystemSpecific: map[string]interface{}{
+				EcosystemSpecific: map[string]any{
 					"rpm_modularity": "nodejs:16",
 				},
 			},
@@ -663,7 +663,7 @@ func Test_getPackageQualifiers(t *testing.T) {
 		{
 			name: "with rpm_modularity only",
 			affected: models.Affected{
-				EcosystemSpecific: map[string]interface{}{
+				EcosystemSpecific: map[string]any{
 					"rpm_modularity": "mariadb:10.3",
 				},
 			},
@@ -687,7 +687,7 @@ func Test_getPackageQualifiers(t *testing.T) {
 		{
 			name: "with both rpm_modularity and CPE",
 			affected: models.Affected{
-				EcosystemSpecific: map[string]interface{}{
+				EcosystemSpecific: map[string]any{
 					"rpm_modularity": "nodejs:16",
 				},
 			},

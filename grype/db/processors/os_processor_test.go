@@ -23,7 +23,7 @@ func mockOSProcessorTransform(vulnerability unmarshal.OSVulnerability) ([]data.E
 }
 
 func TestOSProcessor_Process(t *testing.T) {
-	f, err := os.Open("test-fixtures/os.json")
+	f, err := os.Open("testdata/os.json")
 	require.NoError(t, err)
 	defer testutil.CloseFile(f)
 

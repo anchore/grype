@@ -35,6 +35,8 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		{Alias: "rhel", VersionPattern: `^\d+\.\d+`, ReplacementMinorVersion: strRef(""), ApplicableClientDBSchemas: "< 6.0.3"},
 		// we pass in the distro.Type into the search specifier, not a raw release-id
 		{Alias: "redhat", VersionPattern: `^\d+\.\d+`, ReplacementMinorVersion: strRef(""), ReplacementName: strRef("rhel"), ApplicableClientDBSchemas: "< 6.0.3"},
+		// hummingbird is a rolling distro
+		{Alias: "hummingbird", Rolling: true},
 
 		// alpine family
 		{Alias: "alpine", VersionPattern: `.*_alpha.*`, ReplacementLabelVersion: strRef("edge"), Rolling: true},
@@ -132,6 +134,9 @@ func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {
 		{Ecosystem: "kb", ReplacementEcosystem: ptr(string(pkg.KbPkg))},
 		{Ecosystem: "dpkg", ReplacementEcosystem: ptr(string(pkg.DebPkg))},
 		{Ecosystem: "apkg", ReplacementEcosystem: ptr(string(pkg.ApkPkg))},
+
+		// Common aliases
+		{Ecosystem: "pacman", ReplacementEcosystem: ptr(string(pkg.AlpmPkg))},
 	}
 
 	// remap package URL types to syft package types
