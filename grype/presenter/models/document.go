@@ -13,6 +13,10 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
+const (
+	DocumentSchemaVersion = "1.0.0"
+)
+
 // Document represents the JSON document to be presented
 type Document struct {
 	Matches         []Match         `json:"matches"`
