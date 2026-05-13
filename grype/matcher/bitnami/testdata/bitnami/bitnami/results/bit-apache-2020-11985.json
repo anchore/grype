@@ -1,0 +1,129 @@
+{
+  "identifier": "bit-apache-2020-11985",
+  "item": {
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "Bitnami",
+          "name": "apache",
+          "purl": "pkg:bitnami/apache"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2024-03-06",
+                    "kind": "advisory",
+                    "version": "2.4.24"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "2.4.1"
+              },
+              {
+                "fixed": "2.4.24"
+              }
+            ],
+            "type": "SEMVER"
+          }
+        ],
+        "severity": [
+          {
+            "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N",
+            "type": "CVSS_V3"
+          }
+        ]
+      }
+    ],
+    "aliases": [
+      "CVE-2020-11985"
+    ],
+    "database_specific": {
+      "cpes": [
+        "cpe:2.3:a:apache:http_server:*:*:*:*:*:*:*:*"
+      ],
+      "severity": "Medium"
+    },
+    "details": "IP address spoofing when proxying using mod_remoteip and mod_rewrite For configurations using proxying with mod_remoteip and certain mod_rewrite rules, an attacker could spoof their IP address for logging and PHP scripts. Note this issue was fixed in Apache HTTP Server 2.4.24 but was retrospectively allocated a low severity CVE in 2020.",
+    "id": "BIT-apache-2020-11985",
+    "modified": "2025-04-03T14:40:37.652Z",
+    "published": "2024-03-06T10:57:47.876Z",
+    "references": [
+      {
+        "type": "WEB",
+        "url": "https://httpd.apache.org/security/vulnerabilities_24.html"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r03ee478b3dda3e381fd6189366fa7af97c980d2f602846eef935277d%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r09bb998baee74a2c316446bd1a41ae7f8d7049d09d9ff991471e8775%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r3c5c3104813c1c5508b55564b66546933079250a46ce50eee90b2e36%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r476d175be0aaf4a17680ef98c5153b4d336eaef76fb2224cc94c463a%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r76142b8c5119df2178be7c2dba88fde552eedeec37ea993dfce68d1d%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r9f93cf6dde308d42a9c807784e8102600d0397f5f834890708bf6920%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/rc998b18880df98bafaade071346690c2bc1444adaa1a1ea464b93f0a%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/rcc44594d4d6579b90deccd4536b5d31f099ef563df39b094be286b9e%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/rd336919f655b7ff309385e34a143e41c503e133da80414485b3abcc9%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/rf6449464fd8b7437704c55f88361b66f12d5b5f90bcce66af4be4ba9%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/A2RN46PRBJE7E7OPD4YZX5SVWV5QKGV5/"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/HYVYE2ZERFXDV6RMKK3I5SDSDQLPSEIQ/"
+      },
+      {
+        "type": "WEB",
+        "url": "https://security.gentoo.org/glsa/202008-04"
+      },
+      {
+        "type": "WEB",
+        "url": "https://security.netapp.com/advisory/ntap-20200827-0002/"
+      },
+      {
+        "type": "WEB",
+        "url": "https://www.oracle.com/security-alerts/cpujan2021.html"
+      },
+      {
+        "type": "WEB",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-11985"
+      }
+    ],
+    "schema_version": "1.5.0"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.5.0.json"
+}
