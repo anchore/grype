@@ -464,7 +464,7 @@ func Test_findDescription(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert.Equal(t, test.expected, findDescription(test.match))
-    })
+		})
 	}
 }
 
