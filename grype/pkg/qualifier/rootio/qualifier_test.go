@@ -430,6 +430,28 @@ func TestHasRootIOVersionSuffix(t *testing.T) {
 			expectedResult: true,
 		},
 		{
+			// Real rootio krb5-libs version from docker.io/rootpublic/alpine:3.18.
+			// Rootio's rev counter spans different starting digits per package,
+			// so the detector matches on rev length (5+ digits) rather than a
+			// fixed prefix.
+			name:           "Alpine: -r10077 (real-world: rootio-krb5-libs)",
+			version:        "1.20.2-r10077",
+			pkgType:        syftPkg.ApkPkg,
+			expectedResult: true,
+		},
+		{
+			name:           "Alpine: -r00073 (real-world: rootio-libssl3)",
+			version:        "3.1.8-r00073",
+			pkgType:        syftPkg.ApkPkg,
+			expectedResult: true,
+		},
+		{
+			name:           "Alpine: -r20074 (real-world: rootio-openssh)",
+			version:        "9.3_p2-r20074",
+			pkgType:        syftPkg.ApkPkg,
+			expectedResult: true,
+		},
+		{
 			name:           "Alpine: standard -r0 suffix",
 			version:        "2.38.1-r0",
 			pkgType:        syftPkg.ApkPkg,

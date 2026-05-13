@@ -14,19 +14,50 @@ import (
 )
 
 func MatchPackageByLanguage(store vulnerability.Provider, p pkg.Package, matcherType match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
-	var matches []match.Match
-	var ignored []match.IgnoreFilter
-
-	for _, name := range store.PackageSearchNames(p) {
-		nameMatches, nameIgnores, err := MatchPackageByEcosystemPackageName(store, p, name, matcherType)
-		if err != nil {
-			return nil, nil, err
-		}
-		matches = append(matches, nameMatches...)
-		ignored = append(ignored, nameIgnores...)
+	if isUnknownVersion(p.Version) {
+		log.WithFields("package", p.Name).Trace("skipping package with unknown version")
+		return nil, nil, nil
 	}
 
-	return matches, ignored, nil
+	provider := result.NewProvider(store, p, matcherType)
+	versionCriteria := OnlyVulnerableVersions(version.New(p.Version, pkg.VersionFormat(p)))
+
+	disclosures := result.Set{}
+	unaffected := result.Set{}
+
+	// Gather disclosures and unaffected entries across every name the
+	// provider claims for p, THEN run the cross-name Remove. The earlier
+	// shape did one Remove per name inside MatchPackageByEcosystemPackageName
+	// and merged the survivors — that worked when a package only had one
+	// search name, but it siloed the NAK from one name search away from a
+	// disclosure found under another name. The rootio fanout depends on
+	// reaching across names (NAK keyed under `rootio-foo`, disclosure
+	// keyed under `foo`), so the cross-name Remove has to run after all
+	// the lookups finish.
+	for _, name := range store.PackageSearchNames(p) {
+		criteria := []vulnerability.Criteria{
+			search.ByEcosystem(p.Language, p.Type),
+			search.ByPackageName(name),
+			OnlyQualifiedPackages(p),
+			OnlyNonWithdrawnVulnerabilities(),
+		}
+
+		all, err := provider.FindResults(criteria...)
+		if err != nil {
+			return nil, nil, fmt.Errorf("matcher failed to fetch disclosure language=%q pkg=%q: %w", p.Language, name, err)
+		}
+		disclosures = disclosures.Merge(all.Filter(versionCriteria))
+
+		nakCriteria := append(slices.Clone(criteria), search.ForUnaffected(), versionCriteria)
+		u, err := provider.FindResults(nakCriteria...)
+		if err != nil {
+			return nil, nil, fmt.Errorf("matcher failed to fetch resolution language=%q pkg=%q: %w", p.Language, name, err)
+		}
+		unaffected = unaffected.Merge(u)
+	}
+
+	remaining := disclosures.Remove(unaffected)
+	return remaining.ToMatches(), constructIgnoreFilters(unaffected, p), nil
 }
 
 func MatchPackageByEcosystemPackageName(vp vulnerability.Provider, p pkg.Package, packageName string, matcherType match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {

@@ -13,9 +13,15 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-// MatchPackageByDistro searches for all vulnerabilities the distro knows about for a
-// package in a single query, then partitions the results in memory into vulnerable matches and
-// fixes to ignore on overlapping packages such as an APK which owns NPM
+// MatchPackageByDistro searches the distro namespace for every name the
+// provider claims for searchPkg, then partitions the unioned results in
+// memory into vulnerable matches and fixes the matcher should ignore on
+// overlapping packages (e.g. an APK that owns NPM).
+//
+// The fanout over PackageSearchNames is what makes the rootio NAK pattern
+// work: a scan against `rootio-libssl3` also searches for the bare
+// `libssl3` upstream disclosure, and any rootio NAK in the unaffected set
+// suppresses the match via ID + alias identity in result.Set.Remove.
 func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package, catalogPkg *pkg.Package, upstreamMatcher match.MatcherType, cfg *version.ComparisonConfig) ([]match.Match, []match.IgnoreFilter, error) {
 	if searchPkg.Distro == nil {
 		return nil, nil, nil
@@ -26,7 +32,6 @@ func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package
 		return nil, nil, nil
 	}
 
-	// Create version with config embedded if provided
 	var pkgVersion *version.Version
 	if cfg != nil {
 		pkgVersion = version.NewWithConfig(searchPkg.Version, pkg.VersionFormat(searchPkg), *cfg)
@@ -35,45 +40,50 @@ func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package
 	}
 
 	versionCriteria := OnlyVulnerableVersions(pkgVersion)
-
-	// Fetch all vulnerabilities the distro knows about for this package (1 query, no version filter).
 	rp := result.NewProvider(provider, matchPackage(searchPkg, catalogPkg), upstreamMatcher)
 
-	allVulns, err := rp.FindResults(
-		search.ByPackageName(searchPkg.Name),
-		search.ByDistro(*searchPkg.Distro),
-		OnlyQualifiedPackages(searchPkg),
-	)
-	if err != nil {
-		return nil, nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
+	// Search by every name the provider claims for this package. For most
+	// packages that's just one name; rootio packages fan out to the bare
+	// upstream name so we find disclosures stored without the rootio prefix.
+	searchNames := provider.PackageSearchNames(searchPkg)
+
+	allVulns := result.Set{}
+	for _, name := range searchNames {
+		v, err := rp.FindResults(
+			search.ByPackageName(name),
+			search.ByDistro(*searchPkg.Distro),
+			OnlyQualifiedPackages(searchPkg),
+		)
+		if err != nil {
+			return nil, nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", searchPkg.Distro, name, err)
+		}
+		allVulns = allVulns.Merge(v)
 	}
 
-	// Split in memory: vulnerable vs. fixed.
 	vulnerable := allVulns.Filter(versionCriteria)
 	fixed := allVulns.Remove(vulnerable)
 
-	// include any unaffected results that match this package as filters
-	unaffected, err := rp.FindResults(
-		search.ByDistro(*searchPkg.Distro),
-		search.ByPackageName(searchPkg.Name),
-		search.ForUnaffected(),
-		versionCriteria,
-	)
-	if err != nil {
-		return nil, nil, fmt.Errorf("matcher failed to fetch unaffected distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
+	unaffected := result.Set{}
+	for _, name := range searchNames {
+		u, err := rp.FindResults(
+			search.ByDistro(*searchPkg.Distro),
+			search.ByPackageName(name),
+			search.ForUnaffected(),
+			versionCriteria,
+		)
+		if err != nil {
+			return nil, nil, fmt.Errorf("matcher failed to fetch unaffected distro=%q pkg=%q: %w", searchPkg.Distro, name, err)
+		}
+		unaffected = unaffected.Merge(u)
 	}
 
-	// remove any unaffected results that match this package as matches
 	vulnerable = vulnerable.Remove(unaffected)
-
 	fixed = fixed.Merge(unaffected)
 
 	// Use the SBOM package (not the synthetic upstream) for file ownership — the upstream package doesn't have file metadata.
 	ignores := OwnershipIgnores(matchPackage(searchPkg, catalogPkg), "DistroPackageFixed", fixed.Vulnerabilities()...)
 
-	matches := vulnerable.ToMatches()
-
-	return matches, ignores, nil
+	return vulnerable.ToMatches(), ignores, nil
 }
 
 func matchPackage(searchPkg pkg.Package, catalogPkg *pkg.Package) pkg.Package {

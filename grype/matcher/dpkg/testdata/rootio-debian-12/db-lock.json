@@ -1,0 +1,10 @@
+{
+  "content_hash": "b8134769630f2d3f",
+  "created_at": "2026-05-13T20:21:07.931257682Z",
+  "providers": {
+    "debian": {
+      "vunnel_version": "vunnel@0.56.0.post18+f819175",
+      "timestamp": "2026-05-13T00:47:48.106637Z"
+    }
+  }
+}

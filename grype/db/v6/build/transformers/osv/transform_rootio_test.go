@@ -215,8 +215,8 @@ func TestRootioPackageType(t *testing.T) {
 		{"Alpine:3.18", "apk"},
 		{"Debian:13", "deb"},
 		{"Ubuntu:20.04", "deb"},
-		{"Bitnami", ""},      // not a rootio ecosystem; strategy returns empty
-		{"AlmaLinux:8", ""},  // alma is the alma strategy's domain
+		{"Bitnami", ""},     // not a rootio ecosystem; strategy returns empty
+		{"AlmaLinux:8", ""}, // alma is the alma strategy's domain
 		{"", ""},
 		{"NoColon", ""},
 	}

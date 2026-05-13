@@ -1,0 +1,10 @@
+{
+  "content_hash": "ccaa076ce2a32073",
+  "created_at": "2026-05-13T20:12:53.638093946Z",
+  "providers": {
+    "ubuntu": {
+      "vunnel_version": "vunnel@0.55.3.post12+15bf0b9",
+      "timestamp": "2026-04-23T16:47:19.918575Z"
+    }
+  }
+}

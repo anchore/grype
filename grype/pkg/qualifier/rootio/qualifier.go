@@ -46,20 +46,23 @@ func (r rootIO) Satisfied(p pkg.Package) (bool, error) {
 	return true, nil
 }
 
-// IsRootIOPackage detects if a package is a Root IO package by checking name prefixes and version suffixes.
-// It uses multiple detection strategies to identify Root IO packages across different ecosystems.
+// IsRootIOPackage reports whether a package came from Root IO. Either the
+// Root IO name prefix or the Root IO version suffix is enough on its own,
+// because the strings involved are distinctive enough that accidental
+// collisions are unlikely:
+//   - The `rootio-` / `@rootio/` / `rootio_` / `io.root.` name prefixes
+//     identify the rootio brand and registered scope/groupId.
+//   - The `.root.io.N` / `+root.io.N` / `-root.io.N` version suffixes
+//     embed `root.io` (a domain literal) inside a build counter.
+//
+// Real rootio packages carry both signals — rootio's build pipeline emits
+// them in lockstep — so either one acts as a sufficient indicator and the
+// other serves as confirmation in tests.
 func IsRootIOPackage(p pkg.Package) bool {
-	// Strategy 1: Name prefix detection (most reliable)
 	if hasRootIOPrefix(p.Name, p.Type) {
 		return true
 	}
-
-	// Strategy 2: Version suffix detection
-	if hasRootIOVersionSuffix(p.Version, p.Type) {
-		return true
-	}
-
-	return false
+	return hasRootIOVersionSuffix(p.Version, p.Type)
 }
 
 // StripPrefix removes the rootio-specific name prefix from a package name,
@@ -122,6 +125,28 @@ func hasRootIOPrefix(name string, pkgType syftPkg.Type) bool {
 	}
 }
 
+// hasFiveDigitApkRev reports whether the apk-format version ends with a rev
+// counter of five or more digits. Standard alpine builds bump the rev by 1
+// per rebuild and rarely climb past two digits; rootio's pipeline assigns
+// rev numbers in a wide five-digit range, so anything that long is a rootio
+// build. Helper extracted to keep hasRootIOVersionSuffix readable.
+func hasFiveDigitApkRev(version string) bool {
+	idx := strings.LastIndex(version, "-r")
+	if idx < 0 {
+		return false
+	}
+	rev := version[idx+2:]
+	if len(rev) < 5 {
+		return false
+	}
+	for i := 0; i < len(rev); i++ {
+		if rev[i] < '0' || rev[i] > '9' {
+			return false
+		}
+	}
+	return true
+}
+
 // hasRootIOVersionSuffix checks if the package version has a Root IO suffix.
 // Different ecosystems use different version patterns:
 // - NPM: "-root.io.N" suffix (semver prerelease, e.g., "5.7.1-root.io.1")
@@ -154,18 +179,16 @@ func hasRootIOVersionSuffix(version string, pkgType syftPkg.Type) bool {
 		return strings.Contains(version, "+root.io.")
 
 	case syftPkg.ApkPkg:
-		// Alpine APK: "-r1007" pattern followed by a digit
-		// Example: "2.38.1-r10071"
-		// Note: Regular Alpine packages use "-r0", "-r1", etc., so we look for "-r1007" specifically
-		if idx := strings.Index(version, "-r1007"); idx >= 0 {
-			// Check if there's at least one more character after "-r1007"
-			if idx+6 < len(version) {
-				// Verify the next character is a digit
-				nextChar := version[idx+6]
-				return nextChar >= '0' && nextChar <= '9'
-			}
-		}
-		return false
+		// Alpine APK packages don't share the `.root.io.N` suffix the other
+		// ecosystems use. Rootio instead stamps a five-digit rev number on
+		// each build (the upstream apk rev counter starts at 0 and increments
+		// by one per rebuild, so real-world non-rootio packages almost never
+		// hit four digits, let alone five). Real rootio examples from the
+		// quality-gate images: -r10077, -r20074, -r00073, -r20074.
+		//
+		// Detection: look for `-r` at the rev boundary followed by 5+ digits
+		// running to end of string.
+		return hasFiveDigitApkRev(version)
 
 	case syftPkg.JavaPkg:
 		// Java/Maven packages are identified by the "io.root." groupId prefix alone;
