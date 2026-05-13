@@ -1,0 +1,82 @@
+{
+  "identifier": "github:java/ghsa-22wj-vf5f-wrvj",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2022-45868"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 7.8,
+          "base_severity": "High",
+          "exploitability_score": 1.8,
+          "impact_score": 5.9
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2023-07-08",
+            "kind": "first-observed"
+          },
+          "ecosystem": "java",
+          "identifier": "2.2.220",
+          "name": "com.h2database:h2",
+          "namespace": "github:java",
+          "range": "\u003e= 1.4.198 \u003c 2.2.220"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2022-45868"
+        ]
+      },
+      "Severity": "High",
+      "Summary": "Password exposure in H2 Database ",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-22wj-vf5f-wrvj",
+      "namespace": "github:java",
+      "published": "2022-11-23T21:30:31Z",
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-45868"
+        },
+        {
+          "url": "https://github.com/h2database/h2database/blob/96832bf5a97cdc0adc1f2066ed61c54990d66ab5/h2/src/main/org/h2/server/web/WebServer.java#L346-L347"
+        },
+        {
+          "url": "https://sites.google.com/sonatype.com/vulnerabilities/sonatype-2022-6243"
+        },
+        {
+          "url": "https://github.com/h2database/h2database/pull/3833"
+        },
+        {
+          "url": "https://github.com/h2database/h2database/commit/581ed18ff9d6b3761d851620ed88a3994a351a0d"
+        },
+        {
+          "url": "https://github.com/h2database/h2database/issues/3686"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-22wj-vf5f-wrvj"
+        },
+        {
+          "url": "https://github.com/h2database/h2database/releases/tag/version-2.2.220"
+        }
+      ],
+      "updated": "2024-07-03T17:59:04Z",
+      "url": "https://github.com/advisories/GHSA-22wj-vf5f-wrvj",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

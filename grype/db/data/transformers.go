@@ -31,3 +31,4 @@ type OSVTransformerV2 func(entry unmarshal.OSVVulnerability, state provider.Stat
 type OpenVEXTransformerV2 func(entry unmarshal.OpenVEXVulnerability, state provider.State) ([]Entry, error)
 type AnnotatedOpenVEXTransformerV2 func(entry unmarshal.AnnotatedOpenVEXVulnerability, state provider.State) ([]Entry, error)
 type EOLTransformerV2 func(entry unmarshal.EndOfLifeDateRelease, state provider.State) ([]Entry, error)
+type CSAFVEXTransformerV2 func(entry unmarshal.CSAFVEXAdvisory, state provider.State) ([]Entry, error)

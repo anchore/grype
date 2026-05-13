@@ -13,19 +13,19 @@ type EndOfLifeDateRelease struct {
 	Identifiers []EndOfLifeDateIdentifier `json:"identifiers"`
 
 	// Fields from endoflife.date ProductRelease schema
-	Name         string                 `json:"name"`
-	Codename     *string                `json:"codename"`
-	Label        string                 `json:"label"`
-	ReleaseDate  *string                `json:"releaseDate"`
-	IsLTS        bool                   `json:"isLts"`
-	LTSFrom      *string                `json:"ltsFrom"`
-	IsEOAS       bool                   `json:"isEoas"`
-	EOASFrom     *string                `json:"eoasFrom"`
-	IsEOL        bool                   `json:"isEol"`
-	EOLFrom      *string                `json:"eolFrom"`
-	IsMaintained bool                   `json:"isMaintained"`
-	Latest       *EndOfLifeDateLatest   `json:"latest"`
-	Custom       map[string]interface{} `json:"custom"`
+	Name         string               `json:"name"`
+	Codename     *string              `json:"codename"`
+	Label        string               `json:"label"`
+	ReleaseDate  *string              `json:"releaseDate"`
+	IsLTS        bool                 `json:"isLts"`
+	LTSFrom      *string              `json:"ltsFrom"`
+	IsEOAS       bool                 `json:"isEoas"`
+	EOASFrom     *string              `json:"eoasFrom"`
+	IsEOL        bool                 `json:"isEol"`
+	EOLFrom      *string              `json:"eolFrom"`
+	IsMaintained bool                 `json:"isMaintained"`
+	Latest       *EndOfLifeDateLatest `json:"latest"`
+	Custom       map[string]any       `json:"custom"`
 }
 
 // EndOfLifeDateLatest represents the latest release info nested within a release.

@@ -7,7 +7,6 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/pkg/qualifier/rootio"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -18,20 +17,7 @@ func MatchPackageByLanguage(store vulnerability.Provider, p pkg.Package, matcher
 	var matches []match.Match
 	var ignored []match.IgnoreFilter
 
-	searchNames := store.PackageSearchNames(p)
-
-	// For rootio language packages, also search by the bare upstream name so that
-	// CVE records stored without the rootio prefix (e.g. "semver", "requests") are found.
-	// The NAK subtraction in MatchPackageByEcosystemPackageName handles suppression of
-	// vulns that rootio has already fixed.
-	if rootio.IsRootIOPackage(p) {
-		strippedName := rootio.StripPrefix(p.Name, p.Type)
-		if strippedName != p.Name && !slices.Contains(searchNames, strippedName) {
-			searchNames = append(searchNames, strippedName)
-		}
-	}
-
-	for _, name := range searchNames {
+	for _, name := range store.PackageSearchNames(p) {
 		nameMatches, nameIgnores, err := MatchPackageByEcosystemPackageName(store, p, name, matcherType)
 		if err != nil {
 			return nil, nil, err
@@ -55,19 +41,22 @@ func MatchPackageByEcosystemPackageName(vp vulnerability.Provider, p pkg.Package
 		search.ByEcosystem(p.Language, p.Type),
 		search.ByPackageName(packageName),
 		OnlyQualifiedPackages(p),
-		OnlyVulnerableVersions(version.New(p.Version, pkg.VersionFormat(p))),
 		OnlyNonWithdrawnVulnerabilities(),
 	}
 
+	versionCriteria := OnlyVulnerableVersions(version.New(p.Version, pkg.VersionFormat(p)))
+
 	// TODO: previous impl set confidence to 1, this results in
 	// a confidence of zero. What should it be?
-	disclosures, err := provider.FindResults(criteria...)
+	all, err := provider.FindResults(criteria...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch disclosure language=%q pkg=%q: %w", p.Language, p.Name, err)
 	}
 
+	disclosures := all.Filter(versionCriteria)
+
 	// we want to perform the same results, but look for explicit naks, which indicates that a vulnerability should not apply
-	criteria = append(criteria, search.ForUnaffected())
+	criteria = append(criteria, search.ForUnaffected(), versionCriteria)
 	unaffected, err := provider.FindResults(criteria...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch resolution language=%q pkg=%q: %w", p.Language, p.Name, err)
@@ -76,10 +65,10 @@ func MatchPackageByEcosystemPackageName(vp vulnerability.Provider, p pkg.Package
 	// remove any disclosures that have been explicitly nacked
 	remaining := disclosures.Remove(unaffected)
 
-	return remaining.ToMatches(), ConstructIgnoreFilters(unaffected, p), err
+	return remaining.ToMatches(), constructIgnoreFilters(unaffected, p), err
 }
 
-func ConstructIgnoreFilters(unaffectedVulns result.Set, p pkg.Package) []match.IgnoreFilter {
+func constructIgnoreFilters(unaffectedVulns result.Set, p pkg.Package) []match.IgnoreFilter {
 	var ignores []match.IgnoreFilter
 
 	// collect all IDs to exclude

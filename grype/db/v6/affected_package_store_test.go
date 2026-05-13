@@ -1066,7 +1066,7 @@ func testNonDistroAffectedPackage2Handle() *AffectedPackageHandle {
 
 func expectErrIs(t *testing.T, expected error) require.ErrorAssertionFunc {
 	t.Helper()
-	return func(t require.TestingT, err error, msgAndArgs ...interface{}) {
+	return func(t require.TestingT, err error, msgAndArgs ...any) {
 		require.Error(t, err, msgAndArgs...)
 		assert.ErrorIs(t, err, expected)
 	}

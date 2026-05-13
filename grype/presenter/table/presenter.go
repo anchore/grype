@@ -138,6 +138,7 @@ func (p *Presenter) Present(output io.Writer) error {
 func newTable(output io.Writer, columns []string) *tablewriter.Table {
 	return tablewriter.NewTable(output,
 		tablewriter.WithHeader(columns),
+		tablewriter.WithHeaderAlignment(tw.AlignLeft),
 		tablewriter.WithHeaderAutoWrap(tw.WrapNone),
 		tablewriter.WithRowAutoWrap(tw.WrapNone),
 		tablewriter.WithAutoHide(tw.On),

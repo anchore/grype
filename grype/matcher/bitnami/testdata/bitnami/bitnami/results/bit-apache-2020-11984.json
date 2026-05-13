@@ -1,0 +1,193 @@
+{
+  "identifier": "bit-apache-2020-11984",
+  "item": {
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "Bitnami",
+          "name": "apache",
+          "purl": "pkg:bitnami/apache"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2024-03-06",
+                    "kind": "advisory",
+                    "version": "2.4.44"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "2.4.32"
+              },
+              {
+                "fixed": "2.4.44"
+              }
+            ],
+            "type": "SEMVER"
+          }
+        ],
+        "severity": [
+          {
+            "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+            "type": "CVSS_V3"
+          }
+        ]
+      }
+    ],
+    "aliases": [
+      "CVE-2020-11984"
+    ],
+    "database_specific": {
+      "cpes": [
+        "cpe:2.3:a:apache:http_server:*:*:*:*:*:*:*:*"
+      ],
+      "severity": "Critical"
+    },
+    "details": "Apache HTTP server 2.4.32 to 2.4.44 mod_proxy_uwsgi info disclosure and possible RCE",
+    "id": "BIT-apache-2020-11984",
+    "modified": "2025-04-03T14:40:37.652Z",
+    "published": "2024-03-06T10:57:57.770Z",
+    "references": [
+      {
+        "type": "WEB",
+        "url": "http://lists.opensuse.org/opensuse-security-announce/2020-08/msg00068.html"
+      },
+      {
+        "type": "WEB",
+        "url": "http://lists.opensuse.org/opensuse-security-announce/2020-08/msg00071.html"
+      },
+      {
+        "type": "WEB",
+        "url": "http://packetstormsecurity.com/files/159009/Apache2-mod_proxy_uwsgi-Incorrect-Request-Handling.html"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.openwall.com/lists/oss-security/2020/08/08/1"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.openwall.com/lists/oss-security/2020/08/08/10"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.openwall.com/lists/oss-security/2020/08/08/8"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.openwall.com/lists/oss-security/2020/08/08/9"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.openwall.com/lists/oss-security/2020/08/10/5"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.openwall.com/lists/oss-security/2020/08/17/2"
+      },
+      {
+        "type": "WEB",
+        "url": "https://httpd.apache.org/security/vulnerabilities_24.html"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r03ee478b3dda3e381fd6189366fa7af97c980d2f602846eef935277d%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r06f0d87ebb6d59ed8379633f36f72f5b1f79cadfda72ede0830b42cf%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r09bb998baee74a2c316446bd1a41ae7f8d7049d09d9ff991471e8775%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r2c6083f6a2027914a0f5b54e2a1f4fa98c03f8693b58460911818255%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r34753590ae8e3f2b6af689af4fe84269b592f5fda9f3244fd9abbce8%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r3c5c3104813c1c5508b55564b66546933079250a46ce50eee90b2e36%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r5debe8f82728a00a4a68bc904dd6c35423bdfc8d601cfb4579f38bf1%40%3Cdev.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r623de9b2b2433a87f3f3a15900419fc9c00c77b26936dfea4060f672%40%3Cdev.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r76142b8c5119df2178be7c2dba88fde552eedeec37ea993dfce68d1d%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r9f93cf6dde308d42a9c807784e8102600d0397f5f834890708bf6920%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/rc998b18880df98bafaade071346690c2bc1444adaa1a1ea464b93f0a%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/rf6449464fd8b7437704c55f88361b66f12d5b5f90bcce66af4be4ba9%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/rf71eb428714374a6f9ad68952e23611ec7807b029fd6a1b4f5f732d9%40%3Ccvs.httpd.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.debian.org/debian-lts-announce/2020/09/msg00001.html"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/A2RN46PRBJE7E7OPD4YZX5SVWV5QKGV5/"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/HYVYE2ZERFXDV6RMKK3I5SDSDQLPSEIQ/"
+      },
+      {
+        "type": "WEB",
+        "url": "https://security.gentoo.org/glsa/202008-04"
+      },
+      {
+        "type": "WEB",
+        "url": "https://security.netapp.com/advisory/ntap-20200814-0005/"
+      },
+      {
+        "type": "WEB",
+        "url": "https://usn.ubuntu.com/4458-1/"
+      },
+      {
+        "type": "WEB",
+        "url": "https://www.debian.org/security/2020/dsa-4757"
+      },
+      {
+        "type": "WEB",
+        "url": "https://www.oracle.com/security-alerts/cpujan2021.html"
+      },
+      {
+        "type": "WEB",
+        "url": "https://www.oracle.com/security-alerts/cpuoct2020.html"
+      },
+      {
+        "type": "WEB",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-11984"
+      }
+    ],
+    "schema_version": "1.5.0"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.5.0.json"
+}

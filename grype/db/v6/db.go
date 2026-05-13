@@ -24,7 +24,7 @@ const (
 	Revision = 1
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 5
+	Addition = 6
 
 	// v6 model changelog:
 	// 6.0.0: Initial version 🎉
@@ -37,9 +37,13 @@ const (
 	// 6.1.2: Add CWEs
 	// 6.1.3: Add ID field to Reference (for advisory IDs like RHSA-2023:5455)
 	// 6.1.4: Add EOLDate and EOASDate fields to OperatingSystem model
-	// 6.1.5: Add RootIO field to PackageQualifiers for Root IO package detection.
-	//        Enables NAK (Negative Acknowledgment) pattern: vulnerabilities marked with Root IO qualifier
-	//        will only match Root IO packages.
+	// 6.1.5: Add RpmArch field to PackageQualifiers (used by the CSAF VEX transformer to tag
+	//        source vs. binary RPM entries; the RPM matcher's upstream-search path filters
+	//        out non-source entries so binary-granular advisories don't FP-match siblings)
+	// 6.1.6: Add RootIO field to PackageQualifiers (used by the OSV rootio strategy to mark
+	//        vulnerabilities that only apply to Root IO-backported packages; the rootio
+	//        runtime qualifier in pkg/qualifier/rootio filters non-Root-IO packages out via
+	//        the NAK pattern)
 )
 
 const (

@@ -1,0 +1,10 @@
+auto-generate: true
+extractions:
+  github:
+    # CVE-2026-22732 / GHSA-mf92-479x-3373 covers spring-security-web
+    # 5.8.0..5.8.16 (and other branches).
+    - github:java/GHSA-mf92-479x-3373
+  chainguard-libraries:
+    # CGA-3mj7-wxw9-qjx2 declares spring-security-web@5.8.16-0.cgr.1
+    # status=fixed for CVE-2026-22732 / GHSA-mf92-479x-3373.
+    - chainguard-libraries:maven/CGA-3mj7-wxw9-qjx2

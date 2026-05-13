@@ -7,7 +7,6 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/pkg/qualifier/rootio"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -35,70 +34,45 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
-	if rootio.IsRootIOPackage(p) {
-		return m.matchRootIOPackage(store, p)
-	}
-
 	var matches []match.Match
+	var ignoreFilters []match.IgnoreFilter
 
-	// direct matches with package itself
-	directMatches, err := m.findMatchesForPackage(store, p, nil)
+	// direct matches with package itself (+ distro-fixed ignore rules when metadata implements FileOwner)
+	directMatches, directIgnores, err := m.findMatchesForPackage(store, p, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 	matches = append(matches, directMatches...)
+	ignoreFilters = append(ignoreFilters, directIgnores...)
 
 	// indirect matches, via package's origin package
-	indirectMatches, err := m.findMatchesForOriginPackage(store, p)
+	indirectMatches, indirectIgnores, err := m.findMatchesForOriginPackage(store, p)
 	if err != nil {
 		return nil, nil, err
 	}
 	matches = append(matches, indirectMatches...)
+	ignoreFilters = append(ignoreFilters, indirectIgnores...)
 
 	// APK sources are also able to NAK vulnerabilities, so we want to return these as explicit ignores in order
 	// to allow rules later to use these to ignore "the same" vulnerability found in "the same" locations
 	naks, err := m.findNaksForPackage(store, p)
-
-	return matches, naks, err
-}
-
-func (m *Matcher) matchRootIOPackage(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
-	var allMatches []match.Match
-	var allIgnores []match.IgnoreFilter
-
-	// Direct match — APK doesn't use epochs, so pass nil for config
-	directMatches, directIgnores, err := internal.MatchRootIOPackageByDistro(store, p, nil, m.Type(), nil)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to match rootio apk package: %w", err)
+		return nil, nil, err
 	}
-	allMatches = append(allMatches, directMatches...)
-	allIgnores = append(allIgnores, directIgnores...)
+	ignoreFilters = append(ignoreFilters, naks...)
 
-	// Upstream package matches
-	var upstreamMatches []match.Match
-	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, indirectIgnores, err := internal.MatchRootIOPackageByDistro(store, indirectPackage, &p, m.Type(), nil)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to match rootio apk upstream package: %w", err)
-		}
-		upstreamMatches = append(upstreamMatches, indirectMatches...)
-		allIgnores = append(allIgnores, indirectIgnores...)
-	}
-	match.ConvertToIndirectMatches(upstreamMatches, p)
-	allMatches = append(allMatches, upstreamMatches...)
-
-	return allMatches, allIgnores, nil
+	return matches, ignoreFilters, nil
 }
 
 //nolint:funlen,gocognit
-func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, p pkg.Package) ([]match.Match, error) {
+func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	// find CPE-indexed vulnerability matches specific to the given package name and version
-	cpeMatches, err := internal.MatchPackageByCPEs(provider, p, m.Type())
+	cpeMatches, ignored, err := internal.MatchPackageByCPEs(provider, p, m.Type())
 	if err != nil {
 		log.WithFields("package", p.Name, "error", err).Debug("failed to find CPE matches for package")
 	}
 	if p.Distro == nil {
-		return cpeMatches, nil
+		return cpeMatches, ignored, nil
 	}
 
 	cpeMatchesByID := matchesByID(cpeMatches)
@@ -109,7 +83,7 @@ func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, p
 		search.ByPackageName(p.Name),
 		search.ByDistro(*p.Distro))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
@@ -117,7 +91,7 @@ func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, p
 			search.ByPackageName(upstreamPkg.Name),
 			search.ByDistro(*upstreamPkg.Distro))
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		secDBVulnerabilities = append(secDBVulnerabilities, secDBVulnerabilitiesForUpstream...)
 	}
@@ -157,7 +131,7 @@ cveLoop:
 			// ...is the current package vulnerable?
 			vulnerable, err := vuln.Constraint.Satisfied(verObj)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			if vulnerable {
@@ -167,7 +141,7 @@ cveLoop:
 			}
 		}
 	}
-	return finalCpeMatches, nil
+	return finalCpeMatches, ignored, nil
 }
 
 func deduplicateMatches(secDBMatches, cpeMatches []match.Match) (matches []match.Match) {
@@ -202,18 +176,18 @@ func vulnerabilitiesByID(vulns []vulnerability.Vulnerability) map[string][]vulne
 	return results
 }
 
-func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Package, catalogPkg *pkg.Package) ([]match.Match, error) {
+func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Package, catalogPkg *pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	// find SecDB matches for the given package name and version
 	// APK doesn't use epochs, so pass nil for the config
-	secDBMatches, _, err := internal.MatchPackageByDistro(store, p, catalogPkg, m.Type(), nil)
+	secDBMatches, secDBIgnores, err := internal.MatchPackageByDistro(store, p, catalogPkg, m.Type(), nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// TODO: are there other errors that we should handle here that causes this to short circuit
-	cpeMatches, err := m.cpeMatchesWithoutSecDBFixes(store, p)
+	cpeMatches, cpeIgnores, err := m.cpeMatchesWithoutSecDBFixes(store, p)
 	if err != nil && !errors.Is(err, internal.ErrEmptyCPEMatch) {
-		return nil, err
+		return nil, nil, err
 	}
 
 	var matches []match.Match
@@ -224,25 +198,27 @@ func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Pack
 	// keep only unique CPE matches
 	matches = append(matches, deduplicateMatches(secDBMatches, cpeMatches)...)
 
-	return matches, nil
+	return matches, append(secDBIgnores, cpeIgnores...), nil
 }
 
-func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, catalogPkg pkg.Package) ([]match.Match, error) {
+func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, catalogPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	var matches []match.Match
+	var ignores []match.IgnoreFilter
 
 	for _, indirectPackage := range pkg.UpstreamPackages(catalogPkg) {
-		indirectMatches, err := m.findMatchesForPackage(store, indirectPackage, &catalogPkg)
+		indirectMatches, indirectIgnores, err := m.findMatchesForPackage(store, indirectPackage, &catalogPkg)
 		if err != nil {
-			return nil, fmt.Errorf("failed to find vulnerabilities for apk upstream source package: %w", err)
+			return nil, nil, fmt.Errorf("failed to find vulnerabilities for apk upstream source package: %w", err)
 		}
 		matches = append(matches, indirectMatches...)
+		ignores = append(ignores, indirectIgnores...)
 	}
 
 	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package)
 	// however, we also want to keep the indirect package around for future reference
 	match.ConvertToIndirectMatches(matches, catalogPkg)
 
-	return matches, nil
+	return matches, ignores, nil
 }
 
 // NAK entries are those reported as explicitly not vulnerable by the upstream provider,
@@ -281,25 +257,5 @@ func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Pack
 		naks = append(naks, upstreamNaks...)
 	}
 
-	meta, ok := p.Metadata.(pkg.ApkMetadata)
-	if !ok {
-		return nil, nil
-	}
-
-	var ignores []match.IgnoreFilter
-	for _, nak := range naks {
-		for _, f := range meta.Files {
-			ignores = append(ignores,
-				match.IgnoreRule{
-					Vulnerability:  nak.ID,
-					IncludeAliases: true,
-					Reason:         "Explicit APK NAK",
-					Package: match.IgnoreRulePackage{
-						Location: f.Path,
-					},
-				})
-		}
-	}
-
-	return ignores, nil
+	return internal.OwnershipIgnores(p, "Explicit APK NAK", naks...), nil
 }

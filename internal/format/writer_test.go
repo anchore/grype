@@ -24,7 +24,7 @@ func Test_MakeScanResultWriter(t *testing.T) {
 		},
 		{
 			outputs: []string{"unknown"},
-			wantErr: func(t assert.TestingT, err error, bla ...interface{}) bool {
+			wantErr: func(t assert.TestingT, err error, bla ...any) bool {
 				return assert.ErrorContains(t, err, `unsupported output format "unknown", supported formats are: [`)
 			},
 		},

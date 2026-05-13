@@ -1,0 +1,95 @@
+{
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/annotated-openvex/schema-1.0.0.json",
+  "identifier": "chainguard-libraries:pypi/CGA-r79g-x2wf-m9qj",
+  "item": {
+    "document": {
+      "vulnerability": {
+        "name": "CGA-r79g-x2wf-m9qj",
+        "aliases": [
+          "CGA-mwr9-whh6-3ppf",
+          "CVE-2025-62727",
+          "GHSA-7f5h-v6xp-fcq8"
+        ]
+      },
+      "products": [
+        {
+          "identifiers": {
+            "purl": "pkg:pypi/starlette@0.40.0%2Bcgr.1"
+          }
+        },
+        {
+          "identifiers": {
+            "purl": "pkg:pypi/starlette@0.41.2%2Bcgr.1"
+          }
+        },
+        {
+          "identifiers": {
+            "purl": "pkg:pypi/starlette@0.46.1%2Bcgr.1"
+          }
+        },
+        {
+          "identifiers": {
+            "purl": "pkg:pypi/starlette@0.46.2%2Bcgr.1"
+          }
+        },
+        {
+          "identifiers": {
+            "purl": "pkg:pypi/starlette@0.47.2%2Bcgr.1"
+          }
+        },
+        {
+          "identifiers": {
+            "purl": "pkg:pypi/starlette@0.48.0%2Bcgr.1"
+          }
+        }
+      ],
+      "status": "fixed",
+      "timestamp": "2025-11-04T06:01:33.76Z",
+      "last_updated": "2025-12-08T06:01:35.095Z"
+    },
+    "fixes": [
+      {
+        "product": "pkg:pypi/starlette@0.40.0%2Bcgr.1",
+        "available": {
+          "date": "2025-11-04",
+          "kind": "advisory"
+        }
+      },
+      {
+        "product": "pkg:pypi/starlette@0.41.2%2Bcgr.1",
+        "available": {
+          "date": "2025-11-04",
+          "kind": "advisory"
+        }
+      },
+      {
+        "product": "pkg:pypi/starlette@0.46.1%2Bcgr.1",
+        "available": {
+          "date": "2025-11-04",
+          "kind": "advisory"
+        }
+      },
+      {
+        "product": "pkg:pypi/starlette@0.46.2%2Bcgr.1",
+        "available": {
+          "date": "2025-11-04",
+          "kind": "advisory"
+        }
+      },
+      {
+        "product": "pkg:pypi/starlette@0.47.2%2Bcgr.1",
+        "available": {
+          "date": "2025-11-04",
+          "kind": "advisory"
+        }
+      },
+      {
+        "product": "pkg:pypi/starlette@0.48.0%2Bcgr.1",
+        "available": {
+          "date": "2025-11-04",
+          "kind": "advisory"
+        }
+      }
+    ]
+  }
+}

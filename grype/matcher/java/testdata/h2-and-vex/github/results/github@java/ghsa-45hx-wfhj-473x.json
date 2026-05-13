@@ -1,0 +1,94 @@
+{
+  "identifier": "github:java/ghsa-45hx-wfhj-473x",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2022-23221"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 9.8,
+          "base_severity": "Critical",
+          "exploitability_score": 3.9,
+          "impact_score": 5.9
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2022-01-22",
+            "kind": "first-observed"
+          },
+          "ecosystem": "java",
+          "identifier": "2.1.210",
+          "name": "com.h2database:h2",
+          "namespace": "github:java",
+          "range": "\u003c 2.1.210"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2022-23221"
+        ]
+      },
+      "Severity": "Critical",
+      "Summary": "Arbitrary code execution in H2 Console",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-45hx-wfhj-473x",
+      "namespace": "github:java",
+      "published": "2022-01-21T23:07:39Z",
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-23221"
+        },
+        {
+          "url": "https://github.com/h2database/h2database/releases/tag/version-2.1.210"
+        },
+        {
+          "url": "https://github.com/h2database/h2database/security/advisories"
+        },
+        {
+          "url": "https://twitter.com/d0nkey_man/status/1483824727936450564"
+        },
+        {
+          "url": "http://packetstormsecurity.com/files/165676/H2-Database-Console-Remote-Code-Execution.html"
+        },
+        {
+          "url": "http://seclists.org/fulldisclosure/2022/Jan/39"
+        },
+        {
+          "url": "https://lists.debian.org/debian-lts-announce/2022/02/msg00017.html"
+        },
+        {
+          "url": "https://www.debian.org/security/2022/dsa-5076"
+        },
+        {
+          "url": "https://www.oracle.com/security-alerts/cpuapr2022.html"
+        },
+        {
+          "url": "https://www.oracle.com/security-alerts/cpujul2022.html"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20230818-0011/"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-45hx-wfhj-473x"
+        }
+      ],
+      "updated": "2023-08-18T15:47:05Z",
+      "url": "https://github.com/advisories/GHSA-45hx-wfhj-473x",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

@@ -79,10 +79,10 @@ func TestCmd(t *testing.T) {
 		{
 			name: "reason for ignored vulnerabilities is available in the template",
 			args: []string{
-				"sbom:" + filepath.Join("test-fixtures", "test-ignore-reason", "sbom.json"),
-				"-c", filepath.Join("test-fixtures", "test-ignore-reason", "config-with-ignore.yaml"),
+				"sbom:" + filepath.Join("testdata", "test-ignore-reason", "sbom.json"),
+				"-c", filepath.Join("testdata", "test-ignore-reason", "config-with-ignore.yaml"),
 				"-o", "template",
-				"-t", filepath.Join("test-fixtures", "test-ignore-reason", "template-with-ignore-reasons"),
+				"-t", filepath.Join("testdata", "test-ignore-reason", "template-with-ignore-reasons"),
 			},
 			assertions: []traitAssertion{
 				assertInOutput("CVE-2021-42385 (test reason for vulnerability being ignored)"),
@@ -91,7 +91,7 @@ func TestCmd(t *testing.T) {
 		},
 		{
 			name: "ignore-states wired up",
-			args: []string{"./test-fixtures/sbom-grype-source.json", "--ignore-states", "unknown"},
+			args: []string{"./testdata/sbom-grype-source.json", "--ignore-states", "unknown"},
 			assertions: []traitAssertion{
 				assertSucceedingReturnCode,
 				assertRowInStdOut([]string{"Pygments", "2.6.1", "2.7.4", "python", "GHSA-pq64-v7f5-gqh8", "High"}),
@@ -100,7 +100,7 @@ func TestCmd(t *testing.T) {
 		},
 		{
 			name: "ignore-states wired up - ignore fixed",
-			args: []string{"./test-fixtures/sbom-grype-source.json", "--ignore-states", "fixed"},
+			args: []string{"./testdata/sbom-grype-source.json", "--ignore-states", "fixed"},
 			assertions: []traitAssertion{
 				assertSucceedingReturnCode,
 				assertRowInStdOut([]string{"libvncserver", "0.9.9", "apk", "CVE-2014-6052", "High"}),
@@ -109,7 +109,7 @@ func TestCmd(t *testing.T) {
 		},
 		{
 			name: "ignore-states wired up - ignore fixed, show suppressed",
-			args: []string{"./test-fixtures/sbom-grype-source.json", "--ignore-states", "fixed", "--show-suppressed"},
+			args: []string{"./testdata/sbom-grype-source.json", "--ignore-states", "fixed", "--show-suppressed"},
 			assertions: []traitAssertion{
 				assertSucceedingReturnCode,
 				assertRowInStdOut([]string{"Pygments", "2.6.1", "2.7.4", "python", "GHSA-pq64-v7f5-gqh8", "High", "(suppressed)"}),

@@ -27,7 +27,7 @@ func purlEnhancers(applyChannel func(*distro.Distro) bool) []Enhancer {
 	return []Enhancer{setUpstreamsFromPURL, setDistroFromPURL(applyChannel)}
 }
 
-func purlProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]Package, Context, *sbom.SBOM, error) {
+func purlProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]*Package, Context, *sbom.SBOM, error) {
 	reader, ctx, err := getPurlReader(userInput)
 	if err != nil {
 		return nil, Context{}, nil, err
@@ -38,7 +38,7 @@ func purlProvider(userInput string, config ProviderConfig, applyChannel func(*di
 		return nil, Context{}, nil, fmt.Errorf("unable to decode purl: %w", err)
 	}
 
-	return FromCollection(s.Artifacts.Packages, config.SynthesisConfig, purlEnhancers(applyChannel)...), ctx, s, nil
+	return FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig, purlEnhancers(applyChannel)...), ctx, s, nil
 }
 
 func getPurlReader(userInput string) (r io.Reader, ctx Context, err error) {

@@ -66,7 +66,7 @@ func getAffectedPackage(vuln unmarshal.GitHubAdvisory) []db.AffectedPackageHandl
 	hasRangeErr := false
 	for group, fixedIns := range groups {
 		for _, fixedInEntry := range fixedIns {
-			ranges, rangeErr := getRanges(fixedInEntry)
+			ranges, rangeErr := getRanges(fixedInEntry, vuln.Advisory.GhsaID)
 			if rangeErr != nil {
 				hasRangeErr = true
 			}
@@ -89,14 +89,14 @@ func getAffectedPackage(vuln unmarshal.GitHubAdvisory) []db.AffectedPackageHandl
 	return afs
 }
 
-func getRanges(fixedInEntry unmarshal.GithubFixedIn) ([]db.Range, error) {
+func getRanges(fixedInEntry unmarshal.GithubFixedIn, ghsaID string) ([]db.Range, error) {
 	fixedVersion := db.Version{
 		Type:       getAffectedVersionFormat(fixedInEntry),
 		Constraint: versionutil.EnforceSemVerConstraint(fixedInEntry.Range),
 	}
-	err := validateAffectedVersion(fixedVersion)
+	err := internal.ValidateAffectedVersion(fixedVersion)
 	if err != nil {
-		log.Warnf("failed to validate affected version: %v", err)
+		log.Warnf("failed to validate affected version for GHSA=%s: %v", ghsaID, err)
 		fixedVersion.Type = version.UnknownFormat.String()
 	}
 	return []db.Range{
@@ -105,26 +105,6 @@ func getRanges(fixedInEntry unmarshal.GithubFixedIn) ([]db.Range, error) {
 			Fix:     getFix(fixedInEntry),
 		},
 	}, err
-}
-
-func validateAffectedVersion(v db.Version) error {
-	versionFormat := version.ParseFormat(v.Type)
-	c, err := version.GetConstraint(v.Constraint, versionFormat)
-	if err != nil {
-		return err
-	}
-
-	// ensure we can use this version format in a comparison
-	ver := version.New("1.0.0", versionFormat)
-	if err := ver.Validate(); err != nil {
-		// don't have a good example to use here
-		// TODO: we should consider finding a better way to do this without having to create a valid version for comparison
-		return nil
-	}
-
-	_, err = c.Satisfied(ver)
-
-	return err
 }
 
 func getAffectedVersionFormat(fixedInEntry unmarshal.GithubFixedIn) string {

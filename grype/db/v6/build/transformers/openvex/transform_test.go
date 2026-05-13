@@ -13,7 +13,6 @@ import (
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
-	"github.com/anchore/grype/grype/version"
 )
 
 var timeVal = time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -97,7 +96,7 @@ func TestOpenVEXTransform(t *testing.T) {
 							Ranges: []db.Range{
 								{
 									Version: db.Version{
-										Type:       version.PythonFormat.String(),
+										Type:       "python",
 										Constraint: "= 1.26.16",
 									},
 								},
@@ -169,7 +168,7 @@ func TestOpenVEXTransform(t *testing.T) {
 							Ranges: []db.Range{
 								{
 									Version: db.Version{
-										Type:       version.SemanticFormat.String(),
+										Type:       "semantic",
 										Constraint: "= 4.18.2",
 									},
 									Fix: &db.Fix{
@@ -190,7 +189,7 @@ func TestOpenVEXTransform(t *testing.T) {
 							Ranges: []db.Range{
 								{
 									Version: db.Version{
-										Type:       version.PythonFormat.String(),
+										Type:       "python",
 										Constraint: "= 1.26.16",
 									},
 									Fix: &db.Fix{
@@ -347,7 +346,7 @@ func Test_GetPackageHandles(t *testing.T) {
 						Ranges: []db.Range{
 							{
 								Version: db.Version{
-									Type:       version.PythonFormat.String(),
+									Type:       "python",
 									Constraint: "= 1.26.16",
 								},
 							},
@@ -397,7 +396,7 @@ func Test_GetPackageHandles(t *testing.T) {
 						Ranges: []db.Range{
 							{
 								Version: db.Version{
-									Type:       version.PythonFormat.String(),
+									Type:       "python",
 									Constraint: "= 1.26.16",
 								},
 								Fix: &db.Fix{
@@ -457,7 +456,7 @@ func Test_GetPackageHandles(t *testing.T) {
 						Ranges: []db.Range{
 							{
 								Version: db.Version{
-									Type:       version.PythonFormat.String(),
+									Type:       "python",
 									Constraint: "= 1.26.16",
 								},
 								Fix: &db.Fix{
@@ -509,7 +508,7 @@ func Test_GetPackageHandles(t *testing.T) {
 						Ranges: []db.Range{
 							{
 								Version: db.Version{
-									Type:       version.SemanticFormat.String(),
+									Type:       "semantic",
 									Constraint: "= 4.18.2",
 								},
 								Fix: &db.Fix{
@@ -530,7 +529,7 @@ func Test_GetPackageHandles(t *testing.T) {
 						Ranges: []db.Range{
 							{
 								Version: db.Version{
-									Type:       version.PythonFormat.String(),
+									Type:       "python",
 									Constraint: "= 1.26.16",
 								},
 								Fix: &db.Fix{
@@ -574,7 +573,7 @@ func Test_GetPackageHandles(t *testing.T) {
 						Ranges: []db.Range{
 							{
 								Version: db.Version{
-									Type:       version.PythonFormat.String(),
+									Type:       "python",
 									Constraint: "= 2.0.7",
 								},
 								Fix: &db.Fix{

@@ -15,7 +15,7 @@ func TestMetadataParse(t *testing.T) {
 		err      bool
 	}{
 		{
-			fixture: "test-fixtures/metadata-gocase",
+			fixture: "testdata/metadata-gocase",
 			expected: &Metadata{
 				Built:    time.Date(2020, 06, 15, 14, 02, 36, 0, time.UTC),
 				Version:  2,
@@ -23,7 +23,7 @@ func TestMetadataParse(t *testing.T) {
 			},
 		},
 		{
-			fixture: "test-fixtures/metadata-edt-timezone",
+			fixture: "testdata/metadata-edt-timezone",
 			expected: &Metadata{
 				Built:    time.Date(2020, 06, 15, 18, 02, 36, 0, time.UTC),
 				Version:  2,

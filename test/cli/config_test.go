@@ -15,7 +15,7 @@ func Test_configLoading(t *testing.T) {
 	cwd, err := os.Getwd()
 	require.NoError(t, err)
 
-	configsDir := filepath.Join(cwd, "test-fixtures", "configs")
+	configsDir := filepath.Join(cwd, "testdata", "configs")
 	path := func(path string) string {
 		return filepath.Join(configsDir, filepath.Join(strings.Split(path, "/")...))
 	}

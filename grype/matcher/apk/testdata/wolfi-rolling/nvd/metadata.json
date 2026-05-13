@@ -1,0 +1,19 @@
+{
+  "provider": "nvd",
+  "version": 2,
+  "processor": "vunnel@0.56.0.post18+f819175",
+  "schema": {
+    "version": "1.0.3",
+    "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
+  },
+  "urls": [
+    "https://services.nvd.nist.gov/rest/json/cves/2.0"
+  ],
+  "timestamp": "2026-05-04T08:54:11Z",
+  "listing": {
+    "path": "results/listing.xxh64",
+    "digest": "7252b0567922585c",
+    "algorithm": "xxh64"
+  },
+  "store": "flat-file"
+}

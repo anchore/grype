@@ -13,6 +13,7 @@ import (
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/nvd"
 	"github.com/anchore/grype/grype/db/provider"
 	db "github.com/anchore/grype/grype/db/v6"
+	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 )
 
@@ -55,7 +56,7 @@ func TestTransform(t *testing.T) {
 	}{
 		{
 			name:     "basic version range",
-			fixture:  "test-fixtures/version-range.json",
+			fixture:  "testdata/version-range.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -144,7 +145,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "with fix version information",
-			fixture:  "test-fixtures/fix-version.json",
+			fixture:  "testdata/fix-version.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -243,7 +244,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "mismatched fix info",
-			fixture:  "test-fixtures/fix-wrong-version.json",
+			fixture:  "testdata/fix-wrong-version.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -337,7 +338,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "single package, multiple distros",
-			fixture:  "test-fixtures/single-package-multi-distro.json",
+			fixture:  "testdata/single-package-multi-distro.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -477,7 +478,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "single package, multiple distros (application types only)",
-			fixture:  "test-fixtures/single-package-multi-distro.json",
+			fixture:  "testdata/single-package-multi-distro.json",
 			provider: "nvd",
 			config: func() Config {
 				c := defaultConfig()
@@ -573,7 +574,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "multiple packages, multiple distros",
-			fixture:  "test-fixtures/compound-pkg.json",
+			fixture:  "testdata/compound-pkg.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -660,7 +661,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "invalid CPE",
-			fixture:  "test-fixtures/invalid_cpe.json",
+			fixture:  "testdata/invalid_cpe.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -724,7 +725,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "basic platform CPE",
-			fixture:  "test-fixtures/platform-cpe.json",
+			fixture:  "testdata/platform-cpe.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -782,7 +783,9 @@ func TestTransform(t *testing.T) {
 								Ranges: []db.Range{
 									{
 										// match all versions
-										Version: db.Version{Constraint: ""},
+										Version: db.Version{
+											Constraint: "",
+										},
 									},
 								},
 							},
@@ -799,7 +802,9 @@ func TestTransform(t *testing.T) {
 								Ranges: []db.Range{
 									{
 										// match all versions
-										Version: db.Version{Constraint: ""},
+										Version: db.Version{
+											Constraint: "",
+										},
 									},
 								},
 							},
@@ -846,7 +851,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "multiple platform CPEs for single package",
-			fixture:  "test-fixtures/cve-2022-0543.json",
+			fixture:  "testdata/cve-2022-0543.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -951,7 +956,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "multiple platform CPEs for single package + fix and OS match",
-			fixture:  "test-fixtures/cve-2020-10729.json",
+			fixture:  "testdata/cve-2020-10729.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -1071,7 +1076,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "application type as platform CPE",
-			fixture:  "test-fixtures/multiple-platforms-with-application-cpe.json",
+			fixture:  "testdata/multiple-platforms-with-application-cpe.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -1169,7 +1174,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "can process entries when the platform CPE is first",
-			fixture:  "test-fixtures/CVE-2023-45283-platform-cpe-first.json",
+			fixture:  "testdata/CVE-2023-45283-platform-cpe-first.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -1285,7 +1290,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "can process entries when the platform CPE is last",
-			fixture:  "test-fixtures/CVE-2023-45283-platform-cpe-last.json",
+			fixture:  "testdata/CVE-2023-45283-platform-cpe-last.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -1402,7 +1407,7 @@ func TestTransform(t *testing.T) {
 		{
 			name: "a simple list of OS matches",
 			// note: this was modified relative to the upstream data to account for additional interesting cases
-			fixture:  "test-fixtures/cve-2024-26663-standalone-os.json",
+			fixture:  "testdata/cve-2024-26663-standalone-os.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -1513,7 +1518,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "drops nodes with unsupported topology",
-			fixture:  "test-fixtures/cve-2021-1566.json",
+			fixture:  "testdata/cve-2021-1566.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -1586,7 +1591,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "considers non-standard CPE fields",
-			fixture:  "test-fixtures/CVE-2008-3442.json",
+			fixture:  "testdata/CVE-2008-3442.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -1678,7 +1683,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "https://github.com/anchore/grype/issues/2807#issuecomment-3101447594",
-			fixture:  "test-fixtures/CVE-2004-0377.json",
+			fixture:  "testdata/CVE-2004-0377.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -1742,7 +1747,7 @@ func TestTransform(t *testing.T) {
 		},
 		{
 			name:     "JVM packages version format detection",
-			fixture:  "test-fixtures/jvm-packages.json",
+			fixture:  "testdata/jvm-packages.json",
 			provider: "nvd",
 			config:   defaultConfig(),
 			want: []transformers.RelatedEntries{
@@ -1863,6 +1868,293 @@ func TestTransform(t *testing.T) {
 							CVE:    "CVE-2023-JVM-TEST",
 							CWE:    "CWE-79",
 							Source: "nvd@nist.gov",
+							Type:   "Primary",
+						},
+					),
+				},
+			},
+		},
+		{
+			name:     "Affected package handles and affected CPE handles",
+			fixture:  "testdata/CVE-2026-25076-affected-package-handles.json",
+			provider: "nvd",
+			config:   defaultConfig(),
+			want: []transformers.RelatedEntries{
+				{
+					VulnerabilityHandle: &db.VulnerabilityHandle{
+						Name:          "CVE-2026-25076",
+						ProviderID:    "nvd",
+						Provider:      expectedProvider("nvd"),
+						ModifiedDate:  timeRef(time.Date(2026, 3, 16, 14, 54, 11, 293000000, time.UTC)),
+						PublishedDate: timeRef(time.Date(2026, 3, 13, 19, 54, 18, 827000000, time.UTC)),
+						Status:        db.VulnerabilityAnalyzing,
+						BlobValue: &db.VulnerabilityBlob{
+							ID:          "CVE-2026-25076",
+							Assigners:   []string{"disclosure@vulncheck.com"},
+							Description: "Anchore Enterprise versions before 5.25.1 contain an SQL injection vulnerability in the GraphQL Reports API. An authenticated attacker that is able to access the GraphQL API could execute arbitrary SQL instructions resulting in modifications to the data contained in the Anchore Enterprise database.",
+							References: []db.Reference{
+								{
+									URL: "https://nvd.nist.gov/vuln/detail/CVE-2026-25076",
+								},
+								{
+									URL: "https://anchore.com/platform/",
+								},
+								{
+									URL: "https://docs.anchore.com/current/docs/release_notes/enterprise/5251/",
+								},
+								{
+									URL: "https://www.vulncheck.com/advisories/anchore-enterprise-graphql-reports-api-sql-injection",
+								},
+							},
+							Severities: []db.Severity{
+								{
+									Scheme: db.SeveritySchemeCVSS,
+									Value: db.CVSSSeverity{
+										Vector:  "CVSS:3.1/AV:A/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N",
+										Version: "3.1",
+									},
+									Source: "disclosure@vulncheck.com",
+									Rank:   1,
+								},
+								{
+									Scheme: db.SeveritySchemeCVSS,
+									Value: db.CVSSSeverity{
+										Vector:  "CVSS:4.0/AV:A/AC:L/AT:N/PR:L/UI:N/VC:H/VI:H/VA:N/SC:N/SI:N/SA:N/E:X/CR:X/IR:X/AR:X/MAV:X/MAC:X/MAT:X/MPR:X/MUI:X/MVC:X/MVI:X/MVA:X/MSC:X/MSI:X/MSA:X/S:X/AU:X/R:X/V:X/RE:X/U:X",
+										Version: "4.0",
+									},
+									Source: "disclosure@vulncheck.com",
+									Rank:   2,
+								},
+							},
+						},
+					},
+					Related: relatedEntries(
+						db.AffectedCPEHandle{
+							BlobValue: &db.PackageBlob{
+								CVEs: []string{"CVE-2026-25076"},
+								Ranges: []db.Range{
+									{
+										Version: db.Version{
+											Type:       "python",
+											Constraint: "< 5.25.1",
+										},
+										Fix: &db.Fix{
+											Version: "5.25.1",
+											State:   db.FixedStatus,
+											Detail: &v6.FixDetail{
+												Available: &v6.FixAvailability{
+													Date: timeRef(time.Date(2026, 3, 21, 0, 0, 0, 0, time.UTC)),
+													Kind: "first-observed",
+												},
+											},
+										},
+									},
+								},
+							},
+							CPE: &db.Cpe{
+								Part:            "a",
+								Vendor:          "anchore",
+								Product:         "anchore",
+								SoftwareEdition: "enterprise",
+								TargetSoftware:  "python",
+							},
+						},
+						db.AffectedCPEHandle{
+							BlobValue: &db.PackageBlob{
+								CVEs: []string{"CVE-2026-25076"},
+								Ranges: []db.Range{
+									{
+										Version: db.Version{
+											Type:       "python",
+											Constraint: "< 5.25.1",
+										},
+										Fix: &db.Fix{
+											Version: "5.25.1",
+											State:   db.FixedStatus,
+											Detail: &v6.FixDetail{
+												Available: &v6.FixAvailability{
+													Date: timeRef(time.Date(2026, 3, 21, 0, 0, 0, 0, time.UTC)),
+													Kind: "first-observed",
+												},
+											},
+										},
+									},
+								},
+							},
+							CPE: &db.Cpe{
+								Part:           "a",
+								Vendor:         "anchore",
+								Product:        "anchore_enterprise",
+								TargetSoftware: "python",
+							},
+						},
+						db.AffectedCPEHandle{
+							BlobValue: &db.PackageBlob{
+								CVEs: []string{"CVE-2026-25076"},
+							},
+							CPE: &db.Cpe{
+								Part:           "a",
+								Vendor:         "anchore",
+								Product:        "engine",
+								TargetSoftware: "python",
+							},
+						},
+						db.AffectedCPEHandle{
+							BlobValue: &db.PackageBlob{
+								CVEs: []string{"CVE-2026-25076"},
+								Ranges: []db.Range{
+									{
+										Version: db.Version{
+											Type:       "python",
+											Constraint: "< 5.25.1",
+										},
+										Fix: &db.Fix{
+											Version: "5.25.1",
+											State:   db.FixedStatus,
+											Detail: &v6.FixDetail{
+												Available: &v6.FixAvailability{
+													Date: timeRef(time.Date(2026, 3, 26, 0, 0, 0, 0, time.UTC)),
+													Kind: "first-observed",
+												},
+											},
+										},
+									},
+								},
+							},
+							CPE: &db.Cpe{
+								Part:           "a",
+								Vendor:         "anchore",
+								Product:        "enterprise",
+								TargetSoftware: "python",
+							},
+						},
+						db.AffectedPackageHandle{
+							BlobValue: &db.PackageBlob{
+								CVEs: []string{"CVE-2026-25076"},
+							},
+							Package: &db.Package{
+								Ecosystem: "python",
+								Name:      "anchore-engine",
+								CPEs: []db.Cpe{
+									{
+										Part:           "a",
+										Vendor:         "anchore",
+										Product:        "engine",
+										TargetSoftware: "python",
+									},
+								},
+							},
+						},
+						db.AffectedPackageHandle{
+							BlobValue: &db.PackageBlob{
+								CVEs: []string{"CVE-2026-25076"},
+								Ranges: []db.Range{
+									{
+										Version: db.Version{
+											Type:       "python",
+											Constraint: "< 5.25.1",
+										},
+										Fix: &db.Fix{
+											Version: "5.25.1",
+											State:   db.FixedStatus,
+											Detail: &v6.FixDetail{
+												Available: &v6.FixAvailability{
+													Date: timeRef(time.Date(2026, 3, 21, 0, 0, 0, 0, time.UTC)),
+													Kind: "first-observed",
+												},
+											},
+										},
+									},
+								},
+							},
+							Package: &db.Package{
+								Ecosystem: "python",
+								Name:      "anchore-enterprise",
+								CPEs: []db.Cpe{
+									{
+										Part:            "a",
+										Vendor:          "anchore",
+										Product:         "anchore",
+										SoftwareEdition: "enterprise",
+										TargetSoftware:  "python",
+									},
+								},
+							},
+						},
+						db.AffectedPackageHandle{
+							BlobValue: &db.PackageBlob{
+								CVEs: []string{"CVE-2026-25076"},
+								Ranges: []db.Range{
+									{
+										Version: db.Version{
+											Type:       "python",
+											Constraint: "< 5.25.1",
+										},
+										Fix: &db.Fix{
+											Version: "5.25.1",
+											State:   db.FixedStatus,
+											Detail: &v6.FixDetail{
+												Available: &v6.FixAvailability{
+													Date: timeRef(time.Date(2026, 3, 21, 0, 0, 0, 0, time.UTC)),
+													Kind: "first-observed",
+												},
+											},
+										},
+									},
+								},
+							},
+							Package: &db.Package{
+								Ecosystem: "python",
+								Name:      "anchore-enterprise",
+								CPEs: []db.Cpe{
+									{
+										Part:           "a",
+										Vendor:         "anchore",
+										Product:        "anchore_enterprise",
+										TargetSoftware: "python",
+									},
+								},
+							},
+						},
+						db.AffectedPackageHandle{
+							BlobValue: &db.PackageBlob{
+								CVEs: []string{"CVE-2026-25076"},
+								Ranges: []db.Range{
+									{
+										Version: db.Version{
+											Type:       "python",
+											Constraint: "< 5.25.1",
+										},
+										Fix: &db.Fix{
+											Version: "5.25.1",
+											State:   db.FixedStatus,
+											Detail: &v6.FixDetail{
+												Available: &v6.FixAvailability{
+													Date: timeRef(time.Date(2026, 3, 26, 0, 0, 0, 0, time.UTC)),
+													Kind: "first-observed",
+												},
+											},
+										},
+									},
+								},
+							},
+							Package: &db.Package{
+								Ecosystem: "python",
+								Name:      "anchore-enterprise",
+								CPEs: []db.Cpe{
+									{
+										Part:           "a",
+										Vendor:         "anchore",
+										Product:        "enterprise",
+										TargetSoftware: "python",
+									},
+								},
+							},
+						},
+						db.CWEHandle{
+							CVE:    "CVE-2026-25076",
+							CWE:    "CWE-89",
+							Source: "disclosure@vulncheck.com",
 							Type:   "Primary",
 						},
 					),

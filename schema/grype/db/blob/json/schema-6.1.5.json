@@ -151,8 +151,8 @@
         "platform_cpes": {
           "description": "lists Common Platform Enumeration (CPE) identifiers for affected platforms."
         },
-        "rootio": {
-          "description": "indicates that the vulnerability applies only to Root IO packages (packages with Root IO fixes).\nWhen true, standard packages will not match this vulnerability (NAK pattern)."
+        "rpm_arch": {
+          "description": "is the architecture of the affected RPM, copied from the source PURL's `arch`\nqualifier when present (e.g. 'src', 'x86_64') or set to a synthesized sentinel like\n'binary-no-arch-specified' when a binary RPM was disclosed without an explicit arch.\nUpstream-indirected RPM matches drop entries tagged with any arch other than 'src',\nso providers that disclose at binary granularity (e.g. hummingbird CSAF VEX) avoid\nFP-matching unrelated sibling binaries built from the same source. See\npkg/qualifier/rpmarch for the constants."
         },
         "rpm_modularity": {
           "description": "indicates if the package follows RPM modularity for versioning."
@@ -168,8 +168,8 @@
           },
           "type": "array"
         },
-        "rootio": {
-          "type": "boolean"
+        "rpm_arch": {
+          "type": "string"
         }
       },
       "type": "object"

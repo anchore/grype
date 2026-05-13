@@ -3,6 +3,7 @@ package pkg
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/bmatcuk/doublestar/v2"
@@ -44,7 +45,73 @@ func Provide(userInput string, config ProviderConfig) ([]Package, Context, *sbom
 		}
 	}
 
-	return packages, ctx, s, nil
+	packages = removePackagesByOverlap(packages)
+
+	return FromPtrs(packages), ctx, s, nil
+}
+
+// ProvideFromReader is like Provide but reads an SBOM directly from the given reader
+// instead of resolving a user input string to a file path.
+func ProvideFromReader(reader io.ReadSeeker, config ProviderConfig) ([]Package, Context, *sbom.SBOM, error) {
+	applyChannel := getDistroChannelApplier(config.Distro.FixChannels)
+	if config.Distro.Override != nil {
+		applyChannel(config.Distro.Override)
+		log.Infof("using distro: %s", config.Distro.Override.String())
+	}
+
+	packages, ctx, s, err := syftSBOMProviderFromReader(reader, config, applyChannel)
+	if err != nil {
+		return nil, Context{}, nil, err
+	}
+	setContextDistro(packages, &ctx)
+
+	if ctx.Distro != nil {
+		for i := range packages {
+			if packages[i].Distro == nil {
+				packages[i].Distro = ctx.Distro
+			}
+		}
+
+		if config.Distro.Override == nil {
+			log.Infof("using distro: %s", ctx.Distro.String())
+		}
+	}
+
+	packages = removePackagesByOverlap(packages)
+
+	if len(config.Exclusions) > 0 {
+		var exclusionsErr error
+		packages, exclusionsErr = filterPackageExclusions(packages, config.Exclusions)
+		if exclusionsErr != nil {
+			return nil, ctx, s, exclusionsErr
+		}
+	}
+
+	return FromPtrs(packages), ctx, s, nil
+}
+
+// FromPtrs converts a slice of Package pointers to a slice of Package structs,
+// including re-pointing related package pointers to the corresponding struct within the slice
+func FromPtrs(packages []*Package) []Package {
+	if len(packages) == 0 {
+		return nil
+	}
+	out := make([]Package, len(packages))
+	pkgIdx := make(map[*Package]int, len(packages))
+	for i, p := range packages {
+		pkgIdx[p] = i
+		out[i] = *p
+	}
+	for i := range out {
+		for m := range out[i].RelatedPackages {
+			for relatedIdx, p := range out[i].RelatedPackages[m] {
+				if idx, ok := pkgIdx[p]; ok {
+					out[i].RelatedPackages[m][relatedIdx] = &out[idx]
+				}
+			}
+		}
+	}
+	return out
 }
 
 // buildChannelIndex creates a map of distro IDs to their applicable fix channels
@@ -134,16 +201,16 @@ func applyChannelsToDistro(d *distro.Distro, channels distro.FixChannels) bool {
 }
 
 // Provide a set of packages and context metadata describing where they were sourced from.
-func provide(userInput string, config ProviderConfig, applyChannel func(d *distro.Distro) bool) ([]Package, Context, *sbom.SBOM, error) {
+func provide(userInput string, config ProviderConfig, applyChannel func(d *distro.Distro) bool) ([]*Package, Context, *sbom.SBOM, error) {
 	packages, ctx, s, err := purlProvider(userInput, config, applyChannel)
 	if !errors.Is(err, errDoesNotProvide) {
 		log.WithFields("input", userInput).Trace("interpreting input as one or more PURLs")
 		return packages, ctx, s, err
 	}
 
-	packages, ctx, s, err = cpeProvider(userInput)
+	packages, ctx, s, err = cpeProvider(userInput, config)
 	if !errors.Is(err, errDoesNotProvide) {
-		log.WithFields("input", userInput).Trace("interpreting input as a CPE")
+		log.WithFields("input", userInput).Trace("interpreting input as a one or more CPEs")
 		return packages, ctx, s, err
 	}
 
@@ -167,8 +234,8 @@ func provide(userInput string, config ProviderConfig, applyChannel func(d *distr
 // This will filter the provided packages list based on a set of exclusion expressions. Globs
 // are allowed for the exclusions. A package will be *excluded* only if *all locations* match
 // one of the provided exclusions.
-func filterPackageExclusions(packages []Package, exclusions []string) ([]Package, error) {
-	var out []Package
+func filterPackageExclusions(packages []*Package, exclusions []string) ([]*Package, error) {
+	var out []*Package
 	for _, pkg := range packages {
 		includePackage := true
 		locations := pkg.Locations.ToSlice()
@@ -213,7 +280,7 @@ func locationMatches(location file.Location, exclusion string) (bool, error) {
 	return matchesRealPath || matchesVirtualPath, nil
 }
 
-func setContextDistro(packages []Package, ctx *Context) {
+func setContextDistro(packages []*Package, ctx *Context) {
 	if ctx.Distro != nil {
 		return
 	}

@@ -74,7 +74,7 @@ func assertNotInOutput(notWanted string) traitAssertion {
 
 func assertJsonReport(tb testing.TB, stdout, _ string, _ int) {
 	tb.Helper()
-	var data interface{}
+	var data any
 
 	if err := json.Unmarshal([]byte(stdout), &data); err != nil {
 		tb.Errorf("expected to find a JSON report, but was unmarshalable: %+v", err)

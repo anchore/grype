@@ -7,7 +7,7 @@ import (
 	"io"
 )
 
-func unmarshalSingleOrMulti[T interface{}](reader io.Reader) ([]T, error) {
+func unmarshalSingleOrMulti[T any](reader io.Reader) ([]T, error) {
 	var entry T
 
 	var buf bytes.Buffer

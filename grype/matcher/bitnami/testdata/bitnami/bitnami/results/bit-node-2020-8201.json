@@ -1,0 +1,101 @@
+{
+  "identifier": "bit-node-2020-8201",
+  "item": {
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "Bitnami",
+          "name": "node",
+          "purl": "pkg:bitnami/node"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2024-03-06",
+                    "kind": "advisory",
+                    "version": "12.18.4"
+                  },
+                  {
+                    "date": "2024-03-06",
+                    "kind": "advisory",
+                    "version": "14.11.0"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "12.0.0"
+              },
+              {
+                "fixed": "12.18.4"
+              },
+              {
+                "introduced": "14.0.0"
+              },
+              {
+                "fixed": "14.11.0"
+              }
+            ],
+            "type": "SEMVER"
+          }
+        ],
+        "severity": [
+          {
+            "score": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N",
+            "type": "CVSS_V3"
+          }
+        ]
+      }
+    ],
+    "aliases": [
+      "CVE-2020-8201"
+    ],
+    "database_specific": {
+      "cpes": [
+        "cpe:2.3:a:nodejs:node.js:*:*:*:*:*:*:*:*",
+        "cpe:2.3:a:nodejs:node.js:*:*:*:*:lts:*:*:*"
+      ],
+      "severity": "High"
+    },
+    "details": "Node.js \u003c 12.18.4 and \u003c 14.11 can be exploited to perform HTTP desync attacks and deliver malicious payloads to unsuspecting users. The payloads can be crafted by an attacker to hijack user sessions, poison cookies, perform clickjacking, and a multitude of other attacks depending on the architecture of the underlying system. The attack was possible due to a bug in processing of carrier-return symbols in the HTTP header names.",
+    "id": "BIT-node-2020-8201",
+    "modified": "2025-04-03T14:40:37.652Z",
+    "published": "2024-03-06T11:08:09.371Z",
+    "references": [
+      {
+        "type": "WEB",
+        "url": "http://lists.opensuse.org/opensuse-security-announce/2020-10/msg00011.html"
+      },
+      {
+        "type": "WEB",
+        "url": "https://hackerone.com/reports/922597"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/4OOYAMJVLLCLXDTHW3V5UXNULZBBK4O6/"
+      },
+      {
+        "type": "WEB",
+        "url": "https://nodejs.org/en/blog/vulnerability/september-2020-security-releases/"
+      },
+      {
+        "type": "WEB",
+        "url": "https://security.gentoo.org/glsa/202101-07"
+      },
+      {
+        "type": "WEB",
+        "url": "https://security.netapp.com/advisory/ntap-20201009-0004/"
+      },
+      {
+        "type": "WEB",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-8201"
+      }
+    ],
+    "schema_version": "1.5.0"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.5.0.json"
+}

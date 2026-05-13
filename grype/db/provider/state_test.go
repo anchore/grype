@@ -123,7 +123,7 @@ func Test_earliestTimestamp(t *testing.T) {
 }
 
 func requireErrorContains(text string) require.ErrorAssertionFunc {
-	return func(t require.TestingT, err error, msgAndArgs ...interface{}) {
+	return func(t require.TestingT, err error, msgAndArgs ...any) {
 		require.Error(t, err, msgAndArgs...)
 		require.Contains(t, err.Error(), text, msgAndArgs...)
 	}

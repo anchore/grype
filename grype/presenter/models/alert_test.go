@@ -41,14 +41,14 @@ func TestAlertJSONSerialization(t *testing.T) {
 	jsonBytes, err := json.Marshal(alert)
 	require.NoError(t, err)
 
-	var result map[string]interface{}
+	var result map[string]any
 	err = json.Unmarshal(jsonBytes, &result)
 	require.NoError(t, err)
 
 	assert.Equal(t, "distro-eol", result["type"])
 	assert.Equal(t, "Ubuntu 18.04 reached end-of-life on 2023-05-31", result["message"])
 	assert.NotNil(t, result["metadata"])
-	metadata := result["metadata"].(map[string]interface{})
+	metadata := result["metadata"].(map[string]any)
 	assert.Equal(t, "ubuntu", metadata["name"])
 	assert.Equal(t, "18.04", metadata["version"])
 }
@@ -72,17 +72,17 @@ func TestPackageAlertsJSONSerialization(t *testing.T) {
 	jsonBytes, err := json.Marshal(pkgAlerts)
 	require.NoError(t, err)
 
-	var result map[string]interface{}
+	var result map[string]any
 	err = json.Unmarshal(jsonBytes, &result)
 	require.NoError(t, err)
 
-	pkg := result["package"].(map[string]interface{})
+	pkg := result["package"].(map[string]any)
 	assert.Equal(t, "openssl", pkg["name"])
 
-	alerts := result["alerts"].([]interface{})
+	alerts := result["alerts"].([]any)
 	assert.Len(t, alerts, 1)
 
-	alert := alerts[0].(map[string]interface{})
+	alert := alerts[0].(map[string]any)
 	assert.Equal(t, "distro-eol", alert["type"])
 }
 
@@ -96,7 +96,7 @@ func TestAlertDetailsOmitEmpty(t *testing.T) {
 	jsonBytes, err := json.Marshal(alert)
 	require.NoError(t, err)
 
-	var result map[string]interface{}
+	var result map[string]any
 	err = json.Unmarshal(jsonBytes, &result)
 	require.NoError(t, err)
 
