@@ -84,7 +84,7 @@ func bitnamiAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPacka
 	for _, affected := range vuln.Affected {
 		var ranges []db.Range
 		for _, r := range affected.Ranges {
-			ranges = append(ranges, getGrypeRangesFromRange(r, string(affected.Package.Ecosystem))...)
+			ranges = append(ranges, getGrypeRangesFromRange(r, bitnamiRangeType(r.Type))...)
 		}
 		aphs = append(aphs, db.AffectedPackageHandle{
 			Package: bitnamiPackage(affected.Package),
@@ -104,4 +104,14 @@ func bitnamiPackage(p models.Package) *db.Package {
 		Ecosystem: string(p.Ecosystem),
 		Name:      name.Normalize(p.Name, pkgType),
 	}
+}
+
+// bitnamiRangeType maps an OSV range type to the grype version-format string
+// for Bitnami records. SEMVER ranges describe bitnami-flavored semver
+// (separate version comparator); other OSV types fall through to the default.
+func bitnamiRangeType(t models.RangeType) string {
+	if t == models.RangeSemVer {
+		return "bitnami"
+	}
+	return defaultRangeType(t)
 }

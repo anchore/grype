@@ -109,7 +109,7 @@ func almaUnaffectedPackages(vuln unmarshal.OSVVulnerability) []db.UnaffectedPack
 func almaUnaffectedBlob(vuln unmarshal.OSVVulnerability, affected models.Affected) *db.PackageBlob {
 	var ranges []db.Range
 	for _, r := range affected.Ranges {
-		ranges = append(ranges, getGrypeUnaffectedRangesFromRange(r, string(affected.Package.Ecosystem))...)
+		ranges = append(ranges, getGrypeUnaffectedRangesFromRange(r, almaRangeType(r.Type))...)
 	}
 
 	var qualifiers *db.PackageQualifiers
@@ -134,6 +134,36 @@ func almaPackage(p models.Package) *db.Package {
 		Ecosystem: pkg.RpmPkg.String(),
 		Name:      name.Normalize(p.Name, pkg.RpmPkg),
 	}
+}
+
+// almaRangeType maps an OSV range type to the grype version-format string for
+// AlmaLinux records. ECOSYSTEM ranges describe RPM versions ("rpm" format);
+// other OSV types fall through to the default mapping. AlmaLinux records in
+// practice only use ECOSYSTEM, but the fallback is here so unexpected shapes
+// don't silently become "unknown".
+func almaRangeType(t models.RangeType) string {
+	if t == models.RangeEcosystem {
+		return pkg.RpmPkg.String()
+	}
+	return defaultRangeType(t)
+}
+
+// extractRpmModularity reads ecosystem_specific.rpm_modularity from an OSV
+// affected entry. Only alma emits this in the OSV records we currently
+// consume; other strategies don't have a use for it.
+func extractRpmModularity(affected models.Affected) string {
+	if affected.EcosystemSpecific == nil {
+		return ""
+	}
+	v, ok := affected.EcosystemSpecific["rpm_modularity"]
+	if !ok {
+		return ""
+	}
+	s, ok := v.(string)
+	if !ok {
+		return ""
+	}
+	return s
 }
 
 func almaOSFromEcosystem(ecosystem string) *db.OperatingSystem {

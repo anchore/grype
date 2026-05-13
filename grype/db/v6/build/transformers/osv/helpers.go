@@ -11,7 +11,6 @@ import (
 	"github.com/anchore/grype/grype/db/internal/versionutil"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
-	"github.com/anchore/syft/syft/pkg"
 )
 
 // Shared helpers used by multiple OSV strategies. Per-provider decisions live
@@ -60,7 +59,12 @@ import (
 // in grype/version can evaluate git-ref constraints, so any range stored as
 // Type: "git" is effectively unmatchable at runtime. Preserving current
 // pass-through behavior — fixing requires runtime work, not transformer work.
-func getGrypeRangesFromRange(r models.Range, ecosystem string) []db.Range { // nolint: gocognit,funlen
+//
+// rangeType is the grype-side range-format string (e.g. "rpm", "bitnami",
+// "semver") — the caller decides this per-provider, since the same OSV
+// RangeType maps differently across providers. See each strategy's own
+// rangeType() function in transform_<provider>.go.
+func getGrypeRangesFromRange(r models.Range, rangeType string) []db.Range { // nolint: gocognit,funlen
 	var ranges []db.Range
 	if len(r.Events) == 0 {
 		return nil
@@ -76,7 +80,6 @@ func getGrypeRangesFromRange(r models.Range, ecosystem string) []db.Range { // n
 	}
 
 	fixByVersion := extractFixAvailability(r)
-	rangeType := normalizeRangeType(r.Type, ecosystem)
 
 	for _, e := range r.Events {
 		switch {
@@ -120,12 +123,14 @@ func getGrypeRangesFromRange(r models.Range, ecosystem string) []db.Range { // n
 	return ranges
 }
 
-func getGrypeUnaffectedRangesFromRange(r models.Range, ecosystem string) []db.Range {
+// getGrypeUnaffectedRangesFromRange inverts the OSV range events into
+// "unaffected" ranges for advisory records. rangeType is the grype-side format
+// string supplied by the calling strategy (see strategy rangeType() helpers).
+func getGrypeUnaffectedRangesFromRange(r models.Range, rangeType string) []db.Range {
 	if len(r.Events) == 0 {
 		return nil
 	}
 	fixByVersion := extractFixAvailability(r)
-	rangeType := normalizeRangeType(r.Type, ecosystem)
 	return buildUnaffectedRangesFromEvents(r.Events, fixByVersion, rangeType)
 }
 
@@ -149,17 +154,10 @@ func normalizeFix(fix string, detail *db.FixDetail) *db.Fix {
 	}
 }
 
-// normalizeRangeType maps an OSV range type to the format string used by the
-// grype version matcher. The ecosystem-specific overrides (Bitnami → "bitnami",
-// AlmaLinux ECOSYSTEM → "rpm") are kept here as shared logic; new strategies
-// that need similar overrides can extend the switch.
-func normalizeRangeType(t models.RangeType, ecosystem string) string {
-	if ecosystem == "Bitnami" && t == models.RangeSemVer {
-		return "bitnami"
-	}
-	if strings.HasPrefix(strings.ToLower(ecosystem), almaLinux) && t == models.RangeEcosystem {
-		return pkg.RpmPkg.String()
-	}
+// defaultRangeType is the generic OSV range-type → grype format mapping with
+// no provider-specific overrides. Strategies use this as the fallback for OSV
+// range types they don't have a special interpretation for.
+func defaultRangeType(t models.RangeType) string {
 	switch t {
 	case models.RangeSemVer, models.RangeEcosystem, models.RangeGit:
 		return strings.ToLower(string(t))
@@ -292,26 +290,4 @@ func getSeverities(vuln unmarshal.OSVVulnerability) ([]db.Severity, error) {
 		}
 	}
 	return severities, nil
-}
-
-// ============================================================================
-// Misc helpers shared by strategies
-// ============================================================================
-
-// extractRpmModularity reads ecosystem_specific.rpm_modularity from an OSV
-// affected entry. Currently only alma emits this, but the parser is shared
-// because the shape is generic (string-valued ecosystem_specific key).
-func extractRpmModularity(affected models.Affected) string {
-	if affected.EcosystemSpecific == nil {
-		return ""
-	}
-	v, ok := affected.EcosystemSpecific["rpm_modularity"]
-	if !ok {
-		return ""
-	}
-	s, ok := v.(string)
-	if !ok {
-		return ""
-	}
-	return s
 }
