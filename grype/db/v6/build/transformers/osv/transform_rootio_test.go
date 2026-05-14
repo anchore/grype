@@ -1,7 +1,6 @@
 package osv
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/google/osv-scanner/pkg/models"
@@ -17,7 +16,7 @@ import (
 //
 //   - ROOT-OS-ALPINE-318: apk package with Alpine OS metadata
 //   - ROOT-OS-DEBIAN-bookworm: deb package with Debian OS metadata (numeric ver)
-//   - ROOT-OS-UBUNTU-2004: deb package with Ubuntu OS metadata
+//   - ROOT-OS-UBUNTU-2204: deb package with Ubuntu OS metadata
 //   - ROOT-APP-NPM: npm language package (no OS metadata, name with @scope)
 //   - ROOT-APP-PYPI: python language package (PEP 503 name normalization)
 //
@@ -38,10 +37,8 @@ func TestRootioTransform(t *testing.T) {
 		expectedFixVersion string
 	}{
 		// Expected names are the rootio-prefixed names verbatim from the OSV
-		// records — preserving the contributor's intent for this merge commit.
-		// A maintainer-authored follow-up commit may switch the storage shape
-		// (e.g. to AffectedPackageHandle with the same prefixed names) once
-		// the design is settled.
+		// records; runtime fanout in db/v6/name strips the prefix when
+		// looking up upstream disclosures.
 		{
 			name:               "Root IO Alpine OS package",
 			fixturePath:        "testdata/ROOT-OS-ALPINE-318-CVE-2000-0548.json",
@@ -69,14 +66,14 @@ func TestRootioTransform(t *testing.T) {
 			fixturePath:        "testdata/ROOT-OS-DEBIAN-bookworm-CVE-2025-53014.json",
 			expectedPkgName:    "rootio-imagemagick",
 			expectedCVE:        "CVE-2025-53014",
-			expectedFixVersion: "8:7.1.1.43+dfsg1-1+deb13u1.root.io.1",
+			expectedFixVersion: "8:6.9.11.60+dfsg-1.6+deb12u3.root.io.1",
 		},
 		{
 			name:               "Root IO Ubuntu package",
-			fixturePath:        "testdata/ROOT-OS-UBUNTU-2004-CVE-2024-12345.json",
-			expectedPkgName:    "rootio-openssl",
-			expectedCVE:        "CVE-2024-12345",
-			expectedFixVersion: "1.1.1f-1ubuntu2.root.io.1",
+			fixturePath:        "testdata/ROOT-OS-UBUNTU-2204-CVE-2025-68973.json",
+			expectedPkgName:    "rootio-gnupg2",
+			expectedCVE:        "CVE-2025-68973",
+			expectedFixVersion: "2.2.27-3ubuntu2.4.root.io.1",
 		},
 	}
 
@@ -177,14 +174,14 @@ func TestRootioStrategy_Matches(t *testing.T) {
 		id   string
 		want bool
 	}{
-		{"ROOT-OS-UBUNTU-2004-CVE-2024-12345", true},
+		{"ROOT-OS-UBUNTU-2204-CVE-2025-68973", true},
 		{"ROOT-OS-DEBIAN-bookworm-CVE-2025-53014", true},
 		{"ROOT-OS-ALPINE-318-CVE-2000-0548", true},
 		{"ROOT-APP-NPM-CVE-2022-25883", true},
 		{"ROOT-APP-PYPI-CVE-2025-30473", true},
 		{"ALSA-2025:7467", false},
 		{"BIT-apache-2020-11984", false},
-		{"CVE-2024-12345", false},
+		{"CVE-2025-68973", false},
 		{"", false},
 	}
 	for _, tt := range tests {
@@ -198,8 +195,9 @@ func TestRootioStrategy_Matches(t *testing.T) {
 
 // TestRootioPackageType covers the ecosystem-to-package-type mapping for the
 // language ecosystems (npm, PyPI, Maven) and the OS ecosystems (Alpine,
-// Debian, Ubuntu) that rootio emits. PURL-driven detection is exercised via
-// the fixture-driven TestRootioTransform.
+// Debian, Ubuntu) that rootio emits. Rootio OSV records don't carry PURLs
+// (verified against the full vunnel rootio cache), so the ecosystem string
+// is the only input.
 func TestRootioPackageType(t *testing.T) {
 	tests := []struct {
 		ecosystem string
@@ -222,9 +220,9 @@ func TestRootioPackageType(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.ecosystem, func(t *testing.T) {
-			got := rootioEcosystemPackageType(tt.ecosystem)
+			got := rootioPackageType(tt.ecosystem)
 			if string(got) != tt.want {
-				t.Errorf("rootioEcosystemPackageType(%q) = %q, want %q", tt.ecosystem, got, tt.want)
+				t.Errorf("rootioPackageType(%q) = %q, want %q", tt.ecosystem, got, tt.want)
 			}
 		})
 	}
@@ -309,8 +307,3 @@ func TestRootioOSFromEcosystem(t *testing.T) {
 		})
 	}
 }
-
-// compile-time guard: keep reflect import in use even if assertions evolve
-// (some prior test variants used reflect.DeepEqual; leaving it imported keeps
-// future helper additions friction-free).
-var _ = reflect.DeepEqual

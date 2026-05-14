@@ -1,0 +1,6 @@
+auto-generate: false
+extractions:
+    github:
+        - github:java/ghsa-jmp9-x22r-554x
+    rootio:
+        - root-app-maven-cve-2025-41249

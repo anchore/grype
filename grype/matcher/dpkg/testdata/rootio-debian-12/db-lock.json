@@ -1,10 +1,15 @@
 {
-  "content_hash": "b8134769630f2d3f",
+  "content_hash": "9214fc6eecf66e82",
   "created_at": "2026-05-13T20:21:07.931257682Z",
+  "regenerated_at": "2026-05-14T15:27:53.017808699Z",
   "providers": {
     "debian": {
       "vunnel_version": "vunnel@0.56.0.post18+f819175",
       "timestamp": "2026-05-13T00:47:48.106637Z"
+    },
+    "rootio": {
+      "vunnel_version": "vunnel@0.57.0.post18+78d270b",
+      "timestamp": "2026-05-14T13:02:57.145956Z"
     }
   }
 }

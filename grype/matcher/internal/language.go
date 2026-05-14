@@ -26,14 +26,9 @@ func MatchPackageByLanguage(store vulnerability.Provider, p pkg.Package, matcher
 	unaffected := result.Set{}
 
 	// Gather disclosures and unaffected entries across every name the
-	// provider claims for p, THEN run the cross-name Remove. The earlier
-	// shape did one Remove per name inside MatchPackageByEcosystemPackageName
-	// and merged the survivors — that worked when a package only had one
-	// search name, but it siloed the NAK from one name search away from a
-	// disclosure found under another name. The rootio fanout depends on
-	// reaching across names (NAK keyed under `rootio-foo`, disclosure
-	// keyed under `foo`), so the cross-name Remove has to run after all
-	// the lookups finish.
+	// provider claims for p, then run the cross-name Remove. Doing the
+	// Remove per-name would silo a NAK keyed under one name (e.g.
+	// `rootio-foo`) away from a disclosure keyed under another (`foo`).
 	for _, name := range store.PackageSearchNames(p) {
 		criteria := []vulnerability.Criteria{
 			search.ByEcosystem(p.Language, p.Type),

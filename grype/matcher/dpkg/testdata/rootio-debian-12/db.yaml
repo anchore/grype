@@ -1,7 +1,8 @@
 auto-generate: true
 extractions:
     debian:
-        - root-os-debian-12-cve-2025-12817
-        - root-os-debian-12-cve-2025-48060
         - debian:12/cve-2025-12817
         - debian:12/cve-2025-48060
+    rootio:
+        - root-os-debian-12-cve-2025-12817
+        - root-os-debian-12-cve-2025-48060

@@ -1,7 +1,8 @@
 auto-generate: true
 extractions:
     github:
-        - root-app-pypi-cve-2023-25691
-        - root-app-pypi-cve-2025-64439
         - github:python/ghsa-8g23-2q5p-8866
         - github:python/ghsa-wwqv-p2pp-99h5
+    rootio:
+        - root-app-pypi-cve-2023-25691
+        - root-app-pypi-cve-2025-64439

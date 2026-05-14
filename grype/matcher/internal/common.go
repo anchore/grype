@@ -9,14 +9,10 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-// MatchPackageByEcosystemAndCPEs runs the ecosystem-by-name search and (if
-// enabled) the CPE search, then combines the results. Earlier this function
-// looped over PackageSearchNames itself and called a per-name helper that
-// ran its own Remove for each name — that pattern siloed cross-name NAK
-// suppression (the rootio NAK on "rootio-foo" couldn't reach a disclosure
-// keyed under "foo" because the Remove ran inside each name's silo). The
-// loop and the cross-name Remove now live in MatchPackageByLanguage, which
-// this function delegates to.
+// MatchPackageByEcosystemAndCPEs runs the ecosystem-by-name search (via
+// MatchPackageByLanguage, which handles the multi-name fanout and cross-name
+// NAK Remove internally) and, if enabled, the CPE search, then combines the
+// results.
 func MatchPackageByEcosystemAndCPEs(store vulnerability.Provider, p pkg.Package, matcher match.MatcherType, includeCPEs bool) ([]match.Match, []match.IgnoreFilter, error) {
 	matches, ignored, err := MatchPackageByLanguage(store, p, matcher)
 	if err != nil {

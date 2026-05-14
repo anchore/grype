@@ -16,6 +16,7 @@ import (
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
 	"github.com/anchore/grype/grype/db/v6/name"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/pkg"
 )
 
@@ -27,7 +28,7 @@ import (
 //
 // Rootio-specific decisions:
 //   - The ID prefix distinguishes the sub-domain:
-//     ROOT-OS-<distro>-<version>-CVE-* → distro package (apk/deb/rpm) with OS
+//     ROOT-OS-<distro>-<version>-CVE-* → distro package (apk/deb) with OS
 //     metadata; ROOT-APP-<ecosystem>-CVE-* → language package (npm/python/java).
 //   - CVEs may live in `aliases`, `related`, or both. The vulnerability blob's
 //     Aliases is the union; the same union is used for UnaffectedPackageHandle
@@ -103,7 +104,17 @@ func rootioUnaffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string)
 	var uphs []db.UnaffectedPackageHandle
 	for _, affected := range vuln.Affected {
 		ecosystem := string(affected.Package.Ecosystem)
-		pkgType := rootioPackageType(affected.Package)
+		pkgType := rootioPackageType(ecosystem)
+		if pkgType == "" {
+			// rootio ships occasional records for ecosystems the transformer
+			// hasn't been taught about (Go, NuGet, the synthetic
+			// Root:Ubuntu:plucky test record). Storing them would emit DB
+			// entries the matcher can't use; skip with a warning so the
+			// drift is visible.
+			log.WithFields("id", vuln.ID, "ecosystem", ecosystem, "package", affected.Package.Name).
+				Warn("rootio record uses an unsupported ecosystem; skipping (add a case to rootioPackageType to enable)")
+			continue
+		}
 
 		var ranges []db.Range
 		for _, r := range affected.Ranges {
@@ -130,18 +141,13 @@ func rootioUnaffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string)
 	return uphs
 }
 
-// rootioPackageType resolves the grype package type from PURL (preferred when
-// present) or from the ecosystem string. Root IO ecosystems:
+// rootioPackageType resolves the grype package type from the OSV ecosystem
+// string. Root IO records don't carry PURLs (verified empirically against
+// the full vunnel rootio cache), so this is the only signal.
+//
 //   - language: "npm", "PyPI"/"pip"/"python", "Maven"/"java"
 //   - OS: "Alpine:<ver>", "Debian:<ver>", "Ubuntu:<ver>"
-func rootioPackageType(p models.Package) pkg.Type {
-	if p.Purl != "" {
-		return pkg.TypeFromPURL(p.Purl)
-	}
-	return rootioEcosystemPackageType(string(p.Ecosystem))
-}
-
-func rootioEcosystemPackageType(ecosystem string) pkg.Type {
+func rootioPackageType(ecosystem string) pkg.Type {
 	if ecosystem == "" {
 		return ""
 	}
@@ -166,26 +172,18 @@ func rootioEcosystemPackageType(ecosystem string) pkg.Type {
 	return ""
 }
 
-// rootioPackage builds the db.Package, preserving the rootio-prefixed name
-// from the OSV record verbatim (e.g. "rootio-util-linux", "@rootio/semver").
-// This is a faithful port of the contributor's intent.
+// rootioPackage builds the db.Package, leaving the rootio-prefixed name from
+// the OSV record verbatim (e.g. "rootio-util-linux", "@rootio/semver"); the
+// matcher fans out to the bare upstream name at lookup time via
+// db/v6/name.PackageNames, so without the prefix the NAK record could not
+// reach upstream disclosures keyed under the unprefixed name.
 //
-// NOTE: this storage shape — UnaffectedPackageHandle keyed by the rootio-
-// prefixed name — requires either a cross-name fanout at match time (the
-// contributor's removed matcher.go additions) or a different design (e.g.
-// AffectedPackageHandle with the same prefixed name, letting the name
-// itself act as the discriminator). The design choice is intentionally
-// deferred to a maintainer-authored follow-up commit; this merge commit
-// preserves the contributor's structural intent in the new strategy pattern
-// without resolving it.
-//
-// Ecosystem: if PURL is present, ecosystem is preserved verbatim (e.g.
-// "Ubuntu:20.04"). If only ecosystem is present, it's canonicalized to the
-// grype package-type string (e.g. "PyPI" → "python", "Alpine:3.18" → "apk").
-// Name is normalized per the package type (e.g. PEP 503 for PythonPkg).
+// Ecosystem is canonicalized to the grype package-type string (e.g.
+// "PyPI" → "python", "Alpine:3.18" → "apk"). Name is normalized per the
+// package type (e.g. PEP 503 for PythonPkg).
 func rootioPackage(p models.Package, pkgType pkg.Type) *db.Package {
 	ecosystem := string(p.Ecosystem)
-	if p.Purl == "" && pkgType != "" {
+	if pkgType != "" {
 		ecosystem = pkgType.String()
 	}
 	return &db.Package{

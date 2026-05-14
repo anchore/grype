@@ -1,8 +1,10 @@
 package name
 
 import (
+	"slices"
+
+	"github.com/anchore/grype/grype/internal/rootio"
 	grypePkg "github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/pkg/qualifier/rootio"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -42,29 +44,32 @@ func PackageNames(p grypePkg.Package) []string {
 			names = parts
 		}
 	}
-	if rootio.IsRootIOPackage(p) {
+	if rootio.IsPackage(p) {
 		names = appendRootIOStrippedNames(names, p.Type)
 	}
 	return names
 }
 
 // appendRootIOStrippedNames appends the upstream (bare) form of each rootio-
-// prefixed name to the search list, skipping duplicates. The caller asserts
-// IsRootIOPackage(p) before calling; this function trusts that and just
-// strips.
+// prefixed name to the search list, skipping duplicates and empty results.
+// The caller is responsible for first confirming IsPackage(p); this helper
+// trusts that and just strips.
 func appendRootIOStrippedNames(names []string, t syftPkg.Type) []string {
-	seen := make(map[string]bool, len(names)*2)
+	seen := make(map[string]struct{}, len(names)*2)
 	for _, n := range names {
-		seen[n] = true
+		seen[n] = struct{}{}
 	}
-	out := names
+	out := slices.Clone(names)
 	for _, n := range names {
 		stripped := rootio.StripPrefix(n, t)
-		if stripped == n || seen[stripped] {
+		if stripped == "" || stripped == n {
+			continue
+		}
+		if _, ok := seen[stripped]; ok {
 			continue
 		}
 		out = append(out, stripped)
-		seen[stripped] = true
+		seen[stripped] = struct{}{}
 	}
 	return out
 }

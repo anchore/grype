@@ -1,7 +1,7 @@
 {
   "provider": "ubuntu",
   "version": 3,
-  "processor": "vunnel@0.55.3.post12+15bf0b9",
+  "processor": "vunnel@0.56.0.post18+f819175",
   "schema": {
     "version": "1.0.3",
     "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
@@ -9,10 +9,10 @@
   "urls": [
     "git://git.launchpad.net/ubuntu-cve-tracker"
   ],
-  "timestamp": "2026-04-23T16:47:19Z",
+  "timestamp": "2026-05-13T09:08:13Z",
   "listing": {
     "path": "results/listing.xxh64",
-    "digest": "2618335d2c978416",
+    "digest": "d8fc69b6c0bbbab0",
     "algorithm": "xxh64"
   },
   "store": "flat-file"

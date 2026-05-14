@@ -1,7 +1,7 @@
 {
   "provider": "rootio",
   "version": 1,
-  "processor": "vunnel@0.55.3.post22+7106ba5",
+  "processor": "vunnel@0.57.0.post18+78d270b",
   "schema": {
     "version": "1.0.3",
     "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
@@ -9,10 +9,10 @@
   "urls": [
     "https://api.root.io/external/osv"
   ],
-  "timestamp": "2026-04-29T10:53:18Z",
+  "timestamp": "2026-05-14T13:02:57Z",
   "listing": {
     "path": "results/listing.xxh64",
-    "digest": "7974c6f36a0c096c",
+    "digest": "1481873f8e64694b",
     "algorithm": "xxh64"
   },
   "store": "flat-file"
