@@ -72,7 +72,7 @@ require (
 	github.com/wagoodman/go-progress v0.0.0-20260303201901-10176f79b2c0
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f
-	golang.org/x/text v0.36.0
+	golang.org/x/text v0.37.0
 	golang.org/x/time v0.15.0
 	golang.org/x/tools v0.44.0
 	gopkg.in/yaml.v3 v3.0.1
