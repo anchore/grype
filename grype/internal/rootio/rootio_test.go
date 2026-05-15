@@ -31,6 +31,18 @@ func TestIsPackage(t *testing.T) {
 			want: false,
 		},
 		{
+			// Rootio ships upstream-named apk packages in production
+			// (sqlite-libs@3.41.2-r30074, libcrypto3@3.1.8-r00073,
+			// libssl3@3.1.8-r00073 observed in real images), so the
+			// 5-digit `-rNNNNN` rev counter must classify a package as
+			// rootio even without the `rootio-` name prefix. Stock Alpine
+			// rev counters max out around two digits, so accidental FPs
+			// at this threshold are implausible.
+			name: "Alpine: 5-digit rev without rootio name IS rootio (upstream-named model)",
+			pkg:  pkg.Package{Name: "libssl3", Version: "3.1.8-r00073", Type: syftPkg.ApkPkg},
+			want: true,
+		},
+		{
 			name: "Debian: rootio- prefix with .root.io.N suffix",
 			pkg:  pkg.Package{Name: "rootio-imagemagick", Version: "8:6.9.11.root.io.1", Type: syftPkg.DebPkg},
 			want: true,

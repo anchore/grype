@@ -107,9 +107,8 @@ func rootioUnaffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string)
 		pkgType := rootioPackageType(ecosystem)
 		if pkgType == "" {
 			// rootio ships occasional records for ecosystems the transformer
-			// hasn't been taught about (Go, NuGet, the synthetic
-			// Root:Ubuntu:plucky test record). Storing them would emit DB
-			// entries the matcher can't use; skip with a warning so the
+			// hasn't been taught about (Go, NuGet). Storing them would emit
+			// DB entries the matcher can't use; skip with a warning so the
 			// drift is visible.
 			log.WithFields("id", vuln.ID, "ecosystem", ecosystem, "package", affected.Package.Name).
 				Warn("rootio record uses an unsupported ecosystem; skipping (add a case to rootioPackageType to enable)")
@@ -211,20 +210,10 @@ func rootioOSFromEcosystem(ecosystem string) *db.OperatingSystem {
 		return nil
 	}
 
-	osVersion := parts[1]
-	versionFields := strings.Split(osVersion, ".")
-	if len(versionFields) == 0 || versionFields[0] == "" {
-		return nil
-	}
-
+	versionFields := strings.Split(parts[1], ".")
 	major := versionFields[0]
-	if _, err := strconv.Atoi(major[:1]); err != nil {
-		// Non-numeric (e.g. "bookworm") → label-version path.
-		return &db.OperatingSystem{
-			Name:         osName,
-			LabelVersion: osVersion,
-			Codename:     codename.LookupOS(osName, "", ""),
-		}
+	if _, err := strconv.Atoi(major); err != nil {
+		return nil
 	}
 
 	var minor string

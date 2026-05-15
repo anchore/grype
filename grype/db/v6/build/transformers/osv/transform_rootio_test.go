@@ -175,13 +175,15 @@ func TestRootioStrategy_Matches(t *testing.T) {
 		want bool
 	}{
 		{"ROOT-OS-UBUNTU-2204-CVE-2025-68973", true},
-		{"ROOT-OS-DEBIAN-bookworm-CVE-2025-53014", true},
+		{"ROOT-OS-DEBIAN-11-CVE-2019-12379.json", true},
 		{"ROOT-OS-ALPINE-318-CVE-2000-0548", true},
 		{"ROOT-APP-NPM-CVE-2022-25883", true},
 		{"ROOT-APP-PYPI-CVE-2025-30473", true},
 		{"ALSA-2025:7467", false},
 		{"BIT-apache-2020-11984", false},
 		{"CVE-2025-68973", false},
+		{"GHSA-1234-abcd-efgh", false},
+		{"nonsense", false},
 		{"", false},
 	}
 	for _, tt := range tests {
@@ -229,8 +231,8 @@ func TestRootioPackageType(t *testing.T) {
 }
 
 // TestRootioOSFromEcosystem exercises OS metadata extraction for ROOT-OS-*
-// ecosystem strings, including the non-numeric "bookworm"/"jammy" label
-// version path.
+// ecosystem strings. Production rootio data uses numeric versions
+// exclusively (Root:Debian:12, Root:Ubuntu:24.04, Root:Alpine:3.18).
 func TestRootioOSFromEcosystem(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -261,14 +263,6 @@ func TestRootioOSFromEcosystem(t *testing.T) {
 			want: &db.OperatingSystem{
 				Name:         "debian",
 				MajorVersion: "13",
-			},
-		},
-		{
-			name:      "Debian codename takes label-version path",
-			ecosystem: "Debian:bookworm",
-			want: &db.OperatingSystem{
-				Name:         "debian",
-				LabelVersion: "bookworm",
 			},
 		},
 		{

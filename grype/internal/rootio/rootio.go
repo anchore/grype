@@ -15,13 +15,35 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-// IsPackage reports whether p was produced by Root IO. Either the
-// rootio name prefix or the rootio version suffix is enough on its own:
-// the strings involved (`rootio-`, `@rootio/`, `io.root.`, `root.io.`)
-// are distinctive enough that accidental upstream collisions are
-// implausible, and rootio's build pipeline emits both signals in lockstep
-// for almost every package — so either one is a sufficient indicator and
-// the other serves as confirmation.
+// IsPackage reports whether p was produced by Root IO. Either the name
+// prefix or the ecosystem-specific version-side token is sufficient on
+// its own.
+//
+// Rootio ships under two coexisting models, often in the same image, and
+// both must be detected:
+//
+//   - Prefixed:        `rootio-libssl3@3.1.8-r00073`,
+//     `@rootio/semver@5.7.1-root.io.1`,
+//     `rootio-libpam-modules@1.5.2-6+deb12u2.root.io.15`.
+//     Both signals present.
+//   - Upstream-named:  `libssl3@3.1.8-r00073`,
+//     `sqlite-libs@3.41.2-r30074`,
+//     `libpam-modules@1.5.2-6+deb12u1.root.io.4`.
+//     Only the version-side token; the package name is
+//     the upstream one.
+//
+// The version-side tokens are distinctive enough that accidental
+// collisions are implausible:
+//
+//   - `-root.io.`, `.root.io.`, `+root.io.` — substring is unique by
+//     construction; an upstream collision is not realistic.
+//   - 5-digit `-rNNNNN` apk rev — real-world non-rootio Alpine packages
+//     max out around two digits (e.g. `-r0` through `-r20` across the
+//     stock-Alpine SBOMs we surveyed); a 5-digit rev counter is, in
+//     practice, a rootio signal.
+//
+// Java is the only ecosystem with no observed version-side convention;
+// detection relies on the `io.root.` groupID prefix alone.
 func IsPackage(p pkg.Package) bool {
 	if hasPrefix(p, p.Type) {
 		return true
@@ -113,10 +135,16 @@ func hasVersionSuffix(version string, pkgType syftPkg.Type) bool {
 	case syftPkg.ApkPkg:
 		// alpine apk packages don't share the `.root.io.N` suffix the other
 		// ecosystems use. Rootio instead stamps a five-digit rev number on
-		// each build; the upstream apk rev counter starts at 0 and increments
-		// by one per rebuild, so real-world non-rootio packages almost never
-		// hit four digits, let alone five. Real rootio examples observed in
-		// quality-gate images: -r10077, -r20074, -r00073.
+		// each build, encoded as r<upstream_pkgrel><rootio_build_counter>
+		// where the leading digit mirrors the upstream aports pkgrel rootio
+		// forked from and the trailing four digits are rootio's internal
+		// build counter. Examples (verified against aports/3.18-stable
+		// history): sqlite-libs@3.41.2-r30074 sits on upstream r3,
+		// rootio-openssh@9.3_p2-r20074 on upstream r2, rootio-krb5-libs
+		// @1.20.2-r10077 on upstream r1, and the openssl trio at
+		// 3.1.8-r00073 on upstream r0. Upstream apk pkgrels rarely exceed
+		// single digits before pkgver bumps, so a 5-digit rev is reliably
+		// a rootio signal in practice.
 		return hasFiveDigitApkRev(version)
 
 	case syftPkg.JavaPkg:
