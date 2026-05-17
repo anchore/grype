@@ -6,6 +6,8 @@ CLAUDE.MD
 go.work
 go.work.sum
 .tool-versions
+.mise.toml
+.env
 .jj/
 mise.toml
 specs/
@@ -31,6 +33,7 @@ bin/
 /specs
 /extractor
 /manager
+.make/.make
 
 # changelog generation
 /CHANGELOG.md
