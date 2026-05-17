@@ -310,3 +310,28 @@ func TestGemVersion_canonical(t *testing.T) {
 		})
 	}
 }
+
+func Test_cleanArchFromVersion(t *testing.T) {
+	tests := []struct {
+		name string
+		raw  string
+		want string
+	}{
+		{"correct case", "1.2.3-aarch64", "1.2.3"},
+		{"correct case", "2.0.0-arm64", "2.0.0"},
+		{"correct case", "1.2.4-aarch64", "1.2.4"},
+		{"x64 suffix", "3.4.5-x64", "3.4.5"},
+		{"mswin suffix", "1.0.0-mswin", "1.0.0"},
+		{"multiple dashes", "1.2.3-alpha-aarch64", "1.2.3-alpha"},
+		{"no match", "1.2.3-beta1", "1.2.3-beta1"},
+		{"empty string", "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := cleanArchFromVersion(tt.raw)
+			if got != tt.want {
+				t.Errorf("cleanArchFromVersion() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
