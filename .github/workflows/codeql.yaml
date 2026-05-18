@@ -13,7 +13,7 @@ permissions: {}
 jobs:
   analyze:
     name: Analyze
-    uses: anchore/workflows/.github/workflows/codeql.yaml@e8cee3a5916cebb68cda68b54c180f43394c1910 # v0.5.0
+    uses: anchore/workflows/.github/workflows/codeql.yaml@15122524ced7906bfa9685eeae12e22647773ea6 # v0.6.0
     permissions:
       security-events: write
       packages: read
