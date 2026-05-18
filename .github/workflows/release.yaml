@@ -91,26 +91,6 @@ jobs:
         with:
           artifact-name: sbom.spdx.json
 
-      - name: Notify Slack of new release
-        uses: slackapi/slack-github-action@45a88b9581bfab2566dc881e2cd66d334e621e2c #v3.0.3
-        continue-on-error: true
-        with:
-          webhook: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
-          webhook-type: incoming-webhook
-          payload: |
-            text: "A new Grype release has been published: https://github.com/anchore/grype/releases/tag/${{ github.event.inputs.version }}"
-            blocks:
-              - type: section
-                text:
-                  type: mrkdwn
-                  text: |
-                    *A new Grype release has been published* :rocket:
-                    • Release: <https://github.com/anchore/grype/releases/tag/${{ github.event.inputs.version }}|${{ github.event.inputs.version }}>
-                    • Repo: `${{ github.repository }}`
-                    • Workflow: `${{ github.workflow }}`
-                    • Event: `${{ github.event_name }}`
-        if: ${{ success() }}
-
   release-install-script:
     needs: [release]
     if: ${{ needs.release.result == 'success' }}
