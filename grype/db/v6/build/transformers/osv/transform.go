@@ -47,4 +47,5 @@ type Strategy interface {
 var strategies = []Strategy{
 	almaStrategy{},
 	bitnamiStrategy{},
+	rootioStrategy{},
 }

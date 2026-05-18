@@ -155,6 +155,10 @@ type PackageQualifiers struct {
 	// FP-matching unrelated sibling binaries built from the same source. See
 	// pkg/qualifier/rpmarch for the constants.
 	RpmArch *string `json:"rpm_arch,omitempty"`
+
+	// RootIO indicates that the vulnerability applies only to Root IO packages (packages with Root IO fixes).
+	// When true, standard packages will not match this vulnerability (NAK pattern).
+	RootIO *bool `json:"rootio,omitempty"`
 }
 
 // Range defines a specific range of package versions pertaining to a vulnerability.
