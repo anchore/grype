@@ -15,15 +15,16 @@ on:
         required: true
 
 jobs:
-
   version-available:
+    permissions:
+      contents: read # for the most recent tags
     uses: anchore/workflows/.github/workflows/check-version-available.yaml@8b2b1caf40e03933c6807e03b99e883e2ceb5ac8 # v0.4.0
     with:
       version: ${{ github.event.inputs.version }}
 
   check-gate:
     permissions:
-      checks: read   # required for getting the status of specific check names
+      checks: read # required for getting the status of specific check names
     uses: anchore/workflows/.github/workflows/check-gate.yaml@8b2b1caf40e03933c6807e03b99e883e2ceb5ac8 # v0.4.0
     with:
       # these are checks that should be run on pull-request and merges to main.
@@ -37,6 +38,7 @@ jobs:
   # not all actions are guaranteed to be idempotent.
   release:
     needs: [check-gate, version-available]
+    environment: release
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -52,34 +54,27 @@ jobs:
         uses: ./.github/actions/bootstrap
         with:
           # use the same cache we used for building snapshots
-          build-cache-key-prefix: "snapshot"
+          cache-key-prefix: "snapshot"
 
       - name: Login to Docker Hub
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121  #v4.1.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 #v4.1.0
         with:
           username: ${{ secrets.ANCHOREOSSWRITE_DH_USERNAME }}
           password: ${{ secrets.ANCHOREOSSWRITE_DH_PAT }}
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121  #v4.1.0
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 #v4.1.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tag release
-        run: |
-          git config user.name "anchoreci"
-          git config user.email "anchoreci@users.noreply.github.com"
-          git tag -a "$VERSION" -m "Release $VERSION"
-          git push origin --tags
-        env:
-          VERSION: ${{ github.event.inputs.version }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build & publish release artifacts
         run: make ci-release
         env:
+          # for pushing tags (requires write access to content, but not packages)
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
           # for mac signing and notarization...
           QUILL_SIGN_P12: ${{ secrets.ANCHORE_APPLE_DEVELOPER_ID_CERT_CHAIN }}
           QUILL_SIGN_PASSWORD: ${{ secrets.ANCHORE_APPLE_DEVELOPER_ID_CERT_PASS }}
@@ -119,7 +114,7 @@ jobs:
   release-install-script:
     needs: [release]
     if: ${{ needs.release.result == 'success' }}
-    uses: "anchore/workflows/.github/workflows/release-install-script.yaml@main"
+    uses: anchore/workflows/.github/workflows/release-install-script.yaml@8b2b1caf40e03933c6807e03b99e883e2ceb5ac8 # v0.4.0
     with:
       tag: ${{ github.event.inputs.version }}
     secrets:
