@@ -30,6 +30,19 @@ func MatchPackageByLanguage(store vulnerability.Provider, p pkg.Package, matcher
 }
 
 func MatchPackageByEcosystemPackageName(vp vulnerability.Provider, p pkg.Package, packageName string, matcherType match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
+	return matchPackageByEcosystem(vp, p, matcherType, search.ByPackageName(packageName))
+}
+
+// MatchPackageByEcosystemPackageNamePrefix runs the same ecosystem-language match pipeline as
+// MatchPackageByEcosystemPackageName, but selects vulnerabilities whose advisory package name
+// is a path-segment-bounded sub-path of the supplied prefix. This surfaces advisories pinned
+// at an import-path under a containing module (notably for Go) when the SBOM only carries the
+// module path. Version, qualified-package, and unaffected-nak handling are preserved.
+func MatchPackageByEcosystemPackageNamePrefix(vp vulnerability.Provider, p pkg.Package, prefix string, matcherType match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
+	return matchPackageByEcosystem(vp, p, matcherType, search.ByPackageNamePrefix(prefix))
+}
+
+func matchPackageByEcosystem(vp vulnerability.Provider, p pkg.Package, matcherType match.MatcherType, nameCriterion vulnerability.Criteria) ([]match.Match, []match.IgnoreFilter, error) {
 	if isUnknownVersion(p.Version) {
 		log.WithFields("package", p.Name).Trace("skipping package with unknown version")
 		return nil, nil, nil
@@ -39,7 +52,7 @@ func MatchPackageByEcosystemPackageName(vp vulnerability.Provider, p pkg.Package
 
 	criteria := []vulnerability.Criteria{
 		search.ByEcosystem(p.Language, p.Type),
-		search.ByPackageName(packageName),
+		nameCriterion,
 		OnlyQualifiedPackages(p),
 		OnlyNonWithdrawnVulnerabilities(),
 	}

@@ -41,9 +41,14 @@ type GetPackageOptions struct {
 type PackageSpecifiers []*PackageSpecifier
 
 type PackageSpecifier struct {
-	Name      string
-	Ecosystem string
-	CPE       *cpe.Attributes
+	Name string
+	// NamePrefix, when set, restricts results to packages whose name begins with the prefix
+	// followed by a "/" path-segment boundary (case-insensitive). It is mutually exclusive
+	// with Name. This is used to surface advisories pinned at sub-paths of a module name
+	// (e.g. Go import-path granularity advisories under a containing module).
+	NamePrefix string
+	Ecosystem  string
+	CPE        *cpe.Attributes
 }
 
 func (p *PackageSpecifier) String() string {
@@ -54,6 +59,10 @@ func (p *PackageSpecifier) String() string {
 	var args []string
 	if p.Name != "" {
 		args = append(args, fmt.Sprintf("name=%s", p.Name))
+	}
+
+	if p.NamePrefix != "" {
+		args = append(args, fmt.Sprintf("name-prefix=%s", p.NamePrefix))
 	}
 
 	if p.Ecosystem != "" {
@@ -303,6 +312,13 @@ func (s *packageStore) handlePackage(query *gorm.DB, p *PackageSpecifier, allowB
 
 	if p.Name != "" {
 		query = query.Where("packages.name = ? collate nocase", p.Name)
+	} else if p.NamePrefix != "" {
+		// match any package whose name begins with NamePrefix followed by a "/" path-segment
+		// boundary, e.g. NamePrefix "golang.org/x/crypto" -> "golang.org/x/crypto/ssh" but not
+		// "golang.org/x/cryptographer". The "/" requirement is enforced both here (so the SQL
+		// returns no false positives) and again at the criteria level for safety. The ESCAPE
+		// clause neutralizes any wildcard metacharacters that may appear in the prefix.
+		query = query.Where(`packages.name LIKE ? ESCAPE '\' collate nocase`, escapeLikePattern(p.NamePrefix)+"/%")
 	}
 	if p.Ecosystem != "" {
 		query = query.Where("packages.ecosystem = ? collate nocase", p.Ecosystem)
@@ -315,6 +331,14 @@ func (s *packageStore) handlePackage(query *gorm.DB, p *PackageSpecifier, allowB
 	}
 
 	return query
+}
+
+// escapeLikePattern escapes SQLite LIKE wildcard metacharacters ("%", "_") and the escape
+// character itself ("\") so a user-supplied substring can be safely embedded into a LIKE
+// pattern. Use together with `LIKE ? ESCAPE '\'` in the query.
+func escapeLikePattern(s string) string {
+	r := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+	return r.Replace(s)
 }
 
 func (s *packageStore) handleVulnerabilityOptions(query *gorm.DB, configs []VulnerabilitySpecifier, tableName string) (*gorm.DB, error) {

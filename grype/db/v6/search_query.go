@@ -55,6 +55,9 @@ func (b *searchQueryBuilder) ApplyCriteria(criteriaSet []vulnerability.Criteria)
 		case *search.PackageNameCriteria:
 			b.handlePackageName(c)
 			applied = true
+		case *search.PackageNamePrefixCriteria:
+			b.handlePackageNamePrefix(c)
+			applied = true
 		case *search.UnaffectedCriteria:
 			b.handleUnaffected(c)
 			applied = true
@@ -86,6 +89,13 @@ func (b *searchQueryBuilder) handlePackageName(c *search.PackageNameCriteria) {
 		b.query.pkgSpec = &PackageSpecifier{}
 	}
 	b.query.pkgSpec.Name = c.PackageName
+}
+
+func (b *searchQueryBuilder) handlePackageNamePrefix(c *search.PackageNamePrefixCriteria) {
+	if b.query.pkgSpec == nil {
+		b.query.pkgSpec = &PackageSpecifier{}
+	}
+	b.query.pkgSpec.NamePrefix = c.PackageNamePrefix
 }
 
 func (b *searchQueryBuilder) handleUnaffected(_ *search.UnaffectedCriteria) {
