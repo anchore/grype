@@ -240,9 +240,10 @@ func createUnaffectedRange(fixedVersion string, fixByVersion map[string]db.FixAv
 // Severity / CVSS
 // ============================================================================
 
+var cvssPattern = regexp.MustCompile(`^CVSS:(\d+\.\d+)/(.+)$`)
+
 func extractCVSSInfo(cvss string) (string, string, error) {
-	re := regexp.MustCompile(`^CVSS:(\d+\.\d+)/(.+)$`)
-	matches := re.FindStringSubmatch(cvss)
+	matches := cvssPattern.FindStringSubmatch(cvss)
 	if len(matches) != 3 {
 		return "", "", fmt.Errorf("invalid CVSS format")
 	}
