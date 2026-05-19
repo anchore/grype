@@ -1,0 +1,111 @@
+{
+ "cve": {
+  "id": "CVE-2015-8978",
+  "sourceIdentifier": "cve@mitre.org",
+  "published": "2016-11-22T17:59:00.180",
+  "lastModified": "2016-11-28T19:50:59.600",
+  "vulnStatus": "Modified",
+  "descriptions": [
+   {
+    "lang": "en",
+    "value": "In Soap Lite (aka the SOAP::Lite extension for Perl) 1.14 and earlier, an example attack consists of defining 10 or more XML entities, each defined as consisting of 10 of the previous entity, with the document consisting of a single instance of the largest entity, which expands to one billion copies of the first entity. The amount of computer memory used for handling an external SOAP call would likely exceed that available to the process parsing the XML."
+   },
+   {
+    "lang": "es",
+    "value": "En Soap Lite (también conocido como la extensión SOAP::Lite para Perl) 1.14 y versiones anteriores, un ejemplo de ataque consiste en definir 10 o más entidades XML, cada una definida como consistente de 10 de la entidad anterior, con el documento consistente de una única instancia de la entidad más grande, que se expande a mil millones de copias de la primera entidad. La suma de la memoria del ordenador utilizada para manejar una llamada SOAP externa probablemente superaría el disponible para el proceso de análisis del XML."
+   }
+  ],
+  "metrics": {
+   "cvssMetricV30": [
+    {
+     "source": "nvd@nist.gov",
+     "type": "Primary",
+     "cvssData": {
+      "version": "3.0",
+      "vectorString": "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "attackVector": "NETWORK",
+      "attackComplexity": "LOW",
+      "privilegesRequired": "NONE",
+      "userInteraction": "NONE",
+      "scope": "UNCHANGED",
+      "confidentialityImpact": "NONE",
+      "integrityImpact": "NONE",
+      "availabilityImpact": "HIGH",
+      "baseScore": 7.5,
+      "baseSeverity": "HIGH"
+     },
+     "exploitabilityScore": 3.9,
+     "impactScore": 3.6
+    }
+   ],
+   "cvssMetricV2": [
+    {
+     "source": "nvd@nist.gov",
+     "type": "Primary",
+     "cvssData": {
+      "version": "2.0",
+      "vectorString": "AV:N/AC:L/Au:N/C:N/I:N/A:P",
+      "accessVector": "NETWORK",
+      "accessComplexity": "LOW",
+      "authentication": "NONE",
+      "confidentialityImpact": "NONE",
+      "integrityImpact": "NONE",
+      "availabilityImpact": "PARTIAL",
+      "baseScore": 5.0
+     },
+     "baseSeverity": "MEDIUM",
+     "exploitabilityScore": 10.0,
+     "impactScore": 2.9,
+     "acInsufInfo": false,
+     "obtainAllPrivilege": false,
+     "obtainUserPrivilege": false,
+     "obtainOtherPrivilege": false,
+     "userInteractionRequired": false
+    }
+   ]
+  },
+  "weaknesses": [
+   {
+    "source": "nvd@nist.gov",
+    "type": "Primary",
+    "description": [
+     {
+      "lang": "en",
+      "value": "CWE-399"
+     }
+    ]
+   }
+  ],
+  "configurations": [
+   {
+    "nodes": [
+     {
+      "operator": "OR",
+      "negate": false,
+      "cpeMatch": [
+       {
+        "vulnerable": true,
+        "criteria": "cpe:2.3:a:soap::lite_project:soap::lite:*:*:*:*:*:perl:*:*",
+        "versionEndIncluding": "1.14",
+        "matchCriteriaId": "FB4DACB9-2E9E-4CBE-825F-FC0303D8CC86"
+       }
+      ]
+     }
+    ]
+   }
+  ],
+  "references": [
+   {
+    "url": "http://cpansearch.perl.org/src/PHRED/SOAP-Lite-1.20/Changes",
+    "source": "cve@mitre.org",
+    "tags": [
+     "Vendor Advisory"
+    ]
+   },
+   {
+    "url": "http://www.securityfocus.com/bid/94487",
+    "source": "cve@mitre.org"
+   }
+  ]
+ }
+}

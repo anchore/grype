@@ -1,0 +1,8 @@
+auto-generate: true
+extractions:
+    bitnami:
+        - bit-spark-2022-31777
+        - bit-spark-2023-22946
+        - bit-apache-2020-11984
+        - bit-apache-2020-11985
+        - bit-node-2020-8201

@@ -1,0 +1,6 @@
+auto-generate: true
+extractions:
+  github:
+    # rack < 2.2.19 / 3.1 < 3.1.17 / 3.2 < 3.2.2 - basic gem matching
+    # against a real rubygem advisory.
+    - github:gem/GHSA-wpv5-97wm-hp9c

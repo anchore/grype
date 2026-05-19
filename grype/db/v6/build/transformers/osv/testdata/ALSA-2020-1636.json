@@ -1,0 +1,47 @@
+{
+  "id": "ALSA-2020:1636",
+  "summary": "Moderate: libsndfile security update",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "AlmaLinux:8",
+        "name": "libsndfile-devel"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "1.0.28-10.el8"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "related": [
+    "CVE-2018-13139",
+    "CVE-2018-19662"
+  ],
+  "published": "2020-04-28T08:59:15Z",
+  "modified": "2021-08-11T08:54:00Z",
+  "details": "libsndfile is a C library for reading and writing files containing sampled sound, such as AIFF, AU, or WAV. \n\nSecurity Fix(es):\n\n* libsndfile: stack-based buffer overflow in sndfile-deinterleave utility (CVE-2018-13139)\n\n* libsndfile: buffer over-read in the function i2alaw_array in alaw.c (CVE-2018-19662)\n\nFor more details about the security issue(s), including the impact, a CVSS score, acknowledgments, and other related information, refer to the CVE page(s) listed in the References section.\n\nAdditional Changes:\n\nFor detailed information on changes in this release, see the AlmaLinux Release Notes linked from the References section.",
+  "references": [
+    {
+      "url": "https://vulners.com/cve/CVE-2018-13139",
+      "type": "REPORT"
+    },
+    {
+      "url": "https://vulners.com/cve/CVE-2018-19662",
+      "type": "REPORT"
+    }
+  ],
+  "database_specific": {
+    "anchore": {
+      "record_type": "advisory"
+    }
+  }
+}

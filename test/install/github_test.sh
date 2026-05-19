@@ -2,7 +2,7 @@
 
 # check that we can extract single json values
 test_extract_json_value() {
-  fixture=./test-fixtures/github-api-grype-v0.32.0-release.json
+  fixture=./testdata/github-api-grype-v0.32.0-release.json
   content=$(cat ${fixture})
 
   actual=$(extract_json_value "${content}" "tag_name")
@@ -17,7 +17,7 @@ run_test_case test_extract_json_value
 
 # check that we can extract github release tag from github api json
 test_github_release_tag() {
-  fixture=./test-fixtures/github-api-grype-v0.32.0-release.json
+  fixture=./testdata/github-api-grype-v0.32.0-release.json
   content=$(cat ${fixture})
 
   actual=$(github_release_tag "${content}")
@@ -38,7 +38,7 @@ test_download_github_release_checksums() {
 
   actual_filepath=$(download_github_release_checksums "${github_download}" "${name}" "${version}" "${tmpdir}")
   assertFilesEqual \
-    "./test-fixtures/grype_0.32.0_checksums.txt" \
+    "./testdata/grype_0.32.0_checksums.txt" \
     "${actual_filepath}" \
     "unable to find release tag"
 

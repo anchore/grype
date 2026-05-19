@@ -1,0 +1,57 @@
+[
+  {
+    "Vulnerability": {
+      "CVSS": [
+        {
+          "base_metrics": {
+            "base_score": 8.8,
+            "base_severity": "High",
+            "exploitability_score": 2.8,
+            "impact_score": 5.9
+          },
+          "status": "verified",
+          "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+          "version": "3.1"
+        }
+      ],
+      "Description": "A flaw was found in Mozilla Firefox. A race condition can occur while running the nsDocShell destructor causing a use-after-free memory issue. The highest threat from this vulnerability is to data confidentiality and integrity as well as system availability.",
+      "FixedIn": [
+        {
+          "Name": "firefox",
+          "NamespaceName": "rhel:8",
+          "VendorAdvisory": {
+            "AdvisorySummary": [
+              {
+                "ID": "RHSA-2020:1341",
+                "Link": "https://access.redhat.com/errata/RHSA-2020:1341"
+              }
+            ],
+            "NoAdvisory": false
+          },
+          "Version": "0:68.6.1-1.el8_1",
+          "VersionFormat": "rpm"
+        },
+        {
+          "Name": "thunderbird",
+          "NamespaceName": "rhel:8",
+          "VendorAdvisory": {
+            "AdvisorySummary": [
+              {
+                "ID": "RHSA-2020:1495",
+                "Link": "https://access.redhat.com/errata/RHSA-2020:1495"
+              }
+            ],
+            "NoAdvisory": false
+          },
+          "Version": "0:68.7.0-1.el8_1",
+          "VersionFormat": "rpm"
+        }
+      ],
+      "Link": "https://access.redhat.com/security/cve/CVE-2020-6819",
+      "Metadata": {},
+      "Name": "CVE-2020-6819",
+      "NamespaceName": "rhel:8",
+      "Severity": "Critical"
+    }
+  }
+]

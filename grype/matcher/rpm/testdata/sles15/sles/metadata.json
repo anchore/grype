@@ -1,0 +1,21 @@
+{
+  "provider": "sles",
+  "version": 1,
+  "processor": "vunnel@0.57.0.post17+4dfefe4",
+  "schema": {
+    "version": "1.0.3",
+    "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
+  },
+  "urls": [
+    "https://ftp.suse.com/pub/projects/security/oval/suse.linux.enterprise.server.11.xml.bz2",
+    "https://ftp.suse.com/pub/projects/security/oval/suse.linux.enterprise.server.12.xml.bz2",
+    "https://ftp.suse.com/pub/projects/security/oval/suse.linux.enterprise.server.15.xml.bz2"
+  ],
+  "timestamp": "2026-05-05T15:33:28Z",
+  "listing": {
+    "path": "results/listing.xxh64",
+    "digest": "837c1da9e7c478a5",
+    "algorithm": "xxh64"
+  },
+  "store": "flat-file"
+}

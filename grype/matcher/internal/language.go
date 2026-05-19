@@ -41,19 +41,22 @@ func MatchPackageByEcosystemPackageName(vp vulnerability.Provider, p pkg.Package
 		search.ByEcosystem(p.Language, p.Type),
 		search.ByPackageName(packageName),
 		OnlyQualifiedPackages(p),
-		OnlyVulnerableVersions(version.New(p.Version, pkg.VersionFormat(p))),
 		OnlyNonWithdrawnVulnerabilities(),
 	}
 
+	versionCriteria := OnlyVulnerableVersions(version.New(p.Version, pkg.VersionFormat(p)))
+
 	// TODO: previous impl set confidence to 1, this results in
 	// a confidence of zero. What should it be?
-	disclosures, err := provider.FindResults(criteria...)
+	all, err := provider.FindResults(criteria...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch disclosure language=%q pkg=%q: %w", p.Language, p.Name, err)
 	}
 
+	disclosures := all.Filter(versionCriteria)
+
 	// we want to perform the same results, but look for explicit naks, which indicates that a vulnerability should not apply
-	criteria = append(criteria, search.ForUnaffected())
+	criteria = append(criteria, search.ForUnaffected(), versionCriteria)
 	unaffected, err := provider.FindResults(criteria...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch resolution language=%q pkg=%q: %w", p.Language, p.Name, err)

@@ -99,7 +99,7 @@ func (p Presenter) sarifRules() (out []*sarif.ReportingDescriptor) {
 			descriptor := sarif.ReportingDescriptor{
 				ID:      ruleID,
 				Name:    sp(ruleName(m)),
-				HelpURI: sp("https://github.com/anchore/grype"),
+				HelpURI: sp(helpURI(m)),
 				// Title of the SARIF report
 				ShortDescription: &sarif.MultiformatMessageString{
 					Text: sp(shortDescription(m)),
@@ -124,6 +124,18 @@ func (p Presenter) sarifRules() (out []*sarif.ReportingDescriptor) {
 		}
 	}
 	return out
+}
+
+// helpURI returns the best available URL for a vulnerability: the DataSource link if present,
+// the first entry in URLs otherwise, and the Grype repository as a last resort.
+func helpURI(m models.Match) string {
+	if m.Vulnerability.DataSource != "" {
+		return m.Vulnerability.DataSource
+	}
+	if len(m.Vulnerability.URLs) > 0 {
+		return m.Vulnerability.URLs[0]
+	}
+	return "https://github.com/anchore/grype"
 }
 
 // ruleID creates a unique rule ID for a given match
@@ -345,7 +357,7 @@ func levelValue(m models.Match) string {
 
 // subtitle generates a subtitle for the given match
 func subtitle(m models.Match) string {
-	subtitle := m.Vulnerability.Description
+	subtitle := findDescription(m)
 	if subtitle != "" {
 		return subtitle
 	}
@@ -356,6 +368,20 @@ func subtitle(m models.Match) string {
 	}
 
 	return fmt.Sprintf("Version %s is affected with no fixes reported yet.", m.Artifact.Version)
+}
+
+func findDescription(m models.Match) string {
+	if m.Vulnerability.Description != "" {
+		return m.Vulnerability.Description
+	}
+
+	for _, r := range m.RelatedVulnerabilities {
+		if r.Description != "" {
+			return r.Description
+		}
+	}
+
+	return ""
 }
 
 func fixVersions(m models.Match) string {

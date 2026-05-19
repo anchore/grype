@@ -212,7 +212,7 @@ func (s *cpeStore) handleVulnerabilityOptions(query *gorm.DB, configs []Vulnerab
 }
 
 func (s *cpeStore) handlePreload(query *gorm.DB, config GetCPEOptions) *gorm.DB {
-	var limitArgs []interface{}
+	var limitArgs []any
 	if config.Limit > 0 {
 		query = query.Limit(config.Limit)
 		limitArgs = append(limitArgs, func(db *gorm.DB) *gorm.DB {

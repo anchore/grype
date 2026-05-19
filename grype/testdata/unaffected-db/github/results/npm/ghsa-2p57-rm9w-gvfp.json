@@ -1,0 +1,72 @@
+{
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json",
+  "identifier": "github:npm/ghsa-2p57-rm9w-gvfp",
+  "item": {
+    "Vulnerability": {},
+    "Advisory": {
+      "Classification": "GENERAL",
+      "Severity": "High",
+      "CVSS": {
+        "version": "3.1",
+        "vector_string": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H",
+        "base_metrics": {
+          "base_score": 8.1,
+          "exploitability_score": 2.2,
+          "impact_score": 5.9,
+          "base_severity": "High"
+        },
+        "status": "N/A"
+      },
+      "cvss_severities": [
+        {
+          "version": "3.1",
+          "vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:H"
+        }
+      ],
+      "FixedIn": [
+        {
+          "name": "ip",
+          "identifier": "None",
+          "ecosystem": "npm",
+          "namespace": "github:npm",
+          "range": "<= 2.0.1"
+        }
+      ],
+      "Summary": "ip SSRF improper categorization in isPublic",
+      "url": "https://github.com/advisories/GHSA-2p57-rm9w-gvfp",
+      "CVE": [
+        "CVE-2024-29415"
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2024-29415"
+        ]
+      },
+      "ghsaId": "GHSA-2p57-rm9w-gvfp",
+      "published": "2024-06-02T22:29:29Z",
+      "updated": "2025-01-17T21:31:39Z",
+      "withdrawn": null,
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-29415"
+        },
+        {
+          "url": "https://github.com/indutny/node-ip/issues/150"
+        },
+        {
+          "url": "https://github.com/indutny/node-ip/pull/143"
+        },
+        {
+          "url": "https://github.com/indutny/node-ip/pull/144"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20250117-0010"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-2p57-rm9w-gvfp"
+        }
+      ],
+      "namespace": "github:npm"
+    }
+  }
+}

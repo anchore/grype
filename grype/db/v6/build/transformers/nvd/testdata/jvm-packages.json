@@ -1,0 +1,99 @@
+{
+  "cve": {
+    "id": "CVE-2023-JVM-TEST",
+    "sourceIdentifier": "cve@mitre.org",
+    "published": "2024-01-17T00:15:51.677",
+    "lastModified": "2024-01-23T16:32:52.103",
+    "vulnStatus": "Analyzed",
+    "descriptions": [
+      {
+        "lang": "en",
+        "value": "Test vulnerability affecting JVM packages to demonstrate version format detection."
+      }
+    ],
+    "metrics": {
+      "cvssMetricV31": [
+        {
+          "source": "nvd@nist.gov",
+          "type": "Primary",
+          "cvssData": {
+            "version": "3.1",
+            "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N",
+            "baseScore": 6.1,
+            "baseSeverity": "MEDIUM",
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "REQUIRED",
+            "scope": "CHANGED",
+            "confidentialityImpact": "LOW",
+            "integrityImpact": "LOW",
+            "availabilityImpact": "NONE"
+          },
+          "exploitabilityScore": 2.8,
+          "impactScore": 2.7
+        }
+      ]
+    },
+    "weaknesses": [
+      {
+        "source": "nvd@nist.gov",
+        "type": "Primary",
+        "description": [
+          {
+            "lang": "en",
+            "value": "CWE-79"
+          }
+        ]
+      }
+    ],
+    "configurations": [
+      {
+        "nodes": [
+          {
+            "operator": "OR",
+            "negate": false,
+            "cpeMatch": [
+              {
+                "vulnerable": true,
+                "criteria": "cpe:2.3:a:oracle:jdk:8u401:*:*:*:*:*:*:*",
+                "matchCriteriaId": "oracle-jdk-8u401"
+              },
+              {
+                "vulnerable": true,
+                "criteria": "cpe:2.3:a:oracle:jdk:11.0.22:*:*:*:*:*:*:*",
+                "matchCriteriaId": "oracle-jdk-11.0.22"
+              },
+              {
+                "vulnerable": true,
+                "criteria": "cpe:2.3:a:eclipse:openjdk:17.0.10:*:*:*:*:*:*:*",
+                "matchCriteriaId": "eclipse-openjdk-17.0.10"
+              },
+              {
+                "vulnerable": true,
+                "criteria": "cpe:2.3:a:azul:zulu:21.0.2:*:*:*:*:*:*:*",
+                "matchCriteriaId": "azul-zulu-21.0.2"
+              },
+              {
+                "vulnerable": true,
+                "criteria": "cpe:2.3:a:adoptium:java:17.0.10:*:*:*:*:*:*:*",
+                "matchCriteriaId": "adoptium-java-17.0.10"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "references": [
+      {
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-JVM-TEST",
+        "source": "nvd@nist.gov"
+      },
+      {
+        "url": "https://www.oracle.com/security-alerts/cpujan2024.html",
+        "source": "nvd@nist.gov",
+        "tags": ["Patch", "Vendor Advisory"]
+      }
+    ]
+  }
+}

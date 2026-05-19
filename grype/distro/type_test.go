@@ -116,6 +116,17 @@ func TestTypeFromRelease(t *testing.T) {
 			},
 			want: Alpine,
 		},
+		{
+			name: "Scientific Linux 6",
+			release: linux.Release{
+				Name:      "Scientific Linux",
+				ID:        "scientific linux",
+				IDLike:    []string{"scientific linux"},
+				Version:   "6.10 Carbon",
+				VersionID: "6.10",
+			},
+			want: Scientific,
+		},
 	}
 
 	for _, tt := range tests {

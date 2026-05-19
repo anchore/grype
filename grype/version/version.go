@@ -11,12 +11,24 @@ type Version struct {
 	Raw         string
 	Format      Format
 	comparators map[Format]Comparator
+	Config      ComparisonConfig
 }
 
+// New creates a new Version with the default comparison configuration.
+// The default uses no explicit MissingEpochStrategy, which preserves the native
+// behavior of each format's comparator (RPM ignores one-sided epochs, DEB treats
+// missing as 0). Use NewWithConfig to explicitly control epoch handling.
 func New(raw string, format Format) *Version {
+	return NewWithConfig(raw, format, ComparisonConfig{})
+}
+
+// NewWithConfig creates a new Version with a specific comparison configuration.
+// This allows control over how missing epochs are handled during version comparison.
+func NewWithConfig(raw string, format Format, cfg ComparisonConfig) *Version {
 	return &Version{
 		Raw:    raw,
 		Format: format,
+		Config: cfg,
 	}
 }
 
@@ -62,6 +74,8 @@ func (v *Version) getComparator(format Format) (Comparator, error) {
 		comparator = newPortageVersion(v.Raw)
 	case JVMFormat:
 		comparator, err = newJvmVersion(v.Raw)
+	case PacmanFormat:
+		comparator, err = newPacmanVersion(v.Raw)
 	case UnknownFormat:
 		comparator, err = newFuzzyVersion(v.Raw)
 	default:

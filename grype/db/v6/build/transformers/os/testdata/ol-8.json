@@ -1,0 +1,42 @@
+[
+  {
+    "Vulnerability": {
+      "CVSS": [],
+      "Description": "",
+      "FixedIn": [
+        {
+          "Name": "libexif",
+          "NamespaceName": "ol:8",
+          "Version": "0:0.6.21-17.el8_2",
+          "VersionFormat": "rpm"
+        },
+        {
+          "Name": "libexif-devel",
+          "NamespaceName": "ol:8",
+          "Version": "0:0.6.21-17.el8_2",
+          "VersionFormat": "rpm"
+        },
+        {
+          "Name": "libexif-dummy",
+          "NamespaceName": "ol:8",
+          "Version": "None",
+          "VersionFormat": "rpm"
+        }
+      ],
+      "Link": "http://linux.oracle.com/errata/ELSA-2020-2550.html",
+      "Metadata": {
+        "CVE": [
+          {
+            "Link": "http://linux.oracle.com/cve/CVE-2020-13112.html",
+            "Name": "CVE-2020-13112"
+          }
+        ],
+        "Issued": "2020-06-15",
+        "RefId": "ELSA-2020-2550"
+      },
+      "Name": "ELSA-2020-2550",
+      "NamespaceName": "ol:8",
+      "Severity": "Medium"
+    }
+  }
+]

@@ -11,8 +11,8 @@ type Details []Detail
 
 type Detail struct {
 	Type       Type        // The kind of match made (an exact match, fuzzy match, indirect vs direct, etc).
-	SearchedBy interface{} // The specific attributes that were used to search (other than package name and version) --this indicates "how" the match was made.
-	Found      interface{} // The specific attributes on the vulnerability object that were matched with --this indicates "what" was matched on / within.
+	SearchedBy any         // The specific attributes that were used to search (other than package name and version) --this indicates "how" the match was made.
+	Found      any         // The specific attributes on the vulnerability object that were matched with --this indicates "what" was matched on / within.
 	Matcher    MatcherType // The matcher object that discovered the match.
 	Confidence float64     // The certainty of the match as a ratio (currently unused, reserved for future use).
 }

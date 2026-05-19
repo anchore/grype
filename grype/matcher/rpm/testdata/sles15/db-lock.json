@@ -1,0 +1,11 @@
+{
+  "content_hash": "4d2cc0ad0ffc447d",
+  "created_at": "2026-05-05T11:36:45.247294208Z",
+  "regenerated_at": "2026-05-05T11:36:45.247294208Z",
+  "providers": {
+    "sles": {
+      "vunnel_version": "vunnel@0.57.0.post17+4dfefe4",
+      "timestamp": "2026-05-11T20:17:12.321456Z"
+    }
+  }
+}

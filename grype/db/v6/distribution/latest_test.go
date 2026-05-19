@@ -104,7 +104,7 @@ func TestNewLatestFromReader(t *testing.T) {
 func TestLatestDocument_Write(t *testing.T) {
 
 	errContains := func(text string) require.ErrorAssertionFunc {
-		return func(t require.TestingT, err error, msgAndArgs ...interface{}) {
+		return func(t require.TestingT, err error, msgAndArgs ...any) {
 			require.ErrorContains(t, err, text, msgAndArgs...)
 		}
 	}

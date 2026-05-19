@@ -1,0 +1,47 @@
+{
+  "identifier": "chainguard-libraries:maven/CGA-3xh4-h5vj-xr3v",
+  "item": {
+    "document": {
+      "last_updated": "2026-05-01T08:42:17.798Z",
+      "products": [
+        {
+          "identifiers": {
+            "purl": "pkg:maven/com.h2database/h2@1.4.200-0.cgr.2"
+          }
+        },
+        {
+          "identifiers": {
+            "purl": "pkg:maven/com.h2database/h2@1.4.200-0.cgr.3"
+          }
+        }
+      ],
+      "status": "fixed",
+      "timestamp": "2026-05-01T08:42:17.798Z",
+      "vulnerability": {
+        "aliases": [
+          "CGA-gmp6-h686-9p65",
+          "CVE-2022-23221",
+          "GHSA-45hx-wfhj-473x"
+        ],
+        "name": "CGA-3xh4-h5vj-xr3v"
+      }
+    },
+    "fixes": [
+      {
+        "available": {
+          "date": "2026-05-01",
+          "kind": "advisory"
+        },
+        "product": "pkg:maven/com.h2database/h2@1.4.200-0.cgr.2"
+      },
+      {
+        "available": {
+          "date": "2026-05-01",
+          "kind": "advisory"
+        },
+        "product": "pkg:maven/com.h2database/h2@1.4.200-0.cgr.3"
+      }
+    ]
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/annotated-openvex/schema-1.0.0.json"
+}

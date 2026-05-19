@@ -1,0 +1,50 @@
+[
+  {
+    "Vulnerability": {
+      "Description": "",
+      "FixedIn": [
+        {
+          "Name": "389-ds-base",
+          "NamespaceName": "amzn:2",
+          "Version": "1.3.8.4-15.amzn2.0.1",
+          "VersionFormat": "rpm"
+        },
+        {
+          "Name": "389-ds-base-debuginfo",
+          "NamespaceName": "amzn:2",
+          "Version": "1.3.8.4-15.amzn2.0.1",
+          "VersionFormat": "rpm"
+        },
+        {
+          "Name": "389-ds-base-devel",
+          "NamespaceName": "amzn:2",
+          "Version": "1.3.8.4-15.amzn2.0.1",
+          "VersionFormat": "rpm"
+        },
+        {
+          "Name": "389-ds-base-libs",
+          "NamespaceName": "amzn:2",
+          "Version": "1.3.8.4-15.amzn2.0.1",
+          "VersionFormat": "rpm"
+        },
+        {
+          "Name": "389-ds-base-snmp",
+          "NamespaceName": "amzn:2",
+          "Version": "1.3.8.4-15.amzn2.0.1",
+          "VersionFormat": "rpm"
+        }
+      ],
+      "Link": "https://alas.aws.amazon.com/AL2/ALAS-2018-1106.html",
+      "Metadata": {
+        "CVE": [
+          {
+            "Name": "CVE-2018-14648"
+          }
+        ]
+      },
+      "Name": "ALAS-2018-1106",
+      "NamespaceName": "amzn:2",
+      "Severity": "Medium"
+    }
+  }
+]

@@ -10,7 +10,7 @@ type ExpectedErr struct {
 }
 
 // New generates a new ExpectedErr.
-func NewExpectedErr(msgFormat string, args ...interface{}) ExpectedErr {
+func NewExpectedErr(msgFormat string, args ...any) ExpectedErr {
 	return ExpectedErr{
 		Err: fmt.Errorf(msgFormat, args...),
 	}

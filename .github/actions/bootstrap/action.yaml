@@ -2,62 +2,42 @@ name: "Bootstrap"
 description: "Bootstrap all tools and dependencies"
 inputs:
   go-version:
-    description: "Go version to install"
-    required: true
-    default: ">= 1.24"
-  python-version:
-    description: "Python version to install"
-    required: true
-    default: "3.11"
-  go-dependencies:
-    description: "Download go dependencies"
-    required: true
-    default: "true"
+    description: "Go version to install (empty lets setup read from go.mod)"
+    required: false
+    default: ""
   cache-key-prefix:
     description: "Prefix all cache keys with this value"
-    required: true
-    default: "1ac8281053"
-  compute-fingerprints:
-    description: "Compute test fixture fingerprints"
-    required: true
-    default: "true"
-  tools:
-    description: "whether to install tools"
-    default: "true"
+    required: false
+    default: "v1"
+  python-version:
+    description: "Python version to install (empty skips python setup)"
+    required: false
+    default: ""
   bootstrap-apt-packages:
     description: "Space delimited list of tools to install via apt"
+    required: false
     default: "libxml2-utils"
+  cache-test-fixtures:
+    description: "Cache test database builds"
+    required: false
+    default: "false"
+  tools:
+    description: "Whether to pre-install binny-managed tools via make binny:install"
+    required: false
+    default: "true"
 
 runs:
   using: "composite"
   steps:
-    # note: go mod and build is automatically cached on default with v4+
-    - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
-      if: inputs.go-version != ''
+    - uses: anchore/go-make/.github/actions/setup@88c36505984649108439f13fb35dcaea4ce61d94 # v0.4.0
       with:
         go-version: ${{ inputs.go-version }}
+        cache-key-prefix: ${{ inputs.cache-key-prefix }}
 
-    - uses: actions/setup-python@83679a892e2d95755f2dac6acb0bfd1e9ac5d548 # v6.1.0
+    - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+      if: inputs.python-version != ''
       with:
         python-version: ${{ inputs.python-version }}
-
-    - name: Restore tool cache
-      id: tool-cache
-      uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
-      if: inputs.tools == 'true'
-      with:
-        path: ${{ github.workspace }}/.tool
-        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-tool-${{ hashFiles('.binny.yaml') }}
-
-    - name: Install project tools
-      if: inputs.tools == 'true'
-      shell: bash
-      run: make tools
-
-    - name: Install go dependencies
-      if: inputs.go-dependencies == 'true'
-      shell: bash
-      run: make ci-bootstrap-go
 
     - name: Install apt packages
       if: inputs.bootstrap-apt-packages != ''
@@ -68,7 +48,31 @@ runs:
       env:
         BOOTSTRAP_APT_PACKAGES: ${{ inputs.bootstrap-apt-packages }}
 
+    # restore-only on non-default branches and forks to prevent untrusted runs from polluting the cache
+    - name: Restore test fixture cache
+      id: test-fixture-cache-restore
+      uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      if: ${{ inputs.cache-test-fixtures == 'true' && (github.ref != format('refs/heads/{0}', github.event.repository.default_branch) || github.event.repository.fork == true) }}
+      with:
+        path: |
+          **/testdata/cache
+        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-test-fixtures-${{ hashFiles('**/testdata/**', '!**/testdata/cache/**') }}
+        restore-keys: |
+          ${{ inputs.cache-key-prefix }}-${{ runner.os }}-test-fixtures-
+
+    # read+write only on the default branch of the upstream repo
+    - name: Restore and save test fixture cache
+      id: test-fixture-cache
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      if: ${{ inputs.cache-test-fixtures == 'true' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && github.event.repository.fork == false }}
+      with:
+        path: |
+          **/testdata/cache
+        key: ${{ inputs.cache-key-prefix }}-${{ runner.os }}-test-fixtures-${{ hashFiles('**/testdata/**', '!**/testdata/cache/**') }}
+        restore-keys: |
+          ${{ inputs.cache-key-prefix }}-${{ runner.os }}-test-fixtures-
+
     - name: Create all cache fingerprints
-      if: inputs.compute-fingerprints == 'true'
+      if: inputs.tools == 'true'
       shell: bash
       run: make fingerprints

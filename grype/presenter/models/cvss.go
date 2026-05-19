@@ -8,7 +8,7 @@ type Cvss struct {
 	Version        string      `json:"version"`
 	Vector         string      `json:"vector"`
 	Metrics        CvssMetrics `json:"metrics"`
-	VendorMetadata interface{} `json:"vendorMetadata"`
+	VendorMetadata any         `json:"vendorMetadata"`
 }
 
 type CvssMetrics struct {
@@ -22,7 +22,7 @@ func toCVSS(metadata *vulnerability.Metadata) []Cvss {
 	for _, score := range metadata.Cvss {
 		vendorMetadata := score.VendorMetadata
 		if vendorMetadata == nil {
-			vendorMetadata = make(map[string]interface{})
+			vendorMetadata = make(map[string]any)
 		}
 		cvss = append(cvss, Cvss{
 			Source:  score.Source,

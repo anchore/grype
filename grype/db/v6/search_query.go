@@ -151,7 +151,7 @@ func (b *searchQueryBuilder) handleDistro(c *search.DistroCriteria) {
 				MajorVersion:     d.MajorVersion(),
 				MinorVersion:     d.MinorVersion(),
 				RemainingVersion: d.RemainingVersion(),
-				LabelVersion:     d.Codename,
+				LabelVersion:     d.LabelVersion(),
 				Channel:          channel,
 				DisableAliasing:  c.Exact,
 			})
@@ -162,7 +162,7 @@ func (b *searchQueryBuilder) handleDistro(c *search.DistroCriteria) {
 				MajorVersion:     d.MajorVersion(),
 				MinorVersion:     d.MinorVersion(),
 				RemainingVersion: d.RemainingVersion(),
-				LabelVersion:     d.Codename,
+				LabelVersion:     d.LabelVersion(),
 				DisableAliasing:  c.Exact,
 			})
 		}

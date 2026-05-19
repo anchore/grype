@@ -1,0 +1,90 @@
+{
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json",
+  "identifier": "github:gem/ghsa-688c-3x49-6rqj",
+  "item": {
+    "Vulnerability": {},
+    "Advisory": {
+      "Classification": "GENERAL",
+      "Severity": "Medium",
+      "CVSS": {
+        "version": "3.0",
+        "vector_string": "CVSS:3.0/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N",
+        "base_metrics": {
+          "base_score": 5.9,
+          "exploitability_score": 2.2,
+          "impact_score": 3.6,
+          "base_severity": "Medium"
+        },
+        "status": "N/A"
+      },
+      "cvss_severities": [
+        {
+          "version": "3.0",
+          "vector": "CVSS:3.0/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N"
+        }
+      ],
+      "FixedIn": [
+        {
+          "name": "rack-protection",
+          "identifier": "1.5.5",
+          "ecosystem": "gem",
+          "namespace": "github:gem",
+          "range": "< 1.5.5",
+          "available": {
+            "date": "2020-07-28",
+            "kind": "first-observed"
+          }
+        },
+        {
+          "name": "rack-protection",
+          "identifier": "2.0.0",
+          "ecosystem": "gem",
+          "namespace": "github:gem",
+          "range": ">= 2.0.0.beta1 <= 2.0.0.rc3",
+          "available": {
+            "date": "2023-01-27",
+            "kind": "first-observed"
+          }
+        }
+      ],
+      "Summary": "rack-protection gem timing attack vulnerability when validating CSRF token",
+      "url": "https://github.com/advisories/GHSA-688c-3x49-6rqj",
+      "CVE": [
+        "CVE-2018-1000119"
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2018-1000119"
+        ]
+      },
+      "ghsaId": "GHSA-688c-3x49-6rqj",
+      "published": "2018-03-07T22:22:22Z",
+      "updated": "2023-08-29T15:23:28Z",
+      "withdrawn": null,
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-1000119"
+        },
+        {
+          "url": "https://github.com/sinatra/rack-protection/pull/98"
+        },
+        {
+          "url": "https://github.com/sinatra/sinatra/commit/8aa6c42ef724f93ae309fb7c5668e19ad547eceb#commitcomment-27964109"
+        },
+        {
+          "url": "https://access.redhat.com/errata/RHSA-2018:1060"
+        },
+        {
+          "url": "https://www.debian.org/security/2018/dsa-4247"
+        },
+        {
+          "url": "https://github.com/rubysec/ruby-advisory-db/blob/master/gems/rack-protection/CVE-2018-1000119.yml"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-688c-3x49-6rqj"
+        }
+      ],
+      "namespace": "github:gem"
+    }
+  }
+}

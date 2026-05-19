@@ -211,10 +211,10 @@ func TestGenericConstraint_Satisfied_UnknownFormatComparison(t *testing.T) {
 			expectedResult: true,
 		},
 		{
-			name:           "different known formats should error",
+			name:           "unparseable versions should error",
 			constraintFmt:  SemanticFormat,
-			constraint:     "> 1.0.0",
-			versionStr:     "1.2.3-r1",
+			constraint:     "> george1.0.0",
+			versionStr:     "fred1.2.3-r1",
 			versionFmt:     ApkFormat,
 			expectedResult: false,
 			wantErr:        require.Error,

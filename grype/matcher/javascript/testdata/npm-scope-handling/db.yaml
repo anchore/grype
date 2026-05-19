@@ -1,0 +1,15 @@
+auto-generate: true
+extractions:
+  github:
+    # GHSA-67hx-6x53-jw92 (CVE-2023-45133) lists FixedIn entries for both
+    # the scoped npm name (@babel/traverse) and the legacy unscoped name
+    # (babel-traverse). Useful for confirming the matcher honors each
+    # explicitly-listed form.
+    - github:npm/GHSA-67hx-6x53-jw92
+    # The two advisories below establish a clean scope/no-scope pair for
+    # the "don't cross the streams" test:
+    #   * GHSA-rmvr-2pp2-xj38 (CVE-2025-25290) affects only @octokit/request
+    #   * GHSA-7xfp-9c55-5vqj (CVE-2017-16026) affects only the unscoped
+    #     "request" package
+    - github:npm/GHSA-rmvr-2pp2-xj38
+    - github:npm/GHSA-7xfp-9c55-5vqj

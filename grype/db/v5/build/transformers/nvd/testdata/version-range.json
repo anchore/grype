@@ -1,0 +1,121 @@
+{
+  "cve": {
+    "id": "CVE-2018-5487",
+    "sourceIdentifier": "security-alert@netapp.com",
+    "published": "2018-05-24T14:29:00.390",
+    "lastModified": "2018-07-05T13:52:30.627",
+    "vulnStatus": "Analyzed",
+    "descriptions": [
+      {
+        "lang": "en",
+        "value": "NetApp OnCommand Unified Manager for Linux versions 7.2 through 7.3 ship with the Java Management Extension Remote Method Invocation (JMX RMI) service bound to the network, and are susceptible to unauthenticated remote code execution."
+      },
+      {
+        "lang": "es",
+        "value": "NetApp OnCommand Unified Manager for Linux, de la versión 7.2 hasta la 7.3, se distribuye con el servicio Java Management Extension Remote Method Invocation (JMX RMI) enlazado a la red y es susceptible a la ejecución remota de código sin autenticación."
+      }
+    ],
+    "metrics": {
+      "cvssMetricV30": [
+        {
+          "source": "nvd@nist.gov",
+          "type": "Primary",
+          "cvssData": {
+            "version": "3.0",
+            "vectorString": "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+            "attackVector": "NETWORK",
+            "attackComplexity": "LOW",
+            "privilegesRequired": "NONE",
+            "userInteraction": "NONE",
+            "scope": "UNCHANGED",
+            "confidentialityImpact": "HIGH",
+            "integrityImpact": "HIGH",
+            "availabilityImpact": "HIGH",
+            "baseScore": 9.8,
+            "baseSeverity": "CRITICAL"
+          },
+          "exploitabilityScore": 3.9,
+          "impactScore": 5.9
+        }
+      ],
+      "cvssMetricV2": [
+        {
+          "source": "nvd@nist.gov",
+          "type": "Primary",
+          "cvssData": {
+            "version": "2.0",
+            "vectorString": "AV:N/AC:L/Au:N/C:P/I:P/A:P",
+            "accessVector": "NETWORK",
+            "accessComplexity": "LOW",
+            "authentication": "NONE",
+            "confidentialityImpact": "PARTIAL",
+            "integrityImpact": "PARTIAL",
+            "availabilityImpact": "PARTIAL",
+            "baseScore": 7.5
+          },
+          "baseSeverity": "HIGH",
+          "exploitabilityScore": 10.0,
+          "impactScore": 6.4,
+          "acInsufInfo": true,
+          "obtainAllPrivilege": false,
+          "obtainUserPrivilege": false,
+          "obtainOtherPrivilege": false,
+          "userInteractionRequired": false
+        }
+      ]
+    },
+    "weaknesses": [
+      {
+        "source": "nvd@nist.gov",
+        "type": "Primary",
+        "description": [
+          {
+            "lang": "en",
+            "value": "CWE-20"
+          }
+        ]
+      }
+    ],
+    "configurations": [
+      {
+        "operator": "AND",
+        "nodes": [
+          {
+            "operator": "OR",
+            "negate": false,
+            "cpeMatch": [
+              {
+                "vulnerable": true,
+                "criteria": "cpe:2.3:a:netapp:oncommand_unified_manager:*:*:*:*:*:*:*:*",
+                "versionStartIncluding": "7.2",
+                "versionEndIncluding": "7.3",
+                "matchCriteriaId": "A5949307-3E9B-441F-B008-81A0E0228DC0"
+              }
+            ]
+          },
+          {
+            "operator": "OR",
+            "negate": false,
+            "cpeMatch": [
+              {
+                "vulnerable": false,
+                "criteria": "cpe:2.3:o:linux:linux_kernel:-:*:*:*:*:*:*:*",
+                "matchCriteriaId": "703AF700-7A70-47E2-BC3A-7FD03B3CA9C1"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "references": [
+      {
+        "url": "https://security.netapp.com/advisory/ntap-20180523-0001/",
+        "source": "security-alert@netapp.com",
+        "tags": [
+          "Patch",
+          "Vendor Advisory"
+        ]
+      }
+    ]
+  }
+}

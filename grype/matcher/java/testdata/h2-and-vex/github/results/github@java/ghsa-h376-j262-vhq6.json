@@ -1,0 +1,88 @@
+{
+  "identifier": "github:java/ghsa-h376-j262-vhq6",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2021-42392"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 9.8,
+          "base_severity": "Critical",
+          "exploitability_score": 3.9,
+          "impact_score": 5.9
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2022-01-07",
+            "kind": "first-observed"
+          },
+          "ecosystem": "java",
+          "identifier": "2.0.206",
+          "name": "com.h2database:h2",
+          "namespace": "github:java",
+          "range": "\u003e= 1.1.100 \u003c 2.0.206"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2021-42392"
+        ]
+      },
+      "Severity": "Critical",
+      "Summary": "RCE in H2 Console",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-h376-j262-vhq6",
+      "namespace": "github:java",
+      "published": "2022-01-06T23:55:09Z",
+      "references": [
+        {
+          "url": "https://github.com/h2database/h2database/security/advisories/GHSA-h376-j262-vhq6"
+        },
+        {
+          "url": "https://github.com/h2database/h2database/releases/tag/version-2.0.206"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-42392"
+        },
+        {
+          "url": "https://jfrog.com/blog/the-jndi-strikes-back-unauthenticated-rce-in-h2-database-console/"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20220119-0001/"
+        },
+        {
+          "url": "https://lists.debian.org/debian-lts-announce/2022/02/msg00017.html"
+        },
+        {
+          "url": "https://www.debian.org/security/2022/dsa-5076"
+        },
+        {
+          "url": "https://www.oracle.com/security-alerts/cpuapr2022.html"
+        },
+        {
+          "url": "https://www.secpod.com/blog/log4shell-critical-remote-code-execution-vulnerability-in-h2database-console/"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-h376-j262-vhq6"
+        }
+      ],
+      "updated": "2023-02-25T00:31:20Z",
+      "url": "https://github.com/advisories/GHSA-h376-j262-vhq6",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

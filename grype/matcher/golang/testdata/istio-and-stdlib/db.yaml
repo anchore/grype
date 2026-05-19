@@ -1,0 +1,11 @@
+auto-generate: true
+extractions:
+  github:
+    # CVE-2026-41413 affects istio.io/istio at any pseudo-version below
+    # 0.0.0-20260410004459-189832a289c1; used by the main-module
+    # pseudo-version handling tests.
+    - github:go/GHSA-fgw5-hp8f-xfhc
+  nvd:
+    # CVE-2022-27664 affects golang:go < 1.18.6 via NVD CPE; used by the
+    # stdlib CPE-search tests.
+    - CVE-2022-27664
