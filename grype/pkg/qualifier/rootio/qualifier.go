@@ -22,5 +22,15 @@ func New() qualifier.Qualifier {
 // non-rootio scanned package fails the qualifier, which causes the NAK to
 // be filtered out of search results.
 func (rootIO) Satisfied(p pkg.Package) (bool, error) {
-	return rootio.IsPackage(p), nil
+	return rootio.IsPackage(p.Name, p.Version, p.Type, javaGroupID(p)), nil
+}
+
+// javaGroupID extracts the Maven groupID from grype's package metadata for
+// Java packages. Returns "" for non-Java packages or when the groupID isn't
+// available — IsPackage falls back to the name-prefix form in that case.
+func javaGroupID(p pkg.Package) string {
+	if md, ok := p.Metadata.(pkg.JavaMetadata); ok {
+		return md.PomGroupID
+	}
+	return ""
 }

@@ -50,10 +50,20 @@ func PackageNames(p grypePkg.Package) []string {
 			names = parts
 		}
 	}
-	if rootio.IsPackage(p) {
+	if rootio.IsPackage(p.Name, p.Version, p.Type, javaGroupID(p)) {
 		names = appendRootIONameVariants(names, p.Type)
 	}
 	return names
+}
+
+// javaGroupID returns the Maven groupID from grype's package metadata when
+// available. rootio detection for JavaPkg uses this to distinguish `io.root.*`
+// backports; returns "" for non-Java packages or when metadata is missing.
+func javaGroupID(p grypePkg.Package) string {
+	if md, ok := p.Metadata.(grypePkg.JavaMetadata); ok {
+		return md.PomGroupID
+	}
+	return ""
 }
 
 // appendRootIONameVariants extends the search list with both the bare upstream

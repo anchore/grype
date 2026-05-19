@@ -11,13 +11,18 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/anchore/grype/grype/pkg"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-// IsPackage reports whether p was produced by Root IO. Either the name
-// prefix or the ecosystem-specific version-side token is sufficient on
-// its own.
+// IsPackage reports whether the package described by (name, version, pkgType,
+// javaGroupID) was produced by Root IO. Either the name prefix or the
+// ecosystem-specific version-side token is sufficient on its own.
+//
+// javaGroupID is consulted only when pkgType is JavaPkg / JenkinsPluginPkg —
+// rootio identifies Java backports by the `io.root.` Maven groupID prefix
+// rather than a name prefix. Callers without a groupID (e.g. when the
+// underlying metadata doesn't carry one) may pass the empty string; detection
+// then falls back to the rare `io.root.` name-prefix form.
 //
 // Rootio ships under two coexisting models, often in the same image, and
 // both must be detected:
@@ -44,11 +49,11 @@ import (
 //
 // Java is the only ecosystem with no observed version-side convention;
 // detection relies on the `io.root.` groupID prefix alone.
-func IsPackage(p pkg.Package) bool {
-	if hasPrefix(p, p.Type) {
+func IsPackage(name, version string, pkgType syftPkg.Type, javaGroupID string) bool {
+	if hasPrefix(name, pkgType, javaGroupID) {
 		return true
 	}
-	return hasVersionSuffix(p.Version, p.Type)
+	return hasVersionSuffix(version, pkgType)
 }
 
 // StripPrefix removes the rootio-specific name prefix from a package name,
@@ -134,34 +139,34 @@ func AddPrefix(name string, pkgType syftPkg.Type) string {
 }
 
 // hasPrefix reports whether the package's name (or, for Java, the
-// Maven groupID held in JavaMetadata) carries a rootio prefix.
-func hasPrefix(p pkg.Package, pkgType syftPkg.Type) bool {
+// Maven groupID passed by the caller) carries a rootio prefix.
+func hasPrefix(name string, pkgType syftPkg.Type, javaGroupID string) bool {
 	switch pkgType {
 	case syftPkg.NpmPkg:
 		// scoped (@rootio/x) or unscoped (rootio-x)
-		return strings.HasPrefix(p.Name, "@rootio/") || strings.HasPrefix(p.Name, "rootio-")
+		return strings.HasPrefix(name, "@rootio/") || strings.HasPrefix(name, "rootio-")
 
 	case syftPkg.ApkPkg, syftPkg.DebPkg:
-		return strings.HasPrefix(p.Name, "rootio-")
+		return strings.HasPrefix(name, "rootio-")
 
 	case syftPkg.PythonPkg:
 		// rootio_ is the canonical PyPI form; after PEP 503 normalization
 		// runs of [-_.] collapse to a single `-`, yielding rootio-. Accept both.
-		return strings.HasPrefix(p.Name, "rootio_") || strings.HasPrefix(p.Name, "rootio-")
+		return strings.HasPrefix(name, "rootio_") || strings.HasPrefix(name, "rootio-")
 
 	case syftPkg.JavaPkg:
-		// Syft emits Java packages with the artifactID alone in p.Name and the
+		// Syft emits Java packages with the artifactID alone in the name and the
 		// Maven groupID in JavaMetadata.PomGroupID. The rootio marker (`io.root.`)
 		// is a groupID prefix, so the metadata is the authoritative place to
-		// look; the legacy `groupID:artifactID` form in p.Name is also accepted
+		// look; the legacy `groupID:artifactID` form in the name is also accepted
 		// for non-Syft callers that build packages by hand.
-		if md, ok := p.Metadata.(pkg.JavaMetadata); ok && strings.HasPrefix(md.PomGroupID, "io.root.") {
+		if strings.HasPrefix(javaGroupID, "io.root.") {
 			return true
 		}
-		return strings.HasPrefix(p.Name, "io.root.")
+		return strings.HasPrefix(name, "io.root.")
 
 	default:
-		return strings.HasPrefix(p.Name, "rootio-")
+		return strings.HasPrefix(name, "rootio-")
 	}
 }
 
