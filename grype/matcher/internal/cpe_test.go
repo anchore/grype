@@ -103,6 +103,16 @@ func newCPETestStore() vulnerability.Provider {
 			Constraint:  version.MustGetConstraint("< 4.7.7", version.UnknownFormat),
 			CPEs:        []cpe.CPE{cpe.Must("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:node.js:*:*", "")},
 		},
+		// NTP-like vulnerability with update field — constraint uses combined "version+update" no-dash format
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-ntp",
+				Namespace: "nvd:cpe",
+			},
+			PackageName: "ntp",
+			Constraint:  version.MustGetConstraint("= 4.2.8p9", version.UnknownFormat),
+			CPEs:        []cpe.CPE{cpe.Must("cpe:2.3:a:ntp:ntp:*:*:*:*:*:*:*:*", "")},
+		},
 	}...)
 }
 
@@ -995,6 +1005,64 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 					},
 				},
 			},
+		},
+		{
+			name: "package with CPE update field matches vulnerability using combined version",
+			p: pkg.Package{
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:a:ntp:ntp:4.2.8:p9:*:*:*:*:*:*", ""),
+				},
+				Name:    "ntp",
+				Version: "4.2.8p9",
+				Type:    syftPkg.UnknownPkg,
+			},
+			expected: []match.Match{
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						Reference: vulnerability.Reference{ID: "CVE-2017-fake-ntp"},
+					},
+					Package: pkg.Package{
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:a:ntp:ntp:4.2.8:p9:*:*:*:*:*:*", ""),
+						},
+						Name:    "ntp",
+						Version: "4.2.8p9",
+						Type:    syftPkg.UnknownPkg,
+					},
+					Details: []match.Detail{
+						{
+							Type:       match.CPEMatch,
+							Confidence: 0.9,
+							SearchedBy: match.CPEParameters{
+								Namespace: "nvd:cpe",
+								CPEs:      []string{"cpe:2.3:a:ntp:ntp:4.2.8:p9:*:*:*:*:*:*"},
+								Package: match.PackageParameter{
+									Name:    "ntp",
+									Version: "4.2.8p9",
+								},
+							},
+							Found: match.CPEResult{
+								CPEs:              []string{"cpe:2.3:a:ntp:ntp:*:*:*:*:*:*:*:*"},
+								VersionConstraint: "= 4.2.8p9 (unknown)",
+								VulnerabilityID:   "CVE-2017-fake-ntp",
+							},
+							Matcher: matcher,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "package with CPE update field does not match when version differs",
+			p: pkg.Package{
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:a:ntp:ntp:4.2.8:p18:*:*:*:*:*:*", ""),
+				},
+				Name:    "ntp",
+				Version: "4.2.8p18",
+				Type:    syftPkg.UnknownPkg,
+			},
+			expected: []match.Match{},
 		},
 	}
 

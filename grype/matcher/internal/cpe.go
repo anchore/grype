@@ -147,8 +147,9 @@ func combineVersionAndUpdate(searchVersion, updateCpeField string, format versio
 		return transformJvmVersion(searchVersion, updateCpeField)
 	}
 
-	// For other packages, combine version and update field directly
-	// This handles cases like NTP where version="4.2.8" and update="p18" should become "4.2.8p18"
+	// Combine version and update field without separator, matching the NTP-style pN patch notation.
+	// Using a dash would trigger semver prerelease semantics (4.2.8-p18 < 4.2.8), causing false positives.
+	// e.g. version="4.2.8", update="p18" → "4.2.8p18"
 	return fmt.Sprintf("%s%s", searchVersion, updateCpeField)
 }
 
