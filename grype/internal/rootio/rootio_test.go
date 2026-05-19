@@ -181,6 +181,72 @@ func TestStripPrefix(t *testing.T) {
 	}
 }
 
+func TestAddPrefix(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		pkgType syftPkg.Type
+		want    string
+	}{
+		// canonical "bare upstream name" → "rootio-prefixed" inversion
+		{name: "Alpine bare", input: "libssl3", pkgType: syftPkg.ApkPkg, want: "rootio-libssl3"},
+		{name: "Debian bare binary", input: "libgcrypt20", pkgType: syftPkg.DebPkg, want: "rootio-libgcrypt20"},
+		{name: "Debian bare source", input: "pam", pkgType: syftPkg.DebPkg, want: "rootio-pam"},
+		{name: "NPM unscoped bare", input: "semver", pkgType: syftPkg.NpmPkg, want: "@rootio/semver"},
+		{name: "NPM scoped bare uses __ encoding", input: "@babel/core", pkgType: syftPkg.NpmPkg, want: "@rootio/babel__core"},
+		{name: "PyPI bare", input: "requests", pkgType: syftPkg.PythonPkg, want: "rootio-requests"},
+		{name: "Java bare groupID", input: "org.springframework", pkgType: syftPkg.JavaPkg, want: "io.root.org.springframework"},
+
+		// idempotent: already-prefixed input returns unchanged so duplicate
+		// search-name entries don't leak through the resolver fanout.
+		{name: "Alpine already prefixed", input: "rootio-libssl3", pkgType: syftPkg.ApkPkg, want: "rootio-libssl3"},
+		{name: "Debian already prefixed", input: "rootio-pam", pkgType: syftPkg.DebPkg, want: "rootio-pam"},
+		{name: "NPM already @rootio scoped", input: "@rootio/semver", pkgType: syftPkg.NpmPkg, want: "@rootio/semver"},
+		{name: "PyPI already underscore prefixed", input: "rootio_requests", pkgType: syftPkg.PythonPkg, want: "rootio_requests"},
+		{name: "PyPI already hyphen prefixed", input: "rootio-requests", pkgType: syftPkg.PythonPkg, want: "rootio-requests"},
+		{name: "Java already prefixed", input: "io.root.org.springframework", pkgType: syftPkg.JavaPkg, want: "io.root.org.springframework"},
+
+		// degenerate inputs
+		{name: "empty string", input: "", pkgType: syftPkg.DebPkg, want: ""},
+		{name: "NPM scoped with no name returns empty", input: "@scope/", pkgType: syftPkg.NpmPkg, want: "@rootio/scope__"},
+		{name: "NPM '@' alone is malformed → empty", input: "@", pkgType: syftPkg.NpmPkg, want: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, AddPrefix(tt.input, tt.pkgType))
+		})
+	}
+}
+
+// TestStripAddPrefix_RoundTrip locks in that AddPrefix and StripPrefix are
+// mutual inverses for the names rootio uses in its dataset. Round-tripping
+// matters because the resolver fanout appends both StripPrefix(n) and
+// AddPrefix(n) to the search list; if the two drift, the matcher would search
+// inconsistent name spaces for affected vs unaffected lookups.
+func TestStripAddPrefix_RoundTrip(t *testing.T) {
+	cases := []struct {
+		name    string
+		bare    string
+		pkgType syftPkg.Type
+	}{
+		{"deb binary", "libgcrypt20", syftPkg.DebPkg},
+		{"deb source", "pam", syftPkg.DebPkg},
+		{"apk", "libssl3", syftPkg.ApkPkg},
+		{"npm unscoped", "semver", syftPkg.NpmPkg},
+		{"npm scoped", "@babel/core", syftPkg.NpmPkg},
+		{"pypi", "requests", syftPkg.PythonPkg},
+		{"java group", "org.springframework", syftPkg.JavaPkg},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			prefixed := AddPrefix(tc.bare, tc.pkgType)
+			bareAgain := StripPrefix(prefixed, tc.pkgType)
+			assert.Equal(t, tc.bare, bareAgain, "AddPrefix → StripPrefix should be identity on the upstream name")
+		})
+	}
+}
+
 func TestHasPrefix(t *testing.T) {
 	tests := []struct {
 		name    string

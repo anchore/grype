@@ -144,13 +144,20 @@ func rootioUnaffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string)
 // string. Root IO records don't carry PURLs (verified empirically against
 // the full vunnel rootio cache), so this is the only signal.
 //
-//   - language: "npm", "PyPI"/"pip"/"python", "Maven"/"java"
-//   - OS: "Alpine:<ver>", "Debian:<ver>", "Ubuntu:<ver>"
+// Every Root IO ecosystem is prefixed with `Root:`:
+//
+//   - language: "Root:npm", "Root:PyPI", "Root:Maven"
+//   - OS: "Root:Alpine:<ver>", "Root:Debian:<ver>", "Root:Ubuntu:<ver>"
+//
+// Inputs without the `Root:` prefix return empty (the caller skips them with
+// a warning); a non-Root-prefixed ecosystem on a ROOT-* record is upstream
+// drift we want surfaced, not silently coerced.
 func rootioPackageType(ecosystem string) pkg.Type {
-	if ecosystem == "" {
+	rest, ok := strings.CutPrefix(ecosystem, "Root:")
+	if !ok || rest == "" {
 		return ""
 	}
-	switch strings.ToLower(ecosystem) {
+	switch strings.ToLower(rest) {
 	case "npm":
 		return pkg.NpmPkg
 	case "pypi", "python", "pip":
@@ -158,7 +165,7 @@ func rootioPackageType(ecosystem string) pkg.Type {
 	case "maven", "java":
 		return pkg.JavaPkg
 	}
-	parts := strings.SplitN(ecosystem, ":", 2)
+	parts := strings.SplitN(rest, ":", 2)
 	if len(parts) < 2 {
 		return ""
 	}
@@ -192,13 +199,21 @@ func rootioPackage(p models.Package, pkgType pkg.Type) *db.Package {
 }
 
 // rootioOSFromEcosystem extracts OS metadata for ROOT-OS-* records. Returns
-// nil for ROOT-APP-* records (ecosystem strings without an `<os>:<version>`
-// shape, e.g. "npm", "PyPI").
+// nil for ROOT-APP-* records (ecosystem without an `<os>:<version>` tail,
+// e.g. "Root:npm").
+//
+// Expects the raw `Root:<os>:<version>` shape from the Root IO API
+// (`Root:Debian:12`, `Root:Ubuntu:22.04`, `Root:Alpine:3.18`). Anything
+// without the `Root:` prefix returns nil.
 //
 // Supported OS ecosystems: Alpine, Debian, Ubuntu. AlmaLinux is handled by
 // the alma strategy (rootio doesn't ship AlmaLinux backports today).
 func rootioOSFromEcosystem(ecosystem string) *db.OperatingSystem {
-	parts := strings.SplitN(ecosystem, ":", 2)
+	rest, ok := strings.CutPrefix(ecosystem, "Root:")
+	if !ok {
+		return nil
+	}
+	parts := strings.SplitN(rest, ":", 2)
 	if len(parts) < 2 {
 		return nil
 	}

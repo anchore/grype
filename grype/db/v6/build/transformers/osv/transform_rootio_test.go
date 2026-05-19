@@ -133,7 +133,7 @@ func TestRootioTransform_RelatedToAliases(t *testing.T) {
 	vuln.Affected = []models.Affected{
 		{
 			Package: models.Package{
-				Ecosystem: "Ubuntu:22.04",
+				Ecosystem: "Root:Ubuntu:22.04",
 				Name:      "rootio-libgcrypt20",
 			},
 			Ranges: []models.Range{
@@ -199,25 +199,28 @@ func TestRootioStrategy_Matches(t *testing.T) {
 // language ecosystems (npm, PyPI, Maven) and the OS ecosystems (Alpine,
 // Debian, Ubuntu) that rootio emits. Rootio OSV records don't carry PURLs
 // (verified against the full vunnel rootio cache), so the ecosystem string
-// is the only input.
+// is the only input. Every Root IO ecosystem is `Root:`-prefixed; anything
+// else is rejected (returns "") so upstream drift surfaces as a build warning.
 func TestRootioPackageType(t *testing.T) {
 	tests := []struct {
 		ecosystem string
 		want      string // pkg.Type.String() form for readability
 	}{
-		{"npm", "npm"},
-		{"PyPI", "python"},
-		{"pypi", "python"},
-		{"pip", "python"},
-		{"python", "python"},
-		{"Maven", "java-archive"},
-		{"java", "java-archive"},
-		{"Alpine:3.18", "apk"},
-		{"Debian:13", "deb"},
-		{"Ubuntu:20.04", "deb"},
-		{"Bitnami", ""},     // not a rootio ecosystem; strategy returns empty
-		{"AlmaLinux:8", ""}, // alma is the alma strategy's domain
+		{"Root:npm", "npm"},
+		{"Root:PyPI", "python"},
+		{"Root:pypi", "python"},
+		{"Root:pip", "python"},
+		{"Root:python", "python"},
+		{"Root:Maven", "java-archive"},
+		{"Root:java", "java-archive"},
+		{"Root:Alpine:3.18", "apk"},
+		{"Root:Debian:13", "deb"},
+		{"Ubuntu:20.04", ""},     // missing Root: prefix → reject
+		{"npm", ""},              // missing Root: prefix → reject
+		{"Root:Bitnami", ""},     // not a rootio ecosystem; strategy returns empty
+		{"Root:AlmaLinux:8", ""}, // alma is the alma strategy's domain
 		{"", ""},
+		{"Root:", ""},
 		{"NoColon", ""},
 	}
 	for _, tt := range tests {
@@ -241,7 +244,7 @@ func TestRootioOSFromEcosystem(t *testing.T) {
 	}{
 		{
 			name:      "Ubuntu numeric version",
-			ecosystem: "Ubuntu:20.04",
+			ecosystem: "Root:Ubuntu:20.04",
 			want: &db.OperatingSystem{
 				Name:         "ubuntu",
 				MajorVersion: "20",
@@ -250,7 +253,7 @@ func TestRootioOSFromEcosystem(t *testing.T) {
 		},
 		{
 			name:      "Alpine major.minor",
-			ecosystem: "Alpine:3.18",
+			ecosystem: "Root:Alpine:3.18",
 			want: &db.OperatingSystem{
 				Name:         "alpine",
 				MajorVersion: "3",
@@ -259,7 +262,7 @@ func TestRootioOSFromEcosystem(t *testing.T) {
 		},
 		{
 			name:      "Debian numeric version",
-			ecosystem: "Debian:13",
+			ecosystem: "Root:Debian:13",
 			want: &db.OperatingSystem{
 				Name:         "debian",
 				MajorVersion: "13",
@@ -267,12 +270,17 @@ func TestRootioOSFromEcosystem(t *testing.T) {
 		},
 		{
 			name:      "non-OS ecosystem (npm) returns nil",
-			ecosystem: "npm",
+			ecosystem: "Root:npm",
 			want:      nil,
 		},
 		{
 			name:      "unsupported OS returns nil",
-			ecosystem: "Fedora:38",
+			ecosystem: "Root:Fedora:38",
+			want:      nil,
+		},
+		{
+			name:      "missing Root: prefix returns nil",
+			ecosystem: "Ubuntu:20.04",
 			want:      nil,
 		},
 		{

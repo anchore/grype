@@ -27,9 +27,15 @@ func FromType(t syftPkg.Type) Resolver {
 // PackageNames returns the list of names a matcher should search the DB by
 // when looking up vulnerabilities for p. Per-ecosystem resolvers (Python,
 // Java) provide alternate canonical forms (PEP 503 normalization, Maven
-// group+artifact splits); rootio packages additionally fan out to the bare
-// upstream name so a scan against a `rootio-libssl3` apk reaches the
-// `libssl3` disclosure in the Alpine namespace.
+// group+artifact splits); rootio packages additionally fan out across both
+// naming directions so the matcher reaches every record relevant to a rootio
+// build regardless of which naming model the SBOM uses:
+//
+//   - prefixed → bare: a scan against `rootio-libssl3` reaches the upstream
+//     `libssl3` disclosure in the distro namespace.
+//   - bare → prefixed: a scan against `libgcrypt20@1.10.1-3.root.io.2`
+//     (upstream-named rootio build) reaches the rootio NAK keyed under
+//     `rootio-libgcrypt20`.
 //
 // Rootio data carries no false-positive risk through this fanout: rootio
 // publishes only UnaffectedPackageHandles (NAKs), so any extra-name search
@@ -45,31 +51,39 @@ func PackageNames(p grypePkg.Package) []string {
 		}
 	}
 	if rootio.IsPackage(p) {
-		names = appendRootIOStrippedNames(names, p.Type)
+		names = appendRootIONameVariants(names, p.Type)
 	}
 	return names
 }
 
-// appendRootIOStrippedNames appends the upstream (bare) form of each rootio-
-// prefixed name to the search list, skipping duplicates and empty results.
-// The caller is responsible for first confirming IsPackage(p); this helper
-// trusts that and just strips.
-func appendRootIOStrippedNames(names []string, t syftPkg.Type) []string {
+// appendRootIONameVariants extends the search list with both the bare upstream
+// form and the rootio-prefixed form of each name, skipping duplicates and
+// empties. The caller is responsible for first confirming IsPackage(p).
+//
+// Both directions matter:
+//   - prefixed-on-input (`rootio-libssl3`) needs the bare form to reach upstream
+//     distro disclosures keyed under `libssl3`.
+//   - bare-on-input (`libgcrypt20@1.10.1-3.root.io.2`) needs the prefixed form
+//     to reach rootio NAKs keyed under `rootio-libgcrypt20`.
+func appendRootIONameVariants(names []string, t syftPkg.Type) []string {
 	seen := make(map[string]struct{}, len(names)*2)
 	for _, n := range names {
 		seen[n] = struct{}{}
 	}
 	out := slices.Clone(names)
+	add := func(candidate string) {
+		if candidate == "" {
+			return
+		}
+		if _, ok := seen[candidate]; ok {
+			return
+		}
+		out = append(out, candidate)
+		seen[candidate] = struct{}{}
+	}
 	for _, n := range names {
-		stripped := rootio.StripPrefix(n, t)
-		if stripped == "" || stripped == n {
-			continue
-		}
-		if _, ok := seen[stripped]; ok {
-			continue
-		}
-		out = append(out, stripped)
-		seen[stripped] = struct{}{}
+		add(rootio.StripPrefix(n, t))
+		add(rootio.AddPrefix(n, t))
 	}
 	return out
 }

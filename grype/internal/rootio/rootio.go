@@ -80,6 +80,59 @@ func StripPrefix(name string, pkgType syftPkg.Type) string {
 	}
 }
 
+// AddPrefix is the inverse of StripPrefix: given an upstream (bare) name and a
+// package type, return the rootio-prefixed name the rootio dataset keys its
+// records under. If name already carries the rootio prefix, returns it
+// unchanged. Returns the empty string when the prefixed form is ambiguous or
+// the ecosystem has no canonical prefix.
+//
+// Rationale: rootio publishes NAKs under the prefixed name even when the
+// scanned package is shipped under its upstream name (the "upstream-named"
+// rootio model in IsPackage's doc comment). Without this reverse mapping, a
+// scan of `libgcrypt20@1.10.1-3.root.io.2` (bare name + rootio version token)
+// reaches the upstream Debian disclosure for `libgcrypt20` but cannot reach
+// the rootio NAK keyed under `rootio-libgcrypt20`, so the NAK never fires.
+func AddPrefix(name string, pkgType syftPkg.Type) string {
+	if name == "" {
+		return ""
+	}
+	switch pkgType {
+	case syftPkg.NpmPkg:
+		if strings.HasPrefix(name, "@rootio/") {
+			return name
+		}
+		if strings.HasPrefix(name, "@") {
+			// scoped packages: @babel/core -> @rootio/babel__core
+			rest := strings.TrimPrefix(name, "@")
+			slash := strings.Index(rest, "/")
+			if slash <= 0 {
+				return ""
+			}
+			return fmt.Sprintf("@rootio/%s__%s", rest[:slash], rest[slash+1:])
+		}
+		return "@rootio/" + name
+
+	case syftPkg.PythonPkg:
+		if strings.HasPrefix(name, "rootio-") || strings.HasPrefix(name, "rootio_") {
+			return name
+		}
+		// PEP 503-normalized form is what the resolver searches by.
+		return "rootio-" + name
+
+	case syftPkg.JavaPkg:
+		if strings.HasPrefix(name, "io.root.") {
+			return name
+		}
+		return "io.root." + name
+
+	default:
+		if strings.HasPrefix(name, "rootio-") {
+			return name
+		}
+		return "rootio-" + name
+	}
+}
+
 // hasPrefix reports whether the package's name (or, for Java, the
 // Maven groupID held in JavaMetadata) carries a rootio prefix.
 func hasPrefix(p pkg.Package, pkgType syftPkg.Type) bool {
