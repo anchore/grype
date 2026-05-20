@@ -22,13 +22,15 @@ import (
 const cleanStart = "cleanstart"
 
 // cleanstartStrategy handles CleanStart Security Advisory (CLEANSTART) records.
-// CleanStart OSV records are *advisories* (NAK semantics): they describe
-// versions that are explicitly fixed, not vulnerable ranges.
+// CleanStart OSV records describe affected version ranges for APK packages.
 //
 // CleanStart-specific decisions:
 //   - Ecosystem is "CleanStart" or "CleanStart:<version>"; package type is
 //     always APK; OS metadata is extracted from the ecosystem string.
 //   - CleanStart is a rolling distro — no version suffix means rolling.
+//   - OSV ranges (introduced/fixed events) are converted directly to
+//     AffectedPackageHandle records with "< fixVersion" constraints, matching
+//     how Alpine and Wolfi vulnerability data is stored.
 //   - ADVISORY-type references get their refID set to the record ID.
 type cleanstartStrategy struct{}
 
@@ -62,8 +64,8 @@ func (cleanstartStrategy) Transform(vuln unmarshal.OSVVulnerability, state provi
 		},
 	}
 
-	for _, uph := range cleanstartUnaffectedPackages(vuln) {
-		in = append(in, uph)
+	for _, aph := range cleanstartAffectedPackages(vuln) {
+		in = append(in, aph)
 	}
 	return transformers.NewEntries(in...), nil
 }
@@ -84,26 +86,26 @@ func cleanstartReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
 	return refs
 }
 
-func cleanstartUnaffectedPackages(vuln unmarshal.OSVVulnerability) []db.UnaffectedPackageHandle {
+func cleanstartAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHandle {
 	if len(vuln.Affected) == 0 {
 		return nil
 	}
-	var uphs []db.UnaffectedPackageHandle
+	var aphs []db.AffectedPackageHandle
 	for _, affected := range vuln.Affected {
-		uphs = append(uphs, db.UnaffectedPackageHandle{
+		aphs = append(aphs, db.AffectedPackageHandle{
 			Package:         cleanstartPackage(affected.Package),
 			OperatingSystem: cleanstartOSFromEcosystem(string(affected.Package.Ecosystem)),
-			BlobValue:       cleanstartUnaffectedBlob(vuln, affected),
+			BlobValue:       cleanstartAffectedBlob(vuln, affected),
 		})
 	}
-	sort.Sort(internal.ByUnaffectedPackage(uphs))
-	return uphs
+	sort.Sort(internal.ByAffectedPackage(aphs))
+	return aphs
 }
 
-func cleanstartUnaffectedBlob(vuln unmarshal.OSVVulnerability, affected models.Affected) *db.PackageBlob {
+func cleanstartAffectedBlob(vuln unmarshal.OSVVulnerability, affected models.Affected) *db.PackageBlob {
 	var ranges []db.Range
 	for _, r := range affected.Ranges {
-		ranges = append(ranges, getGrypeUnaffectedRangesFromRange(r, cleanstartRangeType(r.Type))...)
+		ranges = append(ranges, getGrypeRangesFromRange(r, cleanstartRangeType(r.Type))...)
 	}
 	return &db.PackageBlob{
 		CVEs:   vuln.Aliases,

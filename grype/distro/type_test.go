@@ -121,14 +121,14 @@ func TestTypeFromRelease(t *testing.T) {
 			release: linux.Release{
 				ID: "cleanstart",
 			},
-			want: Clnstrt,
+			want: CleanStart,
 		},
 		{
 			name: "clnstrt ID mapping",
 			release: linux.Release{
 				ID: "clnstrt",
 			},
-			want: Clnstrt,
+			want: CleanStart,
 		},
 		{
 			name: "Scientific Linux 6",
