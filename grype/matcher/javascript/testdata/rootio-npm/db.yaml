@@ -1,0 +1,8 @@
+auto-generate: true
+extractions:
+    github:
+        - github:npm/ghsa-896r-f27r-55mw
+        - github:npm/ghsa-rc47-6667-2j5j
+    rootio:
+        - root-app-npm-cve-2021-3918
+        - root-app-npm-cve-2022-25881

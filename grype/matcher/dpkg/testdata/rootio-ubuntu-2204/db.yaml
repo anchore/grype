@@ -1,0 +1,12 @@
+auto-generate: false
+extractions:
+    ubuntu:
+        - ubuntu:22.04/cve-2018-6952
+        - ubuntu:22.04/cve-2024-2236
+        - ubuntu:22.04/cve-2025-1180
+        - ubuntu:22.04/cve-2025-68973
+    rootio:
+        - root-os-ubuntu-2204-cve-2018-6952
+        - root-os-ubuntu-2204-cve-2024-2236
+        - root-os-ubuntu-2204-cve-2025-1180
+        - root-os-ubuntu-2204-cve-2025-68973

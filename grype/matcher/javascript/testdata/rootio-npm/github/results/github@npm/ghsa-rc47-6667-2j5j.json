@@ -1,0 +1,79 @@
+{
+  "identifier": "github:npm/ghsa-rc47-6667-2j5j",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2022-25881"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 7.5,
+          "base_severity": "High",
+          "exploitability_score": 3.9,
+          "impact_score": 3.6
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2023-02-03",
+            "kind": "first-observed"
+          },
+          "ecosystem": "npm",
+          "identifier": "4.1.1",
+          "name": "http-cache-semantics",
+          "namespace": "github:npm",
+          "range": "\u003c 4.1.1"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2022-25881"
+        ]
+      },
+      "Severity": "High",
+      "Summary": "http-cache-semantics vulnerable to Regular Expression Denial of Service",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-rc47-6667-2j5j",
+      "namespace": "github:npm",
+      "published": "2023-01-31T06:30:26Z",
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-25881"
+        },
+        {
+          "url": "https://github.com/kornelski/http-cache-semantics/blob/master/index.js%23L83"
+        },
+        {
+          "url": "https://security.snyk.io/vuln/SNYK-JAVA-ORGWEBJARSNPM-3253332"
+        },
+        {
+          "url": "https://security.snyk.io/vuln/SNYK-JS-HTTPCACHESEMANTICS-3248783"
+        },
+        {
+          "url": "https://github.com/kornelski/http-cache-semantics/commit/560b2d8ef452bbba20ffed69dc155d63ac757b74"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20230622-0008"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-rc47-6667-2j5j"
+        }
+      ],
+      "updated": "2025-02-13T18:36:38Z",
+      "url": "https://github.com/advisories/GHSA-rc47-6667-2j5j",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}
