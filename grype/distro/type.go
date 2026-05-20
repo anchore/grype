@@ -37,6 +37,7 @@ const (
 	Scientific   Type = "scientific"
 	SecureOS     Type = "secureos"
 	PostmarketOS Type = "postmarketos"
+	Hummingbird  Type = "hummingbird"
 	Clnstrt      Type = "clnstrt"
 )
 
@@ -69,6 +70,7 @@ var All = []Type{
 	Scientific,
 	SecureOS,
 	PostmarketOS,
+	Hummingbird,
 	Clnstrt,
 }
 
@@ -100,7 +102,8 @@ var IDMapping = map[string]Type{
 	"scientific":    Scientific,
 	"secureos":      SecureOS,
 	"postmarketos":  PostmarketOS,
-	"clnstrt":       Clnstrt,
+	"hummingbird":   Hummingbird,
+	"clnstrt":    Clnstrt,
 }
 
 // aliasTypes maps common aliases to their corresponding Type.
@@ -108,7 +111,7 @@ var aliasTypes = map[string]Type{
 	"Alpine Linux":     Alpine, // needed for CPE matching (see #2039)
 	"windows":          Windows,
 	"scientific linux": Scientific, // Scientific linux prior to v7 didn't have an os-release file and syft raises up "scientific linux" as the release id as parsed from /etc/redhat-release
-	"cleanstart":       Clnstrt,
+	"cleanstart": Clnstrt,
 }
 
 var typeToIDMapping = map[Type]string{}
