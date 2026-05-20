@@ -16,9 +16,10 @@ import (
 	"golang.org/x/tools/go/packages"
 
 	"github.com/anchore/grype/cmd/grype/cli/commands/internal/dbsearch"
+	"github.com/anchore/grype/grype/presenter/models"
 )
 
-func main() {
+func generateDBSearch() {
 	pkgPatterns := []string{"../dbsearch", "../../../../../../grype/db/v6"}
 
 	comments := parseCommentsFromPackages(pkgPatterns)
@@ -26,6 +27,20 @@ func main() {
 
 	compose(dbsearch.Matches{}, "db-search", dbsearch.MatchesSchemaVersion, comments)
 	compose(dbsearch.Vulnerabilities{}, "db-search-vuln", dbsearch.VulnerabilitiesSchemaVersion, comments)
+}
+
+func generateDocument() {
+	pkgPatterns := []string{"../../../../../../grype/presenter/models"}
+
+	comments := parseCommentsFromPackages(pkgPatterns)
+	fmt.Printf("Extracted field comments from %d structs\n", len(comments))
+
+	compose(models.Document{}, "document", models.DocumentSchemaVersion, comments)
+}
+
+func main() {
+	generateDocument()
+	generateDBSearch()
 }
 
 func compose(document any, component, version string, comments map[string]map[string]string) {
