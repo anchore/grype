@@ -54,6 +54,16 @@ type DatabaseBuild struct {
 	// pull + provider options (used by `db-builder pull` and indirectly by build for state reading)
 	Pull     DatabaseBuildPull     `yaml:"pull" json:"pull" mapstructure:"pull"`
 	Provider DatabaseBuildProvider `yaml:"provider" json:"provider" mapstructure:"provider"`
+
+	// cache subcommand options (used by `db-builder cache {backup,restore,status,delete}`)
+	Cache DatabaseBuildCache `yaml:"cache" json:"cache" mapstructure:"cache"`
+}
+
+type DatabaseBuildCache struct {
+	Path           string `yaml:"path" json:"path" mapstructure:"path"`
+	DeleteExisting bool   `yaml:"delete-existing" json:"delete-existing" mapstructure:"delete-existing"`
+	ResultsOnly    bool   `yaml:"results-only" json:"results-only" mapstructure:"results-only"`
+	MinRows        int    `yaml:"min-rows" json:"min-rows" mapstructure:"min-rows"`
 }
 
 type DatabaseBuildPull struct {
@@ -61,19 +71,19 @@ type DatabaseBuildPull struct {
 }
 
 type DatabaseBuildProvider struct {
-	Root          string                    `yaml:"root" json:"root" mapstructure:"root"`
-	IncludeFilter []string                  `yaml:"include-filter" json:"include-filter" mapstructure:"include-filter"`
-	Vunnel        DatabaseBuildVunnel       `yaml:"vunnel" json:"vunnel" mapstructure:"vunnel"`
-	Configs       []pull.ProviderRunConfig  `yaml:"configs" json:"configs" mapstructure:"configs"`
+	Root          string                   `yaml:"root" json:"root" mapstructure:"root"`
+	IncludeFilter []string                 `yaml:"include-filter" json:"include-filter" mapstructure:"include-filter"`
+	Vunnel        DatabaseBuildVunnel      `yaml:"vunnel" json:"vunnel" mapstructure:"vunnel"`
+	Configs       []pull.ProviderRunConfig `yaml:"configs" json:"configs" mapstructure:"configs"`
 }
 
 type DatabaseBuildVunnel struct {
-	Config           string            `yaml:"config" json:"config" mapstructure:"config"`
-	Executor         string            `yaml:"executor" json:"executor" mapstructure:"executor"`
-	DockerImage      string            `yaml:"docker-image" json:"docker-image" mapstructure:"docker-image"`
-	DockerTag        string            `yaml:"docker-tag" json:"docker-tag" mapstructure:"docker-tag"`
-	GenerateConfigs  bool              `yaml:"generate-configs" json:"generate-configs" mapstructure:"generate-configs"`
-	ExcludeProviders []string          `yaml:"exclude-providers" json:"exclude-providers" mapstructure:"exclude-providers"`
+	Config           string    `yaml:"config" json:"config" mapstructure:"config"`
+	Executor         string    `yaml:"executor" json:"executor" mapstructure:"executor"`
+	DockerImage      string    `yaml:"docker-image" json:"docker-image" mapstructure:"docker-image"`
+	DockerTag        string    `yaml:"docker-tag" json:"docker-tag" mapstructure:"docker-tag"`
+	GenerateConfigs  bool      `yaml:"generate-configs" json:"generate-configs" mapstructure:"generate-configs"`
+	ExcludeProviders []string  `yaml:"exclude-providers" json:"exclude-providers" mapstructure:"exclude-providers"`
 	Env              stringMap `yaml:"env,omitempty" json:"env,omitempty" mapstructure:"env"`
 }
 
@@ -153,6 +163,19 @@ func (o *DatabaseBuild) AddFlags(flags clio.FlagSet) {
 
 	flags.StringArrayVarP(&o.Provider.IncludeFilter, "provider-name", "p",
 		"one or more provider names to filter the build to (default: empty = all)")
+
+	// cache subcommand flags
+	flags.StringVarP(&o.Cache.Path, "path", "",
+		"path to the cache archive (used by 'db-builder cache backup' and 'restore')")
+
+	flags.BoolVarP(&o.Cache.DeleteExisting, "delete-existing", "",
+		"delete any existing provider data before restoring from the cache archive")
+
+	flags.BoolVarP(&o.Cache.ResultsOnly, "results-only", "",
+		"archive only the provider 'results' directory (omit raw 'input' data)")
+
+	flags.IntVarP(&o.Cache.MinRows, "min-rows", "",
+		"fail 'cache status' validation unless more than this many rows are present in the provider results")
 }
 
 func (o *DatabaseBuild) DescribeFields(d clio.FieldDescriptionSet) {
@@ -181,4 +204,9 @@ func (o *DatabaseBuild) DescribeFields(d clio.FieldDescriptionSet) {
 	d.Add(&o.Provider.Vunnel.GenerateConfigs, `generate additional provider configurations from 'vunnel list' output`)
 	d.Add(&o.Provider.Vunnel.ExcludeProviders, `providers to exclude from 'vunnel list' output (only when generate-configs is true)`)
 	d.Add(&o.Provider.Vunnel.Env, `environment variables to pass to the vunnel process`)
+
+	d.Add(&o.Cache.Path, `path to the cache archive used by 'db-builder cache backup' and 'restore'`)
+	d.Add(&o.Cache.DeleteExisting, `delete any existing provider data before restoring from the cache archive`)
+	d.Add(&o.Cache.ResultsOnly, `archive only the provider 'results' directory (omit raw 'input' data)`)
+	d.Add(&o.Cache.MinRows, `fail 'cache status' unless more than this many rows are present in the provider results`)
 }

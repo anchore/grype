@@ -32,6 +32,7 @@ search, ...), see 'grype db' instead.`,
 		DBBuilderPull(app),
 		DBBuilderBuild(app),
 		DBBuilderPackage(app),
+		DBBuilderCache(app),
 	)
 
 	return cmd
