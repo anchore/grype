@@ -48,6 +48,8 @@ func main() {
 
 		showTestImageCacheTask(),
 		cleanCacheTask(),
+
+		dbBuilderTasks(),
 	)
 }
 

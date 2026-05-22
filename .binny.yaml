@@ -4,6 +4,15 @@ cooldown: 7d
 # need to specify tools here that are not already defined there (or that we want to override
 # with different versions).
 tools:
+  # used by 'make db-builder:cache-restore' to fetch provider workspace tarballs
+  # from ghcr.io before running vunnel; pins to the same version grype-db uses
+  - name: oras
+    version:
+      want: v1.3.2
+    method: github-release
+    with:
+      repo: oras-project/oras
+
   # used for integration tests
   - name: skopeo
     version:
