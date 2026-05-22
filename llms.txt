@@ -26,8 +26,35 @@ Grype is a vulnerability scanner for container images and filesystems developed 
 - `grype/` - Core library with matchers, database, and scanning logic
 - `grype/matcher/` - Package-specific vulnerability matchers
 - `grype/db/` - Database management and vulnerability storage
+- `grype/db/build/` - Provider orchestration (vunnel runner) + pull pipeline; backs the `grype db-builder` subcommands
 - `grype/pkg/` - Package identification and metadata
 - `grype/presenter/` - Output formatting (JSON, table, SARIF, etc.)
+- `internal/tarutil/` - Tar archive read/write used by `grype db-builder` and DB packaging
+
+## CLI Surface
+
+Two top-level command groups serve different audiences:
+
+- `grype db ...` - end-user operations on the **installed** vulnerability DB
+  (`check`, `update`, `status`, `list`, `import`, `delete`, `diff`, `search`,
+  `providers`)
+- `grype db-builder ...` - producer operations that **build** a vulnerability
+  DB from upstream provider data. Used by the data-sync CI pipeline and by
+  grype-db-manager during publish:
+  - `pull -p <name>` - run vulnerability providers (vunnel by default) to
+    refresh on-disk workspace data under `--root`
+  - `build --dir <dir>` - write a SQLite DB from existing workspace data
+  - `package --dir <dir>` - archive the built DB into a compressed tarball
+  - `cache backup --path <tarball> -p <name>` - snapshot a provider
+    workspace into a tar archive
+  - `cache restore --path <tarball>` - extract a workspace tarball back
+    into `--root`
+  - `cache status -p <name>` - verify on-disk workspace state
+  - `cache delete [-p <name>]` - remove provider workspace data
+
+Configuration lives under top-level keys `db:` (consumer) and `db-builder:`
+(producer) in `~/.grype.yaml`; corresponding env vars use prefixes
+`GRYPE_DB_*` and `GRYPE_DB_BUILDER_*` respectively.
 
 ## Usage
 
@@ -39,6 +66,12 @@ grype <image>
 Scan with SBOM:
 ```bash
 grype sbom:./sbom.json
+```
+
+Build a DB from an existing provider workspace:
+```bash
+grype db-builder build --schema 6 --dir ./build
+grype db-builder package --dir ./build
 ```
 
 The tool automatically manages its vulnerability database and provides configurable output formats and filtering options.
