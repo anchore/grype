@@ -99,5 +99,5 @@ func renderStoreValidation(status vulnerability.ProviderStatus) string {
 	if status.Error != nil {
 		return "invalid"
 	}
-	return "valid"
+	return validStatus
 }

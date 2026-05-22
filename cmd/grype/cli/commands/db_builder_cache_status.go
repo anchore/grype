@@ -70,44 +70,10 @@ func runDBBuilderCacheStatus(opts *options.DatabaseBuild) error {
 	}
 
 	success := true
-
 	for idx, sd := range sds {
-		validMsg := "valid"
-		isValid := true
-		if errs[idx] != nil {
-			validMsg = fmt.Sprintf("INVALID (%s)", errs[idx].Error())
-			isValid = false
-		} else if sd == nil {
-			validMsg = "INVALID (no state description found)"
-			isValid = false
+		if !printProviderStatus(providerNames[idx], sd, errs[idx], opts.Cache.MinRows) {
+			success = false
 		}
-
-		var count int64
-		name := providerNames[idx]
-
-		if sd != nil {
-			name = sd.Provider
-			counter := func() (int64, error) {
-				return entry.Count(sd.Store, sd.ResultPaths())
-			}
-			count, err = validateMinRowsCount(opts.Cache.MinRows, counter)
-			if err != nil {
-				isValid = false
-				validMsg = fmt.Sprintf("INVALID (%s)", err.Error())
-			}
-		}
-
-		success = success && isValid
-
-		fmt.Printf("  • %s\n", name)
-		statusFmt := color.HiRed
-		if isValid {
-			fmt.Printf("    ├── results: %d\n", count)
-			fmt.Printf("    ├── created: %s\n", sd.Timestamp.Format(time.RFC3339))
-			statusFmt = color.HiGreen
-		}
-
-		fmt.Printf("    └── status:  %s\n", statusFmt.Sprint(validMsg))
 	}
 
 	if missingProvidersErr != nil {
@@ -119,6 +85,44 @@ func runDBBuilderCacheStatus(opts *options.DatabaseBuild) error {
 		os.Exit(1)
 	}
 	return nil
+}
+
+func printProviderStatus(name string, sd *dbprovider.State, stateErr error, minRows int) bool {
+	validMsg := validStatus
+	isValid := true
+	if stateErr != nil {
+		validMsg = fmt.Sprintf("INVALID (%s)", stateErr.Error())
+		isValid = false
+	} else if sd == nil {
+		validMsg = "INVALID (no state description found)"
+		isValid = false
+	}
+
+	var count int64
+	if sd != nil {
+		name = sd.Provider
+		counter := func() (int64, error) {
+			return entry.Count(sd.Store, sd.ResultPaths())
+		}
+		c, err := validateMinRowsCount(minRows, counter)
+		if err != nil {
+			isValid = false
+			validMsg = fmt.Sprintf("INVALID (%s)", err.Error())
+		}
+		count = c
+	}
+
+	fmt.Printf("  • %s\n", name)
+	statusFmt := color.HiRed
+	if isValid {
+		fmt.Printf("    ├── results: %d\n", count)
+		fmt.Printf("    ├── created: %s\n", sd.Timestamp.Format(time.RFC3339))
+		statusFmt = color.HiGreen
+	}
+
+	fmt.Printf("    └── status:  %s\n", statusFmt.Sprint(validMsg))
+
+	return isValid
 }
 
 func validateMinRowsCount(minRows int, counter func() (int64, error)) (int64, error) {
