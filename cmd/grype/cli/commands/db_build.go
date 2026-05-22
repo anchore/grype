@@ -153,18 +153,39 @@ func buildProviders(opts *options.DatabaseBuild) (dbprovider.Providers, error) {
 		DockerTag:        opts.Provider.Vunnel.DockerTag,
 		GenerateConfigs:  opts.Provider.Vunnel.GenerateConfigs,
 		ExcludeProviders: opts.Provider.Vunnel.ExcludeProviders,
-		Env:              opts.Provider.Vunnel.Env,
+		Env:              map[string]string(opts.Provider.Vunnel.Env),
 	}
 
-	pvdrs, err := providers.New(opts.Provider.Root, vCfg, opts.Provider.Configs...)
+	cfgs := append([]pull.ProviderRunConfig(nil), opts.Provider.Configs...)
+
+	// If the user passed -p but didn't supply explicit configs and didn't ask
+	// to enumerate via `vunnel list` (-g), treat each -p value as a vunnel
+	// provider config. This lets `-p alpine -p alma` work on its own when the
+	// provider data already exists on disk under provider.root.
+	if len(cfgs) == 0 && !vCfg.GenerateConfigs && len(opts.Provider.IncludeFilter) > 0 {
+		for _, name := range opts.Provider.IncludeFilter {
+			cfgs = append(cfgs, pull.ProviderRunConfig{
+				Identifier: dbprovider.Identifier{
+					Name: name,
+					Kind: vunnel.Kind,
+				},
+			})
+		}
+		log.WithFields("providers", opts.Provider.IncludeFilter).Debug("synthesized vunnel provider configs from --provider-name")
+	}
+
+	pvdrs, err := providers.New(opts.Provider.Root, vCfg, cfgs...)
 	if err != nil {
 		if errors.Is(err, providers.ErrNoProviders) {
-			log.Error("configure a provider via the application config or use -g to generate a list of configs from vunnel")
+			log.Error("configure a provider via the application config, pass -p <name> for each provider, or use -g to enumerate them via vunnel list")
 		}
 		return nil, fmt.Errorf("unable to create providers: %w", err)
 	}
 
-	if len(opts.Provider.IncludeFilter) > 0 {
+	// Only run the post-filter when configs or -g produced the provider set;
+	// when -p synthesized them above, the filter is implicit.
+	hadExplicitSources := vCfg.GenerateConfigs || len(opts.Provider.Configs) > 0
+	if hadExplicitSources && len(opts.Provider.IncludeFilter) > 0 {
 		log.WithFields("keep-only", opts.Provider.IncludeFilter).Debug("filtering providers by name")
 		pvdrs = pvdrs.Filter(opts.Provider.IncludeFilter...)
 	}
@@ -215,7 +236,7 @@ func runWritePhase(opts *options.DatabaseBuild, pvdrs dbprovider.Providers, skip
 func runPackagePhase(opts *options.DatabaseBuild) error {
 	// v5 DB writing (and its corresponding listing.json) is no longer supported via this command;
 	// publish-base-url is intentionally omitted.
-	return db.Package(opts.Dir, "", opts.ArchiveExtension, opts.CompressorCommands)
+	return db.Package(opts.Dir, "", opts.ArchiveExtension, map[string]string(opts.CompressorCommands))
 }
 
 func providerStates(skipValidation bool, providers []dbprovider.Reader) ([]dbprovider.State, error) {

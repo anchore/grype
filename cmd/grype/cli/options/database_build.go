@@ -1,10 +1,36 @@
 package options
 
 import (
+	"fmt"
+	"sort"
+	"strings"
+
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/db"
 	"github.com/anchore/grype/grype/db/build/pull"
 )
+
+// stringMap is a string->string map that renders as inline YAML (e.g. "{}" or
+// "{k: v, k2: v2}") when formatted with %v, so that `grype config` produces
+// output that is itself valid YAML. The default Go formatter for map types
+// would emit "map[]" which round-trips back through YAML as a string.
+type stringMap map[string]string
+
+func (m stringMap) String() string {
+	if len(m) == 0 {
+		return "{}"
+	}
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	parts := make([]string, 0, len(m))
+	for _, k := range keys {
+		parts = append(parts, fmt.Sprintf("%s: %s", k, m[k]))
+	}
+	return "{" + strings.Join(parts, ", ") + "}"
+}
 
 // DatabaseBuild holds the configuration for `grype db build`, the unified
 // pull -> write -> package pipeline. The shape mirrors grype-db's historical
@@ -24,8 +50,8 @@ type DatabaseBuild struct {
 	Skip []string `yaml:"skip" json:"skip" mapstructure:"skip"`
 
 	// archive options (covers the "package" phase)
-	ArchiveExtension   string            `yaml:"archive-extension" json:"archive-extension" mapstructure:"archive-extension"`
-	CompressorCommands map[string]string `yaml:"compressor-commands" json:"compressor-commands" mapstructure:"compressor-commands"`
+	ArchiveExtension   string    `yaml:"archive-extension" json:"archive-extension" mapstructure:"archive-extension"`
+	CompressorCommands stringMap `yaml:"compressor-commands" json:"compressor-commands" mapstructure:"compressor-commands"`
 
 	// nested config for the pull phase + providers
 	Pull     DatabaseBuildPull     `yaml:"pull" json:"pull" mapstructure:"pull"`
@@ -50,13 +76,39 @@ type DatabaseBuildVunnel struct {
 	DockerTag        string            `yaml:"docker-tag" json:"docker-tag" mapstructure:"docker-tag"`
 	GenerateConfigs  bool              `yaml:"generate-configs" json:"generate-configs" mapstructure:"generate-configs"`
 	ExcludeProviders []string          `yaml:"exclude-providers" json:"exclude-providers" mapstructure:"exclude-providers"`
-	Env              map[string]string `yaml:"env,omitempty" json:"env,omitempty" mapstructure:"env"`
+	Env              stringMap `yaml:"env,omitempty" json:"env,omitempty" mapstructure:"env"`
 }
 
 var _ interface {
 	clio.FlagAdder
 	clio.FieldDescriber
+	clio.PostLoader
 } = (*DatabaseBuild)(nil)
+
+// PostLoad flattens any comma-separated entries in --provider-name and --skip
+// so that "-p alpine,alma,rhel" behaves the same as "-p alpine -p alma -p rhel"
+// (matching the convention used by grype's --from flag).
+func (o *DatabaseBuild) PostLoad() error {
+	o.Provider.IncludeFilter = flattenCSV(o.Provider.IncludeFilter)
+	o.Skip = flattenCSV(o.Skip)
+	return nil
+}
+
+func flattenCSV(in []string) []string {
+	if len(in) == 0 {
+		return in
+	}
+	var out []string
+	for _, v := range in {
+		for _, s := range strings.Split(v, ",") {
+			s = strings.TrimSpace(s)
+			if s != "" {
+				out = append(out, s)
+			}
+		}
+	}
+	return out
+}
 
 func DefaultDatabaseBuild() *DatabaseBuild {
 	return &DatabaseBuild{
@@ -68,6 +120,7 @@ func DefaultDatabaseBuild() *DatabaseBuild {
 		Hydrate:              false,
 		FailOnMissingFixDate: false,
 		Skip:                 nil,
+		CompressorCommands: stringMap{},
 		Pull: DatabaseBuildPull{
 			Parallelism: 4,
 		},
@@ -79,6 +132,7 @@ func DefaultDatabaseBuild() *DatabaseBuild {
 				DockerTag:        "latest",
 				GenerateConfigs:  false,
 				ExcludeProviders: []string{"centos"},
+				Env:              stringMap{},
 			},
 		},
 	}
