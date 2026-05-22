@@ -32,12 +32,12 @@ func (m stringMap) String() string {
 	return "{" + strings.Join(parts, ", ") + "}"
 }
 
-// DatabaseBuild holds the configuration for `grype db build`, the unified
-// pull -> write -> package pipeline. The shape mirrors grype-db's historical
-// configuration (provider/pull/build/package) so that existing config files
-// remain familiar; individual phases can be skipped via --skip.
+// DatabaseBuild holds the configuration shared by the `grype db-builder`
+// subcommands (pull, build, package). Each subcommand reads the subset of
+// fields it needs; flags are registered on a single AddFlags so the YAML
+// shape stays consistent across subcommands.
 type DatabaseBuild struct {
-	// build-time options (covers the "write" phase)
+	// build-time options (used by `db-builder build`)
 	SchemaVersion        int      `yaml:"schema-version" json:"schema-version" mapstructure:"schema-version"`
 	Dir                  string   `yaml:"dir" json:"dir" mapstructure:"dir"`
 	BatchSize            int      `yaml:"batch-size" json:"batch-size" mapstructure:"batch-size"`
@@ -45,15 +45,13 @@ type DatabaseBuild struct {
 	InferNVDFixVersions  bool     `yaml:"infer-nvd-fix-versions" json:"infer-nvd-fix-versions" mapstructure:"infer-nvd-fix-versions"`
 	Hydrate              bool     `yaml:"hydrate" json:"hydrate" mapstructure:"hydrate"`
 	FailOnMissingFixDate bool     `yaml:"fail-on-missing-fix-date" json:"fail-on-missing-fix-date" mapstructure:"fail-on-missing-fix-date"`
+	SkipValidation       bool     `yaml:"skip-validation" json:"skip-validation" mapstructure:"skip-validation"`
 
-	// pipeline control
-	Skip []string `yaml:"skip" json:"skip" mapstructure:"skip"`
-
-	// archive options (covers the "package" phase)
+	// archive options (used by `db-builder package`)
 	ArchiveExtension   string    `yaml:"archive-extension" json:"archive-extension" mapstructure:"archive-extension"`
 	CompressorCommands stringMap `yaml:"compressor-commands" json:"compressor-commands" mapstructure:"compressor-commands"`
 
-	// nested config for the pull phase + providers
+	// pull + provider options (used by `db-builder pull` and indirectly by build for state reading)
 	Pull     DatabaseBuildPull     `yaml:"pull" json:"pull" mapstructure:"pull"`
 	Provider DatabaseBuildProvider `yaml:"provider" json:"provider" mapstructure:"provider"`
 }
@@ -85,12 +83,11 @@ var _ interface {
 	clio.PostLoader
 } = (*DatabaseBuild)(nil)
 
-// PostLoad flattens any comma-separated entries in --provider-name and --skip
-// so that "-p alpine,alma,rhel" behaves the same as "-p alpine -p alma -p rhel"
+// PostLoad flattens any comma-separated entries in --provider-name so that
+// "-p alpine,alma,rhel" behaves the same as "-p alpine -p alma -p rhel"
 // (matching the convention used by grype's --from flag).
 func (o *DatabaseBuild) PostLoad() error {
 	o.Provider.IncludeFilter = flattenCSV(o.Provider.IncludeFilter)
-	o.Skip = flattenCSV(o.Skip)
 	return nil
 }
 
@@ -119,8 +116,8 @@ func DefaultDatabaseBuild() *DatabaseBuild {
 		InferNVDFixVersions:  true,
 		Hydrate:              false,
 		FailOnMissingFixDate: false,
-		Skip:                 nil,
-		CompressorCommands: stringMap{},
+		SkipValidation:       false,
+		CompressorCommands:   stringMap{},
 		Pull: DatabaseBuildPull{
 			Parallelism: 4,
 		},
@@ -151,8 +148,8 @@ func (o *DatabaseBuild) AddFlags(flags clio.FlagSet) {
 	flags.StringVarP(&o.ArchiveExtension, "archive-extension", "e",
 		"override the extension used during DB archiving (default chosen by the DB schema, typically 'tar.zst')")
 
-	flags.StringArrayVarP(&o.Skip, "skip", "",
-		"comma-separated phases of the build pipeline to skip; one or more of: pull, validate, write, package")
+	flags.BoolVarP(&o.SkipValidation, "skip-validation", "",
+		"skip per-provider state validation before writing the DB")
 
 	flags.StringArrayVarP(&o.Provider.IncludeFilter, "provider-name", "p",
 		"one or more provider names to filter the build to (default: empty = all)")
@@ -167,7 +164,7 @@ func (o *DatabaseBuild) DescribeFields(d clio.FieldDescriptionSet) {
 	d.Add(&o.InferNVDFixVersions, `derive missing NVD fix versions from CVE configurations when building the DB`)
 	d.Add(&o.Hydrate, `populate post-build derived data (only applies for schemas > 5)`)
 	d.Add(&o.FailOnMissingFixDate, `fail the build if any fix entry lacks a known available date`)
-	d.Add(&o.Skip, `phases of the build pipeline to skip (pull, validate, write, package)`)
+	d.Add(&o.SkipValidation, `skip per-provider state validation before writing the DB`)
 	d.Add(&o.ArchiveExtension, `archive extension used during DB packaging; empty means the schema default`)
 	d.Add(&o.CompressorCommands, `external commands to use for compressing archives, keyed by extension`)
 
