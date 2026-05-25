@@ -28,8 +28,34 @@
 - Threat & risk prioritization with **EPSS**, **KEV**, and **risk scoring** (see [interpreting the results docs](https://oss.anchore.com/docs/guides/vulnerability/interpreting-results/))
 - [OpenVEX](https://github.com/openvex) support for filtering and augmenting scan results
 
-> [!TIP]
-> New to Grype? Check out the [Getting Started guide](https://oss.anchore.com/docs/guides/vulnerability/getting-started/) for a walkthrough!
+## PostgreSQL Support (Fork Features)
+
+This fork introduces native support for using **PostgreSQL** as the database storage backend for Grype's vulnerability database instead of the default local SQLite backend. This is designed for high-availability, shared caching, and integration with dynamic web/Gin-based backends.
+
+### Key Modifications
+- **GORM Database Layer Adapter**: Modified [open.go](file:///Users/stanislavkhoshov/PycharmProjects/og-grype/grype/db/internal/gormadapter/open.go) and [store.go](file:///Users/stanislavkhoshov/PycharmProjects/og-grype/grype/db/v6/store.go) to dynamically detect PostgreSQL connection strings (e.g., `postgresql://...` or `host=...`), load GORM's `postgres` driver, register a PostgreSQL-compatible custom `NOCASE` collation, and skip SQLite-only commands (like `PRAGMA` setup, physical database file deletion, `VACUUM`, and SQLite index dropping).
+- **High-Performance Migration Tool (`dump.go`)**: Built an ultra-fast database dumper inside the root directory. It converts the local SQLite vulnerability cache to PostgreSQL format in under **6 seconds**, automatically handling SQLite's untyped boolean values (`0`/`1` -> `false`/`true`), stripping composite primary keys on tables containing NULL pointer values to avoid PostgreSQL `NOT NULL` primary key violations, and outputting highly optimized multi-row SQL insert batches.
+- **Docker Compose Orchestration**: Includes a pre-configured, production-ready [docker-compose.yml](file:///Users/stanislavkhoshov/PycharmProjects/og-grype/docker-compose.yml) to spin up PostgreSQL 15, mount the generated SQL dump, and perform rapid initialization.
+
+### Running with PostgreSQL
+
+1. **Generate the Postgres SQL Dump**:
+   Make sure you have a local SQLite vulnerability DB cache populated (usually under `~/Library/Caches/grype/db/6/` or `/var/cache/...`), then run the native migration tool:
+   ```bash
+   go run dump.go
+   ```
+
+2. **Boot up PostgreSQL via Docker Compose**:
+   To start the PostgreSQL database and automatically initialize it with the generated dump:
+   ```bash
+   docker compose down -v  # Clear any previous persistent volumes
+   docker compose up -d    # Start container in detached mode
+   ```
+
+3. **Verify the database contents**:
+   ```bash
+   docker exec -it grype-postgres psql -U postgres -d grype -c "SELECT count(*) FROM vulnerability_handles;"
+   ```
 
 ## Installation
 

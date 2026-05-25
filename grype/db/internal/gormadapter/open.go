@@ -14,6 +14,8 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
+// isPostgres checks if the database path is a PostgreSQL connection DSN.
+// This supports typical PostgreSQL DSN schemas like postgres://, postgresql://, or DSN options like host=.
 func isPostgres(path string) bool {
 	return strings.HasPrefix(path, "postgres://") || strings.HasPrefix(path, "postgresql://") || strings.Contains(path, "host=")
 }
@@ -145,6 +147,8 @@ func Open(path string, options ...Option) (*gorm.DB, error) {
 	}
 
 	var dialector gorm.Dialector
+	// Determine the database driver based on the path.
+	// If the path matches a PostgreSQL DSN, we initialize GORM's postgres dialector; otherwise, we default to SQLite.
 	if isPostgres(path) {
 		dialector = postgres.Open(path)
 	} else {
@@ -165,6 +169,8 @@ func Open(path string, options ...Option) (*gorm.DB, error) {
 func (c config) prepareDB(dbObj *gorm.DB) (*gorm.DB, error) {
 	isPG := isPostgres(c.path)
 
+	// SQLite-specific optimization PRAGMA statements must be skipped for PostgreSQL
+	// as PostgreSQL does not recognize SQLite PRAGMAs.
 	if c.writable && !isPG {
 		log.WithFields("path", c.path).Debug("using writable DB statements")
 		if err := c.applyStatements(dbObj, writerStatements); err != nil {
@@ -192,6 +198,8 @@ func (c config) prepareDB(dbObj *gorm.DB) (*gorm.DB, error) {
 	}
 
 	if len(c.models) > 0 && c.writable {
+		// PostgreSQL does not support SQLite's native case-insensitive collate:NOCASE out of the box.
+		// To maintain compatibility with indexes created using `collate:NOCASE`, we define a custom deterministic NOCASE collation in Postgres.
 		if isPG {
 			log.WithFields("path", c.path).Debug("creating custom NOCASE collation for PostgreSQL")
 			if err := dbObj.Exec("CREATE COLLATION IF NOT EXISTS NOCASE (provider = icu, locale = 'und-u-ks-level2', deterministic = false);").Error; err != nil {
@@ -288,6 +296,8 @@ func (c config) pragmaNameValue(sqlStmt string) (string, string, error) {
 }
 
 func deleteDB(path string) error {
+	// If PostgreSQL is used, we must not physically delete the database file/connection string
+	// during a database truncation/reset operation, so we skip file deletion.
 	if isPostgres(path) {
 		return nil
 	}

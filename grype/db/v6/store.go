@@ -116,6 +116,9 @@ func (s *store) Close() error {
 	}
 	log.Debug("closing store")
 
+	// PostgreSQL compatibility: when running with PostgreSQL, we must NOT drop indexes,
+	// run SQLite's VACUUM command, or perform SQLite-specific PRAGMA integrity checks during store closure,
+	// as these are purely SQLite-specific database maintenance and space-saving routines.
 	isPG := s.db.Dialector.Name() == "postgres"
 
 	if !isPG {
