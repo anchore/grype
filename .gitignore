@@ -103,3 +103,7 @@ main
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+
+# Large Postgres SQL dump file
+vulnerability_postgres.sql
+

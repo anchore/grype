@@ -116,21 +116,25 @@ func (s *store) Close() error {
 	}
 	log.Debug("closing store")
 
-	// drop all indexes, which saves a lot of space distribution-wise (these get re-created on running gorm auto-migrate)
-	if err := dropAllIndexes(s.db); err != nil {
-		return err
-	}
+	isPG := s.db.Dialector.Name() == "postgres"
 
-	// compact the DB size
-	log.Debug("vacuuming database")
-	if err := s.db.Exec("VACUUM").Error; err != nil {
-		return fmt.Errorf("failed to vacuum: %w", err)
-	}
+	if !isPG {
+		// drop all indexes, which saves a lot of space distribution-wise (these get re-created on running gorm auto-migrate)
+		if err := dropAllIndexes(s.db); err != nil {
+			return err
+		}
 
-	// since we are using riskier statements to optimize write speeds, do a last integrity check
-	log.Debug("running integrity check")
-	if err := s.db.Exec("PRAGMA integrity_check").Error; err != nil {
-		return fmt.Errorf("integrity check failed: %w", err)
+		// compact the DB size
+		log.Debug("vacuuming database")
+		if err := s.db.Exec("VACUUM").Error; err != nil {
+			return fmt.Errorf("failed to vacuum: %w", err)
+		}
+
+		// since we are using riskier statements to optimize write speeds, do a last integrity check
+		log.Debug("running integrity check")
+		if err := s.db.Exec("PRAGMA integrity_check").Error; err != nil {
+			return fmt.Errorf("integrity check failed: %w", err)
+		}
 	}
 
 	d, err := s.db.DB()

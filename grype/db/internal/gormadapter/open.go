@@ -8,10 +8,15 @@ import (
 	"time"
 
 	"github.com/glebarez/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
 	"github.com/anchore/grype/internal/log"
 )
+
+func isPostgres(path string) bool {
+	return strings.HasPrefix(path, "postgres://") || strings.HasPrefix(path, "postgresql://") || strings.Contains(path, "host=")
+}
 
 var commonStatements = []string{
 	`PRAGMA foreign_keys = ON`, // needed for v6+
@@ -125,7 +130,7 @@ func (c config) connectionString() string {
 	return conn
 }
 
-// Open a new connection to a sqlite3 database file
+// Open a new connection to a sqlite3 or postgres database
 func Open(path string, options ...Option) (*gorm.DB, error) {
 	cfg := newConfig(path, options)
 
@@ -139,7 +144,14 @@ func Open(path string, options ...Option) (*gorm.DB, error) {
 		}
 	}
 
-	dbObj, err := gorm.Open(sqlite.Open(cfg.connectionString()), &gorm.Config{Logger: &logAdapter{
+	var dialector gorm.Dialector
+	if isPostgres(path) {
+		dialector = postgres.Open(path)
+	} else {
+		dialector = sqlite.Open(cfg.connectionString())
+	}
+
+	dbObj, err := gorm.Open(dialector, &gorm.Config{Logger: &logAdapter{
 		debug:         cfg.debug,
 		slowThreshold: 400 * time.Millisecond,
 	}})
@@ -151,33 +163,42 @@ func Open(path string, options ...Option) (*gorm.DB, error) {
 }
 
 func (c config) prepareDB(dbObj *gorm.DB) (*gorm.DB, error) {
-	if c.writable {
+	isPG := isPostgres(c.path)
+
+	if c.writable && !isPG {
 		log.WithFields("path", c.path).Debug("using writable DB statements")
 		if err := c.applyStatements(dbObj, writerStatements); err != nil {
 			return nil, fmt.Errorf("unable to apply DB writer statements: %w", err)
 		}
 	}
 
-	if c.truncate && c.allowLargeMemoryFootprint {
+	if c.truncate && c.allowLargeMemoryFootprint && !isPG {
 		log.WithFields("path", c.path).Debug("using large memory footprint DB statements")
 		if err := c.applyStatements(dbObj, heavyWriteStatements); err != nil {
 			return nil, fmt.Errorf("unable to apply DB heavy writer statements: %w", err)
 		}
 	}
 
-	if len(commonStatements) > 0 {
+	if len(commonStatements) > 0 && !isPG {
 		if err := c.applyStatements(dbObj, commonStatements); err != nil {
 			return nil, fmt.Errorf("unable to apply DB common statements: %w", err)
 		}
 	}
 
-	if len(c.statements) > 0 {
+	if len(c.statements) > 0 && !isPG {
 		if err := c.applyStatements(dbObj, c.statements); err != nil {
 			return nil, fmt.Errorf("unable to apply DB custom statements: %w", err)
 		}
 	}
 
 	if len(c.models) > 0 && c.writable {
+		if isPG {
+			log.WithFields("path", c.path).Debug("creating custom NOCASE collation for PostgreSQL")
+			if err := dbObj.Exec("CREATE COLLATION IF NOT EXISTS NOCASE (provider = icu, locale = 'und-u-ks-level2', deterministic = false);").Error; err != nil {
+				return nil, fmt.Errorf("unable to create custom NOCASE collation: %w", err)
+			}
+		}
+
 		log.WithFields("path", c.path).Debug("applying DB migrations")
 		if err := dbObj.AutoMigrate(c.models...); err != nil {
 			return nil, fmt.Errorf("unable to migrate: %w", err)
@@ -267,6 +288,9 @@ func (c config) pragmaNameValue(sqlStmt string) (string, string, error) {
 }
 
 func deleteDB(path string) error {
+	if isPostgres(path) {
+		return nil
+	}
 	if _, err := os.Stat(path); err == nil {
 		if err := os.Remove(path); err != nil {
 			return fmt.Errorf("unable to remove existing DB file: %w", err)
