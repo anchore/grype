@@ -28,8 +28,10 @@ type vexProcessorImplementation interface {
 
 	// AugmentMatches reads known affected VEX products from loaded documents and
 	// adds new results to the scanner results when the product is marked as
-	// affected in the VEX data.
-	AugmentMatches(any, []match.IgnoreRule, *pkg.Context, *match.Matches, []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error)
+	// affected in the VEX data. The package catalog is provided so that
+	// implementations can synthesize matches for affected packages that the
+	// vulnerability database has no record of.
+	AugmentMatches(any, []match.IgnoreRule, *pkg.Context, []pkg.Package, *match.Matches, []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error)
 }
 
 // getVexImplementation this function returns the vex processor implementation
@@ -77,8 +79,10 @@ type ProcessorOptions struct {
 
 // ApplyVEX receives the results from a scan run and applies any VEX information
 // in the files specified in the grype invocation. Any filtered results will
-// be moved to the ignored matches slice.
-func (vm *Processor) ApplyVEX(pkgContext *pkg.Context, remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error) {
+// be moved to the ignored matches slice. The package catalog is forwarded to
+// the underlying implementation so that affected statements can synthesize
+// matches for packages that the vulnerability database does not cover.
+func (vm *Processor) ApplyVEX(pkgContext *pkg.Context, pkgs []pkg.Package, remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error) {
 	var err error
 
 	// If no VEX documents are loaded, just pass through the matches, effectively NOOP
@@ -102,7 +106,7 @@ func (vm *Processor) ApplyVEX(pkgContext *pkg.Context, remainingMatches *match.M
 	}
 
 	remainingMatches, ignoredMatches, err = vm.impl.AugmentMatches(
-		rawVexData, vexRules, pkgContext, remainingMatches, ignoredMatches,
+		rawVexData, vexRules, pkgContext, pkgs, remainingMatches, ignoredMatches,
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("checking matches to augment from VEX data: %w", err)

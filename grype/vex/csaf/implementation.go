@@ -11,6 +11,7 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	vexStatus "github.com/anchore/grype/grype/vex/status"
+	"github.com/anchore/grype/grype/vulnerability"
 )
 
 // searchedBy captures the parameters used to search through the VEX data
@@ -121,9 +122,13 @@ func (*Processor) FilterMatches(
 
 // AugmentMatches adds results to the match.Matches array when matching data
 // about an affected VEX product is found on loaded VEX documents. Matches
-// are moved from the ignore list back to active matches.
+// are moved from the ignore list back to active matches, or synthesized from
+// the package catalog when the vulnerability database has no record of the
+// affected (vulnerability, package) pair. last_affected and first_affected
+// statuses are interpreted as version range bounds; other affected-like
+// statuses use exact version match.
 func (*Processor) AugmentMatches(
-	docRaw any, ignoreRules []match.IgnoreRule, _ *pkg.Context, matches *match.Matches, ignoredMatches []match.IgnoredMatch,
+	docRaw any, ignoreRules []match.IgnoreRule, _ *pkg.Context, pkgs []pkg.Package, matches *match.Matches, ignoredMatches []match.IgnoredMatch,
 ) (*match.Matches, []match.IgnoredMatch, error) {
 	advisories, ok := docRaw.(advisories)
 	if !ok {
@@ -152,7 +157,84 @@ func (*Processor) AugmentMatches(
 		remainingIgnoredMatches = append(remainingIgnoredMatches, m)
 	}
 
+	synthesizeFromCatalog(advisories, ignoreRules, pkgs, matches, remainingIgnoredMatches)
+
 	return matches, remainingIgnoredMatches, nil
+}
+
+// synthesizeFromCatalog walks the package catalog and creates new matches for
+// any (vulnerability, package) pair named as affected (or under_investigation)
+// in the loaded CSAF advisories that is not already represented in the
+// remaining or ignored match sets.
+func synthesizeFromCatalog(
+	advs advisories,
+	ignoreRules []match.IgnoreRule,
+	pkgs []pkg.Package,
+	remainingMatches *match.Matches,
+	ignoredMatches []match.IgnoredMatch,
+) {
+	candidates := advs.findSynthesisCandidates(pkgs)
+	if len(candidates) == 0 {
+		return
+	}
+
+	known := existingVulnPackageKeys(remainingMatches, ignoredMatches)
+
+	for _, c := range candidates {
+		advMatch := c.toAdvisoryMatch()
+		vulnID := advMatch.cve()
+		if vulnID == "" {
+			continue
+		}
+		key := vulnPackageKey(vulnID, c.Package.PURL)
+		if _, seen := known[key]; seen {
+			continue
+		}
+
+		synthesized := match.Match{
+			Vulnerability: vulnerability.Vulnerability{
+				Reference: vulnerability.Reference{
+					ID:        vulnID,
+					Namespace: "vex",
+				},
+			},
+			Package: *c.Package,
+		}
+		if rule := matchingRule(ignoreRules, synthesized, advMatch, vexStatus.AugmentList()); rule == nil {
+			continue
+		}
+
+		synthesized.Details = []match.Detail{
+			{
+				Type: match.ExactDirectMatch,
+				SearchedBy: &searchedBy{
+					Vulnerability: vulnID,
+					Purl:          c.Package.PURL,
+				},
+				Found:      advMatch,
+				Matcher:    match.CsafVexMatcher,
+				Confidence: 1,
+			},
+		}
+
+		remainingMatches.Add(synthesized)
+		known[key] = struct{}{}
+	}
+}
+
+func existingVulnPackageKeys(remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch) map[string]struct{} {
+	known := map[string]struct{}{}
+	for _, m := range remainingMatches.Sorted() {
+		known[vulnPackageKey(m.Vulnerability.ID, m.Package.PURL)] = struct{}{}
+	}
+	for _, m := range ignoredMatches {
+		known[vulnPackageKey(m.Vulnerability.ID, m.Package.PURL)] = struct{}{}
+	}
+	return known
+}
+
+func vulnPackageKey(vulnID, purl string) string {
+	return vulnID + "\x00" + purl
 }
 
 // matchingRule cycles through a set of ignore rules and returns the first

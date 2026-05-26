@@ -12,6 +12,7 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	vexStatus "github.com/anchore/grype/grype/vex/status"
+	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/source"
 )
@@ -314,9 +315,11 @@ func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, statement *open
 
 // AugmentMatches adds results to the match.Matches array when matching data
 // about an affected VEX product is found on loaded VEX documents. Matches
-// are moved from the ignore list or synthesized when no previous data is found.
+// are moved from the ignore list back to active matches, or synthesized from
+// the package catalog when the vulnerability database has no record of the
+// affected (vulnerability, package) pair.
 func (ovm *Processor) AugmentMatches(
-	docRaw any, ignoreRules []match.IgnoreRule, pkgContext *pkg.Context, remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch,
+	docRaw any, ignoreRules []match.IgnoreRule, pkgContext *pkg.Context, pkgs []pkg.Package, remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch,
 ) (*match.Matches, []match.IgnoredMatch, error) {
 	doc, ok := docRaw.(*openvex.VEX)
 	if !ok {
@@ -363,5 +366,121 @@ func (ovm *Processor) AugmentMatches(
 		remainingMatches.Add(newMatch)
 	}
 
+	synthesizeFromCatalog(doc, ignoreRules, products, pkgs, remainingMatches, additionalIgnoredMatches)
+
 	return remainingMatches, additionalIgnoredMatches, nil
+}
+
+// synthesizeFromCatalog walks the package catalog and, for each VEX statement
+// that names a package as affected or under_investigation but has no corresponding
+// match in either the remaining or ignored match sets, creates a new match.Match.
+// This covers vulnerabilities that are present in the VEX document but absent from
+// grype's vulnerability database for the given package.
+func synthesizeFromCatalog(
+	doc *openvex.VEX,
+	ignoreRules []match.IgnoreRule,
+	products []string,
+	pkgs []pkg.Package,
+	remainingMatches *match.Matches,
+	ignoredMatches []match.IgnoredMatch,
+) {
+	if len(pkgs) == 0 || len(doc.Statements) == 0 {
+		return
+	}
+
+	known := existingVulnPackageKeys(remainingMatches, ignoredMatches)
+
+	for stmtIdx := range doc.Statements {
+		stmt := &doc.Statements[stmtIdx]
+		if stmt.Status != openvex.StatusAffected && stmt.Status != openvex.StatusUnderInvestigation {
+			continue
+		}
+
+		vulnID := string(stmt.Vulnerability.Name)
+		if vulnID == "" {
+			continue
+		}
+
+		for pi := range pkgs {
+			p := &pkgs[pi]
+			if p.PURL == "" {
+				continue
+			}
+			if _, seen := known[vulnPackageKey(vulnID, p.PURL)]; seen {
+				continue
+			}
+
+			matchedProduct, matchedSubcmp := matchPackageAgainstStatement(stmt, products, p.PURL)
+			if matchedProduct == "" {
+				continue
+			}
+
+			synthesized := buildSynthesizedMatch(*p, vulnID, stmt, matchedProduct, matchedSubcmp)
+			if rule := matchingRule(ignoreRules, synthesized, stmt, vexStatus.AugmentList()); rule == nil {
+				continue
+			}
+
+			remainingMatches.Add(synthesized)
+			known[vulnPackageKey(vulnID, p.PURL)] = struct{}{}
+		}
+	}
+}
+
+func existingVulnPackageKeys(remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch) map[string]struct{} {
+	known := map[string]struct{}{}
+	for _, m := range remainingMatches.Sorted() {
+		known[vulnPackageKey(m.Vulnerability.ID, m.Package.PURL)] = struct{}{}
+	}
+	for _, m := range ignoredMatches {
+		known[vulnPackageKey(m.Vulnerability.ID, m.Package.PURL)] = struct{}{}
+	}
+	return known
+}
+
+func vulnPackageKey(vulnID, purl string) string {
+	return vulnID + "\x00" + purl
+}
+
+// matchPackageAgainstStatement returns the matched product identifier and the
+// subcomponents that satisfied the match, or empty strings/nil when the
+// statement does not name the given package.
+func matchPackageAgainstStatement(stmt *openvex.Statement, products []string, pkgPURL string) (string, []string) {
+	// Image/context as product, package as subcomponent.
+	for _, product := range products {
+		if stmt.MatchesProduct(product, pkgPURL) {
+			return product, []string{pkgPURL}
+		}
+	}
+	// Package itself as product.
+	if stmt.MatchesProduct(pkgPURL, "") {
+		return pkgPURL, nil
+	}
+	return "", nil
+}
+
+func buildSynthesizedMatch(p pkg.Package, vulnID string, stmt *openvex.Statement, matchedProduct string, matchedSubcmp []string) match.Match {
+	return match.Match{
+		Vulnerability: vulnerability.Vulnerability{
+			Reference: vulnerability.Reference{
+				ID:        vulnID,
+				Namespace: "vex",
+			},
+		},
+		Package: p,
+		Details: []match.Detail{
+			{
+				Type: match.ExactDirectMatch,
+				SearchedBy: &SearchedBy{
+					Vulnerability: vulnID,
+					Product:       matchedProduct,
+					Subcomponents: matchedSubcmp,
+				},
+				Found: Match{
+					Statement: *stmt,
+				},
+				Matcher:    match.OpenVexMatcher,
+				Confidence: 1,
+			},
+		},
+	}
 }

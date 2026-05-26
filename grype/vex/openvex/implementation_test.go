@@ -567,6 +567,159 @@ func TestIdentifiersFromDigests_NormalizesDockerHubRepositoryURL(t *testing.T) {
 	require.Equal(t, "index.docker.io/library", repoURL)
 }
 
+func TestAugmentMatches_SynthesizesFromPackageCatalog(t *testing.T) {
+	// A package is present in the SBOM (e.g. via syft of a Go binary) but the
+	// vulnerability database has no entry for it. A VEX affected statement
+	// naming the package's purl should synthesize a match so the finding shows
+	// up in grype's output (parity with govulncheck reachability findings).
+	const (
+		vulnID  = "GO-2026-5030"
+		pkgPURL = "pkg:golang/golang.org/x/net@v0.53.0"
+	)
+
+	pkgCtx := &pkg.Context{
+		Source: &source.Description{
+			Metadata: source.FileMetadata{Path: "/tmp/step"},
+		},
+	}
+
+	xNet := pkg.Package{
+		ID:       "deadbeefcafebabe",
+		Name:     "golang.org/x/net",
+		Version:  "v0.53.0",
+		Type:     "go-module",
+		Language: "go",
+		PURL:     pkgPURL,
+	}
+
+	makeStmt := func(status openvex.Status, productID string) openvex.Statement {
+		return openvex.Statement{
+			Vulnerability: openvex.Vulnerability{Name: openvex.VulnerabilityID(vulnID)},
+			Products:      []openvex.Product{{Component: openvex.Component{ID: productID}}},
+			Status:        status,
+		}
+	}
+
+	tests := []struct {
+		name        string
+		stmts       []openvex.Statement
+		pkgs        []pkg.Package
+		ignoreRules []match.IgnoreRule
+		wantSynth   bool
+	}{
+		{
+			name:      "affected statement synthesizes match",
+			stmts:     []openvex.Statement{makeStmt(openvex.StatusAffected, pkgPURL)},
+			pkgs:      []pkg.Package{xNet},
+			wantSynth: true,
+		},
+		{
+			name:      "under_investigation synthesizes match",
+			stmts:     []openvex.Statement{makeStmt(openvex.StatusUnderInvestigation, pkgPURL)},
+			pkgs:      []pkg.Package{xNet},
+			wantSynth: true,
+		},
+		{
+			name:      "not_affected does not synthesize",
+			stmts:     []openvex.Statement{makeStmt(openvex.StatusNotAffected, pkgPURL)},
+			pkgs:      []pkg.Package{xNet},
+			wantSynth: false,
+		},
+		{
+			name:      "fixed does not synthesize",
+			stmts:     []openvex.Statement{makeStmt(openvex.StatusFixed, pkgPURL)},
+			pkgs:      []pkg.Package{xNet},
+			wantSynth: false,
+		},
+		{
+			name:      "purl mismatch does not synthesize",
+			stmts:     []openvex.Statement{makeStmt(openvex.StatusAffected, "pkg:golang/golang.org/x/net@v0.99.0")},
+			pkgs:      []pkg.Package{xNet},
+			wantSynth: false,
+		},
+		{
+			name:      "empty package catalog does not synthesize",
+			stmts:     []openvex.Statement{makeStmt(openvex.StatusAffected, pkgPURL)},
+			pkgs:      nil,
+			wantSynth: false,
+		},
+		{
+			name:        "ignore rule with non-matching vulnerability does not synthesize",
+			stmts:       []openvex.Statement{makeStmt(openvex.StatusAffected, pkgPURL)},
+			pkgs:        []pkg.Package{xNet},
+			ignoreRules: []match.IgnoreRule{{Namespace: "vex", VexStatus: string(openvex.StatusAffected), Vulnerability: "CVE-9999-0000"}},
+			wantSynth:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			doc := &openvex.VEX{Statements: tt.stmts}
+			remaining := match.NewMatches()
+
+			processor := New()
+			out, _, err := processor.AugmentMatches(doc, tt.ignoreRules, pkgCtx, tt.pkgs, &remaining, nil)
+			require.NoError(t, err)
+
+			if tt.wantSynth {
+				require.Len(t, out.Sorted(), 1, "expected one synthesized match")
+				got := out.Sorted()[0]
+				require.Equal(t, vulnID, got.Vulnerability.ID)
+				require.Equal(t, pkgPURL, got.Package.PURL)
+				require.NotEmpty(t, got.Details)
+				require.Equal(t, match.OpenVexMatcher, got.Details[0].Matcher)
+			} else {
+				require.Empty(t, out.Sorted(), "did not expect a synthesized match")
+			}
+		})
+	}
+}
+
+func TestAugmentMatches_DoesNotDuplicateExistingMatches(t *testing.T) {
+	// When grype already produced a match for the same (vuln, pkg), the
+	// synthesis step must not add a duplicate.
+	const (
+		vulnID  = "CVE-2023-9999"
+		pkgPURL = "pkg:golang/example.com/foo@v1.0.0"
+	)
+
+	pkgCtx := &pkg.Context{
+		Source: &source.Description{
+			Metadata: source.FileMetadata{Path: "/tmp/bin"},
+		},
+	}
+
+	p := pkg.Package{
+		ID:   "abcdef0123456789",
+		Name: "example.com/foo",
+		PURL: pkgPURL,
+		Type: "go-module",
+	}
+
+	existing := match.Match{
+		Vulnerability: vulnerability.Vulnerability{Reference: vulnerability.Reference{ID: vulnID}},
+		Package:       p,
+	}
+
+	doc := &openvex.VEX{
+		Statements: []openvex.Statement{
+			{
+				Vulnerability: openvex.Vulnerability{Name: openvex.VulnerabilityID(vulnID)},
+				Products:      []openvex.Product{{Component: openvex.Component{ID: pkgPURL}}},
+				Status:        openvex.StatusAffected,
+			},
+		},
+	}
+
+	remaining := match.NewMatches(existing)
+
+	processor := New()
+	out, _, err := processor.AugmentMatches(doc, nil, pkgCtx, []pkg.Package{p}, &remaining, nil)
+	require.NoError(t, err)
+
+	require.Len(t, out.Sorted(), 1, "synthesis must dedupe against existing matches")
+}
+
 func TestNormalizeDockerHubRepositoryURL(t *testing.T) {
 	tests := []struct {
 		input    string
