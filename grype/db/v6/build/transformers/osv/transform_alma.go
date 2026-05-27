@@ -6,11 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/osv-scanner/pkg/models"
-
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/codename"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	"github.com/anchore/grype/grype/db/provider"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
@@ -78,7 +77,7 @@ func almaReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
 	var refs []db.Reference
 	for _, ref := range vuln.References {
 		refID := ""
-		if ref.Type == models.ReferenceAdvisory {
+		if ref.Type == osvmodel.ReferenceAdvisory {
 			refID = vuln.ID
 		}
 		refs = append(refs, db.Reference{
@@ -106,14 +105,14 @@ func almaUnaffectedPackages(vuln unmarshal.OSVVulnerability) []db.UnaffectedPack
 	return uphs
 }
 
-func almaUnaffectedBlob(vuln unmarshal.OSVVulnerability, affected models.Affected) *db.PackageBlob {
+func almaUnaffectedBlob(vuln unmarshal.OSVVulnerability, affected osvmodel.Affected) *db.PackageBlob {
 	var ranges []db.Range
 	for _, r := range affected.Ranges {
 		ranges = append(ranges, getGrypeUnaffectedRangesFromRange(r, almaRangeType(r.Type))...)
 	}
 
 	var qualifiers *db.PackageQualifiers
-	if mod := extractRpmModularity(affected); mod != "" {
+	if mod := almaEcoExt(affected).RpmModularity; mod != "" {
 		qualifiers = &db.PackageQualifiers{RpmModularity: &mod}
 	}
 
@@ -129,7 +128,7 @@ func almaUnaffectedBlob(vuln unmarshal.OSVVulnerability, affected models.Affecte
 	}
 }
 
-func almaPackage(p models.Package) *db.Package {
+func almaPackage(p osvmodel.Package) *db.Package {
 	return &db.Package{
 		Ecosystem: pkg.RpmPkg.String(),
 		Name:      name.Normalize(p.Name, pkg.RpmPkg),
@@ -141,29 +140,11 @@ func almaPackage(p models.Package) *db.Package {
 // other OSV types fall through to the default mapping. AlmaLinux records in
 // practice only use ECOSYSTEM, but the fallback is here so unexpected shapes
 // don't silently become "unknown".
-func almaRangeType(t models.RangeType) string {
-	if t == models.RangeEcosystem {
+func almaRangeType(t osvmodel.RangeType) string {
+	if t == osvmodel.RangeEcosystem {
 		return pkg.RpmPkg.String()
 	}
 	return defaultRangeType(t)
-}
-
-// extractRpmModularity reads ecosystem_specific.rpm_modularity from an OSV
-// affected entry. Only alma emits this in the OSV records we currently
-// consume; other strategies don't have a use for it.
-func extractRpmModularity(affected models.Affected) string {
-	if affected.EcosystemSpecific == nil {
-		return ""
-	}
-	v, ok := affected.EcosystemSpecific["rpm_modularity"]
-	if !ok {
-		return ""
-	}
-	s, ok := v.(string)
-	if !ok {
-		return ""
-	}
-	return s
 }
 
 func almaOSFromEcosystem(ecosystem string) *db.OperatingSystem {

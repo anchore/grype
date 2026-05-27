@@ -3,10 +3,10 @@ package osv
 import (
 	"testing"
 
-	"github.com/google/osv-scanner/pkg/models"
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 )
@@ -130,16 +130,16 @@ func TestRootioTransform_RelatedToAliases(t *testing.T) {
 	vuln := unmarshal.OSVVulnerability{}
 	vuln.ID = "ROOT-OS-UBUNTU-2204-CVE-2024-2236"
 	vuln.Related = []string{"CVE-2024-2236"}
-	vuln.Affected = []models.Affected{
+	vuln.Affected = []osvmodel.Affected{
 		{
-			Package: models.Package{
+			Package: osvmodel.Package{
 				Ecosystem: "Root:Ubuntu:22.04",
 				Name:      "rootio-libgcrypt20",
 			},
-			Ranges: []models.Range{
+			Ranges: []osvmodel.Range{
 				{
-					Type: models.RangeEcosystem,
-					Events: []models.Event{
+					Type: osvmodel.RangeEcosystem,
+					Events: []osvmodel.Event{
 						{Introduced: "0"},
 						{Fixed: "1.9.4-3ubuntu3.root.io.2"},
 					},

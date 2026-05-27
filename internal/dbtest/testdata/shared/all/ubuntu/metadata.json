@@ -1,0 +1,19 @@
+{
+  "provider": "ubuntu",
+  "version": 3,
+  "processor": "vunnel@0.58.0",
+  "schema": {
+    "version": "1.0.3",
+    "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
+  },
+  "urls": [
+    "https://security-metadata.canonical.com/osv/osv-all.tar.xz"
+  ],
+  "timestamp": "2026-05-20T21:16:58Z",
+  "listing": {
+    "path": "results/listing.xxh64",
+    "digest": "7f1fcb737ac5d1df",
+    "algorithm": "xxh64"
+  },
+  "store": "flat-file"
+}
