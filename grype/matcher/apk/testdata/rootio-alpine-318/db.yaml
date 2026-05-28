@@ -1,0 +1,14 @@
+auto-generate: false
+extractions:
+    alpine:
+        - 3.18/cve-2024-0727
+    nvd:
+        - 2024/cve-2024-0727
+        - 2024/cve-2024-10524
+        - 2024/cve-2024-24806
+        - 2024/cve-2024-28182
+    rootio:
+        - root-os-alpine-318-cve-2024-10524
+        - root-os-alpine-318-cve-2024-24806
+        - root-os-alpine-318-cve-2024-28182
+        - root-os-alpine-318-cve-2024-54661

@@ -1,19 +1,28 @@
 name: Scorecards
 on:
+  # tag-only push trigger (not branches) so that OIDC token minting is bounded to release events,
+  # which is a more controlled action than a branch merge. The weekly cron keeps the badge fresh
+  # between releases, and workflow_dispatch allows manual runs.
   push:
-    branches: [ "main" ]
+    tags: ["v*"]
   schedule:
-    - cron: '0 0 * * 1'  # weekly on Monday
+    - cron: "0 0 * * 1" # weekly on Monday
   workflow_dispatch:
+
+permissions: {}
 
 jobs:
   analysis:
     name: Scorecards analysis
     runs-on: ubuntu-latest
+    # gates OIDC token minting behind a GitHub deployment environment with protection rules.
+    # The environment's deployment branch/tag policy MUST include tag pattern "v*" to match the
+    # push trigger above, otherwise tag-triggered runs will be blocked from starting.
+    environment: scorecard
     permissions:
       contents: read
-      security-events: write  # upload results to code-scanning dashboard
-      id-token: write         # receive a badge
+      security-events: write # upload results to code-scanning dashboard
+      id-token: write # receive a badge
 
     steps:
       - name: "Checkout code"
@@ -35,6 +44,6 @@ jobs:
 
       # Upload the results to GitHub's code scanning dashboard.
       - name: "Upload to code-scanning"
-        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4.35.2
+        uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # v4.35.5
         with:
           sarif_file: results.sarif

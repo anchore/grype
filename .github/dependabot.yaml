@@ -14,7 +14,9 @@ version: 2
 updates:
 
   - package-ecosystem: gomod
-    directory: "/"
+    directories:
+      - "/"
+      - "/.make"
     cooldown:
       default-days: 7
     schedule:

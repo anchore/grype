@@ -276,6 +276,28 @@ func TestMatcherRpm_UnaffectedRecordProducesIgnore(t *testing.T) {
 		})
 }
 
+// A rhel:8 NAK (major-only, empty minor) must still apply to a rhel 8.4 scan:
+// RHEL data lands at major granularity, so the major+empty-minor fallback in
+// searchForOSExactVersions has to fire. Companion to
+// SLES_RecordsDoNotCrossMinorVersion, which proves sibling minors don't leak.
+func TestMatcherRpm_MajorOnlyUnaffectedRecordAppliesToMinorScan(t *testing.T) {
+	dbtest.DBs(t, "rhel8").
+		SelectOnly("rhel:8/cve-1999-0199").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			pkgID := pkg.ID("glibc-on-8.4")
+			p := dbtest.NewPackage("glibc", "2.28-100.el8", syftPkg.RpmPkg).
+				WithID(pkgID).
+				WithDistro(distro.New(distro.RedHat, "8.4", "")).
+				Build()
+
+			db.Match(t, &matcher, p).Ignores().
+				SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-1999-0199").
+				ForPackage(pkgID).
+				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
+		})
+}
+
 // TestMatcherRpm_VulnerableAndUnaffectedInSameCall verifies that the standard
 // matcher can produce a match and an Unaffected ignore for the same package
 // in a single Match() call. CVE-2016-10228 has a real glibc fix at
