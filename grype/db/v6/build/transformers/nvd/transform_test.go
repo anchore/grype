@@ -2161,6 +2161,96 @@ func TestTransform(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:     "Determine platform CPEs from node with both affected and unaffected product ranges",
+			fixture:  "testdata/product-affected-and-unaffected-range-with-platforms.json",
+			provider: "nvd",
+			config:   defaultConfig(),
+			want: []transformers.RelatedEntries{
+				{
+					VulnerabilityHandle: &db.VulnerabilityHandle{
+						Name:          "CVE-2025-30331111111",
+						ProviderID:    "nvd",
+						Provider:      expectedProvider("nvd"),
+						ModifiedDate:  timeRef(time.Date(2026, 4, 13, 15, 16, 57, 157000000, time.UTC)),
+						PublishedDate: timeRef(time.Date(2025, 4, 1, 13, 15, 41, 697000000, time.UTC)),
+						Status:        db.VulnerabilityActive,
+						BlobValue: &db.VulnerabilityBlob{
+							ID:          "CVE-2025-30331111111",
+							Assigners:   []string{"security@mozilla.org"},
+							Description: "",
+							References: []db.Reference{
+								{
+									URL: "https://nvd.nist.gov/vuln/detail/CVE-2025-30331111111",
+								},
+							},
+						},
+					},
+					Related: relatedEntries(
+						db.AffectedCPEHandle{
+							BlobValue: &db.PackageBlob{
+								CVEs: []string{"CVE-2025-30331111111"},
+								Qualifiers: &db.PackageQualifiers{
+									PlatformCPEs: []string{"cpe:2.3:o:microsoft:windows:-:*:*:*:*:*:*:*"},
+								},
+								Ranges: []db.Range{
+									{
+										Version: db.Version{
+											Constraint: "< 137",
+										},
+										Fix: &db.Fix{
+											Version: "137",
+											State:   db.FixedStatus,
+											Detail: &v6.FixDetail{
+												Available: &v6.FixAvailability{
+													Date: timeRef(time.Date(2025, 9, 4, 0, 0, 0, 0, time.UTC)),
+													Kind: "first-observed",
+												},
+											},
+										},
+									},
+								},
+							},
+							CPE: &db.Cpe{
+								Part:    "a",
+								Vendor:  "mozilla",
+								Product: "firefox",
+							},
+						},
+						db.AffectedCPEHandle{
+							BlobValue: &db.PackageBlob{
+								CVEs: []string{"CVE-2025-30331111111"},
+								Qualifiers: &db.PackageQualifiers{
+									PlatformCPEs: []string{"cpe:2.3:o:microsoft:windows:-:*:*:*:*:*:*:*"},
+								},
+								Ranges: []db.Range{
+									{
+										Version: db.Version{
+											Constraint: "< 137",
+										},
+										Fix: &db.Fix{
+											Version: "137",
+											State:   db.FixedStatus,
+											Detail: &v6.FixDetail{
+												Available: &v6.FixAvailability{
+													Date: timeRef(time.Date(2025, 9, 4, 0, 0, 0, 0, time.UTC)),
+													Kind: "first-observed",
+												},
+											},
+										},
+									},
+								},
+							},
+							CPE: &db.Cpe{
+								Part:    "a",
+								Vendor:  "mozilla",
+								Product: "firefox_esr",
+							},
+						},
+					),
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {

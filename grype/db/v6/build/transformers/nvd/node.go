@@ -8,6 +8,7 @@ import (
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/nvd"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/cpe"
+	"github.com/scylladb/go-set/strset"
 )
 
 type affectedPackageCandidate struct {
@@ -250,9 +251,12 @@ func extractVulnerableCPEs(node nvd.Node, cfg Config) ([]affectedPackageCandidat
 
 // extractPlatformCPEs extracts all platform CPEs from a node (explicitly non-vulnerable CPEs). Why not just
 // use the part indication (i.e. 'h' & 'o' are platform and 'a' is the vulnerable candidate)? Because you can
-// find cases where an application is the platform (e.g. kubernetes or openshift).
+// find cases where an application is the platform (e.g. kubernetes or openshift).  Any platform CPE candidate
+// must be non-vulnerable across all cpeMatch elements of the node, otherwise unaffected package entries will be
+// mistakenly raised up as platforms
 func extractPlatformCPEs(node nvd.Node) ([]cpe.Attributes, error) {
-	var platformCPEs []cpe.Attributes
+	platformCPEMap := make(map[string][]cpe.Attributes)
+	packageCandidates := strset.New()
 
 	for _, match := range node.CpeMatch {
 		cpeAttr, err := cpe.NewAttributes(match.Criteria)
@@ -260,9 +264,19 @@ func extractPlatformCPEs(node nvd.Node) ([]cpe.Attributes, error) {
 			return nil, fmt.Errorf("unable to parse CPE '%s': %w", match.Criteria, err)
 		}
 
-		if !match.Vulnerable {
-			platformCPEs = append(platformCPEs, cpeAttr)
+		key := cpeKey(cpeAttr)
+		if match.Vulnerable {
+			packageCandidates.Add(key)
+			delete(platformCPEMap, key)
+		} else if !packageCandidates.Has(key) {
+			platformCPEMap[key] = append(platformCPEMap[key], cpeAttr)
 		}
+	}
+
+	var platformCPEs []cpe.Attributes
+
+	for _, platforms := range platformCPEMap {
+		platformCPEs = append(platformCPEs, platforms...)
 	}
 
 	return platformCPEs, nil

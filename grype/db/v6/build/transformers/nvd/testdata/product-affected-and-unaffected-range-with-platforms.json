@@ -1,0 +1,68 @@
+{
+    "cve": {
+        "id": "CVE-2025-30331111111",
+        "sourceIdentifier": "security@mozilla.org",
+        "published": "2025-04-01T13:15:41.697",
+        "lastModified": "2026-04-13T15:16:57.157",
+        "vulnStatus": "Modified",
+        "cveTags": [],
+        "descriptions": [
+            {
+                "lang": "en",
+                "value": ""
+            }
+        ],
+        "configurations": [
+            {
+                "nodes": [
+                    {
+                        "cpeMatch": [
+                            {
+                                "criteria": "cpe:2.3:a:mozilla:firefox:*:*:*:*:*:*:*:*",
+                                "matchCriteriaId": "21CE0201-DC5C-5924-95C1-B46F85CE3F2D",
+                                "versionEndExcluding": "137",
+                                "vulnerable": true,
+                                "fix": {
+                                    "version": "137",
+                                    "date": "2025-09-04",
+                                    "kind": "first-observed"
+                                }
+                            },
+                            {
+                                "criteria": "cpe:2.3:a:mozilla:firefox_esr:*:*:*:*:*:*:*:*",
+                                "matchCriteriaId": "0C620750-B827-56C5-A96A-9AEC0EE2F3AD",
+                                "versionEndExcluding": "137",
+                                "vulnerable": true,
+                                "fix": {
+                                    "version": "137",
+                                    "date": "2025-09-04",
+                                    "kind": "first-observed"
+                                }
+                            },
+                            {
+                                "criteria": "cpe:2.3:a:mozilla:firefox:108:*:*:*:*:*:*:*",
+                                "matchCriteriaId": "0C620750-B827-56C5-A96A-9AEC0EE2F3AD",
+                                "vulnerable": false
+                            }
+                        ],
+                        "negate": false,
+                        "operator": "OR"
+                    },
+                    {
+                        "cpeMatch": [
+                            {
+                                "criteria": "cpe:2.3:o:microsoft:windows:-:*:*:*:*:*:*:*",
+                                "matchCriteriaId": "A2572D17-1DE6-457B-99CC-64AFD54487EA",
+                                "vulnerable": false
+                            }
+                        ],
+                        "negate": false,
+                        "operator": "OR"
+                    }
+                ],
+                "operator": "AND"
+            }
+        ],
+        "references": []
+    }
+}
