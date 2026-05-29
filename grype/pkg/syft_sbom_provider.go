@@ -38,9 +38,9 @@ func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func
 
 	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
-	var enhancers []Enhancer
+	enhancers := []Enhancer{}
 	if fmtID != syftjson.ID {
-		enhancers = purlEnhancers(applyChannel)
+		enhancers = append(enhancers, setUpstreamsFromPURL, setDistroFromPURL(applyChannel))
 	}
 
 	return FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig, enhancers...), Context{
@@ -58,9 +58,9 @@ func syftSBOMProviderFromReader(reader io.ReadSeeker, config ProviderConfig, app
 
 	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
-	var enhancers []Enhancer
+	enhancers := []Enhancer{}
 	if fmtID != syftjson.ID {
-		enhancers = purlEnhancers(applyChannel)
+		enhancers = append(enhancers, setUpstreamsFromPURL, setDistroFromPURL(applyChannel))
 	}
 
 	src := s.Source

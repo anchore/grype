@@ -470,6 +470,132 @@ func TestMatcherApk_NvdCanceledByUpstreamSecdbNak(t *testing.T) {
 		})
 }
 
+// === architecture qualifier filtering (CG OSV records) ===
+//
+// The chainguard-rolling fixture has CGA-22hv-wp9q-4779, which emits
+// AffectedPackageHandles with an Architecture qualifier per row:
+//   - langfuse-3-worker      / Chainguard / arch=x86_64   / fixed:3.153.0-r0
+//   - langfuse-fips-3-worker / Chainguard / arch=x86_64   / fixed:3.152.0-r0
+//   - langfuse-3-worker      / Wolfi      / arch=aarch64  / fixed:3.153.0-r0
+//
+// These tests pin down architectureQualifier.Satisfied at the matcher level:
+// the qualifier filters vuln entries whose arch disagrees with the scanned
+// package, and is inert (passthrough) when the package has no arch. The
+// existing wolfi/alpine secdb tests don't exercise this path because the OS
+// transformer never emits Architecture qualifiers.
+
+// TestMatcherApk_ArchFilter_MatchWhenArchAgrees confirms the happy path:
+// arch on the package equals the qualifier's arch, so Satisfied returns
+// true and the vuln surfaces as a normal distro match.
+func TestMatcherApk_ArchFilter_MatchWhenArchAgrees(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		// fix is 3.153.0-r0; 3.152.0-r0 is below, so the apk constraint matches
+		p := dbtest.NewPackage("langfuse-3-worker", "3.152.0-r0", syftPkg.ApkPkg).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("x86_64").
+			Build()
+
+		// package p is affected by this vulnerability on this architecture
+		db.Match(t, &matcher, p).
+			SelectMatch("CGA-22hv-wp9q-4779").
+			SelectDetailByType(match.ExactDirectMatch).
+			AsDistroSearch()
+	})
+}
+
+// TestMatcherApk_ArchFilter_IgnoreWhenArchAgrees is the pair of
+// MatchWhenArchAgrees: same package, same arch, but a version past the
+// fix. The arch qualifier still passes so the fix path runs and emits
+// one DistroPackageFixed ignore per identifier (CGA id + aliases).
+// Cross-checks that arch filtering doesn't short-circuit the
+// fixed-version ignore emission.
+func TestMatcherApk_ArchFilter_IgnoreWhenArchAgrees(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		// fix is 3.153.0-r0; 3.153.1-r0 is over the fix, so the matcher emits
+		// no match but does emit one DistroPackageFixed ignore per identifier
+		// (the CGA id plus its CVE/GHSA aliases) so consumers can suppress
+		// language-ecosystem findings that overlap by file ownership.
+		pkgID := pkg.ID("langfuse-past-fix")
+		p := dbtest.NewPackage("langfuse-3-worker", "3.153.1-r0", syftPkg.ApkPkg).
+			WithID(pkgID).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("x86_64").
+			Build()
+
+		// vulnerability fixed this pkg-version for this architecture
+		db.Match(t, &matcher, p).Ignores().
+			SelectRelatedPackageIgnores(reasonDistroPackageFixed,
+				"CGA-22hv-wp9q-4779",
+				"CVE-2026-24398",
+				"GHSA-r354-f388-2fhh").
+			ForPackage(pkgID).
+			WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
+	})
+}
+
+// TestMatcherApk_ArchFilter_NoMatchWhenArchDisagrees is the load-bearing case:
+// the package's arch is aarch64 but the only Chainguard APH for this name has
+// arch=x86_64, so OnlyQualifiedPackages drops it before the version check ever
+// runs. No match, no ignore (the vuln is filtered before reaching the fix
+// path that would emit a DistroPackageFixed ignore).
+func TestMatcherApk_ArchFilter_NoMatchWhenArchDisagrees(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		p := dbtest.NewPackage("langfuse-3-worker", "3.152.0-r0", syftPkg.ApkPkg).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("aarch64"). // mismatch: Chainguard APH says x86_64
+			Build()
+
+		// no records match chainguard - aarch64
+		db.Match(t, &matcher, p).IsEmpty()
+	})
+}
+
+// TestMatcherApk_ArchFilter_InertWhenPackageHasNoArch documents the
+// passthrough branch of Satisfied(p): if p.Arch == "" the qualifier is
+// treated as inert, preserving pre-change behavior for input paths that
+// don't populate Arch. Without this branch every existing test using
+// WithDistro-but-not-WithArchitecture would regress against arch-tagged
+// providers like chainguard.
+func TestMatcherApk_ArchFilter_InertWhenPackageHasNoArch(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		p := dbtest.NewPackage("langfuse-3-worker", "3.152.0-r0", syftPkg.ApkPkg).
+			WithDistro(dbtest.ChainguardRolling).
+			// Architecture intentionally not set.
+			Build()
+
+		// package p is affected by this vulnerability because the qualifier is inert
+		// when the package has no arch
+		db.Match(t, &matcher, p).
+			SelectMatch("CGA-22hv-wp9q-4779").
+			SelectDetailByType(match.ExactDirectMatch).
+			AsDistroSearch()
+	})
+}
+
+// TestMatcherApk_ArchFilter_WolfiArchAgrees mirrors the first test against
+// the Wolfi side of the same CGA record. Beyond exercising arch=aarch64,
+// this also confirms the per-ecosystem OS row split: the matcher must reach
+// the Wolfi APH (not the Chainguard APH) when the package's distro is Wolfi.
+func TestMatcherApk_ArchFilter_WolfiArchAgrees(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		p := dbtest.NewPackage("langfuse-3-worker", "3.152.0-r0", syftPkg.ApkPkg).
+			WithDistro(dbtest.WolfiRolling).
+			WithArchitecture("aarch64").
+			Build()
+
+		// wolfi package p is affected by this vulnerability on this architecture
+		db.Match(t, &matcher, p).
+			SelectMatch("CGA-22hv-wp9q-4779").
+			SelectDetailByType(match.ExactDirectMatch).
+			AsDistroSearch()
+	})
+}
+
 // === pure-unit tests of apk-specific predicates (no provider involved) ===
 
 // Test_nakConstraint covers the search.ByConstraintFunc that

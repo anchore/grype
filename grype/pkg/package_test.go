@@ -263,13 +263,37 @@ func TestNew(t *testing.T) {
 					InstalledSize: 1,
 				},
 			},
+			metadata: ApkMetadata{
+				Files: []ApkFileRecord{},
+				Arch:  "a",
+			},
 			upstreams: []UpstreamPackage{
 				{
 					Name: "libcurl",
 				},
 			},
-			// no file records and grype's apk model carries nothing else, so metadata
-			// is nil rather than an empty struct (the upstream is still parsed out).
+		},
+		{
+			name: "apk with architecture only",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.ApkDBEntry{
+					Architecture: "amd64",
+				},
+			},
+			metadata: ApkMetadata{
+				Files: []ApkFileRecord{},
+				Arch:  "amd64",
+			},
+		},
+		{
+			name: "apk with no architecture or files",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.ApkDBEntry{
+					Package: "some-pkg",
+					Version: "1.0.0",
+				},
+			},
+			// neither architecture nor files: metadata is nil
 		},
 		// the below packages are those that have no metadata or upstream info to parse out
 		{
