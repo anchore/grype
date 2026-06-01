@@ -16,17 +16,17 @@ import (
 //
 //  1. The csafvex transformer drops a src product when a same-named binary is also in the
 //     advisory's known_affected ∪ fixed for the same platform.
-//  2. Every emitted RPM-typed entry is tagged with rpmarch ("src" / "binary-no-arch-specified"
-//     / a literal arch). The RPM matcher's upstream-search path adds
-//     internal.SourceOrUnspecifiedArch() so any non-src tagged entry is excluded — direct
-//     matches still hit because that path doesn't apply the criterion.
+//  2. Every emitted RPM-typed entry is tagged with an architecture ("src" /
+//     "binary-no-arch-specified" / a literal arch). The RPM matcher's upstream-search path
+//     adds internal.SourceOrUnspecifiedArch() so any non-src tagged entry is excluded —
+//     direct matches still hit because that path doesn't apply the criterion.
 //
 // These tests exercise the end-to-end build → match flow against a real fixture
 // (cve-2026-5928) extracted from the local hummingbird vunnel cache.
 
 // TestHummingbirdMatching_BinaryDirectHit verifies that a binary RPM listed verbatim in a
 // hummingbird advisory's known_affected (`glibc`) still produces a direct match — the
-// rpmarch=binary-no-arch-specified tag does NOT block direct lookups.
+// architecture=binary-no-arch-specified tag does NOT block direct lookups.
 func TestHummingbirdMatching_BinaryDirectHit(t *testing.T) {
 	dbtest.DBs(t, "hummingbird").
 		SelectOnly("cve-2026-5928").
@@ -48,7 +48,7 @@ func TestHummingbirdMatching_BinaryDirectHit(t *testing.T) {
 // reported FP: glibc-minimal-langpack is built from glibc.src but is NOT named in the
 // advisory. Without our changes, grype's upstream search (name=glibc, derived from the
 // package's `upstream` field) would hit the binary `glibc` row in the DB and emit an
-// indirect match. With rpmarch tagging + SourceOrUnspecifiedArch, the upstream search
+// indirect match. With architecture tagging + SourceOrUnspecifiedArch, the upstream search
 // excludes the binary row, and there's no glibc-minimal-langpack entry to direct-match,
 // so no match is produced.
 func TestHummingbirdMatching_SiblingBinaryUpstreamFiltered(t *testing.T) {

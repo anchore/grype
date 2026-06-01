@@ -5,10 +5,11 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/scylladb/go-set/strset"
+
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/nvd"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/cpe"
-	"github.com/scylladb/go-set/strset"
 )
 
 type affectedPackageCandidate struct {

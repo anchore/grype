@@ -24,7 +24,7 @@ const (
 	Revision = 1
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 6
+	Addition = 7
 
 	// v6 model changelog:
 	// 6.0.0: Initial version 🎉
@@ -44,6 +44,10 @@ const (
 	//        vulnerabilities that only apply to Root IO-backported packages; the rootio
 	//        runtime qualifier in pkg/qualifier/rootio filters non-Root-IO packages out via
 	//        the NAK pattern)
+	// 6.1.7: Rename PackageQualifiers.RpmArch (json: rpm_arch) to Architecture (json:
+	//        architecture). The field's semantics are unchanged; the rename drops the rpm-
+	//        specific prefix because the value already lives in PackageQualifiers and can
+	//        carry any architecture string for future arch-scoped advisories.
 )
 
 const (
