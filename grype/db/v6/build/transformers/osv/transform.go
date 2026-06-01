@@ -48,4 +48,5 @@ var strategies = []Strategy{
 	almaStrategy{},
 	bitnamiStrategy{},
 	rootioStrategy{},
+	ubuntuStrategy{},
 }

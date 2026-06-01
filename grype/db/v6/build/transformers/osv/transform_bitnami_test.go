@@ -5,8 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/osv-scanner/pkg/models"
-
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 )
@@ -165,14 +164,14 @@ func TestBitnamiTransform(t *testing.T) {
 func TestBitnamiRangeConversion(t *testing.T) {
 	tests := []struct {
 		name string
-		rnge models.Range
+		rnge osvmodel.Range
 		want []db.Range
 	}{
 		{
 			name: "simple introduced -> fixed semver range",
-			rnge: models.Range{
-				Type: models.RangeSemVer,
-				Events: []models.Event{
+			rnge: osvmodel.Range{
+				Type: osvmodel.RangeSemVer,
+				Events: []osvmodel.Event{
 					{Introduced: "12.0.0"},
 					{Fixed: "12.18.4"},
 				},
@@ -184,9 +183,9 @@ func TestBitnamiRangeConversion(t *testing.T) {
 		},
 		{
 			name: "introduced=0 -> fixed produces fixed-only constraint",
-			rnge: models.Range{
-				Type: models.RangeSemVer,
-				Events: []models.Event{
+			rnge: osvmodel.Range{
+				Type: osvmodel.RangeSemVer,
+				Events: []osvmodel.Event{
 					{Introduced: "0"},
 					{Fixed: "3.4.0"},
 				},
@@ -198,9 +197,9 @@ func TestBitnamiRangeConversion(t *testing.T) {
 		},
 		{
 			name: "introduced + last_affected (no fixed event)",
-			rnge: models.Range{
-				Type: models.RangeSemVer,
-				Events: []models.Event{
+			rnge: osvmodel.Range{
+				Type: osvmodel.RangeSemVer,
+				Events: []osvmodel.Event{
 					{Introduced: "2.4.32"},
 					{LastAffected: "2.4.43"},
 				},
@@ -211,9 +210,9 @@ func TestBitnamiRangeConversion(t *testing.T) {
 		},
 		{
 			name: "two disjoint introduced/fixed windows in one range",
-			rnge: models.Range{
-				Type: models.RangeSemVer,
-				Events: []models.Event{
+			rnge: osvmodel.Range{
+				Type: osvmodel.RangeSemVer,
+				Events: []osvmodel.Event{
 					{Introduced: "0"},
 					{Fixed: "3.2.2"},
 					{Introduced: "3.3.0"},
@@ -233,9 +232,9 @@ func TestBitnamiRangeConversion(t *testing.T) {
 		},
 		{
 			name: "range with anchore.fixes metadata attaches FixDetail",
-			rnge: models.Range{
-				Type: models.RangeSemVer,
-				Events: []models.Event{
+			rnge: osvmodel.Range{
+				Type: osvmodel.RangeSemVer,
+				Events: []osvmodel.Event{
 					{Introduced: "12.0.0"},
 					{Fixed: "12.18.4"},
 				},
