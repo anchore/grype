@@ -1,0 +1,7 @@
+# Hand-authored fixture (auto-generate disabled). The single rhel:9 record is the
+# verbatim OS-schema output of vunnel's RHEL provider for CVE-2024-8088 after the
+# multi-RHSA phase-1 change (distinct upstream bases -> partitioned VulnerableRange).
+auto-generate: false
+extractions:
+    rhel:
+        - rhel:9/cve-2024-8088
