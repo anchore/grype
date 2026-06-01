@@ -212,6 +212,9 @@ type scanResultPublisher struct {
 // Write the provided result to the data stream
 func (w *scanResultPublisher) Write(s models.PresenterConfig) error {
 	pres := GetPresenter(w.format, w.cfg, s)
+	if pres == nil {
+		return fmt.Errorf("invalid format: %s", w.format)
+	}
 	buf := &bytes.Buffer{}
 	if err := pres.Present(buf); err != nil {
 		return fmt.Errorf("unable to encode result: %w", err)

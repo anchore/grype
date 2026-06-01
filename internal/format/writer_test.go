@@ -1,12 +1,15 @@
 package format
 
 import (
+	"bytes"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/docker/docker/pkg/homedir"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/anchore/grype/grype/presenter/models"
 )
 
 func Test_MakeScanResultWriter(t *testing.T) {
@@ -215,4 +218,21 @@ func Test_newSBOMWriterDescription(t *testing.T) {
 			assert.Equal(t, tt.expected, o.Path)
 		})
 	}
+}
+
+func Test_unsupportedFormatVersionReturnsError(t *testing.T) {
+	// a known format name with an unimplemented version yields a nil presenter; writers must
+	// surface an error rather than dereference the nil presenter and panic.
+	unsupported := Format{name: "cyclonedx-json", version: "1.4"}
+	cfg := models.PresenterConfig{}
+
+	t.Run("stream writer", func(t *testing.T) {
+		w := &scanResultStreamWriter{format: unsupported, out: &bytes.Buffer{}}
+		assert.ErrorContains(t, w.Write(cfg), "invalid format")
+	})
+
+	t.Run("publisher", func(t *testing.T) {
+		w := &scanResultPublisher{format: unsupported}
+		assert.ErrorContains(t, w.Write(cfg), "invalid format")
+	})
 }
