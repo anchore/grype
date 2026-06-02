@@ -1,0 +1,5 @@
+auto-generate: true
+extractions:
+    govulndb:
+        - go-2020-0001
+        - go-2022-0969
