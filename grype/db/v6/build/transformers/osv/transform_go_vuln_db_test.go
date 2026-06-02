@@ -61,6 +61,18 @@ func TestGoVulnDBTransform(t *testing.T) {
 								Fix: &db.Fix{
 									Version: "1.6.0",
 									State:   db.FixedStatus,
+									// FixDetail is populated from
+									// range.database_specific.anchore.fixes,
+									// which the vunnel govulndb provider
+									// attaches via osv.patch_fix_date using
+									// the advisory's published date as a
+									// low-confidence candidate.
+									Detail: &db.FixDetail{
+										Available: &db.FixAvailability{
+											Date: timeRef(time.Date(2021, time.April, 14, 0, 0, 0, 0, time.UTC)),
+											Kind: "advisory",
+										},
+									},
 								},
 							}},
 						},
