@@ -8,7 +8,6 @@ import (
 	"go/ast"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -19,6 +18,7 @@ import (
 
 	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/diff"
+	"github.com/anchore/grype/internal/testutils"
 )
 
 func main() {
@@ -460,13 +460,9 @@ func getJSONTag(field *ast.Field) string {
 }
 
 func repoRoot() string {
-	root, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+	root, err := testutils.RepoRoot()
 	if err != nil {
-		panic(fmt.Errorf("unable to find repo root dir: %+v", err))
+		panic(err)
 	}
-	absRepoRoot, err := filepath.Abs(strings.TrimSpace(string(root)))
-	if err != nil {
-		panic(fmt.Errorf("unable to get abs path to repo root: %w", err))
-	}
-	return absRepoRoot
+	return root
 }
