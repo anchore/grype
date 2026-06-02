@@ -224,7 +224,7 @@ func synthesizeFromCatalog(
 
 func existingVulnPackageKeys(remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch) map[string]struct{} {
 	known := map[string]struct{}{}
-	for _, m := range remainingMatches.Sorted() {
+	for m := range remainingMatches.Enumerate() {
 		known[vulnPackageKey(m.Vulnerability.ID, m.Package.PURL)] = struct{}{}
 	}
 	for _, m := range ignoredMatches {

@@ -389,6 +389,7 @@ func synthesizeFromCatalog(
 	}
 
 	known := existingVulnPackageKeys(remainingMatches, ignoredMatches)
+	index := buildPackageIndex(pkgs)
 
 	for stmtIdx := range doc.Statements {
 		stmt := &doc.Statements[stmtIdx]
@@ -401,7 +402,7 @@ func synthesizeFromCatalog(
 			continue
 		}
 
-		for pi := range pkgs {
+		for _, pi := range candidatePackages(stmt, products, pkgs, index) {
 			p := &pkgs[pi]
 			if p.PURL == "" {
 				continue
@@ -426,9 +427,110 @@ func synthesizeFromCatalog(
 	}
 }
 
+// buildPackageIndex parses every package purl once and buckets the package
+// indices by their (type, namespace, name) identity. A statement can only
+// synthesize a match for a package whose purl shares this identity (see
+// PurlMatches), so the index lets each statement consider just the relevant
+// packages rather than the whole catalog.
+func buildPackageIndex(pkgs []pkg.Package) map[string][]int {
+	index := make(map[string][]int)
+	for i := range pkgs {
+		if pkgs[i].PURL == "" {
+			continue
+		}
+		parsed, err := packageurl.FromString(pkgs[i].PURL)
+		if err != nil {
+			continue
+		}
+		key := purlIdentityKey(parsed)
+		index[key] = append(index[key], i)
+	}
+	return index
+}
+
+func purlIdentityKey(p packageurl.PackageURL) string {
+	return p.Type + "\x00" + p.Namespace + "\x00" + p.Name
+}
+
+// candidatePackages returns the indices of packages that could match the given
+// statement. For statements that name packages by purl (as a product or as a
+// subcomponent) only packages sharing a purl identity with one of those purls
+// are returned. Image-wide statements (an image/context product with no
+// subcomponents) apply to every package, matching the behavior of
+// matchPackageAgainstStatement, so the whole catalog is returned in that case.
+func candidatePackages(stmt *openvex.Statement, products []string, pkgs []pkg.Package, index map[string][]int) []int {
+	if statementIsImageWide(stmt, products) {
+		all := make([]int, len(pkgs))
+		for i := range pkgs {
+			all[i] = i
+		}
+		return all
+	}
+
+	var out []int
+	seen := map[int]struct{}{}
+	for _, sp := range statementPurls(stmt) {
+		parsed, err := packageurl.FromString(sp)
+		if err != nil {
+			continue
+		}
+		for _, pi := range index[purlIdentityKey(parsed)] {
+			if _, ok := seen[pi]; ok {
+				continue
+			}
+			seen[pi] = struct{}{}
+			out = append(out, pi)
+		}
+	}
+	return out
+}
+
+// statementPurls collects every purl referenced by a statement, both as a
+// product component and as a subcomponent.
+func statementPurls(stmt *openvex.Statement) []string {
+	var out []string
+	add := func(s string) {
+		if strings.HasPrefix(s, "pkg:") {
+			out = append(out, s)
+		}
+	}
+	addComponent := func(c openvex.Component) {
+		add(c.ID)
+		for t, id := range c.Identifiers {
+			if t == openvex.PURL {
+				add(id)
+			}
+		}
+	}
+	for i := range stmt.Products {
+		addComponent(stmt.Products[i].Component)
+		for j := range stmt.Products[i].Subcomponents {
+			addComponent(stmt.Products[i].Subcomponents[j].Component)
+		}
+	}
+	return out
+}
+
+// statementIsImageWide reports whether the statement names an image/context
+// product with no subcomponents, in which case matchPackageAgainstStatement
+// matches every package in the catalog.
+func statementIsImageWide(stmt *openvex.Statement, products []string) bool {
+	for i := range stmt.Products {
+		if len(stmt.Products[i].Subcomponents) != 0 {
+			continue
+		}
+		for _, prod := range products {
+			if stmt.Products[i].Component.Matches(prod) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func existingVulnPackageKeys(remainingMatches *match.Matches, ignoredMatches []match.IgnoredMatch) map[string]struct{} {
 	known := map[string]struct{}{}
-	for _, m := range remainingMatches.Sorted() {
+	for m := range remainingMatches.Enumerate() {
 		known[vulnPackageKey(m.Vulnerability.ID, m.Package.PURL)] = struct{}{}
 	}
 	for _, m := range ignoredMatches {

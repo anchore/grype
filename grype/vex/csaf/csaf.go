@@ -142,6 +142,69 @@ type synthesisCandidate struct {
 	Package       *pkg.Package
 }
 
+// indexedPackage is a package whose purl has been parsed once and whose
+// ecosystem version format has been resolved, so synthesis does not re-parse
+// the same package on every statement comparison.
+type indexedPackage struct {
+	pkg    *pkg.Package
+	purl   packageurl.PackageURL
+	format version.Format
+}
+
+// purlIdentityKey returns the (type, namespace, name) identity of a purl.
+// packageMatchesStatement requires these three to be equal, so a package can
+// only ever match a statement that shares this key. Indexing packages by it
+// lets synthesis compare each statement against the handful of packages with a
+// matching identity instead of the whole catalog.
+func purlIdentityKey(p packageurl.PackageURL) string {
+	return p.Type + "\x00" + p.Namespace + "\x00" + p.Name
+}
+
+// buildPackageIndex parses every package purl once and buckets the packages by
+// their (type, namespace, name) identity.
+func buildPackageIndex(pkgs []pkg.Package) map[string][]indexedPackage {
+	index := make(map[string][]indexedPackage)
+	for i := range pkgs {
+		if pkgs[i].PURL == "" {
+			continue
+		}
+		parsed, err := packageurl.FromString(pkgs[i].PURL)
+		if err != nil {
+			continue
+		}
+		key := purlIdentityKey(parsed)
+		index[key] = append(index[key], indexedPackage{
+			pkg:    &pkgs[i],
+			purl:   parsed,
+			format: pkg.VersionFormat(pkgs[i]),
+		})
+	}
+	return index
+}
+
+// statusProducts pairs a CSAF product-status slice with the synthesis status it
+// maps to. Using a fixed slice avoids allocating a map per vulnerability.
+type statusProducts struct {
+	status   status
+	products *csaf.Products
+}
+
+// synthesisStatuses returns the affected-like product-status buckets that are
+// eligible for synthesis. fixed and known_not_affected are intentionally
+// excluded.
+func synthesisStatuses(ps *csaf.ProductStatus) []statusProducts {
+	if ps == nil {
+		return nil
+	}
+	return []statusProducts{
+		{firstAffected, ps.FirstAffected},
+		{knownAffected, ps.KnownAffected},
+		{lastAffected, ps.LastAffected},
+		{recommended, ps.Recommended},
+		{underInvestigation, ps.UnderInvestigation},
+	}
+}
+
 // findSynthesisCandidates walks every advisory and yields (vuln, package)
 // pairs eligible for synthesis. Range semantics are applied per status:
 //   - last_affected: pkg.version <= stmt.version (ceiling)
@@ -152,10 +215,20 @@ type synthesisCandidate struct {
 // Statuses that are not "affected-like" (fixed, known_not_affected) never
 // trigger synthesis.
 //
+// Packages are pre-parsed and indexed by purl identity so each statement purl
+// is matched against only the packages that share its (type, namespace, name)
+// rather than the entire catalog. Per-advisory product purls are cached so the
+// product tree is walked once per product instead of once per package.
+//
 //nolint:gocognit
 func (advisories advisories) findSynthesisCandidates(pkgs []pkg.Package) []synthesisCandidate {
 	var out []synthesisCandidate
 	if len(pkgs) == 0 {
+		return out
+	}
+
+	index := buildPackageIndex(pkgs)
+	if len(index) == 0 {
 		return out
 	}
 
@@ -164,43 +237,46 @@ func (advisories advisories) findSynthesisCandidates(pkgs []pkg.Package) []synth
 			continue
 		}
 
+		// Cache product purls per advisory so CollectProductIdentificationHelpers
+		// (which walks the whole product tree) runs once per product ID.
+		helpersCache := map[csaf.ProductID][]string{}
+		purlsForProduct := func(productID csaf.ProductID) []string {
+			if cached, ok := helpersCache[productID]; ok {
+				return cached
+			}
+			purls := purlsFromProductIdentificationHelpers(adv.ProductTree.CollectProductIdentificationHelpers(productID))
+			helpersCache[productID] = purls
+			return purls
+		}
+
 		for _, vuln := range adv.Vulnerabilities {
 			if vuln == nil || vuln.CVE == nil {
 				continue
 			}
 
-			productsByStatus := map[status]*csaf.Products{
-				firstAffected:      vuln.ProductStatus.FirstAffected,
-				knownAffected:      vuln.ProductStatus.KnownAffected,
-				lastAffected:       vuln.ProductStatus.LastAffected,
-				recommended:        vuln.ProductStatus.Recommended,
-				underInvestigation: vuln.ProductStatus.UnderInvestigation,
-			}
-
-			for st, products := range productsByStatus {
-				if products == nil {
+			for _, sp := range synthesisStatuses(vuln.ProductStatus) {
+				if sp.products == nil {
 					continue
 				}
-				for _, productIDPtr := range *products {
+				for _, productIDPtr := range *sp.products {
 					if productIDPtr == nil {
 						continue
 					}
 					productID := *productIDPtr
-					helpers := adv.ProductTree.CollectProductIdentificationHelpers(productID)
-					for _, stmtPURL := range purlsFromProductIdentificationHelpers(helpers) {
-						for i := range pkgs {
-							p := &pkgs[i]
-							if p.PURL == "" {
-								continue
-							}
-							if !packageMatchesStatement(stmtPURL, p, st) {
+					for _, stmtPURL := range purlsForProduct(productID) {
+						stmt, err := packageurl.FromString(stmtPURL)
+						if err != nil {
+							continue
+						}
+						for _, cand := range index[purlIdentityKey(stmt)] {
+							if !packageMatchesParsed(stmt, cand.purl, cand.format, sp.status) {
 								continue
 							}
 							out = append(out, synthesisCandidate{
 								Vulnerability: vuln,
-								Status:        st,
+								Status:        sp.status,
 								ProductID:     productID,
-								Package:       p,
+								Package:       cand.pkg,
 							})
 						}
 					}
@@ -225,7 +301,13 @@ func packageMatchesStatement(stmtPURL string, p *pkg.Package, st status) bool {
 	if err != nil {
 		return false
 	}
+	return packageMatchesParsed(stmt, pkgPURL, pkg.VersionFormat(*p), st)
+}
 
+// packageMatchesParsed is packageMatchesStatement operating on already-parsed
+// purls and a resolved version format, so the hot synthesis loop does not
+// re-parse purls it has already seen.
+func packageMatchesParsed(stmt, pkgPURL packageurl.PackageURL, format version.Format, st status) bool {
 	if stmt.Type != pkgPURL.Type || stmt.Namespace != pkgPURL.Namespace || stmt.Name != pkgPURL.Name {
 		return false
 	}
@@ -241,8 +323,6 @@ func packageMatchesStatement(stmtPURL string, p *pkg.Package, st status) bool {
 		// Statement is version-specific but the package's purl has none.
 		return false
 	}
-
-	format := pkg.VersionFormat(*p)
 
 	switch st {
 	case lastAffected:
