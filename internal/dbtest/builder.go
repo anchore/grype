@@ -254,6 +254,11 @@ func hashSelections(selections []string) string {
 func computeFixtureHash(fixtureDir string, selections []string) (string, error) {
 	hasher := xxhash.New64()
 
+	// Mix the DB schema version into the input hash so any schema bump invalidates
+	// cached DBs. Without this, a fixture-content hash alone matches even when the
+	// blob layout changed, for example a field was added.
+	_, _ = fmt.Fprintf(hasher, "schema:v%d.%d.%d\n", v6.ModelVersion, v6.Revision, v6.Addition)
+
 	// include selections in hash for differentiation
 	if len(selections) > 0 {
 		_, _ = hasher.Write([]byte(hashSelections(selections)))
@@ -398,7 +403,7 @@ func (b *Builder) buildSchema(schema int, states provider.States, inputHash stri
 
 // buildDatabase builds a vulnerability database for the given schema version.
 func buildDatabase(schema int, outputDir string, states provider.States) error {
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
 		return fmt.Errorf("create output directory: %w", err)
 	}
 
