@@ -13,11 +13,11 @@ import (
 	"github.com/scylladb/go-set/strset"
 	"github.com/spf13/afero"
 
-	"github.com/anchore/grype/grype/db/internal/tarutil"
 	grypeDBLegacy "github.com/anchore/grype/grype/db/v5"
 	grypeDBLegacyDistribution "github.com/anchore/grype/grype/db/v5/distribution"
 	grypeDBLegacyStore "github.com/anchore/grype/grype/db/v5/store"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/grype/internal/tarutil"
 )
 
 // listingFiles is a set of files that should not be included in the archive

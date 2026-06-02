@@ -59,6 +59,10 @@ coverage.txt
 /listing.json
 *.db
 *.db-journal
+
+# local db-builder workspace (populated by 'make db-builder:pull')
+/data
+/.cache
 !**/testdata/**/*.db
 !**/testdata/**/bin/
 !**/testdata/**/*.jar

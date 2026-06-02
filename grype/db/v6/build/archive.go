@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anchore/grype/grype/db/internal/tarutil"
 	"github.com/anchore/grype/grype/db/provider"
 	v6 "github.com/anchore/grype/grype/db/v6"
 	v6Distribution "github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/grype/internal/tarutil"
 )
 
 func CreateArchive(dbDir, overrideArchiveExtension string, compressorCommands map[string]string) error {

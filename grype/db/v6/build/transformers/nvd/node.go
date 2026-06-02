@@ -158,20 +158,12 @@ func deduplicateCandidates(candidates []affectedPackageCandidate) []affectedPack
 			continue
 		}
 
-		// merge platform CPEs...
-		platformMap := make(map[string]struct{})
-		for _, platform := range existing.PlatformCPEs {
-			platformKey := cpeKey(platform)
-			platformMap[platformKey] = struct{}{}
-		}
-
-		for _, platform := range candidate.PlatformCPEs {
-			platformKey := cpeKey(platform)
-			if _, ok := platformMap[platformKey]; !ok {
-				existing.PlatformCPEs = append(existing.PlatformCPEs, platform)
-				platformMap[platformKey] = struct{}{}
-			}
-		}
+		// merge platform CPEs by appending the merging candidate's list as-is.
+		// Deduplication of platform_cpes (within and across merged candidates)
+		// is a deliberate post-migration follow-up — see
+		// docs/migration-followups.md. Until then, mirror grype-db v0.112.0's
+		// pass-through behavior so the parity script gets a zero-diff run.
+		existing.PlatformCPEs = append(existing.PlatformCPEs, candidate.PlatformCPEs...)
 
 		// merge ranges...
 		existing.Ranges.addRanges(candidate.Ranges.toSlice()...)

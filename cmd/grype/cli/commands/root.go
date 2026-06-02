@@ -162,7 +162,7 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 			startTime := time.Now()
 
 			defer func() {
-				validStr := "valid"
+				validStr := validStatus
 				if err != nil {
 					validStr = "invalid"
 				}

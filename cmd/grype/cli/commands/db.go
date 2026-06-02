@@ -10,6 +10,8 @@ const (
 	jsonOutputFormat  = "json"
 	tableOutputFormat = "table"
 	textOutputFormat  = "text"
+
+	validStatus = "valid"
 )
 
 func DB(app clio.Application) *cobra.Command {
