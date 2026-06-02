@@ -5,10 +5,11 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/scylladb/go-set/strset"
+
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/nvd"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/cpe"
-	"github.com/scylladb/go-set/strset"
 )
 
 type affectedPackageCandidate struct {
@@ -255,7 +256,11 @@ func extractVulnerableCPEs(node nvd.Node, cfg Config) ([]affectedPackageCandidat
 // must be non-vulnerable across all cpeMatch elements of the node, otherwise unaffected package entries will be
 // mistakenly raised up as platforms
 func extractPlatformCPEs(node nvd.Node) ([]cpe.Attributes, error) {
+	// keep a parallel slice of keys in encounter order so the emitted slice is
+	// deterministic — iterating platformCPEMap directly would surface Go's
+	// randomized map order and snapshot tests would flake.
 	platformCPEMap := make(map[string][]cpe.Attributes)
+	var keyOrder []string
 	packageCandidates := strset.New()
 
 	for _, match := range node.CpeMatch {
@@ -269,13 +274,19 @@ func extractPlatformCPEs(node nvd.Node) ([]cpe.Attributes, error) {
 			packageCandidates.Add(key)
 			delete(platformCPEMap, key)
 		} else if !packageCandidates.Has(key) {
+			if _, exists := platformCPEMap[key]; !exists {
+				keyOrder = append(keyOrder, key)
+			}
 			platformCPEMap[key] = append(platformCPEMap[key], cpeAttr)
 		}
 	}
 
 	var platformCPEs []cpe.Attributes
-
-	for _, platforms := range platformCPEMap {
+	for _, key := range keyOrder {
+		platforms, ok := platformCPEMap[key]
+		if !ok {
+			continue
+		}
 		platformCPEs = append(platformCPEs, platforms...)
 	}
 
