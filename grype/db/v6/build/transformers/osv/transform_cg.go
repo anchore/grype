@@ -132,10 +132,11 @@ func cgGetQualifiers(affected models.Affected) *db.PackageQualifiers {
 		return nil
 	}
 	for _, q := range purl.Qualifiers {
+		// if we have a purl with an "arch" qualifier, we want to pull that out and
+		// store it in the qualifiers for this affected package
 		if q.Key == "arch" && q.Value != "" {
 			arch := q.Value
 			return &db.PackageQualifiers{
-				// TODO can we reuse RpmArch, or should this be a new field separate from RPM?
 				Architecture: &arch,
 			}
 		}
