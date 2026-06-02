@@ -159,10 +159,6 @@ type PackageQualifiers struct {
 	// RootIO indicates that the vulnerability applies only to Root IO packages (packages with Root IO fixes).
 	// When true, standard packages will not match this vulnerability (NAK pattern).
 	RootIO *bool `json:"rootio,omitempty"`
-
-	// Architecture specifies the CPU architecture this vulnerability applies to (e.g., "aarch64", "x86_64").
-	// If nil, the vulnerability applies to all architectures.
-	Architecture *string `json:"architecture,omitempty"`
 }
 
 // Range defines a specific range of package versions pertaining to a vulnerability.

@@ -127,8 +127,7 @@ func TestFixAvailability_UnmarshalJSON_InvalidDateFormat(t *testing.T) {
 	assert.Contains(t, err.Error(), "expected format YYYY-MM-DD or RFC3339")
 }
 
-// TestPackageQualifiers_RoundTrip locks in the JSON shape of PackageQualifiers,
-// including the Architecture field added for the OSV CG (Chainguard) transformer.
+// TestPackageQualifiers_RoundTrip locks in the JSON shape of PackageQualifiers.
 //
 // Field-level coverage matters because PackageQualifiers is persisted into the
 // blob store as JSON: a stray rename or json-tag drift would silently corrupt
@@ -161,23 +160,21 @@ func TestPackageQualifiers_RoundTrip(t *testing.T) {
 			wantJSON: `{"architecture":"aarch64"}`,
 		},
 		{
-			name: "architecture alongside rpm_arch (separate fields, both round-trip)",
+			name: "architecture src sentinel",
 			input: PackageQualifiers{
-				RpmArch:      asPtr("src"),
-				Architecture: asPtr("x86_64"),
+				Architecture: asPtr("src"),
 			},
-			wantJSON: `{"rpm_arch":"src","architecture":"x86_64"}`,
+			wantJSON: `{"architecture":"src"}`,
 		},
 		{
 			name: "full qualifier set",
 			input: PackageQualifiers{
 				RpmModularity: asPtr("nodejs:16"),
 				PlatformCPEs:  []string{"cpe:2.3:o:redhat:enterprise_linux:8:*:*:*:*:*:*:*"},
-				RpmArch:       asPtr("x86_64"),
 				RootIO:        asPtr(true),
 				Architecture:  asPtr("aarch64"),
 			},
-			wantJSON: `{"rpm_modularity":"nodejs:16","platform_cpes":["cpe:2.3:o:redhat:enterprise_linux:8:*:*:*:*:*:*:*"],"rpm_arch":"x86_64","rootio":true,"architecture":"aarch64"}`,
+			wantJSON: `{"rpm_modularity":"nodejs:16","platform_cpes":["cpe:2.3:o:redhat:enterprise_linux:8:*:*:*:*:*:*:*"],"rootio":true,"architecture":"aarch64"}`,
 		},
 	}
 
