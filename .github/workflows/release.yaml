@@ -24,6 +24,7 @@ jobs:
 
   check-gate:
     permissions:
+      contents: read
       checks: read # required for getting the status of specific check names
     uses: anchore/workflows/.github/workflows/check-gate.yaml@b3e328b5ae31ba96297e2ed9a6124e5e6352a4c5 # v0.7.0
     with:
