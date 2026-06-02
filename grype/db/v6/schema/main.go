@@ -18,7 +18,7 @@ import (
 
 	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/diff"
-	"github.com/anchore/grype/internal/testutils"
+	"github.com/anchore/grype/internal/repoutil"
 )
 
 func main() {
@@ -460,7 +460,7 @@ func getJSONTag(field *ast.Field) string {
 }
 
 func repoRoot() string {
-	root, err := testutils.RepoRoot()
+	root, err := repoutil.Root()
 	if err != nil {
 		panic(err)
 	}

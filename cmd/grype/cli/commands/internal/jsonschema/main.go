@@ -15,7 +15,7 @@ import (
 	"golang.org/x/tools/go/packages"
 
 	"github.com/anchore/grype/cmd/grype/cli/commands/internal/dbsearch"
-	"github.com/anchore/grype/internal/testutils"
+	"github.com/anchore/grype/internal/repoutil"
 )
 
 func main() {
@@ -251,7 +251,7 @@ func schemaID(component, version string) jsonschema.ID {
 }
 
 func repoRoot() string {
-	root, err := testutils.RepoRoot()
+	root, err := repoutil.Root()
 	if err != nil {
 		panic(err)
 	}

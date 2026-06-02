@@ -12,7 +12,7 @@ import (
 
 	"github.com/scylladb/go-set/strset"
 
-	"github.com/anchore/grype/internal/testutils"
+	"github.com/anchore/grype/internal/repoutil"
 )
 
 var metadataExceptions = strset.New(
@@ -23,7 +23,7 @@ var metadataExceptions = strset.New(
 )
 
 func DiscoverTypeNames() ([]string, error) {
-	root, err := testutils.RepoRoot()
+	root, err := repoutil.Root()
 	if err != nil {
 		return nil, err
 	}

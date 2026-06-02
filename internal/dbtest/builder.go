@@ -20,7 +20,7 @@ import (
 	"github.com/anchore/grype/grype/db/provider"
 	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal/testutils"
+	"github.com/anchore/grype/internal/repoutil"
 )
 
 // DefaultSchemaVersions controls which schema versions Build() generates by default.
@@ -491,7 +491,7 @@ func cachedBuildFingerprint() (string, error) {
 }
 
 func computeBuildFingerprint() (string, error) {
-	root, err := testutils.RepoRoot()
+	root, err := repoutil.Root()
 	if err != nil {
 		return "", err
 	}
