@@ -176,10 +176,11 @@ func NewFromRelease(release linux.Release, channels []FixChannel) (*Distro, erro
 			continue
 		}
 
-		selectedVersionObj = version.New(ver, version.SemanticFormat)
+		versionObj := version.New(ver, version.SemanticFormat)
 
-		if selectedVersionObj.Validate() == nil {
+		if versionObj.Validate() == nil {
 			selectedVersion = ver
+			selectedVersionObj = versionObj
 			break
 		}
 	}
