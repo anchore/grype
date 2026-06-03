@@ -95,6 +95,8 @@ jobs:
   release-install-script:
     needs: [release]
     if: ${{ needs.release.result == 'success' }}
+    permissions:
+      contents: read
     uses: anchore/workflows/.github/workflows/release-install-script.yaml@b3e328b5ae31ba96297e2ed9a6124e5e6352a4c5 # v0.7.0
     with:
       tag: ${{ github.event.inputs.version }}
