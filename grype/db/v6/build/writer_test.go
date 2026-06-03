@@ -153,6 +153,26 @@ func TestFillInMissingSeverity(t *testing.T) {
 			severityCache: map[string]db.Severity{},
 			expected:      nil,
 		},
+		{
+			// Locks in that lookupNVDSeverity normalizes casing on both
+			// the primary ID and aliases. The cache is keyed by lowercase
+			// CVE IDs; if the helper stopped normalizing, a primary CVE
+			// with upstream casing variations (or any future caller that
+			// forgot the pre-lowercase) would silently miss a hit.
+			name: "casing-insensitive lookup on primary ID and aliases",
+			handle: &db.VulnerabilityHandle{
+				ProviderID: "github",
+				BlobValue: &db.VulnerabilityBlob{
+					ID:         "GHSA-mixed-case",
+					Aliases:    []string{"cve-2024-AAAA"},
+					Severities: nil,
+				},
+			},
+			severityCache: map[string]db.Severity{
+				"cve-2024-aaaa": {Value: "critical"},
+			},
+			expected: []db.Severity{{Value: "critical"}},
+		},
 	}
 
 	for _, tt := range tests {

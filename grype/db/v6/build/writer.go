@@ -22,7 +22,11 @@ type writer struct {
 	store                db.ReadWriter
 	providerCache        map[string]db.Provider
 	states               provider.States
-	severityCache        map[string]db.Severity
+	// severityCache holds CVE → NVD severity for the alias-lookup path used by
+	// fillInMissingSeverity. Keys are always lowercase CVE IDs; writers go
+	// through cacheNVDSeverity and readers through lookupNVDSeverity, both of
+	// which normalize casing so the invariant can't drift.
+	severityCache map[string]db.Severity
 
 	// Two-tier batching: parent records (vulnerabilities + providers) and child records (related entries)
 	// This maintains FK integrity while maximizing batch sizes
@@ -277,7 +281,7 @@ func (w *writer) fillInMissingSeverity(handle *db.VulnerabilityHandle) {
 	isCVE := strings.HasPrefix(id, "cve-")
 	if strings.ToLower(handle.ProviderID) == "nvd" && isCVE {
 		if len(blob.Severities) > 0 {
-			w.severityCache[id] = blob.Severities[0]
+			w.cacheNVDSeverity(id, blob.Severities[0])
 		}
 		return
 	}
@@ -312,10 +316,20 @@ func (w *writer) fillInMissingSeverity(handle *db.VulnerabilityHandle) {
 	handle.BlobValue.Severities = sevs
 }
 
+// cacheNVDSeverity stores an NVD CVE severity for later alias-based lookup.
+// Lowercases the key so the read-side lookupNVDSeverity finds it regardless
+// of the casing on the lookup record's primary ID or aliases.
+func (w *writer) cacheNVDSeverity(cveID string, sev db.Severity) {
+	w.severityCache[strings.ToLower(cveID)] = sev
+}
+
 // lookupNVDSeverity returns the cached NVD severity for a CVE — either the
 // record's own primary ID when it is a CVE, or the first CVE alias that has a
-// cached severity. id must be pre-lowercased; aliases may be any case.
+// cached severity. Lowercases both id and each alias so callers can pass any
+// casing without a silent cache miss; pairs with cacheNVDSeverity on the
+// write side.
 func (w *writer) lookupNVDSeverity(id string, aliases []string) (db.Severity, bool) {
+	id = strings.ToLower(id)
 	if strings.HasPrefix(id, "cve-") {
 		if s, ok := w.severityCache[id]; ok {
 			return s, true
