@@ -291,7 +291,7 @@ func TestGolangVersion(t *testing.T) {
 			// we can't compare it and should just return an error.
 			name:  "devel",
 			input: "(devel)",
-			wantErr: func(t require.TestingT, err error, msgAndArgs ...interface{}) {
+			wantErr: func(t require.TestingT, err error, msgAndArgs ...any) {
 				require.ErrorIs(t, err, ErrUnsupportedVersion)
 			},
 		},

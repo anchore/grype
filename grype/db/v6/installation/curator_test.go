@@ -450,7 +450,7 @@ func TestCurator_validateAge(t *testing.T) {
 			description: &db.Description{
 				Built: hoursAgo(48),
 			},
-			wantErr: func(t require.TestingT, err error, msgAndArgs ...interface{}) {
+			wantErr: func(t require.TestingT, err error, msgAndArgs ...any) {
 				require.ErrorContains(t, err, "the vulnerability database was built")
 			},
 		},
@@ -459,14 +459,14 @@ func TestCurator_validateAge(t *testing.T) {
 			description: &db.Description{
 				Built: hoursAgo(50),
 			},
-			wantErr: func(t require.TestingT, err error, msgAndArgs ...interface{}) {
+			wantErr: func(t require.TestingT, err error, msgAndArgs ...any) {
 				require.ErrorContains(t, err, "the vulnerability database was built")
 			},
 		},
 		{
 			name:        "no metadata",
 			description: nil,
-			wantErr: func(t require.TestingT, err error, msgAndArgs ...interface{}) {
+			wantErr: func(t require.TestingT, err error, msgAndArgs ...any) {
 				require.ErrorContains(t, err, "no metadata to validate")
 			},
 		},

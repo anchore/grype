@@ -830,7 +830,7 @@ func TestBatchSizeConfiguration(t *testing.T) {
 func createTestEntries(count int) []data.Entry {
 	entries := make([]data.Entry, count)
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		entries[i] = data.Entry{
 			DBSchemaVersion: db.ModelVersion,
 			Data: transformers.RelatedEntries{

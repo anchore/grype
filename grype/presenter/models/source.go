@@ -8,8 +8,8 @@ import (
 )
 
 type source struct {
-	Type   string      `json:"type"`
-	Target interface{} `json:"target"`
+	Type   string `json:"type"`
+	Target any    `json:"target"`
 }
 
 // newSource creates a new source object to be represented into JSON.

@@ -18,7 +18,7 @@ import (
 )
 
 func TestUnmarshalMsrcVulnerabilities(t *testing.T) {
-	f, err := os.Open("test-fixtures/microsoft-msrc-0.json")
+	f, err := os.Open("testdata/microsoft-msrc-0.json")
 	require.NoError(t, err)
 	defer testutil.CloseFile(f)
 
@@ -177,7 +177,7 @@ func TestParseMSRCEntry(t *testing.T) {
 		},
 	}
 
-	f, err := os.Open("test-fixtures/microsoft-msrc-0.json")
+	f, err := os.Open("testdata/microsoft-msrc-0.json")
 	require.NoError(t, err)
 	defer testutil.CloseFile(f)
 

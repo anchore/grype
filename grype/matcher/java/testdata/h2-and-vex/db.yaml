@@ -1,0 +1,10 @@
+auto-generate: true
+extractions:
+    chainguard-libraries:
+        - chainguard-libraries:maven/CGA-3xh4-h5vj-xr3v
+        - chainguard-libraries:maven/CGA-8vm3-q87f-pm4w
+        - chainguard-libraries:maven/CGA-94pc-5gc9-pxrj
+    github:
+        - github:java/ghsa-45hx-wfhj-473x
+        - github:java/ghsa-h376-j262-vhq6
+        - github:java/ghsa-22wj-vf5f-wrvj

@@ -29,7 +29,7 @@ func TestTransform(t *testing.T) {
 		want []transformers.RelatedEntries
 	}{
 		{
-			name: "test-fixtures/go-case.json",
+			name: "testdata/go-case.json",
 			want: []transformers.RelatedEntries{
 				{
 					Provider: &db.Provider{

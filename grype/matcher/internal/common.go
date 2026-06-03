@@ -9,35 +9,27 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
+// MatchPackageByEcosystemAndCPEs runs the ecosystem-by-name search (via
+// MatchPackageByLanguage, which handles the multi-name fanout and cross-name
+// NAK Remove internally) and, if enabled, the CPE search, then combines the
+// results.
 func MatchPackageByEcosystemAndCPEs(store vulnerability.Provider, p pkg.Package, matcher match.MatcherType, includeCPEs bool) ([]match.Match, []match.IgnoreFilter, error) {
-	var matches []match.Match
-	var ignored []match.IgnoreFilter
-
-	for _, name := range store.PackageSearchNames(p) {
-		nameMatches, nameIgnores, err := MatchPackageByEcosystemPackageNameAndCPEs(store, p, name, matcher, includeCPEs)
-		if err != nil {
-			return nil, nil, err
-		}
-		matches = append(matches, nameMatches...)
-		ignored = append(ignored, nameIgnores...)
-	}
-
-	return matches, ignored, nil
-}
-
-func MatchPackageByEcosystemPackageNameAndCPEs(store vulnerability.Provider, p pkg.Package, packageName string, matcher match.MatcherType, includeCPEs bool) ([]match.Match, []match.IgnoreFilter, error) {
-	matches, ignored, err := MatchPackageByEcosystemPackageName(store, p, packageName, matcher)
+	matches, ignored, err := MatchPackageByLanguage(store, p, matcher)
 	if err != nil {
 		log.Debugf("could not match by package ecosystem (package=%+v): %v", p, err)
 	}
+
 	if includeCPEs {
-		cpeMatches, err := MatchPackageByCPEs(store, p, matcher)
-		if errors.Is(err, ErrEmptyCPEMatch) {
+		cpeMatches, cpeIgnores, cpeErr := MatchPackageByCPEs(store, p, matcher)
+		switch {
+		case errors.Is(cpeErr, ErrEmptyCPEMatch):
 			log.Debugf("attempted CPE search on %s, which has no CPEs. Consider re-running with --add-cpes-if-none", p.Name)
-		} else if err != nil {
-			log.Debugf("could not match by package CPE (package=%+v): %v", p, err)
+		case cpeErr != nil:
+			log.Debugf("could not match by package CPE (package=%+v): %v", p, cpeErr)
 		}
 		matches = append(matches, cpeMatches...)
+		ignored = append(ignored, cpeIgnores...)
 	}
+
 	return matches, ignored, nil
 }

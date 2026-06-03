@@ -21,7 +21,7 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-const cacheDirRelativePath string = "./test-fixtures/cache"
+const cacheDirRelativePath string = "./testdata/cache"
 
 func PullThroughImageCache(t testing.TB, imageName string) string {
 	cacheDirectory, absErr := filepath.Abs(cacheDirRelativePath)
@@ -50,7 +50,7 @@ func saveImage(t testing.TB, imageName string, destPath string) {
 	sourceImage := fmt.Sprintf("docker://docker.io/%s", imageName)
 	destinationString := fmt.Sprintf("docker-archive:%s", destPath)
 	skopeoPath := filepath.Join(repoRoot(t), ".tool", "skopeo")
-	policyPath := filepath.Join(repoRoot(t), "test", "integration", "test-fixtures", "skopeo-policy.json")
+	policyPath := filepath.Join(repoRoot(t), "test", "integration", "testdata", "skopeo-policy.json")
 
 	skopeoCommand := []string{
 		"--policy", policyPath,

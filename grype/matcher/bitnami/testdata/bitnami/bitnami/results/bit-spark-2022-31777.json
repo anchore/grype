@@ -1,0 +1,86 @@
+{
+  "identifier": "bit-spark-2022-31777",
+  "item": {
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "Bitnami",
+          "name": "spark",
+          "purl": "pkg:bitnami/spark"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2024-03-06",
+                    "kind": "advisory",
+                    "version": "3.2.2"
+                  },
+                  {
+                    "date": "2024-03-06",
+                    "kind": "advisory",
+                    "version": "3.3.1"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3.2.2"
+              },
+              {
+                "introduced": "3.3.0"
+              },
+              {
+                "fixed": "3.3.1"
+              }
+            ],
+            "type": "SEMVER"
+          }
+        ],
+        "severity": [
+          {
+            "score": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:N",
+            "type": "CVSS_V3"
+          }
+        ]
+      }
+    ],
+    "aliases": [
+      "CVE-2022-31777"
+    ],
+    "database_specific": {
+      "cpes": [
+        "cpe:2.3:a:apache:spark:*:*:*:*:*:*:*:*",
+        "cpe:2.3:a:apache:spark:3.3.0:*:*:*:*:*:*:*"
+      ],
+      "severity": "Medium"
+    },
+    "details": "A stored cross-site scripting (XSS) vulnerability in Apache Spark 3.2.1 and earlier, and 3.3.0, allows remote attackers to execute arbitrary JavaScript in the web browser of a user, by including a malicious payload into the logs which would be returned in logs rendered in the UI.",
+    "id": "BIT-spark-2022-31777",
+    "modified": "2025-05-20T10:02:07.006Z",
+    "published": "2024-03-06T11:05:38.200Z",
+    "references": [
+      {
+        "type": "WEB",
+        "url": "http://www.openwall.com/lists/oss-security/2022/11/01/14"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread/60mgbswq2lsmrxykfxpqq13ztkm2ht6q"
+      },
+      {
+        "type": "WEB",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-31777"
+      }
+    ],
+    "schema_version": "1.5.0",
+    "summary": "Apache Spark XSS vulnerability in log viewer UI Javascript"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.5.0.json"
+}

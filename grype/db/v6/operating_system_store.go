@@ -445,7 +445,7 @@ func (s *operatingSystemStore) UpdateOperatingSystemEOL(spec OSSpecifier, eolDat
 	}
 
 	// Update the EOL fields
-	updates := map[string]interface{}{
+	updates := map[string]any{
 		"eol_date":  eolDate,
 		"eoas_date": eoasDate,
 	}

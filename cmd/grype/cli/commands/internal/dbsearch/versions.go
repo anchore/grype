@@ -2,7 +2,7 @@ package dbsearch
 
 const (
 	// MatchesSchemaVersion is the schema version for the `db search` command
-	MatchesSchemaVersion = "1.1.3"
+	MatchesSchemaVersion = "1.1.6"
 
 	// MatchesSchemaVersion Changelog:
 	// 1.0.0 - Initial schema 🎉
@@ -13,6 +13,9 @@ const (
 	// 1.1.1 - Add unaffected package and unaffected cpe to output
 	// 1.1.2 - Add CWE IDs to vulnerability output
 	// 1.1.3 - Add ID field to Reference (for advisory IDs like RHSA-2023:5455)
+	// 1.1.4 - Add rpm_arch field to PackageQualifiers (source/binary tagging for the CSAF VEX transformer)
+	// 1.1.5 - Add rootio field to PackageQualifiers (for Root IO NAK-pattern matching via the OSV rootio strategy)
+	// 1.1.6 - Rename rpm_arch field on PackageQualifiers to architecture (semantics unchanged; rpm-specific prefix dropped)
 
 	// VulnerabilitiesSchemaVersion is the schema version for the `db search vuln` command
 	VulnerabilitiesSchemaVersion = "1.0.5"

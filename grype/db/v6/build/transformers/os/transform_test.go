@@ -102,13 +102,18 @@ func TestTransform(t *testing.T) {
 		ReleaseID:    "fedora",
 		MajorVersion: "39",
 	}
+	archLinux := &db.OperatingSystem{
+		Name:         "archlinux",
+		ReleaseID:    "arch",
+		LabelVersion: "rolling",
+	}
 	tests := []struct {
 		name     string
 		provider string
 		want     []transformers.RelatedEntries
 	}{
 		{
-			name:     "test-fixtures/alpine-3.9.json",
+			name:     "testdata/alpine-3.9.json",
 			provider: "alpine",
 			want: []transformers.RelatedEntries{
 				{
@@ -160,7 +165,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/amzn.json",
+			name:     "testdata/amzn.json",
 			provider: "amazon",
 			want: []transformers.RelatedEntries{
 				{
@@ -277,7 +282,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/amazon-multiple-kernel-advisories.json",
+			name:     "testdata/amazon-multiple-kernel-advisories.json",
 			provider: "amazon",
 			want: []transformers.RelatedEntries{
 				{
@@ -446,7 +451,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/azure-linux-3.json",
+			name:     "testdata/azure-linux-3.json",
 			provider: "mariner",
 			want: []transformers.RelatedEntries{
 				{
@@ -491,7 +496,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/debian-8.json",
+			name:     "testdata/debian-8.json",
 			provider: "debian",
 			want: []transformers.RelatedEntries{
 				{
@@ -570,7 +575,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/debian-8-multiple-entries-for-same-package.json",
+			name:     "testdata/debian-8-multiple-entries-for-same-package.json",
 			provider: "debian",
 			want: []transformers.RelatedEntries{
 				{
@@ -650,7 +655,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/mariner-20.json",
+			name:     "testdata/mariner-20.json",
 			provider: "mariner",
 			want: []transformers.RelatedEntries{
 				{
@@ -697,7 +702,7 @@ func TestTransform(t *testing.T) {
 		},
 
 		{
-			name:     "test-fixtures/mariner-range.json",
+			name:     "testdata/mariner-range.json",
 			provider: "mariner",
 			want: []transformers.RelatedEntries{
 				{
@@ -742,7 +747,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/ol-8.json",
+			name:     "testdata/ol-8.json",
 			provider: "oracle",
 			want: []transformers.RelatedEntries{
 				{
@@ -820,7 +825,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/ol-8-modules.json",
+			name:     "testdata/ol-8-modules.json",
 			provider: "oracle",
 			want: []transformers.RelatedEntries{
 				{
@@ -916,7 +921,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/rhel-8.json",
+			name:     "testdata/rhel-8.json",
 			provider: "redhat",
 			want: []transformers.RelatedEntries{
 				{
@@ -1016,7 +1021,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/rhel-8-modules.json",
+			name:     "testdata/rhel-8-modules.json",
 			provider: "redhat",
 			want: []transformers.RelatedEntries{
 				{
@@ -1146,7 +1151,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/rapidfort-ubuntu-20.04.json",
+			name:     "testdata/rapidfort-ubuntu-20.04.json",
 			provider: "rapidfort",
 			want: []transformers.RelatedEntries{
 				{
@@ -1196,7 +1201,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/rapidfort-redhat-9.json",
+			name:     "testdata/rapidfort-redhat-9.json",
 			provider: "rapidfort",
 			want: []transformers.RelatedEntries{
 				{
@@ -1287,7 +1292,7 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "test-fixtures/fedora-39.json",
+			name:     "testdata/fedora-39.json",
 			provider: "fedora",
 			want: []transformers.RelatedEntries{
 				{
@@ -1344,6 +1349,134 @@ func TestTransform(t *testing.T) {
 								},
 							},
 						},
+					),
+				},
+			},
+		},
+		{
+			name:     "testdata/archlinux.json",
+			provider: "arch",
+			want: []transformers.RelatedEntries{
+				{
+					VulnerabilityHandle: &db.VulnerabilityHandle{
+						Name:       "AVG-2780",
+						Status:     "active",
+						ProviderID: "arch",
+						Provider:   expectedProvider("arch"),
+						BlobValue: &db.VulnerabilityBlob{
+							ID:          "AVG-2780",
+							Description: "unknown",
+							Aliases:     []string{"CVE-2022-26710", "CVE-2022-22677", "CVE-2022-22662"},
+							References: []db.Reference{
+								{URL: "https://security.archlinux.org/AVG-2780"},
+								{URL: "https://nvd.nist.gov/vuln/detail/CVE-2022-26710"},
+								{URL: "https://nvd.nist.gov/vuln/detail/CVE-2022-22677"},
+								{URL: "https://nvd.nist.gov/vuln/detail/CVE-2022-22662"},
+							},
+						},
+					},
+					Related: affectedPkgSlice(
+						db.AffectedPackageHandle{
+							OperatingSystem: archLinux,
+							Package:         &db.Package{Ecosystem: "alpm", Name: "wpewebkit"},
+							BlobValue: &db.PackageBlob{
+								CVEs: []string{"CVE-2022-26710", "CVE-2022-22677", "CVE-2022-22662"},
+								Ranges: []db.Range{
+									{
+										Version: db.Version{Type: "pacman", Constraint: "< 2.36.4-1"},
+										Fix: &db.Fix{
+											Version: "2.36.4-1",
+											State:   db.FixedStatus,
+											Detail: &db.FixDetail{
+												Available: &db.FixAvailability{
+													Date: timeRef(time.Date(2026, 1, 27, 0, 0, 0, 0, time.UTC)),
+													Kind: "first-observed",
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					),
+				},
+			},
+		},
+		{
+			name:     "testdata/rhel-8-not-affected.json",
+			provider: "rhel",
+			want: []transformers.RelatedEntries{
+				{
+					VulnerabilityHandle: &db.VulnerabilityHandle{
+						Name:       "CVE-2020-99999",
+						Status:     "active",
+						ProviderID: "rhel",
+						Provider:   expectedProvider("rhel"),
+						BlobValue: &db.VulnerabilityBlob{
+							ID:          "CVE-2020-99999",
+							Description: "Test vulnerability with a not-affected package and an affected package.",
+							References: []db.Reference{
+								{URL: "https://access.redhat.com/security/cve/CVE-2020-99999"},
+							},
+							Severities: []db.Severity{
+								{
+									Scheme: db.SeveritySchemeCHMLN,
+									Value:  "medium",
+									Rank:   1,
+								},
+								{
+									Scheme: db.SeveritySchemeCVSS,
+									Value: db.CVSSSeverity{
+										Vector:  "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
+										Version: "3.1",
+									},
+									Rank: 2,
+								},
+							},
+						},
+					},
+					Related: append(
+						affectedPkgSlice(
+							db.AffectedPackageHandle{
+								OperatingSystem: rhel8OS,
+								Package:         &db.Package{Ecosystem: "rpm", Name: "firefox"},
+								BlobValue: &db.PackageBlob{
+									Qualifiers: &db.PackageQualifiers{RpmModularity: strRef("")},
+									Ranges: []db.Range{
+										{
+											Version: db.Version{Type: "rpm", Constraint: "< 0:68.6.1-1.el8_1"},
+											Fix: &db.Fix{
+												Version: "0:68.6.1-1.el8_1",
+												State:   db.FixedStatus,
+												Detail: &db.FixDetail{
+													References: []db.Reference{
+														{
+															ID:   "RHSA-2020:1341",
+															URL:  "https://access.redhat.com/errata/RHSA-2020:1341",
+															Tags: []string{db.AdvisoryReferenceTag},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						),
+						unaffectedPkgSlice(
+							db.UnaffectedPackageHandle{
+								OperatingSystem: rhel8OS,
+								Package:         &db.Package{Ecosystem: "rpm", Name: "ghostscript"},
+								BlobValue: &db.PackageBlob{
+									Ranges: []db.Range{
+										{
+											Version: db.Version{Type: "rpm"},
+											Fix:     &db.Fix{State: db.NotAffectedFixStatus},
+										},
+									},
+								},
+							},
+						)...,
 					),
 				},
 			},
@@ -1571,7 +1704,7 @@ func TestGetFixAvailability(t *testing.T) {
 	}{
 		{
 			name:    "alpine-3.9 with package availability",
-			fixture: "test-fixtures/alpine-3.9.json",
+			fixture: "testdata/alpine-3.9.json",
 			expected: map[string]*db.FixAvailability{
 				"xen": {
 					Date: timeRef(time.Date(2018, 12, 1, 9, 15, 30, 0, time.UTC)),
@@ -1581,7 +1714,7 @@ func TestGetFixAvailability(t *testing.T) {
 		},
 		{
 			name:    "rhel-8 with advisory availability",
-			fixture: "test-fixtures/rhel-8.json",
+			fixture: "testdata/rhel-8.json",
 			expected: map[string]*db.FixAvailability{
 				"firefox": {
 					Date: timeRef(time.Date(2020, 4, 8, 14, 30, 15, 0, time.UTC)),
@@ -1765,7 +1898,7 @@ func TestGetFixWithDetailFixtures(t *testing.T) {
 	}{
 		{
 			name:    "alpine-3.9 with availability",
-			fixture: "test-fixtures/alpine-3.9.json",
+			fixture: "testdata/alpine-3.9.json",
 			expected: map[string]*db.Fix{
 				"xen": {
 					Version: "4.11.1-r0",
@@ -1781,7 +1914,7 @@ func TestGetFixWithDetailFixtures(t *testing.T) {
 		},
 		{
 			name:    "rhel-8 with availability and advisory references",
-			fixture: "test-fixtures/rhel-8.json",
+			fixture: "testdata/rhel-8.json",
 			expected: map[string]*db.Fix{
 				"firefox": {
 					Version: "0:68.6.1-1.el8_1",
@@ -1836,6 +1969,14 @@ func TestGetFixWithDetailFixtures(t *testing.T) {
 }
 
 func affectedPkgSlice(a ...db.AffectedPackageHandle) []any {
+	var r []any
+	for _, v := range a {
+		r = append(r, v)
+	}
+	return r
+}
+
+func unaffectedPkgSlice(a ...db.UnaffectedPackageHandle) []any {
 	var r []any
 	for _, v := range a {
 		r = append(r, v)

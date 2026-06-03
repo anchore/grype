@@ -23,7 +23,7 @@ func mockMSRCProcessorTransform(vulnerability unmarshal.MSRCVulnerability) ([]da
 }
 
 func TestMSRCProcessor_Process(t *testing.T) {
-	f, err := os.Open("test-fixtures/msrc.json")
+	f, err := os.Open("testdata/msrc.json")
 	require.NoError(t, err)
 	defer testutil.CloseFile(f)
 

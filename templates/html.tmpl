@@ -730,11 +730,23 @@
                     {{- end -}}
                     {{- end -}}
 
+                    <dt>Grype Version:</dt>
+                    <dd>{{.Descriptor.Name}} {{.Descriptor.Version}}</dd>
+
+                    {{- if .Descriptor.DB -}}
+                    <dt>Vulnerability DB:</dt>
+                    <dd>{{ toJson .Descriptor.DB }}</dd>
+                    {{- end -}}
+
                     <dt>Date:</dt>
                     <dd>
                         <span id="dateElement">{{.Descriptor.Timestamp}}</span>
                         <span id="prettyDateElement" style="display: none;"></span>
                     </dd>
+                    <dt>Grype Version:</dt>
+                    <dd>{{ .Descriptor.Version }}</dd>
+                    <dt>DB Built:</dt>
+                    <dd>{{ .Descriptor.DB.Status.Built }}</dd>
                 </dl>
             </div>
             <div class="heading-right">

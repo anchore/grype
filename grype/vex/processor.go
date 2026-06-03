@@ -19,17 +19,17 @@ type vexProcessorImplementation interface {
 	// ReadVexDocuments takes a list of vex filenames and returns a single
 	// value representing the VEX information in the underlying implementation's
 	// format. Returns an error if the files cannot be processed.
-	ReadVexDocuments(docs []string) (interface{}, error)
+	ReadVexDocuments(docs []string) (any, error)
 
 	// FilterMatches matches receives the underlying VEX implementation VEX data and
 	// the scanning context and matching results and filters the fixed and
 	// not_affected results,moving them to the list of ignored matches.
-	FilterMatches(interface{}, []match.IgnoreRule, *pkg.Context, *match.Matches, []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error)
+	FilterMatches(any, []match.IgnoreRule, *pkg.Context, *match.Matches, []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error)
 
 	// AugmentMatches reads known affected VEX products from loaded documents and
 	// adds new results to the scanner results when the product is marked as
 	// affected in the VEX data.
-	AugmentMatches(interface{}, []match.IgnoreRule, *pkg.Context, *match.Matches, []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error)
+	AugmentMatches(any, []match.IgnoreRule, *pkg.Context, *match.Matches, []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error)
 }
 
 // getVexImplementation this function returns the vex processor implementation

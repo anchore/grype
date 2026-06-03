@@ -22,7 +22,7 @@ func mockEPSSProcessorTransform(entry unmarshal.EPSS, state provider.State) ([]d
 }
 
 func TestEPSSProcessor_Process(t *testing.T) {
-	f, err := os.Open("test-fixtures/epss.json")
+	f, err := os.Open("testdata/epss.json")
 	require.NoError(t, err)
 	defer f.Close()
 

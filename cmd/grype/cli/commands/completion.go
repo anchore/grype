@@ -96,16 +96,13 @@ func listLocalDockerImages(prefix string) ([]string, error) {
 }
 
 func dockerImageValidArgsFunction(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-	// Since we use ValidArgsFunction, Cobra will call this AFTER having parsed all flags and arguments provided
+	// Since we use ValidArgsFunction, Cobra will call this AFTER having parsed all flags and arguments provided.
+	// When the docker daemon is unavailable (or has no images), fall through to the shell's default behavior so
+	// that subcommand completions and filename completion still work — returning ShellCompDirectiveError here
+	// causes shells (notably zsh) to discard all completions, including the auto-generated subcommand list.
 	dockerImageRepoTags, err := listLocalDockerImages(toComplete)
-	if err != nil {
-		// Indicates that an error occurred and completions should be ignored
-		return []string{"completion failed"}, cobra.ShellCompDirectiveError
+	if err != nil || len(dockerImageRepoTags) == 0 {
+		return nil, cobra.ShellCompDirectiveDefault
 	}
-	if len(dockerImageRepoTags) == 0 {
-		return []string{"no docker images found"}, cobra.ShellCompDirectiveError
-	}
-	// ShellCompDirectiveDefault indicates that the shell will perform its default behavior after completions have
-	// been provided (without implying other possible directives)
 	return dockerImageRepoTags, cobra.ShellCompDirectiveDefault
 }

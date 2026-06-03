@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/go-testutils"
 	"github.com/anchore/grype/grype/presenter/internal"
+	"github.com/anchore/grype/internal/testutils"
 )
 
 var update = flag.Bool("update", false, "update the *.golden files for template presenters")
@@ -21,7 +21,7 @@ func TestPresenter_Present(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	templateFilePath := path.Join(workingDirectory, "./test-fixtures/test.template")
+	templateFilePath := path.Join(workingDirectory, "./testdata/test.template")
 
 	pb := internal.GeneratePresenterConfig(t, internal.ImageSource)
 
@@ -47,7 +47,7 @@ func TestPresenter_SprigDate_Fails(t *testing.T) {
 	require.NoError(t, err)
 
 	// this template has the generic sprig date function, which is intentionally not supported for security reasons
-	templateFilePath := path.Join(workingDirectory, "./test-fixtures/test.template.sprig.date")
+	templateFilePath := path.Join(workingDirectory, "./testdata/test.template.sprig.date")
 
 	pb := internal.GeneratePresenterConfig(t, internal.ImageSource)
 

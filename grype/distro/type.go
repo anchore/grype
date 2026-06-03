@@ -37,6 +37,7 @@ const (
 	Scientific      Type = "scientific"
 	SecureOS        Type = "secureos"
 	PostmarketOS    Type = "postmarketos"
+	Hummingbird     Type = "hummingbird"
 	RapidFortUbuntu Type = "rapidfort-ubuntu"
 	RapidFortAlpine Type = "rapidfort-alpine"
 	RapidFortRedHat Type = "rapidfort-redhat"
@@ -71,6 +72,7 @@ var All = []Type{
 	Scientific,
 	SecureOS,
 	PostmarketOS,
+	Hummingbird,
 	RapidFortUbuntu,
 	RapidFortAlpine,
 	RapidFortRedHat,
@@ -104,6 +106,7 @@ var IDMapping = map[string]Type{
 	"scientific":       Scientific,
 	"secureos":         SecureOS,
 	"postmarketos":     PostmarketOS,
+	"hummingbird":      Hummingbird,
 	"rapidfort-ubuntu": RapidFortUbuntu,
 	"rapidfort-alpine": RapidFortAlpine,
 	"rapidfort-redhat": RapidFortRedHat,

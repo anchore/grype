@@ -78,7 +78,7 @@ func SetupConfig(id clio.Identification) *clio.SetupConfig {
 			},
 		).
 		WithPostRuns(func(_ *clio.State, _ error) {
-			stereoscope.Cleanup()
+			stereoscope.Cleanup() //nolint:staticcheck
 		}).
 		WithMapExitCode(func(err error) int {
 			// return exit code 2 to indicate when a vulnerability severity is discovered

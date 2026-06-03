@@ -6,10 +6,13 @@ CLAUDE.MD
 go.work
 go.work.sum
 .tool-versions
+.mise.toml
+.env
 .jj/
 mise.toml
-specs/
+specs
 *.xxh64
+.context
 
 # AI and LLM related files
 CLAUDE.md
@@ -28,6 +31,10 @@ bin/
 /snapshot
 /.tool
 /.task
+/specs
+/extractor
+/manager
+.make/.make
 
 # changelog generation
 /CHANGELOG.md
@@ -45,13 +52,16 @@ bin/
 coverage.txt
 *.log
 .server
+**/testdata/cache/
 
 # grype-db related
 /metadata.json
 /listing.json
 *.db
 *.db-journal
-!**/test-fixtures/**/*.db
+!**/testdata/**/*.db
+!**/testdata/**/bin/
+!**/testdata/**/*.jar
 
 # probable archives
 .images

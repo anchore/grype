@@ -27,6 +27,7 @@ func DB(app clio.Application) *cobra.Command {
 		DBUpdate(app),
 		DBSearch(app),
 		DBProviders(app),
+		DBDiff(app),
 	)
 
 	return db
