@@ -154,26 +154,7 @@ func readSBOMsFromTar(r io.Reader, config ProviderConfig, applyChannel func(*dis
 
 		packages := FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig, enhancers...)
 
-		// annotate each package with provenance back to the originating SBOM and
-		// propagate the per-SBOM distro to packages that don't already carry one
-		// (e.g. syft-JSON SBOMs, where distro is at the SBOM level rather than per-PURL).
-		sourceID := zarfSBOMSourceID(s, hdr.Name)
-		for _, p := range packages {
-			p.AddAnnotation(zarfSBOMSourceAnnotation, sourceID)
-			if p.Distro == nil && d != nil {
-				p.Distro = d
-			}
-
-			// when the same package ID appears in multiple bundled SBOMs (typical
-			// for shared base-image content), union annotations onto the first
-			// occurrence so downstream pkg.ByID lookups see the full source list.
-			if existing, ok := pkgIndex[p.ID]; ok {
-				existing.AddAnnotation(zarfSBOMSourceAnnotation, sourceID)
-				continue
-			}
-			pkgIndex[p.ID] = p
-			allPackages = append(allPackages, p)
-		}
+		allPackages = mergePackagesFromSBOM(allPackages, pkgIndex, packages, d, zarfSBOMSourceID(s, hdr.Name))
 
 		if mergedSBOM == nil {
 			mergedSBOM = s
@@ -199,6 +180,25 @@ func mergeSBOM(dst, src *sbom.SBOM) {
 		dst.Artifacts.Packages.Add(p)
 	}
 	dst.Relationships = append(dst.Relationships, src.Relationships...)
+}
+
+// mergePackagesFromSBOM annotates each package with provenance back to the originating
+// SBOM and propagates the per-SBOM distro to packages that don't already carry one
+func mergePackagesFromSBOM(allPackages []*Package, pkgIndex map[ID]*Package, packages []*Package, d *distro.Distro, sourceID string) []*Package {
+	for _, p := range packages {
+		p.AddAnnotation(zarfSBOMSourceAnnotation, sourceID)
+		if p.Distro == nil && d != nil {
+			p.Distro = d
+		}
+
+		if existing, ok := pkgIndex[p.ID]; ok {
+			existing.AddAnnotation(zarfSBOMSourceAnnotation, sourceID)
+			continue
+		}
+		pkgIndex[p.ID] = p
+		allPackages = append(allPackages, p)
+	}
+	return allPackages
 }
 
 // zarfSBOMSourceID returns the identifier used as the annotation value for a
