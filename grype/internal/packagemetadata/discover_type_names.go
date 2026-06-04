@@ -20,6 +20,7 @@ var metadataExceptions = strset.New(
 	"SBOMFileMetadata",
 	"PURLLiteralMetadata",
 	"CPELiteralMetadata",
+	"ZarfPackageMetadata",
 )
 
 func DiscoverTypeNames() ([]string, error) {
