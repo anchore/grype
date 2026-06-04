@@ -234,3 +234,45 @@ func TestGoVulnDBRangeConversion(t *testing.T) {
 		})
 	}
 }
+
+// TestGoVulnDB_WithdrawnRecord pins down that records with an OSV `withdrawn`
+// timestamp surface to grype as Status=Rejected with WithdrawnDate set. The
+// matcher's OnlyNonWithdrawnVulnerabilities filter keys off Status, so this is
+// the gate that stops withdrawn GO advisories from being matched as live
+// vulnerabilities (GO-2022-0617 was the symptom that drove this fix — go.dev
+// withdrew it as a "low severity issue with no fix available or planned;
+// likely to cause false positives", but the strategy was emitting it Active).
+func TestGoVulnDB_WithdrawnRecord(t *testing.T) {
+	vulns := loadFixture(t, "testdata/GO-2022-0617.json")
+	if len(vulns) != 1 {
+		t.Fatalf("expected 1 vuln, got %d", len(vulns))
+	}
+
+	entries, err := Transform(vulns[0], inputProviderState())
+	if err != nil {
+		t.Fatalf("transform: %v", err)
+	}
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(entries))
+	}
+
+	re, ok := entries[0].Data.(transformers.RelatedEntries)
+	if !ok {
+		t.Fatalf("unexpected entry type %T", entries[0].Data)
+	}
+	vh := re.VulnerabilityHandle
+	if vh == nil {
+		t.Fatal("entry has no VulnerabilityHandle")
+	}
+
+	if vh.Status != db.VulnerabilityRejected {
+		t.Errorf("Status = %q, want %q (matcher's OnlyNonWithdrawnVulnerabilities only filters \"rejected\"/\"withdrawn\" — anything else lets the record through)",
+			vh.Status, db.VulnerabilityRejected)
+	}
+	wantWithdrawn := time.Date(2024, time.August, 21, 16, 25, 56, 0, time.UTC)
+	if vh.WithdrawnDate == nil {
+		t.Errorf("WithdrawnDate is nil; want %s", wantWithdrawn)
+	} else if !vh.WithdrawnDate.Equal(wantWithdrawn) {
+		t.Errorf("WithdrawnDate = %s, want %s", vh.WithdrawnDate, wantWithdrawn)
+	}
+}

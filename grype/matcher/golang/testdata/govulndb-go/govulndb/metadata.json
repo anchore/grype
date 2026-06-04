@@ -1,7 +1,7 @@
 {
   "provider": "govulndb",
   "version": 1,
-  "processor": "vunnel@0.57.0.post18+c7cb95a",
+  "processor": "vunnel@0.59.0.post3+53fcd5d",
   "schema": {
     "version": "1.0.3",
     "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
@@ -12,7 +12,7 @@
   "timestamp": "2026-06-02T14:36:56Z",
   "listing": {
     "path": "results/listing.xxh64",
-    "digest": "8da6add46dca809d",
+    "digest": "c420d5abb203ae24",
     "algorithm": "xxh64"
   },
   "store": "flat-file"

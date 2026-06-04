@@ -1,0 +1,62 @@
+{
+  "identifier": "go-2022-0617",
+  "item": {
+    "affected": [
+      {
+        "ecosystem_specific": {},
+        "package": {
+          "ecosystem": "Go",
+          "name": "k8s.io/kubernetes"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              }
+            ],
+            "type": "SEMVER"
+          }
+        ]
+      }
+    ],
+    "aliases": [
+      "CVE-2020-8562",
+      "GHSA-qh36-44jv-c8xj"
+    ],
+    "database_specific": {
+      "review_status": "REVIEWED",
+      "url": "https://pkg.go.dev/vuln/GO-2022-0617"
+    },
+    "details": "(This report has been withdrawn from the Go vulnerability database with reason: \"Low severity issue with no fix available or planned. Likely to cause false positives.\").",
+    "id": "GO-2022-0617",
+    "modified": "2025-08-05T19:57:40Z",
+    "published": "2024-08-21T15:11:40Z",
+    "references": [
+      {
+        "type": "ADVISORY",
+        "url": "https://github.com/advisories/GHSA-qh36-44jv-c8xj"
+      },
+      {
+        "type": "WEB",
+        "url": "https://github.com/kubernetes/kubernetes/issues/101493"
+      },
+      {
+        "type": "WEB",
+        "url": "https://github.com/kubernetes/kubernetes/issues/101493#issuecomment-2272095629"
+      },
+      {
+        "type": "WEB",
+        "url": "https://groups.google.com/g/kubernetes-security-announce/c/-MFX60_wdOY"
+      },
+      {
+        "type": "WEB",
+        "url": "https://security.netapp.com/advisory/ntap-20220225-0002"
+      }
+    ],
+    "schema_version": "1.3.1",
+    "summary": "WITHDRAWN: Potential proxy IP restriction bypass in Kubernetes in k8s.io/kubernetes",
+    "withdrawn": "2024-08-21T16:25:56Z"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.3.1.json"
+}

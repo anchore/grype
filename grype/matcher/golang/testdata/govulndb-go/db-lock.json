@@ -1,10 +1,10 @@
 {
-  "content_hash": "93b9bd9d1709d09a",
+  "content_hash": "d4879e78d2281320",
   "created_at": "2026-06-02T14:48:22.689885019Z",
   "providers": {
     "govulndb": {
-      "vunnel_version": "vunnel@0.57.0.post18+c7cb95a",
-      "timestamp": "2026-06-02T14:36:56.797993Z"
+      "vunnel_version": "vunnel@0.59.0.post3+53fcd5d",
+      "timestamp": "2026-06-03T17:44:58.716128Z"
     }
   }
 }
