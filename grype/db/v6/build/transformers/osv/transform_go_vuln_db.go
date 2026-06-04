@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/google/osv-scanner/pkg/models"
 
@@ -51,14 +52,28 @@ func (govulndbStrategy) Transform(vuln unmarshal.OSVVulnerability, state provide
 		return nil, fmt.Errorf("unable to obtain severities: %w", err)
 	}
 
+	// Withdrawn GO advisories retain their `affected` ranges but should not
+	// match user-scanned packages — go.dev periodically withdraws records
+	// when an issue is downgraded out of vuln-db scope or duplicated under a
+	// different ID. Mirror github's pattern: set Status=Rejected and surface
+	// the WithdrawnDate so the matcher's OnlyNonWithdrawnVulnerabilities
+	// filter skips them.
+	status := db.VulnerabilityActive
+	var withdrawnDate *time.Time
+	if !vuln.Withdrawn.IsZero() {
+		status = db.VulnerabilityRejected
+		withdrawnDate = &vuln.Withdrawn
+	}
+
 	in := []any{
 		db.VulnerabilityHandle{
 			Name:          vuln.ID,
 			ProviderID:    state.Provider,
 			Provider:      provider.Model(state),
-			Status:        db.VulnerabilityActive,
+			Status:        status,
 			ModifiedDate:  &vuln.Modified,
 			PublishedDate: &vuln.Published,
+			WithdrawnDate: withdrawnDate,
 			BlobValue: &db.VulnerabilityBlob{
 				ID:          vuln.ID,
 				Description: vuln.Details,
