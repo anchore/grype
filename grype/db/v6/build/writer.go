@@ -22,7 +22,11 @@ type writer struct {
 	store                db.ReadWriter
 	providerCache        map[string]db.Provider
 	states               provider.States
-	severityCache        map[string]db.Severity
+	// severityCache holds CVE → NVD severity for the alias-lookup path used by
+	// fillInMissingSeverity. Keys are always lowercase CVE IDs; writers go
+	// through cacheNVDSeverity and readers through lookupNVDSeverity, both of
+	// which normalize casing so the invariant can't drift.
+	severityCache map[string]db.Severity
 
 	// Two-tier batching: parent records (vulnerabilities + providers) and child records (related entries)
 	// This maintains FK integrity while maximizing batch sizes
@@ -258,6 +262,11 @@ func (w *writer) writeUnaffectedCPE(vulnHandle *db.VulnerabilityHandle, row db.U
 // fillInMissingSeverity will add a severity entry to the vulnerability record if it is missing, empty, or "unknown".
 // The upstream NVD record is used to fill in these missing values. Note that the NVD provider is always guaranteed
 // to be processed first before other providers.
+//
+// When the record's primary ID is itself a CVE, the cache is consulted directly. When the primary ID is something
+// else (GO-*, BIT-*, ROOT-*, ALSA-*, GHSA-*…), the record's CVE aliases are walked to find a cached NVD severity.
+// This is what lets feeds that don't ship their own severity — notably govulndb — present as something other than
+// "Unknown" to end users.
 func (w *writer) fillInMissingSeverity(handle *db.VulnerabilityHandle) {
 	if handle == nil {
 		return
@@ -272,12 +281,8 @@ func (w *writer) fillInMissingSeverity(handle *db.VulnerabilityHandle) {
 	isCVE := strings.HasPrefix(id, "cve-")
 	if strings.ToLower(handle.ProviderID) == "nvd" && isCVE {
 		if len(blob.Severities) > 0 {
-			w.severityCache[id] = blob.Severities[0]
+			w.cacheNVDSeverity(id, blob.Severities[0])
 		}
-		return
-	}
-
-	if !isCVE {
 		return
 	}
 
@@ -300,8 +305,7 @@ func (w *writer) fillInMissingSeverity(handle *db.VulnerabilityHandle) {
 		return // already has a severity, don't normalize
 	}
 
-	// add the top NVD severity value
-	nvdSev, ok := w.severityCache[id]
+	nvdSev, ok := w.lookupNVDSeverity(id, blob.Aliases)
 	if !ok {
 		log.WithFields("id", blob.ID).Trace("unable to find NVD severity")
 		return
@@ -310,6 +314,37 @@ func (w *writer) fillInMissingSeverity(handle *db.VulnerabilityHandle) {
 	log.WithFields("id", blob.ID, "provider", handle.Provider, "sev-from", topSevStr, "sev-to", nvdSev).Trace("overriding irrelevant severity with data from NVD record")
 	sevs = append([]db.Severity{nvdSev}, sevs...)
 	handle.BlobValue.Severities = sevs
+}
+
+// cacheNVDSeverity stores an NVD CVE severity for later alias-based lookup.
+// Lowercases the key so the read-side lookupNVDSeverity finds it regardless
+// of the casing on the lookup record's primary ID or aliases.
+func (w *writer) cacheNVDSeverity(cveID string, sev db.Severity) {
+	w.severityCache[strings.ToLower(cveID)] = sev
+}
+
+// lookupNVDSeverity returns the cached NVD severity for a CVE — either the
+// record's own primary ID when it is a CVE, or the first CVE alias that has a
+// cached severity. Lowercases both id and each alias so callers can pass any
+// casing without a silent cache miss; pairs with cacheNVDSeverity on the
+// write side.
+func (w *writer) lookupNVDSeverity(id string, aliases []string) (db.Severity, bool) {
+	id = strings.ToLower(id)
+	if strings.HasPrefix(id, "cve-") {
+		if s, ok := w.severityCache[id]; ok {
+			return s, true
+		}
+	}
+	for _, alias := range aliases {
+		a := strings.ToLower(alias)
+		if !strings.HasPrefix(a, "cve-") {
+			continue
+		}
+		if s, ok := w.severityCache[a]; ok {
+			return s, true
+		}
+	}
+	return db.Severity{}, false
 }
 
 // addToParentBatch adds an operation to parent buffer and flushes when threshold reached

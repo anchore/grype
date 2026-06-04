@@ -283,7 +283,7 @@ func compareLengths(left, right []any, commonResult int) int {
 }
 
 func cleanArchFromVersion(raw string) string {
-	platforms := []string{"x86", "universal", "arm", "java", "dalvik", "x64", "powerpc", "sparc", "mswin"}
+	platforms := []string{"x86", "universal", "arm", "aarch64", "java", "dalvik", "x64", "powerpc", "sparc", "mswin"}
 	dash := "-"
 	for _, p := range platforms {
 		vals := strings.SplitN(raw, dash+p, 2)

@@ -12,7 +12,7 @@ import (
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
 	"github.com/anchore/grype/grype/db/v6/name"
-	"github.com/anchore/grype/grype/pkg/qualifier/rpmarch"
+	"github.com/anchore/grype/grype/pkg/qualifier/architecture"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/packageurl-go"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -369,14 +369,14 @@ func rpmArchQualifierForPURL(purl *packageurl.PackageURL) *db.PackageQualifiers 
 	if purl == nil || purl.Type != packageurl.TypeRPM {
 		return nil
 	}
-	arch := rpmarch.ArchBinaryNoArchSpecified
+	arch := architecture.ArchBinaryNoArchSpecified
 	for _, q := range purl.Qualifiers {
 		if q.Key == "arch" && q.Value != "" {
 			arch = q.Value
 			break
 		}
 	}
-	return &db.PackageQualifiers{RpmArch: &arch}
+	return &db.PackageQualifiers{Architecture: &arch}
 }
 
 // isSrcRPMPURL reports whether the PURL describes a source RPM. The canonical CSAF signal
@@ -386,7 +386,7 @@ func isSrcRPMPURL(purl *packageurl.PackageURL) bool {
 		return false
 	}
 	for _, q := range purl.Qualifiers {
-		if q.Key == "arch" && q.Value == rpmarch.ArchSource {
+		if q.Key == "arch" && q.Value == architecture.ArchSource {
 			return true
 		}
 	}

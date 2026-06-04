@@ -7,7 +7,6 @@ import (
 	"go/ast"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"golang.org/x/tools/go/packages"
 
 	"github.com/anchore/grype/cmd/grype/cli/commands/internal/dbsearch"
+	"github.com/anchore/grype/internal/repoutil"
 )
 
 func main() {
@@ -251,13 +251,9 @@ func schemaID(component, version string) jsonschema.ID {
 }
 
 func repoRoot() string {
-	root, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+	root, err := repoutil.Root()
 	if err != nil {
-		panic(fmt.Errorf("unable to find repo root dir: %+v", err))
+		panic(err)
 	}
-	absRepoRoot, err := filepath.Abs(strings.TrimSpace(string(root)))
-	if err != nil {
-		panic(fmt.Errorf("unable to get abs path to repo root: %w", err))
-	}
-	return absRepoRoot
+	return root
 }

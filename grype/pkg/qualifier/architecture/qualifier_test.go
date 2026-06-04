@@ -1,4 +1,4 @@
-package rpmarch
+package architecture
 
 import (
 	"testing"
@@ -8,7 +8,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 )
 
-func TestRpmArch_ArchAndInertSatisfied(t *testing.T) {
+func TestArchitecture_ArchAndInertSatisfied(t *testing.T) {
 	tests := []struct {
 		name string
 		arch string
@@ -25,7 +25,7 @@ func TestRpmArch_ArchAndInertSatisfied(t *testing.T) {
 
 			ok, err := q.Satisfied(pkg.Package{Name: "anything"})
 			require.NoError(t, err)
-			require.True(t, ok, "Satisfied must always return true; the rpmarch value is consumed by SourceOrUnspecifiedArch, not by per-package qualifier evaluation")
+			require.True(t, ok, "Satisfied must always return true; the architecture value is consumed by SourceOrUnspecifiedArch, not by per-package qualifier evaluation")
 
 			archer, ok := q.(interface{ Arch() string })
 			require.True(t, ok, "qualifier must expose Arch() so criteria can read the stored value")

@@ -100,6 +100,79 @@ func TestFillInMissingSeverity(t *testing.T) {
 			},
 			expected: []db.Severity{{Value: "high"}},
 		},
+		{
+			// govulndb is the canonical case: GO- records ship with no
+			// severity but carry the CVE as an alias. The cached NVD
+			// severity should reach the GO- record via the alias.
+			name: "non-CVE primary ID with CVE alias resolves via cache",
+			handle: &db.VulnerabilityHandle{
+				ProviderID: "govulndb",
+				BlobValue: &db.VulnerabilityBlob{
+					ID:         "GO-2026-5005",
+					Aliases:    []string{"CVE-2026-39833"},
+					Severities: nil,
+				},
+			},
+			severityCache: map[string]db.Severity{
+				"cve-2026-39833": {Value: "medium"},
+			},
+			expected: []db.Severity{{Value: "medium"}},
+		},
+		{
+			// Mixed alias list: the first CVE alias with a cached severity
+			// wins; GHSA aliases are skipped because the cache is only
+			// populated from NVD CVE records.
+			name: "non-CVE primary ID picks first matching CVE alias",
+			handle: &db.VulnerabilityHandle{
+				ProviderID: "govulndb",
+				BlobValue: &db.VulnerabilityBlob{
+					ID:         "GO-2024-2731",
+					Aliases:    []string{"GHSA-aaaa-bbbb-cccc", "CVE-2024-1111", "CVE-2024-2222"},
+					Severities: nil,
+				},
+			},
+			severityCache: map[string]db.Severity{
+				"cve-2024-1111": {Value: "high"},
+				"cve-2024-2222": {Value: "low"},
+			},
+			expected: []db.Severity{{Value: "high"}},
+		},
+		{
+			// No alias-based hit either: stays as-is. Validates that the
+			// fallback doesn't manufacture severities for records that
+			// genuinely have no NVD coverage.
+			name: "non-CVE primary ID with no cache hit stays empty",
+			handle: &db.VulnerabilityHandle{
+				ProviderID: "govulndb",
+				BlobValue: &db.VulnerabilityBlob{
+					ID:         "GO-9999-0001",
+					Aliases:    []string{"CVE-9999-9999"},
+					Severities: nil,
+				},
+			},
+			severityCache: map[string]db.Severity{},
+			expected:      nil,
+		},
+		{
+			// Locks in that lookupNVDSeverity normalizes casing on both
+			// the primary ID and aliases. The cache is keyed by lowercase
+			// CVE IDs; if the helper stopped normalizing, a primary CVE
+			// with upstream casing variations (or any future caller that
+			// forgot the pre-lowercase) would silently miss a hit.
+			name: "casing-insensitive lookup on primary ID and aliases",
+			handle: &db.VulnerabilityHandle{
+				ProviderID: "github",
+				BlobValue: &db.VulnerabilityBlob{
+					ID:         "GHSA-mixed-case",
+					Aliases:    []string{"cve-2024-AAAA"},
+					Severities: nil,
+				},
+			},
+			severityCache: map[string]db.Severity{
+				"cve-2024-aaaa": {Value: "critical"},
+			},
+			expected: []db.Severity{{Value: "critical"}},
+		},
 	}
 
 	for _, tt := range tests {

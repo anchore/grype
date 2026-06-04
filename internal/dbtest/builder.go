@@ -4,11 +4,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,6 +20,7 @@ import (
 	"github.com/anchore/grype/grype/db/provider"
 	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/repoutil"
 )
 
 // DefaultSchemaVersions controls which schema versions Build() generates by default.
@@ -250,9 +253,38 @@ func hashSelections(selections []string) string {
 	return hex.EncodeToString(hasher.Sum(nil))
 }
 
-// computeFixtureHash computes a hash of fixture files, optionally filtered by selections.
+// schemaVersionTag returns a stable string label mixed into cache keys so any
+// schema bump invalidates cached DBs. Without this, a fixture-content hash alone
+// matches even when the blob layout changed (e.g. a field was renamed).
+func schemaVersionTag() string {
+	return fmt.Sprintf("v%d.%d.%d", v6.ModelVersion, v6.Revision, v6.Addition)
+}
+
+// computeFixtureHash hashes the fixture content plus the schema version and
+// build-source fingerprint. Production callers go through this entry point;
+// tests use computeFixtureHashWith directly to drive each invalidation axis.
 func computeFixtureHash(fixtureDir string, selections []string) (string, error) {
+	fp, err := cachedBuildFingerprint()
+	if err != nil {
+		return "", fmt.Errorf("compute build fingerprint: %w", err)
+	}
+	return computeFixtureHashWith(fixtureDir, selections, schemaVersionTag(), fp)
+}
+
+// computeFixtureHashWith is the testable core of computeFixtureHash. The
+// schemaTag and buildFingerprint are passed in so each invalidation axis (schema
+// bump, build-code change, fixture change, selection change) can be exercised
+// independently without poking real source files.
+func computeFixtureHashWith(fixtureDir string, selections []string, schemaTag, buildFingerprint string) (string, error) {
 	hasher := xxhash.New64()
+
+	_, _ = fmt.Fprintf(hasher, "schema:%s\n", schemaTag)
+
+	// A transformer bug fix changes the cached DB's content but not the fixture.
+	// Without this, GitHub Actions' fixture-cache fallback restore-key would
+	// silently feed the matcher a stale DB and produce CI-only failures that
+	// reproduce nowhere else. See cacheBuildFingerprintPaths.
+	_, _ = fmt.Fprintf(hasher, "build:%s\n", buildFingerprint)
 
 	// include selections in hash for differentiation
 	if len(selections) > 0 {
@@ -398,7 +430,7 @@ func (b *Builder) buildSchema(schema int, states provider.States, inputHash stri
 
 // buildDatabase builds a vulnerability database for the given schema version.
 func buildDatabase(schema int, outputDir string, states provider.States) error {
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
 		return fmt.Errorf("create output directory: %w", err)
 	}
 
@@ -427,4 +459,113 @@ func openDatabase(schema int, dbDir string) (vulnerability.Provider, io.Closer, 
 	default:
 		return nil, nil, fmt.Errorf("unsupported schema version: %d", schema)
 	}
+}
+
+// cacheBuildFingerprintPaths lists the Go source under the repo root that
+// determines how a fixture is turned into a built vulnerability DB. Anything
+// that affects blob shape, blob (un)marshaling, or the build/transformer pipeline
+// belongs here; the matcher path (which only consumes the built DB) does not.
+var cacheBuildFingerprintPaths = []string{
+	"grype/db/v6/blobs.go",
+	"grype/db/v6/vulnerability.go",
+	"grype/db/v6/models.go",
+	"grype/db/v6/blob_store.go",
+	"grype/db/v6/build",
+}
+
+var (
+	buildFingerprintOnce sync.Once
+	buildFingerprintVal  string
+	buildFingerprintErr  error
+)
+
+// cachedBuildFingerprint computes the build-source fingerprint once per process.
+// Hashing the source tree on every test would dominate runtime for fixture-heavy
+// suites; the test binary's source is immutable for the life of a process, so
+// the result is safe to memoize.
+func cachedBuildFingerprint() (string, error) {
+	buildFingerprintOnce.Do(func() {
+		buildFingerprintVal, buildFingerprintErr = computeBuildFingerprint()
+	})
+	return buildFingerprintVal, buildFingerprintErr
+}
+
+func computeBuildFingerprint() (string, error) {
+	root, err := repoutil.Root()
+	if err != nil {
+		return "", err
+	}
+
+	hasher := xxhash.New64()
+	for _, rel := range cacheBuildFingerprintPaths {
+		if err := hashSourceTree(hasher, root, rel); err != nil {
+			return "", fmt.Errorf("hash %s: %w", rel, err)
+		}
+	}
+	return hex.EncodeToString(hasher.Sum(nil)), nil
+}
+
+// hashSourceTree hashes every non-test .go file under root/rel, writing the
+// relative path before each file's contents so a rename alone changes the hash.
+//
+// All access goes through os.Root so symlinks can't escape the repo root
+// (gosec G122 TOCTOU). Paths are collected first and explicitly sorted before
+// reading so the hash is deterministic at the callsite — without relying on
+// fs.WalkDir / os.Root.FS().ReadDir's documented lexical ordering. Forward-
+// slash paths from fs.WalkDir also keep the hash stable across platforms.
+func hashSourceTree(hasher io.Writer, root, rel string) error {
+	rootFS, err := os.OpenRoot(root)
+	if err != nil {
+		return err
+	}
+	defer rootFS.Close()
+
+	// fs.WalkDir expects slash-separated paths regardless of OS.
+	startPath := filepath.ToSlash(rel)
+
+	var paths []string
+	err = fs.WalkDir(rootFS.FS(), startPath, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			if d.Name() == "testdata" {
+				return fs.SkipDir
+			}
+			return nil
+		}
+		name := d.Name()
+		if !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+			return nil
+		}
+		paths = append(paths, path)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	sort.Strings(paths)
+
+	for _, path := range paths {
+		if _, err := io.WriteString(hasher, path+"\x00"); err != nil {
+			return err
+		}
+		if err := copyFileIntoHasher(hasher, rootFS, path); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// copyFileIntoHasher streams a file's contents into hasher, opened through the
+// given os.Root so the read can't follow symlinks out of the root.
+func copyFileIntoHasher(hasher io.Writer, rootFS *os.Root, path string) error {
+	f, err := rootFS.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = io.Copy(hasher, f)
+	return err
 }

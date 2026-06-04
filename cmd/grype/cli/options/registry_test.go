@@ -69,6 +69,20 @@ func TestHasNonEmptyCredentials(t *testing.T) {
 	}
 }
 
+func Test_registry_PostLoad_returnsNoError(t *testing.T) {
+	// PostLoad should never return an error for the insecure transport warning;
+	// the warning is a side effect and should not block config loading.
+	tests := []registry{
+		{},
+		{InsecureSkipTLSVerify: true},
+		{InsecureUseHTTP: true},
+		{InsecureSkipTLSVerify: true, InsecureUseHTTP: true},
+	}
+	for _, cfg := range tests {
+		assert.NoError(t, cfg.PostLoad())
+	}
+}
+
 func Test_registry_ToOptions(t *testing.T) {
 	tests := []struct {
 		name     string
