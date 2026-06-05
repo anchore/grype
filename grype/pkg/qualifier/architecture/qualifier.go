@@ -34,10 +34,12 @@ func (r architectureQualifier) Arch() string {
 	return r.arch
 }
 
-// Satisfied is intentionally inert: the architecture qualifier is read by criteria that
-// operate on the vulnerability side (see internal.SourceOrUnspecifiedArch), not by
-// per-package qualifier evaluation. Direct hits on a binary-tagged entry must still match
-// by name, so this always returns true.
-func (r architectureQualifier) Satisfied(_ pkg.Package) (bool, error) {
+// Satisfied checks whether the package's architecture matches the qualifier's architecture.
+// If the package does not have an architecture specified, the qualifier is inert
+// (i.e., it does not filter out packages without architecture information).
+func (r architectureQualifier) Satisfied(p pkg.Package) (bool, error) {
+	if p.Arch != "" {
+		return p.Arch == r.arch, nil
+	}
 	return true, nil
 }
