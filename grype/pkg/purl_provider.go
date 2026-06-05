@@ -24,7 +24,7 @@ type PURLLiteralMetadata struct {
 }
 
 func purlEnhancers(applyChannel func(*distro.Distro) bool) []Enhancer {
-	return []Enhancer{setUpstreamsFromPURL, setDistroFromPURL(applyChannel)}
+	return []Enhancer{setUpstreamsFromPURL, setArchFromPURL, setDistroFromPURL(applyChannel)}
 }
 
 func purlProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]*Package, Context, *sbom.SBOM, error) {
@@ -99,4 +99,20 @@ func distroFromPURL(purl packageurl.PackageURL) (d *distro.Distro) {
 	}
 
 	return d
+}
+
+func setArchFromPURL(out *Package, purl packageurl.PackageURL, syftPkg syftPkg.Package) {
+	if out.Arch == "" || out.PURL == "" {
+		out.Arch = archFromPURL(purl)
+	}
+}
+
+// archFromPURL reads arch data for Grype can use, which is ignored by Syft's PURL conversion
+func archFromPURL(purl packageurl.PackageURL) (arch string) {
+	for _, qualifier := range purl.Qualifiers {
+		if qualifier.Key == syftPkg.PURLQualifierArch {
+			arch = qualifier.Value
+		}
+	}
+	return arch
 }
