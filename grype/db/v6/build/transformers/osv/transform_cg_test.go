@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/osv-scanner/pkg/models"
 	"github.com/stretchr/testify/require"
 
@@ -12,6 +13,28 @@ import (
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 )
+
+// chainguardOS / wolfiOS are small constructors used by TestChainguardTransform
+// to keep expected AffectedPackageHandle entries readable. Each ecosystem gets
+// its own OS row (Name == ReleaseID == lowercased ecosystem) with a shared
+// LabelVersion of "rolling" — both distros are rolling-release with no version
+// number to attach, so the OS-specifier-override layer matches on Name/ReleaseID
+// alone.
+func chainguardOS() *db.OperatingSystem {
+	return &db.OperatingSystem{
+		Name:         "chainguard",
+		ReleaseID:    "chainguard",
+		LabelVersion: "rolling",
+	}
+}
+
+func wolfiOS() *db.OperatingSystem {
+	return &db.OperatingSystem{
+		Name:         "wolfi",
+		ReleaseID:    "wolfi",
+		LabelVersion: "rolling",
+	}
+}
 
 // TestChainguardStrategy_Matches covers ID-prefix dispatch. Only CGA-* records
 // route to this strategy; everything else (other distro advisories, plain CVEs,
@@ -105,6 +128,7 @@ func TestChainguardTransform(t *testing.T) {
 				},
 				Related: affectedPkgSlice(
 					db.AffectedPackageHandle{
+						OperatingSystem: chainguardOS(),
 						Package: &db.Package{
 							Name:      "syncthing",
 							Ecosystem: "Chainguard",
@@ -127,6 +151,7 @@ func TestChainguardTransform(t *testing.T) {
 						},
 					},
 					db.AffectedPackageHandle{
+						OperatingSystem: wolfiOS(),
 						Package: &db.Package{
 							Name:      "syncthing",
 							Ecosystem: "Wolfi",
@@ -149,6 +174,7 @@ func TestChainguardTransform(t *testing.T) {
 						},
 					},
 					db.AffectedPackageHandle{
+						OperatingSystem: chainguardOS(),
 						Package: &db.Package{
 							Name:      "syncthing-compat",
 							Ecosystem: "Chainguard",
@@ -171,6 +197,7 @@ func TestChainguardTransform(t *testing.T) {
 						},
 					},
 					db.AffectedPackageHandle{
+						OperatingSystem: chainguardOS(),
 						Package: &db.Package{
 							Name:      "syncthing-fips",
 							Ecosystem: "Chainguard",
@@ -228,6 +255,7 @@ func TestChainguardTransform(t *testing.T) {
 				},
 				Related: affectedPkgSlice(
 					db.AffectedPackageHandle{
+						OperatingSystem: chainguardOS(),
 						Package: &db.Package{
 							Name:      "langfuse-3-worker",
 							Ecosystem: "Chainguard",
@@ -250,6 +278,7 @@ func TestChainguardTransform(t *testing.T) {
 						},
 					},
 					db.AffectedPackageHandle{
+						OperatingSystem: wolfiOS(),
 						Package: &db.Package{
 							Name:      "langfuse-3-worker",
 							Ecosystem: "Wolfi",
@@ -272,6 +301,7 @@ func TestChainguardTransform(t *testing.T) {
 						},
 					},
 					db.AffectedPackageHandle{
+						OperatingSystem: chainguardOS(),
 						Package: &db.Package{
 							Name:      "langfuse-fips-3-worker",
 							Ecosystem: "Chainguard",
@@ -334,6 +364,7 @@ func TestChainguardTransform(t *testing.T) {
 				},
 				Related: affectedPkgSlice(
 					db.AffectedPackageHandle{
+						OperatingSystem: chainguardOS(),
 						Package: &db.Package{
 							Name:      "haproxy-2.2",
 							Ecosystem: "Chainguard",
@@ -356,6 +387,7 @@ func TestChainguardTransform(t *testing.T) {
 						},
 					},
 					db.AffectedPackageHandle{
+						OperatingSystem: chainguardOS(),
 						Package: &db.Package{
 							Name:      "haproxy-2.8",
 							Ecosystem: "Chainguard",
@@ -378,6 +410,7 @@ func TestChainguardTransform(t *testing.T) {
 						},
 					},
 					db.AffectedPackageHandle{
+						OperatingSystem: wolfiOS(),
 						Package: &db.Package{
 							Name:      "haproxy-3.0",
 							Ecosystem: "Wolfi",
@@ -400,6 +433,7 @@ func TestChainguardTransform(t *testing.T) {
 						},
 					},
 					db.AffectedPackageHandle{
+						OperatingSystem: wolfiOS(),
 						Package: &db.Package{
 							Name:      "haproxy-3.1",
 							Ecosystem: "Wolfi",
@@ -575,6 +609,59 @@ func TestCgGetQualifiers(t *testing.T) {
 			got := cgGetQualifiers(tt.affected)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("cgGetQualifiers() = %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
+// TestCgOperatingSystem covers the ecosystem → OperatingSystem mapping. CGA
+// records carry per-affected-row ecosystem strings ("Chainguard" / "Wolfi");
+// each maps to its own OS row (Name == ReleaseID == lowercased ecosystem) with
+// a shared LabelVersion of "rolling" — both distros are rolling-release. Any
+// other ecosystem (lowercased variants, unrecognized strings, empty) must
+// return nil so the caller leaves OperatingSystem unset on the
+// AffectedPackageHandle.
+func TestCgOperatingSystem(t *testing.T) {
+	tests := []struct {
+		name      string
+		ecosystem string
+		want      *db.OperatingSystem
+	}{
+		{
+			name:      "Chainguard maps to lowercase OS with rolling label",
+			ecosystem: "Chainguard",
+			want: &db.OperatingSystem{
+				Name:         "chainguard",
+				ReleaseID:    "chainguard",
+				LabelVersion: "rolling",
+			},
+		},
+		{
+			name:      "Wolfi maps to lowercase OS with rolling label",
+			ecosystem: "Wolfi",
+			want: &db.OperatingSystem{
+				Name:         "wolfi",
+				ReleaseID:    "wolfi",
+				LabelVersion: "rolling",
+			},
+		},
+		{
+			name:      "unrelated apk distro returns nil so caller skips OS attribution",
+			ecosystem: "Alpine",
+			want:      nil,
+		},
+		{
+			name:      "empty ecosystem returns nil",
+			ecosystem: "",
+			want:      nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := cgOperatingSystem(tt.ecosystem)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("cgOperatingSystem(%q) mismatch (-want +got):\n%s", tt.ecosystem, diff)
 			}
 		})
 	}

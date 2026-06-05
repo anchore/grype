@@ -38,13 +38,15 @@ func (chainguardStrategy) Transform(vuln unmarshal.OSVVulnerability, state provi
 	in := []any{
 		db.VulnerabilityHandle{
 			Name:          vuln.ID,
+			Status:        db.VulnerabilityActive,
+			PublishedDate: &vuln.Published,
+			ModifiedDate:  &vuln.Modified,
+			WithdrawnDate: nil,
 			ProviderID:    state.Provider,
 			Provider:      provider.Model(state),
-			Status:        db.VulnerabilityActive,
-			ModifiedDate:  &vuln.Modified,
-			PublishedDate: &vuln.Published,
 			BlobValue: &db.VulnerabilityBlob{
 				ID:          vuln.ID,
+				Assigners:   nil,
 				Description: vuln.Details,
 				References:  cgReferences(vuln),
 				Aliases:     aliases,
@@ -91,6 +93,7 @@ func cgAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHan
 			ranges = append(ranges, getGrypeRangesFromRange(r, cgRangeType(r.Type))...)
 		}
 		aphs = append(aphs, db.AffectedPackageHandle{
+			OperatingSystem: cgOperatingSystem(string(affected.Package.Ecosystem)),
 			Package: &db.Package{
 				Ecosystem: string(affected.Package.Ecosystem),
 				Name:      name.Normalize(affected.Package.Name, pkg.TypeFromPURL(affected.Package.Purl)),
@@ -139,6 +142,24 @@ func cgGetQualifiers(affected models.Affected) *db.PackageQualifiers {
 			return &db.PackageQualifiers{
 				Architecture: &arch,
 			}
+		}
+	}
+	return nil
+}
+
+// cgOperatingSystem maps the OSV ecosystem string to a grype DB OperatingSystem row.
+// CG OSV advisories can carry affected entries across multiple apk-based distros
+// (Chainguard, Wolfi). Each becomes its own OS row so apk-distro matchers can find
+// them via the operating_systems table + operating_system_specifier_overrides.
+// Returns nil if the ecosystem is not a known apk distro — caller skips that entry.
+func cgOperatingSystem(ecosystem string) *db.OperatingSystem {
+	lower := strings.ToLower(ecosystem)
+	switch lower {
+	case "chainguard", "wolfi":
+		return &db.OperatingSystem{
+			Name:         lower,
+			ReleaseID:    lower,
+			LabelVersion: "rolling",
 		}
 	}
 	return nil
