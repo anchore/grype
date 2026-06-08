@@ -6,10 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/osv-scanner/pkg/models"
-
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	"github.com/anchore/grype/grype/db/provider"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
@@ -123,7 +122,7 @@ func govulndbAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPack
 	return aphs
 }
 
-func govulndbPackage(p models.Package) *db.Package {
+func govulndbPackage(p osvmodel.Package) *db.Package {
 	return &db.Package{
 		Ecosystem: string(pkg.GoModulePkg),
 		Name:      name.Normalize(p.Name, pkg.GoModulePkg),
@@ -135,8 +134,8 @@ func govulndbPackage(p models.Package) *db.Package {
 // the Go-flavored comparator (it understands v0.0.0-<timestamp>-<hash>
 // pseudo-versions, which generic semver does not). Other OSV types fall
 // through to the default mapping; in practice govulndb only emits SEMVER.
-func govulndbRangeType(t models.RangeType) string {
-	if t == models.RangeSemVer {
+func govulndbRangeType(t osvmodel.RangeType) string {
+	if t == osvmodel.RangeSemVer {
 		return "go"
 	}
 	return defaultRangeType(t)
