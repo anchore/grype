@@ -1,20 +1,40 @@
-// This program regenerates the osvmodel package from the upstream OSV
-// JSON schema (github.com/ossf/osv-schema).
+// This program regenerates the osvmodel package from a pinned JSON Schema.
 //
 // It writes into the parent osvmodel directory:
-//   - schema-v1.json                  pinned upstream schema (latest v1.* tag)
+//   - schema-v1.json                  pinned upstream schema
 //   - schema-v1.tag                   the upstream tag the pinned schema came from
-//   - vulnerability_v1_generated.go   the Go model emitted from that schema
+//   - vulnerability_v1_generated.go   Go model emitted from that schema
 //
 // Run via `make generate:osv-model` (regenerates from the committed pin) or
 // `make update:osv-model` (fetches latest v1 upstream, then regenerates).
 //
-// Navigation through the schema is hand-coded for the known top-level types
-// (Vulnerability, Affected, Package, Range, Event, Severity, Reference,
-// Credit). Within each type, struct fields and enum constants are driven by
-// the schema, so additions upstream surface as new Go fields / constants on
-// the next regen. If upstream renames a top-level property the navigator
-// panics, surfacing the diff for human review.
+// Design: this is a small, general JSON-Schema → Go translator with opinions
+// baked in. It has no OSV-specific knowledge. Schema changes that stay
+// within the JSON Schema features we handle are absorbed automatically;
+// anything outside that subset panics with a message naming the schema
+// fragment that surprised us, so the cron PR fails loudly and a human knows
+// exactly what to extend.
+//
+// The opinions:
+//
+//  1. Value types, never pointers. Optional fields get `,omitempty`;
+//     absent/zero distinctions are not preserved.
+//  2. encoding/json tags only. No yaml, mapstructure, omitzero.
+//  3. Required vs optional: properties listed in `required` get no
+//     `,omitempty`; everything else gets it.
+//  4. No validation methods generated.
+//  5. Field naming: snake_case → PascalCase, with an initialism table
+//     (id → ID, url → URL, cvss → CVSS, etc.).
+//  6. Type naming: $def keys become PascalCase. Inline objects/enums get
+//     a synthesized name of <ParentType><FieldName>.
+//  7. `format: "date-time"` → time.Time (no Timestamp alias).
+//  8. `"type": ["X", "null"]` → "X" (null is dropped).
+//  9. `oneOf` where every branch is an object schema with properties →
+//     flattened into a single struct with all branches' properties (all
+//     optional). Other oneOf/allOf is stripped — it's validation, not
+//     structure.
+//  10. Object with no properties → `map[string]any` inline at use sites.
+//     String $defs with no enum → inlined as `string` at use sites.
 package main
 
 import (
@@ -39,59 +59,66 @@ const (
 	releasesAPI   = "https://api.github.com/repos/ossf/osv-schema/releases/latest"
 	schemaURLFmt  = "https://raw.githubusercontent.com/ossf/osv-schema/%s/validation/schema.json"
 	pinnedFile    = "schema-v1.json"
-	pinnedTagFile = "schema-v1.tag" // single-line file: the upstream tag the pinned schema came from
+	pinnedTagFile = "schema-v1.tag"
 	generatedFile = "vulnerability_v1_generated.go"
 	pkgName       = "osvmodel"
 	requirePrefix = "v1."
 )
 
-// Schema is a partial JSON Schema decode sufficient for the OSV vocabulary.
-// Anything we don't use upstream is ignored.
+// JSON Schema type constants (avoid string literals repeated through the walker).
+const (
+	jsObject   = "object"
+	jsArray    = "array"
+	jsString   = "string"
+	jsInteger  = "integer"
+	jsNumber   = "number"
+	jsBoolean  = "boolean"
+	fmtDateTim = "date-time"
+)
+
+// ============================================================================
+// Schema
+// ============================================================================
+
+// Schema is the subset of JSON Schema we read.
 type Schema struct {
-	Type        json.RawMessage    `json:"type,omitempty"` // string or []string; absent means free-form
+	Type        json.RawMessage    `json:"type,omitempty"`
+	Title       string             `json:"title,omitempty"`
+	Format      string             `json:"format,omitempty"`
+	Enum        []string           `json:"enum,omitempty"`
 	Properties  map[string]*Schema `json:"properties,omitempty"`
+	Required    []string           `json:"required,omitempty"`
 	Items       *Schema            `json:"items,omitempty"`
 	Ref         string             `json:"$ref,omitempty"`
-	Enum        []string           `json:"enum,omitempty"`
-	Format      string             `json:"format,omitempty"`
 	OneOf       []*Schema          `json:"oneOf,omitempty"`
-	Required    []string           `json:"required,omitempty"`
 	Defs        map[string]*Schema `json:"$defs,omitempty"`
 	Description string             `json:"description,omitempty"`
 }
 
-// typeIs reports whether the schema's type contains the given JSON-Schema
-// type name. JSON Schema allows `"type": "object"` and `"type": ["array",
-// "null"]` — both are handled.
-func (s *Schema) typeIs(name string) bool {
+// jsonType returns the JSON-Schema "type" as a string, picking the first
+// non-null entry from a union. Returns "" if no type is set.
+func (s *Schema) jsonType() string {
 	if len(s.Type) == 0 {
-		return false
+		return ""
 	}
 	var single string
 	if err := json.Unmarshal(s.Type, &single); err == nil {
-		return single == name
+		return single
 	}
 	var multi []string
 	if err := json.Unmarshal(s.Type, &multi); err == nil {
 		for _, t := range multi {
-			if t == name {
-				return true
+			if t != "null" {
+				return t
 			}
 		}
 	}
-	return false
+	return ""
 }
 
-// packageDir returns the absolute path to the osvmodel package (one level up
-// from this generator). Anchoring to the source-file location via
-// runtime.Caller keeps output paths stable regardless of caller CWD.
-func packageDir() string {
-	_, thisFile, _, ok := runtime.Caller(0)
-	if !ok {
-		panic("runtime.Caller(0) failed; can't locate generator source")
-	}
-	return filepath.Dir(filepath.Dir(thisFile))
-}
+// ============================================================================
+// Generation entry point
+// ============================================================================
 
 func main() {
 	if err := run(); err != nil {
@@ -103,6 +130,8 @@ func main() {
 func run() error {
 	pull := flag.Bool("pull", false,
 		"fetch the latest v1 schema from upstream and overwrite the pinned schema-v1.json before regenerating")
+	rootName := flag.String("root", "Vulnerability",
+		"name to use for the top-level struct (defaults to the schema title if empty)")
 	flag.Parse()
 
 	tag, schemaBytes, err := loadSchema(*pull)
@@ -110,39 +139,39 @@ func run() error {
 		return err
 	}
 	if schemaBytes == nil {
-		// Soft refusal path (upstream cut a major version we don't handle).
-		return nil
+		return nil // soft refusal path
 	}
 
 	var root Schema
 	if err := json.Unmarshal(schemaBytes, &root); err != nil {
 		return fmt.Errorf("parse schema JSON: %w", err)
 	}
+	collapseOneOfsInPlace(&root)
 
-	code, err := emit(&root, tag)
+	out, err := emit(&root, tag, *rootName)
 	if err != nil {
 		return fmt.Errorf("emit Go model: %w", err)
 	}
-	if err := atomicWrite(filepath.Join(packageDir(), generatedFile), code); err != nil {
+	if err := atomicWrite(filepath.Join(packageDir(), generatedFile), out); err != nil {
 		return fmt.Errorf("write %s: %w", generatedFile, err)
 	}
 	fmt.Printf("regenerated %s from osv-schema %s\n", generatedFile, tag)
 	return nil
 }
 
-// loadSchema returns the schema bytes plus the upstream tag they came from.
-//
-// When pull is false, it reads the committed schema-v1.json and schema-v1.tag
-// — both stable, offline, deterministic. CI drift checks and `go generate`
-// use this path so the generated file is bit-for-bit reproducible from the
-// committed pin.
-//
-// When pull is true, it fetches the latest v1 release tag, downloads the
-// schema at that tag, and writes both the schema and the tag to disk before
-// returning. This is the cron/"bump upstream" path.
-//
-// Returns (tag, nil, nil) to signal a soft refusal (upstream cut a major
-// version we don't handle).
+// packageDir returns the absolute path to the osvmodel package.
+func packageDir() string {
+	_, thisFile, _, ok := runtime.Caller(0)
+	if !ok {
+		panic("runtime.Caller(0) failed; can't locate generator source")
+	}
+	return filepath.Dir(filepath.Dir(thisFile))
+}
+
+// ============================================================================
+// Schema loading (pinned vs fetched)
+// ============================================================================
+
 func loadSchema(pull bool) (string, []byte, error) {
 	if !pull {
 		data, err := os.ReadFile(filepath.Join(packageDir(), pinnedFile))
@@ -161,14 +190,11 @@ func loadSchema(pull bool) (string, []byte, error) {
 		return "", nil, fmt.Errorf("fetch latest release tag: %w", err)
 	}
 	if !strings.HasPrefix(tag, requirePrefix) {
-		// Soft refusal: a fork-update bot calling this should exit clean,
-		// the cron PR will simply be empty, and a human picks up the major bump.
 		fmt.Fprintf(os.Stderr,
 			"upstream cut %s; refusing to overwrite the %s* track.\n"+
-				"manual steps to handle a major bump:\n"+
+				"  manual steps to handle a major bump:\n"+
 				"  1. copy schema-v1.json to schema-v1-final.json (preserve old track)\n"+
-				"  2. write a new generator for v2 (likely a fork of this file)\n"+
-				"  3. emit a parallel vulnerability_v2_generated.go\n",
+				"  2. start a schema-v2.json + vulnerability_v2_generated.go track\n",
 			tag, requirePrefix)
 		return tag, nil, nil
 	}
@@ -186,14 +212,9 @@ func loadSchema(pull bool) (string, []byte, error) {
 	return tag, body, nil
 }
 
-// ============================================================================
-// HTTP
-// ============================================================================
-
 func latestReleaseTag() (string, error) {
 	req, _ := http.NewRequest(http.MethodGet, releasesAPI, nil)
 	req.Header.Set("Accept", "application/vnd.github+json")
-	// Cron runs that hit the unauthenticated rate limit (60/hr) should set this.
 	if t := os.Getenv("GITHUB_TOKEN"); t != "" {
 		req.Header.Set("Authorization", "Bearer "+t)
 	}
@@ -232,375 +253,246 @@ func fetchBytes(url string) ([]byte, error) {
 
 func atomicWrite(path string, data []byte) error {
 	tmp := path + ".tmp"
-	f, err := os.Create(tmp)
-	if err != nil {
-		return err
-	}
-	if _, err := f.Write(data); err != nil {
-		f.Close()
-		os.Remove(tmp)
-		return err
-	}
-	if err := f.Close(); err != nil {
-		os.Remove(tmp)
+	if err := os.WriteFile(tmp, data, 0o600); err != nil {
 		return err
 	}
 	return os.Rename(tmp, path)
 }
 
 // ============================================================================
-// Schema navigation helpers
+// Walker + registry
 //
-// These walk the OSV schema by name and panic with an explanatory message if
-// upstream rearranged something the generator depends on.
+// The generator has two phases:
+//   1. Discover. Walk the schema, collect every fragment that needs a named
+//      Go type. $def entries get names from their keys; inline objects and
+//      inline enums get names synthesized from <ParentType><FieldName>.
+//   2. Emit. For each registered type, emit Go via jen. Field types
+//      reference other registered types by name.
 // ============================================================================
 
-func navProp(s *Schema, name, ctx string) *Schema {
-	if s == nil || s.Properties == nil {
-		panic(fmt.Sprintf("expected %s.%s but parent has no properties", ctx, name))
-	}
-	p, ok := s.Properties[name]
-	if !ok {
-		panic(fmt.Sprintf("expected %s.%s in schema but it was missing", ctx, name))
-	}
-	return p
+type registry struct {
+	root      *entry            // top-level type (from schema title)
+	defs      map[string]*entry // ref → entry, e.g. "#/$defs/severity" → Severity
+	defOrder  []string          // sorted $def keys, for stable emission
+	inline    []*entry          // inline types in discovery order
+	seen      map[*Schema]*entry
+	usedNames map[string]bool
 }
 
-func navItems(s *Schema, ctx string) *Schema {
-	if s == nil || s.Items == nil {
-		panic(fmt.Sprintf("expected %s to be an array with items but it had no items", ctx))
-	}
-	return s.Items
+type entry struct {
+	name   string
+	schema *Schema
 }
 
-func navRef(root *Schema, ref, ctx string) *Schema {
-	if !strings.HasPrefix(ref, "#/$defs/") {
-		panic(fmt.Sprintf("%s: unsupported ref %q (only #/$defs/* refs handled)", ctx, ref))
-	}
-	name := strings.TrimPrefix(ref, "#/$defs/")
-	d, ok := root.Defs[name]
-	if !ok {
-		panic(fmt.Sprintf("%s: ref %s not found in $defs", ctx, ref))
-	}
-	return d
-}
-
-// ============================================================================
-// Code emission
-// ============================================================================
-
-// nestedType maps a schema location to the Go type name emitted from it,
-// with optional per-field type overrides for properties that should resolve
-// to a named subtype rather than the default inferred from the schema.
-type nestedType struct {
-	goName     string                // type name in generated Go
-	navigate   func(*Schema) *Schema // returns the object-schema for this type
-	fieldTypes map[string]jen.Code   // explicit Go type for specific JSON properties (overrides type inference)
-}
-
-func nestedTypes(root *Schema) []nestedType {
-	severityDef := navRef(root, "#/$defs/severity", "vulnerability.severity")
-	return []nestedType{
-		vulnerabilityNestedType(),
-		affectedNestedType(),
-		packageNestedType(),
-		rangeNestedType(),
-		eventNestedType(),
-		severityNestedType(severityDef),
-		referenceNestedType(),
-		creditNestedType(),
+func newRegistry() *registry {
+	return &registry{
+		defs:      map[string]*entry{},
+		seen:      map[*Schema]*entry{},
+		usedNames: map[string]bool{},
 	}
 }
 
-func vulnerabilityNestedType() nestedType {
-	return nestedType{
-		goName:   "Vulnerability",
-		navigate: func(s *Schema) *Schema { return s },
-		fieldTypes: map[string]jen.Code{
-			"affected":   jen.Index().Id("Affected"),
-			"severity":   jen.Index().Id("Severity"),
-			"references": jen.Index().Id("Reference"),
-			"credits":    jen.Index().Id("Credit"),
-		},
+func (r *registry) reserve(name string) string {
+	if !r.usedNames[name] {
+		r.usedNames[name] = true
+		return name
+	}
+	for i := 2; ; i++ {
+		candidate := fmt.Sprintf("%s%d", name, i)
+		if !r.usedNames[candidate] {
+			r.usedNames[candidate] = true
+			return candidate
+		}
 	}
 }
 
-func affectedNestedType() nestedType {
-	return nestedType{
-		goName: "Affected",
-		navigate: func(s *Schema) *Schema {
-			return navItems(navProp(s, "affected", "vulnerability"), "vulnerability.affected")
-		},
-		fieldTypes: map[string]jen.Code{
-			"package":  jen.Id("Package"),
-			"severity": jen.Index().Id("Severity"),
-			"ranges":   jen.Index().Id("Range"),
-		},
-	}
+// registerDef registers a $def under "#/$defs/<key>".
+func (r *registry) registerDef(key string, s *Schema) {
+	name := r.reserve(goTypeName(key))
+	e := &entry{name: name, schema: s}
+	r.defs["#/$defs/"+key] = e
+	r.seen[s] = e
+	r.defOrder = append(r.defOrder, key)
 }
 
-func packageNestedType() nestedType {
-	return nestedType{
-		goName: "Package",
-		navigate: func(s *Schema) *Schema {
-			return navProp(navItems(navProp(s, "affected", "vulnerability"), "vulnerability.affected"), "package", "affected")
-		},
+// registerRoot registers the root schema under the chosen name (CLI flag,
+// falling back to the schema's title, then "Root").
+func (r *registry) registerRoot(s *Schema, rootName string) {
+	name := rootName
+	if name == "" {
+		name = s.Title
 	}
+	if name == "" {
+		name = "Root"
+	}
+	name = r.reserve(goTypeName(name))
+	e := &entry{name: name, schema: s}
+	r.root = e
+	r.seen[s] = e
 }
 
-func rangeNestedType() nestedType {
-	return nestedType{
-		goName: "Range",
-		navigate: func(s *Schema) *Schema {
-			return navItems(navProp(navItems(navProp(s, "affected", "vulnerability"), "vulnerability.affected"), "ranges", "affected"), "affected.ranges")
-		},
-		fieldTypes: map[string]jen.Code{
-			"type":   jen.Id("RangeType"),
-			"events": jen.Index().Id("Event"),
-		},
+// registerInline registers a previously-unseen inline object/enum schema.
+// preferred is the name we'd like to use (field name, kept short); fallback
+// is the parent-prefixed name to fall back to if `preferred` is already in
+// use. Returns the assigned Go name.
+func (r *registry) registerInline(s *Schema, preferred, fallback string) string {
+	if existing, ok := r.seen[s]; ok {
+		return existing.name
 	}
+	candidate := goTypeName(preferred)
+	if r.usedNames[candidate] {
+		candidate = goTypeName(fallback)
+	}
+	name := r.reserve(candidate)
+	e := &entry{name: name, schema: s}
+	r.seen[s] = e
+	r.inline = append(r.inline, e)
+	return name
 }
 
-// Events are a oneOf union ({introduced} | {fixed} | {last_affected} | {limit}).
-// Flatten the union into a single struct: every event field is optional and
-// callers inspect the non-empty one(s). Hand-built since the schema's `oneOf`
-// doesn't expose the union members as `properties` at this node.
-func eventNestedType() nestedType {
-	return nestedType{
-		goName: "Event",
-		navigate: func(*Schema) *Schema {
-			return &Schema{
-				Type: json.RawMessage(`"object"`),
-				Properties: map[string]*Schema{
-					"introduced":    {Type: json.RawMessage(`"string"`)},
-					"fixed":         {Type: json.RawMessage(`"string"`)},
-					"last_affected": {Type: json.RawMessage(`"string"`)},
-					"limit":         {Type: json.RawMessage(`"string"`)},
-				},
+// pruneUnreachable drops $def entries that aren't referenced from the root
+// (transitively). The OSV schema has $defs that exist only as validation
+// constraints (e.g. an `ecosystemName` enum that no field $refs — fields
+// $ref a different `ecosystemWithSuffix` regex pattern). Emitting them as
+// orphan Go types adds noise without giving callers anything to use.
+func (r *registry) pruneUnreachable() {
+	live := map[*entry]bool{r.root: true}
+	for _, e := range r.inline {
+		live[e] = true
+	}
+	// Walk the schemas of every live entry; mark every $def it references.
+	queue := append([]*entry{r.root}, r.inline...)
+	for len(queue) > 0 {
+		e := queue[0]
+		queue = queue[1:]
+		r.walkRefs(e.schema, func(target *entry) {
+			if !live[target] {
+				live[target] = true
+				queue = append(queue, target)
 			}
-		},
+		})
 	}
-}
-
-func severityNestedType(severityDef *Schema) nestedType {
-	return nestedType{
-		goName:     "Severity",
-		navigate:   func(*Schema) *Schema { return navItems(severityDef, "severity") },
-		fieldTypes: map[string]jen.Code{"type": jen.Id("SeverityType")},
-	}
-}
-
-func referenceNestedType() nestedType {
-	return nestedType{
-		goName: "Reference",
-		navigate: func(s *Schema) *Schema {
-			return navItems(navProp(s, "references", "vulnerability"), "vulnerability.references")
-		},
-		fieldTypes: map[string]jen.Code{"type": jen.Id("ReferenceType")},
-	}
-}
-
-func creditNestedType() nestedType {
-	return nestedType{
-		goName: "Credit",
-		navigate: func(s *Schema) *Schema {
-			return navItems(navProp(s, "credits", "vulnerability"), "vulnerability.credits")
-		},
-		fieldTypes: map[string]jen.Code{"type": jen.Id("CreditType")},
-	}
-}
-
-// enumSpec describes one typed-string enum to emit. The enum *values* are
-// pulled from the schema (so new variants surface automatically); the type
-// name and per-value constant names come from the table.
-type enumSpec struct {
-	typeName   string
-	schemaPath string                // for error messages
-	navigate   func(*Schema) *Schema // returns the schema for the enum field
-	constName  func(value string) string
-}
-
-func enumSpecs(root *Schema) []enumSpec {
-	severityDef := navRef(root, "#/$defs/severity", "vulnerability.severity")
-	return []enumSpec{
-		{
-			typeName:   "RangeType",
-			schemaPath: "affected.ranges.type",
-			navigate: func(s *Schema) *Schema {
-				return navProp(
-					navItems(navProp(navItems(navProp(s, "affected", "vuln"), "affected"), "ranges", "affected"), "ranges"),
-					"type", "range")
-			},
-			constName: rangeTypeConst,
-		},
-		{
-			typeName:   "ReferenceType",
-			schemaPath: "references.type",
-			navigate: func(s *Schema) *Schema {
-				return navProp(navItems(navProp(s, "references", "vuln"), "references"), "type", "reference")
-			},
-			constName: referenceTypeConst,
-		},
-		{
-			typeName:   "SeverityType",
-			schemaPath: "severity.type",
-			navigate: func(*Schema) *Schema {
-				return navProp(navItems(severityDef, "severity"), "type", "severity")
-			},
-			constName: severityTypeConst,
-		},
-		{
-			typeName:   "CreditType",
-			schemaPath: "credits.type",
-			navigate: func(s *Schema) *Schema {
-				return navProp(navItems(navProp(s, "credits", "vuln"), "credits"), "type", "credit")
-			},
-			constName: creditTypeConst,
-		},
-	}
-}
-
-// rangeTypeConst maps an upstream enum value to the Go constant name. The
-// override switch preserves established names (RangeSemVer not RangeSEMVER);
-// new values fall through to PascalCase ("FOO" → "RangeFoo").
-func rangeTypeConst(value string) string {
-	switch value {
-	case "GIT":
-		return "RangeGit"
-	case "SEMVER":
-		return "RangeSemVer"
-	case "ECOSYSTEM":
-		return "RangeEcosystem"
-	}
-	return "Range" + titleCaseEnumValue(value)
-}
-
-func referenceTypeConst(value string) string {
-	return "Reference" + titleCaseEnumValue(value)
-}
-
-func severityTypeConst(value string) string {
-	// CVSS_V2 → SeverityCVSSV2 (collapsed; the naive split would give
-	// SeverityCvssV2 which loses the canonical CVSS initialism).
-	switch value {
-	case "CVSS_V2":
-		return "SeverityCVSSV2"
-	case "CVSS_V3":
-		return "SeverityCVSSV3"
-	case "CVSS_V4":
-		return "SeverityCVSSV4"
-	}
-	return "Severity" + titleCaseEnumValue(value)
-}
-
-func creditTypeConst(value string) string {
-	return "Credit" + titleCaseEnumValue(value)
-}
-
-// titleCaseEnumValue turns "SCREAMING_SNAKE_CASE" or "lowercase" or "MixedCase"
-// into Go-idiomatic PascalCase. "REMEDIATION_DEVELOPER" → "RemediationDeveloper".
-func titleCaseEnumValue(s string) string {
-	parts := strings.Split(s, "_")
-	for i, p := range parts {
-		if p == "" {
-			continue
-		}
-		parts[i] = strings.ToUpper(p[:1]) + strings.ToLower(p[1:])
-	}
-	return strings.Join(parts, "")
-}
-
-// initialisms records JSON property name fragments that should be ALL CAPS
-// when converted to Go identifiers. Anything not listed is title-cased.
-var initialisms = map[string]string{
-	"id":   "ID",
-	"url":  "URL",
-	"cvss": "CVSS",
-	"cpe":  "CPE",
-	"cpes": "CPEs",
-}
-
-// goFieldName converts a snake_case JSON property name to a Go field name.
-func goFieldName(jsonName string) string {
-	parts := strings.Split(jsonName, "_")
-	for i, p := range parts {
-		if up, ok := initialisms[p]; ok {
-			parts[i] = up
-			continue
-		}
-		if p == "" {
-			continue
-		}
-		parts[i] = strings.ToUpper(p[:1]) + p[1:]
-	}
-	return strings.Join(parts, "")
-}
-
-// fieldType returns the jen Code for one schema property's Go type, given any
-// explicit override from the nested-type table.
-func fieldType(prop *Schema, jsonName string, override jen.Code, ctx string) jen.Code {
-	if override != nil {
-		return override
-	}
-	// $defs refs we know about.
-	if prop.Ref != "" {
-		switch prop.Ref {
-		case "#/$defs/timestamp":
-			return jen.Qual("time", "Time")
-		case "#/$defs/severity":
-			return jen.Index().Id("Severity")
-		case "#/$defs/prefix", "#/$defs/ecosystemName", "#/$defs/ecosystemWithSuffix", "#/$defs/ecosystemSuffix":
-			return jen.String()
-		default:
-			panic(fmt.Sprintf("%s.%s: unsupported $ref %q (extend fieldType)", ctx, jsonName, prop.Ref))
+	// Filter defOrder to live entries only.
+	keptOrder := make([]string, 0, len(r.defOrder))
+	for _, k := range r.defOrder {
+		if live[r.defs["#/$defs/"+k]] {
+			keptOrder = append(keptOrder, k)
 		}
 	}
+	r.defOrder = keptOrder
+}
+
+// walkRefs visits every $ref-able schema reachable from s and invokes fn
+// with the referenced entry. Used by pruneUnreachable to compute liveness.
+func (r *registry) walkRefs(s *Schema, fn func(*entry)) {
+	if s == nil {
+		return
+	}
+	if s.Ref != "" {
+		if e, ok := r.defs[s.Ref]; ok {
+			fn(e)
+		}
+	}
+	for _, p := range s.Properties {
+		r.walkRefs(p, fn)
+	}
+	if s.Items != nil {
+		r.walkRefs(s.Items, fn)
+	}
+}
+
+// discover walks every registered type's schema, calling registerInline for
+// inline objects/enums that need names. It runs until quiescent: each new
+// inline type registered may itself contain further inline types.
+func (r *registry) discover() {
+	visit := func(e *entry) { r.walkForInline(e.schema, e.name) }
+	visit(r.root)
+	for _, k := range r.defOrder {
+		visit(r.defs["#/$defs/"+k])
+	}
+	// inline may grow while we iterate; range over indices.
+	for i := 0; i < len(r.inline); i++ {
+		visit(r.inline[i])
+	}
+}
+
+// walkForInline walks one schema's fields, registering inline children.
+// parent is the Go name of the containing type; we use it as the fallback
+// name component when a field's preferred name collides.
+func (r *registry) walkForInline(s *Schema, parent string) {
+	switch s.jsonType() {
+	case jsObject:
+		for _, fname := range sortedKeys(s.Properties) {
+			r.discoverField(s.Properties[fname], fname, parent)
+		}
+	case jsArray:
+		// We're inside a $def whose root is an array. Items get the
+		// parent-prefixed name directly ("SeverityEntry" not just "Entry")
+		// because the bare "Entry" is too generic for a top-level type.
+		if s.Items != nil {
+			suffixed := parent + "Entry"
+			r.discoverField(s.Items, suffixed, suffixed)
+		}
+	}
+}
+
+// discoverField walks one property's schema, registering any inline type it
+// needs. field is the property's name; parent is the containing Go type
+// name (used for collision-fallback naming).
+//
+// Naming policy: inline objects prefer just the field name (short); on
+// collision, fall back to <parent><field>. Inline enums always use
+// <parent><field> because property names like "type" repeat across schemas.
+// When the property is an array of inline objects, the element type uses
+// the singularized field name (so `affected.ranges` items are named
+// `Range`, not `Ranges`).
+func (r *registry) discoverField(s *Schema, field, parent string) {
 	switch {
-	case prop.typeIs("string"):
-		return jen.String()
-	case prop.typeIs("array"):
-		if prop.Items == nil {
-			return jen.Index().Any()
-		}
-		// Array of strings is the only inline-string-array case we need.
-		if prop.Items.typeIs("string") {
-			return jen.Index().String()
-		}
-		// Arrays of objects must be handled via an override in nestedTypes.
-		panic(fmt.Sprintf("%s.%s: array of non-string items needs an explicit override", ctx, jsonName))
-	case prop.typeIs("object"):
-		// Free-form object → map[string]any. Named subobjects must come via override.
-		if len(prop.Properties) == 0 {
-			return jen.Map(jen.String()).Any()
-		}
-		panic(fmt.Sprintf("%s.%s: nested object without an override (extend nestedTypes)", ctx, jsonName))
+	case s.Ref != "":
+		// refs resolve at use site via r.defs — nothing to register here
+	case len(s.Enum) > 0 && s.jsonType() == jsString:
+		// Enum: always parent-prefixed (avoids cross-parent collisions on
+		// generic field names like "type").
+		r.registerInline(s, parent+goTypeName(field), parent+goTypeName(field))
+	case s.jsonType() == jsObject && len(s.Properties) > 0:
+		name := r.registerInline(s, field, parent+goTypeName(field))
+		r.walkForInline(s, name)
+	case s.jsonType() == jsArray && s.Items != nil:
+		// The element of an array property is conceptually singular, so
+		// singularize the field name for the element type.
+		r.discoverField(s.Items, singularize(field), parent)
 	}
-	panic(fmt.Sprintf("%s.%s: cannot infer Go type from schema", ctx, jsonName))
 }
 
-func emit(root *Schema, tag string) ([]byte, error) {
+// ============================================================================
+// Emission
+// ============================================================================
+
+func emit(root *Schema, tag, rootName string) ([]byte, error) {
+	r := newRegistry()
+
+	// Pre-register every $def so refs resolve during inline discovery.
+	for _, k := range sortedKeys(root.Defs) {
+		r.registerDef(k, root.Defs[k])
+	}
+	r.registerRoot(root, rootName)
+	r.discover()
+	r.pruneUnreachable()
+
 	f := jen.NewFile(pkgName)
 	f.HeaderComment("Code generated by ./generate/main.go from osv-schema " + tag + ". DO NOT EDIT.")
 	f.HeaderComment("Regenerate via: make generate:osv-model")
 	f.HeaderComment("Source: github.com/ossf/osv-schema@" + tag + " (validation/schema.json)")
 	f.HeaderComment("")
-	f.HeaderComment("Package osvmodel is grype's representation of an OSV record. It mirrors")
-	f.HeaderComment("the upstream OSV schema (https://ossf.github.io/osv-schema/) without")
-	f.HeaderComment("taking a runtime dependency on any third-party OSV library: parsing goes")
-	f.HeaderComment("through standard encoding/json into these structs.")
-	f.HeaderComment("")
-	f.HeaderComment("Strategy authors who want a field that isn't here yet should regenerate")
-	f.HeaderComment("(make generate:osv-model) after bumping the pinned schema-v1.json; once")
-	f.HeaderComment("upstream has the field, regeneration surfaces it as a Go field for free.")
+	f.HeaderComment("Package osvmodel is grype's representation of an OSV record.")
 
-	// Emit struct types.
-	for _, nt := range nestedTypes(root) {
-		emitStruct(f, root, nt)
+	// Emit root, then $defs (alphabetical), then inline (discovery order).
+	emitType(f, r.root, r)
+	for _, k := range r.defOrder {
+		emitType(f, r.defs["#/$defs/"+k], r)
 	}
-
-	// Emit enum types + constants.
-	for _, es := range enumSpecs(root) {
-		emitEnum(f, root, es)
+	for _, e := range r.inline {
+		emitType(f, e, r)
 	}
 
 	var buf bytes.Buffer
@@ -610,48 +502,285 @@ func emit(root *Schema, tag string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func emitStruct(f *jen.File, root *Schema, nt nestedType) {
-	obj := nt.navigate(root)
-	if obj == nil {
-		panic(fmt.Sprintf("emitStruct: %s navigation returned nil", nt.goName))
+// emitType writes the Go type declaration for a single entry. Schemas that
+// add no information at the type level (a string $def with no enum; a
+// free-form object $def with no properties; a date-time-shaped string $def)
+// are skipped — at use sites we substitute the underlying primitive directly.
+// Emitting orphan aliases makes the generated file longer without giving
+// callers anything to use.
+func emitType(f *jen.File, e *entry, r *registry) {
+	s := e.schema
+	switch {
+	case len(s.Enum) > 0:
+		emitEnum(f, e.name, s)
+	case s.jsonType() == jsObject && len(s.Properties) > 0:
+		emitStruct(f, e.name, s, r)
+	case s.jsonType() == jsArray && s.Items != nil:
+		f.Type().Id(e.name).Index().Add(goType(s.Items, r))
+		// no string/object aliases (inlined at use sites)
 	}
-	if obj.Properties == nil {
-		panic(fmt.Sprintf("emitStruct: %s has no properties", nt.goName))
-	}
-
-	// Sort property names for stable output.
-	jsonNames := make([]string, 0, len(obj.Properties))
-	for k := range obj.Properties {
-		jsonNames = append(jsonNames, k)
-	}
-	sort.Strings(jsonNames)
-
-	fields := make([]jen.Code, 0, len(jsonNames))
-	for _, jsonName := range jsonNames {
-		prop := obj.Properties[jsonName]
-		typ := fieldType(prop, jsonName, nt.fieldTypes[jsonName], nt.goName)
-		fields = append(fields,
-			jen.Id(goFieldName(jsonName)).Add(typ).Tag(map[string]string{"json": jsonName + ",omitempty"}),
-		)
-	}
-	f.Type().Id(nt.goName).Struct(fields...)
 }
 
-func emitEnum(f *jen.File, root *Schema, es enumSpec) {
-	field := es.navigate(root)
-	if field == nil || len(field.Enum) == 0 {
-		panic(fmt.Sprintf("emitEnum: %s has no enum values at %s", es.typeName, es.schemaPath))
+func emitStruct(f *jen.File, name string, s *Schema, r *registry) {
+	required := map[string]bool{}
+	for _, p := range s.Required {
+		required[p] = true
 	}
+	fields := make([]jen.Code, 0, len(s.Properties))
+	for _, propName := range sortedKeys(s.Properties) {
+		tag := propName
+		if !required[propName] {
+			tag += ",omitempty"
+		}
+		fields = append(fields,
+			jen.Id(goFieldName(propName)).
+				Add(goType(s.Properties[propName], r)).
+				Tag(map[string]string{"json": tag}),
+		)
+	}
+	f.Type().Id(name).Struct(fields...)
+}
 
-	f.Type().Id(es.typeName).String()
-
-	// Sort enum values for stable output (does not affect semantics).
-	values := append([]string{}, field.Enum...)
+func emitEnum(f *jen.File, name string, s *Schema) {
+	f.Type().Id(name).String()
+	values := append([]string{}, s.Enum...)
 	sort.Strings(values)
-
+	prefix := strings.TrimSuffix(name, "Type")
 	f.Const().DefsFunc(func(g *jen.Group) {
 		for _, v := range values {
-			g.Id(es.constName(v)).Id(es.typeName).Op("=").Lit(v)
+			g.Id(prefix + enumValueSuffix(v)).Id(name).Op("=").Lit(v)
 		}
 	})
+}
+
+// goType returns the jen.Code for the Go type of a schema fragment (a field
+// type, array element, etc). For refs and inline named types, it returns an
+// identifier. For primitives, it returns the primitive type directly.
+func goType(s *Schema, r *registry) jen.Code {
+	if s.Ref != "" {
+		e, ok := r.defs[s.Ref]
+		if !ok {
+			panic(fmt.Sprintf("unknown $ref %s — upstream may have changed shape", s.Ref))
+		}
+		return refType(e)
+	}
+	if e, ok := r.seen[s]; ok {
+		return jen.Id(e.name)
+	}
+
+	switch s.jsonType() {
+	case jsString:
+		if s.Format == fmtDateTim {
+			return jen.Qual("time", "Time")
+		}
+		return jen.String()
+	case jsInteger:
+		return jen.Int()
+	case jsNumber:
+		return jen.Float64()
+	case jsBoolean:
+		return jen.Bool()
+	case jsArray:
+		if s.Items == nil {
+			return jen.Index().Any()
+		}
+		return jen.Index().Add(goType(s.Items, r))
+	case jsObject:
+		// inline free-form object → map[string]any
+		return jen.Map(jen.String()).Any()
+	}
+	// Unknown / underspecified — fall back to any.
+	return jen.Any()
+}
+
+// refType returns the Go type for a $ref target. For "primitive-ish" $defs
+// (a plain string alias, or an array alias whose element is a primitive) we
+// emit the underlying type inline at use sites — callers don't see a
+// typed-string wrapper unless the def actually carries an enum.
+func refType(e *entry) jen.Code {
+	s := e.schema
+	if s.jsonType() == jsString && len(s.Enum) == 0 && s.Format != fmtDateTim {
+		return jen.String()
+	}
+	if s.jsonType() == jsString && s.Format == fmtDateTim {
+		return jen.Qual("time", "Time")
+	}
+	return jen.Id(e.name)
+}
+
+// ============================================================================
+// oneOf merging (one-shot in-place pre-pass)
+// ============================================================================
+
+// collapseOneOfsInPlace walks the schema and, wherever a node's oneOf branches
+// are all object schemas with properties, merges those properties into the
+// node and clears the oneOf. Mutating in place keeps schema-pointer identity
+// stable across the discover/emit phases — the registry uses pointers as keys.
+// Non-mergeable oneOfs are left alone (we'll panic on them if they actually
+// affect emission, which means a human needs to look).
+func collapseOneOfsInPlace(s *Schema) {
+	if s == nil {
+		return
+	}
+	// Recurse first so nested branches collapse before we look at this one.
+	for _, p := range s.Properties {
+		collapseOneOfsInPlace(p)
+	}
+	if s.Items != nil {
+		collapseOneOfsInPlace(s.Items)
+	}
+	for _, d := range s.Defs {
+		collapseOneOfsInPlace(d)
+	}
+	for _, b := range s.OneOf {
+		collapseOneOfsInPlace(b)
+	}
+
+	if len(s.OneOf) == 0 {
+		return
+	}
+	for _, b := range s.OneOf {
+		if b.jsonType() != jsObject || len(b.Properties) == 0 {
+			return // not all object-with-properties; leave oneOf untouched
+		}
+	}
+	if s.Properties == nil {
+		s.Properties = map[string]*Schema{}
+	}
+	for _, b := range s.OneOf {
+		for k, v := range b.Properties {
+			if _, exists := s.Properties[k]; !exists {
+				s.Properties[k] = v
+			}
+		}
+	}
+	s.OneOf = nil
+	if s.jsonType() == "" {
+		s.Type = json.RawMessage(`"object"`)
+	}
+}
+
+// ============================================================================
+// Naming
+// ============================================================================
+
+// initialisms records identifier fragments that should keep canonical casing
+// rather than being title-cased. Add new ones as needed.
+var initialisms = map[string]string{
+	"id":     "ID",
+	"url":    "URL",
+	"cvss":   "CVSS",
+	"cpe":    "CPE",
+	"cpes":   "CPEs",
+	"osv":    "OSV",
+	"semver": "SemVer", // not strictly an initialism, but a recognized compound
+}
+
+// goTypeName converts a $def key or schema title into a Go type identifier.
+func goTypeName(s string) string {
+	return pascalCase(s)
+}
+
+// goFieldName converts a JSON property name into a Go field identifier.
+func goFieldName(s string) string {
+	return pascalCase(s)
+}
+
+// pascalCase splits on _ and non-letter-digit boundaries, then title-cases
+// each part (applying the initialisms table). For ALL-CAPS parts the tail
+// is lowercased so "SEMVER" → "Semver" (and via the initialism table,
+// "SemVer"); MixedCase parts are left alone so "RangeType" stays
+// "RangeType" instead of becoming "Rangetype".
+func pascalCase(s string) string {
+	parts := splitIdent(s)
+	for i, p := range parts {
+		if p == "" {
+			continue
+		}
+		if up, ok := initialisms[strings.ToLower(p)]; ok {
+			parts[i] = up
+			continue
+		}
+		head := strings.ToUpper(p[:1])
+		tail := p[1:]
+		if isAllUpper(p) {
+			tail = strings.ToLower(tail)
+		}
+		parts[i] = head + tail
+	}
+	return strings.Join(parts, "")
+}
+
+// isAllUpper reports whether s contains no lowercase letters (digits and
+// other characters are tolerated).
+func isAllUpper(s string) bool {
+	for _, c := range s {
+		if c >= 'a' && c <= 'z' {
+			return false
+		}
+	}
+	return true
+}
+
+// splitIdent breaks a string on _, -, space, and dot. Used to normalize
+// $def keys ("affected_package"), enum values ("CVSS_V2"), and titles
+// ("Open Source Vulnerability") into PascalCase-able parts.
+func splitIdent(s string) []string {
+	var parts []string
+	cur := strings.Builder{}
+	flush := func() {
+		if cur.Len() > 0 {
+			parts = append(parts, cur.String())
+			cur.Reset()
+		}
+	}
+	for _, c := range s {
+		switch c {
+		case '_', '-', ' ', '.', '/':
+			flush()
+		default:
+			cur.WriteRune(c)
+		}
+	}
+	flush()
+	return parts
+}
+
+// enumValueSuffix returns the suffix appended to the enum type name to form
+// a constant identifier. pascalCase handles the casing (with initialism
+// awareness: "CVSS_V2" → "CVSSV2", "SEMVER" → "SemVer", "ECOSYSTEM" →
+// "Ecosystem"). Mixed-case inputs like "Ubuntu" stay as-is.
+func enumValueSuffix(v string) string {
+	return pascalCase(v)
+}
+
+// singularize trims a trailing "s" from a plural-looking identifier so the
+// element type of an array reads naturally ("ranges" → "Range"). The rule
+// is intentionally narrow: only strips a single trailing 's', and only when
+// it's not preceded by another 's' (avoiding mangling words ending in "ss").
+// Good enough for OSV-style schemas where field names are simple plurals.
+func singularize(s string) string {
+	if len(s) < 2 {
+		return s
+	}
+	if s[len(s)-1] != 's' {
+		return s
+	}
+	if s[len(s)-2] == 's' {
+		return s
+	}
+	return s[:len(s)-1]
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+func sortedKeys[V any](m map[string]V) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }

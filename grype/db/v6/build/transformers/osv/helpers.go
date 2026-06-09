@@ -253,9 +253,9 @@ func extractCVSSInfo(cvss string) (string, string, error) {
 	return matches[1], matches[0], nil
 }
 
-func normalizeSeverity(severity osvmodel.Severity) (db.Severity, error) {
+func normalizeSeverity(severity osvmodel.SeverityEntry) (db.Severity, error) {
 	switch severity.Type {
-	case osvmodel.SeverityCVSSV2, osvmodel.SeverityCVSSV3, osvmodel.SeverityCVSSV4:
+	case osvmodel.SeverityEntryCVSSV2, osvmodel.SeverityEntryCVSSV3, osvmodel.SeverityEntryCVSSV4:
 		version, vector, err := extractCVSSInfo(severity.Score)
 		if err != nil {
 			return db.Severity{}, err
