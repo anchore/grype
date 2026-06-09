@@ -5,8 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/osv-scanner/pkg/models"
-
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 )
@@ -171,14 +170,14 @@ func TestGoVulnDBTransform(t *testing.T) {
 func TestGoVulnDBRangeConversion(t *testing.T) {
 	tests := []struct {
 		name string
-		rnge models.Range
+		rnge osvmodel.Range
 		want []db.Range
 	}{
 		{
 			name: "simple introduced=0 -> fixed",
-			rnge: models.Range{
-				Type: models.RangeSemVer,
-				Events: []models.Event{
+			rnge: osvmodel.Range{
+				Type: osvmodel.RangeSemVer,
+				Events: []osvmodel.Event{
 					{Introduced: "0"},
 					{Fixed: "1.6.0"},
 				},
@@ -190,9 +189,9 @@ func TestGoVulnDBRangeConversion(t *testing.T) {
 		},
 		{
 			name: "two disjoint windows in one range (stdlib shape)",
-			rnge: models.Range{
-				Type: models.RangeSemVer,
-				Events: []models.Event{
+			rnge: osvmodel.Range{
+				Type: osvmodel.RangeSemVer,
+				Events: []osvmodel.Event{
 					{Introduced: "0"},
 					{Fixed: "1.18.6"},
 					{Introduced: "1.19.0-0"},
@@ -212,9 +211,9 @@ func TestGoVulnDBRangeConversion(t *testing.T) {
 		},
 		{
 			name: "pseudo-version fixed (golang.org/x/* shape)",
-			rnge: models.Range{
-				Type: models.RangeSemVer,
-				Events: []models.Event{
+			rnge: osvmodel.Range{
+				Type: osvmodel.RangeSemVer,
+				Events: []osvmodel.Event{
 					{Introduced: "0"},
 					{Fixed: "0.0.0-20220906165146-f3363e06e74c"},
 				},

@@ -5,10 +5,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/google/osv-scanner/pkg/models"
-
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	"github.com/anchore/grype/grype/db/provider"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
@@ -98,10 +97,10 @@ func bitnamiAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPacka
 	return aphs
 }
 
-func bitnamiPackage(p models.Package) *db.Package {
+func bitnamiPackage(p osvmodel.Package) *db.Package {
 	pkgType := pkg.TypeFromPURL(p.Purl)
 	return &db.Package{
-		Ecosystem: string(p.Ecosystem),
+		Ecosystem: p.Ecosystem,
 		Name:      name.Normalize(p.Name, pkgType),
 	}
 }
@@ -109,8 +108,8 @@ func bitnamiPackage(p models.Package) *db.Package {
 // bitnamiRangeType maps an OSV range type to the grype version-format string
 // for Bitnami records. SEMVER ranges describe bitnami-flavored semver
 // (separate version comparator); other OSV types fall through to the default.
-func bitnamiRangeType(t models.RangeType) string {
-	if t == models.RangeSemVer {
+func bitnamiRangeType(t osvmodel.RangeType) string {
+	if t == osvmodel.RangeSemVer {
 		return "bitnami"
 	}
 	return defaultRangeType(t)
