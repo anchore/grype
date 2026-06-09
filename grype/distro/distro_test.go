@@ -319,6 +319,18 @@ func Test_NewDistroFromRelease(t *testing.T) {
 	}
 }
 
+func Test_NewDistroFromRelease_DoesNotPanicOnInvalidRHELVersionID(t *testing.T) {
+	require.NotPanics(t, func() {
+		d, err := NewFromRelease(linux.Release{
+			ID:        "rhel",
+			VersionID: "7.cv00",
+		}, testFixChannels())
+		require.NoError(t, err)
+		assert.Equal(t, RedHat, d.Type)
+		assert.Equal(t, "7.cv00", d.Version)
+	})
+}
+
 func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 	observedDistros := stringutil.NewStringSet()
 	definedDistros := stringutil.NewStringSet()
