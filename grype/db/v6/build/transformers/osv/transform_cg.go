@@ -32,9 +32,7 @@ func (chainguardStrategy) Transform(vuln unmarshal.OSVVulnerability, state provi
 		return nil, fmt.Errorf("unable to obtain severities: %w", err)
 	}
 
-	// cg puts CVEs in `upstream`
-	aliases := append(vuln.Aliases, vuln.Upstream...)
-
+	aliases := vuln.Aliases
 	in := []any{
 		db.VulnerabilityHandle{
 			Name:          vuln.ID,
@@ -49,8 +47,9 @@ func (chainguardStrategy) Transform(vuln unmarshal.OSVVulnerability, state provi
 				Assigners:   nil,
 				Description: vuln.Details,
 				References:  cgReferences(vuln),
-				Aliases:     aliases,
-				Severities:  severities,
+				// cg puts CVEs in `upstream`, so we append those
+				Aliases:    append(aliases, vuln.Upstream...),
+				Severities: severities,
 			},
 		},
 	}
@@ -85,7 +84,7 @@ func cgAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHan
 	if len(vuln.Affected) == 0 {
 		return nil
 	}
-	aliases := append(vuln.Aliases, vuln.Upstream...)
+	aliases := vuln.Aliases
 	var aphs []db.AffectedPackageHandle
 	for _, affected := range vuln.Affected {
 		var ranges []db.Range
@@ -99,7 +98,8 @@ func cgAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHan
 				Name:      name.Normalize(affected.Package.Name, pkg.TypeFromPURL(affected.Package.Purl)),
 			},
 			BlobValue: &db.PackageBlob{
-				CVEs:       aliases,
+				// cg puts CVEs in `upstream`, so we append those
+				CVEs:       append(aliases, vuln.Upstream...),
 				Ranges:     ranges,
 				Qualifiers: cgGetQualifiers(affected),
 			},
