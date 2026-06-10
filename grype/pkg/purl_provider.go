@@ -101,7 +101,7 @@ func distroFromPURL(purl packageurl.PackageURL) (d *distro.Distro) {
 	return d
 }
 
-func setArchFromPURL(out *Package, purl packageurl.PackageURL, syftPkg syftPkg.Package) {
+func setArchFromPURL(out *Package, purl packageurl.PackageURL, _ syftPkg.Package) {
 	if out.Arch == "" || out.PURL == "" {
 		out.Arch = archFromPURL(purl)
 	}
