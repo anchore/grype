@@ -29,6 +29,17 @@ func TestNewSearchCriteria(t *testing.T) {
 			},
 		},
 		{
+			name: "package name prefix criteria sets correct fields",
+			criteria: []vulnerability.Criteria{
+				search.ByPackageNamePrefix("golang.org/x/crypto"),
+			},
+			validate: func(t *testing.T, input *searchQuery) {
+				require.NotNil(t, input.pkgSpec)
+				require.Equal(t, "golang.org/x/crypto", input.pkgSpec.NamePrefix)
+				require.Empty(t, input.pkgSpec.Name)
+			},
+		},
+		{
 			name: "unaffected criteria sets flag",
 			criteria: []vulnerability.Criteria{
 				search.ForUnaffected(),
