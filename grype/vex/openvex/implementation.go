@@ -300,12 +300,20 @@ func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, statement *open
 		// If the vulnerability is blank in the rule it means we will honor
 		// any status with any vulnerability.
 		if rule.Vulnerability == "" {
+			// Preserve the VEX justification from the statement when the
+			// rule did not specify one (e.g. status-only ignore rules).
+			if rule.VexJustification == "" {
+				rule.VexJustification = string(statement.Justification)
+			}
 			return &rule
 		}
 
 		// If the vulnerability is set, the rule applies if it is the same
 		// in the statement and the rule.
 		if statement.Vulnerability.Matches(rule.Vulnerability) {
+			if rule.VexJustification == "" {
+				rule.VexJustification = string(statement.Justification)
+			}
 			return &rule
 		}
 	}
