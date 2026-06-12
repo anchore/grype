@@ -18,7 +18,7 @@ jobs:
   version-available:
     permissions:
       contents: read # for the most recent tags
-    uses: anchore/workflows/.github/workflows/check-version-available.yaml@b3e328b5ae31ba96297e2ed9a6124e5e6352a4c5 # v0.7.0
+    uses: anchore/workflows/.github/workflows/check-version-available.yaml@b0c30a80409130d329aaa356fd64a34d8c0b3375 # v0.7.2
     with:
       version: ${{ github.event.inputs.version }}
 
@@ -26,7 +26,7 @@ jobs:
     permissions:
       contents: read
       checks: read # required for getting the status of specific check names
-    uses: anchore/workflows/.github/workflows/check-gate.yaml@b3e328b5ae31ba96297e2ed9a6124e5e6352a4c5 # v0.7.0
+    uses: anchore/workflows/.github/workflows/check-gate.yaml@b0c30a80409130d329aaa356fd64a34d8c0b3375 # v0.7.2
     with:
       # these are checks that should be run on pull-request and merges to main.
       # we do NOT want to kick off a release if these have not been verified on main.
@@ -46,7 +46,7 @@ jobs:
       packages: write
       id-token: write
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 #v6.0.3
         with:
           fetch-depth: 0
           persist-credentials: true
@@ -97,7 +97,7 @@ jobs:
     if: ${{ needs.release.result == 'success' }}
     permissions:
       contents: read
-    uses: anchore/workflows/.github/workflows/release-install-script.yaml@b3e328b5ae31ba96297e2ed9a6124e5e6352a4c5 # v0.7.0
+    uses: anchore/workflows/.github/workflows/release-install-script.yaml@b0c30a80409130d329aaa356fd64a34d8c0b3375 # v0.7.2
     with:
       tag: ${{ github.event.inputs.version }}
     secrets:
