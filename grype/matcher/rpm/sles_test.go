@@ -23,6 +23,7 @@ func TestMatcherRpm_SLES_UnaffectedRecordProducesIgnore(t *testing.T) {
 			pkgID := pkg.ID("python311-Werkzeug-unaffected")
 			// the user's reported version from issue #2566
 			p := dbtest.NewPackage("python311-Werkzeug", "0:2.3.6-150400.6.12.1", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithID(pkgID).
 				WithDistro(dbtest.SLES156).
 				Build()
@@ -44,6 +45,7 @@ func TestMatcherRpm_SLES_VulnerableAndUnaffectedInSameCall(t *testing.T) {
 		pkgID := pkg.ID("python311-Werkzeug-mixed")
 		// 2.3.0 is below the SUSE fix at 2.3.6 → vulnerable for CVE-2023-25577
 		p := dbtest.NewPackage("python311-Werkzeug", "0:2.3.0-150400.6.1.1", syftPkg.RpmPkg).
+			WithArchitecture("aarch64").
 			WithID(pkgID).
 			WithDistro(dbtest.SLES156).
 			Build()
@@ -71,6 +73,7 @@ func TestMatcherRpm_SLES_RecordsDoNotCrossMinorVersion(t *testing.T) {
 			// on 15.7; with the sles:15.7 fixture entry present, the OS-row
 			// lookup hits 15.7 directly and neither 15.6 record leaks.
 			p := dbtest.NewPackage("python311-Werkzeug", "0:2.3.0-150700.6.1.1", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(distro.New(distro.SLES, "15.7", "")).
 				Build()
 
@@ -87,6 +90,7 @@ func TestMatcherRpm_SLES_FixturePresenceOfMinorVersionRow(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("glibc", "0:2.36-150600.10.1.1", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(dbtest.SLES157).
 				Build()
 
@@ -108,6 +112,7 @@ func TestMatcherRpm_SLES_GANamespaceAppliesToGAScan(t *testing.T) {
 			pkgID := pkg.ID("python3-werkzeug-on-sles-15-ga")
 			// SLES 15 GA host: VERSION_ID="15" -> distro major=15, minor=""
 			p := dbtest.NewPackage("python3-Werkzeug", "0:0.16.1-150100.4.6.1", syftPkg.RpmPkg).
+				WithArchitecture("aarch64").
 				WithID(pkgID).
 				WithDistro(distro.New(distro.SLES, "15", "")).
 				Build()
@@ -129,6 +134,7 @@ func TestMatcherRpm_SLES_GANamespaceLeaksOntoUnknownMinor(t *testing.T) {
 			matcher := Matcher{}
 			pkgID := pkg.ID("python3-werkzeug-on-unknown-sles-minor")
 			p := dbtest.NewPackage("python3-Werkzeug", "0:0.16.1-150100.4.6.1", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithID(pkgID).
 				WithDistro(distro.New(distro.SLES, "15.99", "")).
 				Build()

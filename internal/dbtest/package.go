@@ -84,6 +84,14 @@ func (b *PackageBuilder) WithDistro(d *distro.Distro) *PackageBuilder {
 	return b
 }
 
+// WithArchitecture sets the package architecture (e.g., "x86_64", "aarch64").
+// Read by the architectureQualifier at match time to match a package against the
+// architecture a vulnerability entry applies to.
+func (b *PackageBuilder) WithArchitecture(arch string) *PackageBuilder {
+	b.pkg.Arch = arch
+	return b
+}
+
 // WithLanguage sets the package's language ecosystem.
 func (b *PackageBuilder) WithLanguage(lang syftPkg.Language) *PackageBuilder {
 	b.pkg.Language = lang
