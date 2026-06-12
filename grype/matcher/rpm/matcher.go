@@ -9,6 +9,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/pkg/qualifier/architecture"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -215,7 +216,12 @@ func (m *Matcher) matchUpstreamPackages(vp vulnerability.Provider, p pkg.Package
 	var ignored []match.IgnoreFilter
 
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, ignores, err := m.findMatches(provider, indirectPackage, internal.SourceOrUnspecifiedArch())
+		// An rpm's upstream is its source rpm, so tag the synthesized package "src". The
+		// architecture qualifier then matches it only against src (and unspecified) records
+		// and rejects binary-arch records — which is how we avoid matching a binary's
+		// upstream against a sibling binary's vulnerability.
+		indirectPackage.Arch = architecture.ArchSource
+		indirectMatches, ignores, err := m.findMatches(provider, indirectPackage)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
 		}
