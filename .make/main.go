@@ -36,6 +36,7 @@ func main() {
 		qualityTask(),
 
 		generateTask(),
+		updateOSVModelTask(),
 		checkJSONSchemaDriftTask(),
 		checkDBSchemaDriftTask(),
 		checkSyftVersionIsReleaseTask(),
@@ -145,6 +146,7 @@ func generateTask() Task {
 			"generate:json-schema",
 			"generate:db-schema",
 			"generate:codename-data",
+			"generate:osv-model",
 		),
 		Tasks: []Task{
 			{
@@ -170,6 +172,14 @@ func generateTask() Task {
 				Dependencies: Deps("format"),
 				Run: func() {
 					Run("go generate ./grype/db")
+				},
+			},
+			{
+				Name: "generate:osv-model",
+				Description: "regenerate the OSV model from the pinned upstream JSON schema " +
+					"(use `update:osv-model` to also fetch latest from github.com/ossf/osv-schema)",
+				Run: func() {
+					Run("go generate ./grype/db/internal/provider/unmarshal/osvmodel/...")
 				},
 			},
 		},
@@ -206,6 +216,24 @@ func checkDBSchemaDriftTask() Task {
 				lang.Throw(fmt.Errorf("database blob schemas are out of date; run 'make generate:db-schema' and commit"))
 			}
 			log.Info("Database blob schemas are up to date")
+		},
+	}
+}
+
+// updateOSVModelTask fetches the latest v1 OSV schema from upstream
+// (github.com/ossf/osv-schema), writes schema-v1.json + schema-v1.tag, and
+// regenerates vulnerability_v1_generated.go. This is the cron-driven update
+// counterpart to the offline `generate:osv-model`. Producing a diff is the
+// expected outcome when upstream has moved; oss-release wraps this task to
+// open a PR with that diff.
+func updateOSVModelTask() Task {
+	return Task{
+		Name:        "update:osv-model",
+		Description: "fetch latest v1 OSV schema from github.com/ossf/osv-schema and regenerate the model",
+		Run: func() {
+			file.InDir("grype/db/internal/provider/unmarshal/osvmodel/generate", func() {
+				Run("go run . --pull")
+			})
 		},
 	}
 }

@@ -5,8 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/osv-scanner/pkg/models"
-
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 )
@@ -228,14 +227,14 @@ func TestAlmaTransform(t *testing.T) {
 func TestAlmaRangeConversion(t *testing.T) {
 	tests := []struct {
 		name string
-		rnge models.Range
+		rnge osvmodel.Range
 		want []db.Range
 	}{
 		{
 			name: "ECOSYSTEM range with introduced=0 and fixed produces inverted unaffected range",
-			rnge: models.Range{
-				Type: models.RangeEcosystem,
-				Events: []models.Event{
+			rnge: osvmodel.Range{
+				Type: osvmodel.RangeEcosystem,
+				Events: []osvmodel.Event{
 					{Introduced: "0"},
 					{Fixed: "1.0.28-10.el8"},
 				},
@@ -247,9 +246,9 @@ func TestAlmaRangeConversion(t *testing.T) {
 		},
 		{
 			name: "ECOSYSTEM range with modular RPM fix version",
-			rnge: models.Range{
-				Type: models.RangeEcosystem,
-				Events: []models.Event{
+			rnge: osvmodel.Range{
+				Type: osvmodel.RangeEcosystem,
+				Events: []osvmodel.Event{
 					{Introduced: "0"},
 					{Fixed: "1.6.0-1.module_el8.5.0+2604+960c7771"},
 				},
@@ -261,9 +260,9 @@ func TestAlmaRangeConversion(t *testing.T) {
 		},
 		{
 			name: "ECOSYSTEM range with epoch-prefixed RPM version",
-			rnge: models.Range{
-				Type: models.RangeEcosystem,
-				Events: []models.Event{
+			rnge: osvmodel.Range{
+				Type: osvmodel.RangeEcosystem,
+				Events: []osvmodel.Event{
 					{Introduced: "0"},
 					{Fixed: "2:1.18.1-1.el10_0"},
 				},
@@ -291,12 +290,12 @@ func TestAlmaRangeConversion(t *testing.T) {
 func Test_extractRpmModularity(t *testing.T) {
 	tests := []struct {
 		name     string
-		affected models.Affected
+		affected osvmodel.Affected
 		want     string
 	}{
 		{
 			name: "with rpm_modularity",
-			affected: models.Affected{
+			affected: osvmodel.Affected{
 				EcosystemSpecific: map[string]any{
 					"rpm_modularity": "mariadb:10.3",
 				},
@@ -305,26 +304,26 @@ func Test_extractRpmModularity(t *testing.T) {
 		},
 		{
 			name:     "no ecosystem_specific",
-			affected: models.Affected{EcosystemSpecific: nil},
+			affected: osvmodel.Affected{EcosystemSpecific: nil},
 			want:     "",
 		},
 		{
 			name: "no rpm_modularity key",
-			affected: models.Affected{
+			affected: osvmodel.Affected{
 				EcosystemSpecific: map[string]any{"other_key": "some_value"},
 			},
 			want: "",
 		},
 		{
 			name: "rpm_modularity not string",
-			affected: models.Affected{
+			affected: osvmodel.Affected{
 				EcosystemSpecific: map[string]any{"rpm_modularity": 123},
 			},
 			want: "",
 		},
 		{
 			name: "nodejs modularity",
-			affected: models.Affected{
+			affected: osvmodel.Affected{
 				EcosystemSpecific: map[string]any{"rpm_modularity": "nodejs:16"},
 			},
 			want: "nodejs:16",

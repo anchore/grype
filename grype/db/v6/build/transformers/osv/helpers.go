@@ -5,9 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/osv-scanner/pkg/models"
-
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	"github.com/anchore/grype/grype/db/internal/versionutil"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
@@ -64,7 +63,7 @@ import (
 // "semver") — the caller decides this per-provider, since the same OSV
 // RangeType maps differently across providers. See each strategy's own
 // rangeType() function in transform_<provider>.go.
-func getGrypeRangesFromRange(r models.Range, rangeType string) []db.Range { // nolint: gocognit,funlen
+func getGrypeRangesFromRange(r osvmodel.Range, rangeType string) []db.Range { // nolint: gocognit,funlen
 	var ranges []db.Range
 	if len(r.Events) == 0 {
 		return nil
@@ -126,7 +125,7 @@ func getGrypeRangesFromRange(r models.Range, rangeType string) []db.Range { // n
 // getGrypeUnaffectedRangesFromRange inverts the OSV range events into
 // "unaffected" ranges for advisory records. rangeType is the grype-side format
 // string supplied by the calling strategy (see strategy rangeType() helpers).
-func getGrypeUnaffectedRangesFromRange(r models.Range, rangeType string) []db.Range {
+func getGrypeUnaffectedRangesFromRange(r osvmodel.Range, rangeType string) []db.Range {
 	if len(r.Events) == 0 {
 		return nil
 	}
@@ -161,9 +160,9 @@ func normalizeFix(fix string, detail *db.FixDetail) *db.Fix {
 // defaultRangeType is the generic OSV range-type → grype format mapping with
 // no provider-specific overrides. Strategies use this as the fallback for OSV
 // range types they don't have a special interpretation for.
-func defaultRangeType(t models.RangeType) string {
+func defaultRangeType(t osvmodel.RangeType) string {
 	switch t {
-	case models.RangeSemVer, models.RangeEcosystem, models.RangeGit:
+	case osvmodel.RangeSemVer, osvmodel.RangeEcosystem, osvmodel.RangeGit:
 		return strings.ToLower(string(t))
 	default:
 		return "unknown"
@@ -174,7 +173,7 @@ func defaultRangeType(t models.RangeType) string {
 // Fix-availability decoding (database_specific.anchore.fixes)
 // ============================================================================
 
-func extractFixAvailability(r models.Range) map[string]db.FixAvailability {
+func extractFixAvailability(r osvmodel.Range) map[string]db.FixAvailability {
 	fixByVersion := make(map[string]db.FixAvailability)
 
 	dbSpecific, ok := r.DatabaseSpecific["anchore"]
@@ -215,7 +214,7 @@ func parseSingleFixEntry(fixEntry any, fixByVersion map[string]db.FixAvailabilit
 	}
 }
 
-func buildUnaffectedRangesFromEvents(events []models.Event, fixByVersion map[string]db.FixAvailability, rangeType string) []db.Range {
+func buildUnaffectedRangesFromEvents(events []osvmodel.Event, fixByVersion map[string]db.FixAvailability, rangeType string) []db.Range {
 	var ranges []db.Range
 	for _, e := range events {
 		if e.Fixed != "" {
@@ -254,9 +253,9 @@ func extractCVSSInfo(cvss string) (string, string, error) {
 	return matches[1], matches[0], nil
 }
 
-func normalizeSeverity(severity models.Severity) (db.Severity, error) {
+func normalizeSeverity(severity osvmodel.SeverityEntry) (db.Severity, error) {
 	switch severity.Type {
-	case models.SeverityCVSSV2, models.SeverityCVSSV3, models.SeverityCVSSV4:
+	case osvmodel.SeverityEntryCVSSV2, osvmodel.SeverityEntryCVSSV3, osvmodel.SeverityEntryCVSSV4:
 		version, vector, err := extractCVSSInfo(severity.Score)
 		if err != nil {
 			return db.Severity{}, err
