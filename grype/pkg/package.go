@@ -49,6 +49,11 @@ type Package struct {
 	Locations file.LocationSet // the locations that lead to the discovery of this package (note: this is not necessarily the locations that make up this package)
 	Language  syftPkg.Language // the language ecosystem this package belongs to (e.g. JavaScript, Python, etc)
 	Distro    *distro.Distro   // a specific distro this package originated from
+	// Arch is the package's architecture in its ecosystem's native spelling (rpm "x86_64",
+	// deb "amd64", apk "x86_64", ...), stored verbatim. Cross-dialect aliases (amd64↔x86_64,
+	// arm64↔aarch64, ...) are reconciled at match time by pkg/qualifier/architecture.canonicalArch,
+	// so it is intentionally a raw string here rather than an enum.
+	Arch      string
 	Licenses  []string
 	Type      syftPkg.Type // the package type (e.g. Npm, Yarn, Python, Rpm, Deb, etc)
 	CPEs      []cpe.CPE    // all possible Common Platform Enumerators

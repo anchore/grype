@@ -9,6 +9,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/pkg/qualifier/architecture"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -81,6 +82,11 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 	// in matcher.go for the full explanation of why this is necessary.
 	upstreamDisclosures := result.Set{}
 	for _, upstreamPkg := range pkg.UpstreamPackages(binaryPkg) {
+		// An rpm's upstream is its source rpm: tag the synthesized package "src" so the
+		// architecture qualifier matches it only against src (and unspecified) records and
+		// rejects binary-arch records (avoiding sibling-binary false positives).
+		upstreamPkg.Arch = architecture.ArchSource
+
 		// Create a version object from the upstream package WITHOUT adding epoch
 		// This avoids false positives where binary package epochs differ from source package epochs
 		upstreamVersion := version.New(upstreamPkg.Version, pkg.VersionFormat(upstreamPkg))
@@ -89,7 +95,6 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 			search.ByPackageName(upstreamPkg.Name),
 			search.ByDistro(rhelCompatibleDistro),
 			internal.OnlyQualifiedPackages(upstreamPkg),
-			internal.SourceOrUnspecifiedArch(),
 		)
 		if err != nil {
 			log.WithFields("error", err, "upstreamPkg", upstreamPkg.Name, "binaryPkg", binaryPkg.Name).Debug("failed to fetch RHEL disclosures for upstream package")
