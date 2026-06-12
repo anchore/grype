@@ -29,9 +29,10 @@ var (
 	Alpine318 = distro.New(distro.Alpine, "3.18", "")
 	Alpine319 = distro.New(distro.Alpine, "3.19", "")
 
-	// Wolfi is rolling; version is unused for matching but preserved here for
-	// readability at call sites.
-	WolfiRolling = distro.New(distro.Wolfi, "", "")
+	// Wolfi and Chainguard are both rolling-release apk distros; version is
+	// unused for matching but preserved here for readability at call sites.
+	WolfiRolling      = distro.New(distro.Wolfi, "", "")
+	ChainguardRolling = distro.New(distro.Chainguard, "", "")
 
 	RHEL7  = distro.New(distro.RedHat, "7", "")
 	RHEL8  = distro.New(distro.RedHat, "8", "")
@@ -81,6 +82,14 @@ func (b *PackageBuilder) WithID(id pkg.ID) *PackageBuilder {
 // WithDistro sets the package's distro.
 func (b *PackageBuilder) WithDistro(d *distro.Distro) *PackageBuilder {
 	b.pkg.Distro = d
+	return b
+}
+
+// WithArchitecture sets the package architecture (e.g., "x86_64", "aarch64").
+// Read by the architectureQualifier at match time: a vulnerability entry whose
+// Architecture qualifier disagrees with this value is filtered out.
+func (b *PackageBuilder) WithArchitecture(arch string) *PackageBuilder {
+	b.pkg.Arch = arch
 	return b
 }
 

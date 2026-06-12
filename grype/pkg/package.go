@@ -49,6 +49,8 @@ type Package struct {
 	Locations file.LocationSet // the locations that lead to the discovery of this package (note: this is not necessarily the locations that make up this package)
 	Language  syftPkg.Language // the language ecosystem this package belongs to (e.g. JavaScript, Python, etc)
 	Distro    *distro.Distro   // a specific distro this package originated from
+	// TODO: should this be an enum to avoid mismatches like "amd64" vs "x86_64"?
+	Arch      string // the architecture of the package (e.g. "amd64", "arm64", etc)
 	Licenses  []string
 	Type      syftPkg.Type // the package type (e.g. Npm, Yarn, Python, Rpm, Deb, etc)
 	CPEs      []cpe.CPE    // all possible Common Platform Enumerators
