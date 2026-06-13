@@ -24,7 +24,7 @@ type PURLLiteralMetadata struct {
 }
 
 func purlEnhancers(applyChannel func(*distro.Distro) bool) []Enhancer {
-	return []Enhancer{setUpstreamsFromPURL, setDistroFromPURL(applyChannel)}
+	return []Enhancer{setNameFromPURL, setUpstreamsFromPURL, setDistroFromPURL(applyChannel)}
 }
 
 func purlProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]*Package, Context, *sbom.SBOM, error) {
@@ -53,9 +53,25 @@ func getPurlReader(userInput string) (r io.Reader, ctx Context, err error) {
 	return nil, ctx, errDoesNotProvide
 }
 
-func setUpstreamsFromPURL(out *Package, purl packageurl.PackageURL, syftPkg syftPkg.Package) {
+func setNameFromPURL(out *Package, purl packageurl.PackageURL, syftPackage syftPkg.Package) {
+	if syftPackage.Type != syftPkg.GoModulePkg {
+		return
+	}
+
+	if purl.Namespace != "" {
+		out.Name = purl.Namespace + "/" + purl.Name
+	} else {
+		out.Name = purl.Name
+	}
+
+	if purl.Subpath != "" {
+		out.Name += "/" + purl.Subpath
+	}
+}
+
+func setUpstreamsFromPURL(out *Package, purl packageurl.PackageURL, syftPackage syftPkg.Package) {
 	if len(out.Upstreams) == 0 || out.PURL == "" {
-		out.Upstreams = upstreamsFromPURL(purl, syftPkg.Type)
+		out.Upstreams = upstreamsFromPURL(purl, syftPackage.Type)
 	}
 }
 
