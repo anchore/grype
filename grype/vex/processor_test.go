@@ -347,7 +347,7 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 			if err != nil {
 				return
 			}
-			actualMatches, actualIgnoredMatches, err := p.ApplyVEX(tt.args.pkgContext, tt.args.matches, tt.args.ignoredMatches)
+			actualMatches, actualIgnoredMatches, err := p.ApplyVEX(tt.args.pkgContext, nil, tt.args.matches, tt.args.ignoredMatches)
 			tt.wantErr(t, err)
 			if err != nil {
 				return
