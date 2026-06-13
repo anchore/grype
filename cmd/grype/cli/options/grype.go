@@ -200,6 +200,7 @@ default is unset which will skip this validation (options: negligible, low, medi
 This is the full set of supported rule fields:
   - vulnerability: CVE-2008-4318
     fix-state: unknown
+	expires-after: "2027-01-01"
     package:
       name: libcurl
       version: 1.5.1
