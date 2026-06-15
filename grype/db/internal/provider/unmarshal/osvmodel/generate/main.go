@@ -426,12 +426,13 @@ func (r *registry) walkForInline(s *Schema, parent string) {
 			r.discoverField(s.Properties[fname], fname, parent)
 		}
 	case jsArray:
-		// We're inside a $def whose root is an array. Items get the
-		// parent-prefixed name directly ("SeverityEntry" not just "Entry")
-		// because the bare "Entry" is too generic for a top-level type.
+		// an array $def is transparent: the element takes the def's own name
+		// and refs resolve to []<DefName>. Walk the element's children under
+		// the def name so inline enums read as <Def>Type (e.g. SeverityType),
+		// not <Def>EntryType. The element itself is emitted under the def name
+		// in emitType, so we don't register a separate type for it here.
 		if s.Items != nil {
-			suffixed := parent + "Entry"
-			r.discoverField(s.Items, suffixed, suffixed)
+			r.walkForInline(s.Items, parent)
 		}
 	}
 }
@@ -515,7 +516,17 @@ func emitType(f *jen.File, e *entry, r *registry) {
 		emitEnum(f, e.name, s)
 	case s.jsonType() == jsObject && len(s.Properties) > 0:
 		emitStruct(f, e.name, s, r)
+	case s.jsonType() == jsArray && namedArrayElement(s):
+		// transparent array def: emit the element under the def's name (refs
+		// resolve to []<DefName>), so `severity` becomes a Severity element
+		// struct used as []Severity — consistent with every other collection.
+		if len(s.Items.Enum) > 0 {
+			emitEnum(f, e.name, s.Items)
+		} else {
+			emitStruct(f, e.name, s.Items, r)
+		}
 	case s.jsonType() == jsArray && s.Items != nil:
+		// primitive-element array def: a named slice alias (no element type).
 		f.Type().Id(e.name).Index().Add(goType(s.Items, r))
 		// no string/object aliases (inlined at use sites)
 	}
@@ -605,7 +616,24 @@ func refType(e *entry) jen.Code {
 	if s.jsonType() == jsString && s.Format == fmtDateTim {
 		return jen.Qual("time", "Time")
 	}
+	if s.jsonType() == jsArray && namedArrayElement(s) {
+		// transparent array def: the element is named after the def and is
+		// referenced as a slice (e.g. severity → []Severity).
+		return jen.Index().Add(jen.Id(e.name))
+	}
 	return jen.Id(e.name)
+}
+
+// namedArrayElement reports whether an array schema's element warrants its own
+// named Go type (an object with properties or an enum), as opposed to a
+// primitive that's inlined. Such array $defs are emitted transparently: the
+// element takes the def's name and refs resolve to []<DefName>.
+func namedArrayElement(s *Schema) bool {
+	if s.Items == nil {
+		return false
+	}
+	it := s.Items
+	return len(it.Enum) > 0 || (it.jsonType() == jsObject && len(it.Properties) > 0)
 }
 
 // ============================================================================
