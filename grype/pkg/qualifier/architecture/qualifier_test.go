@@ -23,7 +23,7 @@ func TestArchitecture_Arch(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			q := New(tt.arch)
+			q := New(tt.arch, nil)
 			archer, ok := q.(interface{ Arch() string })
 			require.True(t, ok, "qualifier must expose Arch() so criteria can read the stored value")
 			require.Equal(t, tt.arch, archer.Arch())
@@ -142,10 +142,55 @@ func TestArchitecture_Satisfied(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			q := New(tt.qualifierArch)
-			got, err := q.Satisfied(pkg.Package{Arch: tt.pkgArch})
+			q := New(tt.qualifierArch, nil)
+			got, err := q.Satisfied(pkg.Package{Metadata: pkg.RpmMetadata{Arch: tt.pkgArch}})
 			require.NoError(t, err)
 			require.Equal(t, tt.want, got)
 		})
 	}
+}
+
+// TestArchitecture_Satisfied_NonRpmMetadataInert pins that a package whose metadata is absent
+// or isn't RpmMetadata reports no arch and so is never filtered — arch lives on the rpm
+// metadata contract, and the qualifier only ever sees rpm packages in practice.
+func TestArchitecture_Satisfied_NonRpmMetadataInert(t *testing.T) {
+	for _, p := range []pkg.Package{
+		{Name: "no-metadata"},
+		{Name: "apk-metadata", Metadata: pkg.ApkMetadata{}},
+	} {
+		got, err := New("x86_64", nil).Satisfied(p)
+		require.NoError(t, err)
+		require.True(t, got, "package %q should be inert (no rpm arch to decide on)", p.Name)
+	}
+}
+
+// TestArchitecture_Satisfied_DataDrivenAliases pins that the DB-supplied alias table — not the
+// built-in defaults — drives canonicalization when present. A non-empty table is trusted
+// exclusively, so a default fold absent from it no longer applies.
+func TestArchitecture_Satisfied_DataDrivenAliases(t *testing.T) {
+	// a DB whose table folds a dialect the built-in defaults don't know about ("riscv64" =
+	// "riscv") and intentionally omits the built-in amd64 fold.
+	aliases := map[string]string{"riscv64": "riscv"}
+
+	// the DB-provided fold applies
+	got, err := New("riscv", aliases).Satisfied(pkg.Package{Metadata: pkg.RpmMetadata{Arch: "riscv64"}})
+	require.NoError(t, err)
+	require.True(t, got, "DB-supplied alias should fold riscv64 -> riscv")
+
+	// the built-in default fold (x86_64 -> amd64) is NOT merged in when the DB table is present
+	got, err = New("amd64", aliases).Satisfied(pkg.Package{Metadata: pkg.RpmMetadata{Arch: "x86_64"}})
+	require.NoError(t, err)
+	require.False(t, got, "non-empty DB table is trusted exclusively; built-in defaults must not leak in")
+}
+
+// TestDefaultAliases pins the built-in fold table (the match-time fallback for pre-table
+// databases and the seed source for the DB) and that callers get an isolated copy.
+func TestDefaultAliases(t *testing.T) {
+	a := DefaultAliases()
+	require.Equal(t, "amd64", a["x86_64"])
+	require.Equal(t, "arm64", a["aarch64"])
+	require.NotContains(t, a, "amd64", "canonical tokens resolve to themselves and must not be keyed")
+
+	a["x86_64"] = "tampered"
+	require.Equal(t, "amd64", DefaultAliases()["x86_64"], "DefaultAliases must return an isolated copy")
 }

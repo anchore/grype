@@ -9,7 +9,6 @@ import (
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/pkg/qualifier/architecture"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -85,7 +84,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 		// An rpm's upstream is its source rpm: tag the synthesized package "src" so the
 		// architecture qualifier matches it only against src (and unspecified) records and
 		// rejects binary-arch records (avoiding sibling-binary false positives).
-		upstreamPkg.Arch = architecture.ArchSource
+		upstreamPkg = asSourcePackage(upstreamPkg)
 
 		// Create a version object from the upstream package WITHOUT adding epoch
 		// This avoids false positives where binary package epochs differ from source package epochs

@@ -90,7 +90,6 @@ func Test_PurlProvider(t *testing.T) {
 					Type:    pkg.DebPkg,
 					PURL:    "pkg:deb/debian/sysv-rc@2.88dsf-59?arch=all&distro=debian-jessie&upstream=sysvinit",
 					Distro:  &distro.Distro{Type: distro.Debian, Version: "", Codename: "jessie", IDLike: []string{"debian"}},
-					Arch:    "all",
 					Upstreams: []UpstreamPackage{
 						{
 							Name: "sysvinit",
@@ -168,12 +167,14 @@ func Test_PurlProvider(t *testing.T) {
 					Type:    pkg.RpmPkg,
 					PURL:    "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?arch=aarch64&distro=rhel-8.10&upstream=systemd-239-82.el8_10.2.src.rpm",
 					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Codename: "", IDLike: []string{"redhat"}},
-					Arch:    "aarch64",
 					Upstreams: []UpstreamPackage{
 						{
 							Name:    "systemd",
 							Version: "239-82.el8_10.2",
 						},
+					},
+					Metadata: RpmMetadata{
+						Arch: "aarch64",
 					},
 				},
 			},
@@ -196,7 +197,9 @@ func Test_PurlProvider(t *testing.T) {
 					Type:    pkg.RpmPkg,
 					PURL:    "pkg:rpm/redhat/dbus-common@1.12.8-26.el8?arch=noarch&distro=rhel-8.10&epoch=1&upstream=dbus-1.12.8-26.el8.src.rpm",
 					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.10", Codename: "", IDLike: []string{"redhat"}},
-					Arch:    "noarch",
+					Metadata: RpmMetadata{
+						Arch: "noarch",
+					},
 					Upstreams: []UpstreamPackage{
 						{
 							Name:    "dbus",
@@ -224,9 +227,9 @@ func Test_PurlProvider(t *testing.T) {
 					Type:    pkg.RpmPkg,
 					PURL:    "pkg:rpm/redhat/httpd@2.4.37-51?arch=x86_64&distro=rhel-8.7&rpmmod=httpd:2.4",
 					Distro:  &distro.Distro{Type: distro.RedHat, Version: "8.7", Codename: "", IDLike: []string{"redhat"}},
-					Arch:    "x86_64",
 					Metadata: RpmMetadata{
 						ModularityLabel: strRef("httpd:2.4"),
+						Arch:            "x86_64",
 					},
 				},
 			},
@@ -249,7 +252,6 @@ func Test_PurlProvider(t *testing.T) {
 					Type:    pkg.ApkPkg,
 					PURL:    "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
 					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.3", Codename: "", IDLike: []string{"alpine"}},
-					Arch:    "aarch64",
 				},
 			},
 		},

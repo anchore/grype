@@ -35,10 +35,7 @@ func syftProvider(userInput string, config ProviderConfig, applyChannel func(*di
 
 	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
-	// setArchFromPURL is applied for image scans because syft does not populate
-	// grype's pkg.Arch field directly — without this the architecture qualifier
-	// on distro-keyed vulnerabilities can't filter by package arch.
-	packages := FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig, setArchFromPURL)
+	packages := FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig)
 	pkgCtx := Context{
 		Source:                &srcDescription,
 		Distro:                d,
