@@ -222,7 +222,7 @@ func checkDBSchemaDriftTask() Task {
 
 // updateOSVModelTask fetches the latest v1 OSV schema from upstream
 // (github.com/ossf/osv-schema), writes schema-v1.json + schema-v1.tag, and
-// regenerates vulnerability_v1_generated.go. This is the cron-driven update
+// regenerates vulnerability_generated.go. This is the cron-driven update
 // counterpart to the offline `generate:osv-model`. Producing a diff is the
 // expected outcome when upstream has moved; oss-release wraps this task to
 // open a PR with that diff.

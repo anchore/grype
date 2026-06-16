@@ -3,7 +3,7 @@
 // It writes into the parent osvmodel directory:
 //   - schema-v1.json                  pinned upstream schema
 //   - schema-v1.tag                   the upstream tag the pinned schema came from
-//   - vulnerability_v1_generated.go   Go model emitted from that schema
+//   - vulnerability_generated.go   Go model emitted from that schema
 //
 // Run via `make generate:osv-model` (regenerates from the committed pin) or
 // `make update:osv-model` (fetches latest v1 upstream, then regenerates).
@@ -60,7 +60,7 @@ const (
 	schemaURLFmt  = "https://raw.githubusercontent.com/ossf/osv-schema/%s/validation/schema.json"
 	pinnedFile    = "schema-v1.json"
 	pinnedTagFile = "schema-v1.tag"
-	generatedFile = "vulnerability_v1_generated.go"
+	generatedFile = "vulnerability_generated.go"
 	pkgName       = "osvmodel"
 	requirePrefix = "v1."
 )
