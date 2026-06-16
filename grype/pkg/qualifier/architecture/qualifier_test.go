@@ -8,33 +8,11 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 )
 
-// TestArchitecture_Arch covers the Arch() accessor — it must round-trip whatever string the
-// transformer stored (including the two reserved sentinels and the unset empty string).
-func TestArchitecture_Arch(t *testing.T) {
-	tests := []struct {
-		name string
-		arch string
-	}{
-		{name: "source sentinel", arch: ArchSource},
-		{name: "binary-no-arch-specified sentinel", arch: ArchBinaryNoArchSpecified},
-		{name: "literal architecture", arch: "x86_64"},
-		{name: "empty (provider does not distinguish)", arch: ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			q := New(tt.arch, nil)
-			archer, ok := q.(interface{ Arch() string })
-			require.True(t, ok, "qualifier must expose Arch() so criteria can read the stored value")
-			require.Equal(t, tt.arch, archer.Arch())
-		})
-	}
-}
-
 // TestArchitecture_Satisfied pins down the per-package gating logic: match the package's
 // arch against the arch the entry affects. Concrete arches compare exactly; the src entry
 // matches only source packages; binary-no-arch matches any binary (any non-src) package;
-// and an unset arch on either side is inert (cannot decide, so don't filter).
+// and an unset or arch-independent (rpm "noarch", deb "all") value on either side is inert
+// (cannot/should not decide, so don't filter).
 func TestArchitecture_Satisfied(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -96,6 +74,29 @@ func TestArchitecture_Satisfied(t *testing.T) {
 			qualifierArch: "arm64",
 			pkgArch:       "amd64",
 			want:          false,
+		},
+		{
+			// An arch-independent package (rpm "noarch") has no arch-specific content and is
+			// installed on every arch, so an arch-scoped entry still applies — it must not be
+			// dropped. Goes live once a provider emits concrete-arch entries (e.g. chainguard).
+			name:          "noarch package is inert against a concrete-arch entry",
+			qualifierArch: "x86_64",
+			pkgArch:       "noarch",
+			want:          true,
+		},
+		{
+			// deb "all" is the debian-dialect arch-independent marker; same reasoning as noarch.
+			name:          "deb 'all' package is inert against a concrete-arch entry",
+			qualifierArch: "amd64",
+			pkgArch:       "all",
+			want:          true,
+		},
+		{
+			// Symmetric: an arch-independent entry doesn't constrain by arch either.
+			name:          "arch-independent entry is inert against a concrete package",
+			qualifierArch: "noarch",
+			pkgArch:       "x86_64",
+			want:          true,
 		},
 		{
 			// A src entry matches a source package. Binary packages reach src entries via

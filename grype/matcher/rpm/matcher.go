@@ -242,7 +242,7 @@ func asSourcePackage(p pkg.Package) pkg.Package {
 	return p
 }
 
-func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package, extra ...vulnerability.Criteria) ([]match.Match, []match.IgnoreFilter, error) {
+func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	if searchPkg.Distro == nil {
 		return nil, nil, nil
 	}
@@ -253,13 +253,13 @@ func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package, e
 
 	switch {
 	case shouldUseRedhatEUSMatching(searchPkg.Distro):
-		return redhatEUSMatches(provider, searchPkg, m.cfg.MissingEpochStrategy, extra...)
+		return redhatEUSMatches(provider, searchPkg, m.cfg.MissingEpochStrategy)
 	default:
-		return m.standardMatches(provider, searchPkg, extra...)
+		return m.standardMatches(provider, searchPkg)
 	}
 }
 
-func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Package, extra ...vulnerability.Criteria) ([]match.Match, []match.IgnoreFilter, error) {
+func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	// Create version with config embedded
 	pkgVersion := version.NewWithConfig(
 		searchPkg.Version,
@@ -274,7 +274,6 @@ func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Packag
 		search.ByDistro(*searchPkg.Distro),
 		internal.OnlyQualifiedPackages(searchPkg),
 	}
-	disclosureCriteria = append(disclosureCriteria, extra...)
 
 	all, err := provider.FindResults(disclosureCriteria...)
 	if err != nil {
@@ -288,7 +287,6 @@ func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Packag
 		internal.OnlyVulnerableVersions(pkgVersion),
 		search.ForUnaffected(),
 	}
-	unaffectedCriteria = append(unaffectedCriteria, extra...)
 
 	unaffected, err := provider.FindResults(unaffectedCriteria...)
 	if err != nil {

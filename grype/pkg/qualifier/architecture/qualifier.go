@@ -18,6 +18,13 @@ import (
 const (
 	ArchSource                = "src"
 	ArchBinaryNoArchSpecified = "binary-no-arch-specified"
+
+	// archNoarch (rpm) and archAll (deb) are the dialect spellings for an arch-independent
+	// package — one with no architecture-specific content, installed identically on every
+	// architecture. These are real values seen in data, not sentinels we emit. The qualifier
+	// treats them as inert (see Satisfied) so an arch-independent artifact is never filtered.
+	archNoarch = "noarch"
+	archAll    = "all"
 )
 
 type architectureQualifier struct {
@@ -31,12 +38,6 @@ type architectureQualifier struct {
 // architecture_aliases table existed). See canonicalArch.
 func New(arch string, aliases map[string]string) qualifier.Qualifier {
 	return &architectureQualifier{arch: arch, aliases: aliases}
-}
-
-// Arch returns the stored architecture value (e.g. "src", "x86_64",
-// "binary-no-arch-specified", or "" if unset).
-func (r architectureQualifier) Arch() string {
-	return r.arch
 }
 
 // Satisfied reports whether package p falls under what this vulnerability entry describes,
@@ -56,7 +57,9 @@ func (r architectureQualifier) Arch() string {
 //
 // A package with no recorded arch is inert (older DBs / inputs without arch, or a package
 // type that doesn't carry one), as is an entry with no arch (treated as "any"); neither
-// direction filters when we cannot decide.
+// direction filters when we cannot decide. An arch-independent package (rpm "noarch", deb
+// "all") is likewise inert: it has no architecture-specific content and is installed on every
+// architecture, so an arch-scoped entry still applies to it and must not drop it.
 //
 // Concrete arches are compared in canonical form (see canonicalArch) so a package and an
 // entry that name the same architecture in different ecosystem dialects still match — e.g.
@@ -64,6 +67,12 @@ func (r architectureQualifier) Arch() string {
 func (r architectureQualifier) Satisfied(p pkg.Package) (bool, error) {
 	pkgArch := packageArch(p)
 	if pkgArch == "" || r.arch == "" {
+		return true, nil
+	}
+	// An arch-independent package (or entry) carries no architecture to compare against, so it
+	// never filters — folding it onto a concrete token and equality-comparing would wrongly drop
+	// a real match (e.g. a "noarch" package against an "x86_64" advisory).
+	if isArchIndependent(pkgArch) || isArchIndependent(r.arch) {
 		return true, nil
 	}
 	switch r.arch {
@@ -74,6 +83,12 @@ func (r architectureQualifier) Satisfied(p pkg.Package) (bool, error) {
 	default:
 		return canonicalArch(pkgArch, r.aliases) == canonicalArch(r.arch, r.aliases), nil
 	}
+}
+
+// isArchIndependent reports whether an architecture value describes an arch-independent package
+// (rpm "noarch", deb "all") rather than a concrete CPU architecture. See archNoarch / archAll.
+func isArchIndependent(a string) bool {
+	return a == archNoarch || a == archAll
 }
 
 // packageArch reads the architecture off the package's metadata contract. Only RPM metadata
@@ -99,10 +114,9 @@ func packageArch(p pkg.Package) string {
 // what a database built before that table existed reports — falls back to the built-in
 // defaultAliases so historical databases keep cross-dialect matching.
 //
-// Only genuine CPU architectures are folded. The role markers ("src", binary-no-arch) and
-// arch-independent values (rpm "noarch", deb "all") are not architectures and are simply
-// absent from the table, so they pass through unchanged. A spelling not in the table is its
-// own canonical form.
+// Only genuine CPU architectures reach this function. The role markers ("src", binary-no-arch)
+// and arch-independent values (rpm "noarch", deb "all") are handled earlier in Satisfied and
+// never get here. A spelling not in the table is its own canonical form.
 func canonicalArch(a string, aliases map[string]string) string {
 	if len(aliases) == 0 {
 		aliases = defaultAliases
