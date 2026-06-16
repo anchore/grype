@@ -6,11 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/google/osv-scanner/pkg/models"
-
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/codename"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	"github.com/anchore/grype/grype/db/provider"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
@@ -84,7 +83,7 @@ func rootioReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
 	var refs []db.Reference
 	for _, ref := range vuln.References {
 		refID := ""
-		if ref.Type == models.ReferenceAdvisory {
+		if ref.Type == osvmodel.ReferenceAdvisory {
 			refID = vuln.ID
 		}
 		refs = append(refs, db.Reference{
@@ -103,7 +102,7 @@ func rootioUnaffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string)
 	rootIO := true
 	var uphs []db.UnaffectedPackageHandle
 	for _, affected := range vuln.Affected {
-		ecosystem := string(affected.Package.Ecosystem)
+		ecosystem := affected.Package.Ecosystem
 		pkgType := rootioPackageType(ecosystem)
 		if pkgType == "" {
 			// rootio ships occasional records for ecosystems the transformer
@@ -187,8 +186,8 @@ func rootioPackageType(ecosystem string) pkg.Type {
 // Ecosystem is canonicalized to the grype package-type string (e.g.
 // "PyPI" → "python", "Alpine:3.18" → "apk"). Name is normalized per the
 // package type (e.g. PEP 503 for PythonPkg).
-func rootioPackage(p models.Package, pkgType pkg.Type) *db.Package {
-	ecosystem := string(p.Ecosystem)
+func rootioPackage(p osvmodel.Package, pkgType pkg.Type) *db.Package {
+	ecosystem := p.Ecosystem
 	if pkgType != "" {
 		ecosystem = pkgType.String()
 	}

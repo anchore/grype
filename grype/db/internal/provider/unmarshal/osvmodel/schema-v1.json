@@ -1,0 +1,502 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/ossf/osv-schema/main/validation/schema.json",
+  "title": "Open Source Vulnerability",
+  "description": "A schema for describing a vulnerability in an open source package. See also https://ossf.github.io/osv-schema/",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "id": {
+      "$ref": "#/$defs/prefix"
+    },
+    "modified": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "published": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "withdrawn": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "aliases": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "related": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "upstream": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "summary": {
+      "type": "string"
+    },
+    "details": {
+      "type": "string"
+    },
+    "severity": {
+      "$ref": "#/$defs/severity"
+    },
+    "affected": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "package": {
+            "type": "object",
+            "properties": {
+              "ecosystem": {
+                "$ref": "#/$defs/ecosystemWithSuffix"
+              },
+              "name": {
+                "type": "string"
+              },
+              "purl": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "ecosystem",
+              "name"
+            ]
+          },
+          "severity": {
+            "$ref": "#/$defs/severity"
+          },
+          "ranges": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "GIT",
+                    "SEMVER",
+                    "ECOSYSTEM"
+                  ]
+                },
+                "repo": {
+                  "type": "string"
+                },
+                "events": {
+                  "title": "events must contain an introduced object and may contain fixed, last_affected or limit objects",
+                  "type": "array",
+                  "contains": {
+                    "required": [
+                      "introduced"
+                    ]
+                  },
+                  "items": {
+                    "type": "object",
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "introduced": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "introduced"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "fixed": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "fixed"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "last_affected": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "last_affected"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "limit": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "limit"
+                        ]
+                      }
+                    ]
+                  },
+                  "minItems": 1
+                },
+                "database_specific": {
+                  "type": "object"
+                }
+              },
+              "allOf": [
+                {
+                  "title": "GIT ranges require a repo",
+                  "if": {
+                    "properties": {
+                      "type": {
+                        "const": "GIT"
+                      }
+                    }
+                  },
+                  "then": {
+                    "required": [
+                      "repo"
+                    ]
+                  }
+                },
+                {
+                  "title": "last_affected and fixed events are mutually exclusive",
+                  "if": {
+                    "properties": {
+                      "events": {
+                        "contains": {
+                          "required": [
+                            "last_affected"
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "then": {
+                    "not": {
+                      "properties": {
+                        "events": {
+                          "contains": {
+                            "required": [
+                              "fixed"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "required": [
+                "type",
+                "events"
+              ]
+            }
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ecosystem_specific": {
+            "type": "object"
+          },
+          "database_specific": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "references": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "ADVISORY",
+              "ARTICLE",
+              "DETECTION",
+              "DISCUSSION",
+              "REPORT",
+              "FIX",
+              "INTRODUCED",
+              "GIT",
+              "PACKAGE",
+              "EVIDENCE",
+              "WEB"
+            ]
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "type",
+          "url"
+        ]
+      }
+    },
+    "credits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "contact": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "FINDER",
+              "REPORTER",
+              "ANALYST",
+              "COORDINATOR",
+              "REMEDIATION_DEVELOPER",
+              "REMEDIATION_REVIEWER",
+              "REMEDIATION_VERIFIER",
+              "TOOL",
+              "SPONSOR",
+              "OTHER"
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ]
+      }
+    },
+    "database_specific": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "id",
+    "modified"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "severity"
+        ]
+      },
+      "then": {
+        "properties": {
+          "affected": {
+            "items": {
+              "properties": {
+                "severity": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "ecosystemName": {
+      "type": "string",
+      "title": "Currently supported ecosystems",
+      "description": "These ecosystems are also documented at https://ossf.github.io/osv-schema/#affectedpackage-field",
+      "enum": [
+        "AlmaLinux",
+        "Alpaquita",
+        "Alpine",
+        "Android",
+        "BellSoft Hardened Containers",
+        "Bioconductor",
+        "Bitnami",
+        "Chainguard",
+        "CleanStart",
+        "ConanCenter",
+        "CRAN",
+        "crates.io",
+        "Debian",
+        "Docker Hardened Images",
+        "Echo",
+        "FreeBSD",
+        "GHC",
+        "GitHub Actions",
+        "Go",
+        "Hackage",
+        "Hex",
+        "Julia",
+        "Kubernetes",
+        "Linux",
+        "Mageia",
+        "Maven",
+        "MinimOS",
+        "npm",
+        "NuGet",
+        "opam",
+        "openEuler",
+        "openSUSE",
+        "OSS-Fuzz",
+        "Packagist",
+        "Photon OS",
+        "Pub",
+        "PyPI",
+        "Red Hat",
+        "Rocky Linux",
+        "Root",
+        "RubyGems",
+        "SUSE",
+        "SwiftURL",
+        "Ubuntu",
+        "VSCode",
+        "Wolfi"
+      ]
+    },
+    "ecosystemSuffix": {
+      "type": "string",
+      "pattern": ":.+"
+    },
+    "ecosystemWithSuffix": {
+      "type": "string",
+      "title": "Currently supported ecosystems",
+      "description": "These ecosystems are also documented at https://ossf.github.io/osv-schema/#affectedpackage-field",
+      "pattern": "^(AlmaLinux|Alpaquita|Alpine|Android|BellSoft Hardened Containers|Bioconductor|Bitnami|Chainguard|CleanStart|ConanCenter|CRAN|crates\\.io|Debian|Docker Hardened Images|Echo|FreeBSD|GHC|GitHub Actions|Go|Hackage|Hex|Julia|Kubernetes|Linux|Mageia|Maven|MinimOS|npm|NuGet|opam|openEuler|openSUSE|OSS-Fuzz|Packagist|Photon OS|Pub|PyPI|Red Hat|Rocky Linux|Root|RubyGems|SUSE|SwiftURL|Ubuntu|VSCode|Wolfi|GIT)(:.+)?$"
+    },
+    "prefix": {
+      "type": "string",
+      "title": "Currently supported home database identifier prefixes",
+      "description": "These home databases are also documented at https://ossf.github.io/osv-schema/#id-modified-fields",
+      "pattern": "^(ASB-A|PUB-A|ALPINE|ALSA|ALBA|ALEA|BELL|BIT|CGA|CLEANSTART|CURL|CVE|DEBIAN|DHI|DRUPAL|DSA|DLA|ELA|DTSA|ECHO|EEF|FreeBSD|GHSA|GO|GSD|HSEC|JLSEC|KUBE|LBSEC|LSN|MAL|MINI|MGASA|OESA|OSEC|OSV|openSUSE-SU|PHSA|PSF|PYSEC|RHBA|RHEA|RHSA|RLSA|RXSA|RSEC|ROOT|RUSTSEC|SUSE-[SRFO]U|UBUNTU|USN|V8)-"
+    },
+    "severity": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "CVSS_V2",
+              "CVSS_V3",
+              "CVSS_V4",
+              "Ubuntu"
+            ]
+          },
+          "score": {
+            "type": "string"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "CVSS_V2"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "score": {
+                  "pattern": "^((AV:[NAL]|AC:[LMH]|Au:[MSN]|[CIA]:[NPC]|E:(U|POC|F|H|ND)|RL:(OF|TF|W|U|ND)|RC:(UC|UR|C|ND)|CDP:(N|L|LM|MH|H|ND)|TD:(N|L|M|H|ND)|[CIA]R:(L|M|H|ND))/)*(AV:[NAL]|AC:[LMH]|Au:[MSN]|[CIA]:[NPC]|E:(U|POC|F|H|ND)|RL:(OF|TF|W|U|ND)|RC:(UC|UR|C|ND)|CDP:(N|L|LM|MH|H|ND)|TD:(N|L|M|H|ND)|[CIA]R:(L|M|H|ND))$"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "CVSS_V3"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "score": {
+                  "pattern": "^CVSS:3[.][01]/((AV:[NALP]|AC:[LH]|PR:[NLH]|UI:[NR]|S:[UC]|[CIA]:[NLH]|E:[XUPFH]|RL:[XOTWU]|RC:[XURC]|[CIA]R:[XLMH]|MAV:[XNALP]|MAC:[XLH]|MPR:[XNLH]|MUI:[XNR]|MS:[XUC]|M[CIA]:[XNLH])/)*(AV:[NALP]|AC:[LH]|PR:[NLH]|UI:[NR]|S:[UC]|[CIA]:[NLH]|E:[XUPFH]|RL:[XOTWU]|RC:[XURC]|[CIA]R:[XLMH]|MAV:[XNALP]|MAC:[XLH]|MPR:[XNLH]|MUI:[XNR]|MS:[XUC]|M[CIA]:[XNLH])$"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "CVSS_V4"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "score": {
+                  "pattern": "^CVSS:4[.]0/AV:[NALP]/AC:[LH]/AT:[NP]/PR:[NLH]/UI:[NPA]/VC:[HLN]/VI:[HLN]/VA:[HLN]/SC:[HLN]/SI:[HLN]/SA:[HLN](/E:[XAPU])?(/CR:[XHML])?(/IR:[XHML])?(/AR:[XHML])?(/MAV:[XNALP])?(/MAC:[XLH])?(/MAT:[XNP])?(/MPR:[XNLH])?(/MUI:[XNPA])?(/MVC:[XNLH])?(/MVI:[XNLH])?(/MVA:[XNLH])?(/MSC:[XNLH])?(/MSI:[XNLHS])?(/MSA:[XNLHS])?(/S:[XNP])?(/AU:[XNY])?(/R:[XAUI])?(/V:[XDC])?(/RE:[XLMH])?(/U:(X|Clear|Green|Amber|Red))?$"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "const": "Ubuntu"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "score": {
+                  "enum": [
+                    "negligible",
+                    "low",
+                    "medium",
+                    "high",
+                    "critical"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "required": [
+          "type",
+          "score"
+        ]
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z"
+    }
+  },
+  "additionalProperties": false
+}
