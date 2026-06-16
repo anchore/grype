@@ -151,6 +151,99 @@ func TestArchitecture_Satisfied(t *testing.T) {
 	}
 }
 
+// TestUnaffectedArchitecture_Satisfied pins the conservative polarity of NewUnaffected: a satisfied
+// unaffected record SUPPRESSES a match, so it must never suppress on an arch it can't positively
+// confirm. It mirrors TestArchitecture_Satisfied (the affected qualifier); the two differ only on
+// the uncertain cases the affected side resolves leniently, which are called out below.
+func TestUnaffectedArchitecture_Satisfied(t *testing.T) {
+	tests := []struct {
+		name          string
+		qualifierArch string
+		pkgArch       string
+		want          bool
+	}{
+		{
+			// Conservative: don't suppress on an arch we couldn't read (affected keeps it).
+			name:          "package without arch is not suppressed",
+			qualifierArch: "x86_64",
+			pkgArch:       "",
+			want:          false,
+		},
+		{
+			// Conservative: a "fixed on x86_64" record says nothing about the noarch build, so it
+			// must not suppress it (affected keeps it).
+			name:          "noarch package is not suppressed by a concrete-arch entry",
+			qualifierArch: "x86_64",
+			pkgArch:       "noarch",
+			want:          false,
+		},
+		{
+			// Conservative: same reasoning for an arch-independent entry vs a concrete package.
+			name:          "concrete package is not suppressed by an arch-independent entry",
+			qualifierArch: "noarch",
+			pkgArch:       "x86_64",
+			want:          false,
+		},
+		{
+			// Confirmed: an exact arch-independent match is a real correspondence, so suppress.
+			name:          "noarch package is suppressed by a noarch entry",
+			qualifierArch: "noarch",
+			pkgArch:       "noarch",
+			want:          true,
+		},
+		{
+			// A blanket no-arch unaffected record applies to every package.
+			name:          "entry without arch suppresses (blanket not-affected)",
+			qualifierArch: "",
+			pkgArch:       "x86_64",
+			want:          true,
+		},
+		{
+			// A src-level not-affected applies by name regardless of arch.
+			name:          "src entry suppresses a binary package",
+			qualifierArch: ArchSource,
+			pkgArch:       "x86_64",
+			want:          true,
+		},
+		{
+			// binary-no-arch is arch-agnostic by design: suppresses any non-src package...
+			name:          "binary-no-arch entry suppresses a binary package",
+			qualifierArch: ArchBinaryNoArchSpecified,
+			pkgArch:       "x86_64",
+			want:          true,
+		},
+		{
+			// ...but not a source package.
+			name:          "binary-no-arch entry does not suppress a source package",
+			qualifierArch: ArchBinaryNoArchSpecified,
+			pkgArch:       ArchSource,
+			want:          false,
+		},
+		{
+			// Confirmed concrete match (cross-dialect) suppresses.
+			name:          "matching concrete arch suppresses (canonicalized)",
+			qualifierArch: "x86_64",
+			pkgArch:       "amd64",
+			want:          true,
+		},
+		{
+			// Confirmed concrete mismatch does not suppress.
+			name:          "mismatched concrete arch does not suppress",
+			qualifierArch: "x86_64",
+			pkgArch:       "aarch64",
+			want:          false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewUnaffected(tt.qualifierArch, nil).Satisfied(pkg.Package{Metadata: pkg.RpmMetadata{Arch: tt.pkgArch}})
+			require.NoError(t, err)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
 // TestArchitecture_Satisfied_NonRpmMetadataInert pins that a package whose metadata is absent
 // or isn't RpmMetadata reports no arch and so is never filtered — arch lives on the rpm
 // metadata contract, and the qualifier only ever sees rpm packages in practice.

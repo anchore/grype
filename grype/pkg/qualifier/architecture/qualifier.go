@@ -27,20 +27,24 @@ const (
 	archAll    = "all"
 )
 
+// architectureQualifier gates a package against an AFFECTED vulnerability entry's stored arch: a
+// satisfied entry keeps the match. It is lenient where the arch can't be decided so it never drops
+// a real vulnerability (the conservative direction for an affected record). The unaffected
+// (negation) counterpart is unaffectedArchitectureQualifier; both share concreteMatch.
 type architectureQualifier struct {
 	arch    string
 	aliases map[string]string
 }
 
-// New builds an architecture qualifier for a vulnerability entry's stored arch. aliases is the
-// arch alias table read from the database (alias spelling -> canonical token); pass nil/empty
+// New builds the architecture qualifier for an AFFECTED vulnerability entry's stored arch. aliases
+// is the arch alias table read from the database (alias spelling -> canonical token); pass nil/empty
 // to fall back to the built-in DefaultAliases (e.g. for databases built before the
-// architecture_aliases table existed). See canonicalArch.
+// architecture_aliases table existed). See canonicalArch. For unaffected entries use NewUnaffected.
 func New(arch string, aliases map[string]string) qualifier.Qualifier {
 	return &architectureQualifier{arch: arch, aliases: aliases}
 }
 
-// Satisfied reports whether package p falls under what this vulnerability entry describes,
+// Satisfied reports whether package p falls under what this AFFECTED vulnerability entry describes,
 // based on the entry's stored arch:
 //
 //   - a concrete arch ("x86_64", "aarch64"): matches only packages of that arch. This lets
@@ -75,13 +79,58 @@ func (r architectureQualifier) Satisfied(p pkg.Package) (bool, error) {
 	if isArchIndependent(pkgArch) || isArchIndependent(r.arch) {
 		return true, nil
 	}
-	switch r.arch {
-	case ArchSource:
+	return concreteMatch(pkgArch, r.arch, r.aliases), nil
+}
+
+// unaffectedArchitectureQualifier gates a package against an UNAFFECTED (negation) vulnerability
+// entry's stored arch. A satisfied unaffected entry SUPPRESSES a match, so its polarity is the
+// reverse of the affected qualifier: it is evaluated conservatively and never suppresses on an arch
+// it cannot positively confirm corresponds — declining to suppress is the safe direction here, the
+// same way the affected qualifier declines to drop. See NewUnaffected.
+type unaffectedArchitectureQualifier struct {
+	arch    string
+	aliases map[string]string
+}
+
+// NewUnaffected builds the architecture qualifier for an UNAFFECTED vulnerability entry. See New for
+// the aliases argument and architectureQualifier for the affected counterpart.
+func NewUnaffected(arch string, aliases map[string]string) qualifier.Qualifier {
+	return &unaffectedArchitectureQualifier{arch: arch, aliases: aliases}
+}
+
+// Satisfied reports whether this UNAFFECTED entry covers package p — i.e. whether it may suppress a
+// match. It diverges from the affected qualifier only on the cases the affected side resolves
+// leniently, because here "lenient" would mean suppressing on an unconfirmed arch:
+//
+//   - an entry with no arch is a blanket "not affected" and still applies to every package;
+//   - a package with no readable arch is NOT suppressed (we couldn't confirm the arch);
+//   - an arch-independent package/entry ("noarch"/"all") takes no shortcut — it suppresses only on
+//     an exact token match (e.g. "noarch" vs "noarch"), never folding a concrete arch onto it.
+//
+// The definite cases (src, binary-no-arch, concrete vs concrete) are identical to the affected
+// qualifier; see concreteMatch.
+func (r unaffectedArchitectureQualifier) Satisfied(p pkg.Package) (bool, error) {
+	if r.arch == "" {
 		return true, nil
+	}
+	pkgArch := packageArch(p)
+	if pkgArch == "" {
+		return false, nil
+	}
+	return concreteMatch(pkgArch, r.arch, r.aliases), nil
+}
+
+// concreteMatch is the polarity-independent core shared by the affected and unaffected qualifiers:
+// the cases where the arch comparison is definite. Both agree here; they differ only in how they
+// resolve the uncertain cases above (see each Satisfied).
+func concreteMatch(pkgArch, recordArch string, aliases map[string]string) bool {
+	switch recordArch {
+	case ArchSource:
+		return true
 	case ArchBinaryNoArchSpecified:
-		return pkgArch != ArchSource, nil
+		return pkgArch != ArchSource
 	default:
-		return canonicalArch(pkgArch, r.aliases) == canonicalArch(r.arch, r.aliases), nil
+		return canonicalArch(pkgArch, aliases) == canonicalArch(recordArch, aliases)
 	}
 }
 
