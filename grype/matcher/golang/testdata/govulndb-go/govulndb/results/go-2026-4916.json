@@ -1,0 +1,88 @@
+{
+  "identifier": "go-2026-4916",
+  "item": {
+    "affected": [
+      {
+        "ecosystem_specific": {
+          "custom_ranges": [
+            {
+              "events": [
+                {
+                  "introduced": "8.0.0-20260105080200-d27a2195068d"
+                },
+                {
+                  "fixed": "8.0.0-20260217110922-b7d4a1f1f59b"
+                }
+              ],
+              "type": "ECOSYSTEM"
+            }
+          ]
+        },
+        "package": {
+          "ecosystem": "Go",
+          "name": "github.com/mattermost/mattermost-server"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "10.11.0-rc1+incompatible"
+              },
+              {
+                "fixed": "10.11.12+incompatible"
+              },
+              {
+                "introduced": "11.2.0-rc1+incompatible"
+              },
+              {
+                "fixed": "11.2.4+incompatible"
+              },
+              {
+                "introduced": "11.3.0-rc1+incompatible"
+              },
+              {
+                "fixed": "11.3.2+incompatible"
+              },
+              {
+                "introduced": "11.4.0-rc1+incompatible"
+              },
+              {
+                "fixed": "11.4.1+incompatible"
+              }
+            ],
+            "type": "SEMVER"
+          }
+        ]
+      }
+    ],
+    "aliases": [
+      "CVE-2026-26233",
+      "GHSA-247x-7qw8-fp98"
+    ],
+    "database_specific": {
+      "review_status": "UNREVIEWED",
+      "url": "https://pkg.go.dev/vuln/GO-2026-4916"
+    },
+    "details": "Mattermost doesn't rate limit login requests, allowing DoS in github.com/mattermost/mattermost-server.\n\nNOTE: The source advisory for this report contains additional versions that could not be automatically mapped to standard Go module versions.\n\n(If this is causing false-positive reports from vulnerability scanners, please suggest an edit to the report.)\n\nThe additional affected modules and versions are: github.com/mattermost/mattermost-server from v8.0.0-20260105080200-d27a2195068d before v8.0.0-20260217110922-b7d4a1f1f59b.",
+    "id": "GO-2026-4916",
+    "modified": "0001-01-01T00:00:00Z",
+    "published": "0001-01-01T00:00:00Z",
+    "references": [
+      {
+        "type": "ADVISORY",
+        "url": "https://github.com/advisories/GHSA-247x-7qw8-fp98"
+      },
+      {
+        "type": "ADVISORY",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-26233"
+      },
+      {
+        "type": "WEB",
+        "url": "https://mattermost.com/security-updates"
+      }
+    ],
+    "schema_version": "1.3.1",
+    "summary": "Mattermost doesn't rate limit login requests, allowing DoS in github.com/mattermost/mattermost-server"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.3.1.json"
+}

@@ -234,6 +234,218 @@ func TestGoVulnDBRangeConversion(t *testing.T) {
 	}
 }
 
+// TestGoVulnDB_CustomRangesFallback pins down the "+incompatible" false-positive
+// fix. github.com/grafana/grafana ships v6+ tags but never moved its module path
+// to /vN, so go.dev cannot map the source advisory's "6.0.0 before 7.2.1" range
+// onto canonical Go module semver. It emits an unbounded standard SEMVER range
+// ([{introduced: "0"}], no fixed event) and stashes the real window in
+// ecosystem_specific.custom_ranges.
+//
+// Before the fix, the unbounded standard range produced an empty constraint that
+// matched every version (grafana v11/v12 flagged for a 6.x bug). The strategy now
+// falls back to custom_ranges when the standard ranges yield nothing, so the
+// emitted constraint pins the real ">=6.0.0,<7.2.1" window. EcosystemSpecific is
+// built as the JSON-decoded map[string]any shape the unmarshaler actually
+// produces, so the round-trip decode in govulndbCustomRanges is exercised for
+// real.
+func TestGoVulnDB_CustomRangesFallback(t *testing.T) {
+	affected := osvmodel.Affected{
+		Package: osvmodel.Package{Name: "github.com/grafana/grafana", Ecosystem: "Go"},
+		Ranges: []osvmodel.Range{{
+			Type:   osvmodel.RangeSemVer,
+			Events: []osvmodel.Event{{Introduced: "0"}},
+		}},
+		EcosystemSpecific: map[string]any{
+			"custom_ranges": []any{
+				map[string]any{
+					"type": "ECOSYSTEM",
+					"events": []any{
+						map[string]any{"introduced": "6.0.0"},
+						map[string]any{"fixed": "7.2.1"},
+					},
+				},
+			},
+		},
+	}
+
+	vuln := osvmodel.Vulnerability{
+		ID:       "GO-2024-2519",
+		Aliases:  []string{"CVE-2020-12459", "GHSA-m25m-5778-fm22"},
+		Affected: []osvmodel.Affected{affected},
+	}
+
+	got := govulndbAffectedPackages(vuln)
+
+	want := []db.AffectedPackageHandle{{
+		Package: &db.Package{Name: "github.com/grafana/grafana", Ecosystem: "go-module"},
+		BlobValue: &db.PackageBlob{
+			CVEs: []string{"CVE-2020-12459", "GHSA-m25m-5778-fm22"},
+			Ranges: []db.Range{{
+				Version: db.Version{Type: "go", Constraint: ">=6.0.0,<7.2.1"},
+				Fix:     &db.Fix{Version: "7.2.1", State: db.FixedStatus},
+			}},
+		},
+	}}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("custom_ranges fallback:\n got: %+v\nwant: %+v", got, want)
+	}
+}
+
+// TestGoVulnDB_CustomRangesMultiWindow covers the load-bearing custom-range
+// shape: most real "+incompatible" records (GO-2024-2629, GO-2024-2697, …)
+// describe several *disjoint* affected windows flattened into one ECOSYSTEM
+// range's events. Each introduced→fixed pair must become its own db.Range with
+// a comma-separated constraint (the Go constraint parser rejects the
+// space-separated AND form), and the gaps between windows must stay
+// unconstrained so a version landing between two windows does not match.
+//
+// This drives govulndbCustomRanges directly so the assertion is on the exact
+// emitted ranges rather than a match/no-match outcome.
+func TestGoVulnDB_CustomRangesMultiWindow(t *testing.T) {
+	affected := osvmodel.Affected{
+		Package: osvmodel.Package{Name: "github.com/grafana/grafana", Ecosystem: "Go"},
+		// unbounded standard range — the trigger for the custom fallback
+		Ranges: []osvmodel.Range{{
+			Type:   osvmodel.RangeSemVer,
+			Events: []osvmodel.Event{{Introduced: "0"}},
+		}},
+		EcosystemSpecific: map[string]any{
+			"custom_ranges": []any{
+				map[string]any{
+					"type": "ECOSYSTEM",
+					"events": []any{
+						map[string]any{"introduced": "8.5.0"},
+						map[string]any{"fixed": "9.5.7"},
+						map[string]any{"introduced": "10.0.0"},
+						map[string]any{"fixed": "10.0.12"},
+					},
+				},
+			},
+		},
+	}
+
+	got := govulndbCustomRanges(affected)
+
+	want := []db.Range{
+		{
+			Version: db.Version{Type: "go", Constraint: ">=8.5.0,<9.5.7"},
+			Fix:     &db.Fix{Version: "9.5.7", State: db.FixedStatus},
+		},
+		{
+			Version: db.Version{Type: "go", Constraint: ">=10.0.0,<10.0.12"},
+			Fix:     &db.Fix{Version: "10.0.12", State: db.FixedStatus},
+		},
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("multi-window custom_ranges:\n got: %+v\nwant: %+v", got, want)
+	}
+}
+
+// TestGoVulnDB_OpenEndedStandardWithCustom covers the surgical union rule for
+// records that carry BOTH standard ranges and custom_ranges. When custom_ranges
+// is present, open-ended standard ranges (a ">= X" with no upper bound, go.dev's
+// "couldn't map" artifact) are dropped, bounded standard ranges are kept, and
+// custom_ranges is unioned in. The two cases below are the load-bearing shapes:
+//
+//   - grafana GO-2025-4153: the only standard range is open-ended
+//     (>= a v1.9.2 pseudo-version, no fix) → dropped entirely; just the custom
+//     windows survive. This is what stops v11.6.15 from over-matching.
+//   - mattermost GO-2026-4916: the standard ranges are bounded +incompatible
+//     tag windows → kept, with the disjoint pseudo-version custom window
+//     appended. Dropping the bounded standard side would be a false negative.
+func TestGoVulnDB_OpenEndedStandardWithCustom(t *testing.T) {
+	t.Run("open-ended standard dropped, custom kept (grafana GO-2025-4153)", func(t *testing.T) {
+		affected := osvmodel.Affected{
+			Package: osvmodel.Package{Name: "github.com/grafana/grafana", Ecosystem: "Go"},
+			Ranges: []osvmodel.Range{{
+				Type:   osvmodel.RangeSemVer,
+				Events: []osvmodel.Event{{Introduced: "1.9.2-0.20250310110405-e6fdb746f235"}},
+			}},
+			EcosystemSpecific: map[string]any{
+				"custom_ranges": []any{map[string]any{
+					"type": "ECOSYSTEM",
+					"events": []any{
+						map[string]any{"introduced": "0"},
+						map[string]any{"fixed": "1.9.2-0.20251106142618-ca5d89812015"},
+						map[string]any{"introduced": "12.0.0"}, map[string]any{"fixed": "12.0.7"},
+					},
+				}},
+			},
+		}
+		vuln := osvmodel.Vulnerability{ID: "GO-2025-4153", Aliases: []string{"CVE-2025-41115"}, Affected: []osvmodel.Affected{affected}}
+
+		got := govulndbAffectedPackages(vuln)
+		want := []db.AffectedPackageHandle{{
+			Package: &db.Package{Name: "github.com/grafana/grafana", Ecosystem: "go-module"},
+			BlobValue: &db.PackageBlob{
+				CVEs: []string{"CVE-2025-41115"},
+				// the open-ended ">= 1.9.2-0.20250310..." standard range is gone
+				Ranges: []db.Range{
+					{
+						Version: db.Version{Type: "go", Constraint: "<1.9.2-0.20251106142618-ca5d89812015"},
+						Fix:     &db.Fix{Version: "1.9.2-0.20251106142618-ca5d89812015", State: db.FixedStatus},
+					},
+					{
+						Version: db.Version{Type: "go", Constraint: ">=12.0.0,<12.0.7"},
+						Fix:     &db.Fix{Version: "12.0.7", State: db.FixedStatus},
+					},
+				},
+			},
+		}}
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("open-ended drop:\n got: %+v\nwant: %+v", got, want)
+		}
+	})
+
+	t.Run("bounded standard kept, custom appended (mattermost GO-2026-4916)", func(t *testing.T) {
+		affected := osvmodel.Affected{
+			Package: osvmodel.Package{Name: "github.com/mattermost/mattermost-server", Ecosystem: "Go"},
+			Ranges: []osvmodel.Range{{
+				Type: osvmodel.RangeSemVer,
+				Events: []osvmodel.Event{
+					{Introduced: "11.2.0-rc1+incompatible"},
+					{Fixed: "11.2.4+incompatible"},
+				},
+			}},
+			EcosystemSpecific: map[string]any{
+				"custom_ranges": []any{map[string]any{
+					"type": "ECOSYSTEM",
+					"events": []any{
+						map[string]any{"introduced": "8.0.0-20260105080200-d27a2195068d"},
+						map[string]any{"fixed": "8.0.0-20260217110922-b7d4a1f1f59b"},
+					},
+				}},
+			},
+		}
+		vuln := osvmodel.Vulnerability{ID: "GO-2026-4916", Aliases: []string{"CVE-2026-26233"}, Affected: []osvmodel.Affected{affected}}
+
+		got := govulndbAffectedPackages(vuln)
+		want := []db.AffectedPackageHandle{{
+			Package: &db.Package{Name: "github.com/mattermost/mattermost-server", Ecosystem: "go-module"},
+			BlobValue: &db.PackageBlob{
+				CVEs: []string{"CVE-2026-26233"},
+				Ranges: []db.Range{
+					// bounded standard window kept...
+					{
+						Version: db.Version{Type: "go", Constraint: ">=11.2.0-rc1+incompatible,<11.2.4+incompatible"},
+						Fix:     &db.Fix{Version: "11.2.4+incompatible", State: db.FixedStatus},
+					},
+					// ...with the disjoint custom pseudo-version window appended
+					{
+						Version: db.Version{Type: "go", Constraint: ">=8.0.0-20260105080200-d27a2195068d,<8.0.0-20260217110922-b7d4a1f1f59b"},
+						Fix:     &db.Fix{Version: "8.0.0-20260217110922-b7d4a1f1f59b", State: db.FixedStatus},
+					},
+				},
+			},
+		}}
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("bounded keep + union:\n got: %+v\nwant: %+v", got, want)
+		}
+	})
+}
+
 // TestGoVulnDB_WithdrawnRecord pins down that records with an OSV `withdrawn`
 // timestamp surface to grype as Status=Rejected with WithdrawnDate set. The
 // matcher's OnlyNonWithdrawnVulnerabilities filter keys off Status, so this is
