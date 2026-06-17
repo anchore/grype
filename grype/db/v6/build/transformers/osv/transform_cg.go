@@ -7,6 +7,7 @@ import (
 
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	"github.com/anchore/grype/grype/db/provider"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
@@ -14,7 +15,6 @@ import (
 	"github.com/anchore/grype/grype/db/v6/name"
 	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/pkg"
-	"github.com/google/osv-scanner/pkg/models"
 )
 
 type chainguardStrategy struct{}
@@ -65,7 +65,7 @@ func cgReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
 	var refs []db.Reference
 	for _, ref := range vuln.References {
 		refID := ""
-		if ref.Type == models.ReferenceAdvisory {
+		if ref.Type == osvmodel.ReferenceAdvisory {
 			refID = vuln.ID
 		}
 		refs = append(refs, db.Reference{
@@ -114,8 +114,8 @@ func cgAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHan
 // types fall back to the default mapping. CG OSV records should all use
 // ECOSYSTEM, but the fallback is here so unexpected shapes don't silently
 // become "unknown".
-func cgRangeType(t models.RangeType) string {
-	if t == models.RangeEcosystem {
+func cgRangeType(t osvmodel.RangeType) string {
+	if t == osvmodel.RangeEcosystem {
 		// TODO is this correct? We do use APK I believe
 		return pkg.ApkPkg.String()
 	}
@@ -126,7 +126,7 @@ func cgRangeType(t models.RangeType) string {
 // may specify an "arch" qualifier in the PURL, which we extract and store in the grype
 // DB PackageQualifiers. If the PURL is malformed, empty, or carries no "arch" qualifier,
 // returns nil.
-func cgGetQualifiers(affected models.Affected) *db.PackageQualifiers {
+func cgGetQualifiers(affected osvmodel.Affected) *db.PackageQualifiers {
 	if affected.Package.Purl == "" {
 		return nil
 	}

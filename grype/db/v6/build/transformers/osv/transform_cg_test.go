@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/osv-scanner/pkg/models"
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
@@ -475,17 +475,17 @@ func TestChainguardTransform_UpstreamToAliases(t *testing.T) {
 	}
 	vuln.ID = "CGA-abcd-efgh-ijkl"
 	vuln.Aliases = []string{"ALEX-1"} // pre-existing aliases must be preserved
-	vuln.Affected = []models.Affected{
+	vuln.Affected = []osvmodel.Affected{
 		{
-			Package: models.Package{
+			Package: osvmodel.Package{
 				Ecosystem: "Chainguard",
 				Name:      "demo",
 				Purl:      "pkg:apk/chainguard/demo?arch=x86_64",
 			},
-			Ranges: []models.Range{
+			Ranges: []osvmodel.Range{
 				{
-					Type: models.RangeEcosystem,
-					Events: []models.Event{
+					Type: osvmodel.RangeEcosystem,
+					Events: []osvmodel.Event{
 						{Introduced: "0"},
 						{Fixed: "1.0.0-r1"},
 					},
@@ -523,13 +523,13 @@ func TestChainguardTransform_UpstreamToAliases(t *testing.T) {
 // unexpected shapes visible rather than silently becoming "unknown".
 func TestCgRangeType(t *testing.T) {
 	tests := []struct {
-		rangeType models.RangeType
+		rangeType osvmodel.RangeType
 		want      string
 	}{
-		{models.RangeEcosystem, "apk"},
-		{models.RangeSemVer, "semver"},
-		{models.RangeGit, "git"},
-		{models.RangeType("UNRECOGNIZED"), "unknown"},
+		{osvmodel.RangeEcosystem, "apk"},
+		{osvmodel.RangeSemVer, "semver"},
+		{osvmodel.RangeGit, "git"},
+		{osvmodel.RangeType("UNRECOGNIZED"), "unknown"},
 	}
 	for _, tt := range tests {
 		t.Run(string(tt.rangeType), func(t *testing.T) {
@@ -550,55 +550,55 @@ func TestCgGetQualifiers(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		affected models.Affected
+		affected osvmodel.Affected
 		want     *db.PackageQualifiers
 	}{
 		{
 			name: "arch x86_64 extracted",
-			affected: models.Affected{
-				Package: models.Package{Purl: "pkg:apk/chainguard/syncthing?arch=x86_64"},
+			affected: osvmodel.Affected{
+				Package: osvmodel.Package{Purl: "pkg:apk/chainguard/syncthing?arch=x86_64"},
 			},
 			want: &db.PackageQualifiers{Architecture: &archX86},
 		},
 		{
 			name: "arch aarch64 extracted",
-			affected: models.Affected{
-				Package: models.Package{Purl: "pkg:apk/wolfi/syncthing?arch=aarch64"},
+			affected: osvmodel.Affected{
+				Package: osvmodel.Package{Purl: "pkg:apk/wolfi/syncthing?arch=aarch64"},
 			},
 			want: &db.PackageQualifiers{Architecture: &archArm},
 		},
 		{
 			name: "arch alongside other qualifiers — only arch is surfaced",
-			affected: models.Affected{
-				Package: models.Package{Purl: "pkg:apk/chainguard/demo?arch=x86_64&distro=chainguard"},
+			affected: osvmodel.Affected{
+				Package: osvmodel.Package{Purl: "pkg:apk/chainguard/demo?arch=x86_64&distro=chainguard"},
 			},
 			want: &db.PackageQualifiers{Architecture: &archX86},
 		},
 		{
 			name: "PURL without arch qualifier returns nil",
-			affected: models.Affected{
-				Package: models.Package{Purl: "pkg:apk/chainguard/demo"},
+			affected: osvmodel.Affected{
+				Package: osvmodel.Package{Purl: "pkg:apk/chainguard/demo"},
 			},
 			want: nil,
 		},
 		{
 			name: "empty PURL returns nil",
-			affected: models.Affected{
-				Package: models.Package{Purl: ""},
+			affected: osvmodel.Affected{
+				Package: osvmodel.Package{Purl: ""},
 			},
 			want: nil,
 		},
 		{
 			name: "malformed PURL returns nil (does not panic)",
-			affected: models.Affected{
-				Package: models.Package{Purl: "not-a-purl"},
+			affected: osvmodel.Affected{
+				Package: osvmodel.Package{Purl: "not-a-purl"},
 			},
 			want: nil,
 		},
 		{
 			name: "arch qualifier present but empty returns nil",
-			affected: models.Affected{
-				Package: models.Package{Purl: "pkg:apk/chainguard/demo?arch="},
+			affected: osvmodel.Affected{
+				Package: osvmodel.Package{Purl: "pkg:apk/chainguard/demo?arch="},
 			},
 			want: nil,
 		},
