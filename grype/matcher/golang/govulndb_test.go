@@ -9,24 +9,11 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-// TestMatcherGolang_GoVulnDB drives ecosystem-name matching against records
-// from the Go vulnerability database (vuln.go.dev). Records arrive via the
-// govulndb vunnel provider as OSV-shaped JSON with ID prefix "GO-".
-//
-// Three fixtures cover the dominant record shapes:
-//   - GO-2020-0001: a regular module (github.com/gin-gonic/gin) with a single
-//     SEMVER range "< 1.6.0". Exercises the affected-package emission path
-//     for non-stdlib modules.
-//   - GO-2022-0969: stdlib with a multi-window SEMVER range
-//     (< 1.18.6 || >=1.19.0-0,< 1.19.1). Exercises the multi-window range
-//     normalization and confirms the matcher's ecosystem-name search finds
-//     stdlib records (separate from the existing NVD CPE path).
-//   - GO-2022-0617: withdrawn k8s.io/kubernetes record. go.dev withdrew it
-//     ("low severity issue with no fix available or planned; likely to cause
-//     false positives") but the record retains its unbounded `affected`
-//     range. Pins down that the strategy's withdrawn-handling translates
-//     into a non-match at the matcher level — the user-visible behavior we
-//     actually care about.
+// TestMatcherGolang_GoVulnDB drives ecosystem-name matching against Go vuln DB
+// (vuln.go.dev) records, which arrive via the govulndb vunnel provider as
+// OSV-shaped JSON with a "GO-" ID prefix. Fixtures cover the regular-module,
+// stdlib multi-window, withdrawn, and custom_ranges (+incompatible) shapes; each
+// case names the record it exercises.
 func TestMatcherGolang_GoVulnDB(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -63,132 +50,104 @@ func TestMatcherGolang_GoVulnDB(t *testing.T) {
 			expectID:   "GO-2022-0969",
 		},
 		{
-			// GO-2024-2519 (grafana) is the "+incompatible" false-positive
-			// case. github.com/grafana/grafana ships v6+ tags but never moved
-			// its module path to /vN, so go.dev could not map the source
-			// advisory's "6.0.0 before 7.2.1" range onto Go module semver. It
-			// emitted an *unbounded* standard SEMVER range ([{introduced: "0"}],
-			// no fixed/last_affected event) and stashed the real range in
-			// ecosystem_specific.custom_ranges (type ECOSYSTEM). The record's
-			// own details note says so and warns this "is causing false-positive
-			// reports from vulnerability scanners."
-			//
-			// The current transformer reads only the standard ranges, so
-			// {introduced: "0"} alone yields an empty constraint that matches
-			// *every* version. grafana v11.6.15 — five major versions past the
-			// real fix — therefore gets flagged. This asserts the user-visible
-			// fix: a version outside the real custom_ranges window must not
-			// match.
+			// GO-2024-2519: grafana ships v6+ tags without a /vN path, so go.dev
+			// couldn't map "6.0.0 before 7.2.1" — it emitted an unbounded
+			// standard range ([{introduced: "0"}]) and put the real window in
+			// custom_ranges. v11.6.15 is past the fix and must not match.
 			name:       "grafana past real fix against +incompatible GO-2024-2519: no match",
 			pkgName:    "github.com/grafana/grafana",
 			pkgVersion: "v11.6.15",
 		},
 		{
-			// The flip side of the +incompatible fix: a version *inside* the
-			// custom_ranges window (6.0.0 → 7.2.1) is genuinely affected and
-			// must still be flagged. This guards against an over-broad fix that
-			// simply drops the affected entry — the constraint has to come from
-			// custom_ranges, not disappear.
+			// Inside custom_ranges (6.0.0→7.2.1): genuinely affected. Guards
+			// against a fix that drops the entry instead of reading custom_ranges.
 			name:       "grafana within real GO-2024-2519 window: flagged via custom_ranges",
 			pkgName:    "github.com/grafana/grafana",
 			pkgVersion: "v6.5.0",
 			expectID:   "GO-2024-2519",
 		},
 		{
-			// GO-2024-2629 is a real multi-window grafana record
-			// (CVE-2024-1442): five disjoint custom_ranges windows
-			// (8.5.0→9.5.7, 10.0.0→10.0.12, 10.1.0→10.1.8, 10.2.0→10.2.5,
-			// 10.3.0→10.3.4). v11.6.15 is the exact version syft records for
-			// github.com/grafana/grafana in sboms/grafana-fips-11-syft.json —
-			// the real-world false positive. It sits past every window, so the
-			// custom_ranges fallback must produce no match.
+			// GO-2024-2629 (CVE-2024-1442): five disjoint custom_ranges windows
+			// (8.5.0→9.5.7 … 10.3.0→10.3.4). v11.6.15 is the SBOM version
+			// (grafana-fips-11-syft.json), past every window → no match.
 			name:       "grafana v11.6.15 (real SBOM version) past all GO-2024-2629 windows: no match",
 			pkgName:    "github.com/grafana/grafana",
 			pkgVersion: "v11.6.15",
 		},
 		{
-			// Inside the 10.2.0→10.2.5 window: genuinely affected, must match.
-			// Proves the multi-window custom_ranges constraint is evaluated
-			// end-to-end, not just emitted.
+			// Inside 10.2.0→10.2.5: affected. Proves multi-window custom_ranges
+			// evaluate end-to-end, not just emit.
 			name:       "grafana inside a GO-2024-2629 window: flagged",
 			pkgName:    "github.com/grafana/grafana",
 			pkgVersion: "v10.2.3",
 			expectID:   "GO-2024-2629",
 		},
 		{
-			// In the gap between windows: > 10.0.12 (fixed) and < 10.1.0
-			// (next introduced). A version landing between two disjoint windows
-			// must NOT match — this is what a single match-all constraint would
-			// have wrongly flagged.
+			// Gap between windows (>10.0.12, <10.1.0): no match.
 			name:       "grafana between GO-2024-2629 windows: no match",
 			pkgName:    "github.com/grafana/grafana",
 			pkgVersion: "v10.0.13",
 		},
 		{
-			// GO-2025-4153 (CVE-2025-41115) is the messy "open-ended standard
-			// range" case. Its standard SEMVER range is a single fix-less
-			// pseudo-version event ([{introduced: "1.9.2-0.20250310..."}]) — an
-			// unbounded ">= v1.9.2-pre" constraint that matches every later
-			// release — while the real affected set lives in custom_ranges
-			// (< a Nov-2025 pseudo-version, plus 12.0.0→12.0.7, 12.1.0→12.1.4,
-			// 12.2.0→12.2.2). v11.6.15 (the real SBOM version) satisfies the
-			// open-ended standard range but is in no real window. The strategy
-			// drops the open-ended standard range when custom_ranges is present,
-			// so this must not match.
+			// GO-2025-4153 (CVE-2025-41115): the standard range is a fix-less
+			// pseudo-version (">= v1.9.2-pre"), unbounded above; the real windows
+			// live in custom_ranges (< a Nov-2025 pseudo, 12.0.0→12.0.7 …
+			// 12.2.0→12.2.2). v11.6.15 satisfies the open-ended range but no real
+			// window — the strategy drops the open-ended range, so no match.
 			name:       "grafana v11.6.15 against open-ended GO-2025-4153: no match",
 			pkgName:    "github.com/grafana/grafana",
 			pkgVersion: "v11.6.15",
 		},
 		{
-			// Inside the 12.1.0→12.1.4 custom_ranges window: genuinely affected,
-			// must still be flagged after the open-ended standard range is
-			// dropped.
+			// Inside custom_ranges 12.1.0→12.1.4: affected even after the
+			// open-ended standard range is dropped.
 			name:       "grafana inside a GO-2025-4153 custom window: flagged",
 			pkgName:    "github.com/grafana/grafana",
 			pkgVersion: "v12.1.2",
 			expectID:   "GO-2025-4153",
 		},
 		{
-			// Past every GO-2025-4153 window (> 12.2.2, and a release tag rather
-			// than a pre-Nov-2025 pseudo-version): not affected. Guards against
-			// the open-ended standard range sneaking back in.
+			// Past every window (>12.2.2): no match. Guards the open-ended range
+			// from creeping back.
 			name:       "grafana v12.3.0 past all GO-2025-4153 windows: no match",
 			pkgName:    "github.com/grafana/grafana",
 			pkgVersion: "v12.3.0",
 		},
 		{
-			// GO-2026-4916 (CVE-2026-26233) is the regression guard for the
-			// *surgical* fix. Its standard ranges are bounded +incompatible tag
-			// windows (10.11.0-rc1→10.11.12, 11.2.0-rc1→11.2.4, …) while
-			// custom_ranges carries a disjoint pseudo-version window. Because the
-			// standard windows are bounded (not open-ended), they must be kept —
-			// dropping them in favor of custom_ranges would be a false negative.
-			// A main-module mattermost at v11.2.1 sits inside a standard window
-			// and must be flagged.
+			// GO-2026-4916 (CVE-2026-26233): standard ranges are bounded
+			// +incompatible tag windows (…11.2.0-rc1→11.2.4…); custom_ranges holds
+			// a disjoint pseudo-version window. The bounded standard windows must
+			// survive the union — dropping them would be a false negative — so
+			// v11.2.1 still matches.
 			name:       "mattermost in bounded standard window survives GO-2026-4916 union: flagged",
 			pkgName:    "github.com/mattermost/mattermost-server",
 			pkgVersion: "v11.2.1+incompatible",
 			expectID:   "GO-2026-4916",
 		},
 		{
-			// Between two bounded standard windows (> 11.2.4 fixed, < 11.3.0-rc1):
-			// not affected. Confirms the kept standard windows stay bounded and
-			// don't over-match.
+			// Between bounded standard windows (>11.2.4, <11.3.0-rc1): no match.
 			name:       "mattermost between GO-2026-4916 standard windows: no match",
 			pkgName:    "github.com/mattermost/mattermost-server",
 			pkgVersion: "v11.2.9+incompatible",
 		},
 		{
-			// GO-2022-0617 has an unbounded vulnerable range
-			// ([{introduced: "0"}] — no fixed/last_affected event), so if
-			// the strategy emitted it as Status=Active, every version of
-			// k8s.io/kubernetes would match. The OSV record carries a
-			// `withdrawn` timestamp, which the strategy now translates to
-			// Status=Rejected, and the matcher's
-			// OnlyNonWithdrawnVulnerabilities filter drops it before
-			// version evaluation. Asserting IsEmpty here is the only
-			// guarantee that actually matters to users: withdrawn → no
-			// finding.
+			// GO-2024-3240 (CVE-2024-10452): standard range is [{introduced: "0"}]
+			// with no fix and no custom_ranges, so the transformer produces no
+			// usable range. An affected package with zero ranges matches every
+			// version ("none (unknown)" constraint); the strategy must skip it.
+			// v12.5.0 is past every real grafana window in the fixture, so only a
+			// match-all entry could match — the result must be empty. (The real
+			// range, per the aliased GHSA-66c4-2g2v-54qw, is <= 10.4.0, covered by
+			// the github provider.)
+			name:       "grafana v12.5.0 against unbounded no-custom GO-2024-3240: no match",
+			pkgName:    "github.com/grafana/grafana",
+			pkgVersion: "v12.5.0",
+		},
+		{
+			// GO-2022-0617 is withdrawn but keeps an unbounded range
+			// ([{introduced: "0"}]). The strategy marks it Status=Rejected and
+			// the matcher's OnlyNonWithdrawnVulnerabilities filter drops it:
+			// withdrawn → no finding.
 			name:       "k8s.io/kubernetes against withdrawn GO-2022-0617: no match",
 			pkgName:    "k8s.io/kubernetes",
 			pkgVersion: "v1.20.0",

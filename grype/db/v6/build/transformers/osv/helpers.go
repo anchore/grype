@@ -80,7 +80,9 @@ func getGrypeRangesFromRange(r osvmodel.Range, rangeType string) []db.Range { //
 
 	fixByVersion := extractFixAvailability(r)
 
-	for _, e := range r.Events {
+	// These lines are intentionally duplicated in the go transformer, which
+	// needs its own version of this function.
+	for _, e := range r.Events { // nolint:dupl
 		switch {
 		case e.Introduced != "" && e.Introduced != "0":
 			constraint = fmt.Sprintf(">= %s", e.Introduced)

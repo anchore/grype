@@ -10,6 +10,7 @@ import (
 	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
+	"github.com/anchore/grype/grype/db/internal/versionutil"
 	"github.com/anchore/grype/grype/db/provider"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
@@ -19,27 +20,17 @@ import (
 )
 
 // govulndbStrategy handles GO-* records from the Go vulnerability database
-// (vuln.go.dev). These records describe *affected* version ranges of Go
-// modules — both regular modules (github.com/foo/bar, golang.org/x/net) and
-// the special "stdlib" and "toolchain" pseudo-modules. Records are
-// disclosures (vulnerable ranges), not NAKs.
-//
-// Govulndb-specific decisions:
-//   - CVEs and GHSAs are in `aliases` directly; the schema has no `related`
-//     field, so no augmentation.
-//   - Ecosystem is always "Go"; mapped to the syft go-module package type so
-//     the matcher reaches these records via its standard ecosystem-name
-//     search.
-//   - Range type is always SEMVER; mapped to "go" so the runtime parses
-//     constraints as GolangFormat (which handles Go pseudo-versions like
-//     v0.0.0-<timestamp>-<commit>).
-//   - `ecosystem_specific.imports` (symbol-level reachability info) is
-//     intentionally dropped: grype matches at module granularity and has no
-//     way to use per-symbol vulnerability info today.
-//   - References pass through with their OSV type as a tag; refID is left
-//     empty (the GO records' references don't include the canonical advisory
-//     page in `references` — that lives in `database_specific.url`, which we
-//     don't synthesize a reference for).
+// (vuln.go.dev): affected version ranges for Go modules, plus the "stdlib" and
+// "toolchain" pseudo-modules. Govulndb specifics:
+//   - aliases hold CVEs/GHSAs directly; the schema has no `related` field.
+//   - ecosystem is always "Go" → syft go-module type, reached by the matcher's
+//     ecosystem-name search.
+//   - range type is always SEMVER → "go" format, which parses pseudo-versions
+//     (v0.0.0-<timestamp>-<commit>).
+//   - ecosystem_specific.imports (per-symbol reachability) is dropped; grype
+//     matches at module granularity.
+//   - references pass through with their OSV type as a tag; refID stays empty
+//     (the canonical advisory page lives in database_specific.url, not refs).
 type govulndbStrategy struct{}
 
 func (govulndbStrategy) Matches(id string) bool {
@@ -52,12 +43,9 @@ func (govulndbStrategy) Transform(vuln unmarshal.OSVVulnerability, state provide
 		return nil, fmt.Errorf("unable to obtain severities: %w", err)
 	}
 
-	// Withdrawn GO advisories retain their `affected` ranges but should not
-	// match user-scanned packages — go.dev periodically withdraws records
-	// when an issue is downgraded out of vuln-db scope or duplicated under a
-	// different ID. Mirror github's pattern: set Status=Rejected and surface
-	// the WithdrawnDate so the matcher's OnlyNonWithdrawnVulnerabilities
-	// filter skips them.
+	// Withdrawn GO advisories keep their `affected` ranges but must not match.
+	// Mirror github: set Status=Rejected and surface WithdrawnDate so the
+	// matcher's OnlyNonWithdrawnVulnerabilities filter skips them.
 	status := db.VulnerabilityActive
 	var withdrawnDate *time.Time
 	if !vuln.Withdrawn.IsZero() {
@@ -107,40 +95,14 @@ func govulndbAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPack
 	}
 	var aphs []db.AffectedPackageHandle
 	for _, affected := range vuln.Affected {
-		var ranges []db.Range
-		for _, r := range affected.Ranges {
-			ranges = append(ranges, getGrypeRangesFromRange(r, govulndbRangeType(r.Type))...)
+		ranges := govulndbAffectedRanges(affected)
+		if len(ranges) == 0 {
+			// No usable range — e.g. a lone {introduced: "0"} with no fix and no
+			// custom_ranges (GO-2024-3240). An affected package with zero ranges
+			// matches every version, so skip it rather than emit a match-all. The
+			// aliased GHSA carries the real bounds via the github provider.
+			continue
 		}
-
-		// ecosystem_specific.custom_ranges is go.dev's escape hatch for the
-		// "+incompatible" case: when a module ships vN tags for N>1 but never
-		// moved its path to /vN, go.dev cannot map the source advisory's
-		// versions onto canonical Go module semver. Its presence is the signal
-		// that the standard `ranges` are an unreliable best-effort artifact, so
-		// custom_ranges (which mirrors the advisory's own affected windows, per
-		// the record's details text) is authoritative.
-		//
-		// We do not blindly replace the standard ranges, though: the two often
-		// describe *complementary* version namespaces. github.com/grafana
-		// /grafana lists +incompatible tags (v6.0.0, v12.0.7) in custom_ranges,
-		// while github.com/mattermost/mattermost-server can carry bounded
-		// +incompatible tag windows in the standard ranges and pseudo-version
-		// windows in custom_ranges. Dropping the standard side entirely would
-		// turn the mattermost case into a false negative.
-		//
-		// The actual false-positive generator is an *open-ended* standard range
-		// — a ">= X" lower bound with no fix and no upper bound (a trailing
-		// `introduced` event with no matching `fixed`/`last_affected`). go.dev
-		// emits these for the unmappable versions (e.g. grafana
-		// >= a v1.9.2 pseudo-version, GO-2025-4153), and ">= v1.9.2-pre" matches
-		// *every* later release including v11/v12. So when custom_ranges is
-		// present we drop only the open-ended standard ranges, keep the bounded
-		// ones, and union with custom_ranges. go.dev's own details warn this "is
-		// causing false-positive reports from vulnerability scanners."
-		if custom := govulndbCustomRanges(affected); len(custom) > 0 {
-			ranges = append(dropOpenEndedRanges(ranges), custom...)
-		}
-
 		aphs = append(aphs, db.AffectedPackageHandle{
 			Package: govulndbPackage(affected.Package),
 			BlobValue: &db.PackageBlob{
@@ -153,41 +115,95 @@ func govulndbAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPack
 	return aphs
 }
 
-// dropOpenEndedRanges removes ranges that are unbounded above — a ">= X" lower
-// bound with no upper bound — keeping every range that has one. It is applied to
-// the *standard* ranges only when custom_ranges is present (see
-// govulndbAffectedPackages): in that situation an open-ended standard range is
-// go.dev's "couldn't map to Go module semver" artifact and over-matches every
-// version above its lower bound, while bounded windows (whether real semver or
-// +incompatible tag ranges) stay trustworthy and must be preserved.
-func dropOpenEndedRanges(ranges []db.Range) []db.Range {
-	var kept []db.Range
-	for _, r := range ranges {
-		if isUnboundedAbove(r) {
-			continue
+// govulndbAffectedRanges builds one affected entry's ranges, handling
+// ecosystem_specific.custom_ranges.
+//
+// go.dev writes custom_ranges when a module ships vN tags (N>1) without a /vN
+// path and it can't map the advisory's versions to Go module semver. Standard
+// ranges and custom_ranges then cover complementary version spaces (grafana
+// puts +incompatible tags like v12.0.7 in custom_ranges; mattermost-server
+// keeps tag windows in standard ranges and pseudo-version windows in custom),
+// so we union them. The exception: an open-ended standard window (">= X", no
+// fix) matches every later release — grafana GO-2025-4153 emits ">= a v1.9.2
+// pseudo-version" and flags v11/v12 — so drop it once custom_ranges carries the
+// real windows.
+//
+//   - bounded standard window: always kept
+//   - open-ended standard window: kept only without custom_ranges
+//   - custom_ranges window: always added
+func govulndbAffectedRanges(affected osvmodel.Affected) []db.Range {
+	custom := govulndbCustomRanges(affected)
+
+	var ranges []db.Range
+	for _, r := range affected.Ranges {
+		bounded, openEnded := govulndbRanges(r, govulndbRangeType(r.Type))
+		ranges = append(ranges, bounded...)
+		if len(custom) == 0 {
+			ranges = append(ranges, openEnded...)
 		}
-		kept = append(kept, r)
 	}
-	return kept
+	return append(ranges, custom...)
 }
 
-// isUnboundedAbove reports whether a range has a lower bound but no upper bound.
-// Normalized constraints always express an upper bound with a "<" token ("< Y",
-// ">= X,< Y", or "<= Y" for last_affected); a constraint with no "<" at all is
-// open-ended above (e.g. ">= X" from a fix-less trailing introduced event). An
-// empty constraint (match-all) is likewise treated as unbounded.
-func isUnboundedAbove(r db.Range) bool {
-	return !strings.Contains(r.Version.Constraint, "<")
+// govulndbRanges converts one OSV range's events to grype ranges, splitting
+// bounded windows (introduced→fixed or introduced→last_affected) from a trailing
+// open-ended window (introduced with no close, ">= X"). The caller decides
+// whether to keep the open-ended one. rangeType is "go" for Go records.
+func govulndbRanges(r osvmodel.Range, rangeType string) (bounded, openEnded []db.Range) {
+	if len(r.Events) == 0 {
+		return nil, nil
+	}
+	fixByVersion := extractFixAvailability(r)
+
+	var constraint string
+	and := func(c string) {
+		if constraint == "" {
+			constraint = c
+		} else {
+			constraint = versionutil.AndConstraints(constraint, c)
+		}
+	}
+
+	// dupl is suppressed because Go needs its own version of the range parser, but some of the
+	// core logic is necessarily the same.
+	for _, e := range r.Events { // nolint:dupl
+		switch {
+		case e.Introduced != "" && e.Introduced != "0":
+			constraint = fmt.Sprintf(">= %s", e.Introduced)
+		case e.LastAffected != "":
+			and(fmt.Sprintf("<= %s", e.LastAffected))
+			bounded = append(bounded, db.Range{
+				Version: db.Version{Type: rangeType, Constraint: normalizeConstraint(constraint, rangeType)},
+			})
+			constraint = ""
+		case e.Fixed != "":
+			var detail *db.FixDetail
+			if f, ok := fixByVersion[e.Fixed]; ok {
+				detail = &db.FixDetail{Available: &f}
+			}
+			and(fmt.Sprintf("< %s", e.Fixed))
+			bounded = append(bounded, db.Range{
+				Fix:     normalizeFix(e.Fixed, detail),
+				Version: db.Version{Type: rangeType, Constraint: normalizeConstraint(constraint, rangeType)},
+			})
+			constraint = ""
+		}
+	}
+
+	// A leftover lower bound: the range ended on an `introduced` with no
+	// `fixed`/`last_affected` — an open-ended ">= X" window.
+	if constraint != "" {
+		openEnded = append(openEnded, db.Range{
+			Version: db.Version{Type: rangeType, Constraint: normalizeConstraint(constraint, rangeType)},
+		})
+	}
+	return bounded, openEnded
 }
 
-// govulndbCustomRanges decodes ecosystem_specific.custom_ranges (the
-// source-advisory version windows go.dev couldn't map onto Go module semver)
-// into grype ranges. The custom ranges are OSV-shaped (type/events) but carry
-// type ECOSYSTEM; we evaluate them with the "go" format regardless, because the
-// versions being compared at match time are always Go module versions. Returns
-// nil when there are no custom ranges (the affected entry then contributes no
-// match, which is the correct outcome for a record that has *no* usable version
-// information at all).
+// govulndbCustomRanges decodes ecosystem_specific.custom_ranges into grype
+// ranges. Entries are OSV-shaped but typed ECOSYSTEM; we compare them as "go"
+// since matched versions are always Go module versions. custom_ranges is
+// authoritative, so every window is kept. Returns nil when absent.
 func govulndbCustomRanges(affected osvmodel.Affected) []db.Range {
 	if affected.EcosystemSpecific == nil {
 		return nil
@@ -198,7 +214,7 @@ func govulndbCustomRanges(affected osvmodel.Affected) []db.Range {
 	}
 
 	// custom_ranges arrives as []any of map[string]any; round-trip through JSON
-	// to reuse the osvmodel.Range shape and the shared range-normalization path.
+	// into the osvmodel.Range shape.
 	encoded, err := json.Marshal(raw)
 	if err != nil {
 		return nil
@@ -210,7 +226,9 @@ func govulndbCustomRanges(affected osvmodel.Affected) []db.Range {
 
 	var ranges []db.Range
 	for _, r := range customRanges {
-		ranges = append(ranges, getGrypeRangesFromRange(r, "go")...)
+		bounded, openEnded := govulndbRanges(r, "go")
+		ranges = append(ranges, bounded...)
+		ranges = append(ranges, openEnded...)
 	}
 	return ranges
 }

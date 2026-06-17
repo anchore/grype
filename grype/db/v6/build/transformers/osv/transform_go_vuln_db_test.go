@@ -161,12 +161,11 @@ func TestGoVulnDBTransform(t *testing.T) {
 	runTransformCases(t, tests)
 }
 
-// TestGoVulnDBRangeConversion exercises the Go-flavored range-conversion path:
-// govulndbRangeType maps OSV's SEMVER to "go", then getGrypeRangesFromRange
-// builds the affected version constraints. Multi-window inputs are the
-// load-bearing case — stdlib records carry two disjoint windows in one range,
-// and the AND form must come out comma-separated so the Go constraint parser
-// accepts it.
+// TestGoVulnDBRangeConversion exercises govulndbRanges on bounded inputs.
+// Multi-window is the load-bearing case: stdlib records carry two disjoint
+// windows in one range, and the AND form must come out comma-separated for the
+// Go constraint parser. None of these inputs are open-ended, so the open-ended
+// bucket must stay empty.
 func TestGoVulnDBRangeConversion(t *testing.T) {
 	tests := []struct {
 		name string
@@ -226,7 +225,10 @@ func TestGoVulnDBRangeConversion(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := getGrypeRangesFromRange(tt.rnge, govulndbRangeType(tt.rnge.Type))
+			got, openEnded := govulndbRanges(tt.rnge, govulndbRangeType(tt.rnge.Type))
+			if len(openEnded) != 0 {
+				t.Errorf("unexpected open-ended ranges: %v", openEnded)
+			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("got %v, want %v", got, tt.want)
 			}
@@ -234,20 +236,11 @@ func TestGoVulnDBRangeConversion(t *testing.T) {
 	}
 }
 
-// TestGoVulnDB_CustomRangesFallback pins down the "+incompatible" false-positive
-// fix. github.com/grafana/grafana ships v6+ tags but never moved its module path
-// to /vN, so go.dev cannot map the source advisory's "6.0.0 before 7.2.1" range
-// onto canonical Go module semver. It emits an unbounded standard SEMVER range
-// ([{introduced: "0"}], no fixed event) and stashes the real window in
-// ecosystem_specific.custom_ranges.
-//
-// Before the fix, the unbounded standard range produced an empty constraint that
-// matched every version (grafana v11/v12 flagged for a 6.x bug). The strategy now
-// falls back to custom_ranges when the standard ranges yield nothing, so the
-// emitted constraint pins the real ">=6.0.0,<7.2.1" window. EcosystemSpecific is
-// built as the JSON-decoded map[string]any shape the unmarshaler actually
-// produces, so the round-trip decode in govulndbCustomRanges is exercised for
-// real.
+// TestGoVulnDB_CustomRangesFallback pins the GO-2024-2519 case: the standard
+// range is empty ([{introduced: "0"}] yields no constraint), so custom_ranges
+// supplies the only window, ">=6.0.0,<7.2.1". EcosystemSpecific uses the
+// map[string]any shape the unmarshaler produces, so the round-trip decode runs
+// for real.
 func TestGoVulnDB_CustomRangesFallback(t *testing.T) {
 	affected := osvmodel.Affected{
 		Package: osvmodel.Package{Name: "github.com/grafana/grafana", Ecosystem: "Go"},
@@ -292,16 +285,27 @@ func TestGoVulnDB_CustomRangesFallback(t *testing.T) {
 	}
 }
 
-// TestGoVulnDB_CustomRangesMultiWindow covers the load-bearing custom-range
-// shape: most real "+incompatible" records (GO-2024-2629, GO-2024-2697, …)
-// describe several *disjoint* affected windows flattened into one ECOSYSTEM
-// range's events. Each introduced→fixed pair must become its own db.Range with
-// a comma-separated constraint (the Go constraint parser rejects the
-// space-separated AND form), and the gaps between windows must stay
-// unconstrained so a version landing between two windows does not match.
-//
-// This drives govulndbCustomRanges directly so the assertion is on the exact
-// emitted ranges rather than a match/no-match outcome.
+// TestGoVulnDB_ZeroRangeDropped pins GO-2024-3240's shape: a lone
+// {introduced: "0"} with no fix and no custom_ranges yields no usable range, so
+// govulndb emits no affected package at all (rather than a match-everything one).
+func TestGoVulnDB_ZeroRangeDropped(t *testing.T) {
+	vuln := osvmodel.Vulnerability{
+		ID:      "GO-2024-3240",
+		Aliases: []string{"CVE-2024-10452", "GHSA-66c4-2g2v-54qw"},
+		Affected: []osvmodel.Affected{{
+			Package: osvmodel.Package{Name: "github.com/grafana/grafana", Ecosystem: "Go"},
+			Ranges:  []osvmodel.Range{{Type: osvmodel.RangeSemVer, Events: []osvmodel.Event{{Introduced: "0"}}}},
+		}},
+	}
+	if got := govulndbAffectedPackages(vuln); len(got) != 0 {
+		t.Errorf("expected no affected packages, got %d: %+v", len(got), got)
+	}
+}
+
+// TestGoVulnDB_CustomRangesMultiWindow covers the common multi-window shape
+// (GO-2024-2629 etc.): several disjoint windows flattened into one ECOSYSTEM
+// range. Each introduced→fixed pair becomes its own db.Range, and the gap
+// between windows stays unconstrained.
 func TestGoVulnDB_CustomRangesMultiWindow(t *testing.T) {
 	affected := osvmodel.Affected{
 		Package: osvmodel.Package{Name: "github.com/grafana/grafana", Ecosystem: "Go"},
@@ -343,18 +347,13 @@ func TestGoVulnDB_CustomRangesMultiWindow(t *testing.T) {
 	}
 }
 
-// TestGoVulnDB_OpenEndedStandardWithCustom covers the surgical union rule for
-// records that carry BOTH standard ranges and custom_ranges. When custom_ranges
-// is present, open-ended standard ranges (a ">= X" with no upper bound, go.dev's
-// "couldn't map" artifact) are dropped, bounded standard ranges are kept, and
-// custom_ranges is unioned in. The two cases below are the load-bearing shapes:
-//
-//   - grafana GO-2025-4153: the only standard range is open-ended
-//     (>= a v1.9.2 pseudo-version, no fix) → dropped entirely; just the custom
-//     windows survive. This is what stops v11.6.15 from over-matching.
-//   - mattermost GO-2026-4916: the standard ranges are bounded +incompatible
-//     tag windows → kept, with the disjoint pseudo-version custom window
-//     appended. Dropping the bounded standard side would be a false negative.
+// TestGoVulnDB_OpenEndedStandardWithCustom covers records carrying both standard
+// ranges and custom_ranges:
+//   - grafana GO-2025-4153: the lone standard range is open-ended (>= a v1.9.2
+//     pseudo-version) → dropped; only the custom windows survive.
+//   - mattermost GO-2026-4916: the standard ranges are bounded +incompatible tag
+//     windows → kept and unioned with the custom window. Dropping them would be
+//     a false negative.
 func TestGoVulnDB_OpenEndedStandardWithCustom(t *testing.T) {
 	t.Run("open-ended standard dropped, custom kept (grafana GO-2025-4153)", func(t *testing.T) {
 		affected := osvmodel.Affected{
@@ -446,13 +445,10 @@ func TestGoVulnDB_OpenEndedStandardWithCustom(t *testing.T) {
 	})
 }
 
-// TestGoVulnDB_WithdrawnRecord pins down that records with an OSV `withdrawn`
-// timestamp surface to grype as Status=Rejected with WithdrawnDate set. The
-// matcher's OnlyNonWithdrawnVulnerabilities filter keys off Status, so this is
-// the gate that stops withdrawn GO advisories from being matched as live
-// vulnerabilities (GO-2022-0617 was the symptom that drove this fix — go.dev
-// withdrew it as a "low severity issue with no fix available or planned;
-// likely to cause false positives", but the strategy was emitting it Active).
+// TestGoVulnDB_WithdrawnRecord pins that an OSV `withdrawn` timestamp surfaces as
+// Status=Rejected with WithdrawnDate set — the gate the matcher's
+// OnlyNonWithdrawnVulnerabilities filter keys off. GO-2022-0617 drove this:
+// go.dev withdrew it but the strategy had been emitting it Active.
 func TestGoVulnDB_WithdrawnRecord(t *testing.T) {
 	vulns := loadFixture(t, "testdata/GO-2022-0617.json")
 	if len(vulns) != 1 {
