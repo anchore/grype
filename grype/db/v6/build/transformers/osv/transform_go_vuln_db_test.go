@@ -161,41 +161,29 @@ func TestGoVulnDBTransform(t *testing.T) {
 	runTransformCases(t, tests)
 }
 
-// TestGoVulnDBRangeConversion exercises govulndbRanges on bounded inputs.
-// Multi-window is the load-bearing case: stdlib records carry two disjoint
-// windows in one range, and the AND form must come out comma-separated for the
-// Go constraint parser. None of these inputs are open-ended, so the open-ended
-// bucket must stay empty.
-func TestGoVulnDBRangeConversion(t *testing.T) {
+// TestEventsToRanges exercises event-stream → grype-range conversion.
+// Multi-window is load-bearing: stdlib carries two disjoint windows in one
+// stream, and the Go parser needs the AND form comma-separated. Trailing
+// introduced with no fix → open-ended.
+func TestEventsToRanges(t *testing.T) {
 	tests := []struct {
-		name string
-		rnge osvmodel.Range
-		want []db.Range
+		name   string
+		events []osvmodel.Event
+		want   []db.Range
 	}{
 		{
-			name: "simple introduced=0 -> fixed",
-			rnge: osvmodel.Range{
-				Type: osvmodel.RangeSemVer,
-				Events: []osvmodel.Event{
-					{Introduced: "0"},
-					{Fixed: "1.6.0"},
-				},
-			},
+			name:   "simple introduced=0 -> fixed",
+			events: []osvmodel.Event{{Introduced: "0"}, {Fixed: "1.6.0"}},
 			want: []db.Range{{
 				Version: db.Version{Type: "go", Constraint: "<1.6.0"},
 				Fix:     &db.Fix{Version: "1.6.0", State: db.FixedStatus},
 			}},
 		},
 		{
-			name: "two disjoint windows in one range (stdlib shape)",
-			rnge: osvmodel.Range{
-				Type: osvmodel.RangeSemVer,
-				Events: []osvmodel.Event{
-					{Introduced: "0"},
-					{Fixed: "1.18.6"},
-					{Introduced: "1.19.0-0"},
-					{Fixed: "1.19.1"},
-				},
+			name: "two disjoint windows (stdlib shape)",
+			events: []osvmodel.Event{
+				{Introduced: "0"}, {Fixed: "1.18.6"},
+				{Introduced: "1.19.0-0"}, {Fixed: "1.19.1"},
 			},
 			want: []db.Range{
 				{
@@ -209,26 +197,29 @@ func TestGoVulnDBRangeConversion(t *testing.T) {
 			},
 		},
 		{
-			name: "pseudo-version fixed (golang.org/x/* shape)",
-			rnge: osvmodel.Range{
-				Type: osvmodel.RangeSemVer,
-				Events: []osvmodel.Event{
-					{Introduced: "0"},
-					{Fixed: "0.0.0-20220906165146-f3363e06e74c"},
-				},
-			},
+			name:   "pseudo-version fixed (golang.org/x/* shape)",
+			events: []osvmodel.Event{{Introduced: "0"}, {Fixed: "0.0.0-20220906165146-f3363e06e74c"}},
 			want: []db.Range{{
 				Version: db.Version{Type: "go", Constraint: "<0.0.0-20220906165146-f3363e06e74c"},
 				Fix:     &db.Fix{Version: "0.0.0-20220906165146-f3363e06e74c", State: db.FixedStatus},
 			}},
 		},
+		{
+			name:   "trailing introduced with no fix is open-ended",
+			events: []osvmodel.Event{{Introduced: "1.2.0"}},
+			want: []db.Range{{
+				Version: db.Version{Type: "go", Constraint: ">=1.2.0"},
+			}},
+		},
+		{
+			name:   "lone introduced=0 yields no ranges (all-versions)",
+			events: []osvmodel.Event{{Introduced: "0"}},
+			want:   nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, openEnded := govulndbRanges(tt.rnge, govulndbRangeType(tt.rnge.Type))
-			if len(openEnded) != 0 {
-				t.Errorf("unexpected open-ended ranges: %v", openEnded)
-			}
+			got := eventsToRanges(tt.events, nil, "go")
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("got %v, want %v", got, tt.want)
 			}
@@ -285,10 +276,12 @@ func TestGoVulnDB_CustomRangesFallback(t *testing.T) {
 	}
 }
 
-// TestGoVulnDB_ZeroRangeDropped pins GO-2024-3240's shape: a lone
-// {introduced: "0"} with no fix and no custom_ranges yields no usable range, so
-// govulndb emits no affected package at all (rather than a match-everything one).
-func TestGoVulnDB_ZeroRangeDropped(t *testing.T) {
+// TestGoVulnDB_NoRangeMeansAllVersions pins GO-2024-3240's shape: a lone
+// {introduced: "0"} with no fix and no custom_ranges. go.dev is declaring the
+// record affected at every version with no fix, so we emit one affected package
+// handle with empty Ranges — grype reads a handle with no ranges as vulnerable
+// at all versions. We do not second-guess the record by dropping it.
+func TestGoVulnDB_NoRangeMeansAllVersions(t *testing.T) {
 	vuln := osvmodel.Vulnerability{
 		ID:      "GO-2024-3240",
 		Aliases: []string{"CVE-2024-10452", "GHSA-66c4-2g2v-54qw"},
@@ -297,8 +290,12 @@ func TestGoVulnDB_ZeroRangeDropped(t *testing.T) {
 			Ranges:  []osvmodel.Range{{Type: osvmodel.RangeSemVer, Events: []osvmodel.Event{{Introduced: "0"}}}},
 		}},
 	}
-	if got := govulndbAffectedPackages(vuln); len(got) != 0 {
-		t.Errorf("expected no affected packages, got %d: %+v", len(got), got)
+	got := govulndbAffectedPackages(vuln)
+	if len(got) != 1 {
+		t.Fatalf("expected 1 affected package, got %d: %+v", len(got), got)
+	}
+	if len(got[0].BlobValue.Ranges) != 0 {
+		t.Errorf("expected empty ranges (all-versions), got %+v", got[0].BlobValue.Ranges)
 	}
 }
 
@@ -329,7 +326,8 @@ func TestGoVulnDB_CustomRangesMultiWindow(t *testing.T) {
 		},
 	}
 
-	got := govulndbCustomRanges(affected)
+	vuln := osvmodel.Vulnerability{ID: "GO-2024-2629", Affected: []osvmodel.Affected{affected}}
+	got := govulndbAffectedPackages(vuln)
 
 	want := []db.Range{
 		{
@@ -342,20 +340,22 @@ func TestGoVulnDB_CustomRangesMultiWindow(t *testing.T) {
 		},
 	}
 
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("multi-window custom_ranges:\n got: %+v\nwant: %+v", got, want)
+	if len(got) != 1 {
+		t.Fatalf("expected 1 affected package, got %d", len(got))
+	}
+	if !reflect.DeepEqual(got[0].BlobValue.Ranges, want) {
+		t.Errorf("multi-window custom_ranges:\n got: %+v\nwant: %+v", got[0].BlobValue.Ranges, want)
 	}
 }
 
-// TestGoVulnDB_OpenEndedStandardWithCustom covers records carrying both standard
+// TestGoVulnDB_OpenEndedStandardWithCustom covers records with both standard
 // ranges and custom_ranges:
-//   - grafana GO-2025-4153: the lone standard range is open-ended (>= a v1.9.2
-//     pseudo-version) → dropped; only the custom windows survive.
-//   - mattermost GO-2026-4916: the standard ranges are bounded +incompatible tag
-//     windows → kept and unioned with the custom window. Dropping them would be
-//     a false negative.
+//   - GO-2025-4153: standard is a fix-less floor (>= a v1.9.2 pseudo-version),
+//     grafted onto custom's first window (its introduced:0 becomes the floor).
+//   - GO-2026-4916: standard is bounded +incompatible tag windows, kept and
+//     unioned with custom; dropping them would be a false negative.
 func TestGoVulnDB_OpenEndedStandardWithCustom(t *testing.T) {
-	t.Run("open-ended standard dropped, custom kept (grafana GO-2025-4153)", func(t *testing.T) {
+	t.Run("floor grafted onto custom first window (grafana GO-2025-4153)", func(t *testing.T) {
 		affected := osvmodel.Affected{
 			Package: osvmodel.Package{Name: "github.com/grafana/grafana", Ecosystem: "Go"},
 			Ranges: []osvmodel.Range{{
@@ -380,10 +380,10 @@ func TestGoVulnDB_OpenEndedStandardWithCustom(t *testing.T) {
 			Package: &db.Package{Name: "github.com/grafana/grafana", Ecosystem: "go-module"},
 			BlobValue: &db.PackageBlob{
 				CVEs: []string{"CVE-2025-41115"},
-				// the open-ended ">= 1.9.2-0.20250310..." standard range is gone
+				// custom's introduced:0 is raised to the standard floor.
 				Ranges: []db.Range{
 					{
-						Version: db.Version{Type: "go", Constraint: "<1.9.2-0.20251106142618-ca5d89812015"},
+						Version: db.Version{Type: "go", Constraint: ">=1.9.2-0.20250310110405-e6fdb746f235,<1.9.2-0.20251106142618-ca5d89812015"},
 						Fix:     &db.Fix{Version: "1.9.2-0.20251106142618-ca5d89812015", State: db.FixedStatus},
 					},
 					{
@@ -481,5 +481,56 @@ func TestGoVulnDB_WithdrawnRecord(t *testing.T) {
 		t.Errorf("WithdrawnDate is nil; want %s", wantWithdrawn)
 	} else if !vh.WithdrawnDate.Equal(wantWithdrawn) {
 		t.Errorf("WithdrawnDate = %s, want %s", vh.WithdrawnDate, wantWithdrawn)
+	}
+}
+
+// TestGoVulnDB_MalformedCustomRangesKeepsStandard pins Wave-1.1: a custom_ranges
+// value that fails to decode (here, introduced arrives as a number) must not
+// erase the standard range. govulndbCustomRanges logs and returns nil, so the
+// record falls back to standard-range-only matching.
+func TestGoVulnDB_MalformedCustomRangesKeepsStandard(t *testing.T) {
+	vuln := osvmodel.Vulnerability{
+		ID:      "GO-0000-0001",
+		Aliases: []string{"CVE-0000-0001"},
+		Affected: []osvmodel.Affected{{
+			Package: osvmodel.Package{Name: "github.com/example/mod", Ecosystem: "Go"},
+			Ranges:  []osvmodel.Range{{Type: osvmodel.RangeSemVer, Events: []osvmodel.Event{{Introduced: "0"}, {Fixed: "1.2.0"}}}},
+			EcosystemSpecific: map[string]any{"custom_ranges": []any{map[string]any{
+				"type":   "ECOSYSTEM",
+				"events": []any{map[string]any{"introduced": 5}}, // int, not string -> decode error
+			}}},
+		}},
+	}
+	got := govulndbAffectedPackages(vuln)
+	want := []db.Range{{
+		Version: db.Version{Type: "go", Constraint: "<1.2.0"},
+		Fix:     &db.Fix{Version: "1.2.0", State: db.FixedStatus},
+	}}
+	if len(got) != 1 || !reflect.DeepEqual(got[0].BlobValue.Ranges, want) {
+		t.Errorf("malformed custom_ranges should keep standard %v, got %+v", want, got)
+	}
+}
+
+// TestGoVulnDB_WindowlessCustomKeepsStandard pins Wave-1.2: a custom_ranges that
+// decodes fine but yields no version windows (an event with only `limit`) must
+// not erase the standard range. Without the guard this emitted zero ranges,
+// which grype reads as "vulnerable at every version" — a silent over-match.
+func TestGoVulnDB_WindowlessCustomKeepsStandard(t *testing.T) {
+	vuln := osvmodel.Vulnerability{
+		ID: "GO-0000-0002",
+		Affected: []osvmodel.Affected{{
+			Package: osvmodel.Package{Name: "github.com/example/mod", Ecosystem: "Go"},
+			// open-ended floor standard: ">= 5.0.0"
+			Ranges: []osvmodel.Range{{Type: osvmodel.RangeSemVer, Events: []osvmodel.Event{{Introduced: "5.0.0"}}}},
+			EcosystemSpecific: map[string]any{"custom_ranges": []any{map[string]any{
+				"type":   "ECOSYSTEM",
+				"events": []any{map[string]any{"limit": "9.9.9"}}, // no introduced/fixed -> no window
+			}}},
+		}},
+	}
+	got := govulndbAffectedPackages(vuln)
+	want := []db.Range{{Version: db.Version{Type: "go", Constraint: ">=5.0.0"}}}
+	if len(got) != 1 || !reflect.DeepEqual(got[0].BlobValue.Ranges, want) {
+		t.Errorf("windowless custom_ranges should keep standard %v, got %+v", want, got)
 	}
 }
