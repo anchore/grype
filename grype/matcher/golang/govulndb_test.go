@@ -22,6 +22,12 @@ func TestMatcherGolang_GoVulnDB(t *testing.T) {
 	// per-record cases assert their specific window on top of that baseline.
 	const grafanaAllVersions = "GO-2024-3240"
 
+	// GO-2023-1840 declares stdlib vulnerable for everything below 1.19.10 (plus
+	// a later [1.20.0, 1.20.5) window). Every stdlib case below uses a version
+	// under 1.19.10, so 1840 matches each one on top of whatever GO-2022-0969
+	// window it falls in — same baseline convention as grafanaAllVersions.
+	const stdlibBelow11910 = "GO-2023-1840"
+
 	tests := []struct {
 		name       string
 		pkgName    string
@@ -43,18 +49,19 @@ func TestMatcherGolang_GoVulnDB(t *testing.T) {
 			name:       "stdlib in first vulnerable window: GO-2022-0969 flags it",
 			pkgName:    "stdlib",
 			pkgVersion: "go1.18.0",
-			expectIDs:  []string{"GO-2022-0969"},
+			expectIDs:  []string{"GO-2022-0969", stdlibBelow11910},
 		},
 		{
-			name:       "stdlib past first fix, before second window: no match",
+			name:       "stdlib past GO-2022-0969 first fix but still below GO-2023-1840 fix: only 1840 flags it",
 			pkgName:    "stdlib",
 			pkgVersion: "go1.18.6",
+			expectIDs:  []string{stdlibBelow11910},
 		},
 		{
 			name:       "stdlib in second vulnerable window: GO-2022-0969 flags it",
 			pkgName:    "stdlib",
 			pkgVersion: "go1.19.0",
-			expectIDs:  []string{"GO-2022-0969"},
+			expectIDs:  []string{"GO-2022-0969", stdlibBelow11910},
 		},
 		{
 			// no-range record matches at every version (see grafanaAllVersions).
