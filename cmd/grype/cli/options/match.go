@@ -93,7 +93,7 @@ func defaultGolangConfig() golangConfig {
 		matcherConfig: matcherConfig{
 			UseCPEs: false,
 		},
-		AlwaysUseCPEForStdlib:                  true,
+		AlwaysUseCPEForStdlib:                  false,
 		AllowMainModulePseudoVersionComparison: false,
 	}
 }
