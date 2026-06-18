@@ -63,61 +63,54 @@ import (
 // "semver") — the caller decides this per-provider, since the same OSV
 // RangeType maps differently across providers. See each strategy's own
 // rangeType() function in transform_<provider>.go.
-func getGrypeRangesFromRange(r osvmodel.Range, rangeType string) []db.Range { // nolint: gocognit,funlen
-	var ranges []db.Range
-	if len(r.Events) == 0 {
-		return nil
-	}
+func getGrypeRangesFromRange(r osvmodel.Range, rangeType string) []db.Range {
+	return eventsToRanges(r.Events, extractFixAvailability(r), rangeType)
+}
 
+// eventsToRanges converts an OSV event stream into grype ranges, one per window:
+// `introduced` opens a window, `fixed`/`last_affected` closes it, a trailing
+// unclosed `introduced` becomes open-ended ">= X". `fixes` keys fix-availability
+// dates by fixed version; `rangeType` is the caller's version format.
+//
+// OSV treats "one range, N windows" and "N ranges, one window each" alike, so
+// callers may pre-flatten ranges into one slice.
+func eventsToRanges(events []osvmodel.Event, fixes map[string]db.FixAvailability, rangeType string) []db.Range {
+	var ranges []db.Range
 	var constraint string
-	updateConstraint := func(c string) {
+
+	and := func(c string) {
 		if constraint == "" {
 			constraint = c
 		} else {
 			constraint = versionutil.AndConstraints(constraint, c)
 		}
 	}
+	emit := func(fix *db.Fix) {
+		ranges = append(ranges, db.Range{
+			Fix:     fix,
+			Version: db.Version{Type: rangeType, Constraint: normalizeConstraint(constraint, rangeType)},
+		})
+		constraint = ""
+	}
 
-	fixByVersion := extractFixAvailability(r)
-
-	for _, e := range r.Events {
+	for _, e := range events {
 		switch {
 		case e.Introduced != "" && e.Introduced != "0":
 			constraint = fmt.Sprintf(">= %s", e.Introduced)
 		case e.LastAffected != "":
-			updateConstraint(fmt.Sprintf("<= %s", e.LastAffected))
-			ranges = append(ranges, db.Range{
-				Version: db.Version{
-					Type:       rangeType,
-					Constraint: normalizeConstraint(constraint, rangeType),
-				},
-			})
-			constraint = ""
+			and(fmt.Sprintf("<= %s", e.LastAffected))
+			emit(nil)
 		case e.Fixed != "":
+			and(fmt.Sprintf("< %s", e.Fixed))
 			var detail *db.FixDetail
-			if f, ok := fixByVersion[e.Fixed]; ok {
+			if f, ok := fixes[e.Fixed]; ok {
 				detail = &db.FixDetail{Available: &f}
 			}
-			updateConstraint(fmt.Sprintf("< %s", e.Fixed))
-			ranges = append(ranges, db.Range{
-				Fix: normalizeFix(e.Fixed, detail),
-				Version: db.Version{
-					Type:       rangeType,
-					Constraint: normalizeConstraint(constraint, rangeType),
-				},
-			})
-			constraint = ""
+			emit(normalizeFix(e.Fixed, detail))
 		}
 	}
-
-	// Trailing "introduced" with no upper bound.
 	if constraint != "" {
-		ranges = append(ranges, db.Range{
-			Version: db.Version{
-				Type:       rangeType,
-				Constraint: normalizeConstraint(constraint, rangeType),
-			},
-		})
+		emit(nil) // trailing `introduced` with no upper bound
 	}
 	return ranges
 }

@@ -1,0 +1,57 @@
+{
+  "identifier": "go-2024-3240",
+  "item": {
+    "affected": [
+      {
+        "ecosystem_specific": {},
+        "package": {
+          "ecosystem": "Go",
+          "name": "github.com/grafana/grafana"
+        },
+        "ranges": [
+          {
+            "events": [
+              {
+                "introduced": "0"
+              }
+            ],
+            "type": "SEMVER"
+          }
+        ]
+      }
+    ],
+    "aliases": [
+      "CVE-2024-10452",
+      "GHSA-66c4-2g2v-54qw"
+    ],
+    "database_specific": {
+      "review_status": "UNREVIEWED",
+      "url": "https://pkg.go.dev/vuln/GO-2024-3240"
+    },
+    "details": "Grafana org admin can delete pending invites in different org in github.com/grafana/grafana",
+    "id": "GO-2024-3240",
+    "modified": "0001-01-01T00:00:00Z",
+    "published": "0001-01-01T00:00:00Z",
+    "references": [
+      {
+        "type": "ADVISORY",
+        "url": "https://github.com/advisories/GHSA-66c4-2g2v-54qw"
+      },
+      {
+        "type": "ADVISORY",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-10452"
+      },
+      {
+        "type": "ADVISORY",
+        "url": "https://www.cve.org/CVERecord?id=CVE-2024-10452"
+      },
+      {
+        "type": "WEB",
+        "url": "https://grafana.com/security/security-advisories/cve-2024-10452"
+      }
+    ],
+    "schema_version": "1.3.1",
+    "summary": "Grafana org admin can delete pending invites in different org in github.com/grafana/grafana"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.3.1.json"
+}
