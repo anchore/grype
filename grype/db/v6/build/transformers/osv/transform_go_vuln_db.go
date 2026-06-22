@@ -144,15 +144,24 @@ func govulndbRanges(standard, custom []osvmodel.Range) []db.Range {
 //   - open-ended floor (">= X", no fix): X is the real lower bound; graft it onto
 //     custom's leading window (GO-2024-2858 → "[5.0.0-beta1,8.5.14) ||
 //     [9.0.0,9.1.8)", matching the GHSA). See withFloor.
-//   - bounded windows: keep and union with custom — they often span different
-//     namespaces (mattermost: tag windows standard, pseudo-version windows
-//     custom). Drop a trailing open-ended window; it over-matches later releases.
+//   - bounded windows: keep and union with custom. When custom is itself a
+//     bounded window they're disjoint and span different namespaces (mattermost:
+//     tag windows standard, pseudo-version windows custom), so append. But when
+//     custom is an open-ended floor (">= X", no fix) it is the real lower bound
+//     for the standard window — a +incompatible introduced that standard SEMVER
+//     records as the placeholder introduced:0 — so graft it on rather than append
+//     it as a disjoint trailing window (anchore/grype#3520: docker/cli
+//     GO-2026-4610 was emitting "<29.2.0+incompatible || >=19.03.0+incompatible",
+//     re-matching every release after the fix). Drop the standard's own trailing
+//     open-ended window either way; it over-matches later releases.
 func mergeWithCustom(standardEvents, customEvents []osvmodel.Event) []osvmodel.Event {
 	switch {
 	case isDefaultFloorOnly(standardEvents):
 		return customEvents
 	case !hasUpperBound(standardEvents):
 		return withFloor(customEvents, firstIntroduced(standardEvents))
+	case !hasUpperBound(customEvents):
+		return withFloor(boundedEvents(standardEvents), firstIntroduced(customEvents))
 	default:
 		return append(boundedEvents(standardEvents), customEvents...)
 	}

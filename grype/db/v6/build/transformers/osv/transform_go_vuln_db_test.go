@@ -445,6 +445,46 @@ func TestGoVulnDB_OpenEndedStandardWithCustom(t *testing.T) {
 	})
 }
 
+// TestGoVulnDB_CustomFloorGraftedOntoBoundedStandard pins anchore/grype#3520:
+// a +incompatible module (github.com/docker/cli, GO-2026-4610) whose standard
+// range carries the fix but only a placeholder introduced:0 floor, while
+// custom_ranges carries the real lower bound (>=19.03.0+incompatible, which
+// standard SEMVER can't express). The custom open-ended floor must be grafted
+// onto the standard window as a single ">=floor,<fix" range — NOT appended as a
+// disjoint trailing window. The bug shape produced "<29.2.0+incompatible ||
+// >=19.03.0+incompatible", an OR that re-matches every release after the fix
+// (29.2.1 was reported as a false positive).
+func TestGoVulnDB_CustomFloorGraftedOntoBoundedStandard(t *testing.T) {
+	affected := osvmodel.Affected{
+		Package: osvmodel.Package{Name: "github.com/docker/cli", Ecosystem: "Go"},
+		// standard range: placeholder floor + the real fix
+		Ranges: []osvmodel.Range{{
+			Type: osvmodel.RangeSemVer,
+			Events: []osvmodel.Event{
+				{Introduced: "0"},
+				{Fixed: "29.2.0+incompatible"},
+			},
+		}},
+		// custom_ranges: the +incompatible lower bound, open-ended (no fix)
+		EcosystemSpecific: map[string]any{
+			"custom_ranges": []any{map[string]any{
+				"type":   "ECOSYSTEM",
+				"events": []any{map[string]any{"introduced": "19.03.0+incompatible"}},
+			}},
+		},
+	}
+	vuln := osvmodel.Vulnerability{ID: "GO-2026-4610", Aliases: []string{"CVE-2026-4610"}, Affected: []osvmodel.Affected{affected}}
+
+	got := govulndbAffectedPackages(vuln)
+	want := []db.Range{{
+		Version: db.Version{Type: "go", Constraint: ">=19.03.0+incompatible,<29.2.0+incompatible"},
+		Fix:     &db.Fix{Version: "29.2.0+incompatible", State: db.FixedStatus},
+	}}
+	if len(got) != 1 || !reflect.DeepEqual(got[0].BlobValue.Ranges, want) {
+		t.Errorf("custom floor should be grafted onto the standard window (single AND range)\n got: %+v\nwant: %+v", got[0].BlobValue.Ranges, want)
+	}
+}
+
 // TestGoVulnDB_WithdrawnRecord pins that an OSV `withdrawn` timestamp surfaces as
 // Status=Rejected with WithdrawnDate set — the gate the matcher's
 // OnlyNonWithdrawnVulnerabilities filter keys off. GO-2022-0617 drove this:
