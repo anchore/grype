@@ -13,6 +13,11 @@ on:
       version:
         description: tag the latest commit on main with the given version (prefixed with v)
         required: true
+      skip-checks:
+        description: skip the check-gate (release even if checks haven't passed on main)
+        type: boolean
+        default: false
+        required: false
 
 jobs:
   version-available:
@@ -23,6 +28,7 @@ jobs:
       version: ${{ github.event.inputs.version }}
 
   check-gate:
+    if: ${{ !inputs.skip-checks }}
     permissions:
       contents: read
       checks: read # required for getting the status of specific check names
@@ -39,6 +45,14 @@ jobs:
   # not all actions are guaranteed to be idempotent.
   release:
     needs: [check-gate, version-available]
+    # run even when check-gate is skipped, but never when version-available
+    # failed/was skipped, nor when check-gate failed or was cancelled. note:
+    # always() disables the implicit success() gate on ALL needs, so the
+    # version-available requirement must be re-asserted explicitly here.
+    if: >-
+      ${{ always()
+          && needs.version-available.result == 'success'
+          && !contains(fromJSON('["failure", "cancelled"]'), needs.check-gate.result) }}
     environment: release
     runs-on: ubuntu-24.04
     permissions:
@@ -73,8 +87,8 @@ jobs:
       - name: Build & publish release artifacts
         run: make ci-release
         env:
-          # for pushing tags (requires write access to content, but not packages)
-          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+          # for pushing tags (does not inherit workflow permissions)
+          TAG_TOKEN: ${{ secrets.TAG_TOKEN }}
           RELEASE_VERSION: ${{ github.event.inputs.version }}
           # for mac signing and notarization...
           QUILL_SIGN_P12: ${{ secrets.ANCHORE_APPLE_DEVELOPER_ID_CERT_CHAIN }}
