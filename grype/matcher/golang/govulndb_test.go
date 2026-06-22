@@ -169,6 +169,31 @@ func TestMatcherGolang_GoVulnDB(t *testing.T) {
 			pkgVersion: "v11.2.9+incompatible",
 		},
 		{
+			// GO-2026-4610 (CVE-2025-15558), anchore/grype#3520: docker/cli is a
+			// +incompatible module. The standard range is a placeholder floor + the
+			// real fix ([{introduced:"0"},{fixed:"29.2.0+incompatible"}]); the real
+			// lower bound lives in custom_ranges ([{introduced:"19.03.0+incompatible"}],
+			// open-ended). The floor must be grafted onto the standard window →
+			// [19.03.0+incompatible, 29.2.0+incompatible). v29.2.1 is past the fix, so
+			// it must NOT match (the bug emitted "<29.2.0 || >=19.03.0", re-matching it).
+			name:       "docker/cli v29.2.1 past GO-2026-4610 fix: no match",
+			pkgName:    "github.com/docker/cli",
+			pkgVersion: "v29.2.1+incompatible",
+		},
+		{
+			// Inside the grafted window [19.03.0, 29.2.0): affected.
+			name:       "docker/cli inside GO-2026-4610 window: flagged",
+			pkgName:    "github.com/docker/cli",
+			pkgVersion: "v20.10.0+incompatible",
+			expectIDs:  []string{"GO-2026-4610"},
+		},
+		{
+			// Below the custom floor 19.03.0+incompatible: the graft excludes it.
+			name:       "docker/cli below GO-2026-4610 floor: no match",
+			pkgName:    "github.com/docker/cli",
+			pkgVersion: "v18.09.0+incompatible",
+		},
+		{
 			// GO-2022-0617 is withdrawn but keeps an unbounded range
 			// ([{introduced: "0"}]). The strategy marks it Status=Rejected and
 			// the matcher's OnlyNonWithdrawnVulnerabilities filter drops it:
