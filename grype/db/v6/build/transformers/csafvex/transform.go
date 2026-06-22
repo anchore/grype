@@ -486,8 +486,12 @@ func getOperatingSystem(productID string, idx *productIndex) *db.OperatingSystem
 	return osFromCPE(cpe)
 }
 
+// rollingLabel marks a rolling-release distro row, matching what the os transformer emits
+// for archlinux.
+const rollingLabel = "rolling"
+
 // osFromCPE extracts OS name and version from a CPE string.
-// Example: "cpe:/a:redhat:hummingbird:1" → name=hummingbird, majorVersion=1
+// Example: "cpe:/a:redhat:hummingbird:1" → name=hummingbird, labelVersion=rolling
 // Example: "cpe:/o:redhat:enterprise_linux:9" → name=redhat:enterprise_linux, majorVersion=9
 func osFromCPE(cpe string) *db.OperatingSystem {
 	// handle both cpe:/ and cpe:2.3: formats
@@ -516,6 +520,13 @@ func osFromCPE(cpe string) *db.OperatingSystem {
 		Name: strings.ToLower(osName),
 	}
 
+	// for rolling distros the CPE version is a product-generation marker, not an OS release;
+	// label the row "rolling" instead of recording a major version
+	if isRollingDistro(os.Name) {
+		os.LabelVersion = rollingLabel
+		return os
+	}
+
 	if len(parts) > 3 && parts[3] != "" && parts[3] != "*" {
 		versionParts := strings.SplitN(parts[3], ".", 2)
 		os.MajorVersion = versionParts[0]
@@ -525,6 +536,24 @@ func osFromCPE(cpe string) *db.OperatingSystem {
 	}
 
 	return os
+}
+
+// isRollingDistro reports whether the named distro is an unconditional rolling release per
+// db.KnownOperatingSystemSpecifierOverrides (the source of truth). Version-conditional rolling
+// overrides (e.g. alpine's _alpha pattern) are excluded since they depend on version data.
+func isRollingDistro(name string) bool {
+	for _, o := range db.KnownOperatingSystemSpecifierOverrides() {
+		if !o.Rolling {
+			continue
+		}
+		if o.Version != "" || o.VersionPattern != "" || o.Codename != "" {
+			continue
+		}
+		if strings.EqualFold(o.Alias, name) {
+			return true
+		}
+	}
+	return false
 }
 
 func versionTypeFromPURL(purl *packageurl.PackageURL) string {

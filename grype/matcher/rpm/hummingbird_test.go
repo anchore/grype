@@ -38,7 +38,7 @@ func TestHummingbirdMatching_BinaryDirectHit(t *testing.T) {
 
 			findings := db.Match(t, &matcher, p)
 			findings.SelectMatch("CVE-2026-5928").
-				InNamespace("hummingbird:distro:hummingbird:1").
+				InNamespace("hummingbird:distro:hummingbird:rolling").
 				SelectDetailByDistro("hummingbird", "1").
 				HasMatchType(match.ExactDirectMatch)
 		})
@@ -114,7 +114,7 @@ func TestHummingbirdMatching_PerlBDirectFix(t *testing.T) {
 
 			findings := db.Match(t, &matcher, p)
 			findings.SelectMatch("CVE-2018-18311").
-				InNamespace("hummingbird:distro:hummingbird:1").
+				InNamespace("hummingbird:distro:hummingbird:rolling").
 				SelectDetailByDistro("hummingbird", "1").
 				HasMatchType(match.ExactDirectMatch)
 		})

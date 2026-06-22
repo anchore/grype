@@ -184,7 +184,8 @@ func TestTransform_FixedAndNotAffected(t *testing.T) {
 	require.Equal(t, "rpm", aph.Package.Ecosystem)
 	require.NotNil(t, aph.OperatingSystem)
 	require.Equal(t, "hummingbird", aph.OperatingSystem.Name)
-	require.Equal(t, "1", aph.OperatingSystem.MajorVersion)
+	require.Empty(t, aph.OperatingSystem.MajorVersion, "hummingbird is rolling; no major version")
+	require.Equal(t, "rolling", aph.OperatingSystem.LabelVersion)
 	require.Len(t, aph.BlobValue.Ranges, 1)
 	require.Equal(t, "< 1.2.3-1.hum1", aph.BlobValue.Ranges[0].Version.Constraint)
 	require.Equal(t, "rpm", aph.BlobValue.Ranges[0].Version.Type)
@@ -272,13 +273,14 @@ func TestTransform_OSFromCPE(t *testing.T) {
 		wantName  string
 		wantMajor string
 		wantMinor string
+		wantLabel string
 		wantNil   bool
 	}{
 		{
-			name:      "hummingbird URI format",
+			name:      "hummingbird URI format (rolling, version → rolling label)",
 			cpe:       "cpe:/a:redhat:hummingbird:1",
 			wantName:  "hummingbird",
-			wantMajor: "1",
+			wantLabel: "rolling",
 		},
 		{
 			name:      "RHEL URI format",
@@ -304,9 +306,10 @@ func TestTransform_OSFromCPE(t *testing.T) {
 			wantNil: true,
 		},
 		{
-			name:     "CPE with wildcard version",
-			cpe:      "cpe:/a:redhat:hummingbird:*",
-			wantName: "hummingbird",
+			name:      "CPE with wildcard version",
+			cpe:       "cpe:/a:redhat:hummingbird:*",
+			wantName:  "hummingbird",
+			wantLabel: "rolling",
 		},
 	}
 
@@ -320,6 +323,7 @@ func TestTransform_OSFromCPE(t *testing.T) {
 			require.NotNil(t, got)
 			require.Equal(t, tt.wantName, got.Name)
 			require.Equal(t, tt.wantMajor, got.MajorVersion)
+			require.Equal(t, tt.wantLabel, got.LabelVersion)
 			if tt.wantMinor != "" {
 				require.Equal(t, tt.wantMinor, got.MinorVersion)
 			}
@@ -579,10 +583,12 @@ func TestTransform_DropsSrcWhenSameNameBinaryPresent(t *testing.T) {
 		seen = append(seen, emitted{name: aph.Package.Name, os: osName, osMajor: osMajor, arch: arch})
 	}
 
+	// hummingbird is rolling: both platforms emit a version-less OS row. The per-platform
+	// dedup still keys off the relationship platform IDs, not the emitted OS version.
 	want := []emitted{
-		{name: "glibc", os: "hummingbird", osMajor: "1", arch: architecture.ArchBinaryNoArchSpecified},
-		{name: "glibc-common", os: "hummingbird", osMajor: "1", arch: architecture.ArchBinaryNoArchSpecified},
-		{name: "glibc", os: "hummingbird", osMajor: "2", arch: architecture.ArchSource},
+		{name: "glibc", os: "hummingbird", osMajor: "", arch: architecture.ArchBinaryNoArchSpecified},
+		{name: "glibc-common", os: "hummingbird", osMajor: "", arch: architecture.ArchBinaryNoArchSpecified},
+		{name: "glibc", os: "hummingbird", osMajor: "", arch: architecture.ArchSource},
 	}
 
 	require.ElementsMatch(t, want, seen, "hummingbird-1:glibc.src should be dropped (sibling binary present); hummingbird-2:glibc.src should survive (no sibling binary on that platform)")
