@@ -1,6 +1,7 @@
 {
-  "content_hash": "fce700bb7483f95c",
+  "content_hash": "56c5ebe67c1ccc2e",
   "created_at": "2026-06-02T14:48:22.689885019Z",
+  "regenerated_at": "2026-06-23T15:21:21.274771973Z",
   "providers": {
     "govulndb": {
       "vunnel_version": "vunnel@0.59.0.post3+53fcd5d",

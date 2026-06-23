@@ -39,6 +39,14 @@ func (govulndbStrategy) Matches(id string) bool {
 }
 
 func (govulndbStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
+	affected := govulndbAffectedPackages(vuln)
+	if len(affected) == 0 {
+		// stdlib-only: every affected package was filtered out (or there were
+		// none). Emitting just the vulnerability handle would write an orphaned
+		// record that can never match a package, so skip the advisory entirely.
+		return nil, nil
+	}
+
 	severities, err := getSeverities(vuln)
 	if err != nil {
 		return nil, fmt.Errorf("unable to obtain severities: %w", err)
@@ -73,7 +81,7 @@ func (govulndbStrategy) Transform(vuln unmarshal.OSVVulnerability, state provide
 		},
 	}
 
-	for _, aph := range govulndbAffectedPackages(vuln) {
+	for _, aph := range affected {
 		in = append(in, aph)
 	}
 	return transformers.NewEntries(in...), nil
@@ -96,6 +104,10 @@ func govulndbAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPack
 	}
 	var aphs []db.AffectedPackageHandle
 	for _, affected := range vuln.Affected {
+		if !strings.EqualFold(affected.Package.Name, "stdlib") {
+			// for now, only stdlib is helping
+			continue
+		}
 		aphs = append(aphs, db.AffectedPackageHandle{
 			Package: govulndbPackage(affected.Package),
 			BlobValue: &db.PackageBlob{

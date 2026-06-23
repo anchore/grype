@@ -9,10 +9,10 @@
   "urls": [
     "https://vuln.go.dev/vulndb.zip"
   ],
-  "timestamp": "2026-06-02T14:36:56Z",
+  "timestamp": "2026-06-22T00:58:35Z",
   "listing": {
     "path": "results/listing.xxh64",
-    "digest": "4bf07f54d8e01b80",
+    "digest": "651b2ab4ad6d62d2",
     "algorithm": "xxh64"
   },
   "store": "flat-file"
