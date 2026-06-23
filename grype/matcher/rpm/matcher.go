@@ -9,7 +9,6 @@ import (
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/pkg/qualifier/architecture"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -220,7 +219,7 @@ func (m *Matcher) matchUpstreamPackages(vp vulnerability.Provider, p pkg.Package
 		// architecture qualifier then matches it only against src (and unspecified) records
 		// and rejects binary-arch records — which is how we avoid matching a binary's
 		// upstream against a sibling binary's vulnerability.
-		indirectMatches, ignores, err := m.findMatches(provider, asSourcePackage(indirectPackage))
+		indirectMatches, ignores, err := m.findMatches(provider, indirectPackage)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
 		}
@@ -229,17 +228,6 @@ func (m *Matcher) matchUpstreamPackages(vp vulnerability.Provider, p pkg.Package
 	}
 
 	return matches, ignored, nil
-}
-
-// asSourcePackage tags a synthesized upstream package as a source ("src") rpm by stamping
-// its rpm metadata, so the architecture qualifier matches it only against source (and
-// arch-unspecified) records and never a sibling binary's record. The upstream copies the
-// binary's metadata, so we preserve any existing rpm fields and only overwrite the arch.
-func asSourcePackage(p pkg.Package) pkg.Package {
-	m, _ := p.Metadata.(pkg.RpmMetadata)
-	m.Arch = architecture.ArchSource
-	p.Metadata = m
-	return p
 }
 
 func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {

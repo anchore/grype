@@ -81,11 +81,6 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 	// in matcher.go for the full explanation of why this is necessary.
 	upstreamDisclosures := result.Set{}
 	for _, upstreamPkg := range pkg.UpstreamPackages(binaryPkg) {
-		// An rpm's upstream is its source rpm: tag the synthesized package "src" so the
-		// architecture qualifier matches it only against src (and unspecified) records and
-		// rejects binary-arch records (avoiding sibling-binary false positives).
-		upstreamPkg = asSourcePackage(upstreamPkg)
-
 		// Create a version object from the upstream package WITHOUT adding epoch
 		// This avoids false positives where binary package epochs differ from source package epochs
 		upstreamVersion := version.New(upstreamPkg.Version, pkg.VersionFormat(upstreamPkg))
