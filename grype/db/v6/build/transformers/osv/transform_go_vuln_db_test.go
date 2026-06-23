@@ -12,11 +12,13 @@ import (
 
 // TestGoVulnDBTransform exercises the govulndb strategy end-to-end against a real
 // GO-* fixture. The transformer is currently stdlib-only (non-stdlib affected
-// packages are dropped), so the case is a stdlib record:
+// packages are dropped):
 //
-//   - GO-2022-0969: stdlib record with a multi-window SEMVER range
-//     (< 1.18.6 || >= 1.19.0-0,< 1.19.1); exercises the comma-separated
-//     constraint normalization needed by the Go version comparator.
+//   - GO-2022-0969: a MIXED record listing both "stdlib" and "golang.org/x/net".
+//     The want below contains ONLY the stdlib handle, so this case also asserts
+//     that the non-stdlib package is filtered out. The stdlib range is multi-window
+//     (< 1.18.6 || >= 1.19.0-0,< 1.19.1), exercising the comma-separated constraint
+//     normalization the Go version comparator needs.
 func TestGoVulnDBTransform(t *testing.T) {
 	tests := []transformCase{
 		{
@@ -150,24 +152,48 @@ func TestEventsToRanges(t *testing.T) {
 	}
 }
 
-// TestGoVulnDB_WithdrawnRecord pins that an OSV `withdrawn` timestamp surfaces as
-// Status=Rejected with WithdrawnDate set — the gate the matcher's
-// OnlyNonWithdrawnVulnerabilities filter keys off. GO-2022-0617 drove this:
-// go.dev withdrew it but the strategy had been emitting it Active.
-func TestGoVulnDB_WithdrawnRecord(t *testing.T) {
-	vulns := loadFixture(t, "testdata/GO-2022-0617.json")
+// TestGoVulnDB_NonStdlibEmitsNothing guards the stdlib-only behavior: an advisory
+// whose only affected package is non-stdlib (here github.com/gin-gonic/gin) must
+// produce NO entries at all — not an orphaned vulnerability handle with zero
+// affected packages. Transform returns early when every affected package is
+// filtered out, so a non-stdlib GO record never reaches the DB.
+func TestGoVulnDB_NonStdlibEmitsNothing(t *testing.T) {
+	vulns := loadFixture(t, "testdata/GO-2020-0001.json")
 	if len(vulns) != 1 {
-		t.Fatalf("expected 1 vuln, got %d", len(vulns))
+		t.Fatalf("expected 1 vuln in fixture, got %d", len(vulns))
 	}
-
 	entries, err := Transform(vulns[0], inputProviderState())
+	if err != nil {
+		t.Fatalf("transform: %v", err)
+	}
+	if len(entries) != 0 {
+		t.Errorf("non-stdlib advisory must emit no entries (no orphaned vuln handle), got %d", len(entries))
+	}
+}
+
+// TestGoVulnDB_WithdrawnStdlibIsRejected pins that a WITHDRAWN govulndb advisory
+// survives the stdlib-only filter (it has a stdlib affected package) but is
+// emitted with Status=Rejected + a WithdrawnDate, so the matcher's
+// OnlyNonWithdrawnVulnerabilities filter drops it — a withdrawn stdlib advisory
+// must NOT match. No real stdlib record is withdrawn today, so this builds one
+// inline to exercise the withdrawn-marking path.
+func TestGoVulnDB_WithdrawnStdlibIsRejected(t *testing.T) {
+	withdrawn := time.Date(2024, time.August, 21, 16, 25, 56, 0, time.UTC)
+	vuln := osvmodel.Vulnerability{
+		ID:        "GO-0000-9999",
+		Withdrawn: withdrawn,
+		Affected: []osvmodel.Affected{{
+			Package: osvmodel.Package{Name: "stdlib", Ecosystem: "Go"},
+			Ranges:  []osvmodel.Range{{Type: osvmodel.RangeSemVer, Events: []osvmodel.Event{{Introduced: "0"}, {Fixed: "1.18.6"}}}},
+		}},
+	}
+	entries, err := Transform(vuln, inputProviderState())
 	if err != nil {
 		t.Fatalf("transform: %v", err)
 	}
 	if len(entries) != 1 {
 		t.Fatalf("expected 1 entry, got %d", len(entries))
 	}
-
 	re, ok := entries[0].Data.(transformers.RelatedEntries)
 	if !ok {
 		t.Fatalf("unexpected entry type %T", entries[0].Data)
@@ -176,15 +202,38 @@ func TestGoVulnDB_WithdrawnRecord(t *testing.T) {
 	if vh == nil {
 		t.Fatal("entry has no VulnerabilityHandle")
 	}
-
 	if vh.Status != db.VulnerabilityRejected {
-		t.Errorf("Status = %q, want %q (matcher's OnlyNonWithdrawnVulnerabilities only filters \"rejected\"/\"withdrawn\" — anything else lets the record through)",
-			vh.Status, db.VulnerabilityRejected)
+		t.Errorf("Status = %q, want %q (withdrawn must surface as rejected so the matcher drops it)", vh.Status, db.VulnerabilityRejected)
 	}
-	wantWithdrawn := time.Date(2024, time.August, 21, 16, 25, 56, 0, time.UTC)
-	if vh.WithdrawnDate == nil {
-		t.Errorf("WithdrawnDate is nil; want %s", wantWithdrawn)
-	} else if !vh.WithdrawnDate.Equal(wantWithdrawn) {
-		t.Errorf("WithdrawnDate = %s, want %s", vh.WithdrawnDate, wantWithdrawn)
+	if vh.WithdrawnDate == nil || !vh.WithdrawnDate.Equal(withdrawn) {
+		t.Errorf("WithdrawnDate = %v, want %s", vh.WithdrawnDate, withdrawn)
+	}
+}
+
+// TestGoVulnDB_FiltersNonStdlibFromMixedRecord pins the stdlib-only filter on a
+// real MIXED advisory: GO-2022-0969 lists both "stdlib" and "golang.org/x/net".
+// Only the stdlib affected package may survive — the golang.org/x/net handle must
+// be dropped — so per-package filtering is asserted on a single record.
+func TestGoVulnDB_FiltersNonStdlibFromMixedRecord(t *testing.T) {
+	vulns := loadFixture(t, "testdata/GO-2022-0969.json")
+	if len(vulns) != 1 {
+		t.Fatalf("expected 1 vuln, got %d", len(vulns))
+	}
+
+	// sanity: the fixture really is mixed, otherwise this test proves nothing
+	var fixtureNames []string
+	for _, a := range vulns[0].Affected {
+		fixtureNames = append(fixtureNames, a.Package.Name)
+	}
+	if len(fixtureNames) < 2 {
+		t.Fatalf("fixture is not mixed (need stdlib + non-stdlib), got %v", fixtureNames)
+	}
+
+	var got []string
+	for _, aph := range govulndbAffectedPackages(vulns[0]) {
+		got = append(got, aph.Package.Name)
+	}
+	if len(got) != 1 || got[0] != "stdlib" {
+		t.Errorf("expected only [stdlib] to survive the filter, got %v (fixture had %v)", got, fixtureNames)
 	}
 }
