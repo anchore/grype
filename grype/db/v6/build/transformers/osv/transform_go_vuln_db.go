@@ -96,6 +96,10 @@ func govulndbAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPack
 	}
 	var aphs []db.AffectedPackageHandle
 	for _, affected := range vuln.Affected {
+		if !strings.EqualFold(affected.Package.Name, "stdlib") {
+			// for now, only stdlib is helping
+			continue
+		}
 		aphs = append(aphs, db.AffectedPackageHandle{
 			Package: govulndbPackage(affected.Package),
 			BlobValue: &db.PackageBlob{

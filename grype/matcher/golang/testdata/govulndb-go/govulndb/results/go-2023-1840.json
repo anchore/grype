@@ -3,9 +3,6 @@
   "item": {
     "affected": [
       {
-        "database_specific": {
-          "source": "https://vuln.go.dev/ID/GO-2023-1840.json"
-        },
         "ecosystem_specific": {
           "imports": [
             {
@@ -19,6 +16,22 @@
         },
         "ranges": [
           {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2023-06-08",
+                    "kind": "advisory",
+                    "version": "1.19.10"
+                  },
+                  {
+                    "date": "2023-06-08",
+                    "kind": "advisory",
+                    "version": "1.20.5"
+                  }
+                ]
+              }
+            },
             "events": [
               {
                 "introduced": "0"

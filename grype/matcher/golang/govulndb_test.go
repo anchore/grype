@@ -10,22 +10,18 @@ import (
 )
 
 // TestMatcherGolang_GoVulnDB drives ecosystem-name matching against Go vuln DB
-// (vuln.go.dev) records — OSV-shaped JSON, "GO-" prefix, via the govulndb vunnel
-// provider. Fixtures cover regular-module, stdlib multi-window, withdrawn, and
-// custom_ranges (+incompatible) shapes; each case names its record.
+// (vuln.go.dev) records via the govulndb vunnel provider. The transformer is
+// currently stdlib-only (non-stdlib affected packages are dropped to avoid the
+// false-positive load from module-path/range mismatches), so this test only
+// covers the "stdlib" pseudo-module. The non-stdlib cases (gin, grafana,
+// mattermost, docker/cli, k8s) were removed because those packages no longer
+// produce matches; transformer-level behavior for custom_ranges, withdrawn
+// status, etc. remains covered by the unit tests in the osv transformer package.
 func TestMatcherGolang_GoVulnDB(t *testing.T) {
-	// GO-2024-3240 is a grafana record whose only event is {introduced: "0"} with
-	// no fix and no custom_ranges. go.dev declares it affected at every version,
-	// so the transformer emits a handle with no ranges and grype matches it on
-	// *every* grafana version. It therefore appears in every grafana case below —
-	// that's the all-versions convention working as intended, not noise. The
-	// per-record cases assert their specific window on top of that baseline.
-	const grafanaAllVersions = "GO-2024-3240"
-
 	// GO-2023-1840 declares stdlib vulnerable for everything below 1.19.10 (plus
-	// a later [1.20.0, 1.20.5) window). Every stdlib case below uses a version
+	// a later [1.20.0, 1.20.5) window). The sub-1.19.10 cases below use a version
 	// under 1.19.10, so 1840 matches each one on top of whatever GO-2022-0969
-	// window it falls in — same baseline convention as grafanaAllVersions.
+	// window it falls in.
 	const stdlibBelow11910 = "GO-2023-1840"
 
 	tests := []struct {
@@ -35,172 +31,32 @@ func TestMatcherGolang_GoVulnDB(t *testing.T) {
 		expectIDs  []string // empty means no match expected
 	}{
 		{
-			name:       "gin-gonic below fixed version: GO-2020-0001 flags it",
-			pkgName:    "github.com/gin-gonic/gin",
-			pkgVersion: "v1.5.0",
-			expectIDs:  []string{"GO-2020-0001"},
-		},
-		{
-			name:       "gin-gonic at fixed version: no match",
-			pkgName:    "github.com/gin-gonic/gin",
-			pkgVersion: "v1.6.0",
-		},
-		{
+			// GO-2022-0969 first window (< 1.18.6); also under GO-2023-1840's < 1.19.10.
 			name:       "stdlib in first vulnerable window: GO-2022-0969 flags it",
 			pkgName:    "stdlib",
 			pkgVersion: "go1.18.0",
 			expectIDs:  []string{"GO-2022-0969", stdlibBelow11910},
 		},
 		{
+			// Past GO-2022-0969's first fix (1.18.6) but still below 1.19.10.
 			name:       "stdlib past GO-2022-0969 first fix but still below GO-2023-1840 fix: only 1840 flags it",
 			pkgName:    "stdlib",
 			pkgVersion: "go1.18.6",
 			expectIDs:  []string{stdlibBelow11910},
 		},
 		{
+			// GO-2022-0969 second window ([1.19.0, 1.19.1)); still under 1.19.10.
 			name:       "stdlib in second vulnerable window: GO-2022-0969 flags it",
 			pkgName:    "stdlib",
 			pkgVersion: "go1.19.0",
 			expectIDs:  []string{"GO-2022-0969", stdlibBelow11910},
 		},
 		{
-			// no-range record matches at every version (see grafanaAllVersions).
-			name:       "grafana matches all-versions GO-2024-3240 regardless of version",
-			pkgName:    "github.com/grafana/grafana",
-			pkgVersion: "v99.0.0",
-			expectIDs:  []string{grafanaAllVersions},
-		},
-		{
-			// GO-2024-2519: grafana ships v6+ tags without a /vN path, so go.dev
-			// couldn't map "6.0.0 before 7.2.1" — it emitted an unbounded
-			// standard range ([{introduced: "0"}]) and put the real window in
-			// custom_ranges. v11.6.15 is past the fix, so only the all-versions
-			// record matches.
-			name:       "grafana past real fix against +incompatible GO-2024-2519: 2519 excluded",
-			pkgName:    "github.com/grafana/grafana",
-			pkgVersion: "v11.6.15",
-			expectIDs:  []string{grafanaAllVersions},
-		},
-		{
-			// v6.5.0 sits inside GO-2024-2519's custom window (6.0.0→7.2.1) and
-			// GO-2024-2858's floored window ([5.0.0-beta1, 8.5.14) — see below).
-			name:       "grafana within GO-2024-2519 and GO-2024-2858 windows: both flagged",
-			pkgName:    "github.com/grafana/grafana",
-			pkgVersion: "v6.5.0",
-			expectIDs:  []string{"GO-2024-2519", "GO-2024-2858", grafanaAllVersions},
-		},
-		{
-			// GO-2024-2858 (CVE-2022-39201): standard is a floor ">= 5.0.0-beta1"
-			// with no fix; custom is "< 8.5.14 || [9.0.0,9.1.8)". The floor is
-			// grafted onto custom's first window → [5.0.0-beta1, 8.5.14) ||
-			// [9.0.0, 9.1.8), matching the GHSA. v4.0.0 is below the floor, so
-			// 2858 must NOT match (only the all-versions record does).
-			name:       "grafana v4.0.0 below GO-2024-2858 floor: 2858 excluded",
-			pkgName:    "github.com/grafana/grafana",
-			pkgVersion: "v4.0.0",
-			expectIDs:  []string{grafanaAllVersions},
-		},
-		{
-			// GO-2024-2629 (CVE-2024-1442): five disjoint custom_ranges windows
-			// (8.5.0→9.5.7 … 10.3.0→10.3.4). v11.6.15 is the SBOM version
-			// (grafana-fips-11-syft.json), past every window, so 2629 is excluded.
-			name:       "grafana v11.6.15 (real SBOM version) past all GO-2024-2629 windows: 2629 excluded",
-			pkgName:    "github.com/grafana/grafana",
-			pkgVersion: "v11.6.15",
-			expectIDs:  []string{grafanaAllVersions},
-		},
-		{
-			// Inside 10.2.0→10.2.5: affected. Proves multi-window custom_ranges
-			// evaluate end-to-end, not just emit.
-			name:       "grafana inside a GO-2024-2629 window: flagged",
-			pkgName:    "github.com/grafana/grafana",
-			pkgVersion: "v10.2.3",
-			expectIDs:  []string{"GO-2024-2629", grafanaAllVersions},
-		},
-		{
-			// Gap between windows (>10.0.12, <10.1.0): 2629 excluded.
-			name:       "grafana between GO-2024-2629 windows: 2629 excluded",
-			pkgName:    "github.com/grafana/grafana",
-			pkgVersion: "v10.0.13",
-			expectIDs:  []string{grafanaAllVersions},
-		},
-		{
-			// GO-2025-4153 (CVE-2025-41115): the standard range is a fix-less
-			// pseudo-version (">= v1.9.2-pre"), unbounded above; the real windows
-			// live in custom_ranges (< a Nov-2025 pseudo, 12.0.0→12.0.7 …
-			// 12.2.0→12.2.2). v11.6.15 satisfies the open-ended range but no real
-			// window — the strategy drops the open-ended range, so 4153 is excluded.
-			name:       "grafana v11.6.15 against open-ended GO-2025-4153: 4153 excluded",
-			pkgName:    "github.com/grafana/grafana",
-			pkgVersion: "v11.6.15",
-			expectIDs:  []string{grafanaAllVersions},
-		},
-		{
-			// Inside custom_ranges 12.1.0→12.1.4: affected even after the
-			// open-ended standard range is dropped.
-			name:       "grafana inside a GO-2025-4153 custom window: flagged",
-			pkgName:    "github.com/grafana/grafana",
-			pkgVersion: "v12.1.2",
-			expectIDs:  []string{"GO-2025-4153", grafanaAllVersions},
-		},
-		{
-			// Past every window (>12.2.2): 4153 excluded. Guards the open-ended
-			// range from creeping back.
-			name:       "grafana v12.3.0 past all GO-2025-4153 windows: 4153 excluded",
-			pkgName:    "github.com/grafana/grafana",
-			pkgVersion: "v12.3.0",
-			expectIDs:  []string{grafanaAllVersions},
-		},
-		{
-			// GO-2026-4916 (CVE-2026-26233): standard ranges are bounded
-			// +incompatible tag windows (…11.2.0-rc1→11.2.4…); custom_ranges holds
-			// a disjoint pseudo-version window. The bounded standard windows must
-			// survive the union — dropping them would be a false negative — so
-			// v11.2.1 still matches. (mattermost, so no grafana all-versions baseline.)
-			name:       "mattermost in bounded standard window survives GO-2026-4916 union: flagged",
-			pkgName:    "github.com/mattermost/mattermost-server",
-			pkgVersion: "v11.2.1+incompatible",
-			expectIDs:  []string{"GO-2026-4916"},
-		},
-		{
-			// Between bounded standard windows (>11.2.4, <11.3.0-rc1): no match.
-			name:       "mattermost between GO-2026-4916 standard windows: no match",
-			pkgName:    "github.com/mattermost/mattermost-server",
-			pkgVersion: "v11.2.9+incompatible",
-		},
-		{
-			// GO-2026-4610 (CVE-2025-15558), anchore/grype#3520: docker/cli is a
-			// +incompatible module. The standard range is a placeholder floor + the
-			// real fix ([{introduced:"0"},{fixed:"29.2.0+incompatible"}]); the real
-			// lower bound lives in custom_ranges ([{introduced:"19.03.0+incompatible"}],
-			// open-ended). The floor must be grafted onto the standard window →
-			// [19.03.0+incompatible, 29.2.0+incompatible). v29.2.1 is past the fix, so
-			// it must NOT match (the bug emitted "<29.2.0 || >=19.03.0", re-matching it).
-			name:       "docker/cli v29.2.1 past GO-2026-4610 fix: no match",
-			pkgName:    "github.com/docker/cli",
-			pkgVersion: "v29.2.1+incompatible",
-		},
-		{
-			// Inside the grafted window [19.03.0, 29.2.0): affected.
-			name:       "docker/cli inside GO-2026-4610 window: flagged",
-			pkgName:    "github.com/docker/cli",
-			pkgVersion: "v20.10.0+incompatible",
-			expectIDs:  []string{"GO-2026-4610"},
-		},
-		{
-			// Below the custom floor 19.03.0+incompatible: the graft excludes it.
-			name:       "docker/cli below GO-2026-4610 floor: no match",
-			pkgName:    "github.com/docker/cli",
-			pkgVersion: "v18.09.0+incompatible",
-		},
-		{
-			// GO-2022-0617 is withdrawn but keeps an unbounded range
-			// ([{introduced: "0"}]). The strategy marks it Status=Rejected and
-			// the matcher's OnlyNonWithdrawnVulnerabilities filter drops it:
-			// withdrawn → no finding.
-			name:       "k8s.io/kubernetes against withdrawn GO-2022-0617: no match",
-			pkgName:    "k8s.io/kubernetes",
-			pkgVersion: "v1.20.0",
+			// Past every stdlib window in the fixture: no match. Guards against
+			// over-matching stdlib once non-stdlib records are out of the picture.
+			name:       "stdlib past all fixed versions: no match",
+			pkgName:    "stdlib",
+			pkgVersion: "go1.25.0",
 		},
 	}
 
