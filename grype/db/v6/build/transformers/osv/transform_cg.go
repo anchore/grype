@@ -92,9 +92,9 @@ func cgAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHan
 			ranges = append(ranges, getGrypeRangesFromRange(r, cgRangeType(r.Type))...)
 		}
 		aphs = append(aphs, db.AffectedPackageHandle{
-			OperatingSystem: cgOperatingSystem(string(affected.Package.Ecosystem)),
+			OperatingSystem: cgOperatingSystem(affected.Package.Ecosystem),
 			Package: &db.Package{
-				Ecosystem: string(affected.Package.Ecosystem),
+				Ecosystem: affected.Package.Ecosystem,
 				Name:      name.Normalize(affected.Package.Name, pkg.TypeFromPURL(affected.Package.Purl)),
 			},
 			BlobValue: &db.PackageBlob{
