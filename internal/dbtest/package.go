@@ -88,8 +88,11 @@ func (b *PackageBuilder) WithDistro(d *distro.Distro) *PackageBuilder {
 // WithArchitecture sets the package architecture (e.g., "x86_64", "aarch64").
 // Read by the architectureQualifier at match time: a vulnerability entry whose
 // Architecture qualifier disagrees with this value is filtered out.
+// Architecture is stored in ApkMetadata because the qualifier only applies to APK packages.
 func (b *PackageBuilder) WithArchitecture(arch string) *PackageBuilder {
-	b.pkg.Arch = arch
+	existing, _ := b.pkg.Metadata.(pkg.ApkMetadata)
+	existing.Arch = arch
+	b.pkg.Metadata = existing
 	return b
 }
 

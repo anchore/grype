@@ -46,13 +46,13 @@ func TestParseSyftJSON(t *testing.T) {
 						cpe.Must("cpe:2.3:a:alpine:alpine_baselayout:3.2.0-r6:*:*:*:*:*:*:*", ""),
 					},
 					PURL: "pkg:alpine/alpine-baselayout@3.2.0-r6?arch=x86_64",
-					Arch: "x86_64",
 					Upstreams: []UpstreamPackage{
 						{
 							Name: "alpine-baselayout",
 						},
 					},
 					Metadata: ApkMetadata{
+						Arch:  "x86_64",
 						Files: []ApkFileRecord{
 							{Path: "/dev"},
 							{Path: "/dev/pts"},
@@ -173,7 +173,6 @@ func TestParseSyftJSON(t *testing.T) {
 						cpe.Must("cpe:2.3:a:fake:fake:1.2.0:*:*:*:*:*:*:*", ""),
 					},
 					PURL: "pkg:deb/debian/fake@1.2.0?arch=x86_64",
-					Arch: "x86_64",
 					Upstreams: []UpstreamPackage{
 						{
 							Name:    "a-source",
@@ -200,7 +199,6 @@ func TestParseSyftJSON(t *testing.T) {
 						cpe.Must("cpe:2.3:a:gmp:gmp:6.2.0-r0:*:*:*:*:*:*:*", ""),
 					},
 					PURL: "pkg:alpine/gmp@6.2.0-r0?arch=x86_64",
-					Arch: "x86_64",
 					Metadata: JavaMetadata{
 						PomArtifactID: "aid",
 						PomGroupID:    "gid",
@@ -407,7 +405,6 @@ func Test_PurlList(t *testing.T) {
 					Type:    pkg.DebPkg,
 					PURL:    "pkg:deb/debian/sysv-rc@2.88dsf-59?arch=all&distro=debian-8&upstream=sysvinit",
 					Distro:  &distro.Distro{Type: distro.Debian, Version: "8", IDLike: []string{"debian"}},
-					Arch:    "all",
 					Upstreams: []UpstreamPackage{
 						{
 							Name: "sysvinit",
@@ -433,20 +430,20 @@ func Test_PurlList(t *testing.T) {
 			},
 			wantPkgs: []Package{
 				{
-					Name:    "openssl",
-					Version: "3.2.1",
-					Type:    pkg.ApkPkg,
-					PURL:    "pkg:apk/openssl@3.2.1?arch=aarch64&distro=alpine-3.20.3",
-					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.3", IDLike: []string{"alpine"}},
-					Arch:    "aarch64",
+					Name:     "openssl",
+					Version:  "3.2.1",
+					Type:     pkg.ApkPkg,
+					PURL:     "pkg:apk/openssl@3.2.1?arch=aarch64&distro=alpine-3.20.3",
+					Distro:   &distro.Distro{Type: distro.Alpine, Version: "3.20.3", IDLike: []string{"alpine"}},
+					Metadata: ApkMetadata{Files: []ApkFileRecord{}, Arch: "aarch64"},
 				},
 				{
-					Name:    "curl",
-					Version: "7.61.1",
-					Type:    pkg.ApkPkg,
-					PURL:    "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
-					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.3", IDLike: []string{"alpine"}},
-					Arch:    "aarch64",
+					Name:     "curl",
+					Version:  "7.61.1",
+					Type:     pkg.ApkPkg,
+					PURL:     "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
+					Distro:   &distro.Distro{Type: distro.Alpine, Version: "3.20.3", IDLike: []string{"alpine"}},
+					Metadata: ApkMetadata{Files: []ApkFileRecord{}, Arch: "aarch64"},
 				},
 			},
 		},
@@ -463,20 +460,20 @@ func Test_PurlList(t *testing.T) {
 			},
 			wantPkgs: []Package{
 				{
-					Name:    "openssl",
-					Version: "3.2.1",
-					Type:    pkg.ApkPkg,
-					PURL:    "pkg:apk/openssl@3.2.1?arch=aarch64&distro=alpine-3.20.3",
-					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.3", IDLike: []string{"alpine"}},
-					Arch:    "aarch64",
+					Name:     "openssl",
+					Version:  "3.2.1",
+					Type:     pkg.ApkPkg,
+					PURL:     "pkg:apk/openssl@3.2.1?arch=aarch64&distro=alpine-3.20.3",
+					Distro:   &distro.Distro{Type: distro.Alpine, Version: "3.20.3", IDLike: []string{"alpine"}},
+					Metadata: ApkMetadata{Files: []ApkFileRecord{}, Arch: "aarch64"},
 				},
 				{
-					Name:    "curl",
-					Version: "7.61.1",
-					Type:    pkg.ApkPkg,
-					PURL:    "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.2",
-					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.2", IDLike: []string{"alpine"}},
-					Arch:    "aarch64",
+					Name:     "curl",
+					Version:  "7.61.1",
+					Type:     pkg.ApkPkg,
+					PURL:     "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.2",
+					Distro:   &distro.Distro{Type: distro.Alpine, Version: "3.20.2", IDLike: []string{"alpine"}},
+					Metadata: ApkMetadata{Files: []ApkFileRecord{}, Arch: "aarch64"},
 				},
 			},
 		},

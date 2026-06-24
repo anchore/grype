@@ -38,10 +38,7 @@ func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func
 
 	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
-	// setArchFromPURL runs for every format: no SBOM decoder populates grype's
-	// pkg.Arch field directly, so without this the architecture qualifier on
-	// distro-keyed vulnerabilities can't filter by package arch.
-	enhancers := []Enhancer{setArchFromPURL}
+	enhancers := []Enhancer{}
 	if fmtID != syftjson.ID {
 		enhancers = append(enhancers, setUpstreamsFromPURL, setDistroFromPURL(applyChannel))
 	}
@@ -61,10 +58,7 @@ func syftSBOMProviderFromReader(reader io.ReadSeeker, config ProviderConfig, app
 
 	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
-	// setArchFromPURL runs for every format: no SBOM decoder populates grype's
-	// pkg.Arch field directly, so without this the architecture qualifier on
-	// distro-keyed vulnerabilities can't filter by package arch.
-	enhancers := []Enhancer{setArchFromPURL}
+	enhancers := []Enhancer{}
 	if fmtID != syftjson.ID {
 		enhancers = append(enhancers, setUpstreamsFromPURL, setDistroFromPURL(applyChannel))
 	}

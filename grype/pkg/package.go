@@ -49,8 +49,6 @@ type Package struct {
 	Locations file.LocationSet // the locations that lead to the discovery of this package (note: this is not necessarily the locations that make up this package)
 	Language  syftPkg.Language // the language ecosystem this package belongs to (e.g. JavaScript, Python, etc)
 	Distro    *distro.Distro   // a specific distro this package originated from
-	// TODO: should this be an enum to avoid mismatches like "amd64" vs "x86_64"?
-	Arch      string // the architecture of the package (e.g. "amd64", "arm64", etc)
 	Licenses  []string
 	Type      syftPkg.Type // the package type (e.g. Npm, Yarn, Python, Rpm, Deb, etc)
 	CPEs      []cpe.CPE    // all possible Common Platform Enumerators
@@ -383,7 +381,7 @@ func apkMetadataFromPkg(p syftPkg.Package) any {
 	if m, ok := p.Metadata.(syftPkg.ApkDBEntry); ok {
 		// Grype's APK Metadata only has files, so return early
 		// and leave the field blank if there are no files.
-		if len(m.Files) == 0 {
+		if len(m.Files) == 0 && m.Architecture == "" {
 			return nil
 		}
 
@@ -393,7 +391,10 @@ func apkMetadataFromPkg(p syftPkg.Package) any {
 			fileRecords = append(fileRecords, r)
 		}
 
-		return ApkMetadata{Files: fileRecords}
+		return ApkMetadata{
+			Files: fileRecords,
+			Arch:  m.Architecture,
+		}
 	}
 
 	return nil

@@ -62,7 +62,7 @@ func TestPackageBuilder_WithID(t *testing.T) {
 }
 
 // TestPackageBuilder_WithArchitecture pins down both the set path (concrete
-// arch stored verbatim on pkg.Arch) and the default (unset → empty string),
+// arch stored in ApkMetadata.Arch) and the default (unset → empty string),
 // since the empty case is what triggers the architectureQualifier's
 // inert-passthrough branch at match time.
 func TestPackageBuilder_WithArchitecture(t *testing.T) {
@@ -93,7 +93,8 @@ func TestPackageBuilder_WithArchitecture(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			b := NewPackage("test-pkg", "1.0.0", syftPkg.ApkPkg)
 			p := tt.set(b).Build()
-			assert.Equal(t, tt.want, p.Arch)
+			meta, _ := p.Metadata.(pkg.ApkMetadata)
+			assert.Equal(t, tt.want, meta.Arch)
 		})
 	}
 }
