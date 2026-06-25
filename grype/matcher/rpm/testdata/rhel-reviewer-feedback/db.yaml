@@ -1,0 +1,15 @@
+# Hand-authored fixture (auto-generate disabled). Records mirror what vunnel's RHEL provider
+# emits (or should emit, with AdditionalAdvisoryFixes) for the packages/CVEs an expert reviewer
+# flagged on two real images: a python 3.12 image (rhel 9.4) and an OSE console image (rhel 9.2).
+auto-generate: false
+extractions:
+    rhel:
+        - rhel:9/cve-2023-25433
+        - rhel:9/cve-2025-59464
+        - rhel:9/cve-2026-2100
+        - rhel:9/cve-2021-20197
+        - rhel:9/cve-2023-4813
+        - rhel:9/cve-2023-4806
+        - rhel:9/cve-2023-38545
+        - rhel:9/cve-2023-38546
+        - rhel:9/cve-2023-44487

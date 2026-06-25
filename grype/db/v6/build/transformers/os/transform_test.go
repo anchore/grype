@@ -1825,3 +1825,62 @@ func timeRef(ti time.Time) *time.Time {
 func strRef(s string) *string {
 	return &s
 }
+
+func TestExactUnaffectedHandlesCarryAdvisory(t *testing.T) {
+	// a same-base multi-stream RHEL record: the canonical fix is the highest EVR, and
+	// AdditionalAdvisoryFixes lists every called-out fix build paired with its advisory.
+	var vuln unmarshal.OSVulnerability
+	vuln.Vulnerability.Name = "CVE-2024-10458"
+	vuln.Vulnerability.NamespaceName = "rhel:9"
+
+	mkFix := func(version, id, link string) unmarshal.OSAdvisoryFix {
+		var f unmarshal.OSAdvisoryFix
+		f.Version = version
+		f.Advisory.ID = id
+		f.Advisory.Link = link
+		return f
+	}
+
+	fixedIn := unmarshal.OSFixedIn{
+		Name:          "firefox",
+		NamespaceName: "rhel:9",
+		Version:       "0:128.4.0-1.el9_5",
+		VersionFormat: "rpm",
+		AdditionalAdvisoryFixes: []unmarshal.OSAdvisoryFix{
+			mkFix("0:128.4.0-1.el9_4", "RHSA-2024:8726", "https://access.redhat.com/errata/RHSA-2024:8726"),
+			mkFix("0:128.4.0-1.el9_5", "RHSA-2024:9554", "https://access.redhat.com/errata/RHSA-2024:9554"),
+		},
+	}
+	vuln.Vulnerability.FixedIn = unmarshal.OSFixedIns{fixedIn}
+
+	afs, unafs := getPackages(vuln)
+
+	// the affected handle is unchanged: still the coarse "< highest fix" constraint.
+	require.Len(t, afs, 1)
+	require.Len(t, afs[0].BlobValue.Ranges, 1)
+	assert.Equal(t, "< 0:128.4.0-1.el9_5", afs[0].BlobValue.Ranges[0].Version.Constraint)
+
+	// one exact-match unaffected handle per called-out fix, each carrying its advisory.
+	require.Len(t, unafs, 2)
+	byConstraint := map[string]db.Range{}
+	for _, u := range unafs {
+		require.Len(t, u.BlobValue.Ranges, 1)
+		byConstraint[u.BlobValue.Ranges[0].Version.Constraint] = u.BlobValue.Ranges[0]
+	}
+
+	for _, tc := range []struct{ constraint, version, advisory, link string }{
+		{"= 0:128.4.0-1.el9_4", "0:128.4.0-1.el9_4", "RHSA-2024:8726", "https://access.redhat.com/errata/RHSA-2024:8726"},
+		{"= 0:128.4.0-1.el9_5", "0:128.4.0-1.el9_5", "RHSA-2024:9554", "https://access.redhat.com/errata/RHSA-2024:9554"},
+	} {
+		r, ok := byConstraint[tc.constraint]
+		require.True(t, ok, "missing unaffected handle for %s", tc.constraint)
+		require.NotNil(t, r.Fix)
+		assert.Equal(t, db.NotAffectedFixStatus, r.Fix.State)
+		assert.Equal(t, tc.version, r.Fix.Version)
+		require.NotNil(t, r.Fix.Detail)
+		require.Len(t, r.Fix.Detail.References, 1)
+		assert.Equal(t, tc.advisory, r.Fix.Detail.References[0].ID)
+		assert.Equal(t, tc.link, r.Fix.Detail.References[0].URL)
+		assert.Contains(t, r.Fix.Detail.References[0].Tags, db.AdvisoryReferenceTag)
+	}
+}

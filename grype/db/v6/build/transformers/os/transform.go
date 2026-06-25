@@ -134,6 +134,13 @@ func getPackages(vuln unmarshal.OSVulnerability) ([]db.AffectedPackageHandle, []
 		}
 		aph.BlobValue.Ranges = ranges
 		afs = append(afs, aph)
+
+		// Emit an "= <evr>" unaffected handle for every distinct fix version the advisories
+		// called out (UnaffectedVersions). When several same-base streams collapse to one
+		// affected record ("< highest fix"), a host running exactly its own stream's fix build
+		// otherwise reports as vulnerable; these exact-match unaffected records let the matcher
+		// suppress that. Additive: groups without UnaffectedVersions are unchanged.
+		unafs = append(unafs, exactUnaffectedHandles(group, fixedIns, vuln, qualifiers)...)
 	}
 
 	// stable ordering
@@ -141,6 +148,59 @@ func getPackages(vuln unmarshal.OSVulnerability) ([]db.AffectedPackageHandle, []
 	sort.Sort(internal.ByUnaffectedPackage(unafs))
 
 	return afs, unafs
+}
+
+// exactUnaffectedHandles turns each FixedIn.AdditionalAdvisoryFixes entry into an unaffected
+// package handle constrained to that exact version ("= <evr>"), carrying the advisory that
+// shipped that build as a fix reference. These ride alongside the affected handle (which still
+// carries the coarse "< highest fix" constraint) so that a host at exactly a called-out fix
+// build matches an unaffected record and the matcher can drop the otherwise-false-positive
+// disclosure - and report which advisory's fix the host already carries. The rpm-modularity
+// qualifier mirrors the affected handle so modular hosts match the right stream.
+func exactUnaffectedHandles(group groupIndex, fixedIns []unmarshal.OSFixedIn, vuln unmarshal.OSVulnerability, qualifiers *db.PackageQualifiers) []db.UnaffectedPackageHandle {
+	seen := strset.New()
+	var out []db.UnaffectedPackageHandle
+	for _, f := range fixedIns {
+		for _, af := range f.AdditionalAdvisoryFixes {
+			v := strings.TrimSpace(af.Version)
+			if v == "" || seen.Has(v) {
+				continue
+			}
+			seen.Add(v)
+
+			fix := &db.Fix{Version: v, State: db.NotAffectedFixStatus}
+			if af.Advisory.ID != "" || af.Advisory.Link != "" {
+				fix.Detail = &db.FixDetail{
+					References: []db.Reference{
+						{
+							ID:   af.Advisory.ID,
+							URL:  af.Advisory.Link,
+							Tags: []string{db.AdvisoryReferenceTag},
+						},
+					},
+				}
+			}
+
+			out = append(out, db.UnaffectedPackageHandle{
+				OperatingSystem: getOperatingSystem(group.osName, group.id, group.osVersion, group.osChannel),
+				Package:         getPackage(group),
+				BlobValue: &db.PackageBlob{
+					CVEs:       getAliases(vuln),
+					Qualifiers: qualifiers,
+					Ranges: []db.Range{
+						{
+							Version: db.Version{
+								Type:       f.VersionFormat,
+								Constraint: fmt.Sprintf("= %s", v),
+							},
+							Fix: fix,
+						},
+					},
+				},
+			})
+		}
+	}
+	return out
 }
 
 func getFix(fixedInEntry unmarshal.OSFixedIn) *db.Fix {
