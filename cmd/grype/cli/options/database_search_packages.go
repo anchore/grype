@@ -62,8 +62,9 @@ func (o *DBSearchPackages) PostLoad() error {
 				log.Warnf("ignoring version and qualifiers for package URL %q", purl)
 			}
 
-			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: purl.Name, Ecosystem: purl.Type})
-			o.CPESpecs = append(o.CPESpecs, &v6.PackageSpecifier{CPE: &cpe.Attributes{Part: "a", Product: purl.Name, TargetSW: purl.Type}})
+			name := packageNameFromPURL(&purl)
+			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: name, Ecosystem: purl.Type})
+			o.CPESpecs = append(o.CPESpecs, &v6.PackageSpecifier{CPE: &cpe.Attributes{Part: "a", Product: name, TargetSW: purl.Type}})
 
 		default:
 			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: p, Ecosystem: o.Ecosystem})
@@ -81,4 +82,33 @@ func (o *DBSearchPackages) PostLoad() error {
 	}
 
 	return nil
+}
+
+// packageNameFromPURL reconstructs the package name as it is stored in the DB
+// for the PURL's ecosystem. Most ecosystems are flat-namespaced and use
+// purl.Name directly, but some encode part of the name in the PURL namespace:
+//
+//   - golang modules carry the module path across namespace + name, e.g.
+//     pkg:golang/github.com/gin-gonic/gin parses to Namespace="github.com/gin-gonic"
+//     and Name="gin", while the DB keys the record under the full module path
+//     "github.com/gin-gonic/gin".
+//   - npm scoped packages parse to Namespace="@scope" and Name="name", and are
+//     stored as "@scope/name".
+//   - Maven packages parse to Namespace="groupId" and Name="artifactId", and are
+//     stored as "groupId:artifactId".
+//
+// Without this, a search for a namespaced PURL only used purl.Name and silently
+// failed to match. This mirrors the same reconstruction the openvex build
+// transformer performs (grype/db/v6/build/transformers/openvex).
+func packageNameFromPURL(purl *packageurl.PackageURL) string {
+	if purl.Namespace == "" {
+		return purl.Name
+	}
+	switch purl.Type {
+	case packageurl.TypeMaven:
+		return purl.Namespace + ":" + purl.Name
+	case packageurl.TypeGolang, packageurl.TypeNPM:
+		return purl.Namespace + "/" + purl.Name
+	}
+	return purl.Name
 }
