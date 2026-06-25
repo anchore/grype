@@ -2,6 +2,7 @@ package osv
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 	"time"
 
@@ -11,14 +12,16 @@ import (
 )
 
 // TestGoVulnDBTransform exercises the govulndb strategy end-to-end against a real
-// GO-* fixture. The transformer is currently stdlib-only (non-stdlib affected
-// packages are dropped):
+// GO-* fixture. The transformer emits the stdlib pseudo-module and the
+// golang.org/x/* extended standard libraries (see govulndbEmits); other
+// third-party modules are dropped.
 //
 //   - GO-2022-0969: a MIXED record listing both "stdlib" and "golang.org/x/net".
-//     The want below contains ONLY the stdlib handle, so this case also asserts
-//     that the non-stdlib package is filtered out. The stdlib range is multi-window
+//     Both survive the emit filter, so the want below contains BOTH handles
+//     (golang.org/x/net sorts before stdlib). The stdlib range is multi-window
 //     (< 1.18.6 || >= 1.19.0-0,< 1.19.1), exercising the comma-separated constraint
-//     normalization the Go version comparator needs.
+//     normalization the Go version comparator needs; the golang.org/x/net range is
+//     a single pseudo-version window, exercising the golang.org/x/* emit path.
 func TestGoVulnDBTransform(t *testing.T) {
 	tests := []transformCase{
 		{
@@ -49,6 +52,25 @@ func TestGoVulnDBTransform(t *testing.T) {
 					},
 				},
 				Related: affectedPkgSlice(
+					db.AffectedPackageHandle{
+						Package: &db.Package{
+							Name:      "golang.org/x/net",
+							Ecosystem: "go-module",
+						},
+						BlobValue: &db.PackageBlob{
+							CVEs: []string{"CVE-2022-27664", "GHSA-69cg-p879-7622"},
+							Ranges: []db.Range{{
+								Version: db.Version{
+									Type:       "go",
+									Constraint: "<0.0.0-20220906165146-f3363e06e74c",
+								},
+								Fix: &db.Fix{
+									Version: "0.0.0-20220906165146-f3363e06e74c",
+									State:   db.FixedStatus,
+								},
+							}},
+						},
+					},
 					db.AffectedPackageHandle{
 						Package: &db.Package{
 							Name:      "stdlib",
@@ -152,11 +174,12 @@ func TestEventsToRanges(t *testing.T) {
 	}
 }
 
-// TestGoVulnDB_NonStdlibEmitsNothing guards the stdlib-only behavior: an advisory
-// whose only affected package is non-stdlib (here github.com/gin-gonic/gin) must
-// produce NO entries at all — not an orphaned vulnerability handle with zero
-// affected packages. Transform returns early when every affected package is
-// filtered out, so a non-stdlib GO record never reaches the DB.
+// TestGoVulnDB_NonStdlibEmitsNothing guards the drop path for general third-party
+// modules: an advisory whose only affected package is a non-emitted module (here
+// github.com/gin-gonic/gin — not stdlib and not golang.org/x/*) must produce NO
+// entries at all — not an orphaned vulnerability handle with zero affected
+// packages. Transform returns early when every affected package is filtered out,
+// so such a GO record never reaches the DB.
 func TestGoVulnDB_NonStdlibEmitsNothing(t *testing.T) {
 	vulns := loadFixture(t, "testdata/GO-2020-0001.json")
 	if len(vulns) != 1 {
@@ -210,11 +233,14 @@ func TestGoVulnDB_WithdrawnStdlibIsRejected(t *testing.T) {
 	}
 }
 
-// TestGoVulnDB_FiltersNonStdlibFromMixedRecord pins the stdlib-only filter on a
-// real MIXED advisory: GO-2022-0969 lists both "stdlib" and "golang.org/x/net".
-// Only the stdlib affected package may survive — the golang.org/x/net handle must
-// be dropped — so per-package filtering is asserted on a single record.
-func TestGoVulnDB_FiltersNonStdlibFromMixedRecord(t *testing.T) {
+// TestGoVulnDB_EmitsStdlibAndGolangOrgX pins the emit filter on a real MIXED
+// advisory: GO-2022-0969 lists both "stdlib" and "golang.org/x/net". Both classes
+// are emitted — stdlib because it is statically linked into every Go binary, and
+// golang.org/x/net because the golang.org/x/* extended standard libraries are
+// versioned by the Go team and absent from GHSA, so they don't carry the
+// false-positive/duplicate baggage that motivates dropping general third-party
+// modules. Per-package filtering is asserted on a single record.
+func TestGoVulnDB_EmitsStdlibAndGolangOrgX(t *testing.T) {
 	vulns := loadFixture(t, "testdata/GO-2022-0969.json")
 	if len(vulns) != 1 {
 		t.Fatalf("expected 1 vuln, got %d", len(vulns))
@@ -226,14 +252,28 @@ func TestGoVulnDB_FiltersNonStdlibFromMixedRecord(t *testing.T) {
 		fixtureNames = append(fixtureNames, a.Package.Name)
 	}
 	if len(fixtureNames) < 2 {
-		t.Fatalf("fixture is not mixed (need stdlib + non-stdlib), got %v", fixtureNames)
+		t.Fatalf("fixture is not mixed (need stdlib + golang.org/x/*), got %v", fixtureNames)
 	}
 
-	var got []string
+	got := map[string]bool{}
 	for _, aph := range govulndbAffectedPackages(vulns[0]) {
-		got = append(got, aph.Package.Name)
+		got[aph.Package.Name] = true
 	}
-	if len(got) != 1 || got[0] != "stdlib" {
-		t.Errorf("expected only [stdlib] to survive the filter, got %v (fixture had %v)", got, fixtureNames)
+	for _, want := range []string{"stdlib", "golang.org/x/net"} {
+		if !got[want] {
+			t.Errorf("expected %q to survive the emit filter, got %v (fixture had %v)", want, keys(got), fixtureNames)
+		}
 	}
+	if len(got) != 2 {
+		t.Errorf("expected exactly [stdlib golang.org/x/net] to survive, got %v (fixture had %v)", keys(got), fixtureNames)
+	}
+}
+
+func keys(m map[string]bool) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }
