@@ -379,7 +379,11 @@ func javaVMDataFromPkg(p syftPkg.Package) any {
 
 func apkMetadataFromPkg(p syftPkg.Package) any {
 	if m, ok := p.Metadata.(syftPkg.ApkDBEntry); ok {
-		metadata := ApkMetadata{}
+		// Grype's APK Metadata only has files, so return early
+		// and leave the field blank if there are no files.
+		if len(m.Files) == 0 {
+			return nil
+		}
 
 		fileRecords := make([]ApkFileRecord, 0, len(m.Files))
 		for _, record := range m.Files {
@@ -387,9 +391,7 @@ func apkMetadataFromPkg(p syftPkg.Package) any {
 			fileRecords = append(fileRecords, r)
 		}
 
-		metadata.Files = fileRecords
-
-		return metadata
+		return ApkMetadata{Files: fileRecords}
 	}
 
 	return nil
@@ -453,18 +455,22 @@ func rpmDataFromPkg(p syftPkg.Package) (metadata *RpmMetadata, upstreams []Upstr
 			upstreams = handleSourceRPM(p.Name, m.SourceRpm)
 		}
 
-		metadata = &RpmMetadata{
-			Epoch:           m.Epoch,
-			ModularityLabel: m.ModularityLabel,
+		if m.Epoch != nil || m.ModularityLabel != nil {
+			metadata = &RpmMetadata{
+				Epoch:           m.Epoch,
+				ModularityLabel: m.ModularityLabel,
+			}
 		}
 	case syftPkg.RpmArchive:
 		if m.SourceRpm != "" {
 			upstreams = handleSourceRPM(p.Name, m.SourceRpm)
 		}
 
-		metadata = &RpmMetadata{
-			Epoch:           m.Epoch,
-			ModularityLabel: m.ModularityLabel,
+		if m.Epoch != nil || m.ModularityLabel != nil {
+			metadata = &RpmMetadata{
+				Epoch:           m.Epoch,
+				ModularityLabel: m.ModularityLabel,
+			}
 		}
 	}
 	return metadata, upstreams
