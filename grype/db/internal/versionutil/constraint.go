@@ -24,7 +24,7 @@ func EnforceSemVerConstraint(constraint string) string {
 }
 
 func AndConstraints(c ...string) string {
-	return strings.Join(c, " ")
+	return strings.Join(c, ", ")
 }
 
 func OrConstraints(c ...string) string {
