@@ -38,12 +38,29 @@ func (govulndbStrategy) Matches(id string) bool {
 	return strings.HasPrefix(id, "GO-")
 }
 
+// govulndbEmits reports whether grype emits records for a govulndb affected
+// package. For general third-party Go modules the go vuln db carries odd version
+// ranges (a source of false positives) and duplicates advisories grype already
+// gets from GHSA, so those packages are dropped. Two classes are kept because
+// they are both absent from GHSA and versioned by the Go team itself — so the
+// strange-range drawback that motivates dropping third-party modules does not
+// apply:
+//   - the "stdlib" pseudo-module: the core language, statically linked into
+//     every Go binary.
+//   - the golang.org/x/* extended standard libraries (golang.org/x/net,
+//     golang.org/x/crypto, golang.org/x/text, …).
+func govulndbEmits(name string) bool {
+	return strings.EqualFold(name, "stdlib") ||
+		strings.HasPrefix(name, "golang.org/x/")
+}
+
 func (govulndbStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
 	affected := govulndbAffectedPackages(vuln)
 	if len(affected) == 0 {
-		// stdlib-only: every affected package was filtered out (or there were
-		// none). Emitting just the vulnerability handle would write an orphaned
-		// record that can never match a package, so skip the advisory entirely.
+		// every affected package was filtered out (or there were none): only the
+		// stdlib and golang.org/x/* modules are emitted (see govulndbEmits).
+		// Emitting just the vulnerability handle would write an orphaned record
+		// that can never match a package, so skip the advisory entirely.
 		return nil, nil
 	}
 
@@ -104,8 +121,7 @@ func govulndbAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPack
 	}
 	var aphs []db.AffectedPackageHandle
 	for _, affected := range vuln.Affected {
-		if !strings.EqualFold(affected.Package.Name, "stdlib") {
-			// for now, only stdlib is helping
+		if !govulndbEmits(affected.Package.Name) {
 			continue
 		}
 		aphs = append(aphs, db.AffectedPackageHandle{
