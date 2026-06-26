@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/scylladb/go-set/strset"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/matcher/internal/result"
@@ -265,26 +267,76 @@ func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Packag
 		return nil, nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
 
-	unaffectedCriteria := []vulnerability.Criteria{
+	// Fetch ALL unaffected (per-stream fix) records for this package, unfiltered by the host
+	// version. These carry every called-out per-stream fix build ("= <evr>") plus the advisory
+	// that shipped it. Option A's stream selection (below) needs all of them, not just the one
+	// the host happens to sit exactly on, so that it can pick the host's own minor stream and
+	// compare against it.
+	streamCriteria := []vulnerability.Criteria{
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
 		internal.OnlyQualifiedPackages(searchPkg),
-		internal.OnlyVulnerableVersions(pkgVersion),
 		search.ForUnaffected(),
 	}
-	unaffectedCriteria = append(unaffectedCriteria, extra...)
+	streamCriteria = append(streamCriteria, extra...)
 
-	unaffected, err := provider.FindResults(unaffectedCriteria...)
+	streamUnaffected, err := provider.FindResults(streamCriteria...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch unaffected for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
 	}
 
 	disclosures := all.Filter(internal.OnlyVulnerableVersions(pkgVersion))
 
-	// return all unaffected vulns for this version
-	unaffected = unaffected.Merge(all.Remove(disclosures))
+	// Option A: matcher-side per-stream selection for RHEL same-base multi-stream fixes. Using the
+	// installed package's own dist-tag minor, suppress disclosures the host's stream already fixed
+	// and rewrite the reported fix version to the host's reachable stream build for the ones it has
+	// not. Disclosures with no matching stream are returned unchanged for the coarse handling below.
+	disclosures, streamSuppressed := applyStreamSelection(searchPkg, disclosures, streamUnaffected)
 
-	return disclosures.ToMatches(), internal.OwnershipIgnores(searchPkg, IgnoreReasonDistroNotVulnerable, unaffected.Vulnerabilities()...), nil
+	// The host may also sit exactly on a called-out fix build whose stream did not match the
+	// selection above (e.g. a different-minor build that still equals an unaffected record). Keep
+	// the prior exact-match suppression as a backstop so those are not falsely flagged.
+	exactUnaffected := streamUnaffected.Filter(internal.OnlyVulnerableVersions(pkgVersion))
+	disclosuresBeforeUnaffected := disclosures
+	disclosures = disclosures.Remove(exactUnaffected)
+	logExactFixSuppression(searchPkg, disclosuresBeforeUnaffected.Remove(disclosures), exactUnaffected)
+
+	// Collect everything we want to surface as "distro not vulnerable" ignores: the exact-match
+	// unaffected records, the stream-selected suppressions, and any unaffected disclosures for this
+	// version.
+	ignoredSet := exactUnaffected.Merge(streamSuppressed).Merge(all.Remove(disclosures).Remove(streamSuppressed))
+
+	return disclosures.ToMatches(), internal.OwnershipIgnores(searchPkg, IgnoreReasonDistroNotVulnerable, ignoredSet.Vulnerabilities()...), nil
+}
+
+// logExactFixSuppression records, at trace level, each disclosure that an exact-match
+// unaffected record overrode - i.e. the host already runs a specific advisory's fix build for
+// its own stream - so the "why" behind a dropped same-base false positive is observable. The
+// fix build and advisory come from the matching unaffected records.
+func logExactFixSuppression(p pkg.Package, suppressed, unaffected result.Set) {
+	if len(suppressed) == 0 {
+		return
+	}
+	suppressedIDs := strset.New()
+	for id := range suppressed {
+		suppressedIDs.Add(id)
+	}
+	for _, v := range unaffected.Vulnerabilities() {
+		if !suppressedIDs.Has(v.ID) {
+			continue
+		}
+		var advisories []string
+		for _, a := range v.Advisories {
+			advisories = append(advisories, a.ID)
+		}
+		log.WithFields(
+			"package", p.Name,
+			"version", p.Version,
+			"vulnerability", v.ID,
+			"fix", strings.Join(v.Fix.Versions, ","),
+			"advisories", strings.Join(advisories, ","),
+		).Trace("rpm: host runs a known advisory fix build for its stream; suppressing same-base false positive")
+	}
 }
 
 func addEpochIfApplicable(p *pkg.Package) {

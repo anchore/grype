@@ -1,0 +1,15 @@
+# Hand-authored fixture (auto-generate disabled). Same-base multi-stream RHEL records:
+# more than one RHSA fixes the same package at the SAME upstream base across different
+# minors, so no VulnerableRange can partition them (the leading release is a total order).
+# Each record carries the proposed additive AdditionalAdvisoryFixes field listing every
+# called-out fix EVR paired with its advisory, which the OS transformer turns into "= <evr>"
+# unaffected handles (with the advisory as a fix reference) so a host running exactly its
+# stream's fix build is not falsely flagged - and grype can report which advisory shipped it.
+#
+#   rhel:9/cve-2024-10458  firefox  128.4.0-1.el9_4 vs -1.el9_5 (dist-tag-only)
+#   rhel:8/cve-2022-48943  kernel   372.26.1.el8_6 vs 425.3.1.el8 (inverted: GA outranks EUS)
+auto-generate: false
+extractions:
+    rhel:
+        - rhel:9/cve-2024-10458
+        - rhel:8/cve-2022-48943

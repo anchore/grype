@@ -1,7 +1,19 @@
-# Hand-authored fixture (auto-generate disabled). The single rhel:9 record is the
-# verbatim OS-schema output of vunnel's RHEL provider for CVE-2024-8088 after the
-# multi-RHSA phase-1 change (distinct upstream bases -> partitioned VulnerableRange).
+# Hand-authored fixture (auto-generate disabled). Each record is the verbatim
+# OS-schema output of vunnel's RHEL provider after the multi-RHSA phase-1 change
+# (distinct upstream bases for the same package/CVE/major -> a single FixedIn with
+# a partitioned VulnerableRange and the folded RHSAs), trimmed to the one FixedIn
+# entry under test. Records were mined from a real vunnel cache with
+# datasources/rhel/scripts/find_multi_rhsa_results.py, which surfaces every
+# VulnerableRange-bearing record (the precise marker for this shape).
+#
+#   rhel:9/cve-2024-8088   python3.9      2 streams, 2 RHSAs (the original case)
+#   rhel:10/cve-2025-9566  podman         3 streams, 3 RHSAs, epoch bump 6->7 mid-range
+#   rhel:8/cve-2020-8696   microcode_ctl  2 streams, 3 RHSAs incl. an RHBA (advisory fold)
+#   rhel:8/cve-2023-45288  go-toolset     2 streams, modular (Module=go-toolset:rhel8)
 auto-generate: false
 extractions:
     rhel:
         - rhel:9/cve-2024-8088
+        - rhel:10/cve-2025-9566
+        - rhel:8/cve-2020-8696
+        - rhel:8/cve-2023-45288

@@ -12,8 +12,17 @@ import (
 func OwnershipIgnores(p pkg.Package, reason string, ignoredVulnerabilities ...vulnerability.Vulnerability) []match.IgnoreFilter {
 	var ignores []match.IgnoreFilter
 
+	// the same vulnerability can reach here from more than one source record (e.g. an
+	// exact-match unaffected handle plus the affected record it overrides), which would
+	// otherwise emit duplicate, identical ignore filters.
+	seen := make(map[string]struct{})
+
 	for _, ignoredVulnerability := range ignoredVulnerabilities {
 		for _, ignoreVulnID := range collectVulnerabilityIDs(ignoredVulnerability) {
+			if _, ok := seen[ignoreVulnID]; ok {
+				continue
+			}
+			seen[ignoreVulnID] = struct{}{}
 			ignores = append(ignores, match.IgnoreRelatedPackage{
 				Reason:           reason,
 				RelationshipType: artifact.OwnershipByFileOverlapRelationship,
