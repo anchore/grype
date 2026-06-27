@@ -65,18 +65,16 @@ func ByFixedVersion(v version.Version) vulnerability.Criteria {
 	return &funcCriteria{
 		func(vuln vulnerability.Vulnerability) (bool, string, error) {
 			var err error
-			if vuln.Fix.State != vulnerability.FixStateFixed {
+			if vuln.Fix.State != vulnerability.FixStateFixed || vuln.Constraint == nil {
 				return false, "", nil
 			}
-			for _, fixVersion := range vuln.Fix.Versions {
-				cmp, e := version.New(fixVersion, v.Format).Compare(&v)
-				if e != nil {
-					err = e
-				}
-				if cmp <= 0 {
-					// fix version is less than or equal to the provided version, so is considered fixed
-					return true, fmt.Sprintf("fix version %v is less than %v", v, fixVersion), err
-				}
+			constraintSatisified, err := vuln.Constraint.Satisfied(&v)
+			if err != nil {
+				return false, "", err
+			}
+			if !constraintSatisified {
+				// v does not fall within the vulnerable constraints
+				return true, "is fixed", err
 			}
 			return false, "", err
 		},

@@ -121,9 +121,9 @@ func Test_ByFixedVersion(t *testing.T) {
 			name:    "fixed version is lower",
 			version: "1.1.0",
 			input: vulnerability.Vulnerability{
+				Constraint: version.MustGetConstraint("< 1.0.0", version.SemanticFormat),
 				Fix: vulnerability.Fix{
-					Versions: []string{"1.0.0"},
-					State:    vulnerability.FixStateFixed,
+					State: vulnerability.FixStateFixed,
 				},
 			},
 			matches: true,
@@ -132,9 +132,9 @@ func Test_ByFixedVersion(t *testing.T) {
 			name:    "fixed version is equal",
 			version: "1.1.0",
 			input: vulnerability.Vulnerability{
+				Constraint: version.MustGetConstraint("< 1.1.0", version.SemanticFormat),
 				Fix: vulnerability.Fix{
-					Versions: []string{"1.1.0"},
-					State:    vulnerability.FixStateFixed,
+					State: vulnerability.FixStateFixed,
 				},
 			},
 			matches: true,
@@ -143,9 +143,9 @@ func Test_ByFixedVersion(t *testing.T) {
 			name:    "one of multiple fix versions matches",
 			version: "1.1.0",
 			input: vulnerability.Vulnerability{
+				Constraint: version.MustGetConstraint(" < 1.0.0 || > 1.1.0, < 1.2.0", version.SemanticFormat),
 				Fix: vulnerability.Fix{
-					Versions: []string{"1.0.0", "1.2.0"},
-					State:    vulnerability.FixStateFixed,
+					State: vulnerability.FixStateFixed,
 				},
 			},
 			matches: true,
@@ -154,9 +154,9 @@ func Test_ByFixedVersion(t *testing.T) {
 			name:    "fixed version is higher",
 			version: "1.1.0",
 			input: vulnerability.Vulnerability{
+				Constraint: version.MustGetConstraint("< 1.2.0", version.SemanticFormat),
 				Fix: vulnerability.Fix{
-					Versions: []string{"1.2.0"},
-					State:    vulnerability.FixStateFixed,
+					State: vulnerability.FixStateFixed,
 				},
 			},
 			matches: false,
