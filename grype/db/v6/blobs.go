@@ -159,6 +159,11 @@ type PackageQualifiers struct {
 	// RootIO indicates that the vulnerability applies only to Root IO packages (packages with Root IO fixes).
 	// When true, standard packages will not match this vulnerability (NAK pattern).
 	RootIO *bool `json:"rootio,omitempty"`
+
+	// Echo indicates that the vulnerability applies only to Echo-patched language packages
+	// (identified by a "+echo.N" version suffix). When true, non-Echo packages will not match
+	// this vulnerability (NAK pattern).
+	Echo *bool `json:"echo,omitempty"`
 }
 
 // Range defines a specific range of package versions pertaining to a vulnerability.
