@@ -8,48 +8,103 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 )
 
-// TestArchitecture_Satisfied pins down the per-package gating logic: match the package's
-// arch against the arch the entry affects. Concrete arches compare exactly; the src entry
-// matches only source packages; binary-no-arch matches any binary (any non-src) package;
-// and an unset or arch-independent (rpm "noarch", deb "all") value on either side is inert
-// (cannot/should not decide, so don't filter).
+// TestArchitecture_Satisfied pins down the per-package gating logic for the AFFECTED qualifier:
+// match the package's arch against the arch the entry affects. Concrete arches compare exactly;
+// the src entry matches only source packages; binary-no-arch matches any binary (any non-src)
+// package; and an unset or arch-independent (rpm "noarch", deb "all") value on either side is
+// inert (cannot/should not decide, so don't filter).
+//
+// A satisfied AFFECTED entry QUALIFIES (keeps) the match, so want==true means "qualifies".
+// Leniency fails toward the vulnerability (a false positive) rather than dropping a real match.
+// The cases below enumerate each distinct (package arch, entry arch) combination, then add
+// supplementary cross-dialect spellings and the src/src and binary/src pairings.
 func TestArchitecture_Satisfied(t *testing.T) {
 	tests := []struct {
 		name          string
-		qualifierArch string
-		pkgArch       string
-		want          bool
+		qualifierArch string // arch stored on the vulnerability entry
+		pkgArch       string // arch read off the scanned package
+		want          bool   // does the affected entry qualify (keep) the package?
 	}{
 		{
-			// Inert: no arch on the package means the input didn't surface one, so we
-			// can't decide and must pass (older DBs / non-PURL providers).
-			name:          "package without arch is inert",
+			// a binary record excludes the source package — a binary vuln must not
+			// match a package that isn't a binary.
+			name:          "src package / binary-no-arch entry -> does not qualify",
+			qualifierArch: ArchBinaryNoArchSpecified,
+			pkgArch:       ArchSource,
+			want:          false,
+		},
+		{
+			// a binary-no-arch vuln matches any binary package, whatever its arch.
+			name:          "aarch64 binary / binary-no-arch entry -> qualifies",
+			qualifierArch: ArchBinaryNoArchSpecified,
+			pkgArch:       "aarch64",
+			want:          true,
+		},
+		{
+			// an arch-independent package has no arch-specific content and is installed
+			// on every arch, so an arch-scoped entry still applies and must not drop it.
+			name:          "noarch package / concrete (x86_64) entry -> qualifies",
+			qualifierArch: "x86_64",
+			pkgArch:       archNoarch,
+			want:          true,
+		},
+		{
+			// "all" is debian's arch-independent marker; same reasoning as noarch.
+			name:          "deb 'all' package / concrete (amd64) entry -> qualifies",
+			qualifierArch: "amd64",
+			pkgArch:       archAll,
+			want:          true,
+		},
+		{
+			// a binary package matches a src entry — the binary is built from the
+			// vulnerable source and inherits its vulnerability.
+			name:          "binary package / src entry -> qualifies (built from vulnerable src)",
+			qualifierArch: ArchSource,
+			pkgArch:       "x86_64",
+			want:          true,
+		},
+		{
+			// matching concrete arches qualify.
+			name:          "aarch64 package / aarch64 entry -> qualifies (arches match)",
+			qualifierArch: "aarch64",
+			pkgArch:       "aarch64",
+			want:          true,
+		},
+		{
+			// mismatched concrete arches do not qualify.
+			name:          "x86_64 package / aarch64 entry -> does not qualify (arches differ)",
+			qualifierArch: "aarch64",
+			pkgArch:       "x86_64",
+			want:          false,
+		},
+		{
+			// unknown package arch — assume the vuln may apply (fail toward the
+			// vulnerable claim). Older DBs / non-PURL providers surface no arch.
+			name:          "empty package arch / concrete entry -> qualifies (unknown, assume applies)",
 			qualifierArch: "x86_64",
 			pkgArch:       "",
 			want:          true,
 		},
 		{
-			// Inert: an entry with no arch means "any"; it must not filter a concrete
-			// package. Transformers should emit nil, but "" stays permissive too.
-			name:          "entry without arch is inert",
+			// an entry with no arch is not scoped to any architecture, so any package
+			// matches. Transformers should emit nil, but "" stays permissive too.
+			name:          "concrete package / empty entry -> qualifies (vuln not arch-scoped)",
 			qualifierArch: "",
 			pkgArch:       "x86_64",
 			want:          true,
 		},
 		{
-			name:          "concrete arch matches same concrete arch",
-			qualifierArch: "x86_64",
-			pkgArch:       "x86_64",
+			// a concrete package vs an arch-independent entry qualifies — a binary rpm
+			// can be affected by a vuln that isn't in architecture-specific code.
+			name:          "aarch64 package / noarch entry -> qualifies",
+			qualifierArch: archNoarch,
+			pkgArch:       "aarch64",
 			want:          true,
 		},
+
+		// supplementary: cross-dialect spellings and extra pairings
 		{
-			name:          "concrete arch does not match different concrete arch",
-			qualifierArch: "x86_64",
-			pkgArch:       "aarch64",
-			want:          false,
-		},
-		{
-			// Cross-dialect: a deb/Go/OCI "amd64" package must match an RPM-dialect
+			// cross-dialect: a deb/Go/OCI "amd64" package must match an RPM-dialect
 			// "x86_64" advisory — same architecture, different spelling.
 			name:          "amd64 package matches x86_64 entry (canonicalized)",
 			qualifierArch: "x86_64",
@@ -69,30 +124,14 @@ func TestArchitecture_Satisfied(t *testing.T) {
 			want:          true,
 		},
 		{
-			// Canonicalization must not collapse genuinely different architectures.
+			// canonicalization must not collapse genuinely different architectures.
 			name:          "amd64 package does not match arm64 entry",
 			qualifierArch: "arm64",
 			pkgArch:       "amd64",
 			want:          false,
 		},
 		{
-			// An arch-independent package (rpm "noarch") has no arch-specific content and is
-			// installed on every arch, so an arch-scoped entry still applies — it must not be
-			// dropped. Goes live once a provider emits concrete-arch entries (e.g. chainguard).
-			name:          "noarch package is inert against a concrete-arch entry",
-			qualifierArch: "x86_64",
-			pkgArch:       "noarch",
-			want:          true,
-		},
-		{
-			// deb "all" is the debian-dialect arch-independent marker; same reasoning as noarch.
-			name:          "deb 'all' package is inert against a concrete-arch entry",
-			qualifierArch: "amd64",
-			pkgArch:       "all",
-			want:          true,
-		},
-		{
-			// Symmetric: an arch-independent entry doesn't constrain by arch either.
+			// an arch-independent entry doesn't constrain by arch either (rpm-dialect spelling).
 			name:          "arch-independent entry is inert against a concrete package",
 			qualifierArch: "noarch",
 			pkgArch:       "x86_64",
@@ -107,37 +146,21 @@ func TestArchitecture_Satisfied(t *testing.T) {
 			want:          true,
 		},
 		{
-			// A src record is source-level: it applies by name regardless of arch, so a
-			// same-name binary matches it (the binary inherits its source's vuln). This is
-			// required for same-name-source binaries, which have no synthesized upstream
-			// (e.g. CVE-2026-31790 openssl-fips-provider, source == binary name).
+			// a src record is source-level, applying by name regardless of arch, so a
+			// same-name binary matches it. Required for same-name-source binaries, which
+			// have no synthesized upstream (e.g. CVE-2026-31790 openssl-fips-provider,
+			// source == binary name).
 			name:          "src entry matches a same-name binary regardless of arch",
 			qualifierArch: ArchSource,
 			pkgArch:       "x86_64",
 			want:          true,
 		},
 		{
-			// binary-no-arch is a binary disclosure with no specific arch: it matches any
-			// binary package regardless of arch.
+			// binary-no-arch matches an x86_64 binary too.
 			name:          "binary-no-arch entry matches an x86_64 binary",
 			qualifierArch: ArchBinaryNoArchSpecified,
 			pkgArch:       "x86_64",
 			want:          true,
-		},
-		{
-			name:          "binary-no-arch entry matches an aarch64 binary",
-			qualifierArch: ArchBinaryNoArchSpecified,
-			pkgArch:       "aarch64",
-			want:          true,
-		},
-		{
-			// ...but not a source package. This is what rejects binary entries on the
-			// upstream search (whose synthesized package is tagged "src"), preventing
-			// sibling-binary false positives.
-			name:          "binary-no-arch entry does not match a source package",
-			qualifierArch: ArchBinaryNoArchSpecified,
-			pkgArch:       ArchSource,
-			want:          false,
 		},
 	}
 
@@ -155,35 +178,94 @@ func TestArchitecture_Satisfied(t *testing.T) {
 // unaffected record SUPPRESSES a match, so it must never suppress on an arch it can't positively
 // confirm. It mirrors TestArchitecture_Satisfied (the affected qualifier); the two differ only on
 // the uncertain cases the affected side resolves leniently, which are called out below.
+//
+// want==true means the unaffected entry applies and SUPPRESSES the match. The arch-independent,
+// empty-package-arch, and arch-independent-entry cases are where this qualifier diverges from the
+// affected one: where the affected qualifier leniently keeps a match it can't decide, the
+// unaffected qualifier conservatively declines to suppress (the safe direction is opposite).
 func TestUnaffectedArchitecture_Satisfied(t *testing.T) {
 	tests := []struct {
 		name          string
-		qualifierArch string
-		pkgArch       string
-		want          bool
+		qualifierArch string // arch stored on the (unaffected/negation) vulnerability entry
+		pkgArch       string // arch read off the scanned package
+		want          bool   // does the unaffected entry apply (suppress) the package?
 	}{
 		{
-			// Conservative: don't suppress on an arch we couldn't read (affected keeps it).
-			name:          "package without arch is not suppressed",
+			// the UAP applies only to binary RPMs, so it does not suppress a source pkg.
+			name:          "src package / binary-no-arch entry -> does not suppress",
+			qualifierArch: ArchBinaryNoArchSpecified,
+			pkgArch:       ArchSource,
+			want:          false,
+		},
+		{
+			// the UAP applies to all binary RPMs, so it suppresses any binary package.
+			name:          "aarch64 binary / binary-no-arch entry -> suppresses",
+			qualifierArch: ArchBinaryNoArchSpecified,
+			pkgArch:       "aarch64",
+			want:          true,
+		},
+		{
+			// diverges from affected: a "not affected on x86_64" record says nothing
+			// about the arch-independent build, so it must not suppress it.
+			name:          "noarch package / concrete (x86_64) entry -> does not suppress",
+			qualifierArch: "x86_64",
+			pkgArch:       archNoarch,
+			want:          false,
+		},
+		{
+			// same reasoning for the deb-dialect "all".
+			name:          "deb 'all' package / concrete (amd64) entry -> does not suppress",
+			qualifierArch: "amd64",
+			pkgArch:       archAll,
+			want:          false,
+		},
+		{
+			// a src-level not-affected applies by name regardless of arch — the binary
+			// is built from the unaffected source — so it suppresses the binary.
+			name:          "binary package / src entry -> suppresses (built from unaffected src)",
+			qualifierArch: ArchSource,
+			pkgArch:       "x86_64",
+			want:          true,
+		},
+		{
+			// matching concrete arches — the UAP applies, suppress.
+			name:          "aarch64 package / aarch64 entry -> suppresses (arches match)",
+			qualifierArch: "aarch64",
+			pkgArch:       "aarch64",
+			want:          true,
+		},
+		{
+			// mismatched concrete arches — the UAP doesn't apply, don't suppress.
+			name:          "x86_64 package / aarch64 entry -> does not suppress (arches differ)",
+			qualifierArch: "aarch64",
+			pkgArch:       "x86_64",
+			want:          false,
+		},
+		{
+			// diverges from affected: package arch unknown — can't prove the UAP
+			// applies, so don't suppress.
+			name:          "empty package arch / concrete entry -> does not suppress (can't prove it applies)",
 			qualifierArch: "x86_64",
 			pkgArch:       "",
 			want:          false,
 		},
 		{
-			// Conservative: a "fixed on x86_64" record says nothing about the noarch build, so it
-			// must not suppress it (affected keeps it).
-			name:          "noarch package is not suppressed by a concrete-arch entry",
-			qualifierArch: "x86_64",
-			pkgArch:       "noarch",
-			want:          false,
+			// a blanket no-arch unaffected record applies to every package.
+			name:          "concrete package / empty entry -> suppresses (blanket not-affected)",
+			qualifierArch: "",
+			pkgArch:       "x86_64",
+			want:          true,
 		},
 		{
-			// Conservative: same reasoning for an arch-independent entry vs a concrete package.
-			name:          "concrete package is not suppressed by an arch-independent entry",
-			qualifierArch: "noarch",
-			pkgArch:       "x86_64",
+			// diverges from affected: the UAP is about an arch-independent RPM and we
+			// can't show it applies to a concrete arch, so don't suppress.
+			name:          "aarch64 package / noarch entry -> does not suppress",
+			qualifierArch: archNoarch,
+			pkgArch:       "aarch64",
 			want:          false,
 		},
+
+		// supplementary: cross-dialect spellings and extra pairings
 		{
 			// Confirmed: an exact arch-independent match is a real correspondence, so suppress.
 			name:          "noarch package is suppressed by a noarch entry",
@@ -192,42 +274,29 @@ func TestUnaffectedArchitecture_Satisfied(t *testing.T) {
 			want:          true,
 		},
 		{
-			// A blanket no-arch unaffected record applies to every package.
-			name:          "entry without arch suppresses (blanket not-affected)",
-			qualifierArch: "",
+			// arch-independent entry vs a concrete package, rpm-dialect spelling.
+			name:          "concrete package is not suppressed by an arch-independent entry",
+			qualifierArch: "noarch",
 			pkgArch:       "x86_64",
-			want:          true,
+			want:          false,
 		},
 		{
-			// A src-level not-affected applies by name regardless of arch.
-			name:          "src entry suppresses a binary package",
-			qualifierArch: ArchSource,
-			pkgArch:       "x86_64",
-			want:          true,
-		},
-		{
-			// binary-no-arch is arch-agnostic by design: suppresses any non-src package...
-			name:          "binary-no-arch entry suppresses a binary package",
-			qualifierArch: ArchBinaryNoArchSpecified,
-			pkgArch:       "x86_64",
-			want:          true,
-		},
-		{
-			// ...but not a source package.
+			// binary-no-arch does not suppress a source package (the upstream
+			// search's synthesized package is tagged "src").
 			name:          "binary-no-arch entry does not suppress a source package",
 			qualifierArch: ArchBinaryNoArchSpecified,
 			pkgArch:       ArchSource,
 			want:          false,
 		},
 		{
-			// Confirmed concrete match (cross-dialect) suppresses.
+			// cross-dialect: confirmed concrete match suppresses.
 			name:          "matching concrete arch suppresses (canonicalized)",
 			qualifierArch: "x86_64",
 			pkgArch:       "amd64",
 			want:          true,
 		},
 		{
-			// Confirmed concrete mismatch does not suppress.
+			// confirmed concrete mismatch does not suppress.
 			name:          "mismatched concrete arch does not suppress",
 			qualifierArch: "x86_64",
 			pkgArch:       "aarch64",
