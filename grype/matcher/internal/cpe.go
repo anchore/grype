@@ -76,9 +76,8 @@ func MatchPackageByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upst
 
 		format := pkg.VersionFormat(p)
 
-		if format == version.JVMFormat {
-			searchVersion = transformJvmVersion(searchVersion, c.Attributes.Update)
-		}
+		// Apply version and update field combination for all package types
+		searchVersion = combineVersionAndUpdate(searchVersion, c.Attributes.Update, format)
 
 		var verObj *version.Version
 		var err error
@@ -130,6 +129,28 @@ func transformJvmVersion(searchVersion, updateCpeField string) string {
 		searchVersion = fmt.Sprintf("%s_%s", searchVersion, strings.TrimPrefix(updateCpeField, "update"))
 	}
 	return searchVersion
+}
+
+func combineVersionAndUpdate(searchVersion, updateCpeField string, format version.Format) string {
+	// Handle empty or wildcard update fields
+	if updateCpeField == "" || updateCpeField == wfn.NA || updateCpeField == wfn.Any {
+		return searchVersion
+	}
+
+	// Don't combine if the version is empty or a wildcard - these should remain as is
+	if searchVersion == "" || searchVersion == wfn.NA || searchVersion == wfn.Any {
+		return searchVersion
+	}
+
+	// Special handling for JVM packages
+	if format == version.JVMFormat {
+		return transformJvmVersion(searchVersion, updateCpeField)
+	}
+
+	// Combine version and update field without separator, matching the NTP-style pN patch notation.
+	// Using a dash would trigger semver prerelease semantics (4.2.8-p18 < 4.2.8), causing false positives.
+	// e.g. version="4.2.8", update="p18" → "4.2.8p18"
+	return fmt.Sprintf("%s%s", searchVersion, updateCpeField)
 }
 
 func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vulnerability.Vulnerability, p pkg.Package, searchVersion *version.Version, upstreamMatcher match.MatcherType, searchedByCPE cpe.CPE) {
@@ -226,11 +247,8 @@ func filterCPEsByVersion(pkgVersion *version.Version, allCPEs []cpe.CPE) (matche
 
 		ver := c.Attributes.Version
 
-		if pkgVersion.Format == version.JVMFormat {
-			if c.Attributes.Update != wfn.Any && c.Attributes.Update != wfn.NA {
-				ver = transformJvmVersion(ver, c.Attributes.Update)
-			}
-		}
+		// Apply version and update field combination for all package types
+		ver = combineVersionAndUpdate(ver, c.Attributes.Update, pkgVersion.Format)
 
 		constraint, err := version.GetConstraint(ver, pkgVersion.Format)
 		if err != nil {
