@@ -66,6 +66,7 @@ func TestAlmaLinuxMatching_ModularVulnerable(t *testing.T) {
 			matcher := Matcher{}
 			// httpd 2.4.37-30 is below both RHEL fix (-39) and AlmaLinux fix (-43)
 			p := dbtest.NewPackage("httpd", "2.4.37-30.module_el8.3.0+1234+abcd", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(dbtest.AlmaLinux8).
 				WithMetadata(pkg.RpmMetadata{
 					Epoch:           intPtr(0),
@@ -95,6 +96,7 @@ func TestAlmaLinuxMatching_ModularFixed(t *testing.T) {
 			// httpd at exact AlmaLinux fix version (which is past the RHEL fix)
 			pkgID := pkg.ID("httpd-fixed")
 			p := dbtest.NewPackage("httpd", "2.4.37-43.module_el8.5.0+2597+c4b14997.alma", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithID(pkgID).
 				WithDistro(dbtest.AlmaLinux8).
 				WithMetadata(pkg.RpmMetadata{
@@ -121,6 +123,7 @@ func TestAlmaLinuxMatching_ModularityMismatch(t *testing.T) {
 			matcher := Matcher{}
 			// httpd in a different module - no match
 			p := dbtest.NewPackage("httpd", "2.4.37-30.module_el8.3.0+1234+abcd", syftPkg.RpmPkg).
+				WithArchitecture("aarch64").
 				WithDistro(dbtest.AlmaLinux8).
 				WithMetadata(pkg.RpmMetadata{
 					Epoch:           intPtr(0),
@@ -142,6 +145,7 @@ func TestAlmaLinuxMatching_NonModularVulnerable(t *testing.T) {
 			matcher := Matcher{}
 			// patch 2.7.6-10 < fix 2.7.6-11
 			p := dbtest.NewPackage("patch", "2.7.6-10.el8", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(dbtest.AlmaLinux8).
 				Build()
 
@@ -163,6 +167,7 @@ func TestAlmaLinuxMatching_NonModularFixed(t *testing.T) {
 			matcher := Matcher{}
 			pkgID := pkg.ID("patch-fixed")
 			p := dbtest.NewPackage("patch", "2.7.6-11.el8", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithID(pkgID).
 				WithDistro(dbtest.AlmaLinux8).
 				Build()
@@ -183,6 +188,7 @@ func TestAlmaLinuxMatching_WontFixPassesThrough(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("tar", "2:1.30-5.el8", syftPkg.RpmPkg).
+				WithArchitecture("aarch64").
 				WithDistro(dbtest.AlmaLinux8).
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(2)}).
 				Build()
@@ -209,6 +215,7 @@ func TestAlmaLinuxMatching_UpstreamMatchWithFixReplacement(t *testing.T) {
 			matcher := Matcher{}
 			// httpd-tools binary at the same vulnerable version, upstream is httpd
 			p := dbtest.NewPackage("httpd-tools", "2.4.37-30.module_el8.3.0+1234+abcd", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(dbtest.AlmaLinux8).
 				WithUpstream("httpd", "2.4.37-30.module_el8.3.0+1234+abcd").
 				WithMetadata(pkg.RpmMetadata{
@@ -249,6 +256,7 @@ func TestAlmaLinuxMatching_LowerAlmaModuleBuildFiltersVulnerability(t *testing.T
 			matcher := Matcher{}
 			pkgID := pkg.ID("mariadb-at-alma-fix")
 			p := dbtest.NewPackage("mariadb", "3:10.3.28-1.module_el8.3.0+2177+7adc332a", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithID(pkgID).
 				WithDistro(dbtest.AlmaLinux8).
 				WithMetadata(pkg.RpmMetadata{
@@ -279,6 +287,7 @@ func TestAlmaLinuxMatching_BelowBothModuleBuildsStillVulnerable(t *testing.T) {
 			matcher := Matcher{}
 			// 10.3.27 < both fix versions (alma 10.3.28 and rhel 10.3.28)
 			p := dbtest.NewPackage("mariadb", "3:10.3.27-3.module_el8.3.0+1234+abcdef", syftPkg.RpmPkg).
+				WithArchitecture("aarch64").
 				WithDistro(dbtest.AlmaLinux8).
 				WithMetadata(pkg.RpmMetadata{
 					Epoch:           intPtr(3),
@@ -304,6 +313,7 @@ func TestAlmaLinuxMatching_DebuginfoSkipped(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("patch-debuginfo", "2.7.6-10.el8", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(dbtest.AlmaLinux8).
 				WithUpstream("patch", "2.7.6-10.el8").
 				Build()
@@ -320,6 +330,7 @@ func TestAlmaLinuxIgnoreFilters_NoIgnoresWhenVulnerable(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("patch", "2.7.6-1.el8", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(dbtest.AlmaLinux8).
 				Build()
 
@@ -339,6 +350,7 @@ func TestAlmaLinuxIgnoreFilters_DistroFixedIgnore(t *testing.T) {
 			matcher := Matcher{}
 			pkgID := pkg.ID("patch-fixed")
 			p := dbtest.NewPackage("patch", "2.7.6-12.el8", syftPkg.RpmPkg).
+				WithArchitecture("aarch64").
 				WithID(pkgID).
 				WithDistro(dbtest.AlmaLinux8).
 				Build()
@@ -376,6 +388,7 @@ func TestAlmaLinuxIgnoreFilters_AlmaUnaffectedAndAliasUnwind(t *testing.T) {
 			matcher := Matcher{}
 			pkgID := pkg.ID("httpd-multi-cve-fixed")
 			p := dbtest.NewPackage("httpd", "2.4.37-43.module_el8.5.0+2597+c4b14997.alma", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithID(pkgID).
 				WithDistro(dbtest.AlmaLinux8).
 				WithMetadata(pkg.RpmMetadata{

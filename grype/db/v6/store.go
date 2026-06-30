@@ -19,6 +19,7 @@ type store struct {
 	*affectedCPEStore
 	*unaffectedCPEStore
 	*vulnerabilityDecoratorStore
+	*architectureAliasStore
 	blobStore *blobStore
 	db        *gorm.DB
 	config    Config
@@ -44,6 +45,11 @@ func InitialData() []any {
 	p := KnownPackageSpecifierOverrides()
 	for i := range p {
 		data = append(data, &p[i])
+	}
+
+	a := KnownArchitectureAliases()
+	for i := range a {
+		data = append(data, &a[i])
 	}
 	return data
 }
@@ -96,6 +102,7 @@ func newStore(cfg Config, empty, writable bool) (*store, error) {
 		affectedCPEStore:            newAffectedCPEStore(db, bs),
 		vulnerabilityDecoratorStore: newVulnerabilityDecoratorStore(db, bs, dbVersion),
 		unaffectedCPEStore:          newUnaffectedCPEStore(db, bs),
+		architectureAliasStore:      newArchitectureAliasStore(db),
 		blobStore:                   bs,
 		db:                          db,
 		config:                      cfg,

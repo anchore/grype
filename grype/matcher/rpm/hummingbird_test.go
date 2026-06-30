@@ -17,9 +17,10 @@ import (
 //  1. The csafvex transformer drops a src product when a same-named binary is also in the
 //     advisory's known_affected ∪ fixed for the same platform.
 //  2. Every emitted RPM-typed entry is tagged with an architecture ("src" /
-//     "binary-no-arch-specified" / a literal arch). The RPM matcher's upstream-search path
-//     adds internal.SourceOrUnspecifiedArch() so any non-src tagged entry is excluded —
-//     direct matches still hit because that path doesn't apply the criterion.
+//     "binary-no-arch-specified" / a literal arch). The RPM matcher tags its synthesized
+//     upstream (source) package "src", so the architecture qualifier matches it only against
+//     src records and rejects binary-arch records — direct matches still hit because the
+//     scanned binary's own arch matches the binary/concrete records.
 //
 // These tests exercise the end-to-end build → match flow against a real fixture
 // (cve-2026-5928) extracted from the local hummingbird vunnel cache.
@@ -33,6 +34,7 @@ func TestHummingbirdMatching_BinaryDirectHit(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("glibc", "2.42-11.1.hum1", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(dbtest.Hummingbird1).
 				Build()
 
@@ -48,15 +50,16 @@ func TestHummingbirdMatching_BinaryDirectHit(t *testing.T) {
 // reported FP: glibc-minimal-langpack is built from glibc.src but is NOT named in the
 // advisory. Without our changes, grype's upstream search (name=glibc, derived from the
 // package's `upstream` field) would hit the binary `glibc` row in the DB and emit an
-// indirect match. With architecture tagging + SourceOrUnspecifiedArch, the upstream search
-// excludes the binary row, and there's no glibc-minimal-langpack entry to direct-match,
-// so no match is produced.
+// indirect match. Because the matcher tags the synthesized upstream package "src", the
+// architecture qualifier excludes the binary `glibc` row from the upstream search, and
+// there's no glibc-minimal-langpack entry to direct-match, so no match is produced.
 func TestHummingbirdMatching_SiblingBinaryUpstreamFiltered(t *testing.T) {
 	dbtest.DBs(t, "hummingbird").
 		SelectOnly("cve-2026-5928").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("glibc-minimal-langpack", "2.42-11.1.hum1", syftPkg.RpmPkg).
+				WithArchitecture("aarch64").
 				WithDistro(dbtest.Hummingbird1).
 				WithUpstream("glibc", "2.42-11.1.hum1").
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
@@ -77,6 +80,7 @@ func TestHummingbirdMatching_GlibcCommonDirectOnly(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("glibc-common", "2.42-11.1.hum1", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(dbtest.Hummingbird1).
 				WithUpstream("glibc", "2.42-11.1.hum1").
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
@@ -107,6 +111,7 @@ func TestHummingbirdMatching_PerlBDirectFix(t *testing.T) {
 			// binary's own fix (5.42.2-524.1.hum1) — without the filter the upstream
 			// search would indirect-match via the perl entry.
 			p := dbtest.NewPackage("perl-B", "1.85-524.1.hum1", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(dbtest.Hummingbird1).
 				WithUpstream("perl", "5.42.0-524.1.hum1").
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).

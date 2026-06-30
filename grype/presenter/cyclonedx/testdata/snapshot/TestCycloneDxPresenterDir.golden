@@ -24,7 +24,7 @@
   },
   "components": [
     {
-      "bom-ref": "bbb0ba712c2b94ea",
+      "bom-ref": "a246fd2054833c93",
       "type": "library",
       "name": "package-1",
       "version": "1.1.1",
@@ -116,7 +116,7 @@
       ],
       "affects": [
         {
-          "ref": "bbb0ba712c2b94ea"
+          "ref": "a246fd2054833c93"
         }
       ]
     },
