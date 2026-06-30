@@ -2,6 +2,7 @@ package os // nolint:revive
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -18,9 +19,15 @@ import (
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
 	"github.com/anchore/grype/grype/db/v6/name"
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/pkg"
 )
+
+// bareGARelease matches an RPM release suffix that is a bare GA .elN dist tag
+// (e.g. ".el9") but NOT a z-stream/modular one (".el9_2", ".el9_2.3"). The negative
+// lookahead is emulated below since Go's regexp lacks lookahead.
+var bareGARelease = regexp.MustCompile(`\.el\d+($|[^_\d])`)
 
 // advisoryKey is an internal struct used for sorting and deduplicating advisories
 // that have both a link and ID from the vunnel results data
@@ -112,6 +119,17 @@ func getPackages(vuln unmarshal.OSVulnerability) ([]db.AffectedPackageHandle, []
 			}
 		}
 
+		// SERVER-SIDE stream-affinity expansion: when the group's fixedIns carry
+		// per-stream Advisories with at least one known minor, emit one
+		// operating_system row per minor (each with the fix that governs that minor)
+		// plus a major-only fallback row. This lets a stock grype client get
+		// minor-affine matching purely by resolving its host minor to the right row,
+		// without any matcher changes. Single-stream records fall through unchanged.
+		if expanded := expandPerMinorHandles(vuln, group, fixedIns, qualifiers); expanded != nil {
+			afs = append(afs, expanded...)
+			continue
+		}
+
 		aph := db.AffectedPackageHandle{
 			OperatingSystem: getOperatingSystem(group.osName, group.id, group.osVersion, group.osChannel),
 			Package:         getPackage(group),
@@ -122,17 +140,7 @@ func getPackages(vuln unmarshal.OSVulnerability) ([]db.AffectedPackageHandle, []
 			},
 		}
 
-		var ranges []db.Range
-		for _, fixedInEntry := range fixedIns {
-			ranges = append(ranges, db.Range{
-				Version: db.Version{
-					Type:       fixedInEntry.VersionFormat,
-					Constraint: enforceConstraint(fixedInEntry.Version, fixedInEntry.VulnerableRange, fixedInEntry.VersionFormat, vuln.Vulnerability.Name),
-				},
-				Fix: getFix(fixedInEntry),
-			})
-		}
-		aph.BlobValue.Ranges = ranges
+		aph.BlobValue.Ranges = buildRanges(vuln, fixedIns)
 		afs = append(afs, aph)
 	}
 
@@ -141,6 +149,211 @@ func getPackages(vuln unmarshal.OSVulnerability) ([]db.AffectedPackageHandle, []
 	sort.Sort(internal.ByUnaffectedPackage(unafs))
 
 	return afs, unafs
+}
+
+// buildRanges turns a group's fixedIns into the per-fix version ranges used on a
+// package handle's blob (the original, unexpanded behavior).
+func buildRanges(vuln unmarshal.OSVulnerability, fixedIns []unmarshal.OSFixedIn) []db.Range {
+	var ranges []db.Range
+	for _, fixedInEntry := range fixedIns {
+		ranges = append(ranges, db.Range{
+			Version: db.Version{
+				Type:       fixedInEntry.VersionFormat,
+				Constraint: enforceConstraint(fixedInEntry.Version, fixedInEntry.VulnerableRange, fixedInEntry.VersionFormat, vuln.Vulnerability.Name),
+			},
+			Fix: getFix(fixedInEntry),
+		})
+	}
+	return ranges
+}
+
+// minorFix pairs a known fix minor with the fix build (Version) that governs it.
+type minorFix struct {
+	minor   int
+	version string
+}
+
+// expandPerMinorHandles implements the server-side stream-affinity prototype. It
+// returns a slice of per-minor affected-package handles (plus one major-only fallback
+// handle) when the group's fixedIns carry per-stream Advisories with at least one
+// KNOWN (non-null) minor. It returns nil when the group is single-stream (no
+// Advisories, or every advisory minor is null), signaling the caller to keep today's
+// single-handle behavior.
+//
+// One known minor is enough to expand: the glibc/CVE-2023-4813 shape carries a single
+// known minor (9.2) alongside a GA null-minor build (-100.el9) whose EVR outranks it.
+// Without expansion that GA build becomes the lone major-only constraint and a 9.2 host
+// past its own stream fix is falsely flagged against it. Expansion pins the major-only
+// fallback to the highest KNOWN-minor fix instead, fixing the cross-minor false positive.
+//
+// Worked example (fixes at 9.2="Alpha", 9.3="Bravo"):
+//
+//	minors 9.0, 9.1, 9.2 -> "< Alpha"   (governed by the largest known fix <= m;
+//	                                      for m below the lowest known minor, the
+//	                                      lowest known fix is used)
+//	minor  9.3            -> "< Bravo"
+//	major-only (9, "")    -> "< Bravo"   (highest KNOWN-minor fix; rolls hosts on
+//	                                      minors > maxKnownMinor forward)
+//
+// A GA null-minor (.elN) advisory cannot be placed on a minor directly. Rather than
+// drop it (a false negative for hosts on a minor above the highest pinned one running a
+// build below the GA fix), infer its minor by EVR-ordering it against the pinnable
+// builds: if its full EVR exceeds the max pinnable EVR it is a genuinely-later fix for
+// minor (maxKnownMinor+1) and is placed there (also becoming the major-only fallback);
+// otherwise it is superseded by a pinnable fix and dropped (safe, no FN).
+func expandPerMinorHandles(vuln unmarshal.OSVulnerability, group groupIndex, fixedIns []unmarshal.OSFixedIn, qualifiers *db.PackageQualifiers) []db.AffectedPackageHandle {
+	// only RPM-style multi-stream RHEL-family data carries per-stream Advisories;
+	// the per-minor OS rows only make sense when matching is minor-aware.
+	if group.format != "rpm" {
+		return nil
+	}
+
+	// at least one known minor is required; pure single-stream records (no Advisories,
+	// or only GA null-minor advisories) are left to the unchanged single-handle path.
+	fixes, versionFormat := collectKnownMinorFixes(fixedIns)
+	if len(fixes) < 1 {
+		return nil
+	}
+
+	// infer minors for GA null-minor builds by EVR ordering against the pinnable fixes.
+	fixes = inferGAMinors(fixes, collectNullMinorGABuilds(fixedIns))
+
+	lowestFix := fixes[0].version
+	maxKnownMinor := fixes[len(fixes)-1].minor
+	highestKnownMinorFix := fixes[len(fixes)-1].version
+
+	// governing(m): the fix at the LARGEST known fix-minor <= m; below the lowest
+	// known minor, use the lowest known fix.
+	governing := func(m int) string {
+		v := lowestFix
+		for _, f := range fixes {
+			if f.minor <= m {
+				v = f.version
+			} else {
+				break
+			}
+		}
+		return v
+	}
+
+	mkHandle := func(os *db.OperatingSystem, fixVersion string) db.AffectedPackageHandle {
+		return db.AffectedPackageHandle{
+			OperatingSystem: os,
+			Package:         getPackage(group),
+			BlobValue: &db.PackageBlob{
+				CVEs:       getAliases(vuln),
+				Qualifiers: qualifiers,
+				Ranges: []db.Range{
+					{
+						Version: db.Version{
+							Type:       versionFormat,
+							Constraint: deriveConstraintFromFix(versionutil.CleanConstraint(fixVersion), vuln.Vulnerability.Name),
+						},
+						// the governing fix for this minor; the per-stream advisory
+						// reference detail is intentionally omitted in this prototype.
+						Fix: &db.Fix{
+							Version: versionutil.CleanFixedInVersion(fixVersion),
+							State:   db.FixedStatus,
+						},
+					},
+				},
+			},
+		}
+	}
+
+	var out []db.AffectedPackageHandle
+	for m := 0; m <= maxKnownMinor; m++ {
+		os := getOperatingSystemWithMinor(group.osName, group.id, group.osVersion, strconv.Itoa(m), group.osChannel)
+		if os == nil {
+			return nil
+		}
+		out = append(out, mkHandle(os, governing(m)))
+	}
+
+	// major-only fallback for hosts on minors > maxKnownMinor (rolled forward to the
+	// highest KNOWN-minor fix - never a GA null-minor build).
+	majorOnly := getOperatingSystemWithMinor(group.osName, group.id, group.osVersion, "", group.osChannel)
+	if majorOnly == nil {
+		return nil
+	}
+	out = append(out, mkHandle(majorOnly, highestKnownMinorFix))
+
+	return out
+}
+
+// collectKnownMinorFixes gathers the known (non-null) minor -> fix version across all
+// fixedIns in the group, returning them sorted ascending by minor (plus the version
+// format). Last write wins per minor; in practice vunnel emits one advisory per minor.
+func collectKnownMinorFixes(fixedIns []unmarshal.OSFixedIn) ([]minorFix, string) {
+	knownByMinor := make(map[int]string)
+	var versionFormat string
+	for _, f := range fixedIns {
+		for _, adv := range f.Advisories {
+			if adv.Minor == nil {
+				continue
+			}
+			knownByMinor[*adv.Minor] = adv.Version
+			versionFormat = f.VersionFormat
+		}
+	}
+
+	fixes := make([]minorFix, 0, len(knownByMinor))
+	for m, v := range knownByMinor {
+		fixes = append(fixes, minorFix{minor: m, version: v})
+	}
+	sort.Slice(fixes, func(i, j int) bool { return fixes[i].minor < fixes[j].minor })
+
+	return fixes, versionFormat
+}
+
+// collectNullMinorGABuilds returns the fix Versions of advisories whose Minor is null
+// AND whose Version is a bare GA .elN build (not a z-stream .elN_M).
+func collectNullMinorGABuilds(fixedIns []unmarshal.OSFixedIn) []string {
+	var out []string
+	for _, f := range fixedIns {
+		for _, adv := range f.Advisories {
+			if adv.Minor == nil && isBareGABuild(adv.Version) {
+				out = append(out, adv.Version)
+			}
+		}
+	}
+	return out
+}
+
+// isBareGABuild reports whether an RPM EVR carries a bare GA .elN dist tag (e.g.
+// 0:2.34-100.el9) rather than a z-stream/modular one (0:2.34-60.el9_2.7).
+func isBareGABuild(evr string) bool {
+	return bareGARelease.MatchString(evr)
+}
+
+// inferGAMinors folds each GA null-minor build into the sorted per-minor fixes by EVR
+// ordering: a GA build whose full EVR exceeds the current max pinnable EVR is inferred
+// to fix minor (maxMinor+1) and appended (governing that minor and up, and becoming the
+// new highest fix); a GA build at or below some pinnable EVR is superseded and dropped.
+// Comparison is version-first RPM EVR (epoch->version->release), NOT a release-int
+// compare, so an upstream rebase whose release counter reset (e.g. 2.40.5-1.el9 vs a
+// pinned 2.38.5-1.el9_2.3) still orders correctly by version.
+func inferGAMinors(fixes []minorFix, gaBuilds []string) []minorFix {
+	// ascending EVR so successively-higher GA builds land on successive minors.
+	sort.Slice(gaBuilds, func(i, j int) bool { return compareRPMEVR(gaBuilds[i], gaBuilds[j]) < 0 })
+	for _, ga := range gaBuilds {
+		maxFix := fixes[len(fixes)-1]
+		if compareRPMEVR(ga, maxFix.version) > 0 {
+			fixes = append(fixes, minorFix{minor: maxFix.minor + 1, version: ga})
+		}
+	}
+	return fixes
+}
+
+// compareRPMEVR compares two RPM EVR strings, returning -1/0/1. On a parse/compare
+// error it returns 0 (treated as "not greater" by callers -> conservative drop).
+func compareRPMEVR(a, b string) int {
+	cmp, err := version.New(a, version.RpmFormat).Compare(version.New(b, version.RpmFormat))
+	if err != nil {
+		log.WithFields("a", a, "b", b, "error", err).Trace("unable to compare RPM EVRs for GA-minor inference")
+		return 0
+	}
+	return cmp
 }
 
 func getFix(fixedInEntry unmarshal.OSFixedIn) *db.Fix {
@@ -380,6 +593,21 @@ func getOperatingSystem(osName, osID, osVersion, channel string) *db.OperatingSy
 		Channel:      channel,
 		Codename:     codename.LookupOS(osName, majorVersion, minorVersion),
 	}
+}
+
+// getOperatingSystemWithMinor builds an OS row reusing getOperatingSystem but forces
+// the minor version to the supplied value (empty string means a major-only row). This
+// lets the stream-affinity expansion materialize one OS row per minor from a group
+// whose osVersion only carries the major (e.g. RHEL "9"). Codename is recomputed for
+// the overridden minor.
+func getOperatingSystemWithMinor(osName, osID, osVersion, minor, channel string) *db.OperatingSystem {
+	os := getOperatingSystem(osName, osID, osVersion, channel)
+	if os == nil {
+		return nil
+	}
+	os.MinorVersion = minor
+	os.Codename = codename.LookupOS(osName, os.MajorVersion, minor)
+	return os
 }
 
 func getReferences(vuln unmarshal.OSVulnerability) []db.Reference {
