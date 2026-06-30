@@ -1,12 +1,21 @@
 auto-generate: true
 extractions:
-  debian:
-    - "debian:10/CVE-2024-0727"
-    - "debian:11/CVE-2024-0727"
-    - "debian:11/CVE-2022-0778"
-    - "debian:11/CVE-2023-0286"
-    - "debian:12/CVE-2024-0727"
-  nvd:
-    - "CVE-2024-0727"
-    - "CVE-2022-0778"
-    - "CVE-2023-0286"
+    debian:
+        - debian:10/CVE-2024-0727
+        - debian:11/CVE-2024-0727
+        - debian:11/CVE-2022-0778
+        - debian:11/CVE-2023-0286
+        - debian:12/CVE-2024-0727
+    nvd:
+        - CVE-2024-0727
+        - CVE-2022-0778
+        - CVE-2023-0286
+    ubuntu:
+        - cve-2023-38545
+        - ubuntu-cve-2002-2439
+        - ubuntu-cve-2001-1593
+        - ubuntu-cve-2008-7320
+        - ubuntu:12.04/cve-2013-2118
+        - cve-2014-0160
+        - ubuntu-cve-2006-20001
+        - ubuntu-cve-2006-20001

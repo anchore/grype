@@ -48,8 +48,12 @@ func matchesSelection(identifier string, patterns []string) bool {
 //     Example: "debian:10/CVE-2024-1234" matches "debian:10/cve-2024-1234"
 //   - Namespace only (contains ":" but no "/"): prefix match (case-insensitive)
 //     Example: "debian:10" matches "debian:10/CVE-2024-1234", "debian:10/cve-2024-5678", etc.
-//   - CVE ID only (no ":" or "/"): suffix match (case-insensitive)
-//     Example: "CVE-2024-1234" matches "debian:10/cve-2024-1234", "ubuntu:20.04/CVE-2024-1234", etc.
+//   - Bare ID (no ":" or "/"): exact-or-suffix match (case-insensitive). Matches
+//     either an identifier equal to the pattern (e.g. an OSV record whose
+//     identifier is "ubuntu-cve-2023-38545") or any "<namespace>/<pattern>"
+//     identifier (e.g. legacy "ubuntu:23.04/cve-2023-38545").
+//     Example: "CVE-2024-1234" matches "debian:10/cve-2024-1234"; "ubuntu-cve-2023-38545"
+//     matches the bare-id OSV record of the same name.
 func matchesPattern(identifier, pattern string) bool {
 	identifier = strings.ToLower(identifier)
 	pattern = strings.ToLower(pattern)
@@ -64,8 +68,9 @@ func matchesPattern(identifier, pattern string) bool {
 		return strings.HasPrefix(identifier, pattern+"/")
 	}
 
-	// CVE ID: matches */CVE-ID
-	return strings.HasSuffix(identifier, "/"+pattern)
+	// bare ID: exact match (OSV-style identifiers carry no namespace) OR
+	// "<namespace>/<pattern>" suffix (legacy namespaced identifiers).
+	return identifier == pattern || strings.HasSuffix(identifier, "/"+pattern)
 }
 
 // filterResultFiles returns paths to result files whose identifiers match the selection patterns.
