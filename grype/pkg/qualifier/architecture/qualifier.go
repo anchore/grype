@@ -39,7 +39,10 @@ func (r architectureQualifier) Arch() string {
 // (i.e., it does not filter out packages without architecture information).
 func (r architectureQualifier) Satisfied(p pkg.Package) (bool, error) {
 	if meta, ok := p.Metadata.(pkg.ApkMetadata); ok {
-		return meta.Arch == r.arch, nil
+		// only apply if meta.Arch is non-empty
+		if meta.Arch != "" {
+			return meta.Arch == r.arch, nil
+		}
 	}
 	// architecture qualifier should only apply to apks
 	return true, nil

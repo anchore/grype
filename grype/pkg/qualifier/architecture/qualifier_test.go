@@ -99,6 +99,21 @@ func TestArchitecture_Satisfied(t *testing.T) {
 			pkgMetadata:   pkg.ApkMetadata{Arch: ""},
 			want:          true,
 		},
+		{
+			// APK with no arch recorded passes through even a specific qualifier — we
+			// cannot filter on an arch we don't have, so the qualifier is inert.
+			name:          "APK without arch passes through specific qualifier",
+			qualifierArch: "x86_64",
+			pkgMetadata:   pkg.ApkMetadata{Arch: ""},
+			want:          true,
+		},
+		{
+			// Same inert behaviour for the binary-no-arch sentinel.
+			name:          "APK without arch passes through binary-no-arch sentinel qualifier",
+			qualifierArch: ArchBinaryNoArchSpecified,
+			pkgMetadata:   pkg.ApkMetadata{Arch: ""},
+			want:          true,
+		},
 	}
 
 	for _, tt := range tests {
