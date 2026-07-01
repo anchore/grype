@@ -20,6 +20,7 @@ import (
 	"github.com/anchore/syft/syft/pkg"
 )
 
+// govulndbStrategy handles GO-* records from the Go vulnerability database
 // (vuln.go.dev): affected version ranges for Go modules, plus the "stdlib" and
 // "toolchain" pseudo-modules. Govulndb specifics:
 //   - aliases hold CVEs/GHSAs directly; the schema has no `related` field.
