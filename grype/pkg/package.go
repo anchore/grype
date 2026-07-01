@@ -408,6 +408,7 @@ func golangMetadataFromPkg(p syftPkg.Package) any {
 		metadata.Architecture = value.Architecture
 		metadata.H1Digest = value.H1Digest
 		metadata.MainModule = value.MainModule
+		metadata.Symbols = value.Symbols
 		return metadata
 	case syftPkg.GolangModuleEntry:
 		metadata := GolangModMetadata{}

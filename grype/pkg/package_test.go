@@ -977,6 +977,16 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "apple-app-bundle",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.AppleAppBundleEntry{
+					BundleIdentifier: "com.apple.Safari",
+					Name:             "Safari",
+					ShortVersion:     "17.0",
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing

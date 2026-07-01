@@ -159,6 +159,21 @@ type PackageQualifiers struct {
 	// RootIO indicates that the vulnerability applies only to Root IO packages (packages with Root IO fixes).
 	// When true, standard packages will not match this vulnerability (NAK pattern).
 	RootIO *bool `json:"rootio,omitempty"`
+
+	// GoImports lists the packages and symbols within an affected Go module that contain the vulnerability
+	// (from govulndb's ecosystem_specific.imports). When set, packages carrying binary symbol evidence only
+	// match if at least one of the listed symbols is present in the binary.
+	GoImports []GoImport `json:"go_imports,omitempty"`
+}
+
+// GoImport describes a single package within an affected Go module and the vulnerable symbols it contains.
+type GoImport struct {
+	// Path is the import path of the package within the affected module (e.g. "golang.org/x/net/html").
+	Path string `json:"path"`
+
+	// Symbols lists the vulnerable function/method names within the package (e.g. "Parse" or "Decoder.Decode").
+	// An empty list means the entire package is considered vulnerable.
+	Symbols []string `json:"symbols,omitempty"`
 }
 
 // Range defines a specific range of package versions pertaining to a vulnerability.

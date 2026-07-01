@@ -9,6 +9,7 @@ type GolangBinMetadata struct {
 	H1Digest          string        `json:"h1Digest,omitempty" cyclonedx:"h1Digest"`
 	MainModule        string        `json:"mainModule,omitempty" cyclonedx:"mainModule"`
 	GoCryptoSettings  []string      `json:"goCryptoSettings,omitempty" cyclonedx:"goCryptoSettings"`
+	Symbols           []string      `json:"symbols,omitempty"`
 }
 
 type GolangModMetadata struct {
