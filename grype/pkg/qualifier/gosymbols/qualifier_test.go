@@ -28,6 +28,48 @@ func TestGoSymbolsQualifier_Satisfied(t *testing.T) {
 		Metadata: pkg.GolangBinMetadata{},
 	}
 
+	// stdlibHTTPServerVuln mirrors the ecosystem_specific.imports for the "stdlib" module in
+	// GO-2022-0969 (net/http HTTP/2 server DoS) as carried into the DB by the govulndb transformer.
+	// The listed symbols are all server-side entrypoints.
+	stdlibHTTPServerVuln := []Import{{
+		Path: "net/http",
+		Symbols: []string{
+			"ListenAndServe", "ListenAndServeTLS", "Serve", "ServeTLS",
+			"Server.ListenAndServe", "Server.ListenAndServeTLS", "Server.Serve", "Server.ServeTLS",
+			"http2Server.ServeConn", "http2serverConn.goAway",
+		},
+	}}
+
+	// stdlibServerPkg is a go binary that runs an HTTP server: its captured stdlib symbols include the
+	// vulnerable net/http server entrypoints. Symbol strings use syft's binary naming (import-path
+	// qualified, pointer-receiver decorated); the bundled HTTP/2 code appears under the http2* prefix.
+	stdlibServerPkg := pkg.Package{
+		Name: "stdlib",
+		Metadata: pkg.GolangBinMetadata{
+			Symbols: []string{
+				"net/http.ListenAndServe",
+				"net/http.(*Server).Serve",
+				"net/http.(*http2Server).ServeConn",
+				"net/http.(*Client).Do",
+			},
+		},
+	}
+
+	// stdlibClientPkg is a go binary that only makes HTTP *client* calls: it links net/http but none of
+	// the vulnerable server symbols, so it must not match the server-side DoS (the false-positive grype
+	// surfaced before symbol matching, when every net/http-linking binary matched the stdlib advisory).
+	stdlibClientPkg := pkg.Package{
+		Name: "stdlib",
+		Metadata: pkg.GolangBinMetadata{
+			Symbols: []string{
+				"net/http.Get",
+				"net/http.NewRequest",
+				"net/http.(*Client).Do",
+				"net/http.(*Transport).RoundTrip",
+			},
+		},
+	}
+
 	tests := []struct {
 		name      string
 		imports   []Import
@@ -103,6 +145,24 @@ func TestGoSymbolsQualifier_Satisfied(t *testing.T) {
 			pkg:       binaryPkg,
 			satisfied: true,
 		},
+		{
+			name:      "stdlib http server binary matches the net/http server vuln",
+			imports:   stdlibHTTPServerVuln,
+			pkg:       stdlibServerPkg,
+			satisfied: true,
+		},
+		{
+			name:      "stdlib bundled http2 server method matches (http2* prefix, pointer-receiver normalization)",
+			imports:   []Import{{Path: "net/http", Symbols: []string{"http2Server.ServeConn"}}},
+			pkg:       stdlibServerPkg,
+			satisfied: true,
+		},
+		{
+			name:      "stdlib http client-only binary does not match the net/http server vuln (no false positive)",
+			imports:   stdlibHTTPServerVuln,
+			pkg:       stdlibClientPkg,
+			satisfied: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -111,6 +171,55 @@ func TestGoSymbolsQualifier_Satisfied(t *testing.T) {
 			satisfied, err := q.Satisfied(tt.pkg)
 			require.NoError(t, err)
 			assert.Equal(t, tt.satisfied, satisfied)
+		})
+	}
+}
+
+func Test_normalizeSymbol(t *testing.T) {
+	tests := []struct {
+		name   string
+		symbol string
+		want   string
+	}{
+		{
+			name:   "plain function is unchanged",
+			symbol: "golang.org/x/net/html.Parse",
+			want:   "golang.org/x/net/html.Parse",
+		},
+		{
+			name:   "value-receiver method is unchanged",
+			symbol: "net/http.Header.Get",
+			want:   "net/http.Header.Get",
+		},
+		{
+			name:   "pointer-receiver decoration is removed",
+			symbol: "net/http.(*Server).Serve",
+			want:   "net/http.Server.Serve",
+		},
+		{
+			name:   "generic instantiation loses its type parameters",
+			symbol: "golang.org/x/net/http2.(*Framer[go.shape.int]).ReadFrame",
+			want:   "golang.org/x/net/http2.Framer.ReadFrame",
+		},
+		{
+			name:   "method-value wrapper suffix is removed",
+			symbol: "golang.org/x/net/html.(*Tokenizer).readComment-fm",
+			want:   "golang.org/x/net/html.Tokenizer.readComment",
+		},
+		{
+			// known limitation: the type-parameter regex assumes a single, non-nested bracket
+			// group, so a nested instantiation is not normalized to "pkg.T.M". This pins the
+			// current (imperfect) behavior; the consequence is a missed match for that symbol,
+			// not a false positive. See normalizeSymbol's doc comment.
+			name:   "nested type parameter is not normalized cleanly (known limitation)",
+			symbol: "example.com/pkg.(*Cache[go.shape.[]int]).Get",
+			want:   "example.com/pkg.Cacheint].Get",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, normalizeSymbol(tt.symbol))
 		})
 	}
 }
