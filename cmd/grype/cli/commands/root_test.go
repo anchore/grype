@@ -30,6 +30,7 @@ import (
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/cataloging"
 	"github.com/anchore/syft/syft/pkg/cataloger/binary"
+	syftGolang "github.com/anchore/syft/syft/pkg/cataloger/golang"
 )
 
 func Test_getProviderConfig(t *testing.T) {
@@ -49,6 +50,9 @@ func Test_getProviderConfig(t *testing.T) {
 					SBOMOptions: func() *syft.CreateSBOMConfig {
 						cfg := syft.DefaultCreateSBOMConfig()
 						cfg.Compliance.MissingVersion = cataloging.ComplianceActionDrop
+						// grype captures Go binary symbols by default so the gosymbols qualifier can
+						// filter module- and stdlib-scoped advisories (see getProviderConfig)
+						cfg.Packages.Golang = cfg.Packages.Golang.WithCaptureSymbols(syftGolang.SymbolScopeAll)
 						return cfg
 					}(),
 					RegistryOptions: &image.RegistryOptions{
