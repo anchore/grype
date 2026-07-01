@@ -1,7 +1,6 @@
 package osv
 
 import (
-	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -126,7 +125,7 @@ func govulndbAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPack
 			continue
 		}
 		var qualifiers *db.PackageQualifiers
-		if imports := govulndbImports(affected); len(imports) > 0 {
+		if imports := govulndbImports(affected, vuln.ID); len(imports) > 0 {
 			qualifiers = &db.PackageQualifiers{GoImports: imports}
 		}
 		aphs = append(aphs, db.AffectedPackageHandle{
@@ -320,20 +319,25 @@ func govulndbCustomRanges(affected osvmodel.Affected, id string) []osvmodel.Rang
 
 // govulndbImports extracts the affected package import paths and vulnerable symbols from the
 // OSV `ecosystem_specific.imports` field (see https://go.dev/security/vuln/database#schema).
-func govulndbImports(affected osvmodel.Affected) []db.GoImport {
+// Returns nil if absent or undecodable (logged), so malformed imports degrade to module-
+// granularity matching instead of erroring.
+func govulndbImports(affected osvmodel.Affected, id string) []db.GoImport {
 	raw, ok := affected.EcosystemSpecific["imports"]
 	if !ok {
 		return nil
 	}
 
-	// the ecosystem_specific field is unmarshalled as a generic map, so round-trip through JSON
-	// to get the typed shape
-	encoded, err := json.Marshal(raw)
+	var imports []db.GoImport
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Result:  &imports,
+		TagName: "json",
+	})
 	if err != nil {
 		return nil
 	}
-	var imports []db.GoImport
-	if err := json.Unmarshal(encoded, &imports); err != nil {
+	if err := decoder.Decode(raw); err != nil {
+		log.WithFields("id", id, "package", affected.Package.Name, "error", err).
+			Warn("unable to decode govulndb imports; matching at module granularity")
 		return nil
 	}
 	return imports

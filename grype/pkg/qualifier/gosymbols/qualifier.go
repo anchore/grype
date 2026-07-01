@@ -76,6 +76,13 @@ var typeParamPattern = regexp.MustCompile(`\[[^]]*]`)
 //   - the compiler's "-fm" method-value-wrapper suffix is removed: "pkg.(*T).M-fm" -> "pkg.T.M".
 //     A method-value wrapper is emitted when a method is referenced as a value (e.g. passed as a
 //     callback), so its presence means the underlying method is used.
+//
+// This is a best-effort textual heuristic, not a full demangler. The type-parameter stripping
+// assumes a single, non-nested bracket group; a nested instantiation like
+// "pkg.(*T[go.shape.[]int]).M" is not normalized cleanly. Such a symbol simply fails to match its
+// govulndb counterpart, so the failure mode is a missed match (false negative) for that one symbol
+// rather than a false positive — acceptable because generic vulnerable symbols with slice/nested
+// type arguments are vanishingly rare in govulndb advisories.
 func normalizeSymbol(symbol string) string {
 	symbol = strings.ReplaceAll(symbol, "(*", "")
 	symbol = strings.ReplaceAll(symbol, ")", "")
