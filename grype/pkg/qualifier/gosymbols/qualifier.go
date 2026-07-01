@@ -31,7 +31,7 @@ func New(imports []Import) qualifier.Qualifier {
 // only applies when the scanned package carries binary symbol evidence (go binaries cataloged with
 // symbol capture enabled); packages without symbol evidence always satisfy the qualifier so that
 // module-granularity matching behavior is preserved.
-func (q gosymbolsQualifier) Satisfied(p pkg.Package) (bool, error) {
+func (q *gosymbolsQualifier) Satisfied(p pkg.Package) (bool, error) {
 	if len(q.imports) == 0 {
 		return true, nil
 	}
