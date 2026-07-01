@@ -64,9 +64,26 @@ func NewPackage(name, version string, t syftPkg.Type) *PackageBuilder {
 	}
 }
 
+// newPackageBuilderFromPackage seeds a builder from an already-constructed
+// package (e.g. one cataloged from a real binary fixture), preserving its ID,
+// metadata, and symbols. Call sites typically override just the version.
+func newPackageBuilderFromPackage(p pkg.Package) *PackageBuilder {
+	return &PackageBuilder{pkg: p}
+}
+
 // WithType sets the package type (e.g., syftPkg.ApkPkg, syftPkg.RpmPkg).
 func (b *PackageBuilder) WithType(t syftPkg.Type) *PackageBuilder {
 	b.pkg.Type = t
+	return b
+}
+
+// WithVersion overrides the package version. This is useful with packages
+// seeded from real artifacts (e.g. GoBinaryFixture), where the version compiled
+// into the binary — such as the toolchain's stdlib version — must be set to a
+// value inside a specific advisory's vulnerable range while the real metadata
+// and symbols are preserved.
+func (b *PackageBuilder) WithVersion(version string) *PackageBuilder {
+	b.pkg.Version = version
 	return b
 }
 
