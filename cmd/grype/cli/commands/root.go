@@ -221,12 +221,14 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 		return fmt.Errorf("failed to create VEX processor: %w", err)
 	}
 
+	matchers := getMatchers(opts, pkgContext)
+
 	vulnMatcher := grype.VulnerabilityMatcher{
 		VulnerabilityProvider: vp,
 		IgnoreRules:           opts.Ignore,
 		NormalizeByCVE:        opts.ByCVE,
 		FailSeverity:          opts.FailOnSeverity(),
-		Matchers:              getMatchers(opts),
+		Matchers:              matchers,
 		VexProcessor:          vexProcessor,
 		Alerts: grype.AlertsConfig{
 			EnableEOLDistroWarnings: opts.Alerts.EnableEOLDistroWarnings,
@@ -392,8 +394,8 @@ func getMatcherConfig(opts *options.Grype) matcher.Config {
 	}
 }
 
-func getMatchers(opts *options.Grype) []match.Matcher {
-	return matcher.NewDefaultMatchers(getMatcherConfig(opts))
+func getMatchers(opts *options.Grype, pkgContext pkg.Context) []match.Matcher {
+	return matcher.ApplySelectionPolicy(matcher.NewDefaultMatchers(getMatcherConfig(opts)), pkgContext)
 }
 
 func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {

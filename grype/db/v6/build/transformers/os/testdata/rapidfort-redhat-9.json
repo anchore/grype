@@ -1,0 +1,44 @@
+[
+  {
+    "Vulnerability": {
+      "CVSS": [],
+      "Description": "curl wildcard certificate validation issue",
+      "FixedIn": [
+        {
+          "Identifier": "el9",
+          "Name": "curl",
+          "NamespaceName": "rapidfort-redhat:9",
+          "Version": "None",
+          "VersionFormat": "rpm",
+          "VulnerableRange": ">= 0",
+          "VendorAdvisory": {
+            "AdvisorySummary": [
+              {
+                "ID": "RHSA-TEST-EL9",
+                "Link": "https://access.redhat.com/errata/RHSA-TEST-EL9"
+              }
+            ],
+            "NoAdvisory": false
+          }
+        },
+        {
+          "Identifier": "fc36",
+          "Name": "curl",
+          "NamespaceName": "rapidfort-redhat:9",
+          "Version": "7.78.0-4.fc36",
+          "VersionFormat": "rpm",
+          "VulnerableRange": ">= 0, < 7.78.0-4.fc36",
+          "Available": {
+            "Date": "2024-01-01T00:00:00Z",
+            "Kind": "advisory"
+          }
+        }
+      ],
+      "Link": "https://www.cve.org/CVERecord?id=CVE-2014-0139",
+      "Metadata": {},
+      "Name": "CVE-2014-0139",
+      "NamespaceName": "rapidfort-redhat:9",
+      "Severity": "Low"
+    }
+  }
+]
