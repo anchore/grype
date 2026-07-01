@@ -28,8 +28,9 @@ import (
 //     ecosystem-name search.
 //   - range type is always SEMVER → "go" format, which parses pseudo-versions
 //     (v0.0.0-<timestamp>-<commit>).
-//   - ecosystem_specific.imports (per-symbol reachability) is dropped; grype
-//     matches at module granularity.
+//   - ecosystem_specific.imports (per-symbol reachability) is carried into the
+//     package blob as a go-imports qualifier, so packages cataloged with binary
+//     symbol evidence only match when at least one vulnerable symbol is present.
 //   - references pass through, OSV type as tag, refID empty (canonical advisory
 //     page is in database_specific.url, not refs).
 type govulndbStrategy struct{}
@@ -124,11 +125,16 @@ func govulndbAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPack
 		if !govulndbEmits(affected.Package.Name) {
 			continue
 		}
+		var qualifiers *db.PackageQualifiers
+		if imports := govulndbImports(affected, vuln.ID); len(imports) > 0 {
+			qualifiers = &db.PackageQualifiers{GoImports: imports}
+		}
 		aphs = append(aphs, db.AffectedPackageHandle{
 			Package: govulndbPackage(affected.Package),
 			BlobValue: &db.PackageBlob{
-				CVEs:   vuln.Aliases,
-				Ranges: govulndbRanges(affected.Ranges, govulndbCustomRanges(affected, vuln.ID)),
+				CVEs:       vuln.Aliases,
+				Qualifiers: qualifiers,
+				Ranges:     govulndbRanges(affected.Ranges, govulndbCustomRanges(affected, vuln.ID)),
 			},
 		})
 	}
@@ -310,6 +316,32 @@ func govulndbCustomRanges(affected osvmodel.Affected, id string) []osvmodel.Rang
 		return nil
 	}
 	return ranges
+}
+
+// govulndbImports extracts the affected package import paths and vulnerable symbols from the
+// OSV `ecosystem_specific.imports` field (see https://go.dev/security/vuln/database#schema).
+// Returns nil if absent or undecodable (logged), so malformed imports degrade to module-
+// granularity matching instead of erroring.
+func govulndbImports(affected osvmodel.Affected, id string) []db.GoImport {
+	raw, ok := affected.EcosystemSpecific["imports"]
+	if !ok {
+		return nil
+	}
+
+	var imports []db.GoImport
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Result:  &imports,
+		TagName: "json",
+	})
+	if err != nil {
+		return nil
+	}
+	if err := decoder.Decode(raw); err != nil {
+		log.WithFields("id", id, "package", affected.Package.Name, "error", err).
+			Warn("unable to decode govulndb imports; matching at module granularity")
+		return nil
+	}
+	return imports
 }
 
 func govulndbPackage(p osvmodel.Package) *db.Package {

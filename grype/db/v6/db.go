@@ -24,7 +24,7 @@ const (
 	Revision = 1
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 7
+	Addition = 8
 
 	// v6 model changelog:
 	// 6.0.0: Initial version 🎉
@@ -48,6 +48,11 @@ const (
 	//        architecture). The field's semantics are unchanged; the rename drops the rpm-
 	//        specific prefix because the value already lives in PackageQualifiers and can
 	//        carry any architecture string for future arch-scoped advisories.
+	// 6.1.8: Add GoImports field to PackageQualifiers (used by the govulndb OSV strategy to
+	//        carry per-symbol reachability from ecosystem_specific.imports; the gosymbols
+	//        runtime qualifier in pkg/qualifier/gosymbols matches captured Go binary symbols
+	//        so stdlib and golang.org/x/* advisories don't FP-match binaries that don't use
+	//        the vulnerable symbols)
 )
 
 const (
