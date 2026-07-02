@@ -130,17 +130,10 @@ func readSBOMsFromTar(r io.Reader, config ProviderConfig, applyChannel func(*dis
 			continue
 		}
 
-		log.WithFields("entry", hdr.Name).Debug("reading SBOM from Zarf package")
+		log.WithFields("entry", hdr.Name, "size", hdr.Size).Debug("reading SBOM from Zarf package")
 
-		buf, err := io.ReadAll(io.LimitReader(sbomTar, maxSBOMEntryBytes))
-		if err != nil {
-			log.WithFields("entry", hdr.Name, "error", err).Warn("skipping unreadable SBOM entry in Zarf package")
-			continue
-		}
-
-		s, fmtID, err := readSBOM(bytes.NewReader(buf))
-		if err != nil {
-			log.WithFields("entry", hdr.Name, "error", err).Warn("skipping unreadable SBOM entry in Zarf package")
+		s, fmtID, ok := readSBOMEntry(sbomTar, hdr)
+		if !ok {
 			continue
 		}
 		decodedCount++
@@ -172,6 +165,29 @@ func readSBOMsFromTar(r io.Reader, config ProviderConfig, applyChannel func(*dis
 	}
 
 	return allPackages, mergedSBOM, nil
+}
+
+// readSBOMEntry reads and decodes a single SBOM entry from sboms.tar, logging
+// and returning ok=false if the entry should be skipped.
+func readSBOMEntry(sbomTar *tar.Reader, hdr *tar.Header) (s *sbom.SBOM, fmtID sbom.FormatID, ok bool) {
+	if hdr.Size > maxSBOMEntryBytes {
+		log.WithFields("entry", hdr.Name, "size", hdr.Size, "max", maxSBOMEntryBytes).Debug("skipping SBOM entry in Zarf package: exceeds max entry size")
+		return nil, "", false
+	}
+
+	buf, err := io.ReadAll(io.LimitReader(sbomTar, maxSBOMEntryBytes))
+	if err != nil {
+		log.WithFields("entry", hdr.Name, "error", err).Debug("failed to read SBOM entry in Zarf package")
+		return nil, "", false
+	}
+
+	s, fmtID, err = readSBOM(bytes.NewReader(buf))
+	if err != nil {
+		log.WithFields("entry", hdr.Name, "error", err).Debug("failed to decode SBOM entry in Zarf package")
+		return nil, "", false
+	}
+
+	return s, fmtID, true
 }
 
 // mergeSBOM adds artifacts from src into dst for downstream formatting.
