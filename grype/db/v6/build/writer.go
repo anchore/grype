@@ -28,6 +28,15 @@ type writer struct {
 	// which normalize casing so the invariant can't drift.
 	severityCache map[string]db.Severity
 
+	// goGHSAEntries holds back Go-ecosystem GHSA entries (keyed by lowercase
+	// GHSA ID, with goGHSAOrder preserving arrival order for deterministic
+	// writes) and govulndbEntries holds back GO-* entries, so the govulndb↔GHSA
+	// overlap can be reconciled at Close time regardless of provider processing
+	// order. See govulndb_merge.go.
+	goGHSAEntries   map[string]*transformers.RelatedEntries
+	goGHSAOrder     []string
+	govulndbEntries []*transformers.RelatedEntries
+
 	// Two-tier batching: parent records (vulnerabilities + providers) and child records (related entries)
 	// This maintains FK integrity while maximizing batch sizes
 	parentBatchSize int
@@ -75,6 +84,7 @@ func NewWriter(directory string, states provider.States, failOnMissingFixDate bo
 		store:                s,
 		states:               states,
 		severityCache:        make(map[string]db.Severity),
+		goGHSAEntries:        make(map[string]*transformers.RelatedEntries),
 		parentBatchSize:      batchSize,
 		childBatchSize:       batchSize,
 		parentBuffer:         make([]func() error, 0, batchSize),
@@ -104,6 +114,18 @@ func (w *writer) Write(entries ...data.Entry) error {
 func (w *writer) writeEntry(entry transformers.RelatedEntries) error {
 	log.WithFields("entry", entry.String()).Trace("writing entry")
 
+	if w.holdForGoVulnDBMerge(entry) {
+		return nil
+	}
+
+	return w.writeEntryToBatch(entry)
+}
+
+// writeEntryToBatch fills in missing severity and adds the entry to the write
+// batches. Held govulndb/GHSA entries also come back through here at Close
+// time, after reconciliation (see govulndb_merge.go), so severity fill always
+// runs with the complete NVD cache.
+func (w *writer) writeEntryToBatch(entry transformers.RelatedEntries) error {
 	if entry.VulnerabilityHandle != nil {
 		w.fillInMissingSeverity(entry.VulnerabilityHandle)
 
@@ -435,6 +457,11 @@ func (w *writer) flushChildBatchLocked() error {
 }
 
 func (w *writer) Close() error {
+	// Reconcile and write held govulndb/GHSA entries before the final flush
+	if err := w.flushGoVulnDBMerge(); err != nil {
+		return fmt.Errorf("unable to reconcile govulndb entries with GHSA records: %w", err)
+	}
+
 	// Flush any remaining batched operations (both parent and child)
 	if err := w.flushParentBatch(); err != nil {
 		return fmt.Errorf("unable to flush parent batch: %w", err)

@@ -313,6 +313,31 @@
       },
       "type": "array"
     },
+    "Modification": {
+      "$defs": {
+        "changes": {
+          "description": "describes each amendment made to the record (e.g. 'added go symbols to affected package golang.org/x/net')."
+        },
+        "url": {
+          "description": "points to the source data the record was modified with (e.g. 'https://vuln.go.dev/ID/GO-2024-2687.json')."
+        }
+      },
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "changes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "url"
+      ]
+    },
     "OperatingSystem": {
       "properties": {
         "name": {
@@ -580,6 +605,15 @@
             "$ref": "#/$defs/Severity"
           },
           "type": "array"
+        },
+        "modifications": {
+          "items": {
+            "$ref": "#/$defs/Modification"
+          },
+          "type": "array"
+        },
+        "review_status": {
+          "type": "string"
         },
         "severity": {
           "type": "string"

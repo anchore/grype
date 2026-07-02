@@ -1,0 +1,34 @@
+# Combined govulndb + github fixture exercising the build-time merge of go
+# symbol information onto GHSA records (see grype/db/v6/build/govulndb_merge.go).
+#
+# The GHSA records were hand-authored from the real advisories (via the GitHub
+# API) rather than extracted, so auto-generate is off.
+#
+#   - GO-2022-0969 aliases GHSA-69cg-p879-7622, which lists BOTH golang.org/x/net
+#     and the golang.org/x/net/http2 sub-package as affected packages: the GHSA
+#     gains the x/net symbols, the GO record keeps only stdlib (GHSA never covers
+#     stdlib).
+#   - GO-2021-0265 aliases two GHSAs for github.com/tidwall/gjson:
+#     GHSA-ppj4-34rq-v8j9 (active) gains the gjson symbols and covers the GO
+#     record, which is dropped; GHSA-c9gm-7rfj-8w5h is withdrawn upstream
+#     (GitHub marked it a duplicate advisory, as in the real data), so it is
+#     neither patched nor allowed to cover, and never matches.
+#   - GO-2023-1840 (stdlib-only, whole-package) has no GHSA alias and passes
+#     through unchanged.
+#   - GO-2022-0635 aliases GHSA-7f33-f4f5-xwgw for github.com/aws/aws-sdk-go:
+#     the govulndb range is open-ended (introduced: 0, no fix — govulncheck
+#     flags every version) while the GHSA bounds it at < 1.34.0. The merged
+#     record has the GHSA's bounded range AND the govulndb s3crypto symbols,
+#     eliminating both false-positive classes.
+auto-generate: false
+extractions:
+  govulndb:
+    - go-2022-0969
+    - GO-2023-1840
+    - go-2021-0265
+    - go-2022-0635
+  github:
+    - github:go/GHSA-69cg-p879-7622
+    - github:go/GHSA-c9gm-7rfj-8w5h
+    - github:go/GHSA-ppj4-34rq-v8j9
+    - github:go/GHSA-7f33-f4f5-xwgw

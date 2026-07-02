@@ -12,12 +12,10 @@ import (
 )
 
 // TestGoVulnDBTransform exercises the govulndb strategy end-to-end against a real
-// GO-* fixture. The transformer emits the stdlib pseudo-module and the
-// golang.org/x/* extended standard libraries (see govulndbEmits); other
-// third-party modules are dropped.
+// GO-* fixture.
 //
-//   - GO-2022-0969: a MIXED record listing both "stdlib" and "golang.org/x/net".
-//     Both survive the emit filter, so the want below contains BOTH handles
+//   - GO-2022-0969: a MIXED record listing both "stdlib" and "golang.org/x/net",
+//     so the want below contains BOTH handles
 //     (golang.org/x/net sorts before stdlib). The stdlib range is multi-window
 //     (< 1.18.6 || >= 1.19.0-0,< 1.19.1), exercising the comma-separated constraint
 //     normalization the Go version comparator needs; the golang.org/x/net range is
@@ -48,7 +46,8 @@ func TestGoVulnDBTransform(t *testing.T) {
 							URL:  "https://go.dev/cl/428735",
 							Tags: []string{"FIX"},
 						}},
-						Aliases: []string{"CVE-2022-27664", "GHSA-69cg-p879-7622"},
+						Aliases:      []string{"CVE-2022-27664", "GHSA-69cg-p879-7622"},
+						ReviewStatus: "REVIEWED",
 					},
 				},
 				Related: affectedPkgSlice(
@@ -190,13 +189,12 @@ func TestEventsToRanges(t *testing.T) {
 	}
 }
 
-// TestGoVulnDB_NonStdlibEmitsNothing guards the drop path for general third-party
-// modules: an advisory whose only affected package is a non-emitted module (here
-// github.com/gin-gonic/gin — not stdlib and not golang.org/x/*) must produce NO
-// entries at all — not an orphaned vulnerability handle with zero affected
-// packages. Transform returns early when every affected package is filtered out,
-// so such a GO record never reaches the DB.
-func TestGoVulnDB_NonStdlibEmitsNothing(t *testing.T) {
+// TestGoVulnDB_ThirdPartyEmitsAffectedPackage pins that general third-party
+// modules (here github.com/gin-gonic/gin — not stdlib and not golang.org/x/*)
+// are emitted with their imports qualifier and review status intact. The overlap
+// with GHSA-sourced advisories for the same module is reconciled by the build
+// writer (handleGoVulnDBEntry), not by dropping the package here.
+func TestGoVulnDB_ThirdPartyEmitsAffectedPackage(t *testing.T) {
 	vulns := loadFixture(t, "testdata/GO-2020-0001.json")
 	if len(vulns) != 1 {
 		t.Fatalf("expected 1 vuln in fixture, got %d", len(vulns))
@@ -205,14 +203,39 @@ func TestGoVulnDB_NonStdlibEmitsNothing(t *testing.T) {
 	if err != nil {
 		t.Fatalf("transform: %v", err)
 	}
-	if len(entries) != 0 {
-		t.Errorf("non-stdlib advisory must emit no entries (no orphaned vuln handle), got %d", len(entries))
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(entries))
+	}
+	re, ok := entries[0].Data.(transformers.RelatedEntries)
+	if !ok {
+		t.Fatalf("unexpected entry type %T", entries[0].Data)
+	}
+	if re.VulnerabilityHandle == nil || re.VulnerabilityHandle.BlobValue == nil {
+		t.Fatal("entry has no VulnerabilityHandle with a blob")
+	}
+	if got := re.VulnerabilityHandle.BlobValue.ReviewStatus; got != "REVIEWED" {
+		t.Errorf("ReviewStatus = %q, want %q", got, "REVIEWED")
+	}
+	if len(re.Related) != 1 {
+		t.Fatalf("expected 1 affected package, got %d", len(re.Related))
+	}
+	aph, ok := re.Related[0].(db.AffectedPackageHandle)
+	if !ok {
+		t.Fatalf("unexpected related entry type %T", re.Related[0])
+	}
+	if aph.Package == nil || aph.Package.Name != "github.com/gin-gonic/gin" {
+		t.Errorf("expected affected package github.com/gin-gonic/gin, got %+v", aph.Package)
+	}
+	if aph.BlobValue == nil || aph.BlobValue.Qualifiers == nil || len(aph.BlobValue.Qualifiers.GoImports) != 1 {
+		t.Fatalf("expected 1 go import on the qualifier, got %+v", aph.BlobValue)
+	}
+	if got := aph.BlobValue.Qualifiers.GoImports[0].Path; got != "github.com/gin-gonic/gin" {
+		t.Errorf("import path = %q, want %q", got, "github.com/gin-gonic/gin")
 	}
 }
 
 // TestGoVulnDB_WithdrawnStdlibIsRejected pins that a WITHDRAWN govulndb advisory
-// survives the stdlib-only filter (it has a stdlib affected package) but is
-// emitted with Status=Rejected + a WithdrawnDate, so the matcher's
+// is emitted with Status=Rejected + a WithdrawnDate, so the matcher's
 // OnlyNonWithdrawnVulnerabilities filter drops it — a withdrawn stdlib advisory
 // must NOT match. No real stdlib record is withdrawn today, so this builds one
 // inline to exercise the withdrawn-marking path.
@@ -282,6 +305,93 @@ func TestGoVulnDB_EmitsStdlibAndGolangOrgX(t *testing.T) {
 	}
 	if len(got) != 2 {
 		t.Errorf("expected exactly [stdlib golang.org/x/net] to survive, got %v (fixture had %v)", keys(got), fixtureNames)
+	}
+}
+
+// TestGoVulnDB_CustomRangesOnRealRecords guards the ecosystem_specific
+// custom_ranges reconciliation against real vuln.go.dev records now that
+// third-party modules are emitted. These are the shapes govulncheck gives up on
+// ("bails and assumes vulnerable"); grype must emit the real windows instead:
+//
+//   - GO-2025-4004 (lxd): the standard range is a bare introduced:0 (says
+//     nothing), so custom supersedes. The custom stream is messy — a dangling
+//     introduced:4.0.0 immediately overwritten by a pseudo-version window — and
+//     must still yield bounded windows, not all-versions-vulnerable. The /v6
+//     major-version module carries its own clean custom window.
+//   - GO-2024-2826 (vitess): bounded standard windows in module-version space
+//     (0.17/0.18/0.19) plus bounded custom windows in upstream-tag space
+//     (17/18/19; GHSA lists these under github.com/vitessio/vitess). Bounded +
+//     bounded unions both sets: the tag-space windows cannot match a
+//     module-versioned (0.x) package, so the union covers both version schemes
+//     without widening either.
+//   - GO-2026-4610 (docker): the +incompatible case — an open-ended custom floor
+//     (>=19.03.0+incompatible) grafts onto the standard window's placeholder
+//     introduced:0 rather than appending as a disjoint trailing window
+//     (anchore/grype#3520). Sibling modules pass through untouched: a lone
+//     introduced:0 yields no ranges (a real all-versions-vulnerable advisory for
+//     deprecated compose v1) and an open-ended standard floor stays open-ended.
+func TestGoVulnDB_CustomRangesOnRealRecords(t *testing.T) {
+	tests := []struct {
+		name        string
+		fixturePath string
+		want        map[string][]string // package name -> range constraints
+	}{
+		{
+			name:        "GO-2025-4004 lxd: default-floor standard, messy custom windows",
+			fixturePath: "testdata/GO-2025-4004.json",
+			want: map[string][]string{
+				"github.com/lxc/lxd": {
+					"<5.21.4",
+					">=0.0.0-20200331193331-03aab09f5b5c,<0.0.0-20250827065555-0494f5d47e41",
+				},
+				"github.com/lxc/lxd/v6": {
+					">=6.0.0,<6.5.0",
+				},
+			},
+		},
+		{
+			name:        "GO-2024-2826 vitess: bounded standard + bounded tag-space custom union",
+			fixturePath: "testdata/GO-2024-2826.json",
+			want: map[string][]string{
+				"vitess.io/vitess": {
+					"<0.17.7",
+					">=0.18.0,<0.18.5",
+					">=0.19.0,<0.19.4",
+					"<17.0.7",
+					">=18.0.0,<18.0.5",
+					">=19.0.0,<19.0.4",
+				},
+			},
+		},
+		{
+			name:        "GO-2026-4610 docker: +incompatible floor graft and pass-through siblings",
+			fixturePath: "testdata/GO-2026-4610.json",
+			want: map[string][]string{
+				"github.com/docker/cli":        {">=19.03.0+incompatible,<29.2.0+incompatible"},
+				"github.com/docker/compose":    nil, // lone introduced:0 -> all versions vulnerable
+				"github.com/docker/compose/v2": {">=2.31.0"},
+				"github.com/docker/compose/v5": {"<5.1.0"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vulns := loadFixture(t, tt.fixturePath)
+			if len(vulns) != 1 {
+				t.Fatalf("expected 1 vuln in fixture, got %d", len(vulns))
+			}
+			got := map[string][]string{}
+			for _, aph := range govulndbAffectedPackages(vulns[0]) {
+				var constraints []string
+				for _, r := range aph.BlobValue.Ranges {
+					constraints = append(constraints, r.Version.Constraint)
+				}
+				got[aph.Package.Name] = constraints
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ranges by package mismatch:\ngot:  %v\nwant: %v", got, tt.want)
+			}
+		})
 	}
 }
 

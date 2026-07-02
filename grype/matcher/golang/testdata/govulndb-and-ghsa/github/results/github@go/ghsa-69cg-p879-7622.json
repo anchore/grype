@@ -1,0 +1,75 @@
+{
+  "identifier": "github:go/ghsa-69cg-p879-7622",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2022-27664"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 7.5,
+          "base_severity": "High",
+          "exploitability_score": 3.9,
+          "impact_score": 3.6
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2022-09-07",
+            "kind": "first-observed"
+          },
+          "ecosystem": "go",
+          "identifier": "0.0.0-20220906165146-f3363e06e74c",
+          "name": "golang.org/x/net/http2",
+          "namespace": "github:go",
+          "range": "< 0.0.0-20220906165146-f3363e06e74c"
+        },
+        {
+          "available": {
+            "date": "2022-09-07",
+            "kind": "first-observed"
+          },
+          "ecosystem": "go",
+          "identifier": "0.0.0-20220906165146-f3363e06e74c",
+          "name": "golang.org/x/net",
+          "namespace": "github:go",
+          "range": "< 0.0.0-20220906165146-f3363e06e74c"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2022-27664"
+        ]
+      },
+      "Severity": "High",
+      "Summary": "golang.org/x/net/http2 Denial of Service vulnerability",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-69cg-p879-7622",
+      "namespace": "github:go",
+      "published": "2022-09-07T00:01:51Z",
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-27664"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-69cg-p879-7622"
+        }
+      ],
+      "updated": "2024-05-20T21:33:39Z",
+      "url": "https://github.com/advisories/GHSA-69cg-p879-7622",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

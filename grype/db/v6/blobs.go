@@ -26,10 +26,28 @@ type VulnerabilityBlob struct {
 
 	// Severities is a list of severity indications (quantitative or qualitative) for the vulnerability
 	Severities []Severity `json:"severities,omitempty"`
+
+	// Modifications is an audit trail of build-time amendments made to this record from other data
+	// sources (e.g. a GHSA record patched with Go symbol information from the aliased govulndb record).
+	Modifications []Modification `json:"modifications,omitempty"`
+
+	// ReviewStatus is the review state of the record as reported by the source (e.g. govulndb's
+	// database_specific.review_status: "REVIEWED" or "UNREVIEWED"). Empty when the source does not report one.
+	ReviewStatus string `json:"review_status,omitempty"`
 }
 
 func (v VulnerabilityBlob) String() string {
 	return v.ID
+}
+
+// Modification records a single build-time amendment to a vulnerability record: the URL of the
+// data source the amendment was derived from and a description of each change made.
+type Modification struct {
+	// URL points to the source data the record was modified with (e.g. "https://vuln.go.dev/ID/GO-2024-2687.json").
+	URL string `json:"url"`
+
+	// Changes describes each amendment made to the record (e.g. "added go symbols to affected package golang.org/x/net").
+	Changes []string `json:"changes,omitempty"`
 }
 
 // Reference represents a single external URL and string tags to use for organizational purposes

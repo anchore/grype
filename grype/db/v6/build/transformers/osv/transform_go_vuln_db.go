@@ -33,35 +33,27 @@ import (
 //     symbol evidence only match when at least one vulnerable symbol is present.
 //   - references pass through, OSV type as tag, refID empty (canonical advisory
 //     page is in database_specific.url, not refs).
+//   - database_specific.review_status is carried onto the vulnerability blob so
+//     UNREVIEWED records that survive to the DB are identifiable.
+//
+// All affected packages are emitted, including general third-party modules. Most
+// third-party (and golang.org/x/*) packages duplicate advisories grype already
+// gets from GHSA; the build writer reconciles that overlap — patching the aliased
+// GHSA records with this record's symbol information and dropping the covered
+// affected packages — so only packages absent from GHSA (notably stdlib, which
+// GHSA never covers) are written under the GO-* record. See the writer's
+// handleGoVulnDBEntry.
 type govulndbStrategy struct{}
 
 func (govulndbStrategy) Matches(id string) bool {
 	return strings.HasPrefix(id, "GO-")
 }
 
-// govulndbEmits reports whether grype emits records for a govulndb affected
-// package. For general third-party Go modules the go vuln db carries odd version
-// ranges (a source of false positives) and duplicates advisories grype already
-// gets from GHSA, so those packages are dropped. Two classes are kept because
-// they are both absent from GHSA and versioned by the Go team itself — so the
-// strange-range drawback that motivates dropping third-party modules does not
-// apply:
-//   - the "stdlib" pseudo-module: the core language, statically linked into
-//     every Go binary.
-//   - the golang.org/x/* extended standard libraries (golang.org/x/net,
-//     golang.org/x/crypto, golang.org/x/text, …).
-func govulndbEmits(name string) bool {
-	return strings.EqualFold(name, "stdlib") ||
-		strings.HasPrefix(name, "golang.org/x/")
-}
-
 func (govulndbStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
 	affected := govulndbAffectedPackages(vuln)
 	if len(affected) == 0 {
-		// every affected package was filtered out (or there were none): only the
-		// stdlib and golang.org/x/* modules are emitted (see govulndbEmits).
-		// Emitting just the vulnerability handle would write an orphaned record
-		// that can never match a package, so skip the advisory entirely.
+		// no affected packages: emitting just the vulnerability handle would write
+		// an orphaned record that can never match a package, so skip the advisory.
 		return nil, nil
 	}
 
@@ -90,11 +82,12 @@ func (govulndbStrategy) Transform(vuln unmarshal.OSVVulnerability, state provide
 			PublishedDate: &vuln.Published,
 			WithdrawnDate: withdrawnDate,
 			BlobValue: &db.VulnerabilityBlob{
-				ID:          vuln.ID,
-				Description: vuln.Details,
-				References:  govulndbReferences(vuln),
-				Aliases:     vuln.Aliases,
-				Severities:  severities,
+				ID:           vuln.ID,
+				Description:  vuln.Details,
+				References:   govulndbReferences(vuln),
+				Aliases:      vuln.Aliases,
+				Severities:   severities,
+				ReviewStatus: govulndbReviewStatus(vuln),
 			},
 		},
 	}
@@ -103,6 +96,16 @@ func (govulndbStrategy) Transform(vuln unmarshal.OSVVulnerability, state provide
 		in = append(in, aph)
 	}
 	return transformers.NewEntries(in...), nil
+}
+
+// govulndbReviewStatus extracts database_specific.review_status ("REVIEWED" or
+// "UNREVIEWED"). Returns "" when absent, leaving the blob field empty.
+func govulndbReviewStatus(vuln unmarshal.OSVVulnerability) string {
+	if vuln.DatabaseSpecific == nil {
+		return ""
+	}
+	status, _ := vuln.DatabaseSpecific["review_status"].(string)
+	return status
 }
 
 func govulndbReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
@@ -122,9 +125,6 @@ func govulndbAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPack
 	}
 	var aphs []db.AffectedPackageHandle
 	for _, affected := range vuln.Affected {
-		if !govulndbEmits(affected.Package.Name) {
-			continue
-		}
 		var qualifiers *db.PackageQualifiers
 		if imports := govulndbImports(affected, vuln.ID); len(imports) > 0 {
 			qualifiers = &db.PackageQualifiers{GoImports: imports}
