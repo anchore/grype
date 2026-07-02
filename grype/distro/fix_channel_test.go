@@ -11,13 +11,19 @@ import (
 func TestDefaultFixChannels(t *testing.T) {
 	channels := DefaultFixChannels()
 
-	// this seems like a silly test, however, it is critical to ensure that the default channels have EUS with expected values
+	// this seems like a silly test, however, it is critical to ensure that the default channels have EUS and ESM with expected values
 	expected := FixChannels{
 		{
 			Name:     "eus",
 			IDs:      []string{"rhel"},
 			Apply:    ChannelConditionallyEnabled,
 			Versions: version.MustGetConstraint(">= 8.0", version.SemanticFormat),
+		},
+		{
+			Name:     "esm",
+			IDs:      []string{"ubuntu"},
+			Apply:    ChannelConditionallyEnabled,
+			Versions: nil, // deliberate: no version window for ESM (esm-apps covers universe for the full support window)
 		},
 	}
 

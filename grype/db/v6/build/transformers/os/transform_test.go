@@ -1103,6 +1103,21 @@ func TestGetOperatingSystem(t *testing.T) {
 				Channel:      "eus",
 			},
 		},
+		{
+			name:      "includes channel (ubuntu esm), preserves zero-padded minor",
+			osName:    "ubuntu",
+			osID:      "ubuntu",
+			osVersion: "22.04",
+			channel:   "esm",
+			expected: &db.OperatingSystem{
+				Name:         "ubuntu",
+				ReleaseID:    "ubuntu",
+				MajorVersion: "22",
+				MinorVersion: "04",
+				Codename:     "jammy",
+				Channel:      "esm",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -1190,6 +1205,16 @@ func TestGetOSInfo(t *testing.T) {
 				id:      "rhel",
 				version: "8",
 				channel: "eus",
+			},
+		},
+		{
+			name:  "ubuntu + esm",
+			group: "ubuntu:22.04+esm",
+			expected: osInfo{
+				name:    "ubuntu",
+				id:      "ubuntu",
+				version: "22.04",
+				channel: "esm",
 			},
 		},
 	}

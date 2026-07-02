@@ -271,6 +271,51 @@ func Test_NewDistroFromRelease(t *testing.T) {
 			minor: "4",
 		},
 		{
+			name: "esm hinted at as attribute (ubuntu pro), nil version window applies",
+			release: linux.Release{
+				ID:              "ubuntu",
+				Version:         "16.04",
+				ExtendedSupport: true,
+			},
+			channels: testFixChannels(),
+			expected: &Distro{
+				Type:     Ubuntu,
+				Version:  "16.04",
+				Channels: names("esm"),
+			},
+			major: "16",
+			minor: "04",
+		},
+		{
+			name: "esm not applied for non-pro ubuntu (auto, no extended support)",
+			release: linux.Release{
+				ID:      "ubuntu",
+				Version: "16.04",
+			},
+			channels: testFixChannels(),
+			expected: &Distro{
+				Type:    Ubuntu,
+				Version: "16.04",
+			},
+			major: "16",
+			minor: "04",
+		},
+		{
+			name: "esm embedded in the version",
+			release: linux.Release{
+				ID:      "ubuntu",
+				Version: "16.04+esm",
+			},
+			channels: testFixChannels(),
+			expected: &Distro{
+				Type:     Ubuntu,
+				Version:  "16.04",
+				Channels: names("esm"),
+			},
+			major: "16",
+			minor: "04",
+		},
+		{
 			name: "v versionID prefix postmarketos",
 			release: linux.Release{
 				ID:        "postmarketos",

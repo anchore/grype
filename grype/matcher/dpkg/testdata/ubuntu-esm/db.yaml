@@ -1,0 +1,8 @@
+auto-generate: false
+extractions:
+    ubuntu:
+        - ubuntu:16.04/cve-2021-3782
+        - ubuntu:16.04+esm/cve-2021-3782
+        - ubuntu:20.04/cve-2021-3782
+        - ubuntu:20.04/cve-2025-61985
+        - ubuntu:20.04+esm/cve-2025-61985

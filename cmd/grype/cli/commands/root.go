@@ -430,8 +430,9 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 
 func getFixChannels(fixChannelOpts options.FixChannels) distro.FixChannels {
 	// use the API defaults as a starting point, then overlay the application options
-	eusOptions := distro.DefaultFixChannels().Get("eus")
+	defaults := distro.DefaultFixChannels()
 
+	eusOptions := defaults.Get("eus")
 	if eusOptions == nil {
 		panic("default fix channels do not contain Red Hat EUS channel")
 	}
@@ -441,15 +442,33 @@ func getFixChannels(fixChannelOpts options.FixChannels) distro.FixChannels {
 		eusOptions.Versions = version.MustGetConstraint(fixChannelOpts.RedHatEUS.Versions, version.SemanticFormat)
 	}
 
+	esmOptions := defaults.Get("esm")
+	if esmOptions == nil {
+		panic("default fix channels do not contain Ubuntu ESM channel")
+	}
+
+	esmOptions.Apply = distro.FixChannelEnabled(fixChannelOpts.UbuntuESM.Apply)
+	// note: esm's default Versions is nil (no version window); only override when the user explicitly sets one
+	if fixChannelOpts.UbuntuESM.Versions != "" {
+		esmOptions.Versions = version.MustGetConstraint(fixChannelOpts.UbuntuESM.Versions, version.SemanticFormat)
+	}
+
 	return []distro.FixChannel{
 		{
 			// information inherent to the channel (part of the API defaults)
-			Name: "eus",
+			Name: eusOptions.Name,
 			IDs:  eusOptions.IDs,
 
 			// user configurable options
 			Versions: eusOptions.Versions,
 			Apply:    eusOptions.Apply,
+		},
+		{
+			Name: esmOptions.Name,
+			IDs:  esmOptions.IDs,
+
+			Versions: esmOptions.Versions,
+			Apply:    esmOptions.Apply,
 		},
 	}
 }

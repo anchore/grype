@@ -66,6 +66,12 @@ func Test_getProviderConfig(t *testing.T) {
 								Apply:    "auto",
 								Versions: version.MustGetConstraint(">= 8.0", version.SemanticFormat),
 							},
+							{
+								Name:     "esm",
+								IDs:      []string{"ubuntu"},
+								Apply:    "auto",
+								Versions: nil,
+							},
 						},
 					},
 				},
