@@ -22,6 +22,7 @@ const (
 	JVMFormat
 	BitnamiFormat
 	PacmanFormat
+	EchoFormat
 )
 
 type Format int
@@ -41,6 +42,7 @@ var formatStr = []string{
 	"JVM",
 	"Bitnami",
 	"Pacman",
+	"Echo",
 }
 
 var Formats = []Format{
@@ -57,6 +59,7 @@ var Formats = []Format{
 	JVMFormat,
 	BitnamiFormat,
 	PacmanFormat,
+	EchoFormat,
 }
 
 func ParseFormat(userStr string) Format {
@@ -88,6 +91,8 @@ func ParseFormat(userStr string) Format {
 		return JVMFormat
 	case strings.ToLower(PacmanFormat.String()), "pacman", pkg.AlpmPkg.String():
 		return PacmanFormat
+	case strings.ToLower(EchoFormat.String()):
+		return EchoFormat
 	}
 	return UnknownFormat
 }

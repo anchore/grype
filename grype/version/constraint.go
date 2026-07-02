@@ -40,6 +40,8 @@ func GetConstraint(constStr string, format Format) (Constraint, error) {
 		c, err = newGenericConstraint(PacmanFormat, constStr)
 	case JVMFormat:
 		c, err = newGenericConstraint(JVMFormat, constStr)
+	case EchoFormat:
+		c, err = newGenericConstraint(EchoFormat, constStr)
 	case UnknownFormat:
 		c, err = newFuzzyConstraint(constStr, "unknown")
 	default:

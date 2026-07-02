@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.6.1",
+  "id": "ECHO-maven-0001",
+  "modified": "2024-12-15T14:30:00Z",
+  "published": "2024-12-10T09:00:00Z",
+  "aliases": [
+    "CVE-2024-22259"
+  ],
+  "summary": "spring-web URL parsing open redirect / SSRF",
+  "details": "spring-web before 5.3.32+echo.1 is vulnerable to open redirect and SSRF via crafted input.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "Echo:Maven",
+        "name": "org.springframework:spring-web",
+        "purl": "pkg:maven/org.springframework/spring-web"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "5.3.32+echo.1"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "ADVISORY",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-22259"
+    }
+  ],
+  "severity": [
+    {
+      "type": "CVSS_V3",
+      "score": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:H/A:N"
+    }
+  ],
+  "database_specific": {
+    "source": "Echo",
+    "anchore": {
+      "record_type": "advisory"
+    }
+  }
+}
