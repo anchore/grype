@@ -15,7 +15,7 @@ var echoLocalSegmentRe = regexp.MustCompile(`\+echo\.\d+`)
 // echoQualifier is a NAK qualifier: it only ever appears on
 // UnaffectedPackageHandles produced by the echo OSV strategy, and it suppresses
 // a candidate match only when the scanned package is itself an Echo build.
-// Echo keeps upstream package names, so the Echo build is identified by its "+echo.N" version suffix.	
+// Echo keeps upstream package names, so the Echo build is identified by its "+echo.N" version suffix.
 // This prevents the open-ended unaffected range (">= X+echo.1") from leaking onto plain upstream versions:
 // a non-Echo package fails the qualifier, so the NAK is filtered out and the upstream disclosure stands.
 type echoQualifier struct{}
@@ -29,5 +29,11 @@ func New() qualifier.Qualifier {
 // the "+echo.N" version suffix. A non-Echo package fails the qualifier, which
 // causes the NAK to be filtered out of search results.
 func (echoQualifier) Satisfied(p pkg.Package) (bool, error) {
-	return echoLocalSegmentRe.MatchString(p.Version), nil
+	return IsEchoBuild(p.Version), nil
+}
+
+// IsEchoBuild reports whether the version string identifies an Echo-patched
+// build (carries the "+echo.N" suffix).
+func IsEchoBuild(version string) bool {
+	return echoLocalSegmentRe.MatchString(version)
 }

@@ -392,3 +392,44 @@ func Test_unaffectedPackageIgnoreRules(t *testing.T) {
 		})
 	}
 }
+
+func Test_unaffectedVersionCriteria(t *testing.T) {
+	// the fuzzy "unknown"-format constraint is the shape NAK ranges take after
+	// the DB's "ecosystem" range type falls through version.ParseFormat
+	nakConstraint := version.MustGetConstraint(">= 3.1.9+echo.2", version.UnknownFormat)
+	vuln := vulnerability.Vulnerability{Constraint: nakConstraint}
+
+	npmEcho := pkg.Package{Name: "ejs", Version: "3.1.9+echo.1", Type: syftPkg.NpmPkg}
+	defaultCriteria := OnlyVulnerableVersions(version.New(npmEcho.Version, pkg.VersionFormat(npmEcho)))
+
+	// sanity: under the default format, SemVer ignores the +echo.N build
+	// number and the still-vulnerable +echo.1 build satisfies the NAK
+	matches, _, err := defaultCriteria.MatchesVulnerability(vuln)
+	require.NoError(t, err)
+	assert.True(t, matches, "expected the default format to be blind to +echo.N (if this fails, the workaround may no longer be needed)")
+
+	// the echo-aware NAK criteria distinguishes the builds: +echo.1 stays vulnerable...
+	matches, _, err = unaffectedVersionCriteria(npmEcho, defaultCriteria).MatchesVulnerability(vuln)
+	require.NoError(t, err)
+	assert.False(t, matches, "the still-vulnerable +echo.1 build must not match the NAK")
+
+	// ...while the fixed +echo.2 build is suppressed
+	fixed := pkg.Package{Name: "ejs", Version: "3.1.9+echo.2", Type: syftPkg.NpmPkg}
+	matches, _, err = unaffectedVersionCriteria(fixed, defaultCriteria).MatchesVulnerability(vuln)
+	require.NoError(t, err)
+	assert.True(t, matches)
+
+	// non-echo packages keep the default criteria untouched
+	plain := pkg.Package{Name: "ejs", Version: "3.1.9", Type: syftPkg.NpmPkg}
+	assert.Same(t, defaultCriteria, unaffectedVersionCriteria(plain, defaultCriteria))
+
+	// ecosystems whose native format already orders +echo.N (e.g. python's
+	// PEP 440 local versions) keep the default criteria untouched
+	pyEcho := pkg.Package{Name: "requests", Version: "2.14.2+echo.1", Type: syftPkg.PythonPkg}
+	assert.Same(t, defaultCriteria, unaffectedVersionCriteria(pyEcho, defaultCriteria))
+
+	// a bare "+echo" suffix is not a valid Echo build (Echo builds always
+	// carry "+echo.N"); it must not be treated as one
+	bare := pkg.Package{Name: "ejs", Version: "3.1.9+echo", Type: syftPkg.NpmPkg}
+	assert.Same(t, defaultCriteria, unaffectedVersionCriteria(bare, defaultCriteria))
+}

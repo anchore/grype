@@ -76,6 +76,8 @@ func (v *Version) getComparator(format Format) (Comparator, error) {
 		comparator, err = newJvmVersion(v.Raw)
 	case PacmanFormat:
 		comparator, err = newPacmanVersion(v.Raw)
+	case EchoFormat:
+		comparator, err = newEchoVersion(v.Raw)
 	case UnknownFormat:
 		comparator, err = newFuzzyVersion(v.Raw)
 	default:
