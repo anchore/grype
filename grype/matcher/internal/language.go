@@ -7,11 +7,28 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/pkg/qualifier/echo"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
 )
+
+// unaffectedVersionCriteria returns the version criteria used to evaluate
+// unaffected (NAK) records. Echo-patched builds of SemVer-versioned packages
+// (e.g. npm) need the echo-aware format: SemVer excludes the "+echo.N" build
+// number from precedence, so under the default format a NAK fixed at
+// "+echo.2" would also suppress the still-vulnerable "+echo.1" build.
+// Disclosures intentionally keep the default format — upstream advisories are
+// written against upstream versions and must keep treating "X+echo.N" as "X"
+// (e.g. an unfixed "<= X" advisory must still apply to X+echo.N).
+func unaffectedVersionCriteria(p pkg.Package, defaultCriteria vulnerability.Criteria) vulnerability.Criteria {
+	format := pkg.VersionFormat(p)
+	if (format == version.UnknownFormat || format == version.SemanticFormat) && echo.IsEchoBuild(p.Version) {
+		return OnlyVulnerableVersions(version.New(p.Version, version.EchoFormat))
+	}
+	return defaultCriteria
+}
 
 func MatchPackageByLanguage(store vulnerability.Provider, p pkg.Package, matcherType match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
 	if isUnknownVersion(p.Version) {
@@ -21,6 +38,7 @@ func MatchPackageByLanguage(store vulnerability.Provider, p pkg.Package, matcher
 
 	provider := result.NewProvider(store, p, matcherType)
 	versionCriteria := OnlyVulnerableVersions(version.New(p.Version, pkg.VersionFormat(p)))
+	nakVersionCriteria := unaffectedVersionCriteria(p, versionCriteria)
 
 	disclosures := result.Set{}
 	unaffected := result.Set{}
@@ -43,7 +61,7 @@ func MatchPackageByLanguage(store vulnerability.Provider, p pkg.Package, matcher
 		}
 		disclosures = disclosures.Merge(all.Filter(versionCriteria))
 
-		nakCriteria := append(slices.Clone(criteria), search.ForUnaffected(), versionCriteria)
+		nakCriteria := append(slices.Clone(criteria), search.ForUnaffected(), nakVersionCriteria)
 		u, err := provider.FindResults(nakCriteria...)
 		if err != nil {
 			return nil, nil, fmt.Errorf("matcher failed to fetch resolution language=%q pkg=%q: %w", p.Language, name, err)
@@ -82,7 +100,7 @@ func MatchPackageByEcosystemPackageName(vp vulnerability.Provider, p pkg.Package
 	disclosures := all.Filter(versionCriteria)
 
 	// we want to perform the same results, but look for explicit naks, which indicates that a vulnerability should not apply
-	criteria = append(criteria, search.ForUnaffected(), versionCriteria)
+	criteria = append(criteria, search.ForUnaffected(), unaffectedVersionCriteria(p, versionCriteria))
 	unaffected, err := provider.FindResults(criteria...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch resolution language=%q pkg=%q: %w", p.Language, p.Name, err)
