@@ -26,8 +26,10 @@ import (
 //     blob's Modifications.
 //   - a GO affected package whose module is present on any aliased GHSA is
 //     covered: it is dropped from the GO record. The GO record itself is written
-//     only if affected packages remain (stdlib always remains — GHSA never
-//     covers it — as do modules the GHSA lacks); otherwise it is dropped.
+//     only if affected packages remain; otherwise it is dropped. Stdlib always
+//     remains: no GHSA lists the stdlib module itself, though GHSAs can list
+//     stdlib import paths as package rows (GHSA-4v7x-pqxf-cx7m carries net/http
+//     rows), which are patched with symbols without covering.
 //
 // Coverage intentionally ignores version-range differences between the two
 // feeds: the GHSA's ranges win. Where they disagree materially (a govulndb
@@ -198,13 +200,17 @@ func patchGHSAWithGoImports(held *transformers.RelatedEntries, goAPH db.Affected
 			continue
 		}
 
+		// name comparisons are case-insensitive to match grype's own package
+		// equality semantics (packages are stored and matched collate nocase),
+		// e.g. a GHSA row for github.com/Kava-Labs/kava and the govulndb module
+		// github.com/kava-labs/kava resolve to the same package at match time
 		var toAdd []db.GoImport
-		if ghsaAPH.Package.Name == moduleName {
+		if strings.EqualFold(ghsaAPH.Package.Name, moduleName) {
 			moduleMatched = true
 			toAdd = goImports
 		} else {
 			for _, imp := range goImports {
-				if ghsaAPH.Package.Name == imp.Path {
+				if strings.EqualFold(ghsaAPH.Package.Name, imp.Path) {
 					toAdd = append(toAdd, imp)
 				}
 			}

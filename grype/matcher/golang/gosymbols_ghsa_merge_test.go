@@ -20,7 +20,7 @@ import (
 //   - GO-2022-0969 with GHSA-69cg-p879-7622, which lists golang.org/x/net AND
 //     the golang.org/x/net/http2 sub-package as separate affected packages: both
 //     GHSA packages gain the x/net symbols, the GO record keeps only stdlib
-//     (GHSA never covers stdlib).
+//     (no GHSA lists the stdlib module itself, so stdlib is never dropped).
 //   - GO-2021-0265 with two GHSAs for github.com/tidwall/gjson: the active one
 //     (GHSA-ppj4-34rq-v8j9) gains the gjson symbols and covers the GO record,
 //     which is dropped from the DB; GHSA-c9gm-7rfj-8w5h is withdrawn upstream
@@ -87,7 +87,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			findings.IsEmpty()
 		})
 
-		t.Run("stdlib server binary still matches the GO record - GHSA never covers stdlib", func(t *testing.T) {
+		t.Run("stdlib server binary still matches the GO record - stdlib is never dropped", func(t *testing.T) {
 			p := dbtest.GoBinaryFixture(t, "gobin-httpserver").
 				Package("stdlib").
 				WithVersion(vulnerableStdlibVersion).

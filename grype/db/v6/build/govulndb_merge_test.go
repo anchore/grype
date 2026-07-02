@@ -346,6 +346,71 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 		require.Len(t, held.VulnerabilityHandle.BlobValue.Modifications, 1)
 	})
 
+	t.Run("stdlib import-path rows on a GHSA are patched but never cover stdlib", func(t *testing.T) {
+		// GO-2024-2687 / GHSA-4v7x-pqxf-cx7m shape: the GHSA lists stdlib's
+		// net/http import path as package rows (twice — one per stdlib version
+		// window) alongside the x/net module and its http2 sub-package. The
+		// net/http rows are patched with the stdlib symbols via the import-path
+		// match, but no GHSA row is named "stdlib", so the stdlib package is not
+		// covered and stays on the GO record; the x/net module is covered.
+		w := newMergeTestWriter()
+		require.True(t, w.holdForGoVulnDBMerge(ghsaEntry("GHSA-4v7x-pqxf-cx7m",
+			goModuleAPH("net/http"),
+			goModuleAPH("golang.org/x/net/http2"),
+			goModuleAPH("net/http"),
+			goModuleAPH("golang.org/x/net"),
+		)))
+
+		netHTTPImports := []db.GoImport{{Path: "net/http", Symbols: []string{"ServeContent", "ServeFile"}}}
+		entry := goVulnEntry("GO-2024-2687", []string{"CVE-2023-45288", "GHSA-4v7x-pqxf-cx7m"},
+			goModuleAPH("stdlib", netHTTPImports...),
+			goModuleAPH("golang.org/x/net", xnetImports...),
+		)
+		keep := w.handleGoVulnDBEntry(&entry)
+
+		require.True(t, keep, "stdlib is never dropped: no GHSA row is named stdlib")
+		assert.Equal(t, []string{"stdlib"}, affectedPackageNames(entry))
+
+		held := heldGHSA(t, w, "ghsa-4v7x-pqxf-cx7m")
+		// every row got its matching symbols: both net/http rows from the stdlib
+		// package's import, the module and sub-package rows from x/net's
+		var netHTTPRows int
+		for _, rel := range held.Related {
+			aph := rel.(db.AffectedPackageHandle)
+			if aph.Package.Name == "net/http" {
+				netHTTPRows++
+				assert.Equal(t, netHTTPImports, aph.BlobValue.Qualifiers.GoImports)
+			}
+		}
+		assert.Equal(t, 2, netHTTPRows)
+		assert.Equal(t, xnetImports, goImportsOf(t, held, "golang.org/x/net"))
+		assert.Equal(t, xnetImports, goImportsOf(t, held, "golang.org/x/net/http2"))
+
+		mods := held.VulnerabilityHandle.BlobValue.Modifications
+		require.Len(t, mods, 1)
+		assert.Len(t, mods[0].Changes, 4, "one change per patched row")
+	})
+
+	t.Run("name matching is case-insensitive, like grype's package matching", func(t *testing.T) {
+		// GO-2022-0760 shape: the GHSA row is github.com/Kava-Labs/kava while the
+		// govulndb module is github.com/kava-labs/kava. Packages are stored and
+		// matched collate nocase, so at match time these are the same package —
+		// the merge must treat them as the same too, or the GHSA row would keep
+		// matching binaries unfiltered while the GO package is also written.
+		w := newMergeTestWriter()
+		require.True(t, w.holdForGoVulnDBMerge(ghsaEntry("GHSA-f92v-grc2-w2fg", goModuleAPH("github.com/Kava-Labs/kava"))))
+
+		kavaImports := []db.GoImport{{Path: "github.com/kava-labs/kava/app", Symbols: []string{"NewApp"}}}
+		entry := goVulnEntry("GO-2022-0760", []string{"GHSA-f92v-grc2-w2fg"},
+			goModuleAPH("github.com/kava-labs/kava", kavaImports...),
+		)
+		keep := w.handleGoVulnDBEntry(&entry)
+
+		assert.False(t, keep, "case-insensitively matched module must be covered")
+		held := heldGHSA(t, w, "ghsa-f92v-grc2-w2fg")
+		assert.Equal(t, kavaImports, goImportsOf(t, held, "github.com/Kava-Labs/kava"))
+	})
+
 	t.Run("repeated module entries dedupe imports and changes", func(t *testing.T) {
 		// some records list the same module twice with disjoint version windows;
 		// the GHSA package must not accumulate duplicate imports or changes
