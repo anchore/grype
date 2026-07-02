@@ -18,26 +18,185 @@ import (
 const (
 	ArchSource                = "src"
 	ArchBinaryNoArchSpecified = "binary-no-arch-specified"
+
+	// archNoarch (rpm) and archAll (deb) are the dialect spellings for an arch-independent
+	// package — one with no architecture-specific content, installed identically on every
+	// architecture. These are real values seen in data, not sentinels we emit. The qualifier
+	// treats them as inert (see Satisfied) so an arch-independent artifact is never filtered.
+	archNoarch = "noarch"
+	archAll    = "all"
 )
 
+// architectureQualifier gates a package against an AFFECTED vulnerability entry's stored arch: a
+// satisfied entry keeps the match. It is lenient where the arch can't be decided so it never drops
+// a real vulnerability (the conservative direction for an affected record). The unaffected
+// (negation) counterpart is unaffectedArchitectureQualifier; both share concreteMatch.
 type architectureQualifier struct {
-	arch string
+	arch    string
+	aliases map[string]string
 }
 
-func New(arch string) qualifier.Qualifier {
-	return &architectureQualifier{arch: arch}
+// New builds the architecture qualifier for an AFFECTED vulnerability entry's stored arch. aliases
+// is the arch alias table read from the database (alias spelling -> canonical token); pass nil/empty
+// to fall back to the built-in DefaultAliases (e.g. for databases built before the
+// architecture_aliases table existed). See canonicalArch. For unaffected entries use NewUnaffected.
+func New(arch string, aliases map[string]string) qualifier.Qualifier {
+	return &architectureQualifier{arch: arch, aliases: aliases}
 }
 
-// Arch returns the stored architecture value (e.g. "src", "x86_64",
-// "binary-no-arch-specified", or "" if unset).
-func (r architectureQualifier) Arch() string {
-	return r.arch
+// Satisfied reports whether package p falls under what this AFFECTED vulnerability entry describes,
+// based on the entry's stored arch:
+//
+//   - a concrete arch ("x86_64", "aarch64"): matches only packages of that arch. This lets
+//     a provider (e.g. Chainguard) scope an advisory or its fix to a single architecture.
+//   - ArchSource ("src"): a source-level record. It applies to the package by name
+//     regardless of the scanned arch — a binary inherits its source RPM's vulnerability —
+//     so it matches both source packages and same-name binaries. (Binaries whose source has
+//     a different name reach it via the rpm matcher's upstream search, whose synthesized
+//     package is tagged "src".)
+//   - ArchBinaryNoArchSpecified: a binary disclosure with no specific arch — matches any
+//     binary package (any non-src arch), but NOT a source package. That exclusion is what
+//     keeps a binary record from matching through the synthesized "src" upstream package,
+//     so a sibling binary built from the same source isn't falsely matched.
+//
+// A package with no recorded arch is inert (older DBs / inputs without arch, or a package
+// type that doesn't carry one), as is an entry with no arch (treated as "any"); neither
+// direction filters when we cannot decide. An arch-independent package (rpm "noarch", deb
+// "all") is likewise inert: it has no architecture-specific content and is installed on every
+// architecture, so an arch-scoped entry still applies to it and must not drop it.
+//
+// Concrete arches are compared in canonical form (see canonicalArch) so a package and an
+// entry that name the same architecture in different ecosystem dialects still match — e.g.
+// an "amd64" deb package against an "x86_64" RPM-dialect advisory.
+func (r architectureQualifier) Satisfied(p pkg.Package) (bool, error) {
+	pkgArch := packageArch(p)
+	if pkgArch == "" || r.arch == "" {
+		return true, nil
+	}
+	// An arch-independent package (or entry) carries no architecture to compare against, so it
+	// never filters — folding it onto a concrete token and equality-comparing would wrongly drop
+	// a real match (e.g. a "noarch" package against an "x86_64" advisory).
+	if isArchIndependent(pkgArch) || isArchIndependent(r.arch) {
+		return true, nil
+	}
+	return concreteMatch(pkgArch, r.arch, r.aliases), nil
 }
 
-// Satisfied is intentionally inert: the architecture qualifier is read by criteria that
-// operate on the vulnerability side (see internal.SourceOrUnspecifiedArch), not by
-// per-package qualifier evaluation. Direct hits on a binary-tagged entry must still match
-// by name, so this always returns true.
-func (r architectureQualifier) Satisfied(_ pkg.Package) (bool, error) {
-	return true, nil
+// unaffectedArchitectureQualifier gates a package against an UNAFFECTED (negation) vulnerability
+// entry's stored arch. A satisfied unaffected entry SUPPRESSES a match, so its polarity is the
+// reverse of the affected qualifier: it is evaluated conservatively and never suppresses on an arch
+// it cannot positively confirm corresponds — declining to suppress is the safe direction here, the
+// same way the affected qualifier declines to drop. See NewUnaffected.
+type unaffectedArchitectureQualifier struct {
+	arch    string
+	aliases map[string]string
+}
+
+// NewUnaffected builds the architecture qualifier for an UNAFFECTED vulnerability entry. See New for
+// the aliases argument and architectureQualifier for the affected counterpart.
+func NewUnaffected(arch string, aliases map[string]string) qualifier.Qualifier {
+	return &unaffectedArchitectureQualifier{arch: arch, aliases: aliases}
+}
+
+// Satisfied reports whether this UNAFFECTED entry covers package p — i.e. whether it may suppress a
+// match. It diverges from the affected qualifier only on the cases the affected side resolves
+// leniently, because here "lenient" would mean suppressing on an unconfirmed arch:
+//
+//   - an entry with no arch is a blanket "not affected" and still applies to every package;
+//   - a package with no readable arch is NOT suppressed (we couldn't confirm the arch);
+//   - an arch-independent package/entry ("noarch"/"all") takes no shortcut — it suppresses only on
+//     an exact token match (e.g. "noarch" vs "noarch"), never folding a concrete arch onto it.
+//
+// The definite cases (src, binary-no-arch, concrete vs concrete) are identical to the affected
+// qualifier; see concreteMatch.
+func (r unaffectedArchitectureQualifier) Satisfied(p pkg.Package) (bool, error) {
+	if r.arch == "" {
+		return true, nil
+	}
+	pkgArch := packageArch(p)
+	if pkgArch == "" {
+		return false, nil
+	}
+	return concreteMatch(pkgArch, r.arch, r.aliases), nil
+}
+
+// concreteMatch is the polarity-independent core shared by the affected and unaffected qualifiers:
+// the cases where the arch comparison is definite. Both agree here; they differ only in how they
+// resolve the uncertain cases above (see each Satisfied).
+func concreteMatch(pkgArch, recordArch string, aliases map[string]string) bool {
+	switch recordArch {
+	case ArchSource:
+		return true
+	case ArchBinaryNoArchSpecified:
+		return pkgArch != ArchSource
+	default:
+		return canonicalArch(pkgArch, aliases) == canonicalArch(recordArch, aliases)
+	}
+}
+
+// isArchIndependent reports whether an architecture value describes an arch-independent package
+// (rpm "noarch", deb "all") rather than a concrete CPU architecture. See archNoarch / archAll.
+func isArchIndependent(a string) bool {
+	return a == archNoarch || a == archAll
+}
+
+// packageArch reads the architecture off the package's metadata contract. Only RPM metadata
+// carries an arch today; any other (or absent) metadata reports "", which Satisfied treats as
+// inert. The architecture qualifier is only emitted on rpm/CSAF entries, so it is only ever
+// evaluated against rpm packages in practice.
+func packageArch(p pkg.Package) string {
+	if m, ok := p.Metadata.(pkg.RpmMetadata); ok {
+		return m.Arch
+	}
+	return ""
+}
+
+// canonicalArch folds an architecture string onto one token per CPU architecture so matching
+// doesn't drop vulnerabilities across ecosystem dialects. The same architecture is spelled
+// differently by different tooling: RPM/GNU/Alpine say "x86_64"/"aarch64", while Debian/Go/OCI
+// say "amd64"/"arm64" (and Windows "x64"). Since a package carries its package manager's
+// spelling and an advisory carries its source's spelling, an exact string compare would
+// wrongly drop a real match when those dialects differ.
+//
+// The alias table is data-driven: it comes from the database (the architecture_aliases table),
+// so the folding can be updated without shipping a new grype binary. An empty table — which is
+// what a database built before that table existed reports — falls back to the built-in
+// defaultAliases so historical databases keep cross-dialect matching.
+//
+// Only genuine CPU architectures reach this function. The role markers ("src", binary-no-arch)
+// and arch-independent values (rpm "noarch", deb "all") are handled earlier in Satisfied and
+// never get here. A spelling not in the table is its own canonical form.
+func canonicalArch(a string, aliases map[string]string) string {
+	if len(aliases) == 0 {
+		aliases = defaultAliases
+	}
+	if canonical, ok := aliases[a]; ok {
+		return canonical
+	}
+	return a
+}
+
+// defaultAliases maps each non-canonical architecture spelling to its canonical token. The
+// canonical token is arbitrary (we use the Go/OCI spelling); only equivalence matters, so a
+// canonical spelling (e.g. "amd64") is intentionally absent and resolves to itself.
+var defaultAliases = map[string]string{
+	"x86_64":  "amd64",
+	"x64":     "amd64",
+	"aarch64": "arm64",
+	"i386":    "386",
+	"i686":    "386",
+	"x86":     "386",
+	"ppc64el": "ppc64le",
+}
+
+// DefaultAliases returns a copy of the built-in architecture alias table (alias spelling ->
+// canonical token). It is the single source of truth for both seeding the database's
+// architecture_aliases table at build time and the match-time fallback for databases that
+// predate that table.
+func DefaultAliases() map[string]string {
+	out := make(map[string]string, len(defaultAliases))
+	for alias, canonical := range defaultAliases {
+		out[alias] = canonical
+	}
+	return out
 }

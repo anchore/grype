@@ -49,7 +49,21 @@ func UpstreamPackages(p Package) (pkgs []Package) {
 		}
 		tmp.CPEs = updatedCPEs
 
+		setSrcArchOnUpstream(&tmp)
+
 		pkgs = append(pkgs, tmp)
 	}
 	return pkgs
+}
+
+func setSrcArchOnUpstream(upstream *Package) {
+	if upstream == nil {
+		return
+	}
+	// TODO: additional cases can be added here as their matching becomes dependent
+	// on architecture.
+	if r, ok := upstream.Metadata.(RpmMetadata); ok {
+		r.Arch = "src"
+		upstream.Metadata = r
+	}
 }

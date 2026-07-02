@@ -52,6 +52,7 @@ func Models() []any {
 		&OperatingSystemSpecifierOverride{},
 		&Package{},
 		&PackageSpecifierOverride{},
+		&ArchitectureAlias{},
 
 		// CPE related search tables
 		&AffectedCPEHandle{},   // join on CPE
@@ -531,6 +532,22 @@ type PackageSpecifierOverride struct {
 	// below are the fields that should be used as replacement for fields in the Packages table
 
 	ReplacementEcosystem *string `gorm:"column:replacement_ecosystem;primaryKey"`
+}
+
+// ArchitectureAlias folds an architecture spelling onto a canonical token shared by every
+// dialect spelling of the same CPU architecture (e.g. rpm "x86_64" and deb/OCI "amd64" both
+// fold to "amd64"). The architecture qualifier reads this table at match time so cross-dialect
+// arch comparisons don't drop real matches; the data lives in the DB rather than the grype
+// binary so the folding can change without a release. See pkg/qualifier/architecture.
+type ArchitectureAlias struct {
+	// Alias is an architecture spelling as it may appear on a package or vulnerability entry
+	// (e.g. "x86_64"). Only non-canonical spellings are stored; a canonical token resolves to
+	// itself by absence.
+	Alias string `gorm:"column:alias;primaryKey"`
+
+	// Canonical is the token Alias folds to (e.g. "amd64"). The choice of token is arbitrary;
+	// only equivalence across spellings matters.
+	Canonical string `gorm:"column:canonical;not null"`
 }
 
 // OperatingSystem represents a specific release of an operating system. The resolution of the version is

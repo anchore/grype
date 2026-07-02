@@ -48,11 +48,16 @@ const (
 	//        architecture). The field's semantics are unchanged; the rename drops the rpm-
 	//        specific prefix because the value already lives in PackageQualifiers and can
 	//        carry any architecture string for future arch-scoped advisories.
-	// 6.1.8: Add GoImports field to PackageQualifiers (used by the govulndb OSV strategy to
+	// 6.1.8: Add ArchitectureAlias table (architecture_aliases). The architecture qualifier
+	//        reads it at match time to fold dialect arch spellings (e.g. "x86_64" <-> "amd64")
+	//        onto a canonical token. Older clients ignore the table; clients reading a DB built
+	//        before it existed fall back to the built-in default aliases.
+	// 6.1.9: Add GoImports field to PackageQualifiers (used by the govulndb OSV strategy to
 	//        carry per-symbol reachability from ecosystem_specific.imports; the gosymbols
 	//        runtime qualifier in pkg/qualifier/gosymbols matches captured Go binary symbols
 	//        so stdlib and golang.org/x/* advisories don't FP-match binaries that don't use
 	//        the vulnerable symbols)
+
 )
 
 const (
@@ -82,6 +87,7 @@ type Reader interface {
 	UnaffectedPackageStoreReader
 	AffectedCPEStoreReader
 	UnaffectedCPEStoreReader
+	ArchitectureAliasStoreReader
 	io.Closer
 	attachBlobValue(...blobable) error
 }

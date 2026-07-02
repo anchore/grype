@@ -30,6 +30,7 @@ import (
 // matcher's source-indirection path engages (the RHEL data is keyed on the source RPM).
 func rhelPython39Host(d *distro.Distro, version string, id pkg.ID) pkg.Package {
 	return dbtest.NewPackage("python3", version, syftPkg.RpmPkg).
+		WithArchitecture("x86_64").
 		WithID(id).
 		WithDistro(d).
 		WithUpstream("python3.9", version).

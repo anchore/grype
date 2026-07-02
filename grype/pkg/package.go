@@ -456,10 +456,11 @@ func rpmDataFromPkg(p syftPkg.Package) (metadata *RpmMetadata, upstreams []Upstr
 			upstreams = handleSourceRPM(p.Name, m.SourceRpm)
 		}
 
-		if m.Epoch != nil || m.ModularityLabel != nil {
+		if m.Epoch != nil || m.ModularityLabel != nil || m.Arch != "" {
 			metadata = &RpmMetadata{
 				Epoch:           m.Epoch,
 				ModularityLabel: m.ModularityLabel,
+				Arch:            m.Arch,
 			}
 		}
 	case syftPkg.RpmArchive:
@@ -467,10 +468,11 @@ func rpmDataFromPkg(p syftPkg.Package) (metadata *RpmMetadata, upstreams []Upstr
 			upstreams = handleSourceRPM(p.Name, m.SourceRpm)
 		}
 
-		if m.Epoch != nil || m.ModularityLabel != nil {
+		if m.Epoch != nil || m.ModularityLabel != nil || m.Arch != "" {
 			metadata = &RpmMetadata{
 				Epoch:           m.Epoch,
 				ModularityLabel: m.ModularityLabel,
+				Arch:            m.Arch,
 			}
 		}
 	}

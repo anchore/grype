@@ -1825,3 +1825,44 @@ func timeRef(ti time.Time) *time.Time {
 func strRef(s string) *string {
 	return &s
 }
+
+// Test_getPackages_perArchFix pins that an Oracle-style advisory with a different fix per
+// architecture (the ELSA-2022-4803 false-positive shape) yields one affected package handle per
+// arch, each carrying its own Architecture qualifier and fix version, while an arch-less FixedIn
+// stays arch-agnostic. Without per-arch handles, the higher aarch64 revision would over-match a
+// patched x86_64 package.
+func Test_getPackages_perArchFix(t *testing.T) {
+	vuln := unmarshal.OSVulnerability{}
+	vuln.Vulnerability.Name = "ELSA-2022-4803"
+	vuln.Vulnerability.NamespaceName = "ol:7"
+	vuln.Vulnerability.FixedIn = []unmarshal.OSFixedIn{
+		{Name: "rsyslog", NamespaceName: "ol:7", Version: "0:8.24.0-57.0.1.el7_9.3", VersionFormat: "rpm", Arch: strRef("x86_64")},
+		{Name: "rsyslog", NamespaceName: "ol:7", Version: "0:8.24.0-57.0.4.el7_9.3", VersionFormat: "rpm", Arch: strRef("aarch64")},
+		{Name: "zlib", NamespaceName: "ol:7", Version: "0:1.2.7-21.el7", VersionFormat: "rpm"}, // arch-less: applies to all
+	}
+
+	affected, unaffected := getPackages(vuln)
+	require.Empty(t, unaffected)
+
+	type got struct {
+		name    string
+		arch    string // "" when no architecture qualifier
+		fixVers string
+	}
+	var results []got
+	for _, aph := range affected {
+		g := got{name: aph.Package.Name}
+		if aph.BlobValue.Qualifiers != nil && aph.BlobValue.Qualifiers.Architecture != nil {
+			g.arch = *aph.BlobValue.Qualifiers.Architecture
+		}
+		require.Len(t, aph.BlobValue.Ranges, 1)
+		g.fixVers = aph.BlobValue.Ranges[0].Fix.Version
+		results = append(results, g)
+	}
+
+	assert.ElementsMatch(t, []got{
+		{name: "rsyslog", arch: "x86_64", fixVers: "0:8.24.0-57.0.1.el7_9.3"},
+		{name: "rsyslog", arch: "aarch64", fixVers: "0:8.24.0-57.0.4.el7_9.3"},
+		{name: "zlib", arch: "", fixVers: "0:1.2.7-21.el7"},
+	}, results)
+}
