@@ -400,6 +400,7 @@ func generatePackages(t *testing.T) []syftPkg.Package {
 			Metadata: syftPkg.RpmDBEntry{
 				Epoch:     &epoch,
 				SourceRpm: "some-source-rpm",
+				Arch:      "x86_64",
 			},
 		},
 		{

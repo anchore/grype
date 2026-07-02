@@ -61,6 +61,47 @@ func TestPackageBuilder_WithID(t *testing.T) {
 	assert.Equal(t, pkg.ID("stable-id"), p.ID)
 }
 
+// TestPackageBuilder_WithArchitecture pins down both the set path (concrete
+// arch stamped onto pkg.RpmMetadata) and the default (unset → no arch), since
+// the empty case is what triggers the architectureQualifier's inert-passthrough
+// branch at match time.
+func TestPackageBuilder_WithArchitecture(t *testing.T) {
+	tests := []struct {
+		name string
+		set  func(*PackageBuilder) *PackageBuilder
+		want string
+	}{
+		{
+			name: "concrete arch is stored",
+			set:  func(b *PackageBuilder) *PackageBuilder { return b.WithArchitecture("x86_64") },
+			want: "x86_64",
+		},
+		{
+			name: "different arch overwrites prior value",
+			set: func(b *PackageBuilder) *PackageBuilder {
+				return b.WithArchitecture("x86_64").WithArchitecture("aarch64")
+			},
+			want: "aarch64",
+		},
+		{
+			name: "unset architecture defaults to empty string",
+			set:  func(b *PackageBuilder) *PackageBuilder { return b },
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b := NewPackage("test-pkg", "1.0.0", syftPkg.RpmPkg)
+			p := tt.set(b).Build()
+			var got string
+			if m, ok := p.Metadata.(pkg.RpmMetadata); ok {
+				got = m.Arch
+			}
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestRelativeResultPath(t *testing.T) {
 	tests := []struct {
 		name string
