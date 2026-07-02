@@ -5,3 +5,14 @@ extractions:
         - rhel:9.4+eus/cve-2024-0340
         - rhel:9/cve-2021-47527
         - rhel:9.4+eus/cve-2021-47527
+        # rhel:8 EUS regression records (pinned-EUS reachability). Real records extracted
+        # from the vunnel results DB; despite the "rhel9" fixture name this workspace holds
+        # the RHEL EUS test corpus across majors so we keep a few large fixtures, not many.
+        #   cve-2016-9840 (rsync): only fix is .el8_10 (minor 10), no +eus overlay -> an
+        #     8.4+eus host cannot reach it, must stay vulnerable (FixStateNotFixed).
+        #   cve-2020-7788 (nodejs:14): base rhel:8 disjoint range tops out at the unreachable
+        #     .el8_5 rebase; the rhel:8.4+eus overlay carries the reachable .el8_4 backport,
+        #     so an 8.4+eus host at that build resolves (must NOT match).
+        - rhel:8/cve-2016-9840
+        - rhel:8/cve-2020-7788
+        - rhel:8.4+eus/cve-2020-7788

@@ -1,25 +1,54 @@
-# Hand-authored fixture (auto-generate disabled). Hand-authored rhel:9 records that
-# exercise the server-side stream-affinity handling, kept verbatim in OS schema so the
-# real vunnel -> grype-db -> grype path is what gets tested.
+# Hand-authored fixture (auto-generate disabled). Real RHEL records kept verbatim in OS
+# schema (scoped to the package under test) so the real vunnel -> grype-db -> grype path is
+# what gets tested. Every record below is a genuine Red Hat advisory record extracted from
+# the vunnel results DB - no synthetic vulnerability data.
 #
 #   rhel:9/cve-2024-8088  python3.9   multi-RHSA phase-1: distinct upstream bases reduced
 #                                     to one record with a partitioned VulnerableRange.
-#   rhel:9/cve-2023-4813  glibc       per-minor `Advisories`: GA RHBA -100.el9 (Minor=null)
-#                                     plus 9.2 stream RHSA -60.el9_2.7 (Minor=2). The v6 OS
-#                                     transformer expands these into per-minor rows.
-#   rhel:9/cve-9999-0001  streamtest  synthetic two-stream record fixing at 9.2 (Alpha,
-#                                     0:1-2.el9_2) and 9.3 (Bravo, 0:1-3.el9_3).
-#   rhel:9/cve-9999-0002  webkit2gtk3 GA-minor inference (rebase): pinned 9.2
-#                                     0:2.38.5-1.el9_2.3 + GA 0:2.40.5-1.el9; GA EVR higher
-#                                     despite tied release int -> inferred at minor 3.
-#   rhel:8/cve-9999-0003  kernel      GA-minor inference (superseded): pinned 8.9
-#                                     0:4.18.0-513.5.1.el8_9 + lower-EVR GA 0:4.18.0-193.el8
-#                                     -> GA dropped.
+#   rhel:9/cve-2023-4813  glibc       per-minor `Advisories` with a GA rebase: GA RHBA
+#                                     -100.el9 (Minor=null) plus 9.2 stream RHSA -60.el9_2.7
+#                                     (Minor=2). The GA EVR outranks the pinned fix, so it is
+#                                     inferred at minor 3 and expanded into per-minor rows.
+#   rhel:9/cve-2022-50536 kernel      roll-forward across a gap minor: fixes at 9.1
+#                                     (RHSA-2022:8267, -162.6.1.el9_1) and 9.3 (RHSA-2023:6583,
+#                                     -362.8.1.el9_3), nothing on 9.2. A 9.2 host must be
+#                                     judged against the reachable 9.3 build, not the 9.1 one.
+#   rhel:7/cve-2015-7979  ntp         GA-minor inference (rebase): pinned 7.2 RHSA-2016:1141
+#                                     (-22.el7_2.2) + GA RHSA-2016:2583 (-25.el7, Minor=null).
+#                                     GA EVR is higher -> inferred at minor 3, closing the FN
+#                                     for a 7.3 host below the GA build.
+#   rhel:6/cve-2018-3639  kernel      GA-minor inference (superseded): pinned 6.9
+#                                     (RHSA-2018:1651) and 6.10 (RHSA-2018:2164, -754.2.1.el6)
+#                                     + GA RHSA-2018:1854 (-754.el6, Minor=null). The GA EVR is
+#                                     below the 6.10 z-stream fix -> dropped (the pinned fix
+#                                     already covers it); minor governance is unchanged.
+#   rhel:8/cve-2020-0543  microcode_ctl  multi-upstream-base record that ALSO carries
+#                                     per-stream `Advisories` (RHSA-2020:2431 el8_2 minor 2,
+#                                     RHSA-2021:3027 el8_4 minor 4). The disjoint
+#                                     VulnerableRange must survive per-minor expansion (the
+#                                     transformer's hasVulnerableRange gate keeps baseRanges
+#                                     instead of collapsing to a single roll-forward bound).
+#   rhel:8/cve-2021-27928 mariadb      not-affected suppression: the mariadb:10.5 module stream
+#                                     is NOT affected (Version "0") while mariadb:10.3 has a
+#                                     real fix (RHSA-2021:1242). The suppressing not-affected
+#                                     handle must be expanded to every minor alongside the
+#                                     affected rows, or a minored host on 10.5 loses the
+#                                     "Distro Not Vulnerable" ignore (the mariadb-class FP).
+#   rhel:9/cve-2017-17095 libtiff      plain single-stream GA fix (0:4.4.0-10.el9, one RHSA,
+#                                     no per-minor Advisories). Present to prove cumulative
+#                                     completeness: a minored host resolves to a per-minor
+#                                     row created by OTHER records (e.g. glibc) and must
+#                                     still see this single-stream package there - i.e.
+#                                     single-stream fixes are replicated onto every minor
+#                                     row, not just the multi-stream ones.
 auto-generate: false
 extractions:
     rhel:
         - rhel:9/cve-2024-8088
         - rhel:9/cve-2023-4813
-        - rhel:9/cve-9999-0001
-        - rhel:9/cve-9999-0002
-        - rhel:8/cve-9999-0003
+        - rhel:9/cve-2022-50536
+        - rhel:7/cve-2015-7979
+        - rhel:6/cve-2018-3639
+        - rhel:8/cve-2020-0543
+        - rhel:9/cve-2017-17095
+        - rhel:8/cve-2021-27928

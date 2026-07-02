@@ -161,8 +161,9 @@ func buildRanges(vuln unmarshal.OSVulnerability, fixedIns []unmarshal.OSFixedIn)
 
 // minorFix pairs a known fix minor with the fix build (Version) that governs it.
 type minorFix struct {
-	minor   int
-	version string
+	minor    int
+	version  string
+	advisory string // RHSA id that shipped this build ("" when unknown); becomes the fix's reference
 }
 
 // rhelMinorSpan is the inclusive highest RHEL minor for which we materialize a per-minor
@@ -177,8 +178,11 @@ type minorFix struct {
 // to the major-only row (today's coarse, roll-forward-to-highest behavior). Erring high
 // only wastes rows (extra minors carry the highest fix, same as the major fallback).
 //
-// PROTOTYPE: this should be derived from the published-minor / EOL feed rather than
-// hardcoded. See [transformer-per-minor-must-be-cumulative] in the design notes.
+// Highest RHEL minor to materialize a per-minor GA row for, per major. Deliberately errs high:
+// a host on a higher minor than listed just resolves to the major-only row (today's coarse
+// behavior) -- safe, never a false negative -- so these values only need to cover deployed minors,
+// not be exact.
+// TODO: make this list auto-updating (e.g. a go:generate step from a lifecycle source).
 var rhelMinorSpan = map[string]int{
 	"5": 11, "6": 11, "7": 11, "8": 11, "9": 11, "10": 4,
 }
@@ -213,20 +217,28 @@ func expandRHELMinorRows(vuln unmarshal.OSVulnerability, group groupIndex, fixed
 
 	// known per-minor governing fixes (empty for the common single-stream case).
 	fixes, versionFormat := collectKnownMinorFixes(fixedIns)
-	if len(fixes) > 0 {
+
+	// Per-minor governing pins one "< fix" per minor. That is correct for same-base multi-minor
+	// RHSAs, but a MULTI-UPSTREAM-BASE group carries a disjoint VulnerableRange that a single
+	// constraint cannot represent -- roll-forward would pick the higher base's fix and flag a host
+	// still on the lower base that already carries its own base's fix (a false positive). For those,
+	// fall back to the group's normal ranges (which honor VulnerableRange) replicated on every row,
+	// exactly as single-stream groups are handled. We still expand across the span so the multi-base
+	// package stays present on every minor row (completeness), it just carries the disjoint range.
+	perMinor := len(fixes) > 0 && !hasVulnerableRange(fixedIns)
+	if perMinor {
 		fixes = inferGAMinors(fixes, collectNullMinorGABuilds(fixedIns))
 	}
 
-	// baseRanges is the group's normal per-fix range set (honors VulnerableRange,
-	// wont-fix, etc.); used verbatim for single-stream groups on every row.
+	// baseRanges is the group's normal per-fix range set (honors VulnerableRange, wont-fix, etc.);
+	// used verbatim on every row for single-stream and multi-upstream-base groups.
 	baseRanges := buildRanges(vuln, fixedIns)
 
-	// rangesFor returns the ranges for a given minor row (minor=="" is the major
-	// fallback). Single-stream groups carry baseRanges on every row (verdict unchanged
-	// vs stock). Multi-stream groups pin the fix governing that minor; the major
-	// fallback rolls higher-minor hosts forward to the highest known fix.
+	// rangesFor returns the ranges for a given minor row (minor=="" is the major fallback).
+	// Non-per-minor groups carry baseRanges on every row; per-minor groups pin the fix governing
+	// that minor (the major fallback rolls higher-minor hosts forward to the highest known fix).
 	rangesFor := func(minor string) []db.Range {
-		if len(fixes) == 0 {
+		if !perMinor {
 			return baseRanges
 		}
 		m := fixes[len(fixes)-1].minor // major fallback -> highest known fix
@@ -323,22 +335,42 @@ func rhelGAExpansionMinors(group groupIndex) []string {
 // host whose version sorts above the 9.2 build but below the (applicable) 9.4 build, a false
 // negative. `fixes` is sorted ascending by minor.
 func governingRange(fixes []minorFix, m int, versionFormat, vulnID string) db.Range {
-	v := fixes[len(fixes)-1].version // m past the last fix -> highest known fix
+	gov := fixes[len(fixes)-1] // m past the last fix -> highest known fix
 	for _, f := range fixes {
 		if f.minor >= m {
-			v = f.version // lowest fix-minor >= m (fixes ascending)
+			gov = f // lowest fix-minor >= m (fixes ascending)
 			break
 		}
+	}
+	fix := &db.Fix{
+		Version: versionutil.CleanFixedInVersion(gov.version),
+		State:   db.FixedStatus,
+	}
+	// carry the governing build's RHSA reference so a multi-RHSA per-minor match shows the same
+	// errata link a single-stream match does (single-stream refs come from getFix; this is the
+	// multi-stream equivalent).
+	if ref := advisoryReference(gov.advisory); ref != nil {
+		fix.Detail = &db.FixDetail{References: []db.Reference{*ref}}
 	}
 	return db.Range{
 		Version: db.Version{
 			Type:       versionFormat,
-			Constraint: deriveConstraintFromFix(versionutil.CleanConstraint(v), vulnID),
+			Constraint: deriveConstraintFromFix(versionutil.CleanConstraint(gov.version), vulnID),
 		},
-		Fix: &db.Fix{
-			Version: versionutil.CleanFixedInVersion(v),
-			State:   db.FixedStatus,
-		},
+		Fix: fix,
+	}
+}
+
+// advisoryReference builds a fix Detail reference from an RHSA id, deriving the canonical Red Hat
+// errata URL. Returns nil for an empty id so a fix with no known advisory carries no reference.
+func advisoryReference(rhsaID string) *db.Reference {
+	if rhsaID == "" {
+		return nil
+	}
+	return &db.Reference{
+		ID:   rhsaID,
+		URL:  "https://access.redhat.com/errata/" + rhsaID,
+		Tags: []string{db.AdvisoryReferenceTag},
 	}
 }
 
@@ -346,35 +378,36 @@ func governingRange(fixes []minorFix, m int, versionFormat, vulnID string) db.Ra
 // fixedIns in the group, returning them sorted ascending by minor (plus the version
 // format). Last write wins per minor; in practice vunnel emits one advisory per minor.
 func collectKnownMinorFixes(fixedIns []unmarshal.OSFixedIn) ([]minorFix, string) {
-	knownByMinor := make(map[int]string)
+	knownByMinor := make(map[int]minorFix)
 	var versionFormat string
 	for _, f := range fixedIns {
 		for _, adv := range f.Advisories {
 			if adv.Minor == nil {
 				continue
 			}
-			knownByMinor[*adv.Minor] = adv.Version
+			knownByMinor[*adv.Minor] = minorFix{minor: *adv.Minor, version: adv.Version, advisory: adv.Advisory}
 			versionFormat = f.VersionFormat
 		}
 	}
 
 	fixes := make([]minorFix, 0, len(knownByMinor))
-	for m, v := range knownByMinor {
-		fixes = append(fixes, minorFix{minor: m, version: v})
+	for _, mf := range knownByMinor {
+		fixes = append(fixes, mf)
 	}
 	sort.Slice(fixes, func(i, j int) bool { return fixes[i].minor < fixes[j].minor })
 
 	return fixes, versionFormat
 }
 
-// collectNullMinorGABuilds returns the fix Versions of advisories whose Minor is null
-// AND whose Version is a bare GA .elN build (not a z-stream .elN_M).
-func collectNullMinorGABuilds(fixedIns []unmarshal.OSFixedIn) []string {
-	var out []string
+// collectNullMinorGABuilds returns advisories whose Minor is null AND whose Version is a bare GA
+// .elN build (not a z-stream .elN_M), carrying the RHSA id so inferGAMinors keeps the reference
+// when it places the build on an inferred minor.
+func collectNullMinorGABuilds(fixedIns []unmarshal.OSFixedIn) []minorFix {
+	var out []minorFix
 	for _, f := range fixedIns {
 		for _, adv := range f.Advisories {
 			if adv.Minor == nil && isBareGABuild(adv.Version) {
-				out = append(out, adv.Version)
+				out = append(out, minorFix{version: adv.Version, advisory: adv.Advisory})
 			}
 		}
 	}
@@ -387,6 +420,18 @@ func isBareGABuild(evr string) bool {
 	return bareGARelease.MatchString(evr)
 }
 
+// hasVulnerableRange reports whether any fixedIn carries a VulnerableRange, which vunnel emits for
+// multi-upstream-base groups (disjoint per-base vulnerable ranges). Such groups must not be
+// collapsed to a single per-minor governing fix.
+func hasVulnerableRange(fixedIns []unmarshal.OSFixedIn) bool {
+	for _, f := range fixedIns {
+		if f.VulnerableRange != "" {
+			return true
+		}
+	}
+	return false
+}
+
 // inferGAMinors folds each GA null-minor build into the sorted per-minor fixes by EVR
 // ordering: a GA build whose full EVR exceeds the current max pinnable EVR is inferred
 // to fix minor (maxMinor+1) and appended (governing that minor and up, and becoming the
@@ -394,13 +439,13 @@ func isBareGABuild(evr string) bool {
 // Comparison is version-first RPM EVR (epoch->version->release), NOT a release-int
 // compare, so an upstream rebase whose release counter reset (e.g. 2.40.5-1.el9 vs a
 // pinned 2.38.5-1.el9_2.3) still orders correctly by version.
-func inferGAMinors(fixes []minorFix, gaBuilds []string) []minorFix {
+func inferGAMinors(fixes []minorFix, gaBuilds []minorFix) []minorFix {
 	// ascending EVR so successively-higher GA builds land on successive minors.
-	sort.Slice(gaBuilds, func(i, j int) bool { return compareRPMEVR(gaBuilds[i], gaBuilds[j]) < 0 })
+	sort.Slice(gaBuilds, func(i, j int) bool { return compareRPMEVR(gaBuilds[i].version, gaBuilds[j].version) < 0 })
 	for _, ga := range gaBuilds {
 		maxFix := fixes[len(fixes)-1]
-		if compareRPMEVR(ga, maxFix.version) > 0 {
-			fixes = append(fixes, minorFix{minor: maxFix.minor + 1, version: ga})
+		if compareRPMEVR(ga.version, maxFix.version) > 0 {
+			fixes = append(fixes, minorFix{minor: maxFix.minor + 1, version: ga.version, advisory: ga.advisory})
 		}
 	}
 	return fixes
