@@ -269,8 +269,6 @@ func deriveConstraintFromFix(fixVersion, vulnerabilityID string) string {
 }
 
 type groupIndex struct {
-	module    string
-	format    string
 	name       string
 	id         string
 	osName     string
@@ -297,8 +295,6 @@ func groupFixedIns(vuln unmarshal.OSVulnerability) map[groupIndex][]unmarshal.OS
 			arch = *fixedIn.Arch
 		}
 		g := groupIndex{
-			// arch splits a per-arch fix into its own affected package handle so the architecture
-			// qualifier can scope it; empty means the fix applies to all arches.
 			name:       fixedIn.Name,
 			id:         oi.id,
 			osName:     oi.name,
@@ -308,7 +304,9 @@ func groupFixedIns(vuln unmarshal.OSVulnerability) map[groupIndex][]unmarshal.OS
 			hasModule:  fixedIn.Module != nil,
 			module:     mod,
 			format:     fixedIn.VersionFormat,
-			arch:       arch,
+			// arch splits a per-arch fix into its own affected package handle so the architecture
+			// qualifier can scope it; empty means the fix applies to all arches.
+			arch: arch,
 		}
 
 		grouped[g] = append(grouped[g], fixedIn)
