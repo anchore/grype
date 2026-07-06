@@ -16,7 +16,7 @@ const (
 	// 1.1.4 - Add rpm_arch field to PackageQualifiers (source/binary tagging for the CSAF VEX transformer)
 	// 1.1.5 - Add rootio field to PackageQualifiers (for Root IO NAK-pattern matching via the OSV rootio strategy)
 	// 1.1.6 - Rename rpm_arch field on PackageQualifiers to architecture (semantics unchanged; rpm-specific prefix dropped)
-	// 1.1.7 - Add go_imports field to PackageQualifiers (per-symbol reachability from govulndb ecosystem_specific.imports, used for Go binary symbol matching via the gosymbols qualifier), plus modifications and review_status fields to the vulnerability object (build-time amendment audit trail and source review state)
+	// 1.1.7 - Add go_imports field to PackageQualifiers (per-symbol reachability from govulndb ecosystem_specific.imports, used for Go binary symbol matching via the gosymbols qualifier).
 
 	// VulnerabilitiesSchemaVersion is the schema version for the `db search vuln` command
 	VulnerabilitiesSchemaVersion = "1.0.6"
@@ -27,5 +27,5 @@ const (
 	// 1.0.3 - Add severity string field to vulnerability object
 	// 1.0.4 - Add CWE IDs to vulnerability output
 	// 1.0.5 - Add ID field to Reference (for advisory IDs like RHSA-2023:5455)
-	// 1.0.6 - Add modifications and review_status fields to the vulnerability object (build-time amendment audit trail and source review state)
+	// 1.0.6 - Add modifications and review_status fields to the vulnerability object
 )

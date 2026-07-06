@@ -11,10 +11,17 @@ import (
 
 // TestMatcherGolang_GoSymbols_GHSAMerge exercises the build-time merge of
 // govulndb symbol information onto GHSA records (grype/db/v6/build/
-// govulndb_merge.go) end to end, using the same compiled go-binary fixtures as
-// TestMatcherGolang_GoSymbols but against a DB built from BOTH the govulndb and
+// govulndb_merge.go) end to end, against a DB built from BOTH the govulndb and
 // github providers — the production shape, where most golang.org/x/* and
 // third-party advisories exist in both feeds.
+//
+// Symbol evidence comes from two tiers. The x/net and stdlib scenarios reuse
+// TestMatcherGolang_GoSymbols's compiled go-binary fixtures, which prove the
+// contract between syft's real symbol capture and grype's normalization. The
+// third-party scenarios (gjson, aws-sdk-go) exercise DB-side merge and range
+// behavior only, so they use hand-written symbol lists that mirror syft's
+// capture naming (import-path qualified, pointer-receiver decorated) rather
+// than compiling a fixture per scenario.
 //
 // The govulndb-and-ghsa fixture pairs:
 //   - GO-2022-0969 with GHSA-69cg-p879-7622, which lists golang.org/x/net AND
@@ -111,10 +118,18 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 		})
 
 		t.Run("3rd-party binary using a vulnerable symbol matches the patched GHSA", func(t *testing.T) {
-			// the compiled fixture pins gjson v1.9.2, inside both GHSAs' < 1.9.3
-			// window, so the cataloged version is used as-is
-			p := dbtest.GoBinaryFixture(t, "gobin-gjson-get").
-				Package("github.com/tidwall/gjson").
+			// gjson v1.9.2 is inside both GHSAs' < 1.9.3 window; the symbols are what
+			// a binary calling gjson.Get carries (the exported entrypoint plus the
+			// internals it pulls in — parseObject/queryMatches are themselves on
+			// GO-2021-0265's symbol list)
+			p := dbtest.NewPackage("github.com/tidwall/gjson", "v1.9.2", syftPkg.GoModulePkg).
+				WithLanguage(syftPkg.Go).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: []string{
+					"github.com/tidwall/gjson.Get",
+					"github.com/tidwall/gjson.parseObject",
+					"github.com/tidwall/gjson.queryMatches",
+					"github.com/tidwall/gjson.Result.String",
+				}}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -127,26 +142,42 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 		})
 
 		t.Run("3rd-party binary avoiding vulnerable symbols matches nothing", func(t *testing.T) {
-			p := dbtest.GoBinaryFixture(t, "gobin-gjson-valid").
-				Package("github.com/tidwall/gjson").
+			// links vulnerable gjson but only uses gjson.Valid (and the internals it
+			// pulls in), none of which are on GO-2021-0265's symbol list; before the
+			// merge the unfiltered GHSA records matched this binary by module name
+			p := dbtest.NewPackage("github.com/tidwall/gjson", "v1.9.2", syftPkg.GoModulePkg).
+				WithLanguage(syftPkg.Go).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: []string{
+					"github.com/tidwall/gjson.Valid",
+					"github.com/tidwall/gjson.validpayload",
+					"github.com/tidwall/gjson.validany",
+				}}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
 
-			// links vulnerable gjson but only uses gjson.Valid; before the merge the
-			// unfiltered GHSA records matched this binary by module name.
 			findings.IsEmpty()
 		})
 
+		// s3cryptoSymbols is what a binary using the S3 crypto client carries:
+		// the vulnerable constructor (on GO-2022-0635's symbol list) plus
+		// surrounding SDK surface that is not.
+		s3cryptoSymbols := []string{
+			"github.com/aws/aws-sdk-go/service/s3/s3crypto.NewDecryptionClient",
+			"github.com/aws/aws-sdk-go/service/s3/s3crypto.(*DecryptionClient).GetObject",
+			"github.com/aws/aws-sdk-go/aws/session.NewSession",
+		}
+
 		t.Run("current aws-sdk-go using vulnerable symbols is out of the GHSA range - no match", func(t *testing.T) {
 			// GO-2022-0635 is open-ended in govulndb (introduced: 0, no fix), so
-			// govulncheck reports EVERY aws-sdk-go version — including the current
-			// one this fixture pins — as affected. The aliased GHSA bounds the
-			// range at < 1.34.0 (fixed 2020). The merged record carries the GHSA
-			// range, so the vulnerable symbols being present does not matter here:
-			// the version is fixed. This is the merged-data range win.
-			p := dbtest.GoBinaryFixture(t, "gobin-awss3crypto").
-				Package("github.com/aws/aws-sdk-go").
+			// govulncheck reports EVERY aws-sdk-go version — including a current
+			// one — as affected. The aliased GHSA bounds the range at < 1.34.0
+			// (fixed 2020). The merged record carries the GHSA range, so the
+			// vulnerable symbols being present does not matter here: the version
+			// is fixed. This is the merged-data range win.
+			p := dbtest.NewPackage("github.com/aws/aws-sdk-go", "v1.55.8", syftPkg.GoModulePkg).
+				WithLanguage(syftPkg.Go).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: s3cryptoSymbols}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -156,10 +187,10 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 
 		t.Run("old aws-sdk-go using vulnerable symbols matches the patched GHSA", func(t *testing.T) {
 			// inside the GHSA's < 1.34.0 window the merged record matches — but
-			// only because this binary really uses s3crypto.NewDecryptionClient.
-			p := dbtest.GoBinaryFixture(t, "gobin-awss3crypto").
-				Package("github.com/aws/aws-sdk-go").
-				WithVersion("v1.33.0").
+			// only because this binary uses s3crypto.NewDecryptionClient.
+			p := dbtest.NewPackage("github.com/aws/aws-sdk-go", "v1.33.0", syftPkg.GoModulePkg).
+				WithLanguage(syftPkg.Go).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: s3cryptoSymbols}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -173,8 +204,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// ones that never touch the S3 crypto client — the dominant FP class
 			// for one of the most-linked Go modules. With govulndb's symbols
 			// merged on, symbol evidence without the vulnerable symbols suppresses
-			// the match. (Symbols are hand-picked here: a compiled fixture would
-			// carry the whole SDK surface except s3crypto.)
+			// the match.
 			p := dbtest.NewPackage("github.com/aws/aws-sdk-go", "v1.33.0", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
 				WithMetadata(pkg.GolangBinMetadata{Symbols: []string{

@@ -29,20 +29,17 @@ import (
 //   - range type is always SEMVER → "go" format, which parses pseudo-versions
 //     (v0.0.0-<timestamp>-<commit>).
 //   - ecosystem_specific.imports (per-symbol reachability) is carried into the
-//     package blob as a go-imports qualifier, so packages cataloged with binary
-//     symbol evidence only match when at least one vulnerable symbol is present.
+//     package blob as a go-imports qualifier, so packages cataloged with symbol evidence
+//     only match when at least one vulnerable symbol is present.
 //   - references pass through, OSV type as tag, refID empty (canonical advisory
 //     page is in database_specific.url, not refs).
 //   - database_specific.review_status is carried onto the vulnerability blob so
 //     UNREVIEWED records that survive to the DB are identifiable.
 //
-// All affected packages are emitted, including general third-party modules. Most
-// third-party (and golang.org/x/*) packages duplicate advisories grype already
-// gets from GHSA; the build writer reconciles that overlap — patching the aliased
-// GHSA records with this record's symbol information and dropping the covered
-// affected packages — so only packages absent from GHSA (notably stdlib, which
-// GHSA never covers) are written under the GO-* record. See the writer's
-// handleGoVulnDBEntry.
+// Most third-party (and golang.org/x/*) packages have duplicate advisories grype
+// gets from GHSA; the build writer patchesthe aliased GHSA records with GoVuln symbol information
+// and drops the GoVuln duplicate affected packages. Only packages absent from GHSA are written under
+// the GO-* record. See the writer's handleGoVulnDBEntry.
 type govulndbStrategy struct{}
 
 func (govulndbStrategy) Matches(id string) bool {

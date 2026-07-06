@@ -11,33 +11,29 @@ import (
 )
 
 // This file reconciles the overlap between govulndb (GO-*) records and the GHSA
-// records they alias. Both feeds describe the same advisories for most
+// records they alias. Both feeds describe the similar advisories for most
 // golang.org/x/* and third-party modules, but only govulndb carries per-symbol
-// reachability (ecosystem_specific.imports). Writing both would surface the same
-// CVE twice — once symbol-filtered, once not — undoing the false-positive
-// reduction the go-imports qualifier provides.
+// reachability (ecosystem_specific.imports).
+
+// Writing both leads to reported false positive where GHSA are suraced without considering
+// the symbol context.
 //
 // During the streaming pass the writer holds back Go-ecosystem GHSA entries and
 // all govulndb entries; at Close time handleGoVulnDBEntry runs per GO record:
 //   - each GHSA affected package whose name matches the GO record's module path
-//     (or one of its import paths — GHSAs sometimes list sub-packages like
-//     golang.org/x/net/http2 as separate affected packages) is patched with the
-//     matching go-imports qualifier, and the amendment is recorded on the GHSA
+//     (records sometimes list sub-packages like golang.org/x/net/http2 as separate affected packages)
+//     is patched with the matching go-imports qualifier, and the amendment is recorded on the GHSA
 //     blob's Modifications.
 //   - a GO affected package whose module is present on any aliased GHSA is
-//     covered: it is dropped from the GO record. The GO record itself is written
+//     is dropped from the GO record. The GO record itself is written
 //     only if affected packages remain; otherwise it is dropped. Stdlib always
-//     remains: no GHSA lists the stdlib module itself, though GHSAs can list
-//     stdlib import paths as package rows (GHSA-4v7x-pqxf-cx7m carries net/http
-//     rows), which are patched with symbols without covering.
+//     remains: only one GHSA lists the stdlib module itself(GHSA-4v7x-pqxf-cx7m)
 //
-// Coverage intentionally ignores version-range differences between the two
+// intentionally ignores version-range differences between the two
 // feeds: the GHSA's ranges win. Where they disagree materially (a govulndb
 // package that is open-ended while the GHSA is bounded), the package is not
 // following Go module versioning correctly and the GHSA ranges are usually the
 // better ones.
-//
-// Reconciling at Close makes the merge independent of provider processing order.
 
 // holdForGoVulnDBMerge diverts entries that participate in the govulndb↔GHSA
 // reconciliation into the writer's held collections, returning true when the
