@@ -63,6 +63,8 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 		lxdGo             = "GO-2024-3312"        // fully GHSA-covered -> dropped from the DB
 		jsonPatchGHSA     = "GHSA-gxhv-3hwf-wjp9" // json-patch (+incompatible module); symbols merged from GO-2021-0076
 		jsonPatchGo       = "GO-2021-0076"        // fully GHSA-covered -> dropped from the DB
+		goRedisGHSA       = "GHSA-92cp-5422-2mw7" // go-redis /v9 rows; symbols merged from GO-2025-3540
+		goRedisGo         = "GO-2025-3540"        // /v9 rows dropped; base and /v7 /v8 rows survive
 	)
 
 	// see TestMatcherGolang_GoSymbols for why these versions are pinned
@@ -352,6 +354,93 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			findings := db.Match(t, matcher, p)
 
 			findings.IsEmpty()
+		})
+
+		// goRedisSymbols is what a binary configuring a go-redis client carries: the vulnerable
+		// connection-setup path (baseClient.initConn is on GO-2025-3540's symbol list) plus
+		// ordinary client surface that is not.
+		goRedisSymbols := []string{
+			"github.com/redis/go-redis/v9.(*baseClient).initConn",
+			"github.com/redis/go-redis/v9.NewClient",
+			"github.com/redis/go-redis/v9.(*Client).Ping",
+		}
+
+		t.Run("/vN module major-version: the /v9 name is what binaries carry and it matches the patched GHSA", func(t *testing.T) {
+			// Go module major versions are part of the module path, and therefore part of the
+			// package name grype matches on: a binary built against go-redis 9.x embeds
+			// "github.com/redis/go-redis/v9" in its buildinfo, and syft catalogs that name
+			// verbatim (verified empirically through pkg.Provide against a real go-redis
+			// binary). The GHSA lists only the /v9 rows — correctly, since /v9 is the only
+			// module path ever published under this repo — so the merge drops the GO record's
+			// /v9 rows and enriches the GHSA with the symbols. Matching is by exact name:
+			// the GO record's surviving base-path row can never stand in for a /v9 package,
+			// which is exactly why the merge must NOT drop /vN rows in favor of a shorter
+			// path (that would leave every real go-redis binary matching nothing).
+			//
+			// v9.5.2 sits in the GHSA's >= 9.5.1, < 9.5.5 window. Note the sibling
+			// >= 9.6.0b1, < 9.6.3 row is inert: "9.6.0b1" is malformed to the golang
+			// comparator, and the comparison error is swallowed at match time — binaries in
+			// that window are a known false negative, tracked in the custom_ranges
+			// odd-version-strings follow-up issue.
+			p := dbtest.NewPackage("github.com/redis/go-redis/v9", "v9.5.2", syftPkg.GoModulePkg).
+				WithLanguage(syftPkg.Go).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: goRedisSymbols}).
+				Build()
+
+			findings := db.Match(t, matcher, p)
+
+			expectMatches(t, findings, goRedisGHSA)
+			findings.DoesNotHaveAnyVulnerabilities(goRedisGo)
+		})
+
+		t.Run("/vN module at a fixed version does not match", func(t *testing.T) {
+			// v9.7.3 is the fix for the last window; the other windows (< 9.5.5, < 9.6.3)
+			// don't reach it either.
+			p := dbtest.NewPackage("github.com/redis/go-redis/v9", "v9.7.3", syftPkg.GoModulePkg).
+				WithLanguage(syftPkg.Go).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: goRedisSymbols}).
+				Build()
+
+			findings := db.Match(t, matcher, p)
+
+			findings.IsEmpty()
+		})
+
+		t.Run("/vN module not using the vulnerable symbols is suppressed", func(t *testing.T) {
+			// in-range, but the binary never touches the connection-setup path that
+			// GO-2025-3540's symbols describe
+			p := dbtest.NewPackage("github.com/redis/go-redis/v9", "v9.5.2", syftPkg.GoModulePkg).
+				WithLanguage(syftPkg.Go).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: []string{
+					"github.com/redis/go-redis/v9.NewClient",
+					"github.com/redis/go-redis/v9.(*Client).Get",
+				}}).
+				Build()
+
+			findings := db.Match(t, matcher, p)
+
+			findings.IsEmpty()
+		})
+
+		t.Run("/vN module major-version: the GO record survives with the rows the GHSA lacks", func(t *testing.T) {
+			// The GHSA covered only the /v9 rows, so the GO record is still written carrying
+			// its base-path, /v7, and /v8 rows. Those names were never published module paths
+			// (v7/v8 of this client live at github.com/go-redis/redis/vN, a different repo
+			// path entirely), so no real binary reports them — this probe is a DB-state
+			// assertion that per-exact-name coverage kept the record, not a real-world
+			// scenario. The /v8 row is a bare introduced:0 with no fix, which emits no
+			// ranges: any version of a package by that name matches. (The base rows would
+			// not serve here: their only range is the >= 9.6.0b1 custom floor, and that
+			// version string is malformed to the golang comparator, leaving them inert.)
+			p := dbtest.NewPackage("github.com/redis/go-redis/v8", "v8.11.5", syftPkg.GoModulePkg).
+				WithLanguage(syftPkg.Go).
+				WithMetadata(pkg.GolangBinMetadata{}).
+				Build()
+
+			findings := db.Match(t, matcher, p)
+
+			expectMatches(t, findings, goRedisGo)
+			findings.DoesNotHaveAnyVulnerabilities(goRedisGHSA)
 		})
 
 		t.Run("3rd-party package without captured symbols falls back to module matching", func(t *testing.T) {

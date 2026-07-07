@@ -239,6 +239,9 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 	})
 
 	t.Run("withdrawn record patches nothing and is still written", func(t *testing.T) {
+		// the GO-withdrawn/GHSA-active shape (canonically GO-2022-0617 / GHSA-qh36-44jv-c8xj,
+		// the only such pair in the wild): the rejected GO record must not contribute symbol
+		// data, and the active GHSA stays as published
 		w := newMergeTestWriter()
 		require.True(t, w.holdForGoVulnDBMerge(ghsaEntry("GHSA-c9gm-7rfj-8w5h", goModuleAPH("github.com/tidwall/gjson"))))
 
@@ -256,7 +259,9 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 
 	t.Run("withdrawn GHSA is neither patched nor allowed to cover", func(t *testing.T) {
 		// GitHub withdraws GHSAs (e.g. as duplicate advisories) while the GO
-		// record stays active. A rejected record never matches, so letting it
+		// record stays active — 24 such pairs in the wild, e.g. GO-2021-0142 /
+		// GHSA-q6gq-997w-f55g and this test's GO-2021-0265 / GHSA-c9gm-7rfj-8w5h.
+		// A rejected record never matches, so letting it
 		// cover the GO package would erase the advisory entirely; the module is
 		// covered only when an ACTIVE GHSA lists it.
 		w := newMergeTestWriter()
