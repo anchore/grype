@@ -52,7 +52,7 @@ func TestParseSyftJSON(t *testing.T) {
 						},
 					},
 					Metadata: ApkMetadata{
-						Arch:  "x86_64",
+						Arch: "x86_64",
 						Files: []ApkFileRecord{
 							{Path: "/dev"},
 							{Path: "/dev/pts"},
