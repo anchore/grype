@@ -316,6 +316,29 @@ func Test_NewDistroFromRelease(t *testing.T) {
 			minor: "04",
 		},
 		{
+			// force-on (GRYPE_FIX_CHANNEL_UBUNTU_ESM_APPLY=always): esm applies even for a base ubuntu with no
+			// extended-support hint and no +esm suffix.
+			name: "esm applied for non-pro ubuntu (always apply)",
+			release: linux.Release{
+				ID:      "ubuntu",
+				Version: "16.04",
+			},
+			channels: []FixChannel{
+				{
+					Name:  "esm",
+					IDs:   []string{"ubuntu"},
+					Apply: ChannelAlwaysEnabled, // important!
+				},
+			},
+			expected: &Distro{
+				Type:     Ubuntu,
+				Version:  "16.04",
+				Channels: names("esm"),
+			},
+			major: "16",
+			minor: "04",
+		},
+		{
 			name: "v versionID prefix postmarketos",
 			release: linux.Release{
 				ID:        "postmarketos",

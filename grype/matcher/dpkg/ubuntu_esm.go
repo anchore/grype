@@ -51,7 +51,7 @@ func shouldUseUbuntuESMMatching(d *distro.Distro) bool {
 //
 // Unlike RHEL EUS there is no cross-minor reachability problem: Ubuntu ESM is one line per LTS release and the
 // resolution search only pulls same-minor 'ubuntu:XX.YY' and 'ubuntu:XX.YY+esm' rows, so every '+esm' fix pulled
-// is reachable by construction (see filterFixesForESM).
+// is reachable by construction.
 func ubuntuESMMatches(provider result.Provider, searchPkg pkg.Package, missingEpochStrategy version.MissingEpochStrategy, extra ...vulnerability.Criteria) ([]match.Match, []match.IgnoreFilter, error) {
 	distroWithoutESM := *searchPkg.Distro
 	distroWithoutESM.Channels = nil // clear the ESM channel so that we can search for the base distro
@@ -111,16 +111,6 @@ func ubuntuESMMatches(provider result.Provider, searchPkg pkg.Package, missingEp
 	remaining = remaining.Merge(resolutions, mergeESMAdvisoriesIntoMainDisclosures(pkgVersion))
 
 	return remaining.ToMatches(), internal.OwnershipIgnores(searchPkg, IgnoreReasonDistroNotVulnerable, esmFixes.Vulnerabilities()...), nil
-}
-
-// filterFixesForESM returns its input unchanged.
-//
-// ponytail: identity reachability. Ubuntu ESM is a single line per LTS release, and the resolution search only
-// pulls same-minor 'ubuntu:XX.YY' and 'ubuntu:XX.YY+esm' rows, so any '+esm' fix on the scanned release is always
-// reachable. Add dist-tag / suffix parsing here only if a future tier (FIPS, realtime, ...) introduces
-// cross-series builds where a fix version could belong to a different release than the one scanned.
-func filterFixesForESM(fixes []*version.Version) []*version.Version {
-	return fixes
 }
 
 // mergeESMAdvisoriesIntoMainDisclosures returns a function that filters disclosures based on the provided advisory
@@ -196,11 +186,10 @@ func collectMatchingConstraintsDetailsAndFixState(v *version.Version, advisoryRe
 			*state = advisory.Fix.State
 		}
 
-		// get all fixes greater than current version (parses versions once)
-		allFixes := neededFixes(v, advisory.Fix.Versions, advisory.Constraint.Format(), advisory.ID)
-
-		// ponytail: identity reachability for ESM (see filterFixesForESM); every same-release '+esm' fix applies.
-		applicableFixes := filterFixesForESM(allFixes)
+		// get all fixes greater than current version (parses versions once). unlike RHEL EUS (see filterFixesForEUS)
+		// there is no reachability filter: Ubuntu ESM is one line per LTS release and the resolution search only pulls
+		// same-minor 'ubuntu:XX.YY' and 'ubuntu:XX.YY+esm' rows, so every '+esm' fix is reachable by construction.
+		applicableFixes := neededFixes(v, advisory.Fix.Versions, advisory.Constraint.Format(), advisory.ID)
 
 		if len(applicableFixes) == 0 {
 			// none of the fixes on this advisory are greater than the current version, so we can skip adding fixes
