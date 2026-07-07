@@ -50,8 +50,7 @@ func Test_getProviderConfig(t *testing.T) {
 					SBOMOptions: func() *syft.CreateSBOMConfig {
 						cfg := syft.DefaultCreateSBOMConfig()
 						cfg.Compliance.MissingVersion = cataloging.ComplianceActionDrop
-						// grype captures Go binary symbols by default so the gosymbols qualifier can
-						// filter module- and stdlib-scoped advisories (see getProviderConfig)
+						// grype captures Go binary symbols by default; this is not syft's default
 						cfg.Packages.Golang = cfg.Packages.Golang.WithCaptureSymbols(syftGolang.SymbolScopeAll)
 						return cfg
 					}(),

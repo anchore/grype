@@ -15,9 +15,7 @@ type RelatedEntries struct {
 }
 
 // GoVulnDBAffectedPackage wraps an affected package emitted by the govulndb transformer with
-// range provenance that only the build-time govulndb↔GHSA merge consumes (see the build
-// writer's handleGoVulnDBEntry). The merge unwraps it back to the inner handle, so the wrapper
-// never reaches the database.
+// ranges and PseudoVersion fixes(see the build writer's handleGoVulnDBEntry).
 type GoVulnDBAffectedPackage struct {
 	Handle db.AffectedPackageHandle
 
@@ -27,8 +25,8 @@ type GoVulnDBAffectedPackage struct {
 	// pseudo-version can be replaced with CustomRanges.
 	PseudoVersionFix string
 
-	// CustomRanges is the ecosystem_specific.custom_ranges-derived window(s) in the module's
-	// real (tag) versioning — the replacement payload for a GHSA range still pinned to
+	// CustomRanges is the ecosystem_specific.custom_ranges in the module's
+	// real (tag) versioning; the replacement payload for a GHSA range still pinned to
 	// PseudoVersionFix.
 	CustomRanges []db.Range
 }

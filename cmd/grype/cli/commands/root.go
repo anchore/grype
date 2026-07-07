@@ -298,17 +298,16 @@ func warnWhenDistroHintNeeded(pkgs []pkg.Package, context *pkg.Context) {
 }
 
 // warnWhenGoSymbolsMissing alerts the user when Go binary packages were cataloged without function
-// symbols. Grype captures symbols by default on its own scans (see getProviderConfig), so in practice
-// this fires for pre-built SBOMs (e.g. `syft ... | grype`) generated without symbol capture. Without
-// symbols the gosymbols qualifier cannot filter module- and stdlib-scoped advisories, so those packages
-// fall back to module-granularity matching and may surface false positives.
+// symbols. Grype captures symbols by default on its own scans (see getProviderConfig). This warning
+// fires for pre-built SBOMs (e.g. `syft ... | grype`) generated without symbol capture. Without
+// symbols Golang packages fall back to module-granularity matching and may surface false positives.
 func warnWhenGoSymbolsMissing(pkgs []pkg.Package) {
 	if msg := goSymbolsMissingMessage(pkgs); msg != "" {
 		bus.Notify(msg)
 	}
 }
 
-// goSymbolsMissingMessage returns the user-facing warning for Go binary packages cataloged
+// goSymbolsMissingMessage returns a warning for Go binary packages cataloged
 // without function symbols, or "" when there is nothing to warn about.
 func goSymbolsMissingMessage(pkgs []pkg.Package) string {
 	var withoutSymbols int

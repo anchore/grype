@@ -23,25 +23,25 @@
 #     eliminating both false-positive classes.
 #   - GO-2024-3312 aliases GHSA-4c49-9fpc-hc3v for github.com/canonical/lxd:
 #     LXD does not follow Go module versioning, so the GHSA range is pinned to
-#     the pseudo-version of the fix commit — which no real tagged release can
-#     ever fall below (v5.21.1 sorts far above v0.0.0-…), a guaranteed false
+#     the pseudo-version of the fix commit; which no real tagged release can
+#     ever fall below as v5.21.1 sorts far above v0.0.0-…), a guaranteed false
 #     negative. The govulndb record carries the same fix in tag space in
 #     custom_ranges (< 5.21.2); the merge replaces the GHSA's pseudo-version
 #     range with it and patches the lxd symbols on.
 #   - GO-2021-0076 aliases GHSA-gxhv-3hwf-wjp9 for github.com/evanphx/json-patch:
 #     a +incompatible module (v3 tags, no /v3 module path). The GHSA's two
-#     windows carry plain semver bounds (>= 3.0.0, < 3.0.1-…) while binaries
+#     ranges carry plain semver bounds (>= 3.0.0, < 3.0.1-…) while binaries
 #     report v3.0.0+incompatible; the merged record must still match those and
 #     carry the Patch.Apply symbols from the GO record.
 #   - GO-2025-3540 aliases GHSA-92cp-5422-2mw7 for go-redis: the /vN module
 #     major-version case. The GHSA lists only github.com/redis/go-redis/v9 (the
-#     only module path real binaries report — buildinfo carries the /v9 suffix);
+#     only module path real binaries report; buildinfo carries the /v9 suffix);
 #     the GO record additionally lists the base path and /v7 and /v8, none of
 #     which were ever published module paths. Coverage is per exact name: the
 #     /v9 rows are dropped and the GHSA enriched with symbols; the base//v7//v8
 #     rows survive on the GO record (inert for real binaries, but dropping them
 #     is not the merge's call). The 9.6.0b1 bound is malformed to the golang
-#     comparator and its window is silently inert — a known FN tracked in the
+#     comparator and its range is inert; this is a known FN tracked in the
 #     custom_ranges odd-version-strings follow-up issue.
 auto-generate: false
 extractions:

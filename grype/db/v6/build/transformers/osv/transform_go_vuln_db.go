@@ -30,14 +30,13 @@ import (
 //     ecosystem-name search.
 //   - range type is always SEMVER → "go" format, which parses pseudo-versions
 //     (v0.0.0-<timestamp>-<commit>).
-//   - ecosystem_specific.imports (per-symbol reachability) is carried into the
-//     package blob as a go-imports qualifier, so packages cataloged with symbol evidence
+//   - ecosystem_specific.imports is carried into the package blob as a go-imports
+//     qualifier, so packages cataloged with symbol evidence
 //     only match when at least one vulnerable symbol is present.
 //   - references pass through, OSV type as tag, refID empty (canonical advisory
 //     page is in database_specific.url, not refs).
-//
-// Overlap with GHSA-sourced advisories for the same modules is reconciled by the
-// build writer; see handleGoVulnDBEntry in govulndb_merge.go.
+//   - overlap with GHSA-sourced advisories for the same modules is reconciled by the
+//     build writer; see handleGoVulnDBEntry in govulndb_merge.go.
 type govulndbStrategy struct{}
 
 func (govulndbStrategy) Matches(id string) bool {
@@ -156,15 +155,16 @@ func isGoPseudoVersion(v string) bool {
 
 // pseudoVersionReplacement recognizes the record shape where the standard range pins the fix to
 // a Go pseudo-version while ecosystem_specific.custom_ranges carries the same fix in the
-// module's real (tag) versioning — e.g. GO-2024-3312 (lxd): standard fixed
-// 0.0.0-20240708073652-5a492a3f0036, custom fixed 5.21.2. The build-time govulndb↔GHSA merge
+// module's real (tag) version
+// e.g. GO-2024-3312 (lxd): standard fixed
+// 0.0.0-20240708073652-5a492a3f0036, custom fixed 5.21.2. The govulndb↔GHSA merge
 // uses the returned pairing to replace an aliased GHSA range still pinned to the pseudo-version
-// (which can never match a real tagged release) with the custom windows.
+// (which can never match a real tagged release) with the custom fixed version.
 //
-// Deliberately strict, per the branch spec: exactly one standard range whose only close is a
+// Deliberately strict, per the spec: exactly one standard range whose only end is a
 // single pseudo-version fix, and exactly one custom range that is bounded and free of
-// pseudo-versions. With more ranges on either side there is no way to know which standard
-// window pairs with which custom window, so no pairing is reported.
+// pseudo-versions. If there are more ranges on either side there is no way to know which
+// pairs with which, so no pairing is reported.
 func pseudoVersionReplacement(standard, custom []osvmodel.Range) (pseudoFix string, replacement []db.Range) {
 	if len(standard) != 1 || len(custom) != 1 {
 		return "", nil
@@ -202,9 +202,7 @@ func pseudoVersionReplacement(standard, custom []osvmodel.Range) (pseudoFix stri
 // Without custom_ranges, standard ranges pass through: bounded windows; a
 // trailing open-ended ">= X" (a real unfixed vuln, e.g. GO-2024-2584's >=0.50.0);
 // or a lone introduced:0, which yields no ranges so grype treats every version as
-// vulnerable (GO-2024-3240). With custom_ranges, mergeWithCustom combines them;
-// custom supersedes only when it yields windows, so malformed/windowless custom
-// never widens matching. Conversion runs in eventsToRanges (helpers.go).
+// vulnerable (GO-2024-3240).
 func govulndbRanges(standard, custom []osvmodel.Range) []db.Range {
 	standardRanges := eventsToRanges(flattenEvents(standard), fixDates(standard), "go")
 	if len(custom) == 0 {
@@ -214,10 +212,8 @@ func govulndbRanges(standard, custom []osvmodel.Range) []db.Range {
 	merged := mergeWithCustom(flattenEvents(standard), flattenEvents(custom))
 	customRanges := eventsToRanges(merged, fixDates(standard, custom), "go")
 
-	// custom_ranges supersedes the standard range only when it is semantically
-	// useful — when it actually yields version windows. A malformed or windowless
 	// custom_ranges must not erase the standard range: an affected package with no
-	// ranges matches *every* version, so dropping the standard windows here would
+	// ranges matches *every* version, so dropping the standard here would
 	// silently widen matching instead of narrowing it.
 	if len(customRanges) == 0 {
 		return standardRanges
@@ -226,22 +222,12 @@ func govulndbRanges(standard, custom []osvmodel.Range) []db.Range {
 }
 
 // mergeWithCustom combines a standard range's events with custom_ranges' events.
-// go.dev writes custom_ranges only for the "+incompatible" case (a module ships
-// vN tags, N>1, without a /vN path), so the standard range is one of:
+// go.dev writes custom_ranges only for the "+incompatible" case the standard range is one of:
 //   - bare "introduced: 0": says nothing, so use custom as-is (GO-2024-2513).
 //   - open-ended floor (">= X", no fix): X is the real lower bound; graft it onto
-//     custom's leading window (GO-2024-2858 → "[5.0.0-beta1,8.5.14) ||
+//     custom (GO-2024-2858 → "[5.0.0-beta1,8.5.14) ||
 //     [9.0.0,9.1.8)", matching the GHSA). See withFloor.
-//   - bounded windows: keep and union with custom. When custom is itself a
-//     bounded window they're disjoint and span different namespaces (mattermost:
-//     tag windows standard, pseudo-version windows custom), so append. But when
-//     custom is an open-ended floor (">= X", no fix) it is the real lower bound
-//     for the standard window — a +incompatible introduced that standard SEMVER
-//     records as the placeholder introduced:0 — so graft it on rather than append
-//     it as a disjoint trailing window (anchore/grype#3520: docker/cli
-//     GO-2026-4610 was emitting "<29.2.0+incompatible || >=19.03.0+incompatible",
-//     re-matching every release after the fix). Drop the standard's own trailing
-//     open-ended window either way; it over-matches later releases.
+//   - bounded: keep and union with custom.
 func mergeWithCustom(standardEvents, customEvents []osvmodel.Event) []osvmodel.Event {
 	switch {
 	case isDefaultFloorOnly(standardEvents):
@@ -256,14 +242,12 @@ func mergeWithCustom(standardEvents, customEvents []osvmodel.Event) []osvmodel.E
 }
 
 // isDefaultFloorOnly reports whether events are exactly the bare "introduced: 0"
-// placeholder go.dev emits when it cannot map affected versions — a standard
-// range that, on its own, matches every version.
+// placeholder go.dev emits when it cannot map affected versions
 func isDefaultFloorOnly(events []osvmodel.Event) bool {
 	return len(events) == 1 && events[0].Introduced == "0"
 }
 
 // hasUpperBound reports whether any event closes a window (fixed/last_affected).
-// When none do, the standard range is an open-ended floor.
 func hasUpperBound(events []osvmodel.Event) bool {
 	for _, e := range events {
 		if e.Fixed != "" || e.LastAffected != "" {
@@ -283,9 +267,6 @@ func firstIntroduced(events []osvmodel.Event) string {
 	return ""
 }
 
-// withFloor raises the first window's lower bound to floor, overwriting a leading
-// introduced:0 with the standard range's real introduction. A floor of "0", or a
-// window that already names introduced, leaves events unchanged.
 func withFloor(events []osvmodel.Event, floor string) []osvmodel.Event {
 	if floor == "" || floor == "0" {
 		return events

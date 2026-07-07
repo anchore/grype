@@ -53,11 +53,10 @@ const (
 	//        onto a canonical token. Older clients ignore the table; clients reading a DB built
 	//        before it existed fall back to the built-in default aliases.
 	// 6.1.9: Add GoImports field to PackageQualifiers (used by the govulndb OSV strategy to
-	//        carry per-symbol reachability from ecosystem_specific.imports; the gosymbols
+	//        carry per-symbol matching from ecosystem_specific.imports; the gosymbols
 	//        runtime qualifier in pkg/qualifier/gosymbols matches captured Go binary symbols
 	//        so stdlib and golang.org/x/* advisories don't FP-match binaries that don't use
-	//        the vulnerable symbols)
-
+	//        vulnerable symbols)
 )
 
 const (
