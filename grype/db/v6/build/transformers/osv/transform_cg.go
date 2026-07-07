@@ -116,7 +116,11 @@ func cgAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHan
 // become "unknown".
 func cgRangeType(t osvmodel.RangeType) string {
 	if t == osvmodel.RangeEcosystem {
-		// TODO is this correct? We do use APK I believe
+		// ECOSYSTEM ranges carry versions in the ecosystem's native scheme; for
+		// Chainguard/Wolfi that is apk versioning (e.g. "2.4.63-r1"). Store the apk
+		// format explicitly — the default "ecosystem" string parses to UnknownFormat,
+		// whose fuzzy comparison mis-orders apk pkgrels (e.g. it would call
+		// 2.4.63-r10 vulnerable against "< 2.4.63-r9").
 		return pkg.ApkPkg.String()
 	}
 	return defaultRangeType(t)

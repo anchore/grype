@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	"github.com/google/go-cmp/cmp"
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 )
