@@ -1,0 +1,65 @@
+{
+  "identifier": "github:python/ghsa-wwqv-p2pp-99h5",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2025-64439"
+      ],
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2025-11-06",
+            "kind": "first-observed"
+          },
+          "ecosystem": "python",
+          "identifier": "3.0.0",
+          "name": "langgraph-checkpoint",
+          "namespace": "github:python",
+          "range": "\u003c 3.0.0"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2025-64439"
+        ]
+      },
+      "Severity": "High",
+      "Summary": "LangGraph Checkpoint affected by RCE in \"json\" mode of JsonPlusSerializer ",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:4.0/AV:N/AC:L/AT:P/PR:L/UI:N/VC:N/VI:H/VA:H/SC:H/SI:H/SA:H",
+          "version": "4.0"
+        }
+      ],
+      "ghsaId": "GHSA-wwqv-p2pp-99h5",
+      "namespace": "github:python",
+      "published": "2025-11-05T19:52:50Z",
+      "references": [
+        {
+          "url": "https://github.com/langchain-ai/langgraph/security/advisories/GHSA-wwqv-p2pp-99h5"
+        },
+        {
+          "url": "https://github.com/langchain-ai/langgraph/commit/c5744f583b11745cd406f3059903e17bbcdcc8ac"
+        },
+        {
+          "url": "https://github.com/langchain-ai/langgraph/blob/c5744f583b11745cd406f3059903e17bbcdcc8ac/libs/checkpoint/langgraph/checkpoint/serde/jsonplus.py"
+        },
+        {
+          "url": "https://github.com/langchain-ai/langgraph/releases/tag/checkpoint%3D%3D3.0.0"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-64439"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-wwqv-p2pp-99h5"
+        }
+      ],
+      "updated": "2025-11-07T21:55:59Z",
+      "url": "https://github.com/advisories/GHSA-wwqv-p2pp-99h5",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

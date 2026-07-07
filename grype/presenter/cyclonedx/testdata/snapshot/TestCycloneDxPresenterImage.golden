@@ -1,7 +1,7 @@
 {
-  "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
+  "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
-  "specVersion": "1.6",
+  "specVersion": "1.7",
   "serialNumber": "urn:uuid:491fc8dc-9384-4f3d-a729-d2c5a83791d8",
   "version": 1,
   "metadata": {
@@ -25,7 +25,7 @@
   },
   "components": [
     {
-      "bom-ref": "bbb0ba712c2b94ea",
+      "bom-ref": "a246fd2054833c93",
       "type": "library",
       "name": "package-1",
       "version": "1.1.1",
@@ -117,7 +117,7 @@
       ],
       "affects": [
         {
-          "ref": "bbb0ba712c2b94ea"
+          "ref": "a246fd2054833c93"
         }
       ]
     },

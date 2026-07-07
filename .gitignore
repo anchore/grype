@@ -6,10 +6,13 @@ CLAUDE.MD
 go.work
 go.work.sum
 .tool-versions
+.mise.toml
+.env
 .jj/
 mise.toml
-specs/
+specs
 *.xxh64
+.context
 
 # AI and LLM related files
 CLAUDE.md
@@ -31,6 +34,7 @@ bin/
 /specs
 /extractor
 /manager
+.make/.make
 
 # changelog generation
 /CHANGELOG.md

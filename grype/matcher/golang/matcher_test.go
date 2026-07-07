@@ -167,3 +167,53 @@ func TestMatcher_SearchForStdlib(t *testing.T) {
 		})
 	}
 }
+
+// TestMatcher_StdLibFromGoVulnDb proves the everyday case: a plain
+// pkg:golang/stdlib package (no CPEs, no main-module metadata, default
+// matcher config) is flagged for a Go vuln DB stdlib advisory purely via
+// ecosystem-name search. GO-2023-1840 (CVE-2023-29403) declares stdlib
+// vulnerable in [0, 1.19.10) || [1.20.0, 1.20.5), so 1.18.7 lands in the
+// first window and must match, while 1.19.10 (the fix) must not.
+func TestMatcher_StdLibFromGoVulnDb(t *testing.T) {
+	tests := []struct {
+		name      string
+		version   string
+		expectHit bool
+	}{
+		{
+			name:      "stdlib 1.18.7 is inside the first vulnerable window: GO-2023-1840 flags it",
+			version:   "1.18.7",
+			expectHit: true,
+		},
+		{
+			name:      "stdlib 1.19.10 is the fixed version: no match",
+			version:   "1.19.10",
+			expectHit: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dbtest.DBs(t, "govulndb-go").
+				Run(func(t *testing.T, db *dbtest.DB) {
+					matcher := NewGolangMatcher(MatcherConfig{})
+
+					p := dbtest.NewPackage("stdlib", tt.version, syftPkg.GoModulePkg).
+						WithLanguage(syftPkg.Go).
+						WithMetadata(pkg.GolangBinMetadata{}).
+						Build()
+
+					findings := db.Match(t, matcher, p)
+
+					if !tt.expectHit {
+						findings.IsEmpty()
+						return
+					}
+
+					findings.SelectMatch("GO-2023-1840").
+						SelectDetailByType(match.ExactDirectMatch).
+						AsEcosystemSearch()
+				})
+		})
+	}
+}

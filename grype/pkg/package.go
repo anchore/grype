@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"regexp"
 	"slices"
+	"sort"
 	"strings"
 
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/internal/rootio"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/grype/internal/stringutil"
 	"github.com/anchore/packageurl-go"
@@ -16,6 +18,16 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 	cpes "github.com/anchore/syft/syft/pkg/cataloger/common/cpe"
 )
+
+// rootioJavaGroupID returns the Maven groupID from grype's package metadata
+// for Java packages. Used by rootio.EquivalentCPEs and rootio.IsPackage to
+// detect `io.root.*`-prefixed Java backports; "" for non-Java packages.
+func rootioJavaGroupID(p Package) string {
+	if md, ok := p.Metadata.(JavaMetadata); ok {
+		return md.PomGroupID
+	}
+	return ""
+}
 
 // the source-rpm field has something akin to "util-linux-ng-2.17.2-12.28.el6_9.2.src.rpm"
 // in which case the pattern will extract out the following values for the named capture groups:
@@ -43,6 +55,10 @@ type Package struct {
 	PURL      string       // the Package URL (see https://github.com/package-url/purl-spec)
 	Upstreams []UpstreamPackage
 	Metadata  any // This is NOT 1-for-1 the syft metadata! Only the select data needed for vulnerability matching
+
+	// Annotations carries provider-supplied per-package metadata; values are slices to
+	// retain multiple sources when the same package is contributed by more than one origin.
+	Annotations map[string][]string
 
 	// Related packages may be used for scanning
 	RelatedPackages map[artifact.RelationshipType][]*Package
@@ -118,6 +134,14 @@ func FromPackages(syftPkgs []syftPkg.Package, relationships []artifact.Relations
 
 		grypePkg := New(p, enhancers...)
 
+		// For rootio packages, also expose upstream-name-derived CPEs so the
+		// matchers' CPE path (apk NVD-CPE in particular) can reach upstream
+		// disclosures keyed under the canonical vendor:product. Symmetric to
+		// the resolver name fanout in db/v6/name; without this, syft's
+		// rootio-prefixed CPEs never align with NVD's openbsd:openssh-style
+		// records and the rootio NAK has nothing to suppress.
+		grypePkg.CPEs = append(grypePkg.CPEs, rootio.EquivalentCPEs(p, rootioJavaGroupID(grypePkg), grypePkg.CPEs)...)
+
 		pkgByID[grypePkg.ID] = &grypePkg
 		pkgs = append(pkgs, &grypePkg)
 
@@ -175,6 +199,20 @@ func FromPackages(syftPkgs []syftPkg.Package, relationships []artifact.Relations
 	}
 
 	return pkgs
+}
+
+// AddAnnotation appends value under key, keeping the slice sorted and de-duplicated.
+func (p *Package) AddAnnotation(key, value string) {
+	if p.Annotations == nil {
+		p.Annotations = map[string][]string{}
+	}
+	existing := p.Annotations[key]
+	if slices.Contains(existing, value) {
+		return
+	}
+	existing = append(existing, value)
+	sort.Strings(existing)
+	p.Annotations[key] = existing
 }
 
 func (p Package) String() string {
@@ -341,7 +379,11 @@ func javaVMDataFromPkg(p syftPkg.Package) any {
 
 func apkMetadataFromPkg(p syftPkg.Package) any {
 	if m, ok := p.Metadata.(syftPkg.ApkDBEntry); ok {
-		metadata := ApkMetadata{}
+		// Grype's APK Metadata only has files, so return early
+		// and leave the field blank if there are no files.
+		if len(m.Files) == 0 {
+			return nil
+		}
 
 		fileRecords := make([]ApkFileRecord, 0, len(m.Files))
 		for _, record := range m.Files {
@@ -349,9 +391,7 @@ func apkMetadataFromPkg(p syftPkg.Package) any {
 			fileRecords = append(fileRecords, r)
 		}
 
-		metadata.Files = fileRecords
-
-		return metadata
+		return ApkMetadata{Files: fileRecords}
 	}
 
 	return nil
@@ -415,18 +455,24 @@ func rpmDataFromPkg(p syftPkg.Package) (metadata *RpmMetadata, upstreams []Upstr
 			upstreams = handleSourceRPM(p.Name, m.SourceRpm)
 		}
 
-		metadata = &RpmMetadata{
-			Epoch:           m.Epoch,
-			ModularityLabel: m.ModularityLabel,
+		if m.Epoch != nil || m.ModularityLabel != nil || m.Arch != "" {
+			metadata = &RpmMetadata{
+				Epoch:           m.Epoch,
+				ModularityLabel: m.ModularityLabel,
+				Arch:            m.Arch,
+			}
 		}
 	case syftPkg.RpmArchive:
 		if m.SourceRpm != "" {
 			upstreams = handleSourceRPM(p.Name, m.SourceRpm)
 		}
 
-		metadata = &RpmMetadata{
-			Epoch:           m.Epoch,
-			ModularityLabel: m.ModularityLabel,
+		if m.Epoch != nil || m.ModularityLabel != nil || m.Arch != "" {
+			metadata = &RpmMetadata{
+				Epoch:           m.Epoch,
+				ModularityLabel: m.ModularityLabel,
+				Arch:            m.Arch,
+			}
 		}
 	}
 	return metadata, upstreams

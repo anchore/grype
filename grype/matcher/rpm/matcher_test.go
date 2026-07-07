@@ -20,6 +20,7 @@ func TestMatcherRpm_DirectMatch(t *testing.T) {
 			matcher := Matcher{}
 			// openssl 1:1.1.1b-1 is older than the RHEL 8 fix 1:1.1.1c-2.el8
 			p := dbtest.NewPackage("openssl", "1:1.1.1b-1.el8", syftPkg.RpmPkg).
+				WithArchitecture("aarch64").
 				WithDistro(dbtest.RHEL8).
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(1)}).
 				Build()
@@ -40,6 +41,7 @@ func TestMatcherRpm_IndirectMatchBySource(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("openssl-libs", "1:1.1.1b-1.el8", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
 				WithUpstream("openssl", "1:1.1.1b-1.el8").
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(1)}).
@@ -61,6 +63,7 @@ func TestMatcherRpm_FixedVersionNoMatch(t *testing.T) {
 			// a "Distro Not Vulnerable" ignore so consumers can suppress related
 			// matches (e.g., GHSA-language matches that overlap by file ownership)
 			p := dbtest.NewPackage("openssl", "1:1.1.1c-2.el8", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(1)}).
 				Build()
@@ -77,6 +80,7 @@ func TestMatcherRpm_ModularityLabelMatchesVulnInSameModule(t *testing.T) {
 			matcher := Matcher{}
 			// httpd in the httpd:2.4 module - the RHEL fix is in module httpd:2.4
 			p := dbtest.NewPackage("httpd", "0:2.4.37-30.module+el8.3.0+1.el8", syftPkg.RpmPkg).
+				WithArchitecture("aarch64").
 				WithDistro(dbtest.RHEL8).
 				WithMetadata(pkg.RpmMetadata{
 					Epoch:           intPtr(0),
@@ -103,6 +107,7 @@ func TestMatcherRpm_PackageWithoutModularityLabelMatchesModuleVuln(t *testing.T)
 			matcher := Matcher{}
 			// CVE-2018-17199 has Module="httpd:2.4"; pkg has no ModularityLabel
 			p := dbtest.NewPackage("httpd", "0:2.4.37-30.module+el8.3.0+1.el8", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 				Build()
@@ -121,6 +126,7 @@ func TestMatcherRpm_ModularityLabelMismatchSkipsVuln(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("httpd", "0:2.4.37-30.module+el8.3.0+1.el8", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
 				WithMetadata(pkg.RpmMetadata{
 					Epoch:           intPtr(0),
@@ -146,6 +152,7 @@ func TestMatcherRpm_PackageWithoutEpochAssumesZero(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("openssl", "1.1.1z-99.el8", syftPkg.RpmPkg).
+				WithArchitecture("aarch64").
 				WithDistro(dbtest.RHEL8).
 				Build()
 
@@ -167,6 +174,7 @@ func TestMatcherRpm_PackageEpochOnlyInMetadata(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("openssl", "1.1.1c-2.el8", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 				Build()
@@ -188,6 +196,7 @@ func TestMatcherRpm_PackageHigherEpochNoMatch(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("openssl", "2:1.1.1b-1.el8", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(2)}).
 				Build()
@@ -211,6 +220,7 @@ func TestMatcherRpm_DistroNotVulnerableIgnore(t *testing.T) {
 			// openssl 1:1.1.1d-1.el8 is past the RHEL 8 fix 1:1.1.1c-2.el8 → not vulnerable
 			pkgID := pkg.ID("openssl-fixed")
 			p := dbtest.NewPackage("openssl", "1:1.1.1d-1.el8", syftPkg.RpmPkg).
+				WithArchitecture("aarch64").
 				WithID(pkgID).
 				WithDistro(dbtest.RHEL8).
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(1)}).
@@ -235,6 +245,7 @@ func TestMatcherRpm_DistroNotVulnerableIgnoreViaUpstream(t *testing.T) {
 			// openssl-libs is owned by upstream openssl source RPM; both at fixed version
 			pkgID := pkg.ID("openssl-libs-fixed")
 			p := dbtest.NewPackage("openssl-libs", "1:1.1.1d-1.el8", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithID(pkgID).
 				WithDistro(dbtest.RHEL8).
 				WithUpstream("openssl", "1:1.1.1d-1.el8").
@@ -264,6 +275,7 @@ func TestMatcherRpm_UnaffectedRecordProducesIgnore(t *testing.T) {
 			matcher := Matcher{}
 			pkgID := pkg.ID("glibc-unaffected")
 			p := dbtest.NewPackage("glibc", "2.28-100.el8", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithID(pkgID).
 				WithDistro(dbtest.RHEL8).
 				Build()
@@ -287,6 +299,7 @@ func TestMatcherRpm_MajorOnlyUnaffectedRecordAppliesToMinorScan(t *testing.T) {
 			matcher := Matcher{}
 			pkgID := pkg.ID("glibc-on-8.4")
 			p := dbtest.NewPackage("glibc", "2.28-100.el8", syftPkg.RpmPkg).
+				WithArchitecture("aarch64").
 				WithID(pkgID).
 				WithDistro(distro.New(distro.RedHat, "8.4", "")).
 				Build()
@@ -313,6 +326,7 @@ func TestMatcherRpm_VulnerableAndUnaffectedInSameCall(t *testing.T) {
 			matcher := Matcher{}
 			pkgID := pkg.ID("glibc-mixed")
 			p := dbtest.NewPackage("glibc", "2.28-100.el8", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithID(pkgID).
 				WithDistro(dbtest.RHEL8).
 				Build()
@@ -336,6 +350,7 @@ func TestMatcherRpm_NoIgnoresWhenVulnerable(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("openssl", "1:1.1.1a-1.el8", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(1)}).
 				Build()
@@ -419,6 +434,7 @@ func TestMatcherRpm_CPEFallbackWhenEOL_EOLDistroEnabled(t *testing.T) {
 		// RHEL 7 (EOL'd 2024-06-30); openssl 1.1.0a CPE matches NVD CVE-2018-0735
 		// (vulnerable range 1.1.0 - 1.1.0i)
 		p := dbtest.NewPackage("openssl", "1.1.0a", syftPkg.RpmPkg).
+			WithArchitecture("aarch64").
 			WithDistro(distro.New(distro.RedHat, "7", "")).
 			WithCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*").
 			Build()
@@ -442,6 +458,7 @@ func TestMatcherRpm_CPEFallbackWhenEOL_EOLDistroDisabled(t *testing.T) {
 		matcher := NewRpmMatcher(MatcherConfig{UseCPEsForEOL: false})
 
 		p := dbtest.NewPackage("openssl", "1.1.0a", syftPkg.RpmPkg).
+			WithArchitecture("x86_64").
 			WithDistro(distro.New(distro.RedHat, "7", "")).
 			WithCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*").
 			Build()
@@ -463,6 +480,7 @@ func TestMatcherRpm_CPEFallbackWhenEOL_NoEOLData(t *testing.T) {
 
 		// fake distro with no EOL data → fallback should not engage
 		p := dbtest.NewPackage("openssl", "1.1.0a", syftPkg.RpmPkg).
+			WithArchitecture("x86_64").
 			WithDistro(distro.New(distro.RedHat, "9999", "")).
 			WithCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*").
 			Build()
@@ -483,6 +501,7 @@ func TestMatcherRpm_CPEFallbackWhenEOL_DistroNotEOL_FlagEnabled(t *testing.T) {
 		matcher := NewRpmMatcher(MatcherConfig{UseCPEsForEOL: true})
 
 		p := dbtest.NewPackage("openssl", "1.1.0a", syftPkg.RpmPkg).
+			WithArchitecture("aarch64").
 			WithDistro(dbtest.RHEL9).
 			WithCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*").
 			Build()
@@ -499,6 +518,7 @@ func TestMatcherRpm_CPEFallbackWhenEOL_DistroNotEOL_FlagDisabled(t *testing.T) {
 		matcher := NewRpmMatcher(MatcherConfig{UseCPEsForEOL: false})
 
 		p := dbtest.NewPackage("openssl", "1.1.0a", syftPkg.RpmPkg).
+			WithArchitecture("x86_64").
 			WithDistro(dbtest.RHEL9).
 			WithCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*").
 			Build()

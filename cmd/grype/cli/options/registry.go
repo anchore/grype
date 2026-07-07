@@ -2,8 +2,10 @@ package options
 
 import (
 	"os"
+	"strings"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/stereoscope/pkg/image"
 )
 
@@ -53,6 +55,20 @@ func (cfg *registry) PostLoad() error {
 			},
 		}, cfg.Auth...)
 	}
+
+	// these flags may be picked up from a config file or environment variable without the
+	// user realizing, so surfacing them makes unprotected registry traffic visible in CI/CD output
+	var insecureFlags []string
+	if cfg.InsecureSkipTLSVerify {
+		insecureFlags = append(insecureFlags, "insecure-skip-tls-verify")
+	}
+	if cfg.InsecureUseHTTP {
+		insecureFlags = append(insecureFlags, "insecure-use-http")
+	}
+	if len(insecureFlags) > 0 {
+		log.Warnf("registry communication is insecure: %s enabled", strings.Join(insecureFlags, ", "))
+	}
+
 	return nil
 }
 

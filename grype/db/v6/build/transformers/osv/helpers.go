@@ -5,9 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/osv-scanner/pkg/models"
-
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	"github.com/anchore/grype/grype/db/internal/versionutil"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
@@ -64,61 +63,54 @@ import (
 // "semver") — the caller decides this per-provider, since the same OSV
 // RangeType maps differently across providers. See each strategy's own
 // rangeType() function in transform_<provider>.go.
-func getGrypeRangesFromRange(r models.Range, rangeType string) []db.Range { // nolint: gocognit,funlen
-	var ranges []db.Range
-	if len(r.Events) == 0 {
-		return nil
-	}
+func getGrypeRangesFromRange(r osvmodel.Range, rangeType string) []db.Range {
+	return eventsToRanges(r.Events, extractFixAvailability(r), rangeType)
+}
 
+// eventsToRanges converts an OSV event stream into grype ranges, one per window:
+// `introduced` opens a window, `fixed`/`last_affected` closes it, a trailing
+// unclosed `introduced` becomes open-ended ">= X". `fixes` keys fix-availability
+// dates by fixed version; `rangeType` is the caller's version format.
+//
+// OSV treats "one range, N windows" and "N ranges, one window each" alike, so
+// callers may pre-flatten ranges into one slice.
+func eventsToRanges(events []osvmodel.Event, fixes map[string]db.FixAvailability, rangeType string) []db.Range {
+	var ranges []db.Range
 	var constraint string
-	updateConstraint := func(c string) {
+
+	and := func(c string) {
 		if constraint == "" {
 			constraint = c
 		} else {
 			constraint = versionutil.AndConstraints(constraint, c)
 		}
 	}
+	emit := func(fix *db.Fix) {
+		ranges = append(ranges, db.Range{
+			Fix:     fix,
+			Version: db.Version{Type: rangeType, Constraint: normalizeConstraint(constraint, rangeType)},
+		})
+		constraint = ""
+	}
 
-	fixByVersion := extractFixAvailability(r)
-
-	for _, e := range r.Events {
+	for _, e := range events {
 		switch {
 		case e.Introduced != "" && e.Introduced != "0":
 			constraint = fmt.Sprintf(">= %s", e.Introduced)
 		case e.LastAffected != "":
-			updateConstraint(fmt.Sprintf("<= %s", e.LastAffected))
-			ranges = append(ranges, db.Range{
-				Version: db.Version{
-					Type:       rangeType,
-					Constraint: normalizeConstraint(constraint, rangeType),
-				},
-			})
-			constraint = ""
+			and(fmt.Sprintf("<= %s", e.LastAffected))
+			emit(nil)
 		case e.Fixed != "":
+			and(fmt.Sprintf("< %s", e.Fixed))
 			var detail *db.FixDetail
-			if f, ok := fixByVersion[e.Fixed]; ok {
+			if f, ok := fixes[e.Fixed]; ok {
 				detail = &db.FixDetail{Available: &f}
 			}
-			updateConstraint(fmt.Sprintf("< %s", e.Fixed))
-			ranges = append(ranges, db.Range{
-				Fix: normalizeFix(e.Fixed, detail),
-				Version: db.Version{
-					Type:       rangeType,
-					Constraint: normalizeConstraint(constraint, rangeType),
-				},
-			})
-			constraint = ""
+			emit(normalizeFix(e.Fixed, detail))
 		}
 	}
-
-	// Trailing "introduced" with no upper bound.
 	if constraint != "" {
-		ranges = append(ranges, db.Range{
-			Version: db.Version{
-				Type:       rangeType,
-				Constraint: normalizeConstraint(constraint, rangeType),
-			},
-		})
+		emit(nil) // trailing `introduced` with no upper bound
 	}
 	return ranges
 }
@@ -126,7 +118,7 @@ func getGrypeRangesFromRange(r models.Range, rangeType string) []db.Range { // n
 // getGrypeUnaffectedRangesFromRange inverts the OSV range events into
 // "unaffected" ranges for advisory records. rangeType is the grype-side format
 // string supplied by the calling strategy (see strategy rangeType() helpers).
-func getGrypeUnaffectedRangesFromRange(r models.Range, rangeType string) []db.Range {
+func getGrypeUnaffectedRangesFromRange(r osvmodel.Range, rangeType string) []db.Range {
 	if len(r.Events) == 0 {
 		return nil
 	}
@@ -135,7 +127,11 @@ func getGrypeUnaffectedRangesFromRange(r models.Range, rangeType string) []db.Ra
 }
 
 func normalizeConstraint(constraint string, rangeType string) string {
-	if rangeType == "semver" || rangeType == "bitnami" {
+	// Go versions are semver-shaped (with optional "v"/"go" prefix the parser
+	// strips); multi-window ranges built via versionutil.AndConstraints use
+	// space-separated form which the Go constraint parser rejects. Apply the
+	// same comma-separated normalization that semver/bitnami get.
+	if rangeType == "semver" || rangeType == "bitnami" || rangeType == "go" {
 		return versionutil.EnforceSemVerConstraint(constraint)
 	}
 	return constraint
@@ -157,9 +153,9 @@ func normalizeFix(fix string, detail *db.FixDetail) *db.Fix {
 // defaultRangeType is the generic OSV range-type → grype format mapping with
 // no provider-specific overrides. Strategies use this as the fallback for OSV
 // range types they don't have a special interpretation for.
-func defaultRangeType(t models.RangeType) string {
+func defaultRangeType(t osvmodel.RangeType) string {
 	switch t {
-	case models.RangeSemVer, models.RangeEcosystem, models.RangeGit:
+	case osvmodel.RangeSemVer, osvmodel.RangeEcosystem, osvmodel.RangeGit:
 		return strings.ToLower(string(t))
 	default:
 		return "unknown"
@@ -170,7 +166,7 @@ func defaultRangeType(t models.RangeType) string {
 // Fix-availability decoding (database_specific.anchore.fixes)
 // ============================================================================
 
-func extractFixAvailability(r models.Range) map[string]db.FixAvailability {
+func extractFixAvailability(r osvmodel.Range) map[string]db.FixAvailability {
 	fixByVersion := make(map[string]db.FixAvailability)
 
 	dbSpecific, ok := r.DatabaseSpecific["anchore"]
@@ -211,7 +207,7 @@ func parseSingleFixEntry(fixEntry any, fixByVersion map[string]db.FixAvailabilit
 	}
 }
 
-func buildUnaffectedRangesFromEvents(events []models.Event, fixByVersion map[string]db.FixAvailability, rangeType string) []db.Range {
+func buildUnaffectedRangesFromEvents(events []osvmodel.Event, fixByVersion map[string]db.FixAvailability, rangeType string) []db.Range {
 	var ranges []db.Range
 	for _, e := range events {
 		if e.Fixed != "" {
@@ -240,18 +236,19 @@ func createUnaffectedRange(fixedVersion string, fixByVersion map[string]db.FixAv
 // Severity / CVSS
 // ============================================================================
 
+var cvssPattern = regexp.MustCompile(`^CVSS:(\d+\.\d+)/(.+)$`)
+
 func extractCVSSInfo(cvss string) (string, string, error) {
-	re := regexp.MustCompile(`^CVSS:(\d+\.\d+)/(.+)$`)
-	matches := re.FindStringSubmatch(cvss)
+	matches := cvssPattern.FindStringSubmatch(cvss)
 	if len(matches) != 3 {
 		return "", "", fmt.Errorf("invalid CVSS format")
 	}
 	return matches[1], matches[0], nil
 }
 
-func normalizeSeverity(severity models.Severity) (db.Severity, error) {
+func normalizeSeverity(severity osvmodel.Severity) (db.Severity, error) {
 	switch severity.Type {
-	case models.SeverityCVSSV2, models.SeverityCVSSV3, models.SeverityCVSSV4:
+	case osvmodel.SeverityCVSSV2, osvmodel.SeverityCVSSV3, osvmodel.SeverityCVSSV4:
 		version, vector, err := extractCVSSInfo(severity.Score)
 		if err != nil {
 			return db.Severity{}, err

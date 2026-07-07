@@ -1,0 +1,4 @@
+auto-generate: true
+extractions:
+    oracle:
+        - ol:7/elsa-2022-4803

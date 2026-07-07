@@ -12,7 +12,7 @@ import (
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
-	"github.com/anchore/grype/grype/pkg/qualifier/rpmarch"
+	"github.com/anchore/grype/grype/pkg/qualifier/architecture"
 )
 
 var timeVal = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -184,7 +184,8 @@ func TestTransform_FixedAndNotAffected(t *testing.T) {
 	require.Equal(t, "rpm", aph.Package.Ecosystem)
 	require.NotNil(t, aph.OperatingSystem)
 	require.Equal(t, "hummingbird", aph.OperatingSystem.Name)
-	require.Equal(t, "1", aph.OperatingSystem.MajorVersion)
+	require.Empty(t, aph.OperatingSystem.MajorVersion, "hummingbird is rolling; no major version")
+	require.Equal(t, "rolling", aph.OperatingSystem.LabelVersion)
 	require.Len(t, aph.BlobValue.Ranges, 1)
 	require.Equal(t, "< 1.2.3-1.hum1", aph.BlobValue.Ranges[0].Version.Constraint)
 	require.Equal(t, "rpm", aph.BlobValue.Ranges[0].Version.Type)
@@ -272,13 +273,14 @@ func TestTransform_OSFromCPE(t *testing.T) {
 		wantName  string
 		wantMajor string
 		wantMinor string
+		wantLabel string
 		wantNil   bool
 	}{
 		{
-			name:      "hummingbird URI format",
+			name:      "hummingbird URI format (rolling, version → rolling label)",
 			cpe:       "cpe:/a:redhat:hummingbird:1",
 			wantName:  "hummingbird",
-			wantMajor: "1",
+			wantLabel: "rolling",
 		},
 		{
 			name:      "RHEL URI format",
@@ -304,9 +306,10 @@ func TestTransform_OSFromCPE(t *testing.T) {
 			wantNil: true,
 		},
 		{
-			name:     "CPE with wildcard version",
-			cpe:      "cpe:/a:redhat:hummingbird:*",
-			wantName: "hummingbird",
+			name:      "CPE with wildcard version",
+			cpe:       "cpe:/a:redhat:hummingbird:*",
+			wantName:  "hummingbird",
+			wantLabel: "rolling",
 		},
 	}
 
@@ -320,6 +323,7 @@ func TestTransform_OSFromCPE(t *testing.T) {
 			require.NotNil(t, got)
 			require.Equal(t, tt.wantName, got.Name)
 			require.Equal(t, tt.wantMajor, got.MajorVersion)
+			require.Equal(t, tt.wantLabel, got.LabelVersion)
 			if tt.wantMinor != "" {
 				require.Equal(t, tt.wantMinor, got.MinorVersion)
 			}
@@ -573,24 +577,26 @@ func TestTransform_DropsSrcWhenSameNameBinaryPresent(t *testing.T) {
 			osMajor = aph.OperatingSystem.MajorVersion
 		}
 		var arch string
-		if aph.BlobValue != nil && aph.BlobValue.Qualifiers != nil && aph.BlobValue.Qualifiers.RpmArch != nil {
-			arch = *aph.BlobValue.Qualifiers.RpmArch
+		if aph.BlobValue != nil && aph.BlobValue.Qualifiers != nil && aph.BlobValue.Qualifiers.Architecture != nil {
+			arch = *aph.BlobValue.Qualifiers.Architecture
 		}
 		seen = append(seen, emitted{name: aph.Package.Name, os: osName, osMajor: osMajor, arch: arch})
 	}
 
+	// hummingbird is rolling: both platforms emit a version-less OS row. The per-platform
+	// dedup still keys off the relationship platform IDs, not the emitted OS version.
 	want := []emitted{
-		{name: "glibc", os: "hummingbird", osMajor: "1", arch: rpmarch.ArchBinaryNoArchSpecified},
-		{name: "glibc-common", os: "hummingbird", osMajor: "1", arch: rpmarch.ArchBinaryNoArchSpecified},
-		{name: "glibc", os: "hummingbird", osMajor: "2", arch: rpmarch.ArchSource},
+		{name: "glibc", os: "hummingbird", osMajor: "", arch: architecture.ArchBinaryNoArchSpecified},
+		{name: "glibc-common", os: "hummingbird", osMajor: "", arch: architecture.ArchBinaryNoArchSpecified},
+		{name: "glibc", os: "hummingbird", osMajor: "", arch: architecture.ArchSource},
 	}
 
 	require.ElementsMatch(t, want, seen, "hummingbird-1:glibc.src should be dropped (sibling binary present); hummingbird-2:glibc.src should survive (no sibling binary on that platform)")
 }
 
-func TestTransform_RpmArchTaggingForFixedAndUnaffected(t *testing.T) {
-	// Verify the rpmarch tag is set for the fixed and known_not_affected paths too — not
-	// just known_affected — and that the value follows the same arch-from-PURL rule.
+func TestTransform_ArchitectureTaggingForFixedAndUnaffected(t *testing.T) {
+	// Verify the architecture tag is set for the fixed and known_not_affected paths too —
+	// not just known_affected — and that the value follows the same arch-from-PURL rule.
 	tree := hummingbirdProductTree()
 	advisory := makeAdvisory([]unmarshal.CSAFVulnerability{
 		{
@@ -613,12 +619,12 @@ func TestTransform_RpmArchTaggingForFixedAndUnaffected(t *testing.T) {
 	aph, ok := e.Related[0].(db.AffectedPackageHandle)
 	require.True(t, ok)
 	require.NotNil(t, aph.BlobValue.Qualifiers)
-	require.NotNil(t, aph.BlobValue.Qualifiers.RpmArch)
-	require.Equal(t, rpmarch.ArchSource, *aph.BlobValue.Qualifiers.RpmArch, "fixed src rpm should carry rpmarch=src")
+	require.NotNil(t, aph.BlobValue.Qualifiers.Architecture)
+	require.Equal(t, architecture.ArchSource, *aph.BlobValue.Qualifiers.Architecture, "fixed src rpm should carry architecture=src")
 
 	uph, ok := e.Related[1].(db.UnaffectedPackageHandle)
 	require.True(t, ok)
 	require.NotNil(t, uph.BlobValue.Qualifiers)
-	require.NotNil(t, uph.BlobValue.Qualifiers.RpmArch)
-	require.Equal(t, rpmarch.ArchBinaryNoArchSpecified, *uph.BlobValue.Qualifiers.RpmArch, "binary rpm without an arch qualifier should carry the synthesized sentinel")
+	require.NotNil(t, uph.BlobValue.Qualifiers.Architecture)
+	require.Equal(t, architecture.ArchBinaryNoArchSpecified, *uph.BlobValue.Qualifiers.Architecture, "binary rpm without an arch qualifier should carry the synthesized sentinel")
 }

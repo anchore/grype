@@ -13,18 +13,26 @@ on:
       version:
         description: tag the latest commit on main with the given version (prefixed with v)
         required: true
+      skip-checks:
+        description: skip the check-gate (release even if checks haven't passed on main)
+        type: boolean
+        default: false
+        required: false
 
 jobs:
-
   version-available:
-    uses: anchore/workflows/.github/workflows/check-version-available.yaml@8b2b1caf40e03933c6807e03b99e883e2ceb5ac8 # v0.4.0
+    permissions:
+      contents: read # for the most recent tags
+    uses: anchore/workflows/.github/workflows/check-version-available.yaml@7212994dc8fc3a53fe9c8e766ab5b4ddd16ea3d4 # v0.8.0
     with:
       version: ${{ github.event.inputs.version }}
 
   check-gate:
+    if: ${{ !inputs.skip-checks }}
     permissions:
-      checks: read   # required for getting the status of specific check names
-    uses: anchore/workflows/.github/workflows/check-gate.yaml@8b2b1caf40e03933c6807e03b99e883e2ceb5ac8 # v0.4.0
+      contents: read
+      checks: read # required for getting the status of specific check names
+    uses: anchore/workflows/.github/workflows/check-gate.yaml@b0c30a80409130d329aaa356fd64a34d8c0b3375 # v0.7.2
     with:
       # these are checks that should be run on pull-request and merges to main.
       # we do NOT want to kick off a release if these have not been verified on main.
@@ -37,13 +45,22 @@ jobs:
   # not all actions are guaranteed to be idempotent.
   release:
     needs: [check-gate, version-available]
+    # run even when check-gate is skipped, but never when version-available
+    # failed/was skipped, nor when check-gate failed or was cancelled. note:
+    # always() disables the implicit success() gate on ALL needs, so the
+    # version-available requirement must be re-asserted explicitly here.
+    if: >-
+      ${{ always()
+          && needs.version-available.result == 'success'
+          && !contains(fromJSON('["failure", "cancelled"]'), needs.check-gate.result) }}
+    environment: release
     runs-on: ubuntu-24.04
     permissions:
       contents: write
       packages: write
       id-token: write
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd #v6.0.2
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 #v7.0.0
         with:
           fetch-depth: 0
           persist-credentials: true
@@ -52,34 +69,27 @@ jobs:
         uses: ./.github/actions/bootstrap
         with:
           # use the same cache we used for building snapshots
-          build-cache-key-prefix: "snapshot"
+          cache-key-prefix: "snapshot"
 
       - name: Login to Docker Hub
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121  #v4.1.0
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee #v4.2.0
         with:
           username: ${{ secrets.ANCHOREOSSWRITE_DH_USERNAME }}
           password: ${{ secrets.ANCHOREOSSWRITE_DH_PAT }}
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121  #v4.1.0
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee #v4.2.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tag release
-        run: |
-          git config user.name "anchoreci"
-          git config user.email "anchoreci@users.noreply.github.com"
-          git tag -a "$VERSION" -m "Release $VERSION"
-          git push origin --tags
-        env:
-          VERSION: ${{ github.event.inputs.version }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build & publish release artifacts
         run: make ci-release
         env:
+          # for pushing tags (does not inherit workflow permissions)
+          TAG_TOKEN: ${{ secrets.TAG_TOKEN }}
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
           # for mac signing and notarization...
           QUILL_SIGN_P12: ${{ secrets.ANCHORE_APPLE_DEVELOPER_ID_CERT_CHAIN }}
           QUILL_SIGN_PASSWORD: ${{ secrets.ANCHORE_APPLE_DEVELOPER_ID_CERT_PASS }}
@@ -96,30 +106,12 @@ jobs:
         with:
           artifact-name: sbom.spdx.json
 
-      - name: Notify Slack of new release
-        uses: slackapi/slack-github-action@45a88b9581bfab2566dc881e2cd66d334e621e2c #v3.0.3
-        continue-on-error: true
-        with:
-          webhook: ${{ secrets.SLACK_TOOLBOX_WEBHOOK_URL }}
-          webhook-type: incoming-webhook
-          payload: |
-            text: "A new Grype release has been published: https://github.com/anchore/grype/releases/tag/${{ github.event.inputs.version }}"
-            blocks:
-              - type: section
-                text:
-                  type: mrkdwn
-                  text: |
-                    *A new Grype release has been published* :rocket:
-                    • Release: <https://github.com/anchore/grype/releases/tag/${{ github.event.inputs.version }}|${{ github.event.inputs.version }}>
-                    • Repo: `${{ github.repository }}`
-                    • Workflow: `${{ github.workflow }}`
-                    • Event: `${{ github.event_name }}`
-        if: ${{ success() }}
-
   release-install-script:
     needs: [release]
     if: ${{ needs.release.result == 'success' }}
-    uses: "anchore/workflows/.github/workflows/release-install-script.yaml@main"
+    permissions:
+      contents: read
+    uses: anchore/workflows/.github/workflows/release-install-script.yaml@b0c30a80409130d329aaa356fd64a34d8c0b3375 # v0.7.2
     with:
       tag: ${{ github.event.inputs.version }}
     secrets:

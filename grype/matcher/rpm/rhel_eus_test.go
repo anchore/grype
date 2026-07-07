@@ -806,6 +806,7 @@ func TestRedhatEUSMatches_VulnerableOnEUS(t *testing.T) {
 			matcher := Matcher{}
 			// EUS 9.4 fix is 5.14.0-427.68.1.el9_4; 100 < 427 → vulnerable
 			p := dbtest.NewPackage("kernel", "0:5.14.0-100.el9_4", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(newEUSDistro("9.4")).
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 				Build()
@@ -832,6 +833,7 @@ func TestRedhatEUSMatches_IndirectMatchBySource(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("kernel-tools", "0:5.14.0-100.el9_4", syftPkg.RpmPkg).
+				WithArchitecture("aarch64").
 				WithDistro(newEUSDistro("9.4")).
 				WithUpstream("kernel", "0:5.14.0-100.el9_4").
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
@@ -854,6 +856,7 @@ func TestRedhatEUSMatches_FixedOnEUS(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("kernel", "0:5.14.0-427.68.1.el9_4", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(newEUSDistro("9.4")).
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 				Build()
@@ -874,6 +877,7 @@ func TestRedhatEUSMatches_BetweenEUSAndMainFix(t *testing.T) {
 			matcher := Matcher{}
 			// 450 > EUS fix 427.68 but < main fix 503.11 → resolved per EUS
 			p := dbtest.NewPackage("kernel", "0:5.14.0-450.el9_4", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithDistro(newEUSDistro("9.4")).
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 				Build()
@@ -892,6 +896,7 @@ func TestRedhatEUSMatches_MultipleCVEsAllVulnerable(t *testing.T) {
 	dbtest.DBs(t, "rhel9-eus").Run(func(t *testing.T, db *dbtest.DB) {
 		matcher := Matcher{}
 		p := dbtest.NewPackage("kernel", "0:5.14.0-300.el9_4", syftPkg.RpmPkg).
+			WithArchitecture("aarch64").
 			WithDistro(newEUSDistro("9.4")).
 			WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 			Build()
@@ -918,6 +923,7 @@ func TestRedhatEUSMatches_MultipleCVEsAllIgnored(t *testing.T) {
 		matcher := Matcher{}
 		pkgID := pkg.ID("kernel-past-fixes")
 		p := dbtest.NewPackage("kernel", "0:5.14.0-500.el9_4", syftPkg.RpmPkg).
+			WithArchitecture("x86_64").
 			WithID(pkgID).
 			WithDistro(newEUSDistro("9.4")).
 			WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
@@ -942,6 +948,7 @@ func TestRedhatEUSIgnoreFilters_FixedProducesIgnore(t *testing.T) {
 			matcher := Matcher{}
 			pkgID := pkg.ID("kernel-eus-fixed")
 			p := dbtest.NewPackage("kernel", "0:5.14.0-427.68.1.el9_4", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
 				WithID(pkgID).
 				WithDistro(newEUSDistro("9.4")).
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
@@ -962,6 +969,7 @@ func TestRedhatEUSIgnoreFilters_VulnerablePackageNoIgnores(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			p := dbtest.NewPackage("kernel", "0:5.14.0-200.el9_4", syftPkg.RpmPkg).
+				WithArchitecture("aarch64").
 				WithDistro(newEUSDistro("9.4")).
 				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
 				Build()

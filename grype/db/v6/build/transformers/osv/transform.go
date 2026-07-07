@@ -48,4 +48,6 @@ var strategies = []Strategy{
 	almaStrategy{},
 	bellsoftStrategy{},
 	bitnamiStrategy{},
+	govulndbStrategy{},
+	rootioStrategy{},
 }

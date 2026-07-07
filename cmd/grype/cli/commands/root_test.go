@@ -112,7 +112,7 @@ func Test_getMatcherConfig(t *testing.T) {
 				Javascript: javascript.MatcherConfig{},
 				Golang: golang.MatcherConfig{
 					UseCPEs:                                false,
-					AlwaysUseCPEForStdlib:                  true,
+					AlwaysUseCPEForStdlib:                  false,
 					AllowMainModulePseudoVersionComparison: false,
 				},
 				Hex:   hex.MatcherConfig{},
@@ -147,7 +147,7 @@ func Test_getMatcherConfig(t *testing.T) {
 				Javascript: javascript.MatcherConfig{},
 				Golang: golang.MatcherConfig{
 					UseCPEs:                                false,
-					AlwaysUseCPEForStdlib:                  true,
+					AlwaysUseCPEForStdlib:                  false,
 					AllowMainModulePseudoVersionComparison: false,
 				},
 				Hex:   hex.MatcherConfig{},
@@ -182,7 +182,7 @@ func Test_getMatcherConfig(t *testing.T) {
 				Javascript: javascript.MatcherConfig{},
 				Golang: golang.MatcherConfig{
 					UseCPEs:                                false,
-					AlwaysUseCPEForStdlib:                  true,
+					AlwaysUseCPEForStdlib:                  false,
 					AllowMainModulePseudoVersionComparison: false,
 				},
 				Hex:   hex.MatcherConfig{},

@@ -56,16 +56,10 @@ func (w Workspace) ReadState() (*State, error) {
 	return ReadState(w.StatePath())
 }
 
-// EnsureListingFile checks if a listing.xxh64 file exists in the results directory.
-// If it doesn't exist, generates one by hashing all result files.
+// EnsureListingFile (re)generates the results directory's listing.xxh64 from the
+// result files currently on disk. Regenerate unconditionally to make committing a mismatched
+// file less likely.
 func (w Workspace) EnsureListingFile() error {
-	listingPath := w.ListingPath()
-
-	// check if listing file already exists
-	if _, err := os.Stat(listingPath); err == nil {
-		return nil
-	}
-
 	resultsDir := w.ResultsPath()
 
 	// check if results directory exists
@@ -74,8 +68,7 @@ func (w Workspace) EnsureListingFile() error {
 		return nil
 	}
 
-	// generate listing file
-	return GenerateListingFile(resultsDir, listingPath)
+	return GenerateListingFile(resultsDir, w.ListingPath())
 }
 
 // GenerateListingFile creates a listing.xxh64 file with hashes of all result files.

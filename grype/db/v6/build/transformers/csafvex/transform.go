@@ -12,7 +12,7 @@ import (
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
 	"github.com/anchore/grype/grype/db/v6/name"
-	"github.com/anchore/grype/grype/pkg/qualifier/rpmarch"
+	"github.com/anchore/grype/grype/pkg/qualifier/architecture"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/packageurl-go"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -369,14 +369,14 @@ func rpmArchQualifierForPURL(purl *packageurl.PackageURL) *db.PackageQualifiers 
 	if purl == nil || purl.Type != packageurl.TypeRPM {
 		return nil
 	}
-	arch := rpmarch.ArchBinaryNoArchSpecified
+	arch := architecture.ArchBinaryNoArchSpecified
 	for _, q := range purl.Qualifiers {
 		if q.Key == "arch" && q.Value != "" {
 			arch = q.Value
 			break
 		}
 	}
-	return &db.PackageQualifiers{RpmArch: &arch}
+	return &db.PackageQualifiers{Architecture: &arch}
 }
 
 // isSrcRPMPURL reports whether the PURL describes a source RPM. The canonical CSAF signal
@@ -386,7 +386,7 @@ func isSrcRPMPURL(purl *packageurl.PackageURL) bool {
 		return false
 	}
 	for _, q := range purl.Qualifiers {
-		if q.Key == "arch" && q.Value == rpmarch.ArchSource {
+		if q.Key == "arch" && q.Value == architecture.ArchSource {
 			return true
 		}
 	}
@@ -486,8 +486,12 @@ func getOperatingSystem(productID string, idx *productIndex) *db.OperatingSystem
 	return osFromCPE(cpe)
 }
 
+// rollingLabel marks a rolling-release distro row, matching what the os transformer emits
+// for archlinux.
+const rollingLabel = "rolling"
+
 // osFromCPE extracts OS name and version from a CPE string.
-// Example: "cpe:/a:redhat:hummingbird:1" → name=hummingbird, majorVersion=1
+// Example: "cpe:/a:redhat:hummingbird:1" → name=hummingbird, labelVersion=rolling
 // Example: "cpe:/o:redhat:enterprise_linux:9" → name=redhat:enterprise_linux, majorVersion=9
 func osFromCPE(cpe string) *db.OperatingSystem {
 	// handle both cpe:/ and cpe:2.3: formats
@@ -516,6 +520,13 @@ func osFromCPE(cpe string) *db.OperatingSystem {
 		Name: strings.ToLower(osName),
 	}
 
+	// for rolling distros the CPE version is a product-generation marker, not an OS release;
+	// label the row "rolling" instead of recording a major version
+	if isRollingDistro(os.Name) {
+		os.LabelVersion = rollingLabel
+		return os
+	}
+
 	if len(parts) > 3 && parts[3] != "" && parts[3] != "*" {
 		versionParts := strings.SplitN(parts[3], ".", 2)
 		os.MajorVersion = versionParts[0]
@@ -525,6 +536,24 @@ func osFromCPE(cpe string) *db.OperatingSystem {
 	}
 
 	return os
+}
+
+// isRollingDistro reports whether the named distro is an unconditional rolling release per
+// db.KnownOperatingSystemSpecifierOverrides (the source of truth). Version-conditional rolling
+// overrides (e.g. alpine's _alpha pattern) are excluded since they depend on version data.
+func isRollingDistro(name string) bool {
+	for _, o := range db.KnownOperatingSystemSpecifierOverrides() {
+		if !o.Rolling {
+			continue
+		}
+		if o.Version != "" || o.VersionPattern != "" || o.Codename != "" {
+			continue
+		}
+		if strings.EqualFold(o.Alias, name) {
+			return true
+		}
+	}
+	return false
 }
 
 func versionTypeFromPURL(purl *packageurl.PackageURL) string {
