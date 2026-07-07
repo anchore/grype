@@ -35,6 +35,14 @@ import (
 //     allowed to cover, and — being rejected — never matches.
 //   - GO-2023-1840 (stdlib-only, whole-package "runtime") with no GHSA alias:
 //     written unchanged.
+//   - GO-2024-3312 with GHSA-4c49-9fpc-hc3v for github.com/canonical/lxd: the
+//     GHSA range is pinned to the pseudo-version of the fix commit, which no
+//     real tagged release can ever satisfy; the merge replaces it with the
+//     govulndb custom_ranges tag-space window (< 5.21.2) and patches the lxd
+//     symbols on.
+//   - GO-2021-0076 with GHSA-gxhv-3hwf-wjp9 for github.com/evanphx/json-patch:
+//     a +incompatible module; the GHSA's plain-semver windows must match
+//     v3.0.0+incompatible binaries, gated by the merged Patch.Apply symbols.
 //
 // The headline behavior: the CVE no longer resurfaces through an unfiltered
 // GHSA record. A binary that merely links golang.org/x/net or gjson without
@@ -51,6 +59,10 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 		gjsonWithdrawn    = "GHSA-c9gm-7rfj-8w5h" // withdrawn upstream (duplicate advisory): not patched, never matches
 		s3cryptoGHSA      = "GHSA-7f33-f4f5-xwgw" // aws-sdk-go < 1.34.0; symbols merged from GO-2022-0635
 		s3cryptoGo        = "GO-2022-0635"        // open-ended range (no fix per govulndb) -> fully covered, dropped
+		lxdGHSA           = "GHSA-4c49-9fpc-hc3v" // lxd; pseudo-version range replaced by GO-2024-3312's < 5.21.2
+		lxdGo             = "GO-2024-3312"        // fully GHSA-covered -> dropped from the DB
+		jsonPatchGHSA     = "GHSA-gxhv-3hwf-wjp9" // json-patch (+incompatible module); symbols merged from GO-2021-0076
+		jsonPatchGo       = "GO-2021-0076"        // fully GHSA-covered -> dropped from the DB
 	)
 
 	// see TestMatcherGolang_GoSymbols for why these versions are pinned
@@ -174,7 +186,10 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// one — as affected. The aliased GHSA bounds the range at < 1.34.0
 			// (fixed 2020). The merged record carries the GHSA range, so the
 			// vulnerable symbols being present does not matter here: the version
-			// is fixed. This is the merged-data range win.
+			// is fixed. This is the merged-data range win — the same
+			// ranges-disagree-with-symbols shape as GO-2022-0274 /
+			// GHSA-v95c-p5hm-xq8f (runc), where the GHSA is right because the fix
+			// was backported to a release branch semver ranges cannot express.
 			p := dbtest.NewPackage("github.com/aws/aws-sdk-go", "v1.55.8", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
 				WithMetadata(pkg.GolangBinMetadata{Symbols: s3cryptoSymbols}).
@@ -211,6 +226,127 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 					"github.com/aws/aws-sdk-go/service/s3.New",
 					"github.com/aws/aws-sdk-go/service/s3.(*S3).GetObject",
 				}}).
+				Build()
+
+			findings := db.Match(t, matcher, p)
+
+			findings.IsEmpty()
+		})
+
+		// lxdSymbols is what an lxd daemon binary carries: the vulnerable project
+		// resource listing function (on GO-2024-3312's symbol list) plus other lxd
+		// internals that are not.
+		lxdSymbols := []string{
+			"github.com/canonical/lxd/lxd.allowProjectResourceList",
+			"github.com/canonical/lxd/lxd.projectResourceList",
+			"github.com/canonical/lxd/shared/api.NewURL",
+		}
+
+		t.Run("lxd at a real tagged release matches via the replaced pseudo-version range", func(t *testing.T) {
+			// GHSA-4c49-9fpc-hc3v as published is pinned to the pseudo-version of
+			// the fix commit: "< 0.0.0-20240708073652-5a492a3f0036". LXD does not
+			// follow Go module versioning, so that is the only version GitHub can
+			// name — but under semver ordering EVERY real tagged release (v5.21.1,
+			// v5.21.0, …) sorts far above v0.0.0-…, meaning the raw GHSA range can
+			// never match a real tag: a guaranteed false negative for any SBOM
+			// that reports the release version. GO-2024-3312 carries the same fix
+			// in tag space (custom_ranges < 5.21.2), the merge swapped it in
+			// (replaceGHSAPseudoVersionRanges), and v5.21.1 now matches.
+			p := dbtest.NewPackage("github.com/canonical/lxd", "v5.21.1", syftPkg.GoModulePkg).
+				WithLanguage(syftPkg.Go).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: lxdSymbols}).
+				Build()
+
+			findings := db.Match(t, matcher, p)
+
+			expectMatches(t, findings, lxdGHSA)
+			findings.DoesNotHaveAnyVulnerabilities(lxdGo)
+		})
+
+		t.Run("lxd at the fixed release does not match the replaced range", func(t *testing.T) {
+			// v5.21.2 is the tag-space fix from GO-2024-3312's custom_ranges; the
+			// replaced range must exclude it even though the vulnerable symbol is
+			// present.
+			p := dbtest.NewPackage("github.com/canonical/lxd", "v5.21.2", syftPkg.GoModulePkg).
+				WithLanguage(syftPkg.Go).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: lxdSymbols}).
+				Build()
+
+			findings := db.Match(t, matcher, p)
+
+			findings.IsEmpty()
+		})
+
+		t.Run("lxd binary not using the vulnerable symbol is suppressed", func(t *testing.T) {
+			// inside the replaced range, but without allowProjectResourceList the
+			// merged symbols suppress the match — range replacement and symbol
+			// filtering compose.
+			p := dbtest.NewPackage("github.com/canonical/lxd", "v5.21.1", syftPkg.GoModulePkg).
+				WithLanguage(syftPkg.Go).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: []string{
+					"github.com/canonical/lxd/lxd.main",
+					"github.com/canonical/lxd/shared/api.NewURL",
+				}}).
+				Build()
+
+			findings := db.Match(t, matcher, p)
+
+			findings.IsEmpty()
+		})
+
+		// jsonPatchSymbols is what a binary applying JSON patches carries: the
+		// vulnerable entrypoints (Patch.Apply and the partialArray.add internal it
+		// reaches, both on GO-2021-0076's symbol list) plus surrounding API surface
+		// that is not.
+		jsonPatchSymbols := []string{
+			"github.com/evanphx/json-patch.Patch.Apply",
+			"github.com/evanphx/json-patch.partialArray.add",
+			"github.com/evanphx/json-patch.DecodePatch",
+		}
+
+		t.Run("+incompatible binary using Patch.Apply matches the patched GHSA", func(t *testing.T) {
+			// json-patch ships v3 tags without a /v3 module path, so binaries
+			// report v3.0.0+incompatible while GHSA-gxhv-3hwf-wjp9's window is
+			// plain semver (">= 3.0.0, < 3.0.1-0.20180525145409-4c9aadca8f89").
+			// +incompatible is semver build metadata — ignored for precedence — so
+			// the golang comparator must place v3.0.0+incompatible inside that
+			// window. This is the non-standard-versioning + symbol-matching combo:
+			// the version says vulnerable AND the binary uses Patch.Apply.
+			p := dbtest.NewPackage("github.com/evanphx/json-patch", "v3.0.0+incompatible", syftPkg.GoModulePkg).
+				WithLanguage(syftPkg.Go).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: jsonPatchSymbols}).
+				Build()
+
+			findings := db.Match(t, matcher, p)
+
+			expectMatches(t, findings, jsonPatchGHSA)
+			findings.DoesNotHaveAnyVulnerabilities(jsonPatchGo)
+		})
+
+		t.Run("+incompatible binary avoiding vulnerable symbols matches nothing", func(t *testing.T) {
+			// same vulnerable version, but the binary only creates/compares merge
+			// patches — none of GO-2021-0076's symbols. Before the merge the
+			// unfiltered GHSA matched any binary linking json-patch below the fix;
+			// with the symbols patched on, no match.
+			p := dbtest.NewPackage("github.com/evanphx/json-patch", "v3.0.0+incompatible", syftPkg.GoModulePkg).
+				WithLanguage(syftPkg.Go).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: []string{
+					"github.com/evanphx/json-patch.CreateMergePatch",
+					"github.com/evanphx/json-patch.Equal",
+				}}).
+				Build()
+
+			findings := db.Match(t, matcher, p)
+
+			findings.IsEmpty()
+		})
+
+		t.Run("post-fix +incompatible version does not match", func(t *testing.T) {
+			// v4.5.0+incompatible is above both GHSA windows (< 0.5.2 and
+			// < 3.0.1-0.2018…): vulnerable symbols present, version fixed.
+			p := dbtest.NewPackage("github.com/evanphx/json-patch", "v4.5.0+incompatible", syftPkg.GoModulePkg).
+				WithLanguage(syftPkg.Go).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: jsonPatchSymbols}).
 				Build()
 
 			findings := db.Match(t, matcher, p)

@@ -30,10 +30,6 @@ type VulnerabilityBlob struct {
 	// Modifications is an audit trail of build-time amendments made to this record from other data
 	// sources (e.g. a GHSA record patched with Go symbol information from the aliased govulndb record).
 	Modifications []Modification `json:"modifications,omitempty"`
-
-	// ReviewStatus is the review state of the record as reported by the source (e.g. govulndb's
-	// database_specific.review_status: "REVIEWED" or "UNREVIEWED"). Empty when the source does not report one.
-	ReviewStatus string `json:"review_status,omitempty"`
 }
 
 func (v VulnerabilityBlob) String() string {

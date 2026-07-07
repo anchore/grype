@@ -251,9 +251,6 @@
           },
           "type": "array"
         },
-        "review_status": {
-          "type": "string"
-        },
         "severity": {
           "type": "string"
         },

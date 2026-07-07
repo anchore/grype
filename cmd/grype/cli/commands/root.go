@@ -303,6 +303,14 @@ func warnWhenDistroHintNeeded(pkgs []pkg.Package, context *pkg.Context) {
 // symbols the gosymbols qualifier cannot filter module- and stdlib-scoped advisories, so those packages
 // fall back to module-granularity matching and may surface false positives.
 func warnWhenGoSymbolsMissing(pkgs []pkg.Package) {
+	if msg := goSymbolsMissingMessage(pkgs); msg != "" {
+		bus.Notify(msg)
+	}
+}
+
+// goSymbolsMissingMessage returns the user-facing warning for Go binary packages cataloged
+// without function symbols, or "" when there is nothing to warn about.
+func goSymbolsMissingMessage(pkgs []pkg.Package) string {
 	var withoutSymbols int
 	for _, p := range pkgs {
 		if m, ok := p.Metadata.(pkg.GolangBinMetadata); ok && len(m.Symbols) == 0 {
@@ -311,12 +319,12 @@ func warnWhenGoSymbolsMissing(pkgs []pkg.Package) {
 	}
 
 	if withoutSymbols == 0 {
-		return
+		return ""
 	}
 
-	bus.Notify(fmt.Sprintf("%d Go binary package(s) have no function symbols; matching falls back to module "+
+	return fmt.Sprintf("%d Go binary package(s) have no function symbols; matching falls back to module "+
 		"granularity and may report false positives. Regenerate the SBOM with symbol capture enabled "+
-		"(SYFT_GOLANG_CAPTURE_SYMBOLS=all syft ...) for more precise Go results.", withoutSymbols))
+		"(SYFT_GOLANG_CAPTURE_SYMBOLS=all syft ...) for more precise Go results.", withoutSymbols)
 }
 
 func warnDistroAlerts(data *models.DistroAlertData) {

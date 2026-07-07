@@ -2,6 +2,7 @@ package v6
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -199,7 +200,9 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 
 	t.Run("fully covered record across multiple GHSAs is dropped", func(t *testing.T) {
 		// GO-2021-0265 shape: one module, two GHSA aliases; both get patched and
-		// the GO record has nothing left to say.
+		// the GO record has nothing left to say. GO-2022-0536 is the same fan-out
+		// with both GHSAs active in the real data (distinct CVEs sharing one GO
+		// record); both siblings receive the record's full symbol set.
 		w := newMergeTestWriter()
 		require.True(t, w.holdForGoVulnDBMerge(ghsaEntry("GHSA-c9gm-7rfj-8w5h", goModuleAPH("github.com/tidwall/gjson"))))
 		require.True(t, w.holdForGoVulnDBMerge(ghsaEntry("GHSA-ppj4-34rq-v8j9", goModuleAPH("github.com/tidwall/gjson"))))
@@ -298,6 +301,13 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 	t.Run("major-version module the GHSA collapsed survives on the GO record", func(t *testing.T) {
 		// GO-2025-4004 shape: GHSA lists only github.com/lxc/lxd; the GO record's
 		// separate /v6 module has no GHSA counterpart and must be written.
+		//
+		// This deliberately does NOT dedupe /vN major-version variants against the base
+		// module (the GO-2025-3540 / go-redis shape): at match time a /vN-pathed package
+		// only matches a /vN-named row, so dropping the variant because the base module is
+		// on the GHSA would be a guaranteed false negative for /vN packages. Coverage is
+		// decided per exact affected.package.name (case-insensitive), per the decision that
+		// a govulndb package the aliased GHSA lacks is always kept.
 		w := newMergeTestWriter()
 		require.True(t, w.holdForGoVulnDBMerge(ghsaEntry("GHSA-w2hg-2v4p-vmh6", goModuleAPH("github.com/lxc/lxd"))))
 
@@ -312,10 +322,18 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 	})
 
 	t.Run("covered package without symbols leaves no modification", func(t *testing.T) {
-		// unreviewed records rarely carry symbols; the dedup (drop the GO
-		// package) still applies, but the GHSA is not modified
+		// unreviewed records rarely carry symbols; the dedup (drop the GO package) still
+		// applies, but the GHSA is not modified — including its ranges, which stay exactly
+		// as published even when the two feeds disagree (the GO-2024-2924 /
+		// GHSA-7jp9-vgmq-c8r5 shape: the GHSA has the better range and govulndb adds nothing)
 		w := newMergeTestWriter()
-		require.True(t, w.holdForGoVulnDBMerge(ghsaEntry("GHSA-c9gm-7rfj-8w5h", goModuleAPH("github.com/tidwall/gjson"))))
+		ghsaRange := db.Range{
+			Version: db.Version{Type: "go", Constraint: "<1.9.3"},
+			Fix:     &db.Fix{Version: "1.9.3", State: db.FixedStatus},
+		}
+		ghsaAPH := goModuleAPH("github.com/tidwall/gjson")
+		ghsaAPH.BlobValue.Ranges = []db.Range{ghsaRange}
+		require.True(t, w.holdForGoVulnDBMerge(ghsaEntry("GHSA-c9gm-7rfj-8w5h", ghsaAPH)))
 
 		entry := goVulnEntry("GO-2021-0265", []string{"GHSA-c9gm-7rfj-8w5h"},
 			goModuleAPH("github.com/tidwall/gjson"),
@@ -326,11 +344,17 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 		held := heldGHSA(t, w, "ghsa-c9gm-7rfj-8w5h")
 		assert.Nil(t, goImportsOf(t, held, "github.com/tidwall/gjson"))
 		assert.Empty(t, held.VulnerabilityHandle.BlobValue.Modifications)
+		gotAPH, ok := held.Related[0].(db.AffectedPackageHandle)
+		require.True(t, ok)
+		assert.Equal(t, []db.Range{ghsaRange}, gotAPH.BlobValue.Ranges, "GHSA ranges must stay as published")
 	})
 
 	t.Run("sub-package-only GHSA match patches but does not cover", func(t *testing.T) {
-		// if a GHSA lists only the sub-package, dropping the GO record's module
-		// package would leave module-named packages matching nothing
+		// the path-hiding shape (canonically GO-2024-2687 / GHSA-4v7x-pqxf-cx7m, where the
+		// GHSA lists 3 affected packages against govulndb's 2 because sub-packages hide as
+		// import paths under ecosystem_specific): if a GHSA lists only the sub-package,
+		// dropping the GO record's module package would leave module-named packages
+		// matching nothing
 		w := newMergeTestWriter()
 		require.True(t, w.holdForGoVulnDBMerge(ghsaEntry("GHSA-69cg-p879-7622", goModuleAPH("golang.org/x/net/http2"))))
 
@@ -430,6 +454,220 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 		require.Len(t, mods, 1)
 		assert.Len(t, mods[0].Changes, 1)
 	})
+}
+
+// TestGoVulnDBPseudoVersionRangeReplacement covers the spec's pseudo-version reconciliation,
+// using the real shape of GO-2024-3312 / GHSA-4c49-9fpc-hc3v (lxd, CVE-2024-6156):
+//
+//	GHSA-4c49-9fpc-hc3v range:      <0.0.0-20240708073652-5a492a3f0036   (pseudo-version)
+//	GO-2024-3312 standard range:    <0.0.0-20240708073652-5a492a3f0036   (same pseudo-version)
+//	GO-2024-3312 custom_ranges:     <5.21.2                              (real tag versioning)
+//
+// LXD does not follow Go module versioning (its releases are not go-module tags), so GitHub pins
+// the advisory to the pseudo-version of the fix commit. Under semver ordering every real tagged
+// release (v5.21.1, v5.21.0, …) sorts far ABOVE v0.0.0-… pseudo-versions, which means the GHSA
+// range as published can never match a real tagged version — a guaranteed false negative for any
+// SBOM that reports the tag. govulndb carries the same fix in tag space in custom_ranges, and
+// the transformer forwards the pairing on the GoVulnDBAffectedPackage wrapper (see
+// pseudoVersionReplacement). Here the merge must swap the GHSA's range for the tag-space window.
+//
+// The replacement preconditions come straight from the branch spec and are deliberately strict:
+//
+//  1. the GO record's standard range must carry the exact pseudo-version the GHSA is pinned to
+//     (the commit hash pins both feeds to the same fix commit — same window, two version
+//     spaces). Checked via Fix.Version equality with the wrapper's PseudoVersionFix.
+//  2. exactly one range on each side (one standard + one custom on the GO record, enforced by
+//     the transformer; one range on the GHSA package, enforced here). With more, the
+//     standard↔custom pairing is ambiguous and we must leave the GHSA alone.
+//
+// Everything else about the merge is unchanged: the module is still covered (the GO package is
+// still dropped), symbols are still patched, and the replacement is recorded on the GHSA blob's
+// Modifications audit trail.
+func TestGoVulnDBPseudoVersionRangeReplacement(t *testing.T) {
+	const pseudoFix = "0.0.0-20240708073652-5a492a3f0036"
+
+	// the GHSA range carries a fix-availability date from vunnel; custom_ranges never do, so
+	// the replacement must retain the GHSA's date (failOnMissingFixDate builds reject fixed
+	// ranges without one)
+	fixDate := time.Date(2024, time.December, 9, 0, 0, 0, 0, time.UTC)
+	ghsaFixDetail := &db.FixDetail{Available: &db.FixAvailability{Date: &fixDate, Kind: "first-observed"}}
+
+	pseudoRange := db.Range{
+		Version: db.Version{Type: "go", Constraint: "<" + pseudoFix},
+		Fix:     &db.Fix{Version: pseudoFix, State: db.FixedStatus, Detail: ghsaFixDetail},
+	}
+	tagRange := db.Range{
+		Version: db.Version{Type: "go", Constraint: "<5.21.2"},
+		Fix:     &db.Fix{Version: "5.21.2", State: db.FixedStatus},
+	}
+	tagRangeWithGHSADate := db.Range{
+		Version: db.Version{Type: "go", Constraint: "<5.21.2"},
+		Fix:     &db.Fix{Version: "5.21.2", State: db.FixedStatus, Detail: ghsaFixDetail},
+	}
+	lxdImports := []db.GoImport{{Path: "github.com/canonical/lxd/lxd", Symbols: []string{"allowProjectResourceList"}}}
+
+	ghsaLxdAPH := func(ranges ...db.Range) db.AffectedPackageHandle {
+		aph := goModuleAPH("github.com/canonical/lxd")
+		aph.BlobValue.Ranges = ranges
+		return aph
+	}
+	// the GO blob carries the union of both windows (see mergeWithCustom); which one came from
+	// custom_ranges is precisely the provenance the wrapper preserves — it cannot be recovered
+	// from the blob's ranges alone (a two-window record like json-patch GO-2021-0076 looks
+	// identical there, and replacing based on that shape would corrupt its GHSA)
+	goLxdWrapped := func() transformers.GoVulnDBAffectedPackage {
+		handle := goModuleAPH("github.com/canonical/lxd", lxdImports...)
+		handle.BlobValue.Ranges = []db.Range{pseudoRange, tagRange}
+		return transformers.GoVulnDBAffectedPackage{
+			Handle:           handle,
+			PseudoVersionFix: pseudoFix,
+			CustomRanges:     []db.Range{tagRange},
+		}
+	}
+	goEntryWith := func(aliases []string, rel any) transformers.RelatedEntries {
+		entry := goVulnEntry("GO-2024-3312", aliases)
+		entry.Related = append(entry.Related, rel)
+		return entry
+	}
+	lxdAliases := []string{"CVE-2024-6156", "GHSA-4c49-9fpc-hc3v"}
+
+	t.Run("GHSA range pinned to the fix commit's pseudo-version is replaced", func(t *testing.T) {
+		w := newMergeTestWriter()
+		require.True(t, w.holdForGoVulnDBMerge(ghsaEntry("GHSA-4c49-9fpc-hc3v", ghsaLxdAPH(pseudoRange))))
+
+		wrapped := goLxdWrapped()
+		entry := goEntryWith(lxdAliases, wrapped)
+		keep := w.handleGoVulnDBEntry(&entry)
+
+		// the module is on the GHSA, so the GO record is covered and dropped as usual
+		assert.False(t, keep, "lxd is covered by the GHSA, so the GO record must be dropped")
+
+		held := heldGHSA(t, w, "ghsa-4c49-9fpc-hc3v")
+		aph, ok := held.Related[0].(db.AffectedPackageHandle)
+		require.True(t, ok)
+		assert.Equal(t, []db.Range{tagRangeWithGHSADate}, aph.BlobValue.Ranges,
+			"the pseudo-version range must be replaced by the tag-space window, keeping the GHSA's fix date")
+		assert.Equal(t, []db.Range{tagRange}, wrapped.CustomRanges,
+			"the wrapper's own ranges must not be mutated by the fix-date carry-over")
+		assert.Equal(t, lxdImports, goImportsOf(t, held, "github.com/canonical/lxd"),
+			"symbol patching is unaffected by the range replacement")
+
+		mods := held.VulnerabilityHandle.BlobValue.Modifications
+		require.Len(t, mods, 1)
+		assert.Equal(t, "https://vuln.go.dev/ID/GO-2024-3312.json", mods[0].URL)
+		assert.Equal(t, []string{
+			"added vulnerable go symbols for import github.com/canonical/lxd/lxd to affected package github.com/canonical/lxd",
+			`replaced pseudo-version range "<` + pseudoFix + `" with "<5.21.2" for affected package github.com/canonical/lxd`,
+		}, mods[0].Changes)
+	})
+
+	t.Run("a different pseudo-version fix leaves the GHSA range alone", func(t *testing.T) {
+		// same module, but the GHSA is pinned to some other commit: precondition 1 fails, so
+		// the range must not be touched — coverage and symbol patching still apply
+		otherPseudo := "0.0.0-20200331193331-03aab09f5b5c"
+		otherRange := db.Range{
+			Version: db.Version{Type: "go", Constraint: "<" + otherPseudo},
+			Fix:     &db.Fix{Version: otherPseudo, State: db.FixedStatus},
+		}
+		w := newMergeTestWriter()
+		require.True(t, w.holdForGoVulnDBMerge(ghsaEntry("GHSA-4c49-9fpc-hc3v", ghsaLxdAPH(otherRange))))
+
+		entry := goEntryWith(lxdAliases, goLxdWrapped())
+		keep := w.handleGoVulnDBEntry(&entry)
+
+		assert.False(t, keep)
+		held := heldGHSA(t, w, "ghsa-4c49-9fpc-hc3v")
+		aph, ok := held.Related[0].(db.AffectedPackageHandle)
+		require.True(t, ok)
+		assert.Equal(t, []db.Range{otherRange}, aph.BlobValue.Ranges, "mismatched fix commit must not be replaced")
+	})
+
+	t.Run("a GHSA package with more than one range is left alone", func(t *testing.T) {
+		// precondition 2: with two ranges on the GHSA there is no way to know which one pairs
+		// with the custom window, even though one of them names the right pseudo-version
+		w := newMergeTestWriter()
+		require.True(t, w.holdForGoVulnDBMerge(ghsaEntry("GHSA-4c49-9fpc-hc3v", ghsaLxdAPH(pseudoRange, tagRange))))
+
+		entry := goEntryWith(lxdAliases, goLxdWrapped())
+		keep := w.handleGoVulnDBEntry(&entry)
+
+		assert.False(t, keep)
+		held := heldGHSA(t, w, "ghsa-4c49-9fpc-hc3v")
+		aph, ok := held.Related[0].(db.AffectedPackageHandle)
+		require.True(t, ok)
+		assert.Equal(t, []db.Range{pseudoRange, tagRange}, aph.BlobValue.Ranges,
+			"ambiguous multi-range GHSA package must not be modified")
+	})
+
+	t.Run("the wrapper is unwrapped on every path, even with no GHSA to reconcile", func(t *testing.T) {
+		// the wrapper is build-time-only context and must never reach the write batches: a GO
+		// record with no GHSA aliases takes the early-return path and must still come out with
+		// a plain affected package handle
+		w := newMergeTestWriter()
+		entry := goEntryWith([]string{"CVE-2024-6156"}, goLxdWrapped())
+		keep := w.handleGoVulnDBEntry(&entry)
+
+		assert.True(t, keep, "no GHSA aliases: the GO record is untouched and written")
+		require.Len(t, entry.Related, 1)
+		_, ok := entry.Related[0].(db.AffectedPackageHandle)
+		assert.True(t, ok, "expected a plain handle, got %T", entry.Related[0])
+	})
+
+	t.Run("replaced ranges pass failOnMissingFixDate at write time", func(t *testing.T) {
+		// the fix-date carry-over is what keeps a strict build working: without it the
+		// replaced range has a fixed version but no availability date, and ensureFixDates
+		// rejects the GHSA row when the held entries are written back at flush
+		w := newMergeTestWriter()
+		w.failOnMissingFixDate = true
+		require.True(t, w.holdForGoVulnDBMerge(ghsaEntry("GHSA-4c49-9fpc-hc3v", ghsaLxdAPH(pseudoRange))))
+		require.True(t, w.holdForGoVulnDBMerge(goEntryWith(lxdAliases, goLxdWrapped())))
+
+		require.NoError(t, w.flushGoVulnDBMerge())
+	})
+}
+
+// TestGoVulnDBMultipleRecordsPatchOneGHSA covers the converse of the multi-GHSA case: two GO
+// records aliasing the SAME GHSA (the sibling shape to GO-2022-0536, where one GO record aliases
+// two active GHSAs). Imports must accumulate across sources without duplicating paths, each
+// source must leave its own modification entry, and the patched GHSA must be written exactly
+// once at flush.
+func TestGoVulnDBMultipleRecordsPatchOneGHSA(t *testing.T) {
+	const mod = "github.com/example/mod"
+	importsA := []db.GoImport{{Path: mod, Symbols: []string{"Parse"}}}
+	importsB := []db.GoImport{
+		{Path: mod, Symbols: []string{"Decode"}},        // same path as record A: skipped, no change recorded
+		{Path: mod + "/sub", Symbols: []string{"Eval"}}, // new path: added, recorded
+	}
+
+	w := newMergeTestWriter()
+	require.True(t, w.holdForGoVulnDBMerge(ghsaEntry("GHSA-2222-3333-4444", goModuleAPH(mod))))
+	require.True(t, w.holdForGoVulnDBMerge(goVulnEntry("GO-2020-1111", []string{"GHSA-2222-3333-4444"}, goModuleAPH(mod, importsA...))))
+	require.True(t, w.holdForGoVulnDBMerge(goVulnEntry("GO-2020-2222", []string{"GHSA-2222-3333-4444"}, goModuleAPH(mod, importsB...))))
+
+	held := heldGHSA(t, w, "ghsa-2222-3333-4444")
+	require.NoError(t, w.flushGoVulnDBMerge())
+
+	// imports accumulated across both records; record B's duplicate path was skipped
+	assert.Equal(t, []db.GoImport{
+		{Path: mod, Symbols: []string{"Parse"}},
+		{Path: mod + "/sub", Symbols: []string{"Eval"}},
+	}, goImportsOf(t, held, mod))
+
+	// one modification entry per patching GO record, in processing order
+	mods := held.VulnerabilityHandle.BlobValue.Modifications
+	require.Len(t, mods, 2)
+	assert.Equal(t, "https://vuln.go.dev/ID/GO-2020-1111.json", mods[0].URL)
+	assert.Equal(t, []string{
+		"added vulnerable go symbols for import " + mod + " to affected package " + mod,
+	}, mods[0].Changes)
+	assert.Equal(t, "https://vuln.go.dev/ID/GO-2020-2222.json", mods[1].URL)
+	assert.Equal(t, []string{
+		"added vulnerable go symbols for import " + mod + "/sub to affected package " + mod,
+	}, mods[1].Changes)
+
+	// write-once: both GO records are fully covered (dropped), so flush batched exactly one
+	// vulnerability write — the GHSA
+	assert.Len(t, w.parentBuffer, 1, "expected exactly one vulnerability write (the patched GHSA)")
 }
 
 // TestGoVulnDBMergeRoundTrip drives the full writer path: held entries are

@@ -11,12 +11,12 @@ import (
 )
 
 // This file reconciles the overlap between govulndb (GO-*) records and the GHSA
-// records they alias. Both feeds describe the similar advisories for most
+// records they alias. Both feeds describe the same advisories for most
 // golang.org/x/* and third-party modules, but only govulndb carries per-symbol
 // reachability (ecosystem_specific.imports).
 
-// Writing both leads to reported false positive where GHSA are suraced without considering
-// the symbol context.
+// Writing both leads to reported false positives where GHSAs are surfaced without
+// considering the symbol context.
 //
 // During the streaming pass the writer holds back Go-ecosystem GHSA entries and
 // all govulndb entries; at Close time handleGoVulnDBEntry runs per GO record:
@@ -29,11 +29,13 @@ import (
 //     only if affected packages remain; otherwise it is dropped. Stdlib always
 //     remains: only one GHSA lists the stdlib module itself(GHSA-4v7x-pqxf-cx7m)
 //
-// intentionally ignores version-range differences between the two
-// feeds: the GHSA's ranges win. Where they disagree materially (a govulndb
-// package that is open-ended while the GHSA is bounded), the package is not
-// following Go module versioning correctly and the GHSA ranges are usually the
-// better ones.
+// Version-range differences between the two feeds are mostly ignored: the
+// GHSA's ranges win. Disagreements stem from modules that do not follow Go
+// module versioning (odd tags, unversioned module paths, fixes backported to
+// release branches semver ranges cannot express) and the GHSA ranges are
+// usually the better ones. The one exception is a GHSA range pinned to a Go
+// pseudo-version whose govulndb record carries the same fix in the module's
+// real tag versioning — see replaceGHSAPseudoVersionRanges.
 
 // holdForGoVulnDBMerge diverts entries that participate in the govulndb↔GHSA
 // reconciliation into the writer's held collections, returning true when the
@@ -50,7 +52,9 @@ func (w *writer) holdForGoVulnDBMerge(entry transformers.RelatedEntries) bool {
 	case strings.HasPrefix(name, "ghsa-") && hasGoModulePackages(entry):
 		if _, exists := w.goGHSAEntries[name]; exists {
 			// a second Go-ecosystem record with the same GHSA ID should not happen;
-			// write it through rather than silently replacing the held one
+			// write it through rather than silently replacing the held one. This is a
+			// deliberate exception to write-once: the duplicate lands in the DB alongside
+			// the held copy so the bad input is visible rather than silently merged.
 			log.WithFields("id", entry.VulnerabilityHandle.Name).Warn("duplicate go-ecosystem GHSA record; skipping govulndb reconciliation for it")
 			return false
 		}
@@ -109,6 +113,19 @@ func (w *writer) flushGoVulnDBMerge() error {
 // written.
 func (w *writer) handleGoVulnDBEntry(entry *transformers.RelatedEntries) bool {
 	handle := entry.VulnerabilityHandle
+
+	// unwrap the transformer's merge-context wrappers first, so that every return path below
+	// leaves only plain handles on the entry — the wrapper must never reach the write batches
+	replacements := make(map[int]transformers.GoVulnDBAffectedPackage)
+	for i, rel := range entry.Related {
+		if wrapped, ok := rel.(transformers.GoVulnDBAffectedPackage); ok {
+			entry.Related[i] = wrapped.Handle
+			if wrapped.PseudoVersionFix != "" && len(wrapped.CustomRanges) > 0 {
+				replacements[i] = wrapped
+			}
+		}
+	}
+
 	if handle.BlobValue == nil {
 		return true
 	}
@@ -131,7 +148,7 @@ func (w *writer) handleGoVulnDBEntry(entry *transformers.RelatedEntries) bool {
 	changesByGHSA := make(map[string][]string)
 	var remaining []any
 	remainingPackages := 0
-	for _, rel := range entry.Related {
+	for i, rel := range entry.Related {
 		aph, ok := rel.(db.AffectedPackageHandle)
 		if !ok || aph.Package == nil {
 			remaining = append(remaining, rel)
@@ -151,6 +168,9 @@ func (w *writer) handleGoVulnDBEntry(entry *transformers.RelatedEntries) bool {
 				continue
 			}
 			moduleMatched, changes := patchGHSAWithGoImports(held, aph)
+			if wrapped, ok := replacements[i]; ok {
+				changes = append(changes, replaceGHSAPseudoVersionRanges(held, aph, wrapped)...)
+			}
 			covered = covered || moduleMatched
 			changesByGHSA[key] = append(changesByGHSA[key], changes...)
 		}
@@ -217,6 +237,70 @@ func patchGHSAWithGoImports(held *transformers.RelatedEntries, goAPH db.Affected
 		}
 	}
 	return moduleMatched, changes
+}
+
+// replaceGHSAPseudoVersionRanges swaps a GHSA affected package's pseudo-version range for the
+// govulndb record's custom_ranges equivalent in the module's real (tag) versioning.
+//
+// Modules that don't follow Go module versioning get GHSA ranges pinned to the pseudo-version
+// of the fix commit (e.g. GHSA-4c49-9fpc-hc3v: lxd "<0.0.0-20240708073652-5a492a3f0036"). Real
+// tagged releases like lxd v5.21.1 sort far ABOVE any v0.0.0-… pseudo-version, so such a range
+// can never match a real tag — a guaranteed false negative. govulndb carries the same fix in
+// tag space in ecosystem_specific.custom_ranges ("<5.21.2" for GO-2024-3312), and the
+// transformer forwards that pairing on the wrapper (see pseudoVersionReplacement).
+//
+// Deliberately conservative, mirroring the branch spec:
+//   - the GHSA package must carry exactly one range — with more we cannot know which range
+//     pairs with which custom window, so it is left alone
+//   - that range's fix must be the exact pseudo-version the GO record's standard range carried;
+//     the embedded commit hash pins both feeds to the same fix commit, so the two ranges are
+//     the same window expressed in two version spaces
+//
+// Amendments are reported back so the caller records them on the GHSA blob's Modifications.
+func replaceGHSAPseudoVersionRanges(held *transformers.RelatedEntries, goAPH db.AffectedPackageHandle, wrapped transformers.GoVulnDBAffectedPackage) (changes []string) {
+	for _, rel := range held.Related {
+		ghsaAPH, ok := rel.(db.AffectedPackageHandle)
+		if !ok || ghsaAPH.Package == nil || ghsaAPH.BlobValue == nil {
+			continue
+		}
+		if !strings.EqualFold(ghsaAPH.Package.Name, goAPH.Package.Name) {
+			continue
+		}
+		if len(ghsaAPH.BlobValue.Ranges) != 1 {
+			continue
+		}
+		rng := ghsaAPH.BlobValue.Ranges[0]
+		if rng.Fix == nil || rng.Fix.Version != wrapped.PseudoVersionFix {
+			continue
+		}
+		replacement := append([]db.Range(nil), wrapped.CustomRanges...)
+		for i := range replacement {
+			// custom_ranges carry no fix-availability data, so keep the GHSA's original fix
+			// date on the replacement — dropping it would fail failOnMissingFixDate builds
+			// and lose the date from db search output. Copy the Fix rather than mutating it:
+			// the wrapper's ranges are shared across every GHSA row this wrapper patches.
+			if replacement[i].Fix == nil || replacement[i].Fix.Detail != nil {
+				continue
+			}
+			fix := *replacement[i].Fix
+			fix.Detail = rng.Fix.Detail
+			replacement[i].Fix = &fix
+		}
+		ghsaAPH.BlobValue.Ranges = replacement
+		changes = append(changes, fmt.Sprintf("replaced pseudo-version range %q with %q for affected package %s",
+			rng.Version.Constraint, rangeConstraints(wrapped.CustomRanges), ghsaAPH.Package.Name))
+	}
+	return changes
+}
+
+// rangeConstraints renders the ranges' version constraints as a single OR-joined string, for
+// amendment messages.
+func rangeConstraints(ranges []db.Range) string {
+	var constraints []string
+	for _, r := range ranges {
+		constraints = append(constraints, r.Version.Constraint)
+	}
+	return strings.Join(constraints, " || ")
 }
 
 // addGoImports appends the given imports to the blob's go-imports qualifier,

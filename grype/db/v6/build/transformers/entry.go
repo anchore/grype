@@ -14,6 +14,25 @@ type RelatedEntries struct {
 	Related             []any
 }
 
+// GoVulnDBAffectedPackage wraps an affected package emitted by the govulndb transformer with
+// range provenance that only the build-time govulndb↔GHSA merge consumes (see the build
+// writer's handleGoVulnDBEntry). The merge unwraps it back to the inner handle, so the wrapper
+// never reaches the database.
+type GoVulnDBAffectedPackage struct {
+	Handle db.AffectedPackageHandle
+
+	// PseudoVersionFix is the fixed version of the record's single standard range, when it is a
+	// Go pseudo-version and the record carries exactly one custom range describing the same fix
+	// in the module's real (tag) versioning. An aliased GHSA range pinned to this exact
+	// pseudo-version can be replaced with CustomRanges.
+	PseudoVersionFix string
+
+	// CustomRanges is the ecosystem_specific.custom_ranges-derived window(s) in the module's
+	// real (tag) versioning — the replacement payload for a GHSA range still pinned to
+	// PseudoVersionFix.
+	CustomRanges []db.Range
+}
+
 func NewEntries(models ...any) []data.Entry {
 	var entry RelatedEntries
 
@@ -24,7 +43,7 @@ func NewEntries(models ...any) []data.Entry {
 			entry.VulnerabilityHandle = &m
 		case db.AffectedPackageHandle, db.UnaffectedPackageHandle, db.AffectedCPEHandle,
 			db.UnaffectedCPEHandle, db.KnownExploitedVulnerabilityHandle, db.EpssHandle, db.CWEHandle,
-			db.OperatingSystemEOLHandle:
+			db.OperatingSystemEOLHandle, GoVulnDBAffectedPackage:
 			entry.Related = append(entry.Related, m)
 		case db.Provider:
 			entry.Provider = &m
@@ -47,6 +66,8 @@ func (re RelatedEntries) String() string {
 		switch v := r.(type) {
 		case db.AffectedPackageHandle:
 			pkgs = append(pkgs, v.Package.String())
+		case GoVulnDBAffectedPackage:
+			pkgs = append(pkgs, v.Handle.Package.String())
 		case db.AffectedCPEHandle:
 			pkgs = append(pkgs, fmt.Sprintf("%s/%s", v.CPE.Vendor, v.CPE.Product))
 		case db.KnownExploitedVulnerabilityHandle:

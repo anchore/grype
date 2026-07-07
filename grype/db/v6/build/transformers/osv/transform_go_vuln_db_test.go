@@ -46,8 +46,7 @@ func TestGoVulnDBTransform(t *testing.T) {
 							URL:  "https://go.dev/cl/428735",
 							Tags: []string{"FIX"},
 						}},
-						Aliases:      []string{"CVE-2022-27664", "GHSA-69cg-p879-7622"},
-						ReviewStatus: "REVIEWED",
+						Aliases: []string{"CVE-2022-27664", "GHSA-69cg-p879-7622"},
 					},
 				},
 				Related: affectedPkgSlice(
@@ -191,7 +190,7 @@ func TestEventsToRanges(t *testing.T) {
 
 // TestGoVulnDB_ThirdPartyEmitsAffectedPackage pins that general third-party
 // modules (here github.com/gin-gonic/gin — not stdlib and not golang.org/x/*)
-// are emitted with their imports qualifier and review status intact. The overlap
+// are emitted with their imports qualifier intact. The overlap
 // with GHSA-sourced advisories for the same module is reconciled by the build
 // writer (handleGoVulnDBEntry), not by dropping the package here.
 func TestGoVulnDB_ThirdPartyEmitsAffectedPackage(t *testing.T) {
@@ -212,9 +211,6 @@ func TestGoVulnDB_ThirdPartyEmitsAffectedPackage(t *testing.T) {
 	}
 	if re.VulnerabilityHandle == nil || re.VulnerabilityHandle.BlobValue == nil {
 		t.Fatal("entry has no VulnerabilityHandle with a blob")
-	}
-	if got := re.VulnerabilityHandle.BlobValue.ReviewStatus; got != "REVIEWED" {
-		t.Errorf("ReviewStatus = %q, want %q", got, "REVIEWED")
 	}
 	if len(re.Related) != 1 {
 		t.Fatalf("expected 1 affected package, got %d", len(re.Related))
@@ -295,8 +291,8 @@ func TestGoVulnDB_EmitsStdlibAndGolangOrgX(t *testing.T) {
 	}
 
 	got := map[string]bool{}
-	for _, aph := range govulndbAffectedPackages(vulns[0]) {
-		got[aph.Package.Name] = true
+	for _, rel := range govulndbAffectedPackages(vulns[0]) {
+		got[asAffectedPackage(t, rel).Package.Name] = true
 	}
 	for _, want := range []string{"stdlib", "golang.org/x/net"} {
 		if !got[want] {
@@ -330,6 +326,20 @@ func TestGoVulnDB_EmitsStdlibAndGolangOrgX(t *testing.T) {
 //     (anchore/grype#3520). Sibling modules pass through untouched: a lone
 //     introduced:0 yields no ranges (a real all-versions-vulnerable advisory for
 //     deprecated compose v1) and an open-ended standard floor stays open-ended.
+//   - GO-2023-2385 (pubnub): the clearest "grype does better than govulncheck"
+//     shape. govulncheck reads only the standard SEMVER ranges, and for the v5
+//     and v6 modules those are a bare introduced:0 — so govulncheck reports
+//     EVERY v5/v6 version as vulnerable, forever, even builds made after the
+//     fix landed. The fix bounds live in custom_ranges (type ECOSYSTEM, which
+//     govulncheck ignores): grype decodes them into real fixed windows, so a
+//     v5/v6 build at or past the fix commit's pseudo-version does not match.
+//     The v7 module (standard <7.2.0) and the abandoned base module (a true
+//     introduced:0 with no fix anywhere -> nil ranges, correctly
+//     all-versions-vulnerable) pin that the improvement is surgical: only the
+//     rows where govulncheck loses information change shape. The record also
+//     carries per-row utils.DecryptFile symbols, so symbol evidence narrows
+//     these matches further — a second axis govulncheck's
+//     assume-vulnerable fallback cannot use.
 func TestGoVulnDB_CustomRangesOnRealRecords(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -373,6 +383,22 @@ func TestGoVulnDB_CustomRangesOnRealRecords(t *testing.T) {
 				"github.com/docker/compose/v5": {"<5.1.0"},
 			},
 		},
+		{
+			name:        "GO-2023-2385 pubnub: custom_ranges bound what govulncheck reports as vulnerable forever",
+			fixturePath: "testdata/GO-2023-2385.json",
+			want: map[string][]string{
+				// abandoned v4 line: no fix exists anywhere, so all-versions-vulnerable
+				// is the truth — grype and govulncheck agree here
+				"github.com/pubnub/go": nil,
+				// v5/v6: standard range is a bare introduced:0, which is all govulncheck
+				// sees — it flags every version. The custom range carries the fix
+				// commit's pseudo-version, so grype gets a bounded window instead.
+				"github.com/pubnub/go/v5": {"<5.0.4-0.20231016150651-428517fef5b9"},
+				"github.com/pubnub/go/v6": {"<6.1.1-0.20231016150651-428517fef5b9"},
+				// v7 got a real tagged fix in the standard range; no custom involved
+				"github.com/pubnub/go/v7": {"<7.2.0"},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -381,7 +407,8 @@ func TestGoVulnDB_CustomRangesOnRealRecords(t *testing.T) {
 				t.Fatalf("expected 1 vuln in fixture, got %d", len(vulns))
 			}
 			got := map[string][]string{}
-			for _, aph := range govulndbAffectedPackages(vulns[0]) {
+			for _, rel := range govulndbAffectedPackages(vulns[0]) {
+				aph := asAffectedPackage(t, rel)
 				var constraints []string
 				for _, r := range aph.BlobValue.Ranges {
 					constraints = append(constraints, r.Version.Constraint)
@@ -393,6 +420,84 @@ func TestGoVulnDB_CustomRangesOnRealRecords(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestGoVulnDB_PseudoVersionReplacementContext pins the merge-context wrapper on a real record:
+// GO-2024-3312 (lxd, CVE-2024-6156). LXD does not follow Go module versioning, so the advisory's
+// standard range pins the fix to the pseudo-version of the fix commit
+// (0.0.0-20240708073652-5a492a3f0036) while ecosystem_specific.custom_ranges carries the same
+// fix in LXD's real tag versioning (<5.21.2). The record has exactly one standard range and one
+// custom range — the unambiguous pairing the branch spec requires — so the transformer must:
+//
+//   - keep BOTH windows on the GO record's blob (the union; see mergeWithCustom), and
+//   - emit the package wrapped in transformers.GoVulnDBAffectedPackage carrying the pairing, so
+//     the build writer can replace the aliased GHSA-4c49-9fpc-hc3v range (pinned to the same
+//     pseudo-version, which can never match a real tagged release) with the tag-space window.
+//
+// GO-2025-4004 (also lxd) is the contrast case: its standard range is a bare introduced:0 (no
+// pseudo-version fix) and its custom_ranges are messy multi-window, so it must come out as a
+// plain handle with no replacement context.
+func TestGoVulnDB_PseudoVersionReplacementContext(t *testing.T) {
+	t.Run("GO-2024-3312: sole pseudo-fix standard range + sole custom range -> wrapper", func(t *testing.T) {
+		vulns := loadFixture(t, "testdata/GO-2024-3312.json")
+		if len(vulns) != 1 {
+			t.Fatalf("expected 1 vuln in fixture, got %d", len(vulns))
+		}
+		related := govulndbAffectedPackages(vulns[0])
+		if len(related) != 1 {
+			t.Fatalf("expected 1 affected package, got %d", len(related))
+		}
+		wrapped, ok := related[0].(transformers.GoVulnDBAffectedPackage)
+		if !ok {
+			t.Fatalf("expected a GoVulnDBAffectedPackage wrapper, got %T", related[0])
+		}
+		if wrapped.PseudoVersionFix != "0.0.0-20240708073652-5a492a3f0036" {
+			t.Errorf("PseudoVersionFix = %q, want %q", wrapped.PseudoVersionFix, "0.0.0-20240708073652-5a492a3f0036")
+		}
+		if len(wrapped.CustomRanges) != 1 || wrapped.CustomRanges[0].Version.Constraint != "<5.21.2" {
+			t.Errorf("CustomRanges = %+v, want a single <5.21.2 window", wrapped.CustomRanges)
+		}
+		if wrapped.Handle.Package == nil || wrapped.Handle.Package.Name != "github.com/canonical/lxd" {
+			t.Errorf("unexpected package on the wrapped handle: %+v", wrapped.Handle.Package)
+		}
+		// the GO record itself keeps the union of both windows: the pseudo-version window is
+		// harmless (it can only match pseudo-version module references) and the tag window is
+		// what matches real releases
+		var constraints []string
+		for _, r := range wrapped.Handle.BlobValue.Ranges {
+			constraints = append(constraints, r.Version.Constraint)
+		}
+		want := []string{"<0.0.0-20240708073652-5a492a3f0036", "<5.21.2"}
+		if !reflect.DeepEqual(constraints, want) {
+			t.Errorf("blob ranges = %v, want %v", constraints, want)
+		}
+	})
+
+	t.Run("GO-2025-4004: no pseudo-fix standard range -> plain handle", func(t *testing.T) {
+		vulns := loadFixture(t, "testdata/GO-2025-4004.json")
+		if len(vulns) != 1 {
+			t.Fatalf("expected 1 vuln in fixture, got %d", len(vulns))
+		}
+		for _, rel := range govulndbAffectedPackages(vulns[0]) {
+			if _, ok := rel.(transformers.GoVulnDBAffectedPackage); ok {
+				t.Errorf("expected a plain handle without replacement context, got wrapper %+v", rel)
+			}
+		}
+	})
+}
+
+// asAffectedPackage unwraps a related entry to its affected package handle, whether the
+// transformer emitted it plain or wrapped with govulndb↔GHSA merge context.
+func asAffectedPackage(t *testing.T, rel any) db.AffectedPackageHandle {
+	t.Helper()
+	switch v := rel.(type) {
+	case db.AffectedPackageHandle:
+		return v
+	case transformers.GoVulnDBAffectedPackage:
+		return v.Handle
+	}
+	t.Fatalf("unexpected related entry type %T", rel)
+	return db.AffectedPackageHandle{}
 }
 
 func keys(m map[string]bool) []string {

@@ -2,6 +2,8 @@ package osv
 
 import (
 	"fmt"
+	"maps"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -33,13 +35,9 @@ import (
 //     only match when at least one vulnerable symbol is present.
 //   - references pass through, OSV type as tag, refID empty (canonical advisory
 //     page is in database_specific.url, not refs).
-//   - database_specific.review_status is carried onto the vulnerability blob so
-//     UNREVIEWED records that survive to the DB are identifiable.
 //
-// Most third-party (and golang.org/x/*) packages have duplicate advisories grype
-// gets from GHSA; the build writer patchesthe aliased GHSA records with GoVuln symbol information
-// and drops the GoVuln duplicate affected packages. Only packages absent from GHSA are written under
-// the GO-* record. See the writer's handleGoVulnDBEntry.
+// Overlap with GHSA-sourced advisories for the same modules is reconciled by the
+// build writer; see handleGoVulnDBEntry in govulndb_merge.go.
 type govulndbStrategy struct{}
 
 func (govulndbStrategy) Matches(id string) bool {
@@ -79,30 +77,17 @@ func (govulndbStrategy) Transform(vuln unmarshal.OSVVulnerability, state provide
 			PublishedDate: &vuln.Published,
 			WithdrawnDate: withdrawnDate,
 			BlobValue: &db.VulnerabilityBlob{
-				ID:           vuln.ID,
-				Description:  vuln.Details,
-				References:   govulndbReferences(vuln),
-				Aliases:      vuln.Aliases,
-				Severities:   severities,
-				ReviewStatus: govulndbReviewStatus(vuln),
+				ID:          vuln.ID,
+				Description: vuln.Details,
+				References:  govulndbReferences(vuln),
+				Aliases:     vuln.Aliases,
+				Severities:  severities,
 			},
 		},
 	}
 
-	for _, aph := range affected {
-		in = append(in, aph)
-	}
+	in = append(in, affected...)
 	return transformers.NewEntries(in...), nil
-}
-
-// govulndbReviewStatus extracts database_specific.review_status ("REVIEWED" or
-// "UNREVIEWED"). Returns "" when absent, leaving the blob field empty.
-func govulndbReviewStatus(vuln unmarshal.OSVVulnerability) string {
-	if vuln.DatabaseSpecific == nil {
-		return ""
-	}
-	status, _ := vuln.DatabaseSpecific["review_status"].(string)
-	return status
 }
 
 func govulndbReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
@@ -116,27 +101,99 @@ func govulndbReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
 	return refs
 }
 
-func govulndbAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHandle {
+func govulndbAffectedPackages(vuln unmarshal.OSVVulnerability) []any {
 	if len(vuln.Affected) == 0 {
 		return nil
 	}
 	var aphs []db.AffectedPackageHandle
+	// replacements carries the pseudo-version reconciliation context per package, keyed by the
+	// blob pointer since sorting below reorders the handles
+	replacements := make(map[*db.PackageBlob]transformers.GoVulnDBAffectedPackage)
 	for _, affected := range vuln.Affected {
 		var qualifiers *db.PackageQualifiers
 		if imports := govulndbImports(affected, vuln.ID); len(imports) > 0 {
 			qualifiers = &db.PackageQualifiers{GoImports: imports}
 		}
+		custom := govulndbCustomRanges(affected, vuln.ID)
+		blob := &db.PackageBlob{
+			CVEs:       vuln.Aliases,
+			Qualifiers: qualifiers,
+			Ranges:     govulndbRanges(affected.Ranges, custom),
+		}
 		aphs = append(aphs, db.AffectedPackageHandle{
-			Package: govulndbPackage(affected.Package),
-			BlobValue: &db.PackageBlob{
-				CVEs:       vuln.Aliases,
-				Qualifiers: qualifiers,
-				Ranges:     govulndbRanges(affected.Ranges, govulndbCustomRanges(affected, vuln.ID)),
-			},
+			Package:   govulndbPackage(affected.Package),
+			BlobValue: blob,
 		})
+		if pseudoFix, customRanges := pseudoVersionReplacement(affected.Ranges, custom); pseudoFix != "" {
+			replacements[blob] = transformers.GoVulnDBAffectedPackage{
+				PseudoVersionFix: pseudoFix,
+				CustomRanges:     customRanges,
+			}
+		}
 	}
 	sort.Sort(internal.ByAffectedPackage(aphs))
-	return aphs
+
+	out := make([]any, 0, len(aphs))
+	for _, aph := range aphs {
+		if wrapped, ok := replacements[aph.BlobValue]; ok {
+			wrapped.Handle = aph
+			out = append(out, wrapped)
+			continue
+		}
+		out = append(out, aph)
+	}
+	return out
+}
+
+// goPseudoVersionPattern matches Go pseudo-version suffixes: a 14-digit commit timestamp and a
+// 12-hex-digit commit hash (e.g. "0.0.0-20240708073652-5a492a3f0036"), optionally followed by
+// "+incompatible".
+var goPseudoVersionPattern = regexp.MustCompile(`-\d{14}-[0-9a-f]{12}(\+incompatible)?$`)
+
+func isGoPseudoVersion(v string) bool {
+	return goPseudoVersionPattern.MatchString(v)
+}
+
+// pseudoVersionReplacement recognizes the record shape where the standard range pins the fix to
+// a Go pseudo-version while ecosystem_specific.custom_ranges carries the same fix in the
+// module's real (tag) versioning — e.g. GO-2024-3312 (lxd): standard fixed
+// 0.0.0-20240708073652-5a492a3f0036, custom fixed 5.21.2. The build-time govulndb↔GHSA merge
+// uses the returned pairing to replace an aliased GHSA range still pinned to the pseudo-version
+// (which can never match a real tagged release) with the custom windows.
+//
+// Deliberately strict, per the branch spec: exactly one standard range whose only close is a
+// single pseudo-version fix, and exactly one custom range that is bounded and free of
+// pseudo-versions. With more ranges on either side there is no way to know which standard
+// window pairs with which custom window, so no pairing is reported.
+func pseudoVersionReplacement(standard, custom []osvmodel.Range) (pseudoFix string, replacement []db.Range) {
+	if len(standard) != 1 || len(custom) != 1 {
+		return "", nil
+	}
+	var fixes []string
+	for _, e := range standard[0].Events {
+		if e.LastAffected != "" {
+			return "", nil
+		}
+		if e.Fixed != "" {
+			fixes = append(fixes, e.Fixed)
+		}
+	}
+	if len(fixes) != 1 || !isGoPseudoVersion(fixes[0]) {
+		return "", nil
+	}
+	if !hasUpperBound(custom[0].Events) {
+		return "", nil
+	}
+	for _, e := range custom[0].Events {
+		if isGoPseudoVersion(e.Introduced) || isGoPseudoVersion(e.Fixed) || isGoPseudoVersion(e.LastAffected) {
+			return "", nil
+		}
+	}
+	replacement = eventsToRanges(custom[0].Events, fixDates(custom), "go")
+	if len(replacement) == 0 {
+		return "", nil
+	}
+	return fixes[0], replacement
 }
 
 // govulndbRanges builds the affected ranges for one affected entry from its
@@ -277,39 +334,18 @@ func fixDates(rangeGroups ...[]osvmodel.Range) map[string]db.FixAvailability {
 	out := map[string]db.FixAvailability{}
 	for _, ranges := range rangeGroups {
 		for _, r := range ranges {
-			for v, f := range extractFixAvailability(r) {
-				out[v] = f
-			}
+			maps.Copy(out, extractFixAvailability(r))
 		}
 	}
 	return out
 }
 
-// govulndbCustomRanges decodes ecosystem_specific.custom_ranges into OSV ranges.
-// They are OSV-shaped but carry type ECOSYSTEM; mapstructure reuses the `json`
-// tags to avoid re-serializing. Returns nil if absent or undecodable (logged),
-// so malformed custom_ranges degrades to standard-only matching instead of
-// erroring.
+// govulndbCustomRanges decodes ecosystem_specific.custom_ranges into OSV ranges. They are
+// OSV-shaped but carry type ECOSYSTEM. Nil if absent or undecodable, so malformed
+// custom_ranges degrades to standard-only matching instead of erroring.
 func govulndbCustomRanges(affected osvmodel.Affected, id string) []osvmodel.Range {
-	if affected.EcosystemSpecific == nil {
-		return nil
-	}
-	raw, ok := affected.EcosystemSpecific["custom_ranges"]
-	if !ok {
-		return nil
-	}
-
 	var ranges []osvmodel.Range
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		Result:  &ranges,
-		TagName: "json",
-	})
-	if err != nil {
-		return nil
-	}
-	if err := decoder.Decode(raw); err != nil {
-		log.WithFields("id", id, "package", affected.Package.Name, "error", err).
-			Warn("unable to decode govulndb custom_ranges; matching on standard ranges only")
+	if !decodeEcosystemSpecific(affected, "custom_ranges", id, &ranges) {
 		return nil
 	}
 	return ranges
@@ -317,28 +353,37 @@ func govulndbCustomRanges(affected osvmodel.Affected, id string) []osvmodel.Rang
 
 // govulndbImports extracts the affected package import paths and vulnerable symbols from the
 // OSV `ecosystem_specific.imports` field (see https://go.dev/security/vuln/database#schema).
-// Returns nil if absent or undecodable (logged), so malformed imports degrade to module-
-// granularity matching instead of erroring.
+// Nil if absent or undecodable, so malformed imports degrade to module-granularity matching
+// instead of erroring.
 func govulndbImports(affected osvmodel.Affected, id string) []db.GoImport {
-	raw, ok := affected.EcosystemSpecific["imports"]
-	if !ok {
-		return nil
-	}
-
 	var imports []db.GoImport
-	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
-		Result:  &imports,
-		TagName: "json",
-	})
-	if err != nil {
-		return nil
-	}
-	if err := decoder.Decode(raw); err != nil {
-		log.WithFields("id", id, "package", affected.Package.Name, "error", err).
-			Warn("unable to decode govulndb imports; matching at module granularity")
+	if !decodeEcosystemSpecific(affected, "imports", id, &imports) {
 		return nil
 	}
 	return imports
+}
+
+// decodeEcosystemSpecific decodes one ecosystem_specific field into out (a pointer to a slice),
+// reporting success. mapstructure reuses the `json` tags to avoid re-serializing. Absent or
+// undecodable data returns false (logged), so callers degrade gracefully instead of erroring.
+func decodeEcosystemSpecific(affected osvmodel.Affected, key, id string, out any) bool {
+	raw, ok := affected.EcosystemSpecific[key]
+	if !ok {
+		return false
+	}
+	decoder, err := mapstructure.NewDecoder(&mapstructure.DecoderConfig{
+		Result:  out,
+		TagName: "json",
+	})
+	if err != nil {
+		return false
+	}
+	if err := decoder.Decode(raw); err != nil {
+		log.WithFields("id", id, "package", affected.Package.Name, "field", key, "error", err).
+			Warn("unable to decode govulndb ecosystem_specific field; matching without it")
+		return false
+	}
+	return true
 }
 
 func govulndbPackage(p osvmodel.Package) *db.Package {
