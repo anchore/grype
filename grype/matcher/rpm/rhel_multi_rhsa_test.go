@@ -461,6 +461,51 @@ func TestRpmPerMinorExpansion_GlibcMinorNull(t *testing.T) {
 		})
 }
 
+// TestRpmPerMinorExpansion_SameBaseUnderEUS runs the flagship same-base case (CVE-2023-4813,
+// glibc, same record as TestRpmPerMinorExpansion_GlibcMinorNull) under a 9.2+eus host, so it
+// exercises the redhatEUSMatches two-fetch path -- unchanged in this branch -- against the
+// expanded per-minor rows. Real RHEL images report extendedSupport=true and route through the
+// EUS path, not standardMatches, so a channel-less distro alone would leave the live-host
+// behavior unpinned. The EUS disclosure fetch is channel-less and lands on the vanilla
+// rhel:9.2 row, so an EUS host is judged against its own stream's fix exactly like a GA host.
+func TestRpmPerMinorExpansion_SameBaseUnderEUS(t *testing.T) {
+	dbtest.DBs(t, "rhel-multi-rhsa").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			eus92 := newEUSDistro("9.2")
+
+			t.Run("9.2+eus host past its stream fix", func(t *testing.T) {
+				// the OSE false positive: glibc 2.34-60.el9_2.14 carries its own stream's
+				// RHSA-2023:5453 fix (0:2.34-60.el9_2.7) but EVR-sorts below the GA
+				// 0:2.34-100.el9 build, so pre-expansion it was flagged. On the EUS path
+				// the 9.2-row disclosure is dropped at fetch (OnlyVulnerableVersions) and
+				// redhatEUSMatches returns early, so unlike the GA path there is no
+				// distro-not-vulnerable ignore either -- the matcher is a complete no-op.
+				version := "0:2.34-60.el9_2.14"
+				matcher := Matcher{}
+				p := rhelStreamHost("glibc", eus92, version, pkg.ID("glibc-eus-"+version))
+				db.Match(t, &matcher, p).IsEmpty()
+			})
+
+			t.Run("9.2+eus host below its stream fix", func(t *testing.T) {
+				// a genuinely vulnerable EUS host must still match, carry its own minor's
+				// fix (reachable: fix minor 2 <= host minor 2), and name that stream's
+				// RHSA -- not the GA build.
+				version := "0:2.34-60.el9_2.1"
+				matcher := Matcher{}
+				p := rhelStreamHost("glibc", eus92, version, pkg.ID("glibc-eus-"+version))
+				sf := db.Match(t, &matcher, p).
+					SelectMatch("CVE-2023-4813").
+					HasFix(vulnerability.FixStateFixed, "0:2.34-60.el9_2.7").
+					WithAdvisoryLink("RHSA-2023:5453", "https://access.redhat.com/errata/RHSA-2023:5453")
+				// the EUS merge fuses one detail per lookup: the channel-less disclosure
+				// fetch and the +eus resolution fetch, both against the 9.2 row's constraint.
+				const streamConstraint = "< 0:2.34-60.el9_2.7 (rpm)"
+				sf.SelectDetailByDistro("redhat", "9.2", streamConstraint).HasMatchType(match.ExactDirectMatch)
+				sf.SelectDetailByDistro("redhat", "9.2+eus", streamConstraint).HasMatchType(match.ExactDirectMatch)
+			})
+		})
+}
+
 // TestRpmPerMinorExpansion_NtpGARebase exercises the real GA-rebase inference (CVE-2015-7979,
 // ntp): a pinned 7.2 fix (RHSA-2016:1141, 0:4.2.6p5-22.el7_2.2) plus a GA build
 // (RHSA-2016:2583, 0:4.2.6p5-25.el7, Minor=null) whose EVR outranks the pinned fix. The
