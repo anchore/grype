@@ -1,18 +1,18 @@
 {
-  "provider": "govulndb",
+  "provider": "oracle",
   "version": 1,
-  "processor": "vunnel@0.59.0.post3+53fcd5d",
+  "processor": "vunnel@0.56.0",
   "schema": {
     "version": "1.0.3",
     "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
   },
   "urls": [
-    "https://vuln.go.dev/vulndb.zip"
+    "https://linux.oracle.com/security/oval/com.oracle.elsa-all.xml.bz2"
   ],
-  "timestamp": "2026-06-22T00:58:35Z",
+  "timestamp": "2026-06-16T00:00:00Z",
   "listing": {
     "path": "results/listing.xxh64",
-    "digest": "651b2ab4ad6d62d2",
+    "digest": "31d6699c3a6503b2",
     "algorithm": "xxh64"
   },
   "store": "flat-file"

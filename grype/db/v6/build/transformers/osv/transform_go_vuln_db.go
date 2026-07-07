@@ -38,7 +38,32 @@ func (govulndbStrategy) Matches(id string) bool {
 	return strings.HasPrefix(id, "GO-")
 }
 
+// govulndbEmits reports whether grype emits records for a govulndb affected
+// package. For general third-party Go modules the go vuln db carries odd version
+// ranges (a source of false positives) and duplicates advisories grype already
+// gets from GHSA, so those packages are dropped. Two classes are kept because
+// they are both absent from GHSA and versioned by the Go team itself — so the
+// strange-range drawback that motivates dropping third-party modules does not
+// apply:
+//   - the "stdlib" pseudo-module: the core language, statically linked into
+//     every Go binary.
+//   - the golang.org/x/* extended standard libraries (golang.org/x/net,
+//     golang.org/x/crypto, golang.org/x/text, …).
+func govulndbEmits(name string) bool {
+	return strings.EqualFold(name, "stdlib") ||
+		strings.HasPrefix(name, "golang.org/x/")
+}
+
 func (govulndbStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
+	affected := govulndbAffectedPackages(vuln)
+	if len(affected) == 0 {
+		// every affected package was filtered out (or there were none): only the
+		// stdlib and golang.org/x/* modules are emitted (see govulndbEmits).
+		// Emitting just the vulnerability handle would write an orphaned record
+		// that can never match a package, so skip the advisory entirely.
+		return nil, nil
+	}
+
 	severities, err := getSeverities(vuln)
 	if err != nil {
 		return nil, fmt.Errorf("unable to obtain severities: %w", err)
@@ -73,7 +98,7 @@ func (govulndbStrategy) Transform(vuln unmarshal.OSVVulnerability, state provide
 		},
 	}
 
-	for _, aph := range govulndbAffectedPackages(vuln) {
+	for _, aph := range affected {
 		in = append(in, aph)
 	}
 	return transformers.NewEntries(in...), nil
@@ -96,6 +121,9 @@ func govulndbAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPack
 	}
 	var aphs []db.AffectedPackageHandle
 	for _, affected := range vuln.Affected {
+		if !govulndbEmits(affected.Package.Name) {
+			continue
+		}
 		aphs = append(aphs, db.AffectedPackageHandle{
 			Package: govulndbPackage(affected.Package),
 			BlobValue: &db.PackageBlob{
@@ -144,15 +172,24 @@ func govulndbRanges(standard, custom []osvmodel.Range) []db.Range {
 //   - open-ended floor (">= X", no fix): X is the real lower bound; graft it onto
 //     custom's leading window (GO-2024-2858 → "[5.0.0-beta1,8.5.14) ||
 //     [9.0.0,9.1.8)", matching the GHSA). See withFloor.
-//   - bounded windows: keep and union with custom — they often span different
-//     namespaces (mattermost: tag windows standard, pseudo-version windows
-//     custom). Drop a trailing open-ended window; it over-matches later releases.
+//   - bounded windows: keep and union with custom. When custom is itself a
+//     bounded window they're disjoint and span different namespaces (mattermost:
+//     tag windows standard, pseudo-version windows custom), so append. But when
+//     custom is an open-ended floor (">= X", no fix) it is the real lower bound
+//     for the standard window — a +incompatible introduced that standard SEMVER
+//     records as the placeholder introduced:0 — so graft it on rather than append
+//     it as a disjoint trailing window (anchore/grype#3520: docker/cli
+//     GO-2026-4610 was emitting "<29.2.0+incompatible || >=19.03.0+incompatible",
+//     re-matching every release after the fix). Drop the standard's own trailing
+//     open-ended window either way; it over-matches later releases.
 func mergeWithCustom(standardEvents, customEvents []osvmodel.Event) []osvmodel.Event {
 	switch {
 	case isDefaultFloorOnly(standardEvents):
 		return customEvents
 	case !hasUpperBound(standardEvents):
 		return withFloor(customEvents, firstIntroduced(standardEvents))
+	case !hasUpperBound(customEvents):
+		return withFloor(boundedEvents(standardEvents), firstIntroduced(customEvents))
 	default:
 		return append(boundedEvents(standardEvents), customEvents...)
 	}

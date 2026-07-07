@@ -110,6 +110,13 @@ func getPackages(vuln unmarshal.OSVulnerability) ([]db.AffectedPackageHandle, []
 			qualifiers = &db.PackageQualifiers{
 				RpmModularity: &module,
 			}
+			// when the advisory scoped this fix to a specific architecture, carry it so the
+			// architecture qualifier only applies the fix to packages of that arch (see
+			// pkg/qualifier/architecture). Absent arch means the fix applies to all arches.
+			if group.arch != "" {
+				arch := group.arch
+				qualifiers.Architecture = &arch
+			}
 		}
 
 		aph := db.AffectedPackageHandle{
@@ -251,6 +258,7 @@ type groupIndex struct {
 	hasModule bool
 	module    string
 	format    string
+	arch      string
 }
 
 func groupFixedIns(vuln unmarshal.OSVulnerability) map[groupIndex][]unmarshal.OSFixedIn {
@@ -262,6 +270,10 @@ func groupFixedIns(vuln unmarshal.OSVulnerability) map[groupIndex][]unmarshal.OS
 		if fixedIn.Module != nil {
 			mod = *fixedIn.Module
 		}
+		var arch string
+		if fixedIn.Arch != nil {
+			arch = *fixedIn.Arch
+		}
 		g := groupIndex{
 			name:      fixedIn.Name,
 			id:        oi.id,
@@ -271,6 +283,9 @@ func groupFixedIns(vuln unmarshal.OSVulnerability) map[groupIndex][]unmarshal.OS
 			hasModule: fixedIn.Module != nil,
 			module:    mod,
 			format:    fixedIn.VersionFormat,
+			// arch splits a per-arch fix into its own affected package handle so the architecture
+			// qualifier can scope it; empty means the fix applies to all arches.
+			arch: arch,
 		}
 
 		grouped[g] = append(grouped[g], fixedIn)

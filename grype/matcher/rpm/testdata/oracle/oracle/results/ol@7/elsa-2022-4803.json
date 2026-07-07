@@ -1,0 +1,58 @@
+{
+  "identifier": "ol:7/elsa-2022-4803",
+  "item": {
+    "Vulnerability": {
+      "CVSS": [],
+      "Description": "A flaw was found in rsyslog: a heap-based overflow in the TCP syslog server (CVE-2022-24903).",
+      "FixedIn": [
+        {
+          "Name": "rsyslog",
+          "NamespaceName": "ol:7",
+          "Module": null,
+          "Version": "0:8.24.0-57.0.1.el7_9.3",
+          "VersionFormat": "rpm",
+          "Arch": "x86_64"
+        },
+        {
+          "Name": "rsyslog",
+          "NamespaceName": "ol:7",
+          "Module": null,
+          "Version": "0:8.24.0-57.0.4.el7_9.3",
+          "VersionFormat": "rpm",
+          "Arch": "aarch64"
+        },
+        {
+          "Name": "rsyslog-doc",
+          "NamespaceName": "ol:7",
+          "Module": null,
+          "Version": "0:8.24.0-57.0.1.el7_9.3",
+          "VersionFormat": "rpm",
+          "Arch": "x86_64"
+        },
+        {
+          "Name": "rsyslog-doc",
+          "NamespaceName": "ol:7",
+          "Module": null,
+          "Version": "0:8.24.0-57.0.4.el7_9.3",
+          "VersionFormat": "rpm",
+          "Arch": "aarch64"
+        }
+      ],
+      "Link": "https://linux.oracle.com/errata/ELSA-2022-4803.html",
+      "Metadata": {
+        "Issued": "2022-05-31",
+        "RefId": "ELSA-2022-4803",
+        "CVE": [
+          {
+            "Name": "CVE-2022-24903",
+            "Link": "https://linux.oracle.com/cve/CVE-2022-24903.html"
+          }
+        ]
+      },
+      "Name": "ELSA-2022-4803",
+      "NamespaceName": "ol:7",
+      "Severity": "Important"
+    }
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/os/schema-1.1.1.json"
+}

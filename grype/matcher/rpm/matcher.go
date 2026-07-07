@@ -215,7 +215,11 @@ func (m *Matcher) matchUpstreamPackages(vp vulnerability.Provider, p pkg.Package
 	var ignored []match.IgnoreFilter
 
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, ignores, err := m.findMatches(provider, indirectPackage, internal.SourceOrUnspecifiedArch())
+		// An rpm's upstream is its source rpm, so tag the synthesized package "src". The
+		// architecture qualifier then matches it only against src (and unspecified) records
+		// and rejects binary-arch records — which is how we avoid matching a binary's
+		// upstream against a sibling binary's vulnerability.
+		indirectMatches, ignores, err := m.findMatches(provider, indirectPackage)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
 		}
@@ -226,7 +230,7 @@ func (m *Matcher) matchUpstreamPackages(vp vulnerability.Provider, p pkg.Package
 	return matches, ignored, nil
 }
 
-func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package, extra ...vulnerability.Criteria) ([]match.Match, []match.IgnoreFilter, error) {
+func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	if searchPkg.Distro == nil {
 		return nil, nil, nil
 	}
@@ -237,13 +241,13 @@ func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package, e
 
 	switch {
 	case shouldUseRedhatEUSMatching(searchPkg.Distro):
-		return redhatEUSMatches(provider, searchPkg, m.cfg.MissingEpochStrategy, extra...)
+		return redhatEUSMatches(provider, searchPkg, m.cfg.MissingEpochStrategy)
 	default:
-		return m.standardMatches(provider, searchPkg, extra...)
+		return m.standardMatches(provider, searchPkg)
 	}
 }
 
-func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Package, extra ...vulnerability.Criteria) ([]match.Match, []match.IgnoreFilter, error) {
+func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	// Create version with config embedded
 	pkgVersion := version.NewWithConfig(
 		searchPkg.Version,
@@ -258,7 +262,6 @@ func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Packag
 		search.ByDistro(*searchPkg.Distro),
 		internal.OnlyQualifiedPackages(searchPkg),
 	}
-	disclosureCriteria = append(disclosureCriteria, extra...)
 
 	all, err := provider.FindResults(disclosureCriteria...)
 	if err != nil {
@@ -272,7 +275,6 @@ func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Packag
 		internal.OnlyVulnerableVersions(pkgVersion),
 		search.ForUnaffected(),
 	}
-	unaffectedCriteria = append(unaffectedCriteria, extra...)
 
 	unaffected, err := provider.FindResults(unaffectedCriteria...)
 	if err != nil {
