@@ -1,0 +1,10 @@
+{
+  "content_hash": "d58c705753b13f48",
+  "created_at": "2026-07-07T18:20:56Z",
+  "providers": {
+    "bellsoft": {
+      "vunnel_version": "vunnel@0.51.0.post91+2cb6b22",
+      "timestamp": "2026-07-07T18:20:56Z"
+    }
+  }
+}

@@ -1,0 +1,4 @@
+auto-generate: false
+extractions:
+    bellsoft:
+        - bell-cve-2025-59375
