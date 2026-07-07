@@ -6,9 +6,9 @@
 #
 #   - GO-2022-0969 aliases GHSA-69cg-p879-7622, which lists BOTH golang.org/x/net
 #     and the golang.org/x/net/http2 sub-package as affected packages: the GHSA
-#     gains the x/net symbols, the GO record keeps only stdlib (only one GHSA in
-#     the wild lists the stdlib module itself — GHSA-4v7x-pqxf-cx7m — and it is
-#     not aliased here).
+#     gains the x/net symbols, the GO record keeps only stdlib (no GHSA names the
+#     "stdlib" module — GHSA-4v7x-pqxf-cx7m comes closest by listing stdlib
+#     package paths like net/http, which patch but never cover).
 #   - GO-2021-0265 aliases two GHSAs for github.com/tidwall/gjson:
 #     GHSA-ppj4-34rq-v8j9 (active) gains the gjson symbols and covers the GO
 #     record, which is dropped; GHSA-c9gm-7rfj-8w5h is withdrawn upstream

@@ -268,13 +268,12 @@ func TestGoVulnDB_WithdrawnStdlibIsRejected(t *testing.T) {
 	}
 }
 
-// TestGoVulnDB_EmitsStdlibAndGolangOrgX pins the emit filter on a real MIXED
-// advisory: GO-2022-0969 lists both "stdlib" and "golang.org/x/net". Both classes
-// are emitted — stdlib because it is statically linked into every Go binary, and
-// golang.org/x/net because the golang.org/x/* extended standard libraries are
-// versioned by the Go team and absent from GHSA, so they don't carry the
-// false-positive/duplicate baggage that motivates dropping general third-party
-// modules. Per-package filtering is asserted on a single record.
+// TestGoVulnDB_EmitsStdlibAndGolangOrgX pins that both package classes on a real MIXED
+// advisory are emitted: GO-2022-0969 lists both "stdlib" and "golang.org/x/net". stdlib
+// exists only in govulndb (no GHSA names the stdlib module), and while many golang.org/x/*
+// advisories DO have GHSA counterparts, the overlap is reconciled later by the build
+// writer's merge — the transformer must emit everything so the writer can decide
+// per affected package what survives.
 func TestGoVulnDB_EmitsStdlibAndGolangOrgX(t *testing.T) {
 	vulns := loadFixture(t, "testdata/GO-2022-0969.json")
 	if len(vulns) != 1 {

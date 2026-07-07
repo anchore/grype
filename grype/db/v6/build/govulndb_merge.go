@@ -25,9 +25,11 @@ import (
 //     is patched with the matching go-imports qualifier, and the amendment is recorded on the GHSA
 //     blob's Modifications.
 //   - a GO affected package whose module is present on any aliased GHSA is
-//     is dropped from the GO record. The GO record itself is written
+//     dropped from the GO record. The GO record itself is written
 //     only if affected packages remain; otherwise it is dropped. Stdlib always
-//     remains: only one GHSA lists the stdlib module itself(GHSA-4v7x-pqxf-cx7m)
+//     remains: no GHSA names the "stdlib" module. The closest any comes is
+//     GHSA-4v7x-pqxf-cx7m, which lists stdlib package paths (net/http) as
+//     affected packages — those rows are patched with symbols but never cover.
 //
 // Version-range differences between the two feeds are mostly ignored: the
 // GHSA's ranges win. Disagreements stem from modules that do not follow Go
@@ -114,17 +116,8 @@ func (w *writer) flushGoVulnDBMerge() error {
 func (w *writer) handleGoVulnDBEntry(entry *transformers.RelatedEntries) bool {
 	handle := entry.VulnerabilityHandle
 
-	// unwrap the transformer's merge-context wrappers first, so that every return path below
-	// leaves only plain handles on the entry — the wrapper must never reach the write batches
-	replacements := make(map[int]transformers.GoVulnDBAffectedPackage)
-	for i, rel := range entry.Related {
-		if wrapped, ok := rel.(transformers.GoVulnDBAffectedPackage); ok {
-			entry.Related[i] = wrapped.Handle
-			if wrapped.PseudoVersionFix != "" && len(wrapped.CustomRanges) > 0 {
-				replacements[i] = wrapped
-			}
-		}
-	}
+	// unwrap first, so that every return path below leaves only plain handles on the entry
+	replacements := unwrapGoVulnDBPackages(entry)
 
 	if handle.BlobValue == nil {
 		return true
@@ -135,12 +128,7 @@ func (w *writer) handleGoVulnDBEntry(entry *transformers.RelatedEntries) bool {
 		return true
 	}
 
-	var ghsaKeys []string
-	for _, alias := range handle.BlobValue.Aliases {
-		if a := strings.ToLower(alias); strings.HasPrefix(a, "ghsa-") {
-			ghsaKeys = append(ghsaKeys, a)
-		}
-	}
+	ghsaKeys := ghsaAliasKeys(handle.BlobValue.Aliases)
 	if len(ghsaKeys) == 0 {
 		return true
 	}
@@ -154,27 +142,7 @@ func (w *writer) handleGoVulnDBEntry(entry *transformers.RelatedEntries) bool {
 			remaining = append(remaining, rel)
 			continue
 		}
-		covered := false
-		for _, key := range ghsaKeys {
-			held := w.goGHSAEntries[key]
-			if held == nil {
-				continue
-			}
-			if held.VulnerabilityHandle.Status == db.VulnerabilityRejected {
-				// a withdrawn GHSA never matches, so it can neither carry the
-				// symbols nor cover the GO package — treating it as a merge
-				// target would silently erase the advisory (e.g. GHSAs GitHub
-				// withdrew as duplicates while the GO record stays active)
-				continue
-			}
-			moduleMatched, changes := patchGHSAWithGoImports(held, aph)
-			if wrapped, ok := replacements[i]; ok {
-				changes = append(changes, replaceGHSAPseudoVersionRanges(held, aph, wrapped)...)
-			}
-			covered = covered || moduleMatched
-			changesByGHSA[key] = append(changesByGHSA[key], changes...)
-		}
-		if covered {
+		if w.reconcileGoPackageWithGHSAs(aph, replacements[i], ghsaKeys, changesByGHSA) {
 			log.WithFields("id", handle.Name, "package", aph.Package.Name).Trace("dropping govulndb affected package covered by a GHSA record")
 			continue
 		}
@@ -194,6 +162,62 @@ func (w *writer) handleGoVulnDBEntry(entry *transformers.RelatedEntries) bool {
 
 	entry.Related = remaining
 	return remainingPackages > 0
+}
+
+// unwrapGoVulnDBPackages replaces any transformer merge-context wrappers on the entry with
+// their plain affected package handles — the wrapper must never reach the write batches — and
+// returns the pseudo-version replacement context, keyed by index into entry.Related.
+func unwrapGoVulnDBPackages(entry *transformers.RelatedEntries) map[int]transformers.GoVulnDBAffectedPackage {
+	replacements := make(map[int]transformers.GoVulnDBAffectedPackage)
+	for i, rel := range entry.Related {
+		wrapped, ok := rel.(transformers.GoVulnDBAffectedPackage)
+		if !ok {
+			continue
+		}
+		entry.Related[i] = wrapped.Handle
+		if wrapped.PseudoVersionFix != "" && len(wrapped.CustomRanges) > 0 {
+			replacements[i] = wrapped
+		}
+	}
+	return replacements
+}
+
+// ghsaAliasKeys returns the lowercase GHSA IDs among the given aliases.
+func ghsaAliasKeys(aliases []string) []string {
+	var keys []string
+	for _, alias := range aliases {
+		if a := strings.ToLower(alias); strings.HasPrefix(a, "ghsa-") {
+			keys = append(keys, a)
+		}
+	}
+	return keys
+}
+
+// reconcileGoPackageWithGHSAs patches every active aliased GHSA with one GO affected package's
+// symbols — and its pseudo-version range replacement, when the transformer provided one (a zero
+// wrapped value carries neither) — collecting amendment descriptions into changesByGHSA.
+// Reports whether any GHSA covers the package's module.
+func (w *writer) reconcileGoPackageWithGHSAs(aph db.AffectedPackageHandle, wrapped transformers.GoVulnDBAffectedPackage, ghsaKeys []string, changesByGHSA map[string][]string) (covered bool) {
+	for _, key := range ghsaKeys {
+		held := w.goGHSAEntries[key]
+		if held == nil {
+			continue
+		}
+		if held.VulnerabilityHandle.Status == db.VulnerabilityRejected {
+			// a withdrawn GHSA never matches, so it can neither carry the
+			// symbols nor cover the GO package — treating it as a merge
+			// target would silently erase the advisory (e.g. GHSAs GitHub
+			// withdrew as duplicates while the GO record stays active)
+			continue
+		}
+		moduleMatched, changes := patchGHSAWithGoImports(held, aph)
+		if len(wrapped.CustomRanges) > 0 {
+			changes = append(changes, replaceGHSAPseudoVersionRanges(held, aph, wrapped)...)
+		}
+		covered = covered || moduleMatched
+		changesByGHSA[key] = append(changesByGHSA[key], changes...)
+	}
+	return covered
 }
 
 // patchGHSAWithGoImports patches the held GHSA entry's affected packages with
