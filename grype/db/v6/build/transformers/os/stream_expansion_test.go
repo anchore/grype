@@ -177,8 +177,7 @@ func Test_MultiRHSAsAssignedToCorrectMinors(t *testing.T) {
 		"7":  "0:5.14.0-362.8.1.el9_3",
 		"8":  "0:5.14.0-362.8.1.el9_3",
 		"9":  "0:5.14.0-362.8.1.el9_3",
-		"10": "0:5.14.0-362.8.1.el9_3",
-		"11": "0:5.14.0-362.8.1.el9_3", // past the last fix -> highest fix
+		"10": "0:5.14.0-362.8.1.el9_3", // past the last fix -> highest fix
 		"":   "0:5.14.0-362.8.1.el9_3", // major-only fallback -> highest fix
 	})
 
@@ -188,7 +187,7 @@ func Test_MultiRHSAsAssignedToCorrectMinors(t *testing.T) {
 		"0": "RHSA-2022:8267", "1": "RHSA-2022:8267",
 		"2": "RHSA-2023:6583", "3": "RHSA-2023:6583", "4": "RHSA-2023:6583", "5": "RHSA-2023:6583",
 		"6": "RHSA-2023:6583", "7": "RHSA-2023:6583", "8": "RHSA-2023:6583",
-		"9": "RHSA-2023:6583", "10": "RHSA-2023:6583", "11": "RHSA-2023:6583",
+		"9": "RHSA-2023:6583", "10": "RHSA-2023:6583",
 		"": "RHSA-2023:6583",
 	}, advisoryIDByMinor(t, afs, "kernel"))
 
@@ -286,8 +285,7 @@ func Test_SupersededGADropped(t *testing.T) {
 		"7":  "0:2.6.32-696.30.1.el6",
 		"8":  "0:2.6.32-696.30.1.el6",
 		"9":  "0:2.6.32-696.30.1.el6", // 6.9 stream
-		"10": "0:2.6.32-754.2.1.el6",  // 6.10 stream (GA superseded, dropped)
-		"11": "0:2.6.32-754.2.1.el6",  // past the last pinned fix -> highest pinned fix
+		"10": "0:2.6.32-754.2.1.el6",  // 6.10 stream (GA superseded, dropped); also the last pinned fix
 		"":   "0:2.6.32-754.2.1.el6",  // major-only fallback -> highest pinned fix
 	})
 }
@@ -343,7 +341,7 @@ func Test_MultiUpstreamBase_KeepsDisjointRange(t *testing.T) {
 	afs, _ := getPackages(vuln)
 
 	got := constraintByMinor(t, afs, "microcode_ctl")
-	require.Len(t, got, 13) // completeness: 8.0..8.11 + major fallback ("")
+	require.Len(t, got, rhelMinorSpan["8"]+2) // completeness: 8.0..span + major fallback ("")
 	for minor, c := range got {
 		assert.Equalf(t, vulnRange, c, "minor %q must carry the disjoint VulnerableRange, not a collapsed roll-forward fix", minor)
 	}

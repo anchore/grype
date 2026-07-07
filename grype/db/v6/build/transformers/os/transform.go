@@ -166,27 +166,6 @@ type minorFix struct {
 	advisory string // RHSA id that shipped this build ("" when unknown); becomes the fix's reference
 }
 
-// rhelMinorSpan is the inclusive highest RHEL minor for which we materialize a per-minor
-// GA operating_system row, per major. It MUST be uniform across every record of a given
-// major: grype resolves a host to its most-specific OS row and does NOT union the
-// major-only row back in (operating_system_store.go:searchForOSExactVersions), so a minor
-// row that exists for some packages but is absent for others would silently drop the
-// missing packages -> false negatives. Making every record expand across the same span
-// guarantees each minor row is complete.
-//
-// Erring low is safe: a host on a minor beyond the span finds no exact row and falls back
-// to the major-only row (today's coarse, roll-forward-to-highest behavior). Erring high
-// only wastes rows (extra minors carry the highest fix, same as the major fallback).
-//
-// Highest RHEL minor to materialize a per-minor GA row for, per major. Deliberately errs high:
-// a host on a higher minor than listed just resolves to the major-only row (today's coarse
-// behavior) -- safe, never a false negative -- so these values only need to cover deployed minors,
-// not be exact.
-// TODO: make this list auto-updating (e.g. a go:generate step from a lifecycle source).
-var rhelMinorSpan = map[string]int{
-	"5": 11, "6": 11, "7": 11, "8": 11, "9": 11, "10": 4,
-}
-
 // expandRHELMinorRows implements the cumulative server-side stream-affinity expansion.
 // For a RHEL GA (channel-less), major-only group it returns one affected-package handle
 // per minor across the major's full span (rhelMinorSpan) plus a major-only fallback
