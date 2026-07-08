@@ -145,7 +145,10 @@ func isArchIndependent(a string) bool {
 // inert. The architecture qualifier is only emitted on rpm/CSAF entries, so it is only ever
 // evaluated against rpm packages in practice.
 func packageArch(p pkg.Package) string {
-	if m, ok := p.Metadata.(pkg.RpmMetadata); ok {
+	switch m := p.Metadata.(type) {
+	case pkg.RpmMetadata:
+		return m.Arch
+	case pkg.ApkMetadata:
 		return m.Arch
 	}
 	return ""

@@ -381,7 +381,7 @@ func apkMetadataFromPkg(p syftPkg.Package) any {
 	if m, ok := p.Metadata.(syftPkg.ApkDBEntry); ok {
 		// Grype's APK Metadata only has files, so return early
 		// and leave the field blank if there are no files.
-		if len(m.Files) == 0 {
+		if len(m.Files) == 0 && m.Architecture == "" {
 			return nil
 		}
 
@@ -391,7 +391,10 @@ func apkMetadataFromPkg(p syftPkg.Package) any {
 			fileRecords = append(fileRecords, r)
 		}
 
-		return ApkMetadata{Files: fileRecords}
+		return ApkMetadata{
+			Files: fileRecords,
+			Arch:  m.Architecture,
+		}
 	}
 
 	return nil

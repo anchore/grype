@@ -247,11 +247,12 @@ func Test_PurlProvider(t *testing.T) {
 			},
 			wantPkgs: []*Package{
 				{
-					Name:    "curl",
-					Version: "7.61.1",
-					Type:    pkg.ApkPkg,
-					PURL:    "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
-					Distro:  &distro.Distro{Type: distro.Alpine, Version: "3.20.3", Codename: "", IDLike: []string{"alpine"}},
+					Name:     "curl",
+					Version:  "7.61.1",
+					Type:     pkg.ApkPkg,
+					PURL:     "pkg:apk/curl@7.61.1?arch=aarch64&distro=alpine-3.20.3",
+					Distro:   &distro.Distro{Type: distro.Alpine, Version: "3.20.3", Codename: "", IDLike: []string{"alpine"}},
+					Metadata: ApkMetadata{Files: []ApkFileRecord{}, Arch: "aarch64"},
 				},
 			},
 		},
