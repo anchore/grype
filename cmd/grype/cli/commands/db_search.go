@@ -158,6 +158,12 @@ func runDBSearchMatches(opts dbSearchMatchOptions) error {
 		return err
 	}
 
+	if opts.Vulnerability.IncludeAliases {
+		for i := range opts.Vulnerability.Specs {
+			opts.Vulnerability.Specs[i].IncludeAliases = true
+		}
+	}
+
 	rows, queryErr := dbsearch.FindMatches(reader, dbsearch.AffectedPackagesOptions{
 		Vulnerability:         opts.Vulnerability.Specs,
 		Package:               opts.Package.PkgSpecs,
