@@ -28,8 +28,13 @@ import (
 func TestMatcherGolang_GoSymbols(t *testing.T) {
 	const (
 		httpServerDoS   = "GO-2022-0969" // net/http (stdlib) & golang.org/x/net/http2 server DoS; symbol-scoped
-		runtimeWholePkg = "GO-2023-1840" // stdlib "runtime", whole-package (no symbols listed)
+		runtimeWholePkg = "GO-2023-1840" // stdlib "runtime", whole-package (no symbols listed); CVE-2023-29403
 	)
+
+	// the "toolchain" pseudo-module records from the same Go release train as GO-2023-1840:
+	// cmd/go and cgo flaws (CVE-2023-29402/29404/29405) that live on the build machine and are
+	// never compiled into an artifact. See the anchore/grype#1782 scenario below.
+	toolchainRecords := []string{"GO-2023-1839", "GO-2023-1841", "GO-2023-1842"}
 
 	// go1.18.0 sits in GO-2022-0969's first vulnerable window (< 1.18.6) and below
 	// GO-2023-1840's fix (< 1.19.10), so a stdlib package at this version is a
@@ -118,6 +123,57 @@ func TestMatcherGolang_GoSymbols(t *testing.T) {
 			findings := db.Match(t, matcher, p)
 
 			expectMatches(t, findings, httpServerDoS, runtimeWholePkg)
+		})
+
+		t.Run("build-time toolchain advisories never match a compiled binary (anchore/grype#1782)", func(t *testing.T) {
+			// The anchore/grype#1782 reproduction: a binary-only image (calico
+			// kube-controllers, built with go1.15.2) was flagged with CVE-2023-29402/29404/
+			// 29405 — cmd/go and cgo flaws that affect the machine that RAN the build, not
+			// the artifact it produced — when only CVE-2023-29403 (GO-2023-1840, a flaw in
+			// the runtime package that IS compiled into every binary) should apply.
+			//
+			// Two mechanisms produce the issue's expected output. Build-time vs runtime:
+			// govulndb models toolchain flaws as the "toolchain" pseudo-module
+			// (GO-2023-1839/1841/1842 here), and a scanned binary catalogs its Go version
+			// as "stdlib" — never "toolchain" — so under exact-name matching the toolchain
+			// records cannot reach it, even though go1.15.2 sits squarely inside their
+			// vulnerable ranges. (The NVD CPE route to the same false positives was closed
+			// separately by disabling stdlib CPE matching by default, #3517.) Symbol
+			// filtering: the same binary links net/http without the vulnerable server
+			// symbols, so GO-2022-0969 is suppressed too. What remains is exactly what the
+			// issue reporter said should remain: GO-2023-1840, whose whole-package
+			// "runtime" import every Go binary satisfies.
+			p := dbtest.NewPackage("stdlib", "go1.15.2", syftPkg.GoModulePkg).
+				WithLanguage(syftPkg.Go).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: []string{
+					"runtime.main",
+					"runtime.gcBgMarkWorker",
+					"net/http.Get",
+					"net/http.(*Client).Do",
+				}}).
+				Build()
+
+			findings := db.Match(t, matcher, p)
+
+			expectMatches(t, findings, runtimeWholePkg)
+			findings.DoesNotHaveAnyVulnerabilities(append([]string{httpServerDoS}, toolchainRecords...)...)
+		})
+
+		t.Run("toolchain records exist in the DB and only a toolchain-named package can match them", func(t *testing.T) {
+			// pins the other half of the #1782 contract: the toolchain records are written
+			// (a scan of a Go SDK installation is their legitimate consumer), and the only
+			// thing that can ever match them is a package literally named "toolchain" —
+			// which binary scans never produce (syft catalogs the embedded Go version as
+			// "stdlib"). If this match ever disappears, the records were silently dropped;
+			// if the scenario above ever matched them, the name-based separation broke.
+			p := dbtest.NewPackage("toolchain", "go1.15.2", syftPkg.GoModulePkg).
+				WithLanguage(syftPkg.Go).
+				WithMetadata(pkg.GolangBinMetadata{}).
+				Build()
+
+			findings := db.Match(t, matcher, p)
+
+			expectMatches(t, findings, toolchainRecords...)
 		})
 	})
 }
