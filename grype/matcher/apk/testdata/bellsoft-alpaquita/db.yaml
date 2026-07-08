@@ -1,4 +1,7 @@
-auto-generate: false
+auto-generate: true
 extractions:
     bellsoft:
         - bell-cve-2025-59375
+        - bell-cve-2026-34180
+        - bell-cve-2026-21637
+        - bell-cve-2026-3219

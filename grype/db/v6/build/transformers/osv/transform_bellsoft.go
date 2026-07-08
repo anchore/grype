@@ -110,7 +110,9 @@ func bellsoftAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPack
 			},
 		})
 	}
-	sort.Sort(internal.ByAffectedPackage(aphs))
+	// stable: entries for the same package+constraint on different distros
+	// (alpaquita vs BHC) compare equal, so keep the record's affected order
+	sort.Stable(internal.ByAffectedPackage(aphs))
 	return aphs
 }
 
