@@ -459,6 +459,69 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 		require.Len(t, mods, 1)
 		assert.Len(t, mods[0].Changes, 1)
 	})
+
+	t.Run("symbol-less imports patch GHSAs as whole-package qualifiers", func(t *testing.T) {
+		// GO-2022-0586 / GHSA-28r2-q6m8-9hpx (go-getter, CVE-2022-30323 et al.), verbatim from the
+		// feeds: govulndb marks the go-getter and go-getter/v2 modules vulnerable at whole-package
+		// granularity — an imports entry with a path but NO symbols, which per the govulndb schema
+		// means every symbol in the package is vulnerable — while the s3/v2 and gcs/v2 modules
+		// carry symbol lists. This shape is common (~90 govulndb packages in the current feed), so
+		// the merge must carry a symbol-less import onto the GHSA as-is: the empty symbol list is
+		// load-bearing (at match time it means "any symbol from this package"), and dropping the
+		// import instead would disable suppression for binaries that don't link the package at all.
+		w := newMergeTestWriter()
+		require.True(t, w.holdForGoVulnDBMerge(ghsaEntry("GHSA-28r2-q6m8-9hpx",
+			goModuleAPH("github.com/hashicorp/go-getter"), // < 1.6.1
+			goModuleAPH("github.com/hashicorp/go-getter"), // >= 2.0.0 < 2.1.0 (second version window)
+			goModuleAPH("github.com/hashicorp/go-getter/v2"),
+			goModuleAPH("github.com/hashicorp/go-getter/s3/v2"),
+			goModuleAPH("github.com/hashicorp/go-getter/gcs/v2"),
+		)))
+
+		s3Imports := []db.GoImport{{Path: "github.com/hashicorp/go-getter/s3/v2", Symbols: []string{"Getter.Get", "Getter.GetFile", "Getter.Mode"}}}
+		gcsImports := []db.GoImport{{Path: "github.com/hashicorp/go-getter/gcs/v2", Symbols: []string{"Getter.Get", "Getter.GetFile", "Getter.Mode"}}}
+		// the record's other three GHSA aliases are for related CVEs whose go-ecosystem records
+		// are not part of this build; the merge must tolerate the absent aliases
+		aliases := []string{"CVE-2022-26945", "CVE-2022-30321", "CVE-2022-30322", "CVE-2022-30323",
+			"GHSA-28r2-q6m8-9hpx", "GHSA-cjr4-fv6c-f3mv", "GHSA-fcgg-rvwg-jv58", "GHSA-x24g-9w7v-vprh"}
+		entry := goVulnEntry("GO-2022-0586", aliases,
+			goModuleAPH("github.com/hashicorp/go-getter", db.GoImport{Path: "github.com/hashicorp/go-getter"}),
+			goModuleAPH("github.com/hashicorp/go-getter/v2", db.GoImport{Path: "github.com/hashicorp/go-getter/v2"}),
+			goModuleAPH("github.com/hashicorp/go-getter/s3/v2", s3Imports...),
+			goModuleAPH("github.com/hashicorp/go-getter/gcs/v2", gcsImports...),
+		)
+		keep := w.handleGoVulnDBEntry(&entry)
+
+		assert.False(t, keep, "every module is on the GHSA, so the GO record is fully covered")
+
+		held := heldGHSA(t, w, "ghsa-28r2-q6m8-9hpx")
+		// every GHSA row must carry its module's imports — including both go-getter
+		// version-window rows, whose whole-package import survives with the path present and
+		// the symbol list empty (an empty list is load-bearing, not a dropped qualifier)
+		got := make(map[string][][]db.GoImport)
+		for _, rel := range held.Related {
+			aph := rel.(db.AffectedPackageHandle)
+			var imports []db.GoImport
+			if aph.BlobValue.Qualifiers != nil {
+				imports = aph.BlobValue.Qualifiers.GoImports
+			}
+			got[aph.Package.Name] = append(got[aph.Package.Name], imports)
+		}
+		assert.Equal(t, map[string][][]db.GoImport{
+			"github.com/hashicorp/go-getter": {
+				{{Path: "github.com/hashicorp/go-getter"}},
+				{{Path: "github.com/hashicorp/go-getter"}},
+			},
+			"github.com/hashicorp/go-getter/v2":     {{{Path: "github.com/hashicorp/go-getter/v2"}}},
+			"github.com/hashicorp/go-getter/s3/v2":  {s3Imports},
+			"github.com/hashicorp/go-getter/gcs/v2": {gcsImports},
+		}, got)
+
+		mods := held.VulnerabilityHandle.BlobValue.Modifications
+		require.Len(t, mods, 1)
+		assert.Equal(t, "https://vuln.go.dev/ID/GO-2022-0586.json", mods[0].URL)
+		assert.Len(t, mods[0].Changes, 5, "one change per patched GHSA row")
+	})
 }
 
 // TestGoVulnDBPseudoVersionRangeReplacement covers the spec's pseudo-version reconciliation,
