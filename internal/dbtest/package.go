@@ -29,9 +29,10 @@ var (
 	Alpine318 = distro.New(distro.Alpine, "3.18", "")
 	Alpine319 = distro.New(distro.Alpine, "3.19", "")
 
-	// Wolfi is rolling; version is unused for matching but preserved here for
-	// readability at call sites.
-	WolfiRolling = distro.New(distro.Wolfi, "", "")
+	// Wolfi and Chainguard are both rolling-release apk distros; version is
+	// unused for matching but preserved here for readability at call sites.
+	WolfiRolling      = distro.New(distro.Wolfi, "", "")
+	ChainguardRolling = distro.New(distro.Chainguard, "", "")
 
 	RHEL7  = distro.New(distro.RedHat, "7", "")
 	RHEL8  = distro.New(distro.RedHat, "8", "")
