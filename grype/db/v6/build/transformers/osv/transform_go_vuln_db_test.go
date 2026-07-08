@@ -485,6 +485,156 @@ func TestGoVulnDB_PseudoVersionReplacementContext(t *testing.T) {
 	})
 }
 
+// TestGoVulnDB_MalformedEcosystemSpecificDegrades pins the safety net for the non-semver /
+// malformed ecosystem_specific data the branch spec calls out as a known follow-up (~20
+// custom_ranges strings plus the GHSA-side ones): a value grype cannot decode must NOT error the
+// build or panic — it degrades. Malformed imports drop the go-imports qualifier (matching falls
+// back to module granularity); malformed custom_ranges fall back to the standard range. Here the
+// affected entry carries a valid standard range plus structurally-broken imports and custom_ranges
+// (inner fields with the wrong type), and the emitted package must still be the standard <1.2.0
+// window with no qualifier.
+func TestGoVulnDB_MalformedEcosystemSpecificDegrades(t *testing.T) {
+	const id = "GO-0000-0001"
+	affected := osvmodel.Affected{
+		Package: osvmodel.Package{Name: "github.com/example/mod", Ecosystem: "Go"},
+		Ranges: []osvmodel.Range{{
+			Type:   osvmodel.RangeSemVer,
+			Events: []osvmodel.Event{{Introduced: "0"}, {Fixed: "1.2.0"}},
+		}},
+		EcosystemSpecific: map[string]any{
+			// "imports" must decode into []GoImport; a scalar in the symbols slot is undecodable
+			"imports": []any{map[string]any{"path": "github.com/example/mod", "symbols": "not-a-list"}},
+			// "custom_ranges" must decode into []Range; a scalar in the events slot is undecodable
+			"custom_ranges": []any{map[string]any{"type": "ECOSYSTEM", "events": "not-a-list"}},
+		},
+	}
+
+	if got := govulndbImports(affected, id); got != nil {
+		t.Errorf("malformed imports should decode to nil (module-granularity fallback), got %+v", got)
+	}
+	if got := govulndbCustomRanges(affected, id); got != nil {
+		t.Errorf("malformed custom_ranges should decode to nil (standard-range fallback), got %+v", got)
+	}
+
+	related := govulndbAffectedPackages(osvmodel.Vulnerability{ID: id, Affected: []osvmodel.Affected{affected}})
+	if len(related) != 1 {
+		t.Fatalf("expected 1 affected package, got %d", len(related))
+	}
+	aph := asAffectedPackage(t, related[0])
+	if aph.BlobValue.Qualifiers != nil {
+		t.Errorf("malformed imports must leave no qualifier, got %+v", aph.BlobValue.Qualifiers)
+	}
+	var constraints []string
+	for _, r := range aph.BlobValue.Ranges {
+		constraints = append(constraints, r.Version.Constraint)
+	}
+	if want := []string{"<1.2.0"}; !reflect.DeepEqual(constraints, want) {
+		t.Errorf("ranges = %v, want the standard window %v (custom_ranges must not erase it)", constraints, want)
+	}
+}
+
+// TestGoVulnDB_PseudoVersionReplacementRejectionGuards pins the reject paths of
+// pseudoVersionReplacement — the guards that keep the build from swapping a GHSA range for a
+// custom window when the pairing is not unambiguous. Replacing a version range is the most
+// destructive amendment in the merge, so each guard is exercised: a positive case that produces a
+// pairing, then the shapes that must produce NONE.
+func TestGoVulnDB_PseudoVersionReplacementRejectionGuards(t *testing.T) {
+	const pseudo = "0.0.0-20240708073652-5a492a3f0036"
+	const otherPseudo = "0.0.0-20250827065555-0494f5d47e41"
+	semver := func(events ...osvmodel.Event) osvmodel.Range {
+		return osvmodel.Range{Type: osvmodel.RangeSemVer, Events: events}
+	}
+	eco := func(events ...osvmodel.Event) osvmodel.Range {
+		return osvmodel.Range{Type: osvmodel.RangeEcosystem, Events: events}
+	}
+
+	tests := []struct {
+		name         string
+		standard     []osvmodel.Range
+		custom       []osvmodel.Range
+		wantFix      string
+		wantWindowed []string
+	}{
+		{
+			name:         "sole pseudo-fix standard + sole bounded custom -> pairing",
+			standard:     []osvmodel.Range{semver(osvmodel.Event{Introduced: "0"}, osvmodel.Event{Fixed: pseudo})},
+			custom:       []osvmodel.Range{eco(osvmodel.Event{Introduced: "0"}, osvmodel.Event{Fixed: "5.21.2"})},
+			wantFix:      pseudo,
+			wantWindowed: []string{"<5.21.2"},
+		},
+		{
+			name:     "standard uses last_affected, not a fix -> no pairing",
+			standard: []osvmodel.Range{semver(osvmodel.Event{Introduced: "0"}, osvmodel.Event{LastAffected: "1.0.0"})},
+			custom:   []osvmodel.Range{eco(osvmodel.Event{Introduced: "0"}, osvmodel.Event{Fixed: "5.21.2"})},
+		},
+		{
+			name:     "custom range has no upper bound -> no pairing",
+			standard: []osvmodel.Range{semver(osvmodel.Event{Introduced: "0"}, osvmodel.Event{Fixed: pseudo})},
+			custom:   []osvmodel.Range{eco(osvmodel.Event{Introduced: "5.0.0"})},
+		},
+		{
+			name:     "custom range is itself pinned to a pseudo-version -> no pairing",
+			standard: []osvmodel.Range{semver(osvmodel.Event{Introduced: "0"}, osvmodel.Event{Fixed: pseudo})},
+			custom:   []osvmodel.Range{eco(osvmodel.Event{Introduced: "0"}, osvmodel.Event{Fixed: otherPseudo})},
+		},
+		{
+			name:     "more than one custom range -> ambiguous, no pairing",
+			standard: []osvmodel.Range{semver(osvmodel.Event{Introduced: "0"}, osvmodel.Event{Fixed: pseudo})},
+			custom: []osvmodel.Range{
+				eco(osvmodel.Event{Introduced: "0"}, osvmodel.Event{Fixed: "5.21.2"}),
+				eco(osvmodel.Event{Introduced: "6.0.0"}, osvmodel.Event{Fixed: "6.5.0"}),
+			},
+		},
+		{
+			name:     "standard fix is a real tag, not a pseudo-version -> no pairing",
+			standard: []osvmodel.Range{semver(osvmodel.Event{Introduced: "0"}, osvmodel.Event{Fixed: "5.21.2"})},
+			custom:   []osvmodel.Range{eco(osvmodel.Event{Introduced: "0"}, osvmodel.Event{Fixed: "5.21.2"})},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotFix, gotRanges := pseudoVersionReplacement(tt.standard, tt.custom)
+			if gotFix != tt.wantFix {
+				t.Errorf("pseudoFix = %q, want %q", gotFix, tt.wantFix)
+			}
+			var constraints []string
+			for _, r := range gotRanges {
+				constraints = append(constraints, r.Version.Constraint)
+			}
+			if !reflect.DeepEqual(constraints, tt.wantWindowed) {
+				t.Errorf("replacement ranges = %v, want %v", constraints, tt.wantWindowed)
+			}
+		})
+	}
+}
+
+// TestGovulndbRanges_OpenEndedFloorGraftsOntoCustom pins the merge branch where the standard
+// range is an open-ended floor (">= X" with no fix) and custom_ranges carry the real bounded
+// windows: X is the true lower bound and must be grafted onto the first custom window rather than
+// dropped or appended as a disjoint window. This is the GO-2024-2858 shape named in
+// mergeWithCustom's doc comment, and it was the one merge branch with no test.
+func TestGovulndbRanges_OpenEndedFloorGraftsOntoCustom(t *testing.T) {
+	standard := []osvmodel.Range{{
+		Type:   osvmodel.RangeSemVer,
+		Events: []osvmodel.Event{{Introduced: "5.0.0-beta1"}},
+	}}
+	custom := []osvmodel.Range{{
+		Type: osvmodel.RangeEcosystem,
+		Events: []osvmodel.Event{
+			{Introduced: "0"}, {Fixed: "8.5.14"},
+			{Introduced: "9.0.0"}, {Fixed: "9.1.8"},
+		},
+	}}
+	var got []string
+	for _, r := range govulndbRanges(standard, custom) {
+		got = append(got, r.Version.Constraint)
+	}
+	want := []string{">=5.0.0-beta1,<8.5.14", ">=9.0.0,<9.1.8"}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("ranges = %v, want %v (open-ended floor must graft onto the first custom window)", got, want)
+	}
+}
+
 // asAffectedPackage unwraps a related entry to its affected package handle, whether the
 // transformer emitted it plain or wrapped with govulndb↔GHSA merge context.
 func asAffectedPackage(t *testing.T, rel any) db.AffectedPackageHandle {
