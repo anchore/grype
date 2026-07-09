@@ -171,7 +171,7 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 		require.True(t, keep, "stdlib remains, so the GO record must be written")
 		assert.Equal(t, []string{"stdlib"}, affectedPackageNames(entry))
 
-		held := heldGHSA(t, m,"ghsa-69cg-p879-7622")
+		held := heldGHSA(t, m, "ghsa-69cg-p879-7622")
 		// module-named GHSA package gets all imports; sub-package-named one gets its own import
 		assert.Equal(t, xnetImports, goImportsOf(t, held, "golang.org/x/net"))
 		assert.Equal(t, xnetImports, goImportsOf(t, held, "golang.org/x/net/http2"))
@@ -201,7 +201,7 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 
 		assert.False(t, keep, "fully covered GO record must be dropped")
 		for _, id := range []string{"ghsa-c9gm-7rfj-8w5h", "ghsa-ppj4-34rq-v8j9"} {
-			held := heldGHSA(t, m,id)
+			held := heldGHSA(t, m, id)
 			assert.Equal(t, gjsonImports, goImportsOf(t, held, "github.com/tidwall/gjson"))
 			require.Len(t, held.VulnerabilityHandle.BlobValue.Modifications, 1, "GHSA %s", id)
 		}
@@ -239,7 +239,7 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 		keep := m.handleEntry(&entry)
 
 		assert.True(t, keep, "withdrawn records are written (as rejected), not dropped")
-		held := heldGHSA(t, m,"ghsa-c9gm-7rfj-8w5h")
+		held := heldGHSA(t, m, "ghsa-c9gm-7rfj-8w5h")
 		assert.Nil(t, goImportsOf(t, held, "github.com/tidwall/gjson"), "withdrawn records must not contribute symbols")
 		assert.Empty(t, held.VulnerabilityHandle.BlobValue.Modifications)
 	})
@@ -263,7 +263,7 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 
 		assert.True(t, keep, "a module covered only by withdrawn GHSAs must stay on the GO record")
 		assert.Equal(t, []string{"github.com/tidwall/gjson"}, affectedPackageNames(entry))
-		held := heldGHSA(t, m,"ghsa-c9gm-7rfj-8w5h")
+		held := heldGHSA(t, m, "ghsa-c9gm-7rfj-8w5h")
 		assert.Nil(t, goImportsOf(t, held, "github.com/tidwall/gjson"))
 		assert.Empty(t, held.VulnerabilityHandle.BlobValue.Modifications)
 	})
@@ -285,7 +285,7 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 		keep := m.handleEntry(&entry)
 
 		assert.False(t, keep, "the module itself is on the GHSA, so the GO record is covered")
-		held := heldGHSA(t, m,"ghsa-649x-hxfx-57j2")
+		held := heldGHSA(t, m, "ghsa-649x-hxfx-57j2")
 		assert.Equal(t, vitessImports, goImportsOf(t, held, "vitess.io/vitess"))
 		assert.Nil(t, goImportsOf(t, held, "github.com/vitessio/vitess"), "alternate-name package keeps module-granularity matching")
 	})
@@ -333,7 +333,7 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 		keep := m.handleEntry(&entry)
 
 		assert.False(t, keep)
-		held := heldGHSA(t, m,"ghsa-c9gm-7rfj-8w5h")
+		held := heldGHSA(t, m, "ghsa-c9gm-7rfj-8w5h")
 		assert.Nil(t, goImportsOf(t, held, "github.com/tidwall/gjson"))
 		assert.Empty(t, held.VulnerabilityHandle.BlobValue.Modifications)
 		gotAPH, ok := held.Related[0].(db.AffectedPackageHandle)
@@ -357,7 +357,7 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 
 		assert.True(t, keep, "module not on the GHSA -> not covered")
 		assert.Equal(t, []string{"golang.org/x/net"}, affectedPackageNames(entry))
-		held := heldGHSA(t, m,"ghsa-69cg-p879-7622")
+		held := heldGHSA(t, m, "ghsa-69cg-p879-7622")
 		assert.Equal(t, xnetImports, goImportsOf(t, held, "golang.org/x/net/http2"))
 		require.Len(t, held.VulnerabilityHandle.BlobValue.Modifications, 1)
 	})
@@ -387,7 +387,7 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 		require.True(t, keep, "stdlib is never dropped: no GHSA row is named stdlib")
 		assert.Equal(t, []string{"stdlib"}, affectedPackageNames(entry))
 
-		held := heldGHSA(t, m,"ghsa-4v7x-pqxf-cx7m")
+		held := heldGHSA(t, m, "ghsa-4v7x-pqxf-cx7m")
 		// every row got its matching symbols: both net/http rows from the stdlib
 		// package's import, the module and sub-package rows from x/net's
 		var netHTTPRows int
@@ -423,7 +423,7 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 		keep := m.handleEntry(&entry)
 
 		assert.False(t, keep, "case-insensitively matched module must be covered")
-		held := heldGHSA(t, m,"ghsa-f92v-grc2-w2fg")
+		held := heldGHSA(t, m, "ghsa-f92v-grc2-w2fg")
 		assert.Equal(t, kavaImports, goImportsOf(t, held, "github.com/Kava-Labs/kava"))
 	})
 
@@ -440,7 +440,7 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 		keep := m.handleEntry(&entry)
 
 		assert.False(t, keep)
-		held := heldGHSA(t, m,"ghsa-c9gm-7rfj-8w5h")
+		held := heldGHSA(t, m, "ghsa-c9gm-7rfj-8w5h")
 		assert.Equal(t, gjsonImports, goImportsOf(t, held, "github.com/tidwall/gjson"))
 		mods := held.VulnerabilityHandle.BlobValue.Modifications
 		require.Len(t, mods, 1)
@@ -597,7 +597,7 @@ func TestGoVulnDBPseudoVersionRangeReplacement(t *testing.T) {
 		// the module is on the GHSA, so the GO record is covered and dropped as usual
 		assert.False(t, keep, "lxd is covered by the GHSA, so the GO record must be dropped")
 
-		held := heldGHSA(t, m,"ghsa-4c49-9fpc-hc3v")
+		held := heldGHSA(t, m, "ghsa-4c49-9fpc-hc3v")
 		aph, ok := held.Related[0].(db.AffectedPackageHandle)
 		require.True(t, ok)
 		assert.Equal(t, []db.Range{tagRangeWithGHSADate}, aph.BlobValue.Ranges,
@@ -631,7 +631,7 @@ func TestGoVulnDBPseudoVersionRangeReplacement(t *testing.T) {
 		keep := m.handleEntry(&entry)
 
 		assert.False(t, keep)
-		held := heldGHSA(t, m,"ghsa-4c49-9fpc-hc3v")
+		held := heldGHSA(t, m, "ghsa-4c49-9fpc-hc3v")
 		aph, ok := held.Related[0].(db.AffectedPackageHandle)
 		require.True(t, ok)
 		assert.Equal(t, []db.Range{otherRange}, aph.BlobValue.Ranges, "mismatched fix commit must not be replaced")
@@ -647,7 +647,7 @@ func TestGoVulnDBPseudoVersionRangeReplacement(t *testing.T) {
 		keep := m.handleEntry(&entry)
 
 		assert.False(t, keep)
-		held := heldGHSA(t, m,"ghsa-4c49-9fpc-hc3v")
+		held := heldGHSA(t, m, "ghsa-4c49-9fpc-hc3v")
 		aph, ok := held.Related[0].(db.AffectedPackageHandle)
 		require.True(t, ok)
 		assert.Equal(t, []db.Range{pseudoRange, tagRange}, aph.BlobValue.Ranges,
@@ -783,6 +783,95 @@ func TestGoVulnDBMergeRoundTrip(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Len(t, stdlibAPHs, 1)
+}
+
+// TestGoVulnDBMerge_AliasedGHSAReconciliation covers the two regressions caused by rangeless
+// govulndb (GO-*) records overlapping the GHSA they alias. In both, a GO record carries an affected
+// package with no version range (its native range was unmappable to Go module versioning) while the
+// aliased GHSA in the same DB carries the real, fixed range. The merge must drop the covered GO
+// package so only the GHSA's ranged, fixed record survives:
+//
+//   - anchore/grype#3510: without the drop the rangeless GO record matches every version, reporting
+//     a false positive even on versions at or past the fix.
+//   - anchore/grype#3511: without the drop the vulnerability is reported twice — once under the GO-*
+//     ID and once under the aliased GHSA — and the two rows disagree on the fix.
+//
+// Each case is driven through the full writer→DB→reader path, so it asserts exactly what
+// `grype db search` surfaces in the issues.
+func TestGoVulnDBMerge_AliasedGHSAReconciliation(t *testing.T) {
+	tests := []struct {
+		name           string
+		goID           string
+		ghsaID         string
+		cve            string
+		module         string
+		ghsaConstraint string
+		fixVersion     string
+	}{
+		{
+			// grafana example from #3510: GO-2024-2519 == CVE-2020-12459 == GHSA-m25m-5778-fm22
+			name:           "rangeless GO record dropped for the GHSA fix (#3510)",
+			goID:           "GO-2024-2519",
+			ghsaID:         "GHSA-m25m-5778-fm22",
+			cve:            "CVE-2020-12459",
+			module:         "github.com/grafana/grafana",
+			ghsaConstraint: "<7.2.1",
+			fixVersion:     "7.2.1",
+		},
+		{
+			// grafana example from #3511: GO-2025-4153 == CVE-2025-41115 == GHSA-w62r-7c53-fmc5
+			name:           "aliased GO and GHSA collapse to one record (#3511)",
+			goID:           "GO-2025-4153",
+			ghsaID:         "GHSA-w62r-7c53-fmc5",
+			cve:            "CVE-2025-41115",
+			module:         "github.com/grafana/grafana",
+			ghsaConstraint: ">=12.0.0,<12.0.7",
+			fixVersion:     "12.0.7",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			w, err := NewWriter(tmpDir, provider.States{}, false, 0)
+			require.NoError(t, err)
+
+			// the GHSA carries the real fixed range; the govulndb record for the same advisory is
+			// rangeless (goModuleAPH sets no ranges), so on its own it would match every version.
+			ghsaAPH := goModuleAPH(tt.module)
+			ghsaAPH.BlobValue.Ranges = []db.Range{{
+				Version: db.Version{Type: "go", Constraint: tt.ghsaConstraint},
+				Fix:     &db.Fix{Version: tt.fixVersion, State: db.FixedStatus},
+			}}
+			require.NoError(t, w.Write(dataEntries(ghsaEntry(tt.ghsaID, ghsaAPH))...))
+			require.NoError(t, w.Write(dataEntries(goVulnEntry(tt.goID, []string{tt.cve, tt.ghsaID}, goModuleAPH(tt.module)))...))
+			require.NoError(t, w.Close())
+
+			reader, err := db.NewReader(db.Config{DBDirPath: tmpDir})
+			require.NoError(t, err)
+			defer reader.Close()
+
+			// the vulnerability is reported once: the GHSA survives, the aliased GO record is dropped
+			ghsas, err := reader.GetVulnerabilities(&db.VulnerabilitySpecifier{Name: tt.ghsaID}, &db.GetVulnerabilityOptions{Preload: true})
+			require.NoError(t, err)
+			assert.Len(t, ghsas, 1, "the GHSA record must survive")
+
+			gos, err := reader.GetVulnerabilities(&db.VulnerabilitySpecifier{Name: tt.goID}, &db.GetVulnerabilityOptions{Preload: true})
+			require.NoError(t, err)
+			assert.Empty(t, gos, "the fully-covered GO record must be dropped, not reported alongside the GHSA")
+
+			// only the GHSA's ranged, fixed affected package remains — nothing matches at or past the fix
+			aphs, err := reader.GetAffectedPackages(&db.PackageSpecifier{Name: tt.module, Ecosystem: string(pkg.GoModulePkg)}, &db.GetPackageOptions{
+				PreloadPackage: true,
+				PreloadBlob:    true,
+			})
+			require.NoError(t, err)
+			require.Len(t, aphs, 1, "the rangeless govulndb package must be dropped, leaving only the fixed GHSA range")
+			require.Len(t, aphs[0].BlobValue.Ranges, 1)
+			assert.Equal(t, tt.ghsaConstraint, aphs[0].BlobValue.Ranges[0].Version.Constraint)
+			require.NotNil(t, aphs[0].BlobValue.Ranges[0].Fix)
+			assert.Equal(t, tt.fixVersion, aphs[0].BlobValue.Ranges[0].Fix.Version)
+		})
+	}
 }
 
 // dataEntries wraps a RelatedEntries in the envelope the writer's Write method expects.
