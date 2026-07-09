@@ -1003,6 +1003,48 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "apple-app-bundle-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.AppleAppBundleEntry{
+					BundleIdentifier:     "com.apple.Safari",
+					Name:                 "Safari",
+					DisplayName:          "Safari",
+					Executable:           "Safari",
+					ShortVersion:         "17.0",
+					Version:              "17600.1.1",
+					PackageType:          "APPL",
+					SupportedPlatforms:   []string{"MacOSX"},
+					MinimumSystemVersion: "14.0",
+					MinimumOSVersion:     "14.0",
+					Copyright:            "Copyright © 2024 Apple Inc.",
+					PlatformName:         "macosx",
+					SDKName:              "macosx14.0",
+				},
+			},
+		},
+		{
+			name: "vcpkg-manifest",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.VcpkgManifest{
+					Description:   []string{"Test package"},
+					Documentation: "https://example.com/docs",
+					FullVersion:   "1.2.3#1",
+					Version:       "1.2.3",
+					PortVersion:   1,
+					Maintainers:   []string{"maintainer1"},
+					Name:          "test-package",
+					Supports:      "!windows",
+					Registry: &syftPkg.VcpkgRegistryEntry{
+						Baseline:   "abc123",
+						Kind:       syftPkg.Git,
+						Packages:   []string{"test-package"},
+						Repository: "https://github.com/microsoft/vcpkg",
+					},
+					Triplet: "x64-linux",
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
