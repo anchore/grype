@@ -39,20 +39,41 @@ import (
 // pseudo-version whose govulndb record carries the same fix in the module's
 // real tag versioning — see replaceGHSAPseudoVersionRanges.
 
-// holdForGoVulnDBMerge diverts entries that participate in the govulndb↔GHSA
-// reconciliation into the writer's held collections, returning true when the
-// entry was held (and so must not be batched yet).
-func (w *writer) holdForGoVulnDBMerge(entry transformers.RelatedEntries) bool {
+// goVulnDBMerger holds back the Go-ecosystem entries that participate in the
+// govulndb↔GHSA reconciliation and, at Close time, reconciles the overlap and
+// returns the entries to write. It owns none of the writer's concerns
+// (batching, severity fill, fix-date validation): the writer feeds it entries
+// via hold and writes back whatever reconcile returns.
+type goVulnDBMerger struct {
+	// goGHSAEntries holds back Go-ecosystem GHSA entries (keyed by lowercase
+	// GHSA ID, with goGHSAOrder preserving arrival order for deterministic
+	// writes) and govulndbEntries holds back GO-* entries, so the govulndb↔GHSA
+	// overlap can be reconciled regardless of provider processing order.
+	goGHSAEntries   map[string]*transformers.RelatedEntries
+	goGHSAOrder     []string
+	govulndbEntries []*transformers.RelatedEntries
+}
+
+func newGoVulnDBMerger() *goVulnDBMerger {
+	return &goVulnDBMerger{
+		goGHSAEntries: make(map[string]*transformers.RelatedEntries),
+	}
+}
+
+// hold diverts entries that participate in the govulndb↔GHSA reconciliation
+// into the held collections, returning true when the entry was held (and so
+// must not be batched yet).
+func (m *goVulnDBMerger) hold(entry transformers.RelatedEntries) bool {
 	if entry.VulnerabilityHandle == nil {
 		return false
 	}
 	name := strings.ToLower(entry.VulnerabilityHandle.Name)
 	switch {
 	case strings.HasPrefix(name, "go-"):
-		w.govulndbEntries = append(w.govulndbEntries, &entry)
+		m.govulndbEntries = append(m.govulndbEntries, &entry)
 		return true
 	case strings.HasPrefix(name, "ghsa-") && hasGoModulePackages(entry):
-		if _, exists := w.goGHSAEntries[name]; exists {
+		if _, exists := m.goGHSAEntries[name]; exists {
 			// a second Go-ecosystem record with the same GHSA ID should not happen;
 			// write it through rather than silently replacing the held one. This is a
 			// deliberate exception to write-once: the duplicate lands in the DB alongside
@@ -60,8 +81,8 @@ func (w *writer) holdForGoVulnDBMerge(entry transformers.RelatedEntries) bool {
 			log.WithFields("id", entry.VulnerabilityHandle.Name).Warn("duplicate go-ecosystem GHSA record; skipping govulndb reconciliation for it")
 			return false
 		}
-		w.goGHSAEntries[name] = &entry
-		w.goGHSAOrder = append(w.goGHSAOrder, name)
+		m.goGHSAEntries[name] = &entry
+		m.goGHSAOrder = append(m.goGHSAOrder, name)
 		return true
 	}
 	return false
@@ -78,42 +99,41 @@ func hasGoModulePackages(entry transformers.RelatedEntries) bool {
 	return false
 }
 
-// flushGoVulnDBMerge reconciles all held govulndb entries against the held GHSA
-// entries, then writes the (patched) GHSA entries and surviving govulndb entries
-// through the normal batching path. Called once from Close.
-func (w *writer) flushGoVulnDBMerge() error {
+// reconcile reconciles all held govulndb entries against the held GHSA entries
+// and returns the entries to write, in deterministic order: the (patched) GHSA
+// entries first (in arrival order), then the surviving govulndb entries. The
+// merger's held state is reset before returning. Called once from Close; the
+// writer persists the returned entries through its own batching path.
+func (m *goVulnDBMerger) reconcile() []transformers.RelatedEntries {
 	var surviving []*transformers.RelatedEntries
-	for _, entry := range w.govulndbEntries {
-		if w.handleGoVulnDBEntry(entry) {
+	for _, entry := range m.govulndbEntries {
+		if m.handleEntry(entry) {
 			surviving = append(surviving, entry)
 		} else {
 			log.WithFields("id", entry.VulnerabilityHandle.Name).Trace("dropping govulndb record fully covered by GHSA records")
 		}
 	}
 
-	for _, key := range w.goGHSAOrder {
-		if err := w.writeEntryToBatch(*w.goGHSAEntries[key]); err != nil {
-			return fmt.Errorf("unable to write held GHSA entry %q: %w", key, err)
-		}
+	out := make([]transformers.RelatedEntries, 0, len(m.goGHSAOrder)+len(surviving))
+	for _, key := range m.goGHSAOrder {
+		out = append(out, *m.goGHSAEntries[key])
 	}
 	for _, entry := range surviving {
-		if err := w.writeEntryToBatch(*entry); err != nil {
-			return fmt.Errorf("unable to write held govulndb entry %q: %w", entry.VulnerabilityHandle.Name, err)
-		}
+		out = append(out, *entry)
 	}
 
-	w.govulndbEntries = nil
-	w.goGHSAEntries = make(map[string]*transformers.RelatedEntries)
-	w.goGHSAOrder = nil
-	return nil
+	m.govulndbEntries = nil
+	m.goGHSAEntries = make(map[string]*transformers.RelatedEntries)
+	m.goGHSAOrder = nil
+	return out
 }
 
-// handleGoVulnDBEntry reconciles one govulndb record against the held GHSA
-// records it aliases: patching matching GHSA affected packages with the record's
+// handleEntry reconciles one govulndb record against the held GHSA records it
+// aliases: patching matching GHSA affected packages with the record's
 // go-imports qualifiers (recording amendments) and pruning covered affected
 // packages from the GO record. Returns whether the GO record should still be
 // written.
-func (w *writer) handleGoVulnDBEntry(entry *transformers.RelatedEntries) bool {
+func (m *goVulnDBMerger) handleEntry(entry *transformers.RelatedEntries) bool {
 	handle := entry.VulnerabilityHandle
 
 	// unwrap first, so that every return path below leaves only plain handles on the entry
@@ -142,7 +162,7 @@ func (w *writer) handleGoVulnDBEntry(entry *transformers.RelatedEntries) bool {
 			remaining = append(remaining, rel)
 			continue
 		}
-		if w.reconcileGoPackageWithGHSAs(aph, replacements[i], ghsaKeys, changesByGHSA) {
+		if m.reconcilePackage(aph, replacements[i], ghsaKeys, changesByGHSA) {
 			log.WithFields("id", handle.Name, "package", aph.Package.Name).Trace("dropping govulndb affected package covered by a GHSA record")
 			continue
 		}
@@ -156,7 +176,7 @@ func (w *writer) handleGoVulnDBEntry(entry *transformers.RelatedEntries) bool {
 		if len(changes) == 0 {
 			continue
 		}
-		blob := w.goGHSAEntries[key].VulnerabilityHandle.BlobValue
+		blob := m.goGHSAEntries[key].VulnerabilityHandle.BlobValue
 		blob.Modifications = append(blob.Modifications, db.Modification{URL: url, Changes: changes})
 	}
 
@@ -193,13 +213,13 @@ func ghsaAliasKeys(aliases []string) []string {
 	return keys
 }
 
-// reconcileGoPackageWithGHSAs patches every active aliased GHSA with one GO affected package's
+// reconcilePackage patches every active aliased GHSA with one GO affected package's
 // symbols — and its pseudo-version range replacement, when the transformer provided one (a zero
 // wrapped value carries neither) — collecting amendment descriptions into changesByGHSA.
 // Reports whether any GHSA covers the package's module.
-func (w *writer) reconcileGoPackageWithGHSAs(aph db.AffectedPackageHandle, wrapped transformers.GoVulnDBAffectedPackage, ghsaKeys []string, changesByGHSA map[string][]string) (covered bool) {
+func (m *goVulnDBMerger) reconcilePackage(aph db.AffectedPackageHandle, wrapped transformers.GoVulnDBAffectedPackage, ghsaKeys []string, changesByGHSA map[string][]string) (covered bool) {
 	for _, key := range ghsaKeys {
-		held := w.goGHSAEntries[key]
+		held := m.goGHSAEntries[key]
 		if held == nil {
 			continue
 		}

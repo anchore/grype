@@ -28,14 +28,10 @@ type writer struct {
 	// which normalize casing so the invariant can't drift.
 	severityCache map[string]db.Severity
 
-	// goGHSAEntries holds back Go-ecosystem GHSA entries (keyed by lowercase
-	// GHSA ID, with goGHSAOrder preserving arrival order for deterministic
-	// writes) and govulndbEntries holds back GO-* entries, so the govulndb↔GHSA
-	// overlap can be reconciled at Close time regardless of provider processing
-	// order. See govulndb_merge.go.
-	goGHSAEntries   map[string]*transformers.RelatedEntries
-	goGHSAOrder     []string
-	govulndbEntries []*transformers.RelatedEntries
+	// goMerge holds back and reconciles the govulndb↔GHSA overlap at Close time,
+	// so it can be resolved regardless of provider processing order. See
+	// govulndb_merge.go.
+	goMerge *goVulnDBMerger
 
 	// Two-tier batching: parent records (vulnerabilities + providers) and child records (related entries)
 	// This maintains FK integrity while maximizing batch sizes
@@ -84,7 +80,7 @@ func NewWriter(directory string, states provider.States, failOnMissingFixDate bo
 		store:                s,
 		states:               states,
 		severityCache:        make(map[string]db.Severity),
-		goGHSAEntries:        make(map[string]*transformers.RelatedEntries),
+		goMerge:              newGoVulnDBMerger(),
 		parentBatchSize:      batchSize,
 		childBatchSize:       batchSize,
 		parentBuffer:         make([]func() error, 0, batchSize),
@@ -114,7 +110,7 @@ func (w *writer) Write(entries ...data.Entry) error {
 func (w *writer) writeEntry(entry transformers.RelatedEntries) error {
 	log.WithFields("entry", entry.String()).Trace("writing entry")
 
-	if w.holdForGoVulnDBMerge(entry) {
+	if w.goMerge.hold(entry) {
 		return nil
 	}
 
@@ -458,8 +454,10 @@ func (w *writer) flushChildBatchLocked() error {
 
 func (w *writer) Close() error {
 	// Reconcile and write held govulndb/GHSA entries before the final flush
-	if err := w.flushGoVulnDBMerge(); err != nil {
-		return fmt.Errorf("unable to reconcile govulndb entries with GHSA records: %w", err)
+	for _, entry := range w.goMerge.reconcile() {
+		if err := w.writeEntryToBatch(entry); err != nil {
+			return fmt.Errorf("unable to write reconciled go entry %q: %w", entry.VulnerabilityHandle.Name, err)
+		}
 	}
 
 	// Flush any remaining batched operations (both parent and child)
