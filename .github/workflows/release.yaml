@@ -32,7 +32,7 @@ jobs:
     permissions:
       contents: read
       checks: read # required for getting the status of specific check names
-    uses: anchore/workflows/.github/workflows/check-gate.yaml@b0c30a80409130d329aaa356fd64a34d8c0b3375 # v0.7.2
+    uses: anchore/workflows/.github/workflows/check-gate.yaml@7212994dc8fc3a53fe9c8e766ab5b4ddd16ea3d4 # v0.8.0
     with:
       # these are checks that should be run on pull-request and merges to main.
       # we do NOT want to kick off a release if these have not been verified on main.
