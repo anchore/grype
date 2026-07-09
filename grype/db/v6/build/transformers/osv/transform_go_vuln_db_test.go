@@ -191,8 +191,8 @@ func TestEventsToRanges(t *testing.T) {
 // TestGoVulnDB_ThirdPartyEmitsAffectedPackage pins that general third-party
 // modules (here github.com/gin-gonic/gin — not stdlib and not golang.org/x/*)
 // are emitted with their imports qualifier intact. The overlap
-// with GHSA-sourced advisories for the same module is reconciled by the build
-// writer (handleGoVulnDBEntry), not by dropping the package here.
+// with GHSA-sourced advisories for the same module is reconciled by the
+// goVulnDBMerger (handleEntry), not by dropping the package here.
 func TestGoVulnDB_ThirdPartyEmitsAffectedPackage(t *testing.T) {
 	vulns := loadFixture(t, "testdata/GO-2020-0001.json")
 	if len(vulns) != 1 {

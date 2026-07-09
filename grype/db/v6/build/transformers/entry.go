@@ -15,7 +15,7 @@ type RelatedEntries struct {
 }
 
 // GoVulnDBAffectedPackage wraps an affected package emitted by the govulndb transformer with
-// ranges and PseudoVersion fixes(see the build writer's handleGoVulnDBEntry).
+// ranges and PseudoVersion fixes(see the goVulnDBMerger's handleEntry).
 type GoVulnDBAffectedPackage struct {
 	Handle db.AffectedPackageHandle
 

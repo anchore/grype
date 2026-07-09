@@ -456,8 +456,8 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 		// the merge must carry a symbol-less import onto the GHSA as-is: the empty symbol list is
 		// load-bearing (at match time it means "any symbol from this package"), and dropping the
 		// import instead would disable suppression for binaries that don't link the package at all.
-		w := newMergeTestWriter()
-		require.True(t, w.holdForGoVulnDBMerge(ghsaEntry("GHSA-28r2-q6m8-9hpx",
+		m := newGoVulnDBMerger()
+		require.True(t, m.hold(ghsaEntry("GHSA-28r2-q6m8-9hpx",
 			goModuleAPH("github.com/hashicorp/go-getter"), // < 1.6.1
 			goModuleAPH("github.com/hashicorp/go-getter"), // >= 2.0.0 < 2.1.0 (second version window)
 			goModuleAPH("github.com/hashicorp/go-getter/v2"),
@@ -477,11 +477,11 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 			goModuleAPH("github.com/hashicorp/go-getter/s3/v2", s3Imports...),
 			goModuleAPH("github.com/hashicorp/go-getter/gcs/v2", gcsImports...),
 		)
-		keep := w.handleGoVulnDBEntry(&entry)
+		keep := m.handleEntry(&entry)
 
 		assert.False(t, keep, "every module is on the GHSA, so the GO record is fully covered")
 
-		held := heldGHSA(t, w, "ghsa-28r2-q6m8-9hpx")
+		held := heldGHSA(t, m, "ghsa-28r2-q6m8-9hpx")
 		// every GHSA row must carry its module's imports — including both go-getter
 		// version-window rows, whose whole-package import survives with the path present and
 		// the symbol list empty (an empty list is load-bearing, not a dropped qualifier)

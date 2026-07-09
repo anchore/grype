@@ -18,8 +18,8 @@ import (
 // Writing both leads to reported false positives where GHSAs are surfaced without
 // considering the symbol context.
 //
-// During the streaming pass the writer holds back Go-ecosystem GHSA entries and
-// all govulndb entries; at Close time handleGoVulnDBEntry runs per GO record:
+// During the streaming pass the merger holds back Go-ecosystem GHSA entries and
+// all govulndb entries; at Close time handleEntry runs per GO record:
 //   - each GHSA affected package whose name matches the GO record's module path
 //     (records sometimes list sub-packages like golang.org/x/net/http2 as separate affected packages)
 //     is patched with the matching go-imports qualifier, and the amendment is recorded on the GHSA

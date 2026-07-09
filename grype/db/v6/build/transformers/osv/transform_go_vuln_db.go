@@ -36,7 +36,7 @@ import (
 //   - references pass through, OSV type as tag, refID empty (canonical advisory
 //     page is in database_specific.url, not refs).
 //   - overlap with GHSA-sourced advisories for the same modules is reconciled by the
-//     build writer; see handleGoVulnDBEntry in govulndb_merge.go.
+//     goVulnDBMerger; see handleEntry in govulndb_merge.go.
 type govulndbStrategy struct{}
 
 func (govulndbStrategy) Matches(id string) bool {
