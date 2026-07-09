@@ -66,8 +66,13 @@ func TestMatcherGolang_GoSymbols(t *testing.T) {
 
 			findings := db.Match(t, matcher, p)
 
-			// server entrypoints are present -> the DoS matches; runtime is whole-package.
-			expectMatches(t, findings, httpServerDoS, runtimeWholePkg)
+			// server entrypoints are present -> the DoS matches; the specific matched
+			// net/http symbols vary with the compiled toolchain, so only their presence
+			// is asserted here. runtime is a whole-package (symbol-less) advisory import,
+			// so its matched-symbols value is the import path alone, deterministically.
+			findings.SelectMatch(httpServerDoS).SelectDetailByType(match.ExactDirectMatch).AsEcosystemSearch()
+			findings.SelectMatch(runtimeWholePkg).SelectDetailByType(match.ExactDirectMatch).AsEcosystemSearch().
+				HasMatchedSymbols("runtime")
 		})
 
 		t.Run("stdlib client-only binary lacks server symbols -> GO-2022-0969 suppressed", func(t *testing.T) {
@@ -122,7 +127,12 @@ func TestMatcherGolang_GoSymbols(t *testing.T) {
 
 			findings := db.Match(t, matcher, p)
 
-			expectMatches(t, findings, httpServerDoS, runtimeWholePkg)
+			// no symbol evidence -> matching stays at module granularity and no
+			// intersection is reported, so matchedSymbols is empty on every match.
+			findings.SelectMatch(httpServerDoS).SelectDetailByType(match.ExactDirectMatch).AsEcosystemSearch().
+				HasMatchedSymbols("")
+			findings.SelectMatch(runtimeWholePkg).SelectDetailByType(match.ExactDirectMatch).AsEcosystemSearch().
+				HasMatchedSymbols("")
 		})
 
 		t.Run("build-time toolchain advisories never match a compiled binary (anchore/grype#1782)", func(t *testing.T) {

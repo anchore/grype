@@ -122,10 +122,65 @@ func (m *goVulnDBMerger) reconcile() []transformers.RelatedEntries {
 		out = append(out, *entry)
 	}
 
+	// every go record we write must carry a fix-availability date so strict
+	// (failOnMissingFixDate) builds succeed; see backfillFixDates.
+	for i := range out {
+		backfillFixDates(&out[i])
+	}
+
 	m.govulndbEntries = nil
 	m.goGHSAEntries = make(map[string]*transformers.RelatedEntries)
 	m.goGHSAOrder = nil
 	return out
+}
+
+// backfillFixDates ensures every fixed range on the entry carries a fix-availability date. Some
+// go records name a fix version without one — notably govulndb ecosystem_specific.custom_ranges
+// (which never carry anchore.fixes dates) and withdrawn advisories written as-is — which fails
+// strict failOnMissingFixDate builds. This mirrors how the upstream providers stamp a fallback when
+// the source lacks a precise date (Kind "first-observed-record"): here we fall back to the record's
+// own published date (then modified), the earliest date we can attribute the fix knowledge to.
+func backfillFixDates(entry *transformers.RelatedEntries) {
+	handle := entry.VulnerabilityHandle
+	if handle == nil {
+		return
+	}
+	fallback := handle.PublishedDate
+	if fallback == nil || fallback.IsZero() {
+		fallback = handle.ModifiedDate
+	}
+	if fallback == nil || fallback.IsZero() {
+		return
+	}
+	for _, rel := range entry.Related {
+		aph, ok := rel.(db.AffectedPackageHandle)
+		if !ok || aph.BlobValue == nil {
+			continue
+		}
+		for i := range aph.BlobValue.Ranges {
+			r := &aph.BlobValue.Ranges[i]
+			if r.Fix == nil || r.Fix.State != db.FixedStatus || hasFixDate(r.Fix) {
+				continue
+			}
+			// copy the Fix (and Detail) before mutating: a range's Fix may be shared across GHSA rows
+			// patched from the same wrapper (see replaceGHSAPseudoVersionRanges). Preserve any
+			// existing Detail (e.g. References) and only fill in the missing availability date.
+			fix := *r.Fix
+			detail := db.FixDetail{}
+			if fix.Detail != nil {
+				detail = *fix.Detail
+			}
+			detail.Available = &db.FixAvailability{Date: fallback, Kind: "first-observed-record"}
+			fix.Detail = &detail
+			r.Fix = &fix
+		}
+	}
+}
+
+// hasFixDate reports whether the fix already carries a non-zero availability date.
+func hasFixDate(fix *db.Fix) bool {
+	return fix.Detail != nil && fix.Detail.Available != nil &&
+		fix.Detail.Available.Date != nil && !fix.Detail.Available.Date.IsZero()
 }
 
 // handleEntry reconciles one govulndb record against the held GHSA records it

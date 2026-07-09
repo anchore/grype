@@ -2,6 +2,7 @@ package gosymbols
 
 import (
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/anchore/grype/grype/pkg"
@@ -27,6 +28,13 @@ func New(imports []Import) qualifier.Qualifier {
 	return &gosymbolsQualifier{imports: imports}
 }
 
+// SymbolReporter is implemented by qualifiers that can report which vulnerable symbols a package
+// was found to use. Match construction type-asserts to this so it can surface the intersection
+// that caused a symbol-scoped match.
+type SymbolReporter interface {
+	MatchedSymbols(p pkg.Package) []string
+}
+
 // Satisfied reports whether the package plausibly uses any of the vulnerable symbols. The check
 // only applies when the scanned package carries binary symbol evidence (go binaries cataloged with
 // symbol capture enabled); packages without symbol evidence always satisfy the qualifier so that
@@ -36,35 +44,108 @@ func (q *gosymbolsQualifier) Satisfied(p pkg.Package) (bool, error) {
 		return true, nil
 	}
 
-	m, ok := p.Metadata.(pkg.GolangBinMetadata)
-	if !ok || len(m.Symbols) == 0 {
+	present, ok := presentSymbols(p)
+	if !ok {
+		// no symbol evidence: preserve module-granularity matching
 		return true, nil
 	}
 
-	present := make(map[string]struct{}, len(m.Symbols))
-	for _, sym := range m.Symbols {
-		present[normalizeSymbol(sym)] = struct{}{}
+	for _, imp := range q.imports {
+		if usesImport(imp, present) {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// MatchedSymbols returns the fully-qualified vulnerable symbols the package is found to use, sorted
+// and de-duplicated. A whole-package (symbol-less) advisory import contributes its import path
+// alone. It returns nil when the package carries no symbol evidence (module-granularity matching)
+// or uses none of the vulnerable symbols — i.e. whenever there is no concrete intersection to
+// report.
+func (q *gosymbolsQualifier) MatchedSymbols(p pkg.Package) []string {
+	if len(q.imports) == 0 {
+		return nil
+	}
+
+	present, ok := presentSymbols(p)
+	if !ok {
+		return nil
+	}
+
+	seen := make(map[string]struct{})
+	var matched []string
+	add := func(s string) {
+		if _, ok := seen[s]; ok {
+			return
+		}
+		seen[s] = struct{}{}
+		matched = append(matched, s)
 	}
 
 	for _, imp := range q.imports {
 		if len(imp.Symbols) == 0 {
-			// the entire package is vulnerable: any symbol from the package counts
+			// whole package vulnerable: report the import path when any of its symbols is present
 			prefix := imp.Path + "."
 			for sym := range present {
 				if strings.HasPrefix(sym, prefix) {
-					return true, nil
+					add(imp.Path)
+					break
 				}
 			}
 			continue
 		}
 		for _, vulnSym := range imp.Symbols {
-			if _, found := present[imp.Path+"."+vulnSym]; found {
-				return true, nil
+			if fqn := imp.Path + "." + vulnSym; contains(present, fqn) {
+				add(fqn)
 			}
 		}
 	}
 
-	return false, nil
+	sort.Strings(matched)
+	return matched
+}
+
+// presentSymbols returns the set of normalized symbols carried by the package's binary symbol
+// evidence, and whether such evidence exists. Packages without symbol evidence (not a go binary,
+// or cataloged without symbol capture) report ok=false so callers can fall back to
+// module-granularity behavior.
+func presentSymbols(p pkg.Package) (map[string]struct{}, bool) {
+	m, ok := p.Metadata.(pkg.GolangBinMetadata)
+	if !ok || len(m.Symbols) == 0 {
+		return nil, false
+	}
+	present := make(map[string]struct{}, len(m.Symbols))
+	for _, sym := range m.Symbols {
+		present[normalizeSymbol(sym)] = struct{}{}
+	}
+	return present, true
+}
+
+// usesImport reports whether any of the import's vulnerable symbols is present. A symbol-less
+// import (the whole package is vulnerable) is satisfied by any symbol from that package.
+func usesImport(imp Import, present map[string]struct{}) bool {
+	if len(imp.Symbols) == 0 {
+		prefix := imp.Path + "."
+		for sym := range present {
+			if strings.HasPrefix(sym, prefix) {
+				return true
+			}
+		}
+		return false
+	}
+	for _, vulnSym := range imp.Symbols {
+		if contains(present, imp.Path+"."+vulnSym) {
+			return true
+		}
+	}
+	return false
+}
+
+func contains(set map[string]struct{}, key string) bool {
+	_, ok := set[key]
+	return ok
 }
 
 var typeParamPattern = regexp.MustCompile(`\[[^]]*]`)

@@ -785,6 +785,52 @@ func TestGoVulnDBMergeRoundTrip(t *testing.T) {
 	require.Len(t, stdlibAPHs, 1)
 }
 
+// TestGoVulnDBMerge_BackfillsMissingFixDate reproduces the reported teleport build failure:
+// GO-2024-2442 is withdrawn and its fix versions come from ecosystem_specific.custom_ranges, which
+// never carry fix-availability dates, so the record reaches the writer with a FixedStatus range and
+// no date. Because it is withdrawn, the merge writes it as-is (no GHSA reconciliation). Before the
+// backfill this failed a strict build with `missing fix date for version "13.4.13"`; now the
+// record's own published date is stamped as a fallback.
+func TestGoVulnDBMerge_BackfillsMissingFixDate(t *testing.T) {
+	published := time.Date(2024, 6, 28, 0, 0, 0, 0, time.UTC)
+
+	newEntry := func() transformers.RelatedEntries {
+		teleport := goModuleAPH("github.com/gravitational/teleport")
+		teleport.BlobValue.Ranges = []db.Range{{
+			Version: db.Version{Type: "go", Constraint: ">=13.0.0,<13.4.13"},
+			Fix:     &db.Fix{Version: "13.4.13", State: db.FixedStatus}, // custom_ranges fix carries no date
+		}}
+		entry := goVulnEntry("GO-2024-2442", []string{"GHSA-76cc-p55w-63g3"}, teleport)
+		entry.VulnerabilityHandle.Status = db.VulnerabilityRejected // withdrawn
+		entry.VulnerabilityHandle.PublishedDate = &published
+		return entry
+	}
+
+	t.Run("strict build succeeds - the missing fix date is backfilled", func(t *testing.T) {
+		w, err := NewWriter(t.TempDir(), provider.States{}, true, 0) // failOnMissingFixDate = true
+		require.NoError(t, err)
+		require.NoError(t, w.Write(dataEntries(newEntry())...))
+		require.NoError(t, w.Close(), "backfilled fix date must satisfy failOnMissingFixDate")
+	})
+
+	t.Run("fallback uses the advisory date with the first-observed-record kind", func(t *testing.T) {
+		m := newGoVulnDBMerger()
+		require.True(t, m.hold(newEntry()))
+		out := m.reconcile()
+
+		require.Len(t, out, 1)
+		aph, ok := out[0].Related[0].(db.AffectedPackageHandle)
+		require.True(t, ok)
+		require.Len(t, aph.BlobValue.Ranges, 1)
+		fix := aph.BlobValue.Ranges[0].Fix
+		require.NotNil(t, fix.Detail)
+		require.NotNil(t, fix.Detail.Available)
+		require.NotNil(t, fix.Detail.Available.Date)
+		assert.Equal(t, published, *fix.Detail.Available.Date)
+		assert.Equal(t, "first-observed-record", fix.Detail.Available.Kind)
+	})
+}
+
 // TestGoVulnDBMerge_AliasedGHSAReconciliation covers the two regressions caused by rangeless
 // govulndb (GO-*) records overlapping the GHSA they alias. In both, a GO record carries an affected
 // package with no version range (its native range was unmappable to Go module versioning) while the

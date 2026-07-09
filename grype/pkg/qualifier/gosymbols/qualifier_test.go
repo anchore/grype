@@ -175,6 +175,101 @@ func TestGoSymbolsQualifier_Satisfied(t *testing.T) {
 	}
 }
 
+func TestGoSymbolsQualifier_MatchedSymbols(t *testing.T) {
+	// binaryPkg carries symbols in syft's binary naming (pointer-receiver decorated, generic
+	// instantiations, method-value wrappers); MatchedSymbols must report hits in govulndb's
+	// convention (the advisory spelling).
+	binaryPkg := pkg.Package{
+		Name: "golang.org/x/net",
+		Metadata: pkg.GolangBinMetadata{
+			Symbols: []string{
+				"golang.org/x/net/html.Parse",
+				"golang.org/x/net/html.(*Tokenizer).Next",
+				"golang.org/x/net/http2.(*Framer[go.shape.int]).ReadFrame",
+				"golang.org/x/net/html.(*Tokenizer).readComment-fm",
+			},
+		},
+	}
+
+	noSymbolsPkg := pkg.Package{
+		Name:     "golang.org/x/net",
+		Metadata: pkg.GolangBinMetadata{},
+	}
+
+	tests := []struct {
+		name    string
+		imports []Import
+		pkg     pkg.Package
+		want    []string
+	}{
+		{
+			name:    "single named hit reported in advisory convention",
+			imports: []Import{{Path: "golang.org/x/net/html", Symbols: []string{"Parse"}}},
+			pkg:     binaryPkg,
+			want:    []string{"golang.org/x/net/html.Parse"},
+		},
+		{
+			name:    "method hit normalized from pointer receiver",
+			imports: []Import{{Path: "golang.org/x/net/html", Symbols: []string{"Tokenizer.Next"}}},
+			pkg:     binaryPkg,
+			want:    []string{"golang.org/x/net/html.Tokenizer.Next"},
+		},
+		{
+			name: "multiple hits are sorted and de-duplicated",
+			imports: []Import{
+				{Path: "golang.org/x/net/html", Symbols: []string{"Tokenizer.Next", "Parse"}},
+				{Path: "golang.org/x/net/html", Symbols: []string{"Parse"}}, // duplicate path+symbol
+				{Path: "golang.org/x/net/http2", Symbols: []string{"Framer.ReadFrame"}},
+			},
+			pkg: binaryPkg,
+			want: []string{
+				"golang.org/x/net/html.Parse",
+				"golang.org/x/net/html.Tokenizer.Next",
+				"golang.org/x/net/http2.Framer.ReadFrame",
+			},
+		},
+		{
+			name:    "whole-package hit reports the import path alone",
+			imports: []Import{{Path: "golang.org/x/net/html"}},
+			pkg:     binaryPkg,
+			want:    []string{"golang.org/x/net/html"},
+		},
+		{
+			name:    "whole-package absent reports nothing",
+			imports: []Import{{Path: "golang.org/x/net/websocket"}},
+			pkg:     binaryPkg,
+			want:    nil,
+		},
+		{
+			name:    "no symbol evidence reports nothing (module-granularity match)",
+			imports: []Import{{Path: "golang.org/x/net/html", Symbols: []string{"Parse"}}},
+			pkg:     noSymbolsPkg,
+			want:    nil,
+		},
+		{
+			name:    "no intersection reports nothing",
+			imports: []Import{{Path: "golang.org/x/net/html", Symbols: []string{"ParseFragment"}}},
+			pkg:     binaryPkg,
+			want:    nil,
+		},
+		{
+			name:    "no import info reports nothing",
+			imports: nil,
+			pkg:     binaryPkg,
+			want:    nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			q := New(tt.imports)
+			reporter, ok := q.(SymbolReporter)
+			require.True(t, ok, "gosymbols qualifier must implement SymbolReporter")
+			assert.Equal(t, tt.want, reporter.MatchedSymbols(tt.pkg))
+		})
+	}
+}
+
 func Test_normalizeSymbol(t *testing.T) {
 	tests := []struct {
 		name   string

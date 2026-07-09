@@ -150,8 +150,12 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 
 			// gjson.Get is present -> the active, symbol-patched GHSA matches;
 			// the fully covered GO record is not in the DB at all, and the
-			// withdrawn duplicate GHSA is rejected so it never matches.
-			expectMatches(t, findings, gjsonReDoSGHSA)
+			// withdrawn duplicate GHSA is rejected so it never matches. The match
+			// detail reports exactly the intersection of the binary's symbols and
+			// GO-2021-0265's list (Result.String is not on the advisory, so it is
+			// excluded), sorted, in govulndb (advisory) convention.
+			findings.SelectMatch(gjsonReDoSGHSA).SelectDetailByType(match.ExactDirectMatch).AsEcosystemSearch().
+				HasMatchedSymbols("github.com/tidwall/gjson.Get, github.com/tidwall/gjson.parseObject, github.com/tidwall/gjson.queryMatches")
 			findings.DoesNotHaveAnyVulnerabilities(gjsonReDoSGo, gjsonWithdrawn)
 		})
 

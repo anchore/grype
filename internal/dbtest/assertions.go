@@ -1207,3 +1207,11 @@ func (e *EcosystemDetailAssertion) HasMatchType(matchType match.Type) *Ecosystem
 	assert.Equal(e.t, matchType, e.detail.Type, "unexpected match type")
 	return e
 }
+
+// HasMatchedSymbols asserts that Found.MatchedSymbols equals the expected sorted, comma-separated
+// string of vulnerable Go symbols (empty when the match was not scoped by symbol evidence).
+func (e *EcosystemDetailAssertion) HasMatchedSymbols(matchedSymbols string) *EcosystemDetailAssertion {
+	e.t.Helper()
+	assert.Equal(e.t, matchedSymbols, e.found.MatchedSymbols, "unexpected matched symbols in Found")
+	return e
+}

@@ -120,4 +120,8 @@ func (e *EcosystemParameters) Merge(other EcosystemParameters) error {
 type EcosystemResult struct {
 	VulnerabilityID   string `json:"vulnerabilityID"`
 	VersionConstraint string `json:"versionConstraint"`
+	// MatchedSymbols is the sorted, comma-separated set of vulnerable Go symbols the package was
+	// found to use (empty unless the match was scoped by symbol evidence). Kept a scalar string so
+	// EcosystemResult stays comparable and can be a map key in match-detail de-duplication.
+	MatchedSymbols string `json:"matchedSymbols,omitempty"`
 }
