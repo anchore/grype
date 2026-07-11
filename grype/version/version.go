@@ -82,9 +82,15 @@ func (v *Version) getComparator(format Format) (Comparator, error) {
 		err = fmt.Errorf("no comparator available for format %q", v.Format)
 	}
 
+	if err != nil {
+		// do not cache a comparator that failed to build; a cached broken
+		// comparator would be returned with a nil error on the next lookup
+		// and then panic (or compare incorrectly) when used.
+		return comparator, err
+	}
 	v.comparators[format] = comparator
 
-	return comparator, err
+	return comparator, nil
 }
 func (v Version) String() string {
 	return fmt.Sprintf("%s (%s)", v.Raw, v.Format)
