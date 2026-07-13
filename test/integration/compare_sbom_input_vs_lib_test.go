@@ -84,6 +84,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.LuaRocksPkg),
 		string(syftPkg.TerraformPkg),
 		string(syftPkg.AppleAppBundlePkg), // macOS .app bundles; no matcher and not present in the test images
+		string(syftPkg.VcpkgPkg),
 	)
 	observedPkgTypes := strset.New()
 	testCases := []struct {
