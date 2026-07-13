@@ -684,14 +684,15 @@ func TestGoVulnDBPseudoVersionRangeReplacement(t *testing.T) {
 
 // TestGoVulnDBMultipleRecordsPatchOneGHSA covers the converse of the multi-GHSA case: two GO
 // records aliasing the SAME GHSA (the sibling shape to GO-2022-0536, where one GO record aliases
-// two active GHSAs). Imports must accumulate across sources without duplicating paths, each
-// source must leave its own modification entry, and the patched GHSA must be written exactly
-// once at flush.
+// two active GHSAs). Imports must accumulate across sources: a new path is added, and a path both
+// records list carries the UNION of their symbol sets (the second record's symbols must not be
+// dropped). Each source leaves its own modification entry, and the patched GHSA must be written
+// exactly once at flush.
 func TestGoVulnDBMultipleRecordsPatchOneGHSA(t *testing.T) {
 	const mod = "github.com/example/mod"
 	importsA := []db.GoImport{{Path: mod, Symbols: []string{"Parse"}}}
 	importsB := []db.GoImport{
-		{Path: mod, Symbols: []string{"Decode"}},        // same path as record A: skipped, no change recorded
+		{Path: mod, Symbols: []string{"Decode"}},        // same path as record A: symbols unioned, change recorded
 		{Path: mod + "/sub", Symbols: []string{"Eval"}}, // new path: added, recorded
 	}
 
@@ -703,13 +704,15 @@ func TestGoVulnDBMultipleRecordsPatchOneGHSA(t *testing.T) {
 	held := heldGHSA(t, m, "ghsa-2222-3333-4444")
 	entries := m.reconcile()
 
-	// imports accumulated across both records; record B's duplicate path was skipped
+	// imports accumulated across both records; the shared path carries the union of both symbol
+	// sets — record B's "Decode" is combined with record A's "Parse", not dropped
 	assert.Equal(t, []db.GoImport{
-		{Path: mod, Symbols: []string{"Parse"}},
+		{Path: mod, Symbols: []string{"Parse", "Decode"}},
 		{Path: mod + "/sub", Symbols: []string{"Eval"}},
 	}, goImportsOf(t, held, mod))
 
-	// one modification entry per patching GO record, in processing order
+	// one modification entry per patching GO record, in processing order; record B recorded both
+	// the union onto the shared path and the new sub-package path
 	mods := held.VulnerabilityHandle.BlobValue.Modifications
 	require.Len(t, mods, 2)
 	assert.Equal(t, "https://vuln.go.dev/ID/GO-2020-1111.json", mods[0].URL)
@@ -718,12 +721,79 @@ func TestGoVulnDBMultipleRecordsPatchOneGHSA(t *testing.T) {
 	}, mods[0].Changes)
 	assert.Equal(t, "https://vuln.go.dev/ID/GO-2020-2222.json", mods[1].URL)
 	assert.Equal(t, []string{
+		"added vulnerable go symbols for import " + mod + " to affected package " + mod,
 		"added vulnerable go symbols for import " + mod + "/sub to affected package " + mod,
 	}, mods[1].Changes)
 
 	// write-once: both GO records are fully covered (dropped), so reconcile returns exactly one
 	// entry to write — the patched GHSA
 	assert.Len(t, entries, 1, "expected exactly one entry to write (the patched GHSA)")
+}
+
+// TestGoVulnDBMerge_SharedImportPathUnionsSymbols isolates the case Chris flagged: two GO records
+// aliasing the SAME GHSA that list the SAME import path with DIFFERENT symbol sets. The second
+// record's symbols must be unioned onto the first's, not silently dropped, so the patched GHSA
+// carries every vulnerable symbol both feeds attribute to that import.
+func TestGoVulnDBMerge_SharedImportPathUnionsSymbols(t *testing.T) {
+	const mod = "github.com/example/mod"
+	const imp = mod + "/pkg"
+
+	t.Run("disjoint symbol sets for the same import path are unioned", func(t *testing.T) {
+		m := newGoVulnDBMerger()
+		require.True(t, m.hold(ghsaEntry("GHSA-2222-3333-4444", goModuleAPH(mod))))
+		// both records name the module (so both cover it) and, via the module row, patch the SAME
+		// import path with different symbol sets
+		require.True(t, m.hold(goVulnEntry("GO-2020-1111", []string{"GHSA-2222-3333-4444"},
+			goModuleAPH(mod, db.GoImport{Path: imp, Symbols: []string{"A", "B"}}))))
+		require.True(t, m.hold(goVulnEntry("GO-2020-2222", []string{"GHSA-2222-3333-4444"},
+			goModuleAPH(mod, db.GoImport{Path: imp, Symbols: []string{"B", "C"}}))))
+
+		held := heldGHSA(t, m, "ghsa-2222-3333-4444")
+		m.reconcile()
+
+		assert.Equal(t, []db.GoImport{
+			{Path: imp, Symbols: []string{"A", "B", "C"}}, // union, deduped, first-seen order — not just {A, B}
+		}, goImportsOf(t, held, mod))
+
+		// each record recorded its own amendment: the first added the import, the second grew it
+		mods := held.VulnerabilityHandle.BlobValue.Modifications
+		require.Len(t, mods, 2)
+		assert.Equal(t, "https://vuln.go.dev/ID/GO-2020-1111.json", mods[0].URL)
+		assert.Equal(t, "https://vuln.go.dev/ID/GO-2020-2222.json", mods[1].URL)
+	})
+
+	t.Run("a whole-package import absorbs a symbol list rather than being narrowed", func(t *testing.T) {
+		// the empty symbol list is load-bearing: it means "every symbol in the package". A later
+		// record listing specific symbols for the same path must not shrink that to just those.
+		m := newGoVulnDBMerger()
+		require.True(t, m.hold(ghsaEntry("GHSA-2222-3333-4444", goModuleAPH(mod))))
+		require.True(t, m.hold(goVulnEntry("GO-2020-1111", []string{"GHSA-2222-3333-4444"},
+			goModuleAPH(mod, db.GoImport{Path: imp})))) // whole package
+		require.True(t, m.hold(goVulnEntry("GO-2020-2222", []string{"GHSA-2222-3333-4444"},
+			goModuleAPH(mod, db.GoImport{Path: imp, Symbols: []string{"A"}}))))
+
+		held := heldGHSA(t, m, "ghsa-2222-3333-4444")
+		m.reconcile()
+
+		assert.Equal(t, []db.GoImport{{Path: imp}}, goImportsOf(t, held, mod),
+			"whole-package coverage must stay whole-package, not narrow to {A}")
+	})
+
+	t.Run("a symbol list is widened to whole-package when a later record covers the whole package", func(t *testing.T) {
+		// the reverse order: specific symbols first, then a whole-package import for the same path
+		m := newGoVulnDBMerger()
+		require.True(t, m.hold(ghsaEntry("GHSA-2222-3333-4444", goModuleAPH(mod))))
+		require.True(t, m.hold(goVulnEntry("GO-2020-1111", []string{"GHSA-2222-3333-4444"},
+			goModuleAPH(mod, db.GoImport{Path: imp, Symbols: []string{"A"}}))))
+		require.True(t, m.hold(goVulnEntry("GO-2020-2222", []string{"GHSA-2222-3333-4444"},
+			goModuleAPH(mod, db.GoImport{Path: imp})))) // whole package
+
+		held := heldGHSA(t, m, "ghsa-2222-3333-4444")
+		m.reconcile()
+
+		assert.Equal(t, []db.GoImport{{Path: imp}}, goImportsOf(t, held, mod),
+			"a later whole-package import must widen the symbol list to whole-package")
+	})
 }
 
 // TestGoVulnDBMergeRoundTrip drives the full writer path: held entries are

@@ -402,35 +402,72 @@ func rangeConstraints(ranges []db.Range) string {
 	return strings.Join(constraints, " || ")
 }
 
-// addGoImports appends the given imports to the blob's go-imports qualifier,
-// skipping paths already present (e.g. from a second affected entry for the same
-// module with a disjoint version window). Returns the imports actually added.
+// addGoImports merges the given imports into the blob's go-imports qualifier. An import whose path
+// is not yet present is appended; an import whose path is already present (e.g. from a second
+// affected entry for the same module with a disjoint version window, or a second GO record aliasing
+// the same GHSA) has its symbols unioned into the existing entry rather than dropped. An empty
+// symbol list is load-bearing — it means "every symbol in the package" — so if either side is
+// whole-package the merged entry stays whole-package. Returns the imports whose path was newly added
+// or whose symbol set actually grew, so the caller records a modification only when something changed.
 func addGoImports(blob *db.PackageBlob, imports []db.GoImport) []db.GoImport {
 	if len(imports) == 0 {
-		return nil
-	}
-	existing := make(map[string]bool)
-	if blob.Qualifiers != nil {
-		for _, imp := range blob.Qualifiers.GoImports {
-			existing[imp.Path] = true
-		}
-	}
-	var added []db.GoImport
-	for _, imp := range imports {
-		if existing[imp.Path] {
-			continue
-		}
-		existing[imp.Path] = true
-		added = append(added, imp)
-	}
-	if len(added) == 0 {
 		return nil
 	}
 	if blob.Qualifiers == nil {
 		blob.Qualifiers = &db.PackageQualifiers{}
 	}
-	blob.Qualifiers.GoImports = append(blob.Qualifiers.GoImports, added...)
-	return added
+	index := make(map[string]int, len(blob.Qualifiers.GoImports))
+	for i, imp := range blob.Qualifiers.GoImports {
+		index[imp.Path] = i
+	}
+	var changed []db.GoImport
+	for _, imp := range imports {
+		i, ok := index[imp.Path]
+		if !ok {
+			blob.Qualifiers.GoImports = append(blob.Qualifiers.GoImports, imp)
+			index[imp.Path] = len(blob.Qualifiers.GoImports) - 1
+			changed = append(changed, imp)
+			continue
+		}
+		if merged, grew := mergeGoSymbols(blob.Qualifiers.GoImports[i], imp); grew {
+			blob.Qualifiers.GoImports[i] = merged
+			changed = append(changed, imp)
+		}
+	}
+	return changed
+}
+
+// mergeGoSymbols unions the vulnerable symbols of two imports that share a path. A whole-package
+// import (empty symbol list) already covers everything, so it absorbs any symbol list rather than
+// being narrowed by it. Returns the merged import and whether it carries anything the existing
+// import did not.
+func mergeGoSymbols(existing, incoming db.GoImport) (db.GoImport, bool) {
+	if len(existing.Symbols) == 0 {
+		// existing is already whole-package: nothing can widen it
+		return existing, false
+	}
+	if len(incoming.Symbols) == 0 {
+		// incoming is whole-package: widen the existing symbol list to the whole package
+		return db.GoImport{Path: existing.Path}, true
+	}
+	have := make(map[string]bool, len(existing.Symbols))
+	for _, s := range existing.Symbols {
+		have[s] = true
+	}
+	// copy before appending: existing.Symbols may share a backing array with a source record's
+	// import slice, which must not be mutated
+	symbols := append([]string(nil), existing.Symbols...)
+	for _, s := range incoming.Symbols {
+		if have[s] {
+			continue
+		}
+		have[s] = true
+		symbols = append(symbols, s)
+	}
+	if len(symbols) == len(existing.Symbols) {
+		return existing, false
+	}
+	return db.GoImport{Path: existing.Path, Symbols: symbols}, true
 }
 
 // goVulnDBAdvisoryURL returns the canonical vuln.go.dev JSON document for a
