@@ -43,7 +43,6 @@ import (
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/cataloging"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-	syftGolang "github.com/anchore/syft/syft/pkg/cataloger/golang"
 	"github.com/anchore/syft/syft/sbom"
 )
 
@@ -438,7 +437,7 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 	// module- and stdlib-scoped govulndb advisories (e.g. a net/http server DoS matching any binary that
 	// merely links net/http). Syft disables symbol capture by default, but for vulnerability matching the
 	// false-positive reduction is worth the extra catalog cost.
-	cfg.Packages.Golang = cfg.Packages.Golang.WithCaptureSymbols(syftGolang.SymbolScopeAll)
+	cfg.Packages.Golang = cfg.Packages.Golang.WithCaptureSymbols(cataloging.SymbolScopeAll)
 
 	// when we run into a package with missing information like version, then this is not useful in the context
 	// of vulnerability matching. Though there will be downstream processing to handle this case, we can still

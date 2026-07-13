@@ -10,7 +10,7 @@ import (
 
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/syft/syft"
-	syftGolang "github.com/anchore/syft/syft/pkg/cataloger/golang"
+	"github.com/anchore/syft/syft/cataloging"
 )
 
 // GoBinaryFixture builds the Go binary fixture in the calling package's
@@ -38,7 +38,7 @@ func GoBinaryFixture(t testing.TB, fixtureName string) *GoBinary {
 	// mirror grype's getProviderConfig: capture Go binary function symbols so the
 	// gosymbols qualifier has the per-symbol evidence it needs.
 	cfg := syft.DefaultCreateSBOMConfig()
-	cfg.Packages.Golang = cfg.Packages.Golang.WithCaptureSymbols(syftGolang.SymbolScopeAll)
+	cfg.Packages.Golang = cfg.Packages.Golang.WithCaptureSymbols(cataloging.SymbolScopeAll)
 
 	pkgs, _, _, err := pkg.Provide(binPath, pkg.ProviderConfig{
 		SyftProviderConfig: pkg.SyftProviderConfig{SBOMOptions: cfg},
