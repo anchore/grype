@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -29,7 +30,6 @@ import (
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/cataloging"
-	"github.com/anchore/syft/syft/pkg/cataloger/binary"
 )
 
 func Test_getProviderConfig(t *testing.T) {
@@ -83,7 +83,10 @@ func Test_getProviderConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			opts := cmp.Options{
-				cmpopts.IgnoreFields(binary.Classifier{}, "EvidenceMatcher"),
+				// func-typed fields (e.g. a binary classifier's EvidenceMatcher) are not comparable
+				cmp.FilterPath(func(p cmp.Path) bool {
+					return p.Last().Type().Kind() == reflect.Func
+				}, cmp.Ignore()),
 				cmpopts.IgnoreUnexported(syft.CreateSBOMConfig{}),
 			}
 			if d := cmp.Diff(tt.want, getProviderConfig(tt.opts), opts...); d != "" {
@@ -329,7 +332,7 @@ func Test_applyVexRules(t *testing.T) {
 }
 
 func Test_goSymbolsMissingMessage(t *testing.T) {
-	goBinaryWithSymbols := pkg.Package{Metadata: pkg.GolangBinMetadata{Symbols: []string{"main.main"}}}
+	goBinaryWithSymbols := pkg.Package{Metadata: pkg.GolangBinMetadata{Symbols: map[string][]string{"main": {"main"}}}}
 	goBinaryWithoutSymbols := pkg.Package{Metadata: pkg.GolangBinMetadata{}}
 	nonGoPackage := pkg.Package{}
 

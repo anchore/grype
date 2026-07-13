@@ -280,12 +280,13 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 
 func warnWhenDistroHintNeeded(pkgs []pkg.Package, context *pkg.Context) {
 	hasOSPackageWithoutDistro := false
+loop:
 	for _, p := range pkgs {
 		switch p.Type {
 		case syftPkg.AlpmPkg, syftPkg.DebPkg, syftPkg.RpmPkg, syftPkg.KbPkg:
 			if p.Distro == nil {
 				hasOSPackageWithoutDistro = true
-				break
+				break loop
 			}
 		}
 	}
