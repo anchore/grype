@@ -1053,6 +1053,41 @@ func TestRedhatEUSMatches_LowerReachableFixResolvesDespiteHigherFix(t *testing.T
 		})
 }
 
+// TestRedhatEUSMatches_MissingEpochStrategy documents that the rpm EUS binary path deliberately does NOT behave like
+// the dpkg ESM path for a missing epoch - so RHEL EUS does not share the deb epoch bug (see the dpkg twin
+// TestUbuntuESM_MissingEpochStrategy).
+//
+// nginx on 9.4+eus is fixed at "1:1.20.1-14.el9_4" (non-zero epoch); the installed build is the same but omits the
+// epoch. Unlike dpkg, the rpm binary matcher fills a missing epoch with an explicit 0 (matchPackage ->
+// addEpochIfApplicable), because per RedHat a binary rpm with no epoch genuinely IS epoch 0. That makes the install
+// "0:1.20.1-14.el9_4", which is a real, older version lineage than the epoch-1 fix, so the package is correctly
+// reported vulnerable under BOTH strategies - auto never fires because the epoch is explicit (not missing) by the
+// time comparison happens. (auto only matters on the rpm source/upstream path, which drops epochs on purpose.)
+func TestRedhatEUSMatches_MissingEpochStrategy(t *testing.T) {
+	const (
+		cve = "CVE-2024-7347"
+		// same build as the fix "1:1.20.1-14.el9_4" but with no epoch prefix; the binary matcher normalizes this to 0:
+		installedNoEpoch = "1.20.1-14.el9_4"
+	)
+
+	// both strategies report vulnerable: the missing epoch is normalized to an explicit 0, so 0:... < 1:... regardless
+	for _, strategy := range []version.MissingEpochStrategy{version.MissingEpochStrategyZero, version.MissingEpochStrategyAuto} {
+		t.Run(string(strategy), func(t *testing.T) {
+			dbtest.DBs(t, "rhel9-eus").
+				SelectOnly(cve).
+				Run(func(t *testing.T, db *dbtest.DB) {
+					matcher := NewRpmMatcher(MatcherConfig{MissingEpochStrategy: strategy})
+					p := dbtest.NewPackage("nginx", installedNoEpoch, syftPkg.RpmPkg).
+						WithDistro(newEUSDistro("9.4")).
+						Build()
+
+					findings := db.Match(t, matcher, p)
+					findings.SkipCompleteness().SelectMatch(cve)
+				})
+		})
+	}
+}
+
 // newEUSDistro creates a properly initialized RHEL EUS distro using distro.New().
 // This ensures MajorVersion()/MinorVersion() work correctly.
 // Pass version like "9.4" (the "+eus" channel suffix is added automatically).

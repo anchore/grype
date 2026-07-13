@@ -90,6 +90,21 @@ func (v Version) String() string {
 	return fmt.Sprintf("%s (%s)", v.Raw, v.Format)
 }
 
+// compareUsing runs the comparison honoring v's embedded ComparisonConfig for formats that support it
+// (currently rpm/deb missing-epoch handling), falling back to a plain comparison otherwise. v is always the
+// package side, other the constraint/fix side, matching CompareWithConfig's asymmetric auto-epoch semantics.
+func (v Version) compareUsing(comparator Comparator, other *Version) (int, error) {
+	if v.Config.MissingEpochStrategy != "" {
+		switch c := comparator.(type) {
+		case rpmVersion:
+			return c.CompareWithConfig(other, v.Config)
+		case debVersion:
+			return c.CompareWithConfig(other, v.Config)
+		}
+	}
+	return comparator.Compare(other)
+}
+
 // Compare compares this version to another version.
 // This returns -1, 0, or 1 if this version is smaller,
 // equal, or larger than the other version, respectively.
@@ -102,7 +117,7 @@ func (v Version) Compare(other *Version) (int, error) {
 	comparator, err := v.getComparator(v.Format)
 	if err == nil {
 		// if the package version, v was able to compare without error, return the result
-		result, err = comparator.Compare(other)
+		result, err = v.compareUsing(comparator, other)
 		if err == nil {
 			// no error returned for package version or db version, return the result
 			return result, nil
@@ -113,7 +128,7 @@ func (v Version) Compare(other *Version) (int, error) {
 		originalErr := err
 		comparator, err = v.getComparator(other.Format)
 		if err == nil {
-			result, err = comparator.Compare(other)
+			result, err = v.compareUsing(comparator, other)
 			if err == nil {
 				return result, nil
 			}
@@ -138,7 +153,7 @@ func (v *Version) Is(op Operator, other *Version) (bool, error) {
 		return false, fmt.Errorf("unable to get comparator for %s: %w", v.Format, err)
 	}
 
-	result, err := comparator.Compare(other)
+	result, err := v.compareUsing(comparator, other)
 	if err != nil {
 		return false, fmt.Errorf("unable to compare versions %s and %s: %w", v, other, err)
 	}
