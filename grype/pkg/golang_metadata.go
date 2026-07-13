@@ -9,7 +9,11 @@ type GolangBinMetadata struct {
 	H1Digest          string        `json:"h1Digest,omitempty" cyclonedx:"h1Digest"`
 	MainModule        string        `json:"mainModule,omitempty" cyclonedx:"mainModule"`
 	GoCryptoSettings  []string      `json:"goCryptoSettings,omitempty" cyclonedx:"goCryptoSettings"`
-	Symbols           []string      `json:"symbols,omitempty"`
+
+	// Symbols are the function symbols compiled into the binary, grouped by the import path of the package
+	// that owns them; each value is the list of symbol names local to that package (import path prefix
+	// stripped). Populated only when syft cataloged the binary with symbol capture enabled.
+	Symbols map[string][]string `json:"symbols,omitempty"`
 }
 
 type GolangModMetadata struct {

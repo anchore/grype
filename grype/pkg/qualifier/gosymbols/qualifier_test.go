@@ -13,12 +13,14 @@ func TestGoSymbolsQualifier_Satisfied(t *testing.T) {
 	binaryPkg := pkg.Package{
 		Name: "golang.org/x/net",
 		Metadata: pkg.GolangBinMetadata{
-			Symbols: []string{
-				"golang.org/x/net/html/charset.Lookup",
-				"golang.org/x/net/html.(*Tokenizer).Next",
-				"golang.org/x/net/html.Parse",
-				"golang.org/x/net/http2.(*Framer[go.shape.int]).ReadFrame",
-				"golang.org/x/net/html.(*Tokenizer).readComment-fm",
+			Symbols: map[string][]string{
+				"golang.org/x/net/html/charset": {"Lookup"},
+				"golang.org/x/net/html": {
+					"(*Tokenizer).Next",
+					"Parse",
+					"(*Tokenizer).readComment-fm",
+				},
+				"golang.org/x/net/http2": {"(*Framer[go.shape.int]).ReadFrame"},
 			},
 		},
 	}
@@ -46,11 +48,13 @@ func TestGoSymbolsQualifier_Satisfied(t *testing.T) {
 	stdlibServerPkg := pkg.Package{
 		Name: "stdlib",
 		Metadata: pkg.GolangBinMetadata{
-			Symbols: []string{
-				"net/http.ListenAndServe",
-				"net/http.(*Server).Serve",
-				"net/http.(*http2Server).ServeConn",
-				"net/http.(*Client).Do",
+			Symbols: map[string][]string{
+				"net/http": {
+					"ListenAndServe",
+					"(*Server).Serve",
+					"(*http2Server).ServeConn",
+					"(*Client).Do",
+				},
 			},
 		},
 	}
@@ -61,11 +65,13 @@ func TestGoSymbolsQualifier_Satisfied(t *testing.T) {
 	stdlibClientPkg := pkg.Package{
 		Name: "stdlib",
 		Metadata: pkg.GolangBinMetadata{
-			Symbols: []string{
-				"net/http.Get",
-				"net/http.NewRequest",
-				"net/http.(*Client).Do",
-				"net/http.(*Transport).RoundTrip",
+			Symbols: map[string][]string{
+				"net/http": {
+					"Get",
+					"NewRequest",
+					"(*Client).Do",
+					"(*Transport).RoundTrip",
+				},
 			},
 		},
 	}
@@ -182,11 +188,13 @@ func TestGoSymbolsQualifier_MatchedSymbols(t *testing.T) {
 	binaryPkg := pkg.Package{
 		Name: "golang.org/x/net",
 		Metadata: pkg.GolangBinMetadata{
-			Symbols: []string{
-				"golang.org/x/net/html.Parse",
-				"golang.org/x/net/html.(*Tokenizer).Next",
-				"golang.org/x/net/http2.(*Framer[go.shape.int]).ReadFrame",
-				"golang.org/x/net/html.(*Tokenizer).readComment-fm",
+			Symbols: map[string][]string{
+				"golang.org/x/net/html": {
+					"Parse",
+					"(*Tokenizer).Next",
+					"(*Tokenizer).readComment-fm",
+				},
+				"golang.org/x/net/http2": {"(*Framer[go.shape.int]).ReadFrame"},
 			},
 		},
 	}

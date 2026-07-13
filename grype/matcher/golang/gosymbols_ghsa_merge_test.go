@@ -138,12 +138,12 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// GO-2021-0265's symbol list)
 			p := dbtest.NewPackage("github.com/tidwall/gjson", "v1.9.2", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: []string{
+				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(
 					"github.com/tidwall/gjson.Get",
 					"github.com/tidwall/gjson.parseObject",
 					"github.com/tidwall/gjson.queryMatches",
 					"github.com/tidwall/gjson.Result.String",
-				}}).
+				)}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -165,11 +165,11 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// merge the unfiltered GHSA records matched this binary by module name
 			p := dbtest.NewPackage("github.com/tidwall/gjson", "v1.9.2", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: []string{
+				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(
 					"github.com/tidwall/gjson.Valid",
 					"github.com/tidwall/gjson.validpayload",
 					"github.com/tidwall/gjson.validany",
-				}}).
+				)}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -198,7 +198,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// was backported to a release branch semver ranges cannot express.
 			p := dbtest.NewPackage("github.com/aws/aws-sdk-go", "v1.55.8", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: s3cryptoSymbols}).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(s3cryptoSymbols...)}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -211,7 +211,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// only because this binary uses s3crypto.NewDecryptionClient.
 			p := dbtest.NewPackage("github.com/aws/aws-sdk-go", "v1.33.0", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: s3cryptoSymbols}).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(s3cryptoSymbols...)}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -228,10 +228,10 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// the match.
 			p := dbtest.NewPackage("github.com/aws/aws-sdk-go", "v1.33.0", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: []string{
+				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(
 					"github.com/aws/aws-sdk-go/service/s3.New",
 					"github.com/aws/aws-sdk-go/service/s3.(*S3).GetObject",
-				}}).
+				)}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -260,7 +260,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// (replaceGHSAPseudoVersionRanges), and v5.21.1 now matches.
 			p := dbtest.NewPackage("github.com/canonical/lxd", "v5.21.1", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: lxdSymbols}).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(lxdSymbols...)}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -275,7 +275,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// present.
 			p := dbtest.NewPackage("github.com/canonical/lxd", "v5.21.2", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: lxdSymbols}).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(lxdSymbols...)}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -289,10 +289,10 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// filtering compose.
 			p := dbtest.NewPackage("github.com/canonical/lxd", "v5.21.1", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: []string{
+				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(
 					"github.com/canonical/lxd/lxd.main",
 					"github.com/canonical/lxd/shared/api.NewURL",
-				}}).
+				)}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -320,7 +320,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// the version says vulnerable AND the binary uses Patch.Apply.
 			p := dbtest.NewPackage("github.com/evanphx/json-patch", "v3.0.0+incompatible", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: jsonPatchSymbols}).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(jsonPatchSymbols...)}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -336,10 +336,10 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// with the symbols patched on, no match.
 			p := dbtest.NewPackage("github.com/evanphx/json-patch", "v3.0.0+incompatible", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: []string{
+				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(
 					"github.com/evanphx/json-patch.CreateMergePatch",
 					"github.com/evanphx/json-patch.Equal",
-				}}).
+				)}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -352,7 +352,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// < 3.0.1-0.2018…): vulnerable symbols present, version fixed.
 			p := dbtest.NewPackage("github.com/evanphx/json-patch", "v4.5.0+incompatible", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: jsonPatchSymbols}).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(jsonPatchSymbols...)}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -388,7 +388,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// odd-version-strings follow-up issue.
 			p := dbtest.NewPackage("github.com/redis/go-redis/v9", "v9.5.2", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: goRedisSymbols}).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(goRedisSymbols...)}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -402,7 +402,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// don't reach it either.
 			p := dbtest.NewPackage("github.com/redis/go-redis/v9", "v9.7.3", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: goRedisSymbols}).
+				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(goRedisSymbols...)}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -415,10 +415,10 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// GO-2025-3540's symbols describe
 			p := dbtest.NewPackage("github.com/redis/go-redis/v9", "v9.5.2", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: []string{
+				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(
 					"github.com/redis/go-redis/v9.NewClient",
 					"github.com/redis/go-redis/v9.(*Client).Get",
-				}}).
+				)}).
 				Build()
 
 			findings := db.Match(t, matcher, p)

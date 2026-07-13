@@ -155,12 +155,12 @@ func TestMatcherGolang_GoSymbols(t *testing.T) {
 			// "runtime" import every Go binary satisfies.
 			p := dbtest.NewPackage("stdlib", "go1.15.2", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: []string{
+				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(
 					"runtime.main",
 					"runtime.gcBgMarkWorker",
 					"net/http.Get",
 					"net/http.(*Client).Do",
-				}}).
+				)}).
 				Build()
 
 			findings := db.Match(t, matcher, p)

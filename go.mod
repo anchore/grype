@@ -78,7 +78,7 @@ require (
 )
 
 require (
-	github.com/anchore/syft v1.46.1-0.20260713143023-1dcac54b0e10
+	github.com/anchore/syft v1.46.1-0.20260713170820-80c3189b0e30
 	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
 )
