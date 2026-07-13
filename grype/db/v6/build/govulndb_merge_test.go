@@ -735,65 +735,79 @@ func TestGoVulnDBMultipleRecordsPatchOneGHSA(t *testing.T) {
 // record's symbols must be unioned onto the first's, not silently dropped, so the patched GHSA
 // carries every vulnerable symbol both feeds attribute to that import.
 func TestGoVulnDBMerge_SharedImportPathUnionsSymbols(t *testing.T) {
-	const mod = "github.com/example/mod"
-	const imp = mod + "/pkg"
+	const (
+		mod    = "github.com/example/mod"
+		imp    = mod + "/pkg"
+		ghsaID = "GHSA-2222-3333-4444"
+	)
 
-	t.Run("disjoint symbol sets for the same import path are unioned", func(t *testing.T) {
-		m := newGoVulnDBMerger()
-		require.True(t, m.hold(ghsaEntry("GHSA-2222-3333-4444", goModuleAPH(mod))))
-		// both records name the module (so both cover it) and, via the module row, patch the SAME
-		// import path with different symbol sets
-		require.True(t, m.hold(goVulnEntry("GO-2020-1111", []string{"GHSA-2222-3333-4444"},
-			goModuleAPH(mod, db.GoImport{Path: imp, Symbols: []string{"A", "B"}}))))
-		require.True(t, m.hold(goVulnEntry("GO-2020-2222", []string{"GHSA-2222-3333-4444"},
-			goModuleAPH(mod, db.GoImport{Path: imp, Symbols: []string{"B", "C"}}))))
+	// A GoImport for imp with no symbols means "every symbol in the package" (whole-package
+	// coverage); one with symbols is narrowed to just those.
+	tests := []struct {
+		name string
+		// the import each aliasing GO record patches onto the shared module row
+		first  db.GoImport
+		second db.GoImport
+		want   []db.GoImport
+		msg    string
+		// wantModURLs, when set, asserts the audit trail each record left on the patched GHSA
+		wantModURLs []string
+	}{
+		{
+			name:   "disjoint symbol sets for the same import path are unioned",
+			first:  db.GoImport{Path: imp, Symbols: []string{"A", "B"}},
+			second: db.GoImport{Path: imp, Symbols: []string{"B", "C"}},
+			// union, deduped, first-seen order — not just {A, B}
+			want: []db.GoImport{{Path: imp, Symbols: []string{"A", "B", "C"}}},
+			// each record recorded its own amendment: the first added the import, the second grew it
+			wantModURLs: []string{
+				"https://vuln.go.dev/ID/GO-2020-1111.json",
+				"https://vuln.go.dev/ID/GO-2020-2222.json",
+			},
+		},
+		{
+			// A later record listing specific symbols for the same path must not shrink that to just those.
+			name:   "a whole-package import absorbs a symbol list rather than being narrowed",
+			first:  db.GoImport{Path: imp}, // whole package
+			second: db.GoImport{Path: imp, Symbols: []string{"A"}},
+			want:   []db.GoImport{{Path: imp}},
+			msg:    "whole-package coverage must stay whole-package, not narrow to {A}",
+		},
+		{
+			// the reverse order: specific symbols first, then a whole-package import for the same path
+			name:   "a symbol list is widened to whole-package when a later record covers the whole package",
+			first:  db.GoImport{Path: imp, Symbols: []string{"A"}},
+			second: db.GoImport{Path: imp}, // whole package
+			want:   []db.GoImport{{Path: imp}},
+			msg:    "a later whole-package import must widen the symbol list to whole-package",
+		},
+	}
 
-		held := heldGHSA(t, m, "ghsa-2222-3333-4444")
-		m.reconcile()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := newGoVulnDBMerger()
+			require.True(t, m.hold(ghsaEntry(ghsaID, goModuleAPH(mod))))
+			// both records name the module (so both cover it) and, via the module row, patch the SAME
+			// import path with different symbol sets
+			require.True(t, m.hold(goVulnEntry("GO-2020-1111", []string{ghsaID},
+				goModuleAPH(mod, tt.first))))
+			require.True(t, m.hold(goVulnEntry("GO-2020-2222", []string{ghsaID},
+				goModuleAPH(mod, tt.second))))
 
-		assert.Equal(t, []db.GoImport{
-			{Path: imp, Symbols: []string{"A", "B", "C"}}, // union, deduped, first-seen order — not just {A, B}
-		}, goImportsOf(t, held, mod))
+			held := heldGHSA(t, m, "ghsa-2222-3333-4444")
+			m.reconcile()
 
-		// each record recorded its own amendment: the first added the import, the second grew it
-		mods := held.VulnerabilityHandle.BlobValue.Modifications
-		require.Len(t, mods, 2)
-		assert.Equal(t, "https://vuln.go.dev/ID/GO-2020-1111.json", mods[0].URL)
-		assert.Equal(t, "https://vuln.go.dev/ID/GO-2020-2222.json", mods[1].URL)
-	})
+			assert.Equal(t, tt.want, goImportsOf(t, held, mod), tt.msg)
 
-	t.Run("a whole-package import absorbs a symbol list rather than being narrowed", func(t *testing.T) {
-		// the empty symbol list is load-bearing: it means "every symbol in the package". A later
-		// record listing specific symbols for the same path must not shrink that to just those.
-		m := newGoVulnDBMerger()
-		require.True(t, m.hold(ghsaEntry("GHSA-2222-3333-4444", goModuleAPH(mod))))
-		require.True(t, m.hold(goVulnEntry("GO-2020-1111", []string{"GHSA-2222-3333-4444"},
-			goModuleAPH(mod, db.GoImport{Path: imp})))) // whole package
-		require.True(t, m.hold(goVulnEntry("GO-2020-2222", []string{"GHSA-2222-3333-4444"},
-			goModuleAPH(mod, db.GoImport{Path: imp, Symbols: []string{"A"}}))))
-
-		held := heldGHSA(t, m, "ghsa-2222-3333-4444")
-		m.reconcile()
-
-		assert.Equal(t, []db.GoImport{{Path: imp}}, goImportsOf(t, held, mod),
-			"whole-package coverage must stay whole-package, not narrow to {A}")
-	})
-
-	t.Run("a symbol list is widened to whole-package when a later record covers the whole package", func(t *testing.T) {
-		// the reverse order: specific symbols first, then a whole-package import for the same path
-		m := newGoVulnDBMerger()
-		require.True(t, m.hold(ghsaEntry("GHSA-2222-3333-4444", goModuleAPH(mod))))
-		require.True(t, m.hold(goVulnEntry("GO-2020-1111", []string{"GHSA-2222-3333-4444"},
-			goModuleAPH(mod, db.GoImport{Path: imp, Symbols: []string{"A"}}))))
-		require.True(t, m.hold(goVulnEntry("GO-2020-2222", []string{"GHSA-2222-3333-4444"},
-			goModuleAPH(mod, db.GoImport{Path: imp})))) // whole package
-
-		held := heldGHSA(t, m, "ghsa-2222-3333-4444")
-		m.reconcile()
-
-		assert.Equal(t, []db.GoImport{{Path: imp}}, goImportsOf(t, held, mod),
-			"a later whole-package import must widen the symbol list to whole-package")
-	})
+			if tt.wantModURLs != nil {
+				mods := held.VulnerabilityHandle.BlobValue.Modifications
+				require.Len(t, mods, len(tt.wantModURLs))
+				for i, url := range tt.wantModURLs {
+					assert.Equal(t, url, mods[i].URL)
+				}
+			}
+		})
+	}
 }
 
 // TestGoVulnDBMergeRoundTrip drives the full writer path: held entries are
