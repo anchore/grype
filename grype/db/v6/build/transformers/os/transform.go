@@ -227,7 +227,7 @@ func expandRHELMinorRows(vuln unmarshal.OSVulnerability, group groupIndex, fixed
 		if len(minorFixes) == 0 {
 			return baseRanges
 		}
-		return governingRanges(minorFixes, m, versionFormat, vuln.Vulnerability.Name)
+		return governingRanges(minorFixes, versionFormat, vuln.Vulnerability.Name)
 	}
 
 	out := make([]db.AffectedPackageHandle, 0, len(minors))
@@ -316,8 +316,8 @@ func rhelGAExpansionMinors(group groupIndex) []string {
 // judged against the 9.4 build, not the 9.2 one. Rolling backward there would clear a 9.3
 // host whose version sorts above the 9.2 build but below the (applicable) 9.4 build, a false
 // negative. `fixes` is sorted ascending by minor.
-func governingRanges(fixes []minorFix, m int, versionFormat, vulnID string) []db.Range {
-	gov := fixes[len(fixes)-1] // m past the last fix -> highest known fix
+func governingRanges(minorFixes []minorFix, versionFormat, vulnID string) []db.Range {
+	gov := minorFixes[len(minorFixes)-1] // m past the last fix -> highest known fix
 	fix := &db.Fix{
 		Version: versionutil.CleanFixedInVersion(gov.version),
 		State:   db.FixedStatus,
