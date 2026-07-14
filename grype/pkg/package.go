@@ -412,6 +412,9 @@ func golangMetadataFromPkg(p syftPkg.Package) any {
 		metadata.H1Digest = value.H1Digest
 		metadata.MainModule = value.MainModule
 		metadata.Symbols = value.Symbols
+		// normalize symbols once here, at provision time, so the gosymbols qualifier can match by
+		// lookup rather than re-normalizing the whole symbol table for every candidate vulnerability.
+		metadata.symbolIndex = buildGoSymbolIndex(value.Symbols)
 		return metadata
 	case syftPkg.GolangModuleEntry:
 		metadata := GolangModMetadata{}

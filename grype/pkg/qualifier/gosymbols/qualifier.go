@@ -1,9 +1,7 @@
 package gosymbols
 
 import (
-	"regexp"
 	"sort"
-	"strings"
 
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/pkg/qualifier"
@@ -106,24 +104,16 @@ func (q *gosymbolsQualifier) MatchedSymbols(p pkg.Package) []string {
 }
 
 // presentSymbols returns the package's binary symbol evidence as import path -> set of normalized
-// local symbol names, and whether such evidence exists. The grouping mirrors govulndb's
-// `ecosystem_specific.imports` shape so intersection is a pair of map lookups. Packages without
-// symbol evidence (not a go binary, or cataloged without symbol capture) report ok=false so callers
-// can fall back to module-granularity behavior.
+// local symbol names, and whether such evidence exists. The index is normalized once at package
+// provision time (see pkg.GolangBinMetadata.SymbolIndex) so intersection here is a pair of map
+// lookups. Packages without symbol evidence (not a go binary, or cataloged without symbol capture)
+// report ok=false so callers can fall back to module-granularity behavior.
 func presentSymbols(p pkg.Package) (map[string]map[string]struct{}, bool) {
 	m, ok := p.Metadata.(pkg.GolangBinMetadata)
 	if !ok || len(m.Symbols) == 0 {
 		return nil, false
 	}
-	present := make(map[string]map[string]struct{}, len(m.Symbols))
-	for importPath, locals := range m.Symbols {
-		set := make(map[string]struct{}, len(locals))
-		for _, local := range locals {
-			set[normalizeSymbol(local)] = struct{}{}
-		}
-		present[importPath] = set
-	}
-	return present, true
+	return m.SymbolIndex(), true
 }
 
 // usesImport reports whether any of the import's vulnerable symbols is present. A symbol-less
@@ -142,20 +132,4 @@ func usesImport(imp Import, present map[string]map[string]struct{}) bool {
 		}
 	}
 	return false
-}
-
-var typeParamPattern = regexp.MustCompile(`\[[^]]*]`)
-
-// normalizeSymbol converts a symbol name as found in a binary symbol table into govulndb's symbol
-// naming convention so the two can be compared:
-//   - pointer-receiver decoration is removed: "pkg.(*T).M" -> "pkg.T.M"
-//   - generic instantiations lose their type parameters: "pkg.(*T[go.shape.int]).M" -> "pkg.T.M"
-//   - the compiler's "-fm" method-value-wrapper suffix is removed: "pkg.(*T).M-fm" -> "pkg.T.M".
-//     A method-value wrapper is emitted when a method is referenced as a value (e.g. passed as a
-//     callback), so its presence means the underlying method is used.
-func normalizeSymbol(symbol string) string {
-	symbol = strings.ReplaceAll(symbol, "(*", "")
-	symbol = strings.ReplaceAll(symbol, ")", "")
-	symbol = strings.TrimSuffix(symbol, "-fm")
-	return typeParamPattern.ReplaceAllString(symbol, "")
 }
