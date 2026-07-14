@@ -17,8 +17,10 @@ type GolangBinMetadata struct {
 
 	// Symbols are the function symbols compiled into the binary, grouped by the import path of the package
 	// that owns them; each value is the list of symbol names local to that package (import path prefix
-	// stripped). Populated only when syft cataloged the binary with symbol capture enabled.
-	Symbols map[string][]string `json:"symbols,omitempty"`
+	// stripped). Populated only when syft cataloged the binary with symbol capture enabled. Used solely
+	// for symbol-scoped vulnerability matching and intentionally not serialized: the raw symbol lists are
+	// large (thousands of entries per binary) and not useful in the report output.
+	Symbols map[string][]string `json:"-"`
 
 	// symbolIndex is Symbols reshaped into import path -> set of normalized local symbol names, built
 	// once when the package is provisioned so the gosymbols qualifier can intersect against an advisory's
