@@ -330,38 +330,3 @@ func Test_applyVexRules(t *testing.T) {
 		})
 	}
 }
-
-func Test_goSymbolsMissingMessage(t *testing.T) {
-	goBinaryWithSymbols := pkg.Package{Metadata: pkg.GolangBinMetadata{Symbols: map[string][]string{"main": {"main"}}}}
-	goBinaryWithoutSymbols := pkg.Package{Metadata: pkg.GolangBinMetadata{}}
-	nonGoPackage := pkg.Package{}
-
-	tests := []struct {
-		name string
-		pkgs []pkg.Package
-		want string
-	}{
-		{
-			name: "no packages",
-		},
-		{
-			name: "go binaries with symbols and non-go packages do not warn",
-			pkgs: []pkg.Package{goBinaryWithSymbols, nonGoPackage},
-		},
-		{
-			name: "go binaries without symbols warn with a count",
-			pkgs: []pkg.Package{goBinaryWithoutSymbols, goBinaryWithSymbols, goBinaryWithoutSymbols, nonGoPackage},
-			want: "2 Go binary package(s) have no function symbols",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := goSymbolsMissingMessage(tt.pkgs)
-			if tt.want == "" {
-				assert.Empty(t, got)
-				return
-			}
-			assert.Contains(t, got, tt.want)
-		})
-	}
-}

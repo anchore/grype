@@ -208,7 +208,6 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 	defer log.CloseAndLogError(vp, status.Path)
 
 	warnWhenDistroHintNeeded(packages, &pkgContext)
-	warnWhenGoSymbolsMissing(packages)
 
 	if err = applyVexRules(opts); err != nil {
 		return fmt.Errorf("applying vex rules: %w", err)
@@ -295,35 +294,6 @@ loop:
 		log.Warnf("Unable to determine the OS distribution of some packages. This may result in missing vulnerabilities. " +
 			"You may specify a distro using: --distro <distro>:<version>")
 	}
-}
-
-// warnWhenGoSymbolsMissing alerts the user when Go binary packages were cataloged without function
-// symbols. Grype captures symbols by default on its own scans (see getProviderConfig). This warning
-// fires for pre-built SBOMs (e.g. `syft ... | grype`) generated without symbol capture. Without
-// symbols Golang packages fall back to module-granularity matching and may surface false positives.
-func warnWhenGoSymbolsMissing(pkgs []pkg.Package) {
-	if msg := goSymbolsMissingMessage(pkgs); msg != "" {
-		bus.Notify(msg)
-	}
-}
-
-// goSymbolsMissingMessage returns a warning for Go binary packages cataloged
-// without function symbols, or "" when there is nothing to warn about.
-func goSymbolsMissingMessage(pkgs []pkg.Package) string {
-	var withoutSymbols int
-	for _, p := range pkgs {
-		if m, ok := p.Metadata.(pkg.GolangBinMetadata); ok && len(m.Symbols) == 0 {
-			withoutSymbols++
-		}
-	}
-
-	if withoutSymbols == 0 {
-		return ""
-	}
-
-	return fmt.Sprintf("%d Go binary package(s) have no function symbols; matching falls back to module "+
-		"granularity and may report false positives. Regenerate the SBOM with symbol capture enabled "+
-		"(SYFT_GOLANG_CAPTURE_SYMBOLS=all syft ...) for more precise Go results.", withoutSymbols)
 }
 
 func warnDistroAlerts(data *models.DistroAlertData) {
