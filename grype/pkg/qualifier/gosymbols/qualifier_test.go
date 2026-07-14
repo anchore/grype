@@ -278,7 +278,7 @@ func TestGoSymbolsQualifier_MatchedSymbols(t *testing.T) {
 	}
 }
 
-func Test_NormalizeGoSymbol(t *testing.T) {
+func Test_normalizeSymbol(t *testing.T) {
 	tests := []struct {
 		name   string
 		symbol string
@@ -313,7 +313,7 @@ func Test_NormalizeGoSymbol(t *testing.T) {
 			// known limitation: the type-parameter regex assumes a single, non-nested bracket
 			// group, so a nested instantiation is not normalized to "pkg.T.M". This pins the
 			// current (imperfect) behavior; the consequence is a missed match for that symbol,
-			// not a false positive. See pkg.NormalizeGoSymbol's doc comment.
+			// not a false positive. See normalizeSymbol's doc comment.
 			name:   "nested type parameter is not normalized cleanly (known limitation)",
 			symbol: "example.com/pkg.(*Cache[go.shape.[]int]).Get",
 			want:   "example.com/pkg.Cacheint].Get",
@@ -322,7 +322,7 @@ func Test_NormalizeGoSymbol(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, pkg.NormalizeGoSymbol(tt.symbol))
+			assert.Equal(t, tt.want, normalizeSymbol(tt.symbol))
 		})
 	}
 }
