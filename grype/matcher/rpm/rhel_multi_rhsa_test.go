@@ -277,9 +277,13 @@ func TestRpmNotAffected_MinoredHostGetsSuppressingIgnore(t *testing.T) {
 // transformer's non-per-minor groups are forced back to the single major-only handle, while
 // the multi-stream glibc case keeps matching - exactly the sparse-row shadow FN.
 func TestRpmCumulativeCompleteness_MinoredHostSeesBothPackages(t *testing.T) {
+	rhel91 := distro.New(distro.RedHat, "9.1", "")
+	rhel92 := distro.New(distro.RedHat, "9.2", "")
+	rhel93 := distro.New(distro.RedHat, "9.3", "")
+
 	dbtest.DBs(t, "rhel-multi-rhsa").
+		SelectOnly("CVE-2017-17095").
 		Run(func(t *testing.T, db *dbtest.DB) {
-			rhel92 := distro.New(distro.RedHat, "9.2", "")
 
 			t.Run("single-stream libtiff seen at the minor row", func(t *testing.T) {
 				// below the GA fix 0:4.4.0-10.el9; only visible on rhel 9.2 if the
@@ -292,7 +296,11 @@ func TestRpmCumulativeCompleteness_MinoredHostSeesBothPackages(t *testing.T) {
 					SelectDetailByType(match.ExactDirectMatch).
 					AsDistroSearch()
 			})
+		})
 
+	dbtest.DBs(t, "rhel-multi-rhsa").
+		SelectOnly("CVE-2023-4813").
+		Run(func(t *testing.T, db *dbtest.DB) {
 			t.Run("multi-stream glibc seen at the same minor row", func(t *testing.T) {
 				// the record that caused rhel 9.2 to exist; below its 9.2 stream fix.
 				version := "0:2.34-60.el9_2.1"
@@ -302,6 +310,51 @@ func TestRpmCumulativeCompleteness_MinoredHostSeesBothPackages(t *testing.T) {
 					SelectMatch("CVE-2023-4813").
 					SelectDetailByType(match.ExactDirectMatch).
 					AsDistroSearch()
+			})
+
+			t.Run("later builds on same stream not vulnerable", func(t *testing.T) {
+				version := "0:2.34-70.el9_2.8"
+				matcher := Matcher{}
+				p := rhelStreamHost("glibc", rhel92, version, pkg.ID("glibc-"+version))
+				db.Match(t, &matcher, p).
+					DoesNotHaveAnyVulnerabilities("CVE-2023-4813").
+					Ignores().SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2023-4813")
+			})
+
+			t.Run("later builds on previous stream still vulnerable", func(t *testing.T) {
+				version := "0:2.34-70.el9"
+				matcher := Matcher{}
+				p := rhelStreamHost("glibc", rhel91, version, pkg.ID("glibc-"+version))
+				db.Match(t, &matcher, p).
+					SelectMatch("CVE-2023-4813").
+					SelectDetailByType(match.ExactDirectMatch).
+					AsDistroSearch()
+			})
+
+			t.Run("later builds on next stream still vulnerable", func(t *testing.T) {
+				version := "0:2.34-70.el9"
+				matcher := Matcher{}
+				p := rhelStreamHost("glibc", rhel93, version, pkg.ID("glibc-"+version))
+				db.Match(t, &matcher, p).
+					SelectMatch("CVE-2023-4813").
+					SelectDetailByType(match.ExactDirectMatch).
+					AsDistroSearch()
+			})
+		})
+
+	dbtest.DBs(t, "rhel-multi-rhsa").
+		SelectOnly("CVE-2023-4813", "CVE-2026-5450").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			t.Run("different glibc vulnerability seen when minor row records exist", func(t *testing.T) {
+				version := "0:2.34-60.el9_2.7"
+				matcher := Matcher{}
+				p := rhelStreamHost("glibc", rhel92, version, pkg.ID("glibc-"+version))
+				m := db.Match(t, &matcher, p)
+				m.SelectMatch("CVE-2026-5450").
+					SelectDetailByType(match.ExactDirectMatch).
+					AsDistroSearch()
+				m.OnlyHasVulnerabilities("CVE-2026-5450").
+					Ignores().SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2023-4813")
 			})
 		})
 }
@@ -418,6 +471,7 @@ func TestRpmPerMinorExpansion_KernelRollForwardGap(t *testing.T) { //nolint:funl
 // and crucially NOT against the GA -100.el9 build.
 func TestRpmPerMinorExpansion_GlibcMinorNull(t *testing.T) {
 	dbtest.DBs(t, "rhel-multi-rhsa").
+		SelectOnly("CVE-2023-4813").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			rhel92 := distro.New(distro.RedHat, "9.2", "")
 
@@ -471,6 +525,7 @@ func TestRpmPerMinorExpansion_GlibcMinorNull(t *testing.T) {
 // rhel:9.2 row, so an EUS host is judged against its own stream's fix exactly like a GA host.
 func TestRpmPerMinorExpansion_SameBaseUnderEUS(t *testing.T) {
 	dbtest.DBs(t, "rhel-multi-rhsa").
+		SelectOnly("CVE-2023-4813").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			eus92 := newEUSDistro("9.2")
 
