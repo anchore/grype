@@ -24,7 +24,7 @@ const (
 	Revision = 1
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 8
+	Addition = 9
 
 	// v6 model changelog:
 	// 6.0.0: Initial version 🎉
