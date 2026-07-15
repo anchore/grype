@@ -2,7 +2,6 @@ package os // nolint:revive
 
 import (
 	"fmt"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -19,15 +18,9 @@ import (
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
 	"github.com/anchore/grype/grype/db/v6/name"
 	"github.com/anchore/grype/grype/distro"
-	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/pkg"
 )
-
-// bareGARelease matches an RPM release suffix that is a bare GA .elN dist tag
-// (e.g. ".el9") but NOT a z-stream/modular one (".el9_2", ".el9_2.3"). The negative
-// lookahead is emulated below since Go's regexp lacks lookahead.
-var bareGARelease = regexp.MustCompile(`\.el\d+($|[^_\d])`)
 
 // advisoryKey is an internal struct used for sorting and deduplicating advisories
 // that have both a link and ID from the vunnel results data
@@ -122,7 +115,7 @@ func getPackages(vuln unmarshal.OSVulnerability) ([]db.AffectedPackageHandle, []
 		// must appear on EVERY minor row or minored hosts lose coverage; the expansion
 		// is therefore cumulative and uniform across records. Single-stream packages
 		// carry their normal ranges on every minor (verdict unchanged); multi-stream
-		// packages pin the fix governing each minor. Non-RHEL / EUS / already-minored
+		// packages pin each minor's own stream fix. Non-RHEL / EUS / already-minored
 		// groups fall through to the single-handle path unchanged.
 		if expanded := expandRHELMinorRows(vuln, group, fixedIns, qualifiers); expanded != nil {
 			afs = append(afs, expanded...)
@@ -166,7 +159,7 @@ func buildRanges(vuln unmarshal.OSVulnerability, fixedIns []unmarshal.OSFixedIn)
 	return ranges
 }
 
-// minorFix pairs a known fix minor with the fix build (Version) that governs it.
+// minorFix pairs a known fix minor with the fix build (Version) shipped for it.
 type minorFix struct {
 	minor    int
 	version  string
@@ -182,56 +175,68 @@ type minorFix struct {
 // The expansion is result-preserving for the common single-stream package: with no known
 // per-minor fixes, every minor row (and the major fallback) carries the group's normal
 // ranges, so a host on any minor sees the same verdict it does today. It only changes
-// behavior for same-base multi-RHSA packages, where each minor row pins the fix governing
-// that minor by rolling FORWARD to the next reachable fix (see governingRange):
+// behavior for same-base multi-RHSA packages: a minor with its own stream fix pins that
+// fix, and every other minor carries the record's base (canonical top-level) fix:
 //
-//	fixes at 9.2="Alpha", 9.4="Bravo" (nothing on 9.3):
-//	  minors 9.0, 9.1, 9.2  -> "< Alpha"   (lowest known fix-minor >= m)
-//	  minor  9.3            -> "< Bravo"   (no 9.3 build -> the 9.4 build reaches it)
-//	  minor  9.4 .. span    -> "< Bravo"
-//	  major-only (9, "")    -> "< Bravo"   (highest known fix; unknown/rolled-forward host)
-//
-// A GA null-minor (.elN) advisory cannot be placed on a minor directly; inferGAMinors
-// folds it in by EVR ordering (a build newer than every pinnable fix becomes the next
-// minor's fix; an older/superseded one is dropped, which is safe since the pinnable fix
-// already covers it).
+//	stream fixes at 9.2="Alpha", 9.4="Bravo" (base/top-level = "Base"):
+//	  minor 9.2         -> "< Alpha"
+//	  minor 9.4         -> "< Bravo"
+//	  every other minor -> "< Base"   (gaps, minors past the streams, and major-only "")
 func expandRHELMinorRows(vuln unmarshal.OSVulnerability, group groupIndex, fixedIns []unmarshal.OSFixedIn, qualifiers *db.PackageQualifiers) []db.AffectedPackageHandle {
 	minors := rhelGAExpansionMinors(group)
 	if minors == nil {
 		return nil
 	}
 
-	// known per-minor governing fixes (empty for the common single-stream case).
+	// known per-minor stream fixes (empty for the common single-stream case).
 	fixes, versionFormat := collectKnownMinorFixes(fixedIns)
 
-	// Per-minor governing pins one "< fix" per minor. That is correct for same-base multi-minor
-	// RHSAs, but a MULTI-UPSTREAM-BASE group carries a disjoint VulnerableRange that a single
-	// constraint cannot represent -- roll-forward would pick the higher base's fix and flag a host
-	// still on the lower base that already carries its own base's fix (a false positive). For those,
-	// fall back to the group's normal ranges (which honor VulnerableRange) replicated on every row,
-	// exactly as single-stream groups are handled. We still expand across the span so the multi-base
-	// package stays present on every minor row (completeness), it just carries the disjoint range.
+	// Per-minor pinning is correct for same-base multi-minor RHSAs, but a MULTI-UPSTREAM-BASE
+	// group carries a disjoint VulnerableRange that a single per-minor "< fix" cannot represent
+	// (it would flag a host still on the lower base that already carries its own base's fix -- a
+	// false positive). Those fall back to the group's normal ranges (which honor VulnerableRange)
+	// on every row, exactly as single-stream groups do; we still expand across the span so the
+	// package stays present on every minor row (completeness), just carrying the disjoint range.
 	perMinor := len(fixes) > 0 && !hasVulnerableRange(fixedIns)
-	if perMinor {
-		fixes = inferGAMinors(fixes, collectNullMinorGABuilds(fixedIns))
-	}
 
-	// baseRanges is the group's normal per-fix range set (honors VulnerableRange, wont-fix, etc.);
-	// used verbatim on every row for single-stream and multi-upstream-base groups.
+	// baseRanges is the group's normal per-fix range set (honors VulnerableRange, wont-fix, and
+	// the record's top-level advisory); carried on every non-per-minor row and every per-minor
+	// row that has no stream fix of its own.
 	baseRanges := buildRanges(vuln, fixedIns)
 
 	// rangesFor returns the ranges for a given minor row (minor=="" is the major fallback).
-	// Non-per-minor groups carry baseRanges on every row; per-minor groups pin the fix governing
-	// that minor (the major fallback rolls higher-minor hosts forward to the highest known fix).
+	// Non-per-minor groups carry baseRanges on every row; per-minor groups pin a minor's own
+	// stream fix and fall back to baseRanges for every other minor.
 	rangesFor := func(minor string) []db.Range {
-		if !perMinor {
+		if !perMinor || minor == "" {
 			return baseRanges
 		}
-		m := fixes[len(fixes)-1].minor // major fallback -> highest known fix
-		if minor != "" {
-			m, _ = strconv.Atoi(minor)
+		m, _ := strconv.Atoi(minor)
+		var minorFixes []minorFix
+		for _, fix := range fixes {
+			if fix.minor == m {
+				minorFixes = append(minorFixes, fix)
+			}
 		}
-		return []db.Range{governingRange(fixes, m, versionFormat, vuln.Vulnerability.Name)}
+		if len(minorFixes) == 0 {
+			return baseRanges
+		}
+
+		maxFix := minorFixes[len(minorFixes)-1] // highest fix targeting this minor
+		fix := &db.Fix{
+			Version: versionutil.CleanFixedInVersion(maxFix.version),
+			State:   db.FixedStatus,
+		}
+		if ref := advisoryReference(maxFix.advisory); ref != nil {
+			fix.Detail = &db.FixDetail{References: []db.Reference{*ref}}
+		}
+		return []db.Range{{
+			Version: db.Version{
+				Type:       versionFormat,
+				Constraint: deriveConstraintFromFix(versionutil.CleanConstraint(maxFix.version), vuln.Vulnerability.Name),
+			},
+			Fix: fix,
+		}}
 	}
 
 	out := make([]db.AffectedPackageHandle, 0, len(minors))
@@ -313,40 +318,6 @@ func rhelGAExpansionMinors(group groupIndex) []string {
 	return append(minors, "") // major-only fallback row
 }
 
-// governingRange builds the single fixed-version range for a host at minor m by rolling
-// FORWARD: the fix at the lowest known fix-minor >= m, or (when m is past the last fix) the
-// highest known fix. A minor with no fix of its own is judged against the next minor's fix
-// -- the build that actually reaches it -- e.g. a 9.3 host with fixes on 9.2 and 9.4 is
-// judged against the 9.4 build, not the 9.2 one. Rolling backward there would clear a 9.3
-// host whose version sorts above the 9.2 build but below the (applicable) 9.4 build, a false
-// negative. `fixes` is sorted ascending by minor.
-func governingRange(fixes []minorFix, m int, versionFormat, vulnID string) db.Range {
-	gov := fixes[len(fixes)-1] // m past the last fix -> highest known fix
-	for _, f := range fixes {
-		if f.minor >= m {
-			gov = f // lowest fix-minor >= m (fixes ascending)
-			break
-		}
-	}
-	fix := &db.Fix{
-		Version: versionutil.CleanFixedInVersion(gov.version),
-		State:   db.FixedStatus,
-	}
-	// carry the governing build's RHSA reference so a multi-RHSA per-minor match shows the same
-	// errata link a single-stream match does (single-stream refs come from getFix; this is the
-	// multi-stream equivalent).
-	if ref := advisoryReference(gov.advisory); ref != nil {
-		fix.Detail = &db.FixDetail{References: []db.Reference{*ref}}
-	}
-	return db.Range{
-		Version: db.Version{
-			Type:       versionFormat,
-			Constraint: deriveConstraintFromFix(versionutil.CleanConstraint(gov.version), vulnID),
-		},
-		Fix: fix,
-	}
-}
-
 // advisoryReference builds a fix Detail reference from an RHSA id, deriving the canonical Red Hat
 // errata URL. Returns nil for an empty id so a fix with no known advisory carries no reference.
 func advisoryReference(rhsaID string) *db.Reference {
@@ -385,27 +356,6 @@ func collectKnownMinorFixes(fixedIns []unmarshal.OSFixedIn) ([]minorFix, string)
 	return fixes, versionFormat
 }
 
-// collectNullMinorGABuilds returns advisories whose Minor is null AND whose Version is a bare GA
-// .elN build (not a z-stream .elN_M), carrying the RHSA id so inferGAMinors keeps the reference
-// when it places the build on an inferred minor.
-func collectNullMinorGABuilds(fixedIns []unmarshal.OSFixedIn) []minorFix {
-	var out []minorFix
-	for _, f := range fixedIns {
-		for _, adv := range f.Advisories {
-			if adv.Minor == nil && isBareGABuild(adv.Version) {
-				out = append(out, minorFix{version: adv.Version, advisory: adv.Advisory})
-			}
-		}
-	}
-	return out
-}
-
-// isBareGABuild reports whether an RPM EVR carries a bare GA .elN dist tag (e.g.
-// 0:2.34-100.el9) rather than a z-stream/modular one (0:2.34-60.el9_2.7).
-func isBareGABuild(evr string) bool {
-	return bareGARelease.MatchString(evr)
-}
-
 // hasVulnerableRange reports whether any fixedIn carries a VulnerableRange, which vunnel emits for
 // multi-upstream-base groups (disjoint per-base vulnerable ranges). Such groups must not be
 // collapsed to a single per-minor governing fix.
@@ -416,36 +366,6 @@ func hasVulnerableRange(fixedIns []unmarshal.OSFixedIn) bool {
 		}
 	}
 	return false
-}
-
-// inferGAMinors folds each GA null-minor build into the sorted per-minor fixes by EVR
-// ordering: a GA build whose full EVR exceeds the current max pinnable EVR is inferred
-// to fix minor (maxMinor+1) and appended (governing that minor and up, and becoming the
-// new highest fix); a GA build at or below some pinnable EVR is superseded and dropped.
-// Comparison is version-first RPM EVR (epoch->version->release), NOT a release-int
-// compare, so an upstream rebase whose release counter reset (e.g. 2.40.5-1.el9 vs a
-// pinned 2.38.5-1.el9_2.3) still orders correctly by version.
-func inferGAMinors(fixes []minorFix, gaBuilds []minorFix) []minorFix {
-	// ascending EVR so successively-higher GA builds land on successive minors.
-	sort.Slice(gaBuilds, func(i, j int) bool { return compareRPMEVR(gaBuilds[i].version, gaBuilds[j].version) < 0 })
-	for _, ga := range gaBuilds {
-		maxFix := fixes[len(fixes)-1]
-		if compareRPMEVR(ga.version, maxFix.version) > 0 {
-			fixes = append(fixes, minorFix{minor: maxFix.minor + 1, version: ga.version, advisory: ga.advisory})
-		}
-	}
-	return fixes
-}
-
-// compareRPMEVR compares two RPM EVR strings, returning -1/0/1. On a parse/compare
-// error it returns 0 (treated as "not greater" by callers -> conservative drop).
-func compareRPMEVR(a, b string) int {
-	cmp, err := version.New(a, version.RpmFormat).Compare(version.New(b, version.RpmFormat))
-	if err != nil {
-		log.WithFields("a", a, "b", b, "error", err).Trace("unable to compare RPM EVRs for GA-minor inference")
-		return 0
-	}
-	return cmp
 }
 
 func getFix(fixedInEntry unmarshal.OSFixedIn) *db.Fix {

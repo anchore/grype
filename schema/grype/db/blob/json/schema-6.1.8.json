@@ -1,10 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-<<<<<<< HEAD
-  "$id": "anchore.io/schema/grype/db/blob/json/6.1.9",
-=======
   "$id": "anchore.io/schema/grype/db/blob/json/6.1.8",
->>>>>>> main
   "$defs": {
     "Fix": {
       "$defs": {
@@ -73,31 +69,6 @@
       },
       "type": "object"
     },
-    "GoImport": {
-      "$defs": {
-        "path": {
-          "description": "is the import path of the package within the affected module (e.g. 'golang.org/x/net/html')."
-        },
-        "symbols": {
-          "description": "lists the vulnerable function/method names within the package (e.g. 'Parse' or 'Decoder.Decode').\nAn empty list means the entire package is considered vulnerable."
-        }
-      },
-      "properties": {
-        "path": {
-          "type": "string"
-        },
-        "symbols": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        }
-      },
-      "type": "object",
-      "required": [
-        "path"
-      ]
-    },
     "KnownExploitedVulnerabilityBlob": {
       "properties": {
         "cve": {
@@ -144,31 +115,6 @@
         "cve"
       ]
     },
-    "Modification": {
-      "$defs": {
-        "changes": {
-          "description": "describes each amendment made to the record (e.g. 'added go symbols to affected package golang.org/x/net')."
-        },
-        "url": {
-          "description": "points to the source data the record was modified with (e.g. 'https://vuln.go.dev/ID/GO-2024-2687.json')."
-        }
-      },
-      "properties": {
-        "url": {
-          "type": "string"
-        },
-        "changes": {
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
-        }
-      },
-      "type": "object",
-      "required": [
-        "url"
-      ]
-    },
     "PackageBlob": {
       "$defs": {
         "cves": {
@@ -205,12 +151,6 @@
         "architecture": {
           "description": "is the architecture of the affected RPM, copied from the source PURL's\n`arch` qualifier when present (e.g. 'src', 'x86_64') or set to a synthesized sentinel\nlike 'binary-no-arch-specified' when a binary RPM was disclosed without an explicit\narch. At match time the architecture qualifier compares this value against the scanned\npackage's arch (see pkg/qualifier/architecture, Satisfied): a 'binary-no-arch-specified'\nentry matches any binary package but rejects the rpm matcher's synthesized 'src' upstream,\nso providers that disclose at binary granularity (e.g. hummingbird CSAF VEX) avoid\nFP-matching unrelated sibling binaries built from the same source."
         },
-<<<<<<< HEAD
-        "go_imports": {
-          "description": "lists the packages and symbols within an affected Go module that contain the vulnerability\n(from govulndb's ecosystem_specific.imports). When set, packages carrying binary symbol evidence only\nmatch if at least one of the listed symbols is present in the binary."
-        },
-=======
->>>>>>> main
         "platform_cpes": {
           "description": "lists Common Platform Enumeration (CPE) identifiers for affected platforms."
         },
@@ -236,12 +176,6 @@
         },
         "rootio": {
           "type": "boolean"
-        },
-        "go_imports": {
-          "items": {
-            "$ref": "#/$defs/GoImport"
-          },
-          "type": "array"
         }
       },
       "type": "object"
@@ -363,9 +297,6 @@
         "id": {
           "description": "is the lowercase unique string identifier for the vulnerability relative to the provider"
         },
-        "modifications": {
-          "description": "is an audit trail of build-time amendments made to this record from other data\nsources (e.g. a GHSA record patched with Go symbol information from the aliased govulndb record)."
-        },
         "refs": {
           "description": "are URLs to external resources that provide more information about the vulnerability"
         },
@@ -401,12 +332,6 @@
         "severities": {
           "items": {
             "$ref": "#/$defs/Severity"
-          },
-          "type": "array"
-        },
-        "modifications": {
-          "items": {
-            "$ref": "#/$defs/Modification"
           },
           "type": "array"
         }

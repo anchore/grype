@@ -1,7 +1,6 @@
 package os
 
 import (
-	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,6 +8,7 @@ import (
 
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	db "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/grype/version"
 )
 
 func intRef(i int) *int { return &i }
@@ -20,14 +20,16 @@ func streamAdvisory(id, version string, minor int) unmarshal.OSAdvisory {
 	return unmarshal.OSAdvisory{Advisory: id, Version: version, Minor: intRef(minor), Channels: []string{"ga"}}
 }
 
-// gaAdvisory is a GA (major-wide) build with no known minor (a bare .elN dist tag). Its
-// minor is inferred from EVR ordering during expansion.
+// gaAdvisory is a GA (major-wide) build with no known minor (a bare .elN dist tag); it is
+// not tied to any specific stream.
 func gaAdvisory(id, version string) unmarshal.OSAdvisory {
 	return unmarshal.OSAdvisory{Advisory: id, Version: version, Minor: nil, Channels: []string{}}
 }
 
 // rhelFixed builds a single-package RHEL vulnerability. topVersion is the record's canonical
-// fix; advs are the per-stream advisories (pass none for a plain single-stream record).
+// fix; advs are the per-stream advisories (pass none for a plain single-stream record). The
+// record's top-level VendorAdvisory is derived from the highest-versioned advisory in advs --
+// mirroring how RHEL records carry the latest build's errata at the top level.
 func rhelFixed(namespace, pkg, topVersion string, advs ...unmarshal.OSAdvisory) unmarshal.OSVulnerability {
 	v := unmarshal.OSVulnerability{}
 	v.Vulnerability.Name = "CVE-TEST-0001"
@@ -36,8 +38,31 @@ func rhelFixed(namespace, pkg, topVersion string, advs ...unmarshal.OSAdvisory) 
 	if len(advs) > 0 {
 		fi.Advisories = advs
 	}
+	if top, ok := highestVersionedAdvisory(advs); ok {
+		fi.VendorAdvisory.AdvisorySummary = []struct {
+			ID   string `json:"ID"`
+			Link string `json:"Link"`
+		}{
+			{ID: top.Advisory, Link: "https://access.redhat.com/errata/" + top.Advisory},
+		}
+	}
 	v.Vulnerability.FixedIn = unmarshal.OSFixedIns{fi}
 	return v
+}
+
+// highestVersionedAdvisory returns the advisory in advs with the highest RPM version, so a
+// fixture's top-level advisory reflects the latest build shipped for the record.
+func highestVersionedAdvisory(advs []unmarshal.OSAdvisory) (best unmarshal.OSAdvisory, found bool) {
+	for _, adv := range advs {
+		if !found {
+			best, found = adv, true
+			continue
+		}
+		if cmp, err := version.New(adv.Version, version.RpmFormat).Compare(version.New(best.Version, version.RpmFormat)); err == nil && cmp > 0 {
+			best = adv
+		}
+	}
+	return best, found
 }
 
 // --- assertion helpers ------------------------------------------------------
@@ -78,7 +103,7 @@ func constraintByMinor(t *testing.T, afs []db.AffectedPackageHandle, pkg string)
 	return out
 }
 
-// advisoryIDByMinor returns pkg's per-minor governing-fix RHSA id (from the fix's first advisory
+// advisoryIDByMinor returns pkg's per-minor fix RHSA id (from the fix's first advisory
 // reference) keyed by OS minor ("" = major fallback); "" when a row carries no reference.
 func advisoryIDByMinor(t *testing.T, afs []db.AffectedPackageHandle, pkg string) map[string]string {
 	t.Helper()
@@ -145,31 +170,32 @@ func assertNotAffectedOnAllMinors(t *testing.T, unafs []db.UnaffectedPackageHand
 // RHSA-2023:0970 with no per-minor Advisories list -- the common single-stream shape.
 func Test_SingleRHSACopiedToAllMinors(t *testing.T) {
 	afs, unafs := getPackages(rhelFixed("rhel:9", "httpd", "0:2.4.53-7.el9_1.1"))
-
 	require.Empty(t, unafs)
 	assertCopiedToAllMinors(t, afs, "httpd", "0:2.4.53-7.el9_1.1")
 }
 
-// Test_MultiRHSAsAssignedToCorrectMinors: fixes shipped on two streams (9.1 and 9.3, nothing
-// on 9.2) are assigned by rolling FORWARD -- each minor is governed by the lowest fix at or
-// above it (the build that actually reaches a host on that minor). Crucially 9.2, which has
-// no build of its own, is judged against the 9.3 fix (not the 9.1 one): a 9.2 host is only
-// patched once it takes the 9.3 build. Minors past the last fix, and the major-only fallback,
-// take the highest fix.
+// Test_MultiRHSAsAssignedToCorrectMinors: a per-stream RHSA fix is pinned ONLY to the exact
+// minor it targets (9.1 and 9.3 here); it is not rolled onto adjacent minors. Every other
+// minor -- the gaps (9.0, 9.2) and everything past the last stream, plus the major-only
+// fallback -- carries the record's base fix (its canonical top-level version), which here is
+// the 9.3 GA build. So the two stream minors cite their own RHSA and every other row carries
+// the base fix with no per-stream advisory reference.
 //
 // Real data: RHEL 9 CVE-2022-50536 (kernel), same-base multi-minor with no VulnerableRange.
 // RHSA-2022:8267 ships 0:5.14.0-162.6.1.el9_1 on 9.1 (minor 1); RHSA-2023:6583 ships
-// 0:5.14.0-362.8.1.el9_3 on 9.3 (minor 3). Nothing on 9.2 -> the gap exercises roll-forward.
+// 0:5.14.0-362.8.1.el9_3 on 9.3 (minor 3). Nothing on 9.2 -> the gap falls to the base fix.
 func Test_MultiRHSAsAssignedToCorrectMinors(t *testing.T) {
-	afs, _ := getPackages(rhelFixed("rhel:9", "kernel", "0:5.14.0-362.8.1.el9_3",
+	fixed := rhelFixed("rhel:9", "kernel", "0:5.14.0-362.8.1.el9_3",
 		streamAdvisory("RHSA-2022:8267", "0:5.14.0-162.6.1.el9_1", 1),
 		streamAdvisory("RHSA-2023:6583", "0:5.14.0-362.8.1.el9_3", 3),
-	))
+	)
+
+	afs, _ := getPackages(fixed)
 
 	assertMinorAssignment(t, afs, "kernel", map[string]string{
-		"0":  "0:5.14.0-162.6.1.el9_1", // rolls forward to the earliest fix
+		"0":  "0:5.14.0-362.8.1.el9_3", // no 9.0 stream -> base fix (the 9.3 GA build)
 		"1":  "0:5.14.0-162.6.1.el9_1", // 9.1 stream
-		"2":  "0:5.14.0-362.8.1.el9_3", // no 9.2 build -> the 9.3 build is what reaches it
+		"2":  "0:5.14.0-362.8.1.el9_3", // no 9.2 stream -> base fix
 		"3":  "0:5.14.0-362.8.1.el9_3", // 9.3 stream
 		"4":  "0:5.14.0-362.8.1.el9_3",
 		"5":  "0:5.14.0-362.8.1.el9_3",
@@ -177,14 +203,13 @@ func Test_MultiRHSAsAssignedToCorrectMinors(t *testing.T) {
 		"7":  "0:5.14.0-362.8.1.el9_3",
 		"8":  "0:5.14.0-362.8.1.el9_3",
 		"9":  "0:5.14.0-362.8.1.el9_3",
-		"10": "0:5.14.0-362.8.1.el9_3", // past the last fix -> highest fix
-		"":   "0:5.14.0-362.8.1.el9_3", // major-only fallback -> highest fix
+		"10": "0:5.14.0-362.8.1.el9_3", // past the last stream -> base fix
+		"":   "0:5.14.0-362.8.1.el9_3", // major-only fallback -> base fix
 	})
 
-	// each per-minor row keeps its governing build's RHSA reference (not dropped): the minors
-	// governed by the 9.1 build cite its RHSA, those governed by the 9.3 build cite the other.
+	// a stream minor cites its own RHSA; every base-fix row cites the record's top-level advisory.
 	assert.Equal(t, map[string]string{
-		"0": "RHSA-2022:8267", "1": "RHSA-2022:8267",
+		"0": "RHSA-2023:6583", "1": "RHSA-2022:8267",
 		"2": "RHSA-2023:6583", "3": "RHSA-2023:6583", "4": "RHSA-2023:6583", "5": "RHSA-2023:6583",
 		"6": "RHSA-2023:6583", "7": "RHSA-2023:6583", "8": "RHSA-2023:6583",
 		"9": "RHSA-2023:6583", "10": "RHSA-2023:6583",
@@ -199,67 +224,15 @@ func Test_MultiRHSAsAssignedToCorrectMinors(t *testing.T) {
 	}
 }
 
-// Test_LaterGARebaseInferredAsNextMinor: a GA build (null minor) whose EVR outranks the
-// highest known stream fix is a genuinely-later rebase; it is inferred onto the next minor
-// and governs from there up (including the major fallback), while the known stream minors
-// keep their fixes.
-//
-// Real data: RHEL 9 CVE-2023-4813 (glibc). RHSA-2023:5453 pins 0:2.34-60.el9_2.7 on 9.2
-// (minor 2); RHBA-2024:2413 is a GA rebase 0:2.34-100.el9 with a null minor. The GA EVR
-// (2.34-100.el9) outranks the pinned 9.2 fix (2.34-60.el9_2.7), so it is inferred onto minor
-// 3 and governs from there up (including the major fallback), while 9.0..9.2 keep the pinned
-// fix. This is the only GA-null-minor + pinned-stream rebase in the source data whose GA build
-// outranks the stream fix; the fabricated second "release counter reset" table entry had no
-// real counterpart, so the table is collapsed to this single real case (nothing invented).
-func Test_LaterGARebaseInferredAsNextMinor(t *testing.T) {
-	tests := []struct {
-		name    string
-		vuln    unmarshal.OSVulnerability
-		pkg     string
-		below   string // fix for minors up to and including the known stream
-		knownAt int    // the known stream minor
-		rebase  string // inferred GA fix for minors above the known stream
-	}{
-		{
-			name: "glibc GA higher release",
-			vuln: rhelFixed("rhel:9", "glibc", "0:2.34-100.el9",
-				gaAdvisory("RHBA-2024:2413", "0:2.34-100.el9"),
-				streamAdvisory("RHSA-2023:5453", "0:2.34-60.el9_2.7", 2),
-			),
-			pkg: "glibc", below: "0:2.34-60.el9_2.7", knownAt: 2, rebase: "0:2.34-100.el9",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			afs, _ := getPackages(tt.vuln)
-
-			want := map[string]string{}
-			for m := 0; m <= rhelMinorSpan["9"]; m++ {
-				if m <= tt.knownAt {
-					want[strconv.Itoa(m)] = tt.below
-				} else {
-					want[strconv.Itoa(m)] = tt.rebase // inferred at knownAt+1, governs upward
-				}
-			}
-			want[""] = tt.rebase // major fallback -> highest (the inferred rebase)
-			assertMinorAssignment(t, afs, tt.pkg, want)
-		})
-	}
-}
-
-// Test_SupersededGADropped: a GA build whose EVR is at or below the highest known stream fix is
-// already covered by that fix, so it is dropped rather than inferred onto a new minor. No lower
-// GA build then leaks in as a fix (which would be a false negative); the per-minor rows carry
-// only the pinned stream fixes, rolled forward.
+// Test_SupersededGADropped: a GA build (null minor) never becomes a row's fix -- only the
+// pinned stream minors carry their own fix, and every other minor carries the base fix. A
+// lower GA build must not leak in as a fix (which would be a false negative).
 //
 // Real data: RHEL 6 CVE-2018-3639 (kernel), no VulnerableRange (so it takes the per-minor path).
 // RHSA-2018:1651 pins 0:2.6.32-696.30.1.el6 on 6.9 (minor 9); RHSA-2018:2164 pins
 // 0:2.6.32-754.2.1.el6 on 6.10 (minor 10); RHSA-2018:1854 is a GA build 0:2.6.32-754.el6 with a
-// null minor. The GA EVR (2.6.32-754.el6) is LOWER than the highest pinned fix (2.6.32-754.2.1.el6,
-// the 6.10 build), so the GA is dropped -- it is not inferred onto minor 11 and no host is judged
-// against it. The rows then reflect only the two pinned stream fixes rolled forward: minors up to
-// 9 take the 6.9 fix, and 10+ (plus the major fallback) take the 6.10 fix.
+// null minor. Only 6.9 and 6.10 pin their stream fixes; every other minor takes the base fix
+// (0:2.6.32-754.2.1.el6), and the GA build never appears.
 func Test_SupersededGADropped(t *testing.T) {
 	afs, _ := getPackages(rhelFixed("rhel:6", "kernel", "0:2.6.32-754.2.1.el6",
 		gaAdvisory("RHSA-2018:1854", "0:2.6.32-754.el6"), // lower EVR than the 6.10 fix -> superseded
@@ -275,18 +248,18 @@ func Test_SupersededGADropped(t *testing.T) {
 	}
 
 	assertMinorAssignment(t, afs, "kernel", map[string]string{
-		"0":  "0:2.6.32-696.30.1.el6", // rolls forward to the 6.9 fix
-		"1":  "0:2.6.32-696.30.1.el6",
-		"2":  "0:2.6.32-696.30.1.el6",
-		"3":  "0:2.6.32-696.30.1.el6",
-		"4":  "0:2.6.32-696.30.1.el6",
-		"5":  "0:2.6.32-696.30.1.el6",
-		"6":  "0:2.6.32-696.30.1.el6",
-		"7":  "0:2.6.32-696.30.1.el6",
-		"8":  "0:2.6.32-696.30.1.el6",
+		"0":  "0:2.6.32-754.2.1.el6", // no 6.0 stream -> base fix
+		"1":  "0:2.6.32-754.2.1.el6",
+		"2":  "0:2.6.32-754.2.1.el6",
+		"3":  "0:2.6.32-754.2.1.el6",
+		"4":  "0:2.6.32-754.2.1.el6",
+		"5":  "0:2.6.32-754.2.1.el6",
+		"6":  "0:2.6.32-754.2.1.el6",
+		"7":  "0:2.6.32-754.2.1.el6",
+		"8":  "0:2.6.32-754.2.1.el6",
 		"9":  "0:2.6.32-696.30.1.el6", // 6.9 stream
-		"10": "0:2.6.32-754.2.1.el6",  // 6.10 stream (GA superseded, dropped); also the last pinned fix
-		"":   "0:2.6.32-754.2.1.el6",  // major-only fallback -> highest pinned fix
+		"10": "0:2.6.32-754.2.1.el6",  // 6.10 stream
+		"":   "0:2.6.32-754.2.1.el6",  // major-only fallback -> base fix
 	})
 }
 
@@ -325,7 +298,7 @@ func Test_ModuleQualifierPreservedAcrossMinors(t *testing.T) {
 // Test_MultiUpstreamBase_KeepsDisjointRange uses real data: RHEL 8 CVE-2020-0543 (microcode_ctl),
 // fixed on two upstream bases -- RHSA-2020:2431 (base 20191115, el8_2) and RHSA-2021:3027 (base
 // 20210216, el8_4) -- which vunnel emits as a disjoint VulnerableRange plus a two-entry Advisories
-// list. The expansion must NOT collapse this to one roll-forward "< fix" per minor (that would flag
+// list. The expansion must NOT collapse this to a single "< fix" per minor (that would flag
 // a host still on the 20191115 base, carrying its own el8_2 fix, against the 20210216 build).
 // Instead it must (a) stay COMPLETE: present on every minor row + major fallback (so a minored host
 // resolving to a per-minor row still sees the package), and (b) stay CORRECT: every row carries the
@@ -343,6 +316,6 @@ func Test_MultiUpstreamBase_KeepsDisjointRange(t *testing.T) {
 	got := constraintByMinor(t, afs, "microcode_ctl")
 	require.Len(t, got, rhelMinorSpan["8"]+2) // completeness: 8.0..span + major fallback ("")
 	for minor, c := range got {
-		assert.Equalf(t, vulnRange, c, "minor %q must carry the disjoint VulnerableRange, not a collapsed roll-forward fix", minor)
+		assert.Equalf(t, vulnRange, c, "minor %q must carry the disjoint VulnerableRange, not a collapsed single fix", minor)
 	}
 }
