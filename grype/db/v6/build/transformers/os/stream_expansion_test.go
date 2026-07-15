@@ -8,6 +8,7 @@ import (
 
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	db "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/grype/version"
 )
 
 func intRef(i int) *int { return &i }
@@ -26,8 +27,10 @@ func gaAdvisory(id, version string) unmarshal.OSAdvisory {
 }
 
 // rhelFixed builds a single-package RHEL vulnerability. topVersion is the record's canonical
-// fix; advs are the per-stream advisories (pass none for a plain single-stream record).
-func rhelFixed(namespace, pkg, topVersion string, advID, url string, advs ...unmarshal.OSAdvisory) unmarshal.OSVulnerability {
+// fix; advs are the per-stream advisories (pass none for a plain single-stream record). The
+// record's top-level VendorAdvisory is derived from the highest-versioned advisory in advs --
+// mirroring how RHEL records carry the latest build's errata at the top level.
+func rhelFixed(namespace, pkg, topVersion string, advs ...unmarshal.OSAdvisory) unmarshal.OSVulnerability {
 	v := unmarshal.OSVulnerability{}
 	v.Vulnerability.Name = "CVE-TEST-0001"
 	v.Vulnerability.NamespaceName = namespace
@@ -35,18 +38,31 @@ func rhelFixed(namespace, pkg, topVersion string, advID, url string, advs ...unm
 	if len(advs) > 0 {
 		fi.Advisories = advs
 	}
-	// these records also include a top-level fixed in advisory information
-	fi.VendorAdvisory.AdvisorySummary = []struct {
-		ID   string `json:"ID"`
-		Link string `json:"Link"`
-	}{
-		{
-			ID:   advID,
-			Link: url,
-		},
+	if top, ok := highestVersionedAdvisory(advs); ok {
+		fi.VendorAdvisory.AdvisorySummary = []struct {
+			ID   string `json:"ID"`
+			Link string `json:"Link"`
+		}{
+			{ID: top.Advisory, Link: "https://access.redhat.com/errata/" + top.Advisory},
+		}
 	}
 	v.Vulnerability.FixedIn = unmarshal.OSFixedIns{fi}
 	return v
+}
+
+// highestVersionedAdvisory returns the advisory in advs with the highest RPM version, so a
+// fixture's top-level advisory reflects the latest build shipped for the record.
+func highestVersionedAdvisory(advs []unmarshal.OSAdvisory) (best unmarshal.OSAdvisory, found bool) {
+	for _, adv := range advs {
+		if !found {
+			best, found = adv, true
+			continue
+		}
+		if cmp, err := version.New(adv.Version, version.RpmFormat).Compare(version.New(best.Version, version.RpmFormat)); err == nil && cmp > 0 {
+			best = adv
+		}
+	}
+	return best, found
 }
 
 // --- assertion helpers ------------------------------------------------------
@@ -153,7 +169,7 @@ func assertNotAffectedOnAllMinors(t *testing.T, unafs []db.UnaffectedPackageHand
 // Real data: RHEL 9 CVE-2006-20001 (httpd), a single fix 0:2.4.53-7.el9_1.1 shipped by
 // RHSA-2023:0970 with no per-minor Advisories list -- the common single-stream shape.
 func Test_SingleRHSACopiedToAllMinors(t *testing.T) {
-	afs, unafs := getPackages(rhelFixed("rhel:9", "httpd", "0:2.4.53-7.el9_1.1", "", ""))
+	afs, unafs := getPackages(rhelFixed("rhel:9", "httpd", "0:2.4.53-7.el9_1.1"))
 	require.Empty(t, unafs)
 	assertCopiedToAllMinors(t, afs, "httpd", "0:2.4.53-7.el9_1.1")
 }
@@ -170,7 +186,6 @@ func Test_SingleRHSACopiedToAllMinors(t *testing.T) {
 // 0:5.14.0-362.8.1.el9_3 on 9.3 (minor 3). Nothing on 9.2 -> the gap falls to the base fix.
 func Test_MultiRHSAsAssignedToCorrectMinors(t *testing.T) {
 	fixed := rhelFixed("rhel:9", "kernel", "0:5.14.0-362.8.1.el9_3",
-		"RHSA-2023:6583", "https://access.redhat.com/errata/RHSA-2023:6583",
 		streamAdvisory("RHSA-2022:8267", "0:5.14.0-162.6.1.el9_1", 1),
 		streamAdvisory("RHSA-2023:6583", "0:5.14.0-362.8.1.el9_3", 3),
 	)
@@ -219,7 +234,7 @@ func Test_MultiRHSAsAssignedToCorrectMinors(t *testing.T) {
 // null minor. Only 6.9 and 6.10 pin their stream fixes; every other minor takes the base fix
 // (0:2.6.32-754.2.1.el6), and the GA build never appears.
 func Test_SupersededGADropped(t *testing.T) {
-	afs, _ := getPackages(rhelFixed("rhel:6", "kernel", "0:2.6.32-754.2.1.el6", "", "",
+	afs, _ := getPackages(rhelFixed("rhel:6", "kernel", "0:2.6.32-754.2.1.el6",
 		gaAdvisory("RHSA-2018:1854", "0:2.6.32-754.el6"), // lower EVR than the 6.10 fix -> superseded
 		streamAdvisory("RHSA-2018:1651", "0:2.6.32-696.30.1.el6", 9),
 		streamAdvisory("RHSA-2018:2164", "0:2.6.32-754.2.1.el6", 10),
@@ -254,7 +269,7 @@ func Test_SupersededGADropped(t *testing.T) {
 // Real data: RHEL 9 CVE-2002-0059 (zlib) is a real not-affected record -- a single FixedIn with
 // Version "0" and no advisory, i.e. RHEL 9's zlib is not affected.
 func Test_NotAffectedCopiedToAllMinors(t *testing.T) {
-	vuln := rhelFixed("rhel:9", "zlib", "0", "", "") // version "0" => not-affected
+	vuln := rhelFixed("rhel:9", "zlib", "0") // version "0" => not-affected
 	afs, unafs := getPackages(vuln)
 
 	require.Empty(t, afs)
@@ -267,7 +282,7 @@ func Test_NotAffectedCopiedToAllMinors(t *testing.T) {
 // 0:3.9.18-1.module+el8.9.0+20024+793d7211 for the python39:3.9 module stream -- a single
 // module-scoped fix that must keep its module qualifier on every expanded minor row.
 func Test_ModuleQualifierPreservedAcrossMinors(t *testing.T) {
-	vuln := rhelFixed("rhel:8", "python39", "0:3.9.18-1.module+el8.9.0+20024+793d7211", "", "")
+	vuln := rhelFixed("rhel:8", "python39", "0:3.9.18-1.module+el8.9.0+20024+793d7211")
 	vuln.Vulnerability.FixedIn[0].Module = strRef("python39:3.9")
 
 	afs, _ := getPackages(vuln)
@@ -290,7 +305,7 @@ func Test_ModuleQualifierPreservedAcrossMinors(t *testing.T) {
 // disjoint VulnerableRange verbatim, not a single governing fix.
 func Test_MultiUpstreamBase_KeepsDisjointRange(t *testing.T) {
 	const vulnRange = "< 4:20191115-4.20200602.2.el8_2 || >= 4:20210216, < 4:20210216-1.20210608.1.el8_4"
-	vuln := rhelFixed("rhel:8", "microcode_ctl", "4:20210216-1.20210608.1.el8_4", "", "",
+	vuln := rhelFixed("rhel:8", "microcode_ctl", "4:20210216-1.20210608.1.el8_4",
 		streamAdvisory("RHSA-2020:2431", "4:20191115-4.20200602.2.el8_2", 2),
 		streamAdvisory("RHSA-2021:3027", "4:20210216-1.20210608.1.el8_4", 4),
 	)
