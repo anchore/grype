@@ -18,7 +18,6 @@ require (
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.2.0
 	github.com/anchore/stereoscope v0.2.2
-	github.com/anchore/syft v1.46.1-0.20260708165513-e8abab2e775f
 	github.com/aquasecurity/go-pep440-version v0.0.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/bitnami/go-version v0.0.0-20250505154626-452e8c5ee607
@@ -79,6 +78,7 @@ require (
 )
 
 require (
+	github.com/anchore/syft v1.46.1-0.20260713204016-f6b5d3e736b8
 	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
 )

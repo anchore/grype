@@ -3,6 +3,7 @@ package result
 import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/pkg/qualifier/gosymbols"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 )
@@ -59,8 +60,11 @@ func detailProvider(matcher match.MatcherType, catalogedPkg pkg.Package, criteri
 	distroMatchType := determineMatchType(catalogedPkg, pkgParams)
 	applyPackageParamsToSearchParams(pkgParams, &cpeParams, &distroParams, &ecosystemParams)
 	constraintStr := getConstraintString(vuln)
+	// the vulnerable Go symbols the package was found to use; empty for every non-Go match and for
+	// module-granularity Go matches where no specific symbol intersection decided the match.
+	matchedSymbols := gosymbols.MatchedSymbols(vuln.PackageQualifiers, catalogedPkg)
 
-	return buildMatchDetails(matcher, distroMatchType, constraintStr, vuln, cpeParams, distroParams, ecosystemParams)
+	return buildMatchDetails(matcher, distroMatchType, constraintStr, vuln, cpeParams, distroParams, ecosystemParams, matchedSymbols)
 }
 
 // extractSearchParameters processes criteria set and extracts search parameters for different match types
@@ -153,7 +157,7 @@ func getConstraintString(vuln vulnerability.Vulnerability) string {
 }
 
 // buildMatchDetails creates the final match details from all parameters
-func buildMatchDetails(matcher match.MatcherType, distroMatchType match.Type, constraintStr string, vuln vulnerability.Vulnerability, cpeParams []match.CPEParameters, distroParams []match.DistroParameters, ecosystemParams []match.EcosystemParameters) match.Details {
+func buildMatchDetails(matcher match.MatcherType, distroMatchType match.Type, constraintStr string, vuln vulnerability.Vulnerability, cpeParams []match.CPEParameters, distroParams []match.DistroParameters, ecosystemParams []match.EcosystemParameters, matchedSymbols []string) match.Details {
 	var details match.Details
 
 	// add CPE match details
@@ -193,6 +197,7 @@ func buildMatchDetails(matcher match.MatcherType, distroMatchType match.Type, co
 			Found: match.EcosystemResult{
 				VulnerabilityID:   vuln.ID,
 				VersionConstraint: constraintStr,
+				MatchedSymbols:    matchedSymbols,
 			},
 			Confidence: 1.0, // TODO: this is hard coded for now
 		})

@@ -279,12 +279,13 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 
 func warnWhenDistroHintNeeded(pkgs []pkg.Package, context *pkg.Context) {
 	hasOSPackageWithoutDistro := false
+loop:
 	for _, p := range pkgs {
 		switch p.Type {
 		case syftPkg.AlpmPkg, syftPkg.DebPkg, syftPkg.RpmPkg, syftPkg.KbPkg:
 			if p.Distro == nil {
 				hasOSPackageWithoutDistro = true
-				break
+				break loop
 			}
 		}
 	}
@@ -402,6 +403,12 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 	cfg := syft.DefaultCreateSBOMConfig()
 	cfg.Packages.JavaArchive.IncludeIndexedArchives = opts.Search.IncludeIndexedArchives
 	cfg.Packages.JavaArchive.IncludeUnindexedArchives = opts.Search.IncludeUnindexedArchives
+
+	// capture Go binary function symbols so the gosymbols qualifier can suppress false positives for
+	// module- and stdlib-scoped govulndb advisories (e.g. a net/http server DoS matching any binary that
+	// merely links net/http). Syft disables symbol capture by default, but for vulnerability matching the
+	// false-positive reduction is worth the extra catalog cost.
+	cfg.Packages.Golang = cfg.Packages.Golang.WithCaptureSymbols(cataloging.SymbolScopeAll)
 
 	// when we run into a package with missing information like version, then this is not useful in the context
 	// of vulnerability matching. Though there will be downstream processing to handle this case, we can still

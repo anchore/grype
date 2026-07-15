@@ -83,7 +83,7 @@ func TestCompareSBOMInputToLibResults(t *testing.T) {
 		string(syftPkg.WordpressPluginPkg), // TODO: remove me when there is a matcher for this merged in https://github.com/anchore/grype/pull/1553
 		string(syftPkg.LuaRocksPkg),
 		string(syftPkg.TerraformPkg),
-		string(syftPkg.AppleAppBundlePkg),
+		string(syftPkg.AppleAppBundlePkg), // macOS .app bundles; no matcher and not present in the test images
 		string(syftPkg.VcpkgPkg),
 	)
 	observedPkgTypes := strset.New()

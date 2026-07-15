@@ -1,0 +1,64 @@
+{
+  "identifier": "github:go/ghsa-ppj4-34rq-v8j9",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2021-42836"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 7.5,
+          "base_severity": "High",
+          "exploitability_score": 3.9,
+          "impact_score": 3.6
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2021-10-25",
+            "kind": "first-observed"
+          },
+          "ecosystem": "go",
+          "identifier": "1.9.3",
+          "name": "github.com/tidwall/gjson",
+          "namespace": "github:go",
+          "range": "< 1.9.3"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2021-42836"
+        ]
+      },
+      "Severity": "High",
+      "Summary": "github.com/tidwall/gjson Vulnerable to REDoS attack",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-ppj4-34rq-v8j9",
+      "namespace": "github:go",
+      "published": "2021-10-25T19:43:15Z",
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-42836"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-ppj4-34rq-v8j9"
+        }
+      ],
+      "updated": "2023-08-30T00:32:38Z",
+      "url": "https://github.com/advisories/GHSA-ppj4-34rq-v8j9",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

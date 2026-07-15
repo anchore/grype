@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -29,7 +30,6 @@ import (
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/cataloging"
-	"github.com/anchore/syft/syft/pkg/cataloger/binary"
 )
 
 func Test_getProviderConfig(t *testing.T) {
@@ -49,6 +49,8 @@ func Test_getProviderConfig(t *testing.T) {
 					SBOMOptions: func() *syft.CreateSBOMConfig {
 						cfg := syft.DefaultCreateSBOMConfig()
 						cfg.Compliance.MissingVersion = cataloging.ComplianceActionDrop
+						// grype captures Go binary symbols by default; this is not syft's default
+						cfg.Packages.Golang = cfg.Packages.Golang.WithCaptureSymbols(cataloging.SymbolScopeAll)
 						return cfg
 					}(),
 					RegistryOptions: &image.RegistryOptions{
@@ -81,7 +83,10 @@ func Test_getProviderConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			opts := cmp.Options{
-				cmpopts.IgnoreFields(binary.Classifier{}, "EvidenceMatcher"),
+				// func-typed fields (e.g. a binary classifier's EvidenceMatcher) are not comparable
+				cmp.FilterPath(func(p cmp.Path) bool {
+					return p.Last().Type().Kind() == reflect.Func
+				}, cmp.Ignore()),
 				cmpopts.IgnoreUnexported(syft.CreateSBOMConfig{}),
 			}
 			if d := cmp.Diff(tt.want, getProviderConfig(tt.opts), opts...); d != "" {
