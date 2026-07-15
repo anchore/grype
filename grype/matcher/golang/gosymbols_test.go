@@ -130,9 +130,9 @@ func TestMatcherGolang_GoSymbols(t *testing.T) {
 			// no symbol evidence -> matching stays at module granularity and no
 			// intersection is reported, so matchedSymbols is empty on every match.
 			findings.SelectMatch(httpServerDoS).SelectDetailByType(match.ExactDirectMatch).AsEcosystemSearch().
-				HasMatchedSymbols("")
+				HasMatchedSymbols()
 			findings.SelectMatch(runtimeWholePkg).SelectDetailByType(match.ExactDirectMatch).AsEcosystemSearch().
-				HasMatchedSymbols("")
+				HasMatchedSymbols()
 		})
 
 		t.Run("build-time toolchain advisories never match a compiled binary (anchore/grype#1782)", func(t *testing.T) {
@@ -155,12 +155,10 @@ func TestMatcherGolang_GoSymbols(t *testing.T) {
 			// "runtime" import every Go binary satisfies.
 			p := dbtest.NewPackage("stdlib", "go1.15.2", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(
-					"runtime.main",
-					"runtime.gcBgMarkWorker",
-					"net/http.Get",
-					"net/http.(*Client).Do",
-				)}).
+				WithGoBinarySymbols(map[string][]string{
+					"runtime":  {"main", "gcBgMarkWorker"},
+					"net/http": {"Get", "(*Client).Do"},
+				}).
 				Build()
 
 			findings := db.Match(t, matcher, p)

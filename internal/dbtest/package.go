@@ -155,6 +155,20 @@ func (b *PackageBuilder) WithMetadata(metadata interface{}) *PackageBuilder {
 	return b
 }
 
+// WithGoBinarySymbols attaches Go binary symbol evidence the way the real provider does: the given
+// table (import path -> raw local symbol names, exactly the shape syft's golang cataloger emits in
+// GolangBinaryBuildinfoEntry.Symbols, e.g. "(*Client).Do") is wrapped in a syft entry and run through
+// grype's package provider (pkg.New). The resulting GolangBinMetadata therefore carries
+// provider-normalized symbols, so fixtures pass the raw names a binary actually carries and exercise
+// the real normalization rather than a hand-prepared copy of it.
+func (b *PackageBuilder) WithGoBinarySymbols(symbolsByImportPath map[string][]string) *PackageBuilder {
+	grypePkg := pkg.New(syftPkg.Package{
+		Metadata: syftPkg.GolangBinaryBuildinfoEntry{Symbols: symbolsByImportPath},
+	})
+	b.pkg.Metadata = grypePkg.Metadata
+	return b
+}
+
 // WithLicenses sets the package licenses.
 func (b *PackageBuilder) WithLicenses(licenses ...string) *PackageBuilder {
 	b.pkg.Licenses = licenses

@@ -1228,10 +1228,15 @@ func (e *EcosystemDetailAssertion) HasMatchType(matchType match.Type) *Ecosystem
 	return e
 }
 
-// HasMatchedSymbols asserts that Found.MatchedSymbols equals the expected sorted, comma-separated
-// string of vulnerable Go symbols (empty when the match was not scoped by symbol evidence).
-func (e *EcosystemDetailAssertion) HasMatchedSymbols(matchedSymbols string) *EcosystemDetailAssertion {
+// HasMatchedSymbols asserts that Found.MatchedSymbols equals the expected sorted set of vulnerable Go
+// symbols. Call with no arguments to assert none were matched (the match was not scoped by symbol
+// evidence).
+func (e *EcosystemDetailAssertion) HasMatchedSymbols(matchedSymbols ...string) *EcosystemDetailAssertion {
 	e.t.Helper()
-	assert.Equal(e.t, matchedSymbols, e.found.MatchedSymbols, "unexpected matched symbols in Found")
+	var want []string
+	if len(matchedSymbols) > 0 {
+		want = matchedSymbols
+	}
+	assert.Equal(e.t, want, e.found.MatchedSymbols, "unexpected matched symbols in Found")
 	return e
 }

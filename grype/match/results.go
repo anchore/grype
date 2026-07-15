@@ -120,8 +120,10 @@ func (e *EcosystemParameters) Merge(other EcosystemParameters) error {
 type EcosystemResult struct {
 	VulnerabilityID   string `json:"vulnerabilityID"`
 	VersionConstraint string `json:"versionConstraint"`
-	// MatchedSymbols is the sorted, comma-separated set of vulnerable Go symbols the package was
-	// found to use (empty unless the match was scoped by symbol evidence). Kept a scalar string so
-	// EcosystemResult stays comparable and can be a map key in match-detail de-duplication.
-	MatchedSymbols string `json:"matchedSymbols,omitempty"`
+	// MatchedSymbols is the sorted, de-duplicated set of vulnerable Go symbols the package was found
+	// to use (empty unless the match was scoped by symbol evidence). A slice, not a scalar: detail
+	// identity is computed via hashstructure (SlicesAsSets), and EcosystemResult is only ever carried
+	// in Detail.Found (never compared or used as a map key), so no comparability constraint applies —
+	// the sibling CPEResult.CPEs is likewise a slice.
+	MatchedSymbols []string `json:"matchedSymbols,omitempty"`
 }
