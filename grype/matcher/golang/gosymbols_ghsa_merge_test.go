@@ -19,8 +19,8 @@ import (
 // TestMatcherGolang_GoSymbols's compiled go-binary fixtures, which prove the
 // contract between syft's real symbol capture and grype's normalization. The
 // third-party scenarios (gjson, aws-sdk-go) exercise DB-side merge and range
-// behavior only, so they use hand-written symbol lists that mirror syft's
-// capture naming (import-path qualified, pointer-receiver decorated) rather
+// behavior only, so they use hand-written symbol lists (import-path qualified,
+// in govulndb's normalized convention — the form the provider stores) rather
 // than compiling a fixture per scenario.
 //
 // The govulndb-and-ghsa fixture pairs:
@@ -138,12 +138,9 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// GO-2021-0265's symbol list)
 			p := dbtest.NewPackage("github.com/tidwall/gjson", "v1.9.2", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(
-					"github.com/tidwall/gjson.Get",
-					"github.com/tidwall/gjson.parseObject",
-					"github.com/tidwall/gjson.queryMatches",
-					"github.com/tidwall/gjson.Result.String",
-				)}).
+				WithGoBinarySymbols(map[string][]string{
+					"github.com/tidwall/gjson": {"Get", "parseObject", "queryMatches", "Result.String"},
+				}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -155,7 +152,11 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// GO-2021-0265's list (Result.String is not on the advisory, so it is
 			// excluded), sorted, in govulndb (advisory) convention.
 			findings.SelectMatch(gjsonReDoSGHSA).SelectDetailByType(match.ExactDirectMatch).AsEcosystemSearch().
-				HasMatchedSymbols("github.com/tidwall/gjson.Get, github.com/tidwall/gjson.parseObject, github.com/tidwall/gjson.queryMatches")
+				HasMatchedSymbols(
+					"github.com/tidwall/gjson.Get",
+					"github.com/tidwall/gjson.parseObject",
+					"github.com/tidwall/gjson.queryMatches",
+				)
 			findings.DoesNotHaveAnyVulnerabilities(gjsonReDoSGo, gjsonWithdrawn)
 		})
 
@@ -165,11 +166,9 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// merge the unfiltered GHSA records matched this binary by module name
 			p := dbtest.NewPackage("github.com/tidwall/gjson", "v1.9.2", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(
-					"github.com/tidwall/gjson.Valid",
-					"github.com/tidwall/gjson.validpayload",
-					"github.com/tidwall/gjson.validany",
-				)}).
+				WithGoBinarySymbols(map[string][]string{
+					"github.com/tidwall/gjson": {"Valid", "validpayload", "validany"},
+				}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -177,13 +176,12 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			findings.IsEmpty()
 		})
 
-		// s3cryptoSymbols is what a binary using the S3 crypto client carries:
-		// the vulnerable constructor (on GO-2022-0635's symbol list) plus
-		// surrounding SDK surface that is not.
-		s3cryptoSymbols := []string{
-			"github.com/aws/aws-sdk-go/service/s3/s3crypto.NewDecryptionClient",
-			"github.com/aws/aws-sdk-go/service/s3/s3crypto.(*DecryptionClient).GetObject",
-			"github.com/aws/aws-sdk-go/aws/session.NewSession",
+		// s3cryptoSymbols is what a binary using the S3 crypto client carries (import path -> raw
+		// local names, as syft captures them): the vulnerable constructor (on GO-2022-0635's symbol
+		// list) plus surrounding SDK surface that is not.
+		s3cryptoSymbols := map[string][]string{
+			"github.com/aws/aws-sdk-go/service/s3/s3crypto": {"NewDecryptionClient", "(*DecryptionClient).GetObject"},
+			"github.com/aws/aws-sdk-go/aws/session":         {"NewSession"},
 		}
 
 		t.Run("current aws-sdk-go using vulnerable symbols is out of the GHSA range - no match", func(t *testing.T) {
@@ -198,7 +196,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// was backported to a release branch semver ranges cannot express.
 			p := dbtest.NewPackage("github.com/aws/aws-sdk-go", "v1.55.8", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(s3cryptoSymbols...)}).
+				WithGoBinarySymbols(s3cryptoSymbols).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -211,7 +209,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// only because this binary uses s3crypto.NewDecryptionClient.
 			p := dbtest.NewPackage("github.com/aws/aws-sdk-go", "v1.33.0", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(s3cryptoSymbols...)}).
+				WithGoBinarySymbols(s3cryptoSymbols).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -228,10 +226,9 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// the match.
 			p := dbtest.NewPackage("github.com/aws/aws-sdk-go", "v1.33.0", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(
-					"github.com/aws/aws-sdk-go/service/s3.New",
-					"github.com/aws/aws-sdk-go/service/s3.(*S3).GetObject",
-				)}).
+				WithGoBinarySymbols(map[string][]string{
+					"github.com/aws/aws-sdk-go/service/s3": {"New", "(*S3).GetObject"},
+				}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -239,13 +236,12 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			findings.IsEmpty()
 		})
 
-		// lxdSymbols is what an lxd daemon binary carries: the vulnerable project
-		// resource listing function (on GO-2024-3312's symbol list) plus other lxd
-		// internals that are not.
-		lxdSymbols := []string{
-			"github.com/canonical/lxd/lxd.allowProjectResourceList",
-			"github.com/canonical/lxd/lxd.projectResourceList",
-			"github.com/canonical/lxd/shared/api.NewURL",
+		// lxdSymbols is what an lxd daemon binary carries (import path -> raw local names): the
+		// vulnerable project resource listing function (on GO-2024-3312's symbol list) plus other
+		// lxd internals that are not.
+		lxdSymbols := map[string][]string{
+			"github.com/canonical/lxd/lxd":        {"allowProjectResourceList", "projectResourceList"},
+			"github.com/canonical/lxd/shared/api": {"NewURL"},
 		}
 
 		t.Run("lxd at a real tagged release matches via the replaced pseudo-version range", func(t *testing.T) {
@@ -260,7 +256,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// (replaceGHSAPseudoVersionRanges), and v5.21.1 now matches.
 			p := dbtest.NewPackage("github.com/canonical/lxd", "v5.21.1", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(lxdSymbols...)}).
+				WithGoBinarySymbols(lxdSymbols).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -275,7 +271,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// present.
 			p := dbtest.NewPackage("github.com/canonical/lxd", "v5.21.2", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(lxdSymbols...)}).
+				WithGoBinarySymbols(lxdSymbols).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -289,10 +285,10 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// filtering compose.
 			p := dbtest.NewPackage("github.com/canonical/lxd", "v5.21.1", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(
-					"github.com/canonical/lxd/lxd.main",
-					"github.com/canonical/lxd/shared/api.NewURL",
-				)}).
+				WithGoBinarySymbols(map[string][]string{
+					"github.com/canonical/lxd/lxd":        {"main"},
+					"github.com/canonical/lxd/shared/api": {"NewURL"},
+				}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -300,14 +296,11 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			findings.IsEmpty()
 		})
 
-		// jsonPatchSymbols is what a binary applying JSON patches carries: the
-		// vulnerable entrypoints (Patch.Apply and the partialArray.add internal it
-		// reaches, both on GO-2021-0076's symbol list) plus surrounding API surface
-		// that is not.
-		jsonPatchSymbols := []string{
-			"github.com/evanphx/json-patch.Patch.Apply",
-			"github.com/evanphx/json-patch.partialArray.add",
-			"github.com/evanphx/json-patch.DecodePatch",
+		// jsonPatchSymbols is what a binary applying JSON patches carries (import path -> raw local
+		// names): the vulnerable entrypoints (Patch.Apply and the partialArray.add internal it
+		// reaches, both on GO-2021-0076's symbol list) plus surrounding API surface that is not.
+		jsonPatchSymbols := map[string][]string{
+			"github.com/evanphx/json-patch": {"Patch.Apply", "partialArray.add", "DecodePatch"},
 		}
 
 		t.Run("+incompatible binary using Patch.Apply matches the patched GHSA", func(t *testing.T) {
@@ -320,7 +313,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// the version says vulnerable AND the binary uses Patch.Apply.
 			p := dbtest.NewPackage("github.com/evanphx/json-patch", "v3.0.0+incompatible", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(jsonPatchSymbols...)}).
+				WithGoBinarySymbols(jsonPatchSymbols).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -336,10 +329,9 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// with the symbols patched on, no match.
 			p := dbtest.NewPackage("github.com/evanphx/json-patch", "v3.0.0+incompatible", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(
-					"github.com/evanphx/json-patch.CreateMergePatch",
-					"github.com/evanphx/json-patch.Equal",
-				)}).
+				WithGoBinarySymbols(map[string][]string{
+					"github.com/evanphx/json-patch": {"CreateMergePatch", "Equal"},
+				}).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -352,7 +344,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// < 3.0.1-0.2018…): vulnerable symbols present, version fixed.
 			p := dbtest.NewPackage("github.com/evanphx/json-patch", "v4.5.0+incompatible", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(jsonPatchSymbols...)}).
+				WithGoBinarySymbols(jsonPatchSymbols).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -360,13 +352,11 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			findings.IsEmpty()
 		})
 
-		// goRedisSymbols is what a binary configuring a go-redis client carries: the vulnerable
-		// connection-setup path (baseClient.initConn is on GO-2025-3540's symbol list) plus
-		// ordinary client surface that is not.
-		goRedisSymbols := []string{
-			"github.com/redis/go-redis/v9.(*baseClient).initConn",
-			"github.com/redis/go-redis/v9.NewClient",
-			"github.com/redis/go-redis/v9.(*Client).Ping",
+		// goRedisSymbols is what a binary configuring a go-redis client carries (import path -> raw
+		// local names): the vulnerable connection-setup path (baseClient.initConn is on
+		// GO-2025-3540's symbol list) plus ordinary client surface that is not.
+		goRedisSymbols := map[string][]string{
+			"github.com/redis/go-redis/v9": {"(*baseClient).initConn", "NewClient", "(*Client).Ping"},
 		}
 
 		t.Run("/vN module major-version: the /v9 name is what binaries carry and it matches the patched GHSA", func(t *testing.T) {
@@ -388,7 +378,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// odd-version-strings follow-up issue.
 			p := dbtest.NewPackage("github.com/redis/go-redis/v9", "v9.5.2", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(goRedisSymbols...)}).
+				WithGoBinarySymbols(goRedisSymbols).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -402,7 +392,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// don't reach it either.
 			p := dbtest.NewPackage("github.com/redis/go-redis/v9", "v9.7.3", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(goRedisSymbols...)}).
+				WithGoBinarySymbols(goRedisSymbols).
 				Build()
 
 			findings := db.Match(t, matcher, p)
@@ -415,10 +405,9 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			// GO-2025-3540's symbols describe
 			p := dbtest.NewPackage("github.com/redis/go-redis/v9", "v9.5.2", syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
-				WithMetadata(pkg.GolangBinMetadata{Symbols: groupSymbols(
-					"github.com/redis/go-redis/v9.NewClient",
-					"github.com/redis/go-redis/v9.(*Client).Get",
-				)}).
+				WithGoBinarySymbols(map[string][]string{
+					"github.com/redis/go-redis/v9": {"NewClient", "(*Client).Get"},
+				}).
 				Build()
 
 			findings := db.Match(t, matcher, p)

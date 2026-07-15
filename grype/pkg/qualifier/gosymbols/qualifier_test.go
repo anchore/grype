@@ -7,8 +7,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/pkg/qualifier"
 )
 
+// symbol names below are already in govulndb's normalized convention: the provider normalizes a
+// binary's symbol table once when the package is built (pkg.normalizeGoSymbols), so the qualifier
+// only ever sees normalized names. The normalization itself is covered by pkg's golang_symbol_test.go.
 func TestGoSymbolsQualifier_Satisfied(t *testing.T) {
 	binaryPkg := pkg.Package{
 		Name: "golang.org/x/net",
@@ -16,11 +20,11 @@ func TestGoSymbolsQualifier_Satisfied(t *testing.T) {
 			Symbols: map[string][]string{
 				"golang.org/x/net/html/charset": {"Lookup"},
 				"golang.org/x/net/html": {
-					"(*Tokenizer).Next",
+					"Tokenizer.Next",
 					"Parse",
-					"(*Tokenizer).readComment-fm",
+					"Tokenizer.readComment",
 				},
-				"golang.org/x/net/http2": {"(*Framer[go.shape.int]).ReadFrame"},
+				"golang.org/x/net/http2": {"Framer.ReadFrame"},
 			},
 		},
 	}
@@ -51,9 +55,9 @@ func TestGoSymbolsQualifier_Satisfied(t *testing.T) {
 			Symbols: map[string][]string{
 				"net/http": {
 					"ListenAndServe",
-					"(*Server).Serve",
-					"(*http2Server).ServeConn",
-					"(*Client).Do",
+					"Server.Serve",
+					"http2Server.ServeConn",
+					"Client.Do",
 				},
 			},
 		},
@@ -69,8 +73,8 @@ func TestGoSymbolsQualifier_Satisfied(t *testing.T) {
 				"net/http": {
 					"Get",
 					"NewRequest",
-					"(*Client).Do",
-					"(*Transport).RoundTrip",
+					"Client.Do",
+					"Transport.RoundTrip",
 				},
 			},
 		},
@@ -101,19 +105,19 @@ func TestGoSymbolsQualifier_Satisfied(t *testing.T) {
 			satisfied: true,
 		},
 		{
-			name:      "vulnerable method symbol present in binary (pointer receiver normalization)",
+			name:      "vulnerable method symbol present in binary",
 			imports:   []Import{{Path: "golang.org/x/net/html", Symbols: []string{"Tokenizer.Next"}}},
 			pkg:       binaryPkg,
 			satisfied: true,
 		},
 		{
-			name:      "vulnerable generic method present in binary (type parameter normalization)",
+			name:      "vulnerable generic method present in binary",
 			imports:   []Import{{Path: "golang.org/x/net/http2", Symbols: []string{"Framer.ReadFrame"}}},
 			pkg:       binaryPkg,
 			satisfied: true,
 		},
 		{
-			name:      "vulnerable method present only as a method-value wrapper (-fm normalization)",
+			name:      "another vulnerable method present in binary",
 			imports:   []Import{{Path: "golang.org/x/net/html", Symbols: []string{"Tokenizer.readComment"}}},
 			pkg:       binaryPkg,
 			satisfied: true,
@@ -182,19 +186,18 @@ func TestGoSymbolsQualifier_Satisfied(t *testing.T) {
 }
 
 func TestGoSymbolsQualifier_MatchedSymbols(t *testing.T) {
-	// binaryPkg carries symbols in syft's binary naming (pointer-receiver decorated, generic
-	// instantiations, method-value wrappers); MatchedSymbols must report hits in govulndb's
-	// convention (the advisory spelling).
+	// binaryPkg carries symbols already normalized to govulndb's convention (the provider normalizes
+	// at build time); MatchedSymbols reports hits in that same convention.
 	binaryPkg := pkg.Package{
 		Name: "golang.org/x/net",
 		Metadata: pkg.GolangBinMetadata{
 			Symbols: map[string][]string{
 				"golang.org/x/net/html": {
 					"Parse",
-					"(*Tokenizer).Next",
-					"(*Tokenizer).readComment-fm",
+					"Tokenizer.Next",
+					"Tokenizer.readComment",
 				},
-				"golang.org/x/net/http2": {"(*Framer[go.shape.int]).ReadFrame"},
+				"golang.org/x/net/http2": {"Framer.ReadFrame"},
 			},
 		},
 	}
@@ -271,58 +274,7 @@ func TestGoSymbolsQualifier_MatchedSymbols(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			q := New(tt.imports)
-			reporter, ok := q.(SymbolReporter)
-			require.True(t, ok, "gosymbols qualifier must implement SymbolReporter")
-			assert.Equal(t, tt.want, reporter.MatchedSymbols(tt.pkg))
-		})
-	}
-}
-
-func Test_normalizeSymbol(t *testing.T) {
-	tests := []struct {
-		name   string
-		symbol string
-		want   string
-	}{
-		{
-			name:   "plain function is unchanged",
-			symbol: "golang.org/x/net/html.Parse",
-			want:   "golang.org/x/net/html.Parse",
-		},
-		{
-			name:   "value-receiver method is unchanged",
-			symbol: "net/http.Header.Get",
-			want:   "net/http.Header.Get",
-		},
-		{
-			name:   "pointer-receiver decoration is removed",
-			symbol: "net/http.(*Server).Serve",
-			want:   "net/http.Server.Serve",
-		},
-		{
-			name:   "generic instantiation loses its type parameters",
-			symbol: "golang.org/x/net/http2.(*Framer[go.shape.int]).ReadFrame",
-			want:   "golang.org/x/net/http2.Framer.ReadFrame",
-		},
-		{
-			name:   "method-value wrapper suffix is removed",
-			symbol: "golang.org/x/net/html.(*Tokenizer).readComment-fm",
-			want:   "golang.org/x/net/html.Tokenizer.readComment",
-		},
-		{
-			// known limitation: the type-parameter regex assumes a single, non-nested bracket
-			// group, so a nested instantiation is not normalized to "pkg.T.M". This pins the
-			// current (imperfect) behavior; the consequence is a missed match for that symbol,
-			// not a false positive. See normalizeSymbol's doc comment.
-			name:   "nested type parameter is not normalized cleanly (known limitation)",
-			symbol: "example.com/pkg.(*Cache[go.shape.[]int]).Get",
-			want:   "example.com/pkg.Cacheint].Get",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, normalizeSymbol(tt.symbol))
+			assert.Equal(t, tt.want, MatchedSymbols([]qualifier.Qualifier{q}, tt.pkg))
 		})
 	}
 }
