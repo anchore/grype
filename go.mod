@@ -78,7 +78,7 @@ require (
 )
 
 require (
-	github.com/anchore/syft v1.46.1-0.20260713204016-f6b5d3e736b8
+	github.com/anchore/syft v1.48.0
 	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
 )
@@ -109,7 +109,7 @@ require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/anchore/go-lzo v0.1.1 // indirect
 	github.com/anchore/go-macholibre v0.1.1 // indirect
-	github.com/anchore/go-rpmdb v0.1.0 // indirect
+	github.com/anchore/go-rpmdb v0.2.0 // indirect
 	github.com/anchore/go-struct-converter v0.2.0-rc2 // indirect
 	github.com/anchore/go-sync v0.1.1 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect

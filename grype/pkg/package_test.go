@@ -1045,6 +1045,34 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "safetensors-model-info",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.SafeTensorsModelInfo{
+					Format:       "safetensors",
+					Architecture: "LlamaForCausalLM",
+					Quantization: "BF16",
+					Parameters:   7000000000,
+					TensorCount:  291,
+					TotalSize:    "13476839424",
+					ShardCount:   2,
+					UserMetadata: syftPkg.KeyValues{
+						{
+							Key:   "key1",
+							Value: "value1",
+						},
+					},
+					MetadataHash: "abc123",
+					Parts: []syftPkg.SafeTensorsModelInfo{
+						{
+							Format:       "safetensors",
+							TensorCount:  145,
+							MetadataHash: "def456",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
