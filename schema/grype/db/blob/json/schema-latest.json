@@ -1,10 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-<<<<<<< HEAD
   "$id": "anchore.io/schema/grype/db/blob/json/6.1.9",
-=======
-  "$id": "anchore.io/schema/grype/db/blob/json/6.1.8",
->>>>>>> main
   "$defs": {
     "Fix": {
       "$defs": {
@@ -205,12 +201,9 @@
         "architecture": {
           "description": "is the architecture of the affected RPM, copied from the source PURL's\n`arch` qualifier when present (e.g. 'src', 'x86_64') or set to a synthesized sentinel\nlike 'binary-no-arch-specified' when a binary RPM was disclosed without an explicit\narch. At match time the architecture qualifier compares this value against the scanned\npackage's arch (see pkg/qualifier/architecture, Satisfied): a 'binary-no-arch-specified'\nentry matches any binary package but rejects the rpm matcher's synthesized 'src' upstream,\nso providers that disclose at binary granularity (e.g. hummingbird CSAF VEX) avoid\nFP-matching unrelated sibling binaries built from the same source."
         },
-<<<<<<< HEAD
         "go_imports": {
           "description": "lists the packages and symbols within an affected Go module that contain the vulnerability\n(from govulndb's ecosystem_specific.imports). When set, packages carrying binary symbol evidence only\nmatch if at least one of the listed symbols is present in the binary."
         },
-=======
->>>>>>> main
         "platform_cpes": {
           "description": "lists Common Platform Enumeration (CPE) identifiers for affected platforms."
         },
