@@ -80,11 +80,6 @@ func TestTransform(t *testing.T) {
 		ReleaseID:    "ol",
 		MajorVersion: "8",
 	}
-	rhel8OS := &db.OperatingSystem{
-		Name:         "redhat",
-		ReleaseID:    "rhel",
-		MajorVersion: "8",
-	}
 	fedora39OS := &db.OperatingSystem{
 		Name:         "fedora",
 		ReleaseID:    "fedora",
@@ -909,236 +904,6 @@ func TestTransform(t *testing.T) {
 			},
 		},
 		{
-			name:     "testdata/rhel-8.json",
-			provider: "redhat",
-			want: []transformers.RelatedEntries{
-				{
-					VulnerabilityHandle: &db.VulnerabilityHandle{
-						Name:       "CVE-2020-6819",
-						ProviderID: "redhat",
-						Provider:   expectedProvider("redhat"),
-						Status:     "active",
-						BlobValue: &db.VulnerabilityBlob{
-							ID:          "CVE-2020-6819",
-							Description: "A flaw was found in Mozilla Firefox. A race condition can occur while running the nsDocShell destructor causing a use-after-free memory issue. The highest threat from this vulnerability is to data confidentiality and integrity as well as system availability.",
-							References: []db.Reference{
-								{
-									URL: "https://access.redhat.com/security/cve/CVE-2020-6819",
-								},
-							},
-							Severities: []db.Severity{
-								{
-									Scheme: db.SeveritySchemeCHMLN,
-									Value:  "critical",
-									Rank:   1,
-								},
-								{
-									Scheme: db.SeveritySchemeCVSS,
-									Value: db.CVSSSeverity{
-										Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
-										Version: "3.1",
-									},
-									Rank: 2,
-								},
-							},
-						},
-					},
-					Related: affectedPkgSlice(
-						db.AffectedPackageHandle{
-							OperatingSystem: rhel8OS,
-							Package:         &db.Package{Ecosystem: "rpm", Name: "firefox"},
-							BlobValue: &db.PackageBlob{
-								Qualifiers: &db.PackageQualifiers{RpmModularity: strRef("")},
-								Ranges: []db.Range{
-									{
-										Version: db.Version{
-											Type:       "rpm",
-											Constraint: "< 0:68.6.1-1.el8_1",
-										},
-										Fix: &db.Fix{
-											Version: "0:68.6.1-1.el8_1",
-											State:   db.FixedStatus,
-											Detail: &db.FixDetail{
-												Available: &db.FixAvailability{
-													Date: timeRef(time.Date(2020, 4, 8, 14, 30, 15, 0, time.UTC)),
-													Kind: "advisory",
-												},
-												References: []db.Reference{
-													{
-														ID:   "RHSA-2020:1341",
-														URL:  "https://access.redhat.com/errata/RHSA-2020:1341",
-														Tags: []string{db.AdvisoryReferenceTag},
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-						db.AffectedPackageHandle{
-							OperatingSystem: rhel8OS,
-							Package:         &db.Package{Ecosystem: "rpm", Name: "thunderbird"},
-							BlobValue: &db.PackageBlob{
-								Qualifiers: &db.PackageQualifiers{RpmModularity: strRef("")},
-								Ranges: []db.Range{
-									{
-										Version: db.Version{
-											Type:       "rpm",
-											Constraint: "< 0:68.7.0-1.el8_1",
-										},
-										Fix: &db.Fix{
-											Version: "0:68.7.0-1.el8_1",
-											State:   db.FixedStatus,
-											Detail: &db.FixDetail{
-												References: []db.Reference{
-													{
-														ID:   "RHSA-2020:1495",
-														URL:  "https://access.redhat.com/errata/RHSA-2020:1495",
-														Tags: []string{db.AdvisoryReferenceTag},
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					),
-				},
-			},
-		},
-		{
-			name:     "testdata/rhel-8-modules.json",
-			provider: "redhat",
-			want: []transformers.RelatedEntries{
-				{
-					VulnerabilityHandle: &db.VulnerabilityHandle{
-						Name:       "CVE-2020-14350",
-						ProviderID: "redhat",
-						Provider:   expectedProvider("redhat"),
-						Status:     "active",
-						BlobValue: &db.VulnerabilityBlob{
-							ID:          "CVE-2020-14350",
-							Description: "A flaw was found in PostgreSQL, where some PostgreSQL extensions did not use the search_path safely in their installation script. This flaw allows an attacker with sufficient privileges to trick an administrator into executing a specially crafted script during the extension's installation or update. The highest threat from this vulnerability is to confidentiality, integrity, as well as system availability.",
-							References: []db.Reference{
-								{
-									URL: "https://access.redhat.com/security/cve/CVE-2020-14350",
-								},
-							},
-							Severities: []db.Severity{
-								{
-									Scheme: db.SeveritySchemeCHMLN,
-									Value:  "medium",
-									Rank:   1,
-								},
-								{
-									Scheme: db.SeveritySchemeCVSS,
-									Value: db.CVSSSeverity{
-										Vector:  "CVSS:3.1/AV:N/AC:H/PR:L/UI:R/S:U/C:H/I:H/A:H",
-										Version: "3.1",
-									},
-									Rank: 2,
-								},
-							},
-						},
-					},
-					Related: affectedPkgSlice(
-						db.AffectedPackageHandle{
-							OperatingSystem: rhel8OS,
-							Package:         &db.Package{Ecosystem: "rpm", Name: "postgresql"},
-							BlobValue: &db.PackageBlob{
-								Qualifiers: &db.PackageQualifiers{
-									RpmModularity: strRef("postgresql:10"),
-								},
-								Ranges: []db.Range{
-									{
-										Version: db.Version{
-											Type:       "rpm",
-											Constraint: "< 0:10.14-1.module+el8.2.0+7801+be0fed80",
-										},
-										Fix: &db.Fix{
-											Version: "0:10.14-1.module+el8.2.0+7801+be0fed80",
-											State:   db.FixedStatus,
-											Detail: &db.FixDetail{
-												References: []db.Reference{
-													{
-														ID:   "RHSA-2020:3669",
-														URL:  "https://access.redhat.com/errata/RHSA-2020:3669",
-														Tags: []string{db.AdvisoryReferenceTag},
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-						db.AffectedPackageHandle{
-							OperatingSystem: rhel8OS,
-							Package:         &db.Package{Ecosystem: "rpm", Name: "postgresql"},
-							BlobValue: &db.PackageBlob{
-								Qualifiers: &db.PackageQualifiers{
-									RpmModularity: strRef("postgresql:12"),
-								},
-								Ranges: []db.Range{
-									{
-										Version: db.Version{
-											Type:       "rpm",
-											Constraint: "< 0:12.5-1.module+el8.3.0+9042+664538f4",
-										},
-										Fix: &db.Fix{
-											Version: "0:12.5-1.module+el8.3.0+9042+664538f4",
-											State:   db.FixedStatus,
-											Detail: &db.FixDetail{
-												References: []db.Reference{
-													{
-														ID:   "RHSA-2020:5620",
-														URL:  "https://access.redhat.com/errata/RHSA-2020:5620",
-														Tags: []string{db.AdvisoryReferenceTag},
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-						db.AffectedPackageHandle{
-							OperatingSystem: rhel8OS,
-							Package:         &db.Package{Ecosystem: "rpm", Name: "postgresql"},
-							BlobValue: &db.PackageBlob{
-								Qualifiers: &db.PackageQualifiers{
-									RpmModularity: strRef("postgresql:9.6"),
-								},
-								Ranges: []db.Range{
-									{
-										Version: db.Version{
-											Type:       "rpm",
-											Constraint: "< 0:9.6.20-1.module+el8.3.0+8938+7f0e88b6",
-										},
-										Fix: &db.Fix{
-											Version: "0:9.6.20-1.module+el8.3.0+8938+7f0e88b6",
-											State:   db.FixedStatus,
-											Detail: &db.FixDetail{
-												References: []db.Reference{
-													{
-														ID:   "RHSA-2020:5619",
-														URL:  "https://access.redhat.com/errata/RHSA-2020:5619",
-														Tags: []string{db.AdvisoryReferenceTag},
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					),
-				},
-			},
-		},
-		{
 			name:     "testdata/fedora-39.json",
 			provider: "fedora",
 			want: []transformers.RelatedEntries{
@@ -1249,85 +1014,6 @@ func TestTransform(t *testing.T) {
 				},
 			},
 		},
-		{
-			name:     "testdata/rhel-8-not-affected.json",
-			provider: "rhel",
-			want: []transformers.RelatedEntries{
-				{
-					VulnerabilityHandle: &db.VulnerabilityHandle{
-						Name:       "CVE-2020-99999",
-						Status:     "active",
-						ProviderID: "rhel",
-						Provider:   expectedProvider("rhel"),
-						BlobValue: &db.VulnerabilityBlob{
-							ID:          "CVE-2020-99999",
-							Description: "Test vulnerability with a not-affected package and an affected package.",
-							References: []db.Reference{
-								{URL: "https://access.redhat.com/security/cve/CVE-2020-99999"},
-							},
-							Severities: []db.Severity{
-								{
-									Scheme: db.SeveritySchemeCHMLN,
-									Value:  "medium",
-									Rank:   1,
-								},
-								{
-									Scheme: db.SeveritySchemeCVSS,
-									Value: db.CVSSSeverity{
-										Vector:  "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H",
-										Version: "3.1",
-									},
-									Rank: 2,
-								},
-							},
-						},
-					},
-					Related: append(
-						affectedPkgSlice(
-							db.AffectedPackageHandle{
-								OperatingSystem: rhel8OS,
-								Package:         &db.Package{Ecosystem: "rpm", Name: "firefox"},
-								BlobValue: &db.PackageBlob{
-									Qualifiers: &db.PackageQualifiers{RpmModularity: strRef("")},
-									Ranges: []db.Range{
-										{
-											Version: db.Version{Type: "rpm", Constraint: "< 0:68.6.1-1.el8_1"},
-											Fix: &db.Fix{
-												Version: "0:68.6.1-1.el8_1",
-												State:   db.FixedStatus,
-												Detail: &db.FixDetail{
-													References: []db.Reference{
-														{
-															ID:   "RHSA-2020:1341",
-															URL:  "https://access.redhat.com/errata/RHSA-2020:1341",
-															Tags: []string{db.AdvisoryReferenceTag},
-														},
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-						),
-						unaffectedPkgSlice(
-							db.UnaffectedPackageHandle{
-								OperatingSystem: rhel8OS,
-								Package:         &db.Package{Ecosystem: "rpm", Name: "ghostscript"},
-								BlobValue: &db.PackageBlob{
-									Ranges: []db.Range{
-										{
-											Version: db.Version{Type: "rpm"},
-											Fix:     &db.Fix{State: db.NotAffectedFixStatus},
-										},
-									},
-								},
-							},
-						)...,
-					),
-				},
-			},
-		},
 	}
 
 	for _, test := range tests {
@@ -1417,6 +1103,21 @@ func TestGetOperatingSystem(t *testing.T) {
 				Channel:      "eus",
 			},
 		},
+		{
+			name:      "includes channel (ubuntu esm), preserves zero-padded minor",
+			osName:    "ubuntu",
+			osID:      "ubuntu",
+			osVersion: "22.04",
+			channel:   "esm",
+			expected: &db.OperatingSystem{
+				Name:         "ubuntu",
+				ReleaseID:    "ubuntu",
+				MajorVersion: "22",
+				MinorVersion: "04",
+				Codename:     "jammy",
+				Channel:      "esm",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -1504,6 +1205,16 @@ func TestGetOSInfo(t *testing.T) {
 				id:      "rhel",
 				version: "8",
 				channel: "eus",
+			},
+		},
+		{
+			name:  "ubuntu + esm",
+			group: "ubuntu:22.04+esm",
+			expected: osInfo{
+				name:    "ubuntu",
+				id:      "ubuntu",
+				version: "22.04",
+				channel: "esm",
 			},
 		},
 	}

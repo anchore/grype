@@ -588,3 +588,40 @@ func Test_applyChannelsToDistro(t *testing.T) {
 		})
 	}
 }
+
+func Test_shouldWarnMissingGoSymbols(t *testing.T) {
+	goBinaryWithSymbols := Package{Metadata: GolangBinMetadata{Symbols: map[string][]string{"main": {"main"}}}}
+	goBinaryWithoutSymbols := Package{Metadata: GolangBinMetadata{}}
+	nonGoPackage := Package{}
+
+	tests := []struct {
+		name string
+		pkgs []Package
+		want bool
+	}{
+		{
+			name: "no packages",
+			want: false,
+		},
+		{
+			name: "no go binary packages",
+			pkgs: []Package{nonGoPackage},
+			want: false,
+		},
+		{
+			name: "at least one go binary carries symbols does not warn",
+			pkgs: []Package{goBinaryWithoutSymbols, goBinaryWithSymbols, nonGoPackage},
+			want: false,
+		},
+		{
+			name: "go binaries present but none carry symbols warns",
+			pkgs: []Package{goBinaryWithoutSymbols, goBinaryWithoutSymbols, nonGoPackage},
+			want: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, shouldWarnMissingGoSymbols(tt.pkgs))
+		})
+	}
+}

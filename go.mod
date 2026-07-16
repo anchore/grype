@@ -18,7 +18,6 @@ require (
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.2.0
 	github.com/anchore/stereoscope v0.2.2
-	github.com/anchore/syft v1.46.0
 	github.com/aquasecurity/go-pep440-version v0.0.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/bitnami/go-version v0.0.0-20250505154626-452e8c5ee607
@@ -48,7 +47,7 @@ require (
 	github.com/iancoleman/strcase v0.3.0
 	github.com/invopop/jsonschema v0.14.0
 	github.com/jinzhu/copier v0.4.0
-	github.com/klauspost/compress v1.18.6
+	github.com/klauspost/compress v1.19.0
 	github.com/knqyf263/go-apk-version v0.0.0-20200609155635-041fdbb8563f
 	github.com/knqyf263/go-deb-version v0.0.0-20241115132648-6f4aee6ccd23
 	github.com/masahiro331/go-mvn-version v0.0.0-20250131095131-f4974fa13b8a
@@ -71,14 +70,15 @@ require (
 	github.com/wagoodman/go-progress v0.0.0-20260303201901-10176f79b2c0
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f
-	golang.org/x/text v0.38.0
+	golang.org/x/text v0.39.0
 	golang.org/x/time v0.15.0
-	golang.org/x/tools v0.46.0
+	golang.org/x/tools v0.47.0
 	gopkg.in/yaml.v3 v3.0.1
-	gorm.io/gorm v1.31.1
+	gorm.io/gorm v1.31.2
 )
 
 require (
+	github.com/anchore/syft v1.46.1-0.20260713204016-f6b5d3e736b8
 	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
 )
@@ -339,8 +339,9 @@ require (
 	google.golang.org/grpc v1.80.0 // indirect
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	modernc.org/libc v1.72.3 // indirect
+	howett.net/plist v1.0.1 // indirect
+	modernc.org/libc v1.73.4 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
-	modernc.org/sqlite v1.51.0 // indirect
+	modernc.org/sqlite v1.53.0 // indirect
 )

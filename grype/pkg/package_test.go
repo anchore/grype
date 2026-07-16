@@ -263,13 +263,37 @@ func TestNew(t *testing.T) {
 					InstalledSize: 1,
 				},
 			},
+			metadata: ApkMetadata{
+				Files: []ApkFileRecord{},
+				Arch:  "a",
+			},
 			upstreams: []UpstreamPackage{
 				{
 					Name: "libcurl",
 				},
 			},
-			// no file records and grype's apk model carries nothing else, so metadata
-			// is nil rather than an empty struct (the upstream is still parsed out).
+		},
+		{
+			name: "apk with architecture only",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.ApkDBEntry{
+					Architecture: "amd64",
+				},
+			},
+			metadata: ApkMetadata{
+				Files: []ApkFileRecord{},
+				Arch:  "amd64",
+			},
+		},
+		{
+			name: "apk with no architecture or files",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.ApkDBEntry{
+					Package: "some-pkg",
+					Version: "1.0.0",
+				},
+			},
+			// neither architecture nor files: metadata is nil
 		},
 		// the below packages are those that have no metadata or upstream info to parse out
 		{
@@ -976,6 +1000,48 @@ func TestNew(t *testing.T) {
 						"key1": "value1",
 					},
 					MetadataKeyValuesHash: "f00bar123",
+				},
+			},
+		},
+		{
+			name: "apple-app-bundle-entry",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.AppleAppBundleEntry{
+					BundleIdentifier:     "com.apple.Safari",
+					Name:                 "Safari",
+					DisplayName:          "Safari",
+					Executable:           "Safari",
+					ShortVersion:         "17.0",
+					Version:              "17600.1.1",
+					PackageType:          "APPL",
+					SupportedPlatforms:   []string{"MacOSX"},
+					MinimumSystemVersion: "14.0",
+					MinimumOSVersion:     "14.0",
+					Copyright:            "Copyright © 2024 Apple Inc.",
+					PlatformName:         "macosx",
+					SDKName:              "macosx14.0",
+				},
+			},
+		},
+		{
+			name: "vcpkg-manifest",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.VcpkgManifest{
+					Description:   []string{"Test package"},
+					Documentation: "https://example.com/docs",
+					FullVersion:   "1.2.3#1",
+					Version:       "1.2.3",
+					PortVersion:   1,
+					Maintainers:   []string{"maintainer1"},
+					Name:          "test-package",
+					Supports:      "!windows",
+					Registry: &syftPkg.VcpkgRegistryEntry{
+						Baseline:   "abc123",
+						Kind:       syftPkg.Git,
+						Packages:   []string{"test-package"},
+						Repository: "https://github.com/microsoft/vcpkg",
+					},
+					Triplet: "x64-linux",
 				},
 			},
 		},
