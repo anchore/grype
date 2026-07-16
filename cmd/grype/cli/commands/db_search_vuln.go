@@ -85,8 +85,9 @@ func runDBSearchVulnerabilities(opts dbSearchVulnerabilityOptions) error {
 	}
 
 	rows, err := dbsearch.FindVulnerabilities(reader, dbsearch.VulnerabilitiesOptions{
-		Vulnerability: opts.Vulnerability.Specs,
-		RecordLimit:   opts.Bounds.RecordLimit,
+		Vulnerability:  opts.Vulnerability.Specs,
+		RecordLimit:    opts.Bounds.RecordLimit,
+		IncludeAliases: opts.Vulnerability.IncludeAliases,
 	})
 	if err != nil {
 		return err
