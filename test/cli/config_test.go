@@ -169,6 +169,66 @@ func Test_configLoading(t *testing.T) {
 	}
 }
 
+func Test_minSeverityConfig(t *testing.T) {
+	tests := []struct {
+		name        string
+		configValue string
+		envValue    string
+		expected    string
+	}{
+		{
+			name: "unset",
+		},
+		{
+			name:        "yaml configuration",
+			configValue: "low",
+			expected:    "low",
+		},
+		{
+			name:     "environment configuration",
+			envValue: "MeDiUm",
+			expected: "MeDiUm",
+		},
+		{
+			name:        "environment overrides YAML",
+			configValue: "low",
+			envValue:    "medium",
+			expected:    "medium",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpDir := t.TempDir()
+			cfgPath := filepath.Join(tmpDir, ".grype.yaml")
+			configContents := "check-for-app-update: false\n"
+			if tt.configValue != "" {
+				configContents += "min-severity: " + tt.configValue + "\n"
+			}
+			require.NoError(t, os.WriteFile(cfgPath, []byte(configContents), 0644))
+
+			env := map[string]string{
+				"HOME":            tmpDir,
+				"XDG_CONFIG_HOME": tmpDir,
+			}
+			if tt.envValue != "" {
+				env["GRYPE_MIN_SEVERITY"] = tt.envValue
+			}
+
+			args := []string{"-c", cfgPath, "config", "--load"}
+
+			_, stdout, stderr := runGrype(t, env, args...)
+			require.Empty(t, stderr)
+
+			var got struct {
+				MinSeverity string `yaml:"min-severity"`
+			}
+			require.NoError(t, yaml.NewDecoder(strings.NewReader(stdout)).Decode(&got))
+			assert.Equal(t, tt.expected, got.MinSeverity)
+		})
+	}
+}
+
 func Test_dpkgUseCPEsForEOLEnvVar(t *testing.T) {
 	// Test that GRYPE_MATCH_DPKG_USE_CPES_FOR_EOL env var is properly wired up
 	type matchConfig struct {

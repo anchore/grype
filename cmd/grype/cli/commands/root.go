@@ -262,6 +262,7 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 	if err != nil {
 		return fmt.Errorf("failed to create document: %w", err)
 	}
+	filterDocumentByMinSeverity(&model, opts.MinSeverityThreshold())
 
 	if err = writer.Write(models.PresenterConfig{
 		ID:       app.ID(),
