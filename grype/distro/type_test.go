@@ -127,6 +127,14 @@ func TestTypeFromRelease(t *testing.T) {
 			},
 			want: Scientific,
 		},
+		{
+			name: "amazon_linux alias",
+			release: linux.Release{
+				ID:        "amazon_linux",
+				VersionID: "2",
+			},
+			want: AmazonLinux,
+		},
 	}
 
 	for _, tt := range tests {
