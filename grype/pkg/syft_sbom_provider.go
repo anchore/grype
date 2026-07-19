@@ -47,6 +47,7 @@ func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func
 		Source:                &src,
 		Distro:                d,
 		DistroDetectionFailed: distroDetectionFailed,
+		IsRapidFortImage:      hasRapidFortMarkerInSBOM(s),
 	}, s, nil
 }
 
@@ -69,6 +70,7 @@ func syftSBOMProviderFromReader(reader io.ReadSeeker, config ProviderConfig, app
 		Source:                &src,
 		Distro:                d,
 		DistroDetectionFailed: distroDetectionFailed,
+		IsRapidFortImage:      hasRapidFortMarkerInSBOM(s),
 	}, s, nil
 }
 

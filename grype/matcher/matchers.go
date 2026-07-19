@@ -59,7 +59,7 @@ func NewDefaultMatchers(mc Config) []match.Matcher {
 }
 
 func ApplySelectionPolicy(matchers []match.Matcher, ctx pkg.Context) []match.Matcher {
-	if !rapidfort.IsRapidFortImage(ctx.Source) {
+	if !rapidfort.IsRapidFortImage(ctx) {
 		return matchers
 	}
 

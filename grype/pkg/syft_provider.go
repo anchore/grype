@@ -35,11 +35,24 @@ func syftProvider(userInput string, config ProviderConfig, applyChannel func(*di
 
 	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
+	// Detect a RapidFort-curated image via the marker file. The source's
+	// resolver must be queried before the deferred close runs; resolver-
+	// acquisition errors are treated as "not RapidFort" (log-and-continue),
+	// so this check never blocks a scan.
+	isRapidFortImage := false
+	resolver, resolverErr := src.FileResolver(config.SBOMOptions.Search.Scope)
+	if resolverErr != nil {
+		log.WithFields("error", resolverErr).Trace("unable to acquire file resolver for RapidFort marker check")
+	} else {
+		isRapidFortImage = hasRapidFortMarkerInResolver(resolver)
+	}
+
 	packages := FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig)
 	pkgCtx := Context{
 		Source:                &srcDescription,
 		Distro:                d,
 		DistroDetectionFailed: distroDetectionFailed,
+		IsRapidFortImage:      isRapidFortImage,
 	}
 
 	return packages, pkgCtx, s, nil

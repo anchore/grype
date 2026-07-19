@@ -57,6 +57,7 @@ func zarfProvider(userInput string, config ProviderConfig, applyChannel func(*di
 				Path: archivePath,
 			},
 		},
+		IsRapidFortImage: hasRapidFortMarkerInSBOM(s),
 	}
 
 	return packages, ctx, s, nil
