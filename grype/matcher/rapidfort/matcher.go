@@ -176,7 +176,7 @@ func (m *Matcher) matchPackageByDistro(store vulnerability.Provider, searchPkg p
 		matches = append(matches, match.Match{
 			Vulnerability: vuln,
 			Package:       matchPackage(searchPkg, catalogPkg),
-			Details:       distroMatchDetails(m.Type(), ty, searchPkg, catalogPkg, vuln),
+			Details:       distroMatchDetails(m.Type(), ty, searchPkg, vuln),
 		})
 	}
 
@@ -223,13 +223,13 @@ func advisoryID(advisory vulnerability.Advisory) string {
 func installedReleaseIdentifier(p pkg.Package) string {
 	version := strings.ToLower(strings.TrimSpace(p.Version))
 
-	if id := fedoraReleaseID(p, version); id != "" {
+	if id := fedoraReleaseID(version); id != "" {
 		return id
 	}
-	if id := rfReleaseID(p, version); id != "" {
+	if id := rfReleaseID(version); id != "" {
 		return id
 	}
-	if id := rhelReleaseID(p, version); id != "" {
+	if id := rhelReleaseID(version); id != "" {
 		return id
 	}
 	if id := rfNameReleaseID(p); id != "" {
@@ -239,7 +239,7 @@ func installedReleaseIdentifier(p pkg.Package) string {
 	return ""
 }
 
-func fedoraReleaseID(p pkg.Package, version string) string {
+func fedoraReleaseID(version string) string {
 	if !fedoraReleasePattern.MatchString(version) {
 		return ""
 	}
@@ -253,7 +253,7 @@ func fedoraReleaseID(p pkg.Package, version string) string {
 	return id
 }
 
-func rfReleaseID(p pkg.Package, version string) string {
+func rfReleaseID(version string) string {
 	if !rfReleasePattern.MatchString(version) {
 		return ""
 	}
@@ -261,7 +261,7 @@ func rfReleaseID(p pkg.Package, version string) string {
 	return "rf"
 }
 
-func rhelReleaseID(p pkg.Package, version string) string {
+func rhelReleaseID(version string) string {
 	if !rhelReleasePattern.MatchString(version) {
 		return ""
 	}
@@ -288,7 +288,7 @@ func matchPackage(searchPkg pkg.Package, catalogPkg *pkg.Package) pkg.Package {
 	return searchPkg
 }
 
-func distroMatchDetails(upstreamMatcher match.MatcherType, ty match.Type, searchPkg pkg.Package, catalogPkg *pkg.Package, vuln vulnerability.Vulnerability) []match.Detail {
+func distroMatchDetails(upstreamMatcher match.MatcherType, ty match.Type, searchPkg pkg.Package, vuln vulnerability.Vulnerability) []match.Detail {
 	return []match.Detail{
 		{
 			Type:    ty,
