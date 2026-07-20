@@ -128,10 +128,11 @@ func getGrypeUnaffectedRangesFromRange(r osvmodel.Range, rangeType string) []db.
 
 func normalizeConstraint(constraint string, rangeType string) string {
 	// Go versions are semver-shaped (with optional "v"/"go" prefix the parser
-	// strips); multi-window ranges built via versionutil.AndConstraints use
-	// space-separated form which the Go constraint parser rejects. Apply the
-	// same comma-separated normalization that semver/bitnami get.
-	if rangeType == "semver" || rangeType == "bitnami" || rangeType == "go" {
+	// strips); apk versions are compared by the same generic constraint parser.
+	// Multi-window ranges built via versionutil.AndConstraints use space-
+	// separated form, which those parsers reject. Apply the same comma-separated
+	// normalization that semver/bitnami get.
+	if rangeType == "semver" || rangeType == "bitnami" || rangeType == "go" || rangeType == "apk" {
 		return versionutil.EnforceSemVerConstraint(constraint)
 	}
 	return constraint
