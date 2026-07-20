@@ -311,6 +311,24 @@ func Test_PurlProvider(t *testing.T) {
 			},
 		},
 		{
+			name:      "include subpath in name when purl is type Golang",
+			userInput: "pkg:golang/github.com/hashicorp/vault@v0.9.0#api/auth/kubernetes",
+			channels:  testFixChannels(),
+			wantContext: Context{
+				Source: &source.Description{
+					Metadata: PURLLiteralMetadata{PURL: "pkg:golang/github.com/hashicorp/vault@v0.9.0#api/auth/kubernetes"},
+				},
+			},
+			wantPkgs: []*Package{
+				{
+					Name:    "github.com/hashicorp/vault/api/auth/kubernetes",
+					Version: "v0.9.0",
+					Type:    pkg.GoModulePkg,
+					PURL:    "pkg:golang/github.com/hashicorp/vault@v0.9.0#api/auth/kubernetes",
+				},
+			},
+		},
+		{
 			name:      "RPM with extended support (auto)",
 			userInput: "pkg:rpm/redhat/systemd-x@239-82.el8_10.2?distro=rhel-8.10+eus",
 			channels:  testFixChannels(), // important! auto applies EUS
