@@ -5,15 +5,16 @@ import (
 	"github.com/anchore/syft/syft/sbom"
 )
 
-// RapidFortMarkerPath is the absolute path of the marker file present on every
-// RapidFort-curated container image. Its presence unambiguously identifies an
-// image as RapidFort-curated and drives the RapidFort matcher selection in
-// matcher.ApplySelectionPolicy.
+// RapidFortMarkerPath is the absolute path of the marker file that the
+// RapidFort curation pipeline writes into every image it produces. Its presence
+// is treated as authoritative: if the file is there, the image is RapidFort-
+// curated and the RapidFort matcher takes over (see matcher.ApplySelectionPolicy).
 //
-// This constant is the single source of truth for RapidFort image detection;
-// prior versions of grype relied on the "maintainer" Docker label, which was
-// spoofable and coupled RapidFort identity to metadata rather than image
-// contents.
+// Why a file and not a label? A Docker label ("maintainer=RapidFort...") can be
+// added, altered, or stripped by any subsequent `docker build` step, and doesn't
+// require actual RapidFort tooling — it's cheap to spoof. The marker file, in
+// contrast, is written into a specific layer as part of the curation build; it
+// travels with the image contents rather than with mutable metadata.
 const RapidFortMarkerPath = "/usr/share/rapidfort/curated.json"
 
 // hasRapidFortMarkerInResolver reports whether the RapidFort curation marker

@@ -35,10 +35,15 @@ func syftProvider(userInput string, config ProviderConfig, applyChannel func(*di
 
 	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
-	// Detect a RapidFort-curated image via the marker file. The source's
-	// resolver must be queried before the deferred close runs; resolver-
-	// acquisition errors are treated as "not RapidFort" (log-and-continue),
-	// so this check never blocks a scan.
+	// Detect a RapidFort-curated image by checking the actual filesystem for the
+	// marker file (see pkg.RapidFortMarkerPath). This is the live-source path:
+	// the source handle above is still open here, and the deferred close at the
+	// top of the function runs on return — so we must resolve the marker before
+	// leaving this function. We deliberately avoid image labels (spoofable,
+	// stripped by rebuilds); a build-time marker file on disk is a stronger
+	// signal that the image was produced by the RapidFort curation pipeline.
+	// Resolver-acquisition errors are logged and treated as "not RapidFort" so
+	// this check never blocks a scan.
 	isRapidFortImage := false
 	resolver, resolverErr := src.FileResolver(config.SBOMOptions.Search.Scope)
 	if resolverErr != nil {
