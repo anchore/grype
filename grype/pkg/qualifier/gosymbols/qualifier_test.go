@@ -93,10 +93,10 @@ func TestGoSymbolsQualifier_Satisfied(t *testing.T) {
 			satisfied: true,
 		},
 		{
-			name:      "package without symbol evidence always satisfies",
+			name:      "package without symbol evidence does not satisfy when advisory is import-scoped",
 			imports:   []Import{{Path: "golang.org/x/net/websocket", Symbols: []string{"Dial"}}},
 			pkg:       noSymbolsPkg,
-			satisfied: true,
+			satisfied: false,
 		},
 		{
 			name:      "vulnerable function symbol present in binary",

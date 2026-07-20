@@ -26,14 +26,16 @@ func New(imports []Import) qualifier.Qualifier {
 	return &gosymbolsQualifier{imports: imports}
 }
 
-// Satisfied reports whether the package plausibly uses any of the vulnerable symbols. The check
-// only applies when the scanned package carries binary symbol evidence (go binaries cataloged with
-// symbol capture enabled); packages without symbol evidence always satisfy the qualifier so that
-// module-granularity matching behavior is preserved.
+// Satisfied reports whether the package plausibly uses any of the vulnerable symbols. When the
+// advisory carries import-scoped qualifiers (ecosystem_specific.imports), the package must carry
+// binary symbol evidence and use at least one of the listed imports or symbols. When symbol
+// evidence is absent and the advisory is import-scoped, the qualifier is not satisfied — this
+// avoids false positives for advisories that only affect specific sub-packages. Module-level
+// advisories (no imports) continue to match without symbol evidence.
 func (q *gosymbolsQualifier) Satisfied(p pkg.Package) (bool, error) {
 	matched, scoped := q.evaluate(p)
 	if !scoped {
-		// no symbol scoping (advisory lists no imports, or the package carries no symbol evidence):
+		// advisory has no imports — pure module-level advisory,
 		// preserve module-granularity matching
 		return true, nil
 	}
@@ -62,10 +64,11 @@ func MatchedSymbols(quals []qualifier.Qualifier, p pkg.Package) []string {
 
 // evaluate is the single source of truth for both the filter (Satisfied) and the report
 // (MatchedSymbols): it returns the sorted, de-duplicated set of fully-qualified vulnerable symbols
-// the package is found to use, plus whether symbol scoping applied at all. scoped is false when the
-// advisory references no imports or the package carries no symbol evidence — both fall back to
-// module-granularity matching. When scoped is true, a non-empty result means at least one vulnerable
-// symbol (or a whole-package import path) is present; empty means the package uses none of them.
+// the package is found to use, plus whether the advisory carries import scoping. scoped is true
+// when the advisory references imports (even if the package carries no symbol evidence — in that
+// case matched will be empty, causing Satisfied() to correctly filter out the vulnerability rather
+// than falling back to module-granularity matching). scoped is false only when the advisory has
+// no imports at all (pure module-level advisory).
 func (q *gosymbolsQualifier) evaluate(p pkg.Package) (matched []string, scoped bool) {
 	if len(q.imports) == 0 {
 		return nil, false
@@ -73,7 +76,11 @@ func (q *gosymbolsQualifier) evaluate(p pkg.Package) (matched []string, scoped b
 
 	present, ok := q.present(p)
 	if !ok {
-		return nil, false
+		// No symbol evidence available. If the advisory is import-scoped,
+		// treat as scoped so Satisfied() correctly reports no match rather
+		// than falling back to module-granularity matching, which would be
+		// a false positive for advisories that only affect sub-packages.
+		return nil, len(q.imports) > 0
 	}
 
 	seen := make(map[string]struct{})
@@ -110,8 +117,7 @@ func (q *gosymbolsQualifier) evaluate(p pkg.Package) (matched []string, scoped b
 // restricted to the import paths this advisory actually references (q.imports), plus whether such
 // evidence exists. Symbol names are already normalized to govulndb's convention at provision time
 // (see pkg.normalizeGoSymbols), so only lookup happens here. Packages without symbol evidence (not a
-// go binary, or cataloged without symbol capture) report ok=false so callers fall back to
-// module-granularity matching.
+// go binary, or cataloged without symbol capture) report ok=false.
 func (q *gosymbolsQualifier) present(p pkg.Package) (map[string]map[string]struct{}, bool) {
 	m, ok := p.Metadata.(pkg.GolangBinMetadata)
 	if !ok || len(m.Symbols) == 0 {
