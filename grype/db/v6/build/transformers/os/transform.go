@@ -161,9 +161,10 @@ func buildRanges(vuln unmarshal.OSVulnerability, fixedIns []unmarshal.OSFixedIn)
 
 // minorFix pairs a known fix minor with the fix build (Version) shipped for it.
 type minorFix struct {
-	minor    int
-	version  string
-	advisory string // RHSA id that shipped this build ("" when unknown); becomes the fix's reference
+	minor        int
+	version      string
+	advisory     string              // RHSA id that shipped this build ("" when unknown); becomes the fix's reference
+	availability *db.FixAvailability // fix date carried from the source fixedIn (nil when vunnel emitted none)
 }
 
 // expandRHELMinorRows implements the cumulative server-side stream-affinity expansion.
@@ -227,8 +228,17 @@ func expandRHELMinorRows(vuln unmarshal.OSVulnerability, group groupIndex, fixed
 			Version: versionutil.CleanFixedInVersion(maxFix.version),
 			State:   db.FixedStatus,
 		}
+		// carry both the RHSA reference and the source fix date onto the pinned per-minor fix;
+		// without the date, fail-on-missing-fix-date rejects the record at write time.
+		var refs []db.Reference
 		if ref := advisoryReference(maxFix.advisory); ref != nil {
-			fix.Detail = &db.FixDetail{References: []db.Reference{*ref}}
+			refs = []db.Reference{*ref}
+		}
+		if len(refs) > 0 || maxFix.availability != nil {
+			fix.Detail = &db.FixDetail{
+				Available:  maxFix.availability,
+				References: refs,
+			}
 		}
 		return []db.Range{{
 			Version: db.Version{
@@ -342,7 +352,7 @@ func collectKnownMinorFixes(fixedIns []unmarshal.OSFixedIn) ([]minorFix, string)
 			if adv.Minor == nil {
 				continue
 			}
-			knownByMinor[*adv.Minor] = minorFix{minor: *adv.Minor, version: adv.Version, advisory: adv.Advisory}
+			knownByMinor[*adv.Minor] = minorFix{minor: *adv.Minor, version: adv.Version, advisory: adv.Advisory, availability: getFixAvailability(f)}
 			versionFormat = f.VersionFormat
 		}
 	}
