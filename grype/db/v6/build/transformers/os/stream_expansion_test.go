@@ -121,6 +121,26 @@ func advisoryIDByMinor(t *testing.T, afs []db.AffectedPackageHandle, pkg string)
 	return out
 }
 
+// fixDateByMinor returns pkg's per-minor fix availability date (YYYY-MM-DD) keyed by OS minor
+// ("" = major fallback); "" when a row carries no fix date. This guards the
+// fail-on-missing-fix-date contract: every fixed row, pinned stream minors included, must
+// carry the date vunnel attached to the source fixedIn.
+func fixDateByMinor(t *testing.T, afs []db.AffectedPackageHandle, pkg string) map[string]string {
+	t.Helper()
+	out := map[string]string{}
+	for _, h := range afs {
+		if h.Package.Name != pkg {
+			continue
+		}
+		date := ""
+		if r := h.BlobValue.Ranges[0]; r.Fix != nil && r.Fix.Detail != nil && r.Fix.Detail.Available != nil && r.Fix.Detail.Available.Date != nil {
+			date = r.Fix.Detail.Available.Date.UTC().Format("2006-01-02")
+		}
+		out[h.OperatingSystem.MinorVersion] = date
+	}
+	return out
+}
+
 // assertCopiedToAllMinors asserts pkg was fixed at the same evr on every materialized minor
 // row and the major-only fallback -- i.e. a single fix copied verbatim across the whole span.
 func assertCopiedToAllMinors(t *testing.T, afs []db.AffectedPackageHandle, pkg, evr string) {
@@ -221,6 +241,31 @@ func Test_MultiRHSAsAssignedToCorrectMinors(t *testing.T) {
 		ref := h.BlobValue.Ranges[0].Fix.Detail.References[0]
 		assert.Equal(t, "https://access.redhat.com/errata/"+ref.ID, ref.URL)
 		assert.Contains(t, ref.Tags, db.AdvisoryReferenceTag)
+	}
+}
+
+// Test_MultiRHSAFixDateCarriedToAllMinors: the fix date vunnel attaches to a fixedIn must be
+// carried onto EVERY materialized minor row -- including the pinned per-stream minors, which
+// build their own db.Fix during expansion. Before the fix those pinned rows carried only the
+// RHSA reference and no date, so a downstream writer with fail-on-missing-fix-date rejected
+// them ("missing fix date for version ..."). This is the regression guard for that.
+//
+// Real data shape: RHEL 10 CVE-2024-28956 (kernel), a per-minor stream fix on 10.1 with an
+// observed fix date on the source record.
+func Test_MultiRHSAFixDateCarriedToAllMinors(t *testing.T) {
+	fixed := rhelFixed("rhel:9", "kernel", "0:5.14.0-362.8.1.el9_3",
+		streamAdvisory("RHSA-2022:8267", "0:5.14.0-162.6.1.el9_1", 1),
+		streamAdvisory("RHSA-2023:6583", "0:5.14.0-362.8.1.el9_3", 3),
+	)
+	fixed.Vulnerability.FixedIn[0].Available.Date = "2023-11-07"
+
+	afs, _ := getPackages(fixed)
+
+	// every minor -- the two pinned stream minors (1, 3) and every base-fix row -- carries the date.
+	byMinor := fixDateByMinor(t, afs, "kernel")
+	require.NotEmpty(t, byMinor)
+	for minor, date := range byMinor {
+		assert.Equal(t, "2023-11-07", date, "minor %q missing fix date", minor)
 	}
 }
 
