@@ -8,28 +8,28 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-// TestMatcherGolang_GoSymbols_GHSATwinBypass documents a WEAK POINT in the
+// TestMatcherGolang_GoSymbols_GHSATwinBypass guards a fixed WEAK POINT in the
 // build-time govulndb<->GHSA merge (grype/db/v6/build/govulndb_merge.go): when a
-// GO-* record does not directly alias its GHSA twin, the symbol scope never
-// reaches the GHSA record, so the GHSA matches at plain module granularity and
-// reproduces exactly the false positives the gosymbols feature exists to remove.
+// GO-* record does not directly alias its GHSA twin, the symbol scope must still
+// reach the GHSA record via the shared CVE, so the GHSA does not match at plain
+// module granularity and reproduce exactly the false positives the gosymbols
+// feature exists to remove.
 //
-// These tests assert the CORRECT (idealic) behavior and are EXPECTED TO FAIL on
-// the current build until the merge bridges GO and GHSA by their shared CVE (or
-// the qualifier is applied across an advisory's whole alias group). Do not
-// "fix" them by weakening the assertion — they should be made to pass by fixing
-// the merge.
+// The merge now bridges GO and GHSA by shared CVE (buildCVEIndex +
+// aliasedGHSAKeys), so these assert the CORRECT behavior and pass. Do not
+// "fix" a future regression by weakening the assertion — keep the merge
+// bridging the whole alias group.
 //
-// Root cause (confirmed against real data):
-//   - handleEntry() derives the GHSA records to patch from ghsaAliasKeys(), which
-//     reads only GHSA-prefixed aliases off the GO record's own alias list.
+// Root cause that was fixed (confirmed against real data):
+//   - handleEntry() derived the GHSA records to patch from GHSA-prefixed aliases
+//     off the GO record's own alias list only.
 //   - Recent govulndb records for golang.org/x/crypto/ssh alias ONLY the CVE, not
 //     the GHSA, e.g. GO-2026-5013 -> ["CVE-2026-46597"] and
-//     GO-2026-5005 -> ["CVE-2026-39833"]. GO-2024-3321 is the exception that
-//     merges cleanly because it happens to also list "GHSA-v778-237x-gjrc".
-//   - The GHSA twin still lands in the DB via the github feed (CVE-linked), is
-//     held by the merger (hasGoModulePackages), but no GO record names it, so it
-//     is written UNPATCHED at module level.
+//     GO-2026-5005 -> ["CVE-2026-39833"]. GO-2024-3321 merged cleanly only
+//     because it happens to also list "GHSA-v778-237x-gjrc".
+//   - The GHSA twin lands in the DB via the github feed (CVE-linked) and is held
+//     by the merger (hasGoModulePackages); with no GO record naming it directly
+//     it was written UNPATCHED at module level until the CVE bridge.
 //
 // Empirical proof: a binary linking only golang.org/x/crypto/sha3 - with
 // nothing from the vulnerable ssh sub-package reachable - still drew 14
@@ -44,8 +44,8 @@ import (
 //     id for this CVE is not needed to exercise the merge weak point.)
 func TestMatcherGolang_GoSymbols_GHSATwinBypass(t *testing.T) {
 	const (
-		sshPanicGo   = "GO-2026-5013"        // scoped to x/crypto/ssh; aliases only CVE-2026-46597 (no GHSA)
-		sshPanicGHSA = "GHSA-46q7-xr5m-cr77" // x/crypto module-level twin, CVE-linked only -> never symbol-patched
+		sshPanicGo   = "GO-2026-5013"        // scoped to x/crypto/ssh; aliases only CVE-2026-46597 (no GHSA) -> now covered by the twin and dropped
+		sshPanicGHSA = "GHSA-46q7-xr5m-cr77" // x/crypto module-level twin, CVE-linked only -> symbol-patched via the CVE bridge
 	)
 
 	// a version inside both the GO record's (< 0.35.0) and GHSA's (< 0.35.0) windows.
@@ -57,9 +57,9 @@ func TestMatcherGolang_GoSymbols_GHSATwinBypass(t *testing.T) {
 		t.Run("x/crypto binary using only sha3 must not match the ssh advisory via EITHER namespace", func(t *testing.T) {
 			// the sha3-only reproduction: links golang.org/x/crypto but never the
 			// vulnerable ssh sub-package, so nothing vulnerable is reachable.
-			// The GO record is correctly suppressed (ssh import absent); the ideal
-			// result is no match at all. Today the unpatched GHSA twin matches at
-			// module granularity -> this assertion FAILS, exposing the bypass.
+			// The GO record is correctly suppressed (ssh import absent), and the
+			// GHSA twin now carries the same ssh scope via the CVE bridge, so
+			// neither namespace matches.
 			p := dbtest.NewPackage("golang.org/x/crypto", vulnerableXCryptoVersion, syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
 				WithGoBinarySymbols(map[string][]string{
@@ -69,17 +69,19 @@ func TestMatcherGolang_GoSymbols_GHSATwinBypass(t *testing.T) {
 
 			findings := db.Match(t, matcher, p)
 
-			// ideal: a binary that never links the vulnerable ssh sub-package
-			// matches nothing. Today the unpatched GHSA twin matches at module
-			// granularity, so this FAILS with GHSA-46q7-xr5m-cr77 present.
+			// a binary that never links the vulnerable ssh sub-package matches
+			// nothing: the GHSA twin is symbol-scoped by the merge, so it no longer
+			// leaks at module granularity.
 			findings.IsEmpty()
 		})
 
 		t.Run("x/crypto binary using ssh still matches (positive control)", func(t *testing.T) {
 			// genuinely links the vulnerable golang.org/x/crypto/ssh package, so it
-			// SHOULD be flagged. Both namespaces firing is correct here: the GO
-			// record matches on the ssh import, and the GHSA twin also matches. This
-			// passes today and guards against a fix that over-suppresses real users.
+			// SHOULD be flagged. Once the merge bridges GO->GHSA by shared CVE the
+			// GHSA twin is symbol-patched and the GO record's x/crypto package is
+			// covered, so the GO record is dropped and the scoped GHSA is the only
+			// match - the same dedup every clean-merge case produces (gjson, lxd,
+			// aws-sdk-go). This guards against a fix that over-suppresses real users.
 			p := dbtest.NewPackage("golang.org/x/crypto", vulnerableXCryptoVersion, syftPkg.GoModulePkg).
 				WithLanguage(syftPkg.Go).
 				WithGoBinarySymbols(map[string][]string{
@@ -89,7 +91,7 @@ func TestMatcherGolang_GoSymbols_GHSATwinBypass(t *testing.T) {
 
 			findings := db.Match(t, matcher, p)
 
-			findings.SelectMatch(sshPanicGo).SelectDetailByType(match.ExactDirectMatch).AsEcosystemSearch()
+			// the covered GO record is dropped; the symbol-scoped GHSA twin matches.
 			findings.SelectMatch(sshPanicGHSA).SelectDetailByType(match.ExactDirectMatch).AsEcosystemSearch()
 		})
 	})
