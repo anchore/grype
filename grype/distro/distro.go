@@ -66,7 +66,7 @@ func parseVersion(version string) (major, minor, remaining, versionWithoutSuffix
 	version = strings.TrimPrefix(version, "v")
 
 	// if starts with a digit, then assume it's a version and extract the major, minor, and remaining versions
-	if version[0] >= '0' && version[0] <= '9' {
+	if len(version) > 0 && version[0] >= '0' && version[0] <= '9' {
 		// extract the major, minor, and remaining versions
 		parts := strings.Split(version, ".")
 		if len(parts) > 0 {
