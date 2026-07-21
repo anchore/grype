@@ -17,8 +17,8 @@
 #   - GO-2023-1840 (stdlib-only, whole-package) has no GHSA alias and passes
 #     through unchanged.
 #   - GO-2022-0635 aliases GHSA-7f33-f4f5-xwgw for github.com/aws/aws-sdk-go:
-#     the govulndb range is open-ended (introduced: 0, no fix — govulncheck
-#     flags every version) while the GHSA bounds it at < 1.34.0. The merged
+#     the govulndb range is open-ended (introduced: 0, no fix, so it would
+#     flag every version) while the GHSA bounds it at < 1.34.0. The merged
 #     record has the GHSA's bounded range AND the govulndb s3crypto symbols,
 #     eliminating both false-positive classes.
 #   - GO-2024-3312 aliases GHSA-4c49-9fpc-hc3v for github.com/canonical/lxd:
@@ -43,6 +43,12 @@
 #     is not the merge's call). The 9.6.0b1 bound is malformed to the golang
 #     comparator and its range is inert; this is a known FN tracked in the
 #     custom_ranges odd-version-strings follow-up issue.
+#   - GO-2026-5013 (golang.org/x/crypto, scoped to golang.org/x/crypto/ssh)
+#     aliases ONLY CVE-2026-46597 - no GHSA alias. Its CVE-linked twin
+#     GHSA-46q7-xr5m-cr77 (hand-authored, module-level x/crypto < 0.35.0) is held
+#     by the merger but never patched, because the merge bridges GO->GHSA by
+#     GHSA-id alias on the GO record, not by shared CVE. This models the observed
+#     GHSA-twin symbol-scope bypass (see gosymbols_ghsa_bypass_test.go).
 auto-generate: false
 extractions:
   govulndb:
@@ -53,6 +59,7 @@ extractions:
     - go-2024-3312
     - go-2021-0076
     - go-2025-3540
+    - go-2026-5013
   github:
     - github:go/GHSA-69cg-p879-7622
     - github:go/GHSA-c9gm-7rfj-8w5h
@@ -61,3 +68,4 @@ extractions:
     - github:go/GHSA-4c49-9fpc-hc3v
     - github:go/GHSA-gxhv-3hwf-wjp9
     - github:go/GHSA-92cp-5422-2mw7
+    - github:go/GHSA-46q7-xr5m-cr77
