@@ -12,6 +12,7 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli/commands"
+	"github.com/anchore/grype/cmd/grype/cli/internal/configwarn"
 	grypeHandler "github.com/anchore/grype/cmd/grype/cli/ui"
 	"github.com/anchore/grype/cmd/grype/internal/ui"
 	v6 "github.com/anchore/grype/grype/db/v6"
@@ -73,6 +74,10 @@ func SetupConfig(id clio.Identification) *clio.SetupConfig {
 				log.Set(state.Logger)
 				syft.SetLogger(state.Logger.Nested("from", "syft"))
 				stereoscope.SetLogger(state.Logger.Nested("from", "stereoscope"))
+
+				if path := configwarn.Detect(id.Name, os.Args, os.Getenv); path != "" {
+					state.Logger.Warnf("using configuration file from current directory: %s", path)
+				}
 
 				return nil
 			},
