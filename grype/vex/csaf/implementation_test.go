@@ -198,3 +198,219 @@ func Test_matchingRule(t *testing.T) {
 		})
 	}
 }
+
+func TestPackageMatchesStatement(t *testing.T) {
+	mkPkg := func(purl string) *pkg.Package {
+		return &pkg.Package{
+			Type: "go-module",
+			PURL: purl,
+		}
+	}
+
+	tests := []struct {
+		name     string
+		stmtPURL string
+		pkgPURL  string
+		status   status
+		want     bool
+	}{
+		// last_affected: ceiling
+		{"last_affected matches lower pkg version", "pkg:golang/golang.org/x/net@v0.54.0", "pkg:golang/golang.org/x/net@v0.53.0", lastAffected, true},
+		{"last_affected matches equal pkg version", "pkg:golang/golang.org/x/net@v0.53.0", "pkg:golang/golang.org/x/net@v0.53.0", lastAffected, true},
+		{"last_affected excludes higher pkg version", "pkg:golang/golang.org/x/net@v0.53.0", "pkg:golang/golang.org/x/net@v0.54.0", lastAffected, false},
+
+		// first_affected: floor
+		{"first_affected matches higher pkg version", "pkg:golang/golang.org/x/net@v0.50.0", "pkg:golang/golang.org/x/net@v0.53.0", firstAffected, true},
+		{"first_affected matches equal pkg version", "pkg:golang/golang.org/x/net@v0.53.0", "pkg:golang/golang.org/x/net@v0.53.0", firstAffected, true},
+		{"first_affected excludes lower pkg version", "pkg:golang/golang.org/x/net@v0.53.0", "pkg:golang/golang.org/x/net@v0.50.0", firstAffected, false},
+
+		// known_affected, recommended, under_investigation: exact
+		{"known_affected matches equal", "pkg:golang/golang.org/x/net@v0.53.0", "pkg:golang/golang.org/x/net@v0.53.0", knownAffected, true},
+		{"known_affected excludes lower", "pkg:golang/golang.org/x/net@v0.53.0", "pkg:golang/golang.org/x/net@v0.52.0", knownAffected, false},
+		{"recommended excludes lower", "pkg:golang/golang.org/x/net@v0.53.0", "pkg:golang/golang.org/x/net@v0.52.0", recommended, false},
+		{"under_investigation matches equal", "pkg:golang/golang.org/x/net@v0.53.0", "pkg:golang/golang.org/x/net@v0.53.0", underInvestigation, true},
+		{"under_investigation excludes lower", "pkg:golang/golang.org/x/net@v0.53.0", "pkg:golang/golang.org/x/net@v0.52.0", underInvestigation, false},
+
+		// wildcard (no statement version) matches any version regardless of status
+		{"wildcard last_affected matches any", "pkg:golang/golang.org/x/net", "pkg:golang/golang.org/x/net@v0.99.0", lastAffected, true},
+		{"wildcard known_affected matches any", "pkg:golang/golang.org/x/net", "pkg:golang/golang.org/x/net@v0.99.0", knownAffected, true},
+
+		// name / namespace / type mismatches
+		{"name mismatch excludes", "pkg:golang/golang.org/x/net@v0.53.0", "pkg:golang/golang.org/x/text@v0.53.0", lastAffected, false},
+		{"namespace mismatch excludes", "pkg:golang/golang.org/x/net@v0.53.0", "pkg:golang/example.com/x/net@v0.53.0", lastAffected, false},
+		{"type mismatch excludes", "pkg:golang/golang.org/x/net@v0.53.0", "pkg:npm/x-net@v0.53.0", lastAffected, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := packageMatchesStatement(tt.stmtPURL, mkPkg(tt.pkgPURL), tt.status)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestAugmentMatches_SynthesizesFromPackageCatalog(t *testing.T) {
+	const (
+		vulnID  = "CVE-2099-0001"
+		basePkg = "pkg:golang/golang.org/x/net@v0.53.0"
+	)
+
+	xNet := pkg.Package{
+		ID:      "deadbeefcafebabe",
+		Name:    "golang.org/x/net",
+		Version: "v0.53.0",
+		Type:    "go-module",
+		PURL:    basePkg,
+	}
+
+	mkAdv := func(stmtPURL string, statusKey status) *csaf.Advisory {
+		productID := csaf.ProductID("test-pkg")
+		cve := csaf.CVE(vulnID)
+		pvCat := csaf.CSAFBranchCategoryProductVersion
+		pvName := "1.0"
+		pnCat := csaf.CSAFBranchCategoryProductName
+		pnName := "Test"
+		productBranch := &csaf.Branch{
+			Category: &pvCat,
+			Name:     &pvName,
+			Product: &csaf.FullProductName{
+				Name:      &[]string{"test"}[0],
+				ProductID: &productID,
+				ProductIdentificationHelper: &csaf.ProductIdentificationHelper{
+					PURL: &[]csaf.PURL{csaf.PURL(stmtPURL)}[0],
+				},
+			},
+		}
+		rootBranch := &csaf.Branch{
+			Category: &pnCat,
+			Name:     &pnName,
+			Branches: csaf.Branches{productBranch},
+		}
+
+		ps := csaf.ProductStatus{}
+		products := csaf.Products{&productID}
+		switch statusKey {
+		case lastAffected:
+			ps.LastAffected = &products
+		case firstAffected:
+			ps.FirstAffected = &products
+		case knownAffected:
+			ps.KnownAffected = &products
+		case recommended:
+			ps.Recommended = &products
+		case underInvestigation:
+			ps.UnderInvestigation = &products
+		case fixed:
+			ps.Fixed = &products
+		case knownNotAffected:
+			ps.KnownNotAffected = &products
+		}
+
+		return &csaf.Advisory{
+			ProductTree: &csaf.ProductTree{
+				Branches: csaf.Branches{rootBranch},
+			},
+			Vulnerabilities: []*csaf.Vulnerability{{
+				CVE:           &cve,
+				ProductStatus: &ps,
+				Title:         &[]string{"test"}[0],
+			}},
+		}
+	}
+
+	tests := []struct {
+		name      string
+		stmtPURL  string
+		stmtStat  status
+		pkgs      []pkg.Package
+		wantSynth bool
+	}{
+		// last_affected: ceiling
+		{"last_affected synthesizes for lower pkg", "pkg:golang/golang.org/x/net@v0.55.0", lastAffected, []pkg.Package{xNet}, true},
+		{"last_affected synthesizes for equal pkg", "pkg:golang/golang.org/x/net@v0.53.0", lastAffected, []pkg.Package{xNet}, true},
+		{"last_affected skips for higher pkg", "pkg:golang/golang.org/x/net@v0.50.0", lastAffected, []pkg.Package{xNet}, false},
+
+		// first_affected: floor
+		{"first_affected synthesizes for higher pkg", "pkg:golang/golang.org/x/net@v0.50.0", firstAffected, []pkg.Package{xNet}, true},
+		{"first_affected skips for lower pkg", "pkg:golang/golang.org/x/net@v0.99.0", firstAffected, []pkg.Package{xNet}, false},
+
+		// known_affected: exact
+		{"known_affected synthesizes for equal pkg", "pkg:golang/golang.org/x/net@v0.53.0", knownAffected, []pkg.Package{xNet}, true},
+		{"known_affected skips for lower pkg", "pkg:golang/golang.org/x/net@v0.55.0", knownAffected, []pkg.Package{xNet}, false},
+
+		// fixed/known_not_affected: must not synthesize
+		{"fixed does not synthesize", "pkg:golang/golang.org/x/net@v0.53.0", fixed, []pkg.Package{xNet}, false},
+		{"known_not_affected does not synthesize", "pkg:golang/golang.org/x/net@v0.53.0", knownNotAffected, []pkg.Package{xNet}, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			advs := advisories{mkAdv(tt.stmtPURL, tt.stmtStat)}
+			matches := match.NewMatches()
+
+			processor := &Processor{}
+			out, _, err := processor.AugmentMatches(advs, nil, nil, tt.pkgs, &matches, nil)
+			require.NoError(t, err)
+
+			if tt.wantSynth {
+				require.Len(t, out.Sorted(), 1, "expected one synthesized match")
+				got := out.Sorted()[0]
+				require.Equal(t, vulnID, got.Vulnerability.ID)
+				require.Equal(t, xNet.PURL, got.Package.PURL)
+			} else {
+				require.Empty(t, out.Sorted(), "did not expect a synthesized match")
+			}
+		})
+	}
+}
+
+func TestAugmentMatches_DoesNotDuplicateExistingMatches_CSAF(t *testing.T) {
+	const vulnID = "CVE-2099-0002"
+	p := pkg.Package{
+		Name: "example.com/foo",
+		PURL: "pkg:golang/example.com/foo@v1.0.0",
+		Type: "go-module",
+	}
+
+	existing := match.Match{
+		Vulnerability: vulnerability.Vulnerability{Reference: vulnerability.Reference{ID: vulnID}},
+		Package:       p,
+	}
+
+	productID := csaf.ProductID("p1")
+	cve := csaf.CVE(vulnID)
+	fullProductName := &csaf.FullProductName{
+		Name:      &[]string{"foo"}[0],
+		ProductID: &productID,
+		ProductIdentificationHelper: &csaf.ProductIdentificationHelper{
+			PURL: &[]csaf.PURL{csaf.PURL(p.PURL)}[0],
+		},
+	}
+	pvCat := csaf.CSAFBranchCategoryProductVersion
+	pvName := "1.0.0"
+	pnCat := csaf.CSAFBranchCategoryProductName
+	pnName := "Foo"
+	productBranch := &csaf.Branch{Category: &pvCat, Name: &pvName, Product: fullProductName}
+	rootBranch := &csaf.Branch{Category: &pnCat, Name: &pnName, Branches: csaf.Branches{productBranch}}
+	products := csaf.Products{&productID}
+	advs := advisories{&csaf.Advisory{
+		ProductTree: &csaf.ProductTree{Branches: csaf.Branches{rootBranch}},
+		Vulnerabilities: []*csaf.Vulnerability{{
+			CVE:           &cve,
+			ProductStatus: &csaf.ProductStatus{LastAffected: &products},
+			Title:         &[]string{"t"}[0],
+		}},
+	}}
+
+	matches := match.NewMatches(existing)
+
+	processor := &Processor{}
+	out, _, err := processor.AugmentMatches(advs, nil, nil, []pkg.Package{p}, &matches, nil)
+	require.NoError(t, err)
+
+	require.Len(t, out.Sorted(), 1, "synthesis must dedupe against existing matches")
+	// Use slices so we don't accidentally accept additional unrelated matches.
+	require.True(t, slices.ContainsFunc(out.Sorted(), func(m match.Match) bool {
+		return m.Vulnerability.ID == vulnID && m.Package.PURL == p.PURL
+	}))
+}

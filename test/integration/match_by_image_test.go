@@ -1043,7 +1043,7 @@ func vexMatches(t *testing.T, ignoredMatches []match.IgnoredMatch, vexStatus vex
 		},
 	}
 
-	vexedMatches, ignoredMatches, err := vexMatcher.ApplyVEX(pctx, &matches, ignoredMatches)
+	vexedMatches, ignoredMatches, err := vexMatcher.ApplyVEX(pctx, nil, &matches, ignoredMatches)
 	if err != nil {
 		t.Errorf("applying VEX data: %s", err)
 	}
