@@ -43,6 +43,12 @@
 #     is not the merge's call). The 9.6.0b1 bound is malformed to the golang
 #     comparator and its range is inert; this is a known FN tracked in the
 #     custom_ranges odd-version-strings follow-up issue.
+#   - GHSA-3vp4-m3rf-835h (github.com/gin-gonic/gin, < 1.9.0, CVE-2023-26125) has
+#     NO govulndb twin: no GO record aliases its CVE or GHSA id. The merge holds it
+#     (go-module package) but nothing patches or covers it, so it is written
+#     unchanged and matches at module level. This is the "grype coverage advantage"
+#     class - grype reports a GHSA/NVD vuln govulndb never recorded - and guards
+#     that un-twinned held GHSAs survive the govulndb<->GHSA merge.
 #   - GO-2026-5013 (golang.org/x/crypto, scoped to golang.org/x/crypto/ssh)
 #     aliases ONLY CVE-2026-46597 - no GHSA alias. Its CVE-linked twin
 #     GHSA-46q7-xr5m-cr77 (hand-authored, module-level x/crypto < 0.35.0) is held
@@ -69,3 +75,4 @@ extractions:
     - github:go/GHSA-gxhv-3hwf-wjp9
     - github:go/GHSA-92cp-5422-2mw7
     - github:go/GHSA-46q7-xr5m-cr77
+    - github:go/GHSA-3vp4-m3rf-835h

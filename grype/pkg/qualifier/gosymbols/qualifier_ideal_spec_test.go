@@ -9,28 +9,18 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 )
 
-// This file is an executable SPEC of the IDEAL (most-correct) behavior of the gosymbols qualifier,
-// NOT a description of current behavior. Some rows are EXPECTED TO FAIL against the implementation as
-// it stands today; those failures are the point of the file.
+// This file is an executable SPEC of the correct gosymbols qualifier behavior, encoded as real
+// advisories. The rule it pins: suppress a match ONLY when there is symbol coverage for
+// THIS module AND the vulnerable path/symbol is absent from it (evidence of absence). When the module
+// carries no symbol evidence at all - an SBOM built without symbol capture (syft's default), capture
+// disabled, or a stdlib-only scope that leaves non-stdlib modules empty - we cannot prove the code is
+// unused, so we fall back to a module-level match to preserve recall. Absence of evidence is not
+// evidence of absence.
 //
-// Rows tagged FN-RISK assert satisfied=true for an import-scoped advisory when the scanned module
-// carries NO symbol evidence. The current implementation suppresses (returns satisfied=false) in that
-// case, so those rows FAIL. That suppression silently drops real, fixable vulnerabilities on every
-// route where symbols are legitimately absent even though the advisory genuinely applies:
-//   - SBOM generated without symbol capture (syft's default; symbols simply not present)
-//   - symbol capture disabled at scan time
-//   - stdlib-only capture scope, which leaves non-stdlib modules with empty symbol maps
-//
-// Guiding principle encoded here: suppress a match ONLY when we have symbol coverage for THIS module
-// AND the vulnerable path/symbol is absent from it (evidence of absence). When the module carries no
-// symbol evidence at all we cannot prove the vulnerable code is unused, so the correct answer is a
-// module-level match (satisfied=true) to preserve recall. Absence of evidence is not evidence of
-// absence.
-//
-// Route modeling with the current API:
-//   - "covered + used":     non-empty Symbols map containing the vulnerable path + vulnerable local symbol(s) -> true
-//   - "covered + not used": non-empty Symbols map with sibling paths/symbols of the same module only         -> false (FP correctly avoided)
-//   - "no symbol evidence": empty Symbols map (pkg.GolangBinMetadata{})                                       -> true (module-level fallback; FN avoided)
+// Each advisory is exercised through three routes:
+//   - "covered + used":     non-empty Symbols map with the vulnerable path + vulnerable local symbol(s) -> true
+//   - "covered + not used": non-empty Symbols map, only sibling paths/symbols of the same module        -> false (FP avoided)
+//   - "no symbol evidence": empty Symbols map (pkg.GolangBinMetadata{})                                  -> true (module fallback; FN avoided)
 func TestGoSymbolsQualifier_IdealSpec_RealAdvisories(t *testing.T) {
 	// symbol maps are keyed by import path; values are LOCAL symbol names (import-path prefix stripped),
 	// already normalized to govulndb's convention (as the provider delivers them).
@@ -149,7 +139,7 @@ func TestGoSymbolsQualifier_IdealSpec_RealAdvisories(t *testing.T) {
 			imports:       sshAuthBypassVuln,
 			pkg:           noSymbols("golang.org/x/crypto"),
 			wantSatisfied: true,
-			fpOrFn:        "FN-RISK: current PR suppresses -> silent auth-bypass miss",
+			fpOrFn:        "no-symbol fallback: suppressing here would silently drop an auth bypass",
 		},
 
 		// --- GO-2025-3595 / CVE-2025-22872: x/net/html ---
@@ -169,7 +159,7 @@ func TestGoSymbolsQualifier_IdealSpec_RealAdvisories(t *testing.T) {
 			imports:       netHTMLVuln,
 			pkg:           noSymbols("golang.org/x/net"),
 			wantSatisfied: true,
-			fpOrFn:        "FN-RISK: current PR suppresses -> silent miss",
+			fpOrFn:        "no-symbol fallback: suppressing here would silently drop a real vuln",
 		},
 
 		// --- GO-2026-4602 / CVE-2026-27139: stdlib os.Root escape ---
@@ -198,7 +188,7 @@ func TestGoSymbolsQualifier_IdealSpec_RealAdvisories(t *testing.T) {
 			imports:       osRootEscapeVuln,
 			pkg:           noSymbols("stdlib"),
 			wantSatisfied: true,
-			fpOrFn:        "FN-RISK: stdlib, affects nearly every older-toolchain binary; current PR suppresses",
+			fpOrFn:        "no-symbol fallback: stdlib, affects nearly every older-toolchain binary",
 		},
 
 		// --- GO-2022-0969 / CVE-2022-27664: stdlib net/http server DoS ---
@@ -227,7 +217,7 @@ func TestGoSymbolsQualifier_IdealSpec_RealAdvisories(t *testing.T) {
 			imports:       httpServerDoSVuln,
 			pkg:           noSymbols("stdlib"),
 			wantSatisfied: true,
-			fpOrFn:        "FN-RISK: current PR suppresses -> silent miss",
+			fpOrFn:        "no-symbol fallback: suppressing here would silently drop a real vuln",
 		},
 
 		// --- module-level sanity: advisory carries NO imports; symbols are irrelevant, always match ---
