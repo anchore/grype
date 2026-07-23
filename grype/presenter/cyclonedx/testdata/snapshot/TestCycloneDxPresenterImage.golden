@@ -119,6 +119,12 @@
         {
           "ref": "a246fd2054833c93"
         }
+      ],
+      "properties": [
+        {
+          "name": "grype:match:details",
+          "value": "[{\"type\":\"exact-direct-match\",\"matcher\":\"dpkg-matcher\",\"searchedBy\":{\"distro\":{\"type\":\"ubuntu\",\"version\":\"20.04\"}},\"found\":{\"constraint\":\"\\u003e= 20\"},\"fix\":{\"suggestedVersion\":\"1.2.1\"}}]"
+        }
       ]
     },
     {
@@ -159,6 +165,12 @@
       "affects": [
         {
           "ref": "pkg:deb/package-2@2.2.2?package-id=74378afe15713625"
+        }
+      ],
+      "properties": [
+        {
+          "name": "grype:match:details",
+          "value": "[{\"type\":\"exact-indirect-match\",\"matcher\":\"dpkg-matcher\",\"searchedBy\":{\"cpe\":\"somecpe\"},\"found\":{\"constraint\":\"somecpe\"}}]"
         }
       ]
     }
