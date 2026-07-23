@@ -62,8 +62,9 @@ func (o *DBSearchPackages) PostLoad() error {
 				log.Warnf("ignoring version and qualifiers for package URL %q", purl)
 			}
 
-			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: purl.Name, Ecosystem: purl.Type})
-			o.CPESpecs = append(o.CPESpecs, &v6.PackageSpecifier{CPE: &cpe.Attributes{Part: "a", Product: purl.Name, TargetSW: purl.Type}})
+			name := packageNameFromPURL(purl)
+			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: name, Ecosystem: purl.Type})
+			o.CPESpecs = append(o.CPESpecs, &v6.PackageSpecifier{CPE: &cpe.Attributes{Part: "a", Product: name, TargetSW: purl.Type}})
 
 		default:
 			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: p, Ecosystem: o.Ecosystem})
@@ -81,4 +82,24 @@ func (o *DBSearchPackages) PostLoad() error {
 	}
 
 	return nil
+}
+
+// packageNameFromPURL reconstructs the package name in the form the grype DB
+// stores it in for the package's ecosystem. Most ecosystems are flat-namespaced
+// and use purl.Name directly. Namespaced ecosystems like golang (module paths,
+// e.g. "github.com/gin-gonic/gin") and npm (scoped packages, e.g. "@scope/name")
+// split the namespace out of the name during PURL parsing, so it must be
+// rejoined to match how the DB stores these names. Maven (java) packages are
+// stored as "groupId:artifactId" by the DB build pipeline.
+func packageNameFromPURL(purl packageurl.PackageURL) string {
+	if purl.Namespace == "" {
+		return purl.Name
+	}
+	switch purl.Type {
+	case packageurl.TypeMaven:
+		return purl.Namespace + ":" + purl.Name
+	case packageurl.TypeGolang, packageurl.TypeNPM:
+		return purl.Namespace + "/" + purl.Name
+	}
+	return purl.Name
 }

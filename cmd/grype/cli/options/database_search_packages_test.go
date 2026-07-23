@@ -43,6 +43,42 @@ func TestDBSearchPackagesPostLoad(t *testing.T) {
 			},
 		},
 		{
+			name: "valid golang PURL with module path",
+			input: DBSearchPackages{
+				Packages: []string{"pkg:golang/github.com/gin-gonic/gin@v1.9.0"},
+			},
+			expectedPkg: v6.PackageSpecifiers{
+				{Name: "github.com/gin-gonic/gin", Ecosystem: "golang"},
+			},
+			expectedCPE: v6.PackageSpecifiers{
+				{CPE: &cpe.Attributes{Part: "a", Product: "github.com/gin-gonic/gin", TargetSW: "golang"}},
+			},
+		},
+		{
+			name: "valid npm PURL with scope",
+			input: DBSearchPackages{
+				Packages: []string{"pkg:npm/%40angular/core@1.0.0"},
+			},
+			expectedPkg: v6.PackageSpecifiers{
+				{Name: "@angular/core", Ecosystem: "npm"},
+			},
+			expectedCPE: v6.PackageSpecifiers{
+				{CPE: &cpe.Attributes{Part: "a", Product: "@angular/core", TargetSW: "npm"}},
+			},
+		},
+		{
+			name: "valid maven PURL with group id",
+			input: DBSearchPackages{
+				Packages: []string{"pkg:maven/org.springframework/spring-core@5.3.0"},
+			},
+			expectedPkg: v6.PackageSpecifiers{
+				{Name: "org.springframework:spring-core", Ecosystem: "maven"},
+			},
+			expectedCPE: v6.PackageSpecifiers{
+				{CPE: &cpe.Attributes{Part: "a", Product: "org.springframework:spring-core", TargetSW: "maven"}},
+			},
+		},
+		{
 			name: "plain package name",
 			input: DBSearchPackages{
 				Packages: []string{"package-name"},
