@@ -15,7 +15,7 @@ var _ interface {
 } = (*jvmVersion)(nil)
 
 var (
-	preJep223VersionPattern = regexp.MustCompile(`^1\.(?P<major>\d+)(\.(?P<minor>\d+)([_-](update)?(_)?(?P<patch>\d+))?(-(?P<prerelease>[^b][^-]+))?(-b(?P<build>\d+))?)?`)
+	preJep223VersionPattern = regexp.MustCompile(`^1\.(?P<major>\d+)(\.(?P<minor>\d+)([_u-](update)?(_)?(?P<patch>\d+))?(-(?P<prerelease>[^b][^-]+))?(-b(?P<build>\d+))?)?`)
 	nonCompliantSemverIsh   = regexp.MustCompile(`^(?P<major>\d+)(\.(?P<minor>\d+)(\.(?P<patch>\d+))?([_-](update)?(_)?(?P<update>\d+))?(-(?P<prerelease>[^b][^-]+))?(-b(?P<build>\d+))?)?`)
 )
 
