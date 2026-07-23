@@ -65,6 +65,7 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 		jsonPatchGo       = "GO-2021-0076"        // fully GHSA-covered -> dropped from the DB
 		goRedisGHSA       = "GHSA-92cp-5422-2mw7" // go-redis /v9 rows; symbols merged from GO-2025-3540
 		goRedisGo         = "GO-2025-3540"        // /v9 rows dropped; base and /v7 /v8 rows survive
+		ginCoverageGHSA   = "GHSA-3vp4-m3rf-835h" // gin CVE-2023-26125; NO govulndb twin -> survives unpatched, module-level
 	)
 
 	// see TestMatcherGolang_GoSymbols for why these versions are pinned
@@ -448,6 +449,22 @@ func TestMatcherGolang_GoSymbols_GHSAMerge(t *testing.T) {
 			findings := db.Match(t, matcher, p)
 
 			expectMatches(t, findings, gjsonReDoSGHSA)
+		})
+
+		t.Run("Go GHSA with no govulndb twin survives the merge and matches at module level", func(t *testing.T) {
+			// GHSA-3vp4-m3rf-835h (gin, CVE-2023-26125) has no aliased GO record, so
+			// the merge holds it (go-module package) but never patches or covers it.
+			// It must still be written and match - grype's coverage advantage over a
+			// govulndb-only view, where this vuln is invisible. Guards that un-twinned
+			// held GHSAs are not dropped by the govulndb<->GHSA reconciliation.
+			p := dbtest.NewPackage("github.com/gin-gonic/gin", "v1.8.0", syftPkg.GoModulePkg).
+				WithLanguage(syftPkg.Go).
+				WithMetadata(pkg.GolangBinMetadata{}).
+				Build()
+
+			findings := db.Match(t, matcher, p)
+
+			expectMatches(t, findings, ginCoverageGHSA)
 		})
 	})
 }

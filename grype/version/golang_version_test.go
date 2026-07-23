@@ -40,6 +40,20 @@ func TestGolangVersion_Constraint(t *testing.T) {
 			constraint: "",
 			satisfied:  true,
 		},
+		{
+			// non-canonical advisory bound (glued-on prerelease, no "-" separator): go-redis
+			// GHSA-92cp-5422-2mw7 carries ">= 9.6.0b1, < 9.6.3"; 9.6.0 must fall inside it.
+			name:       "glued-on prerelease range bound is comparable",
+			version:    "v9.6.0",
+			constraint: ">= 9.6.0b1, < 9.6.3",
+			satisfied:  true,
+		},
+		{
+			name:       "glued-on prerelease sorts before its release",
+			version:    "v9.6.0",
+			constraint: "> 9.6.0b1",
+			satisfied:  true,
+		},
 	}
 
 	for _, tc := range tests {
