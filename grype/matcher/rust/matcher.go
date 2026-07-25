@@ -31,5 +31,9 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+	if p.IsRustCargoLockLocalPackage() {
+		return internal.MatchPackageByCPEsIfEnabled(store, p, m.Type(), m.cfg.UseCPEs)
+	}
+
 	return internal.MatchPackageByEcosystemAndCPEs(store, p, m.Type(), m.cfg.UseCPEs)
 }

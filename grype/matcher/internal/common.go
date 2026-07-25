@@ -19,16 +19,26 @@ func MatchPackageByEcosystemAndCPEs(store vulnerability.Provider, p pkg.Package,
 		log.Debugf("could not match by package ecosystem (package=%+v): %v", p, err)
 	}
 
-	if includeCPEs {
-		cpeMatches, cpeIgnores, cpeErr := MatchPackageByCPEs(store, p, matcher)
-		switch {
-		case errors.Is(cpeErr, ErrEmptyCPEMatch):
-			log.Debugf("attempted CPE search on %s, which has no CPEs. Consider re-running with --add-cpes-if-none", p.Name)
-		case cpeErr != nil:
-			log.Debugf("could not match by package CPE (package=%+v): %v", p, cpeErr)
-		}
-		matches = append(matches, cpeMatches...)
-		ignored = append(ignored, cpeIgnores...)
+	cpeMatches, cpeIgnores, _ := MatchPackageByCPEsIfEnabled(store, p, matcher, includeCPEs)
+	matches = append(matches, cpeMatches...)
+	ignored = append(ignored, cpeIgnores...)
+
+	return matches, ignored, nil
+}
+
+// MatchPackageByCPEsIfEnabled runs the CPE search when configured and handles
+// lookup errors consistently with the combined ecosystem-and-CPE path.
+func MatchPackageByCPEsIfEnabled(store vulnerability.Provider, p pkg.Package, matcher match.MatcherType, includeCPEs bool) ([]match.Match, []match.IgnoreFilter, error) {
+	if !includeCPEs {
+		return nil, nil, nil
+	}
+
+	matches, ignored, err := MatchPackageByCPEs(store, p, matcher)
+	switch {
+	case errors.Is(err, ErrEmptyCPEMatch):
+		log.Debugf("attempted CPE search on %s, which has no CPEs. Consider re-running with --add-cpes-if-none", p.Name)
+	case err != nil:
+		log.Debugf("could not match by package CPE (package=%+v): %v", p, err)
 	}
 
 	return matches, ignored, nil
