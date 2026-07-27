@@ -43,12 +43,6 @@ func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func
 		enhancers = purlEnhancers(applyChannel)
 	}
 
-	// SBOM-based scans have no live filesystem — we can only inspect what the
-	// SBOM's file catalog captured. Default syft cataloging does NOT include
-	// /usr/share/rapidfort/curated.json, so this yields true only when the SBOM
-	// was produced with an explicit file cataloger that captured the marker.
-	// It is intentionally best-effort; the RapidFort matcher stays inactive on
-	// a false result (safe default: standard OS matchers run).
 	return FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig, enhancers...), Context{
 		Source:                &src,
 		Distro:                d,
@@ -72,7 +66,6 @@ func syftSBOMProviderFromReader(reader io.ReadSeeker, config ProviderConfig, app
 
 	src := s.Source
 
-	// Best-effort — see comment on the sibling call in syftSBOMProvider above.
 	return FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig, enhancers...), Context{
 		Source:                &src,
 		Distro:                d,

@@ -51,10 +51,6 @@ func zarfProvider(userInput string, config ProviderConfig, applyChannel func(*di
 		return nil, Context{}, nil, fmt.Errorf("failed to read Zarf package: %w", err)
 	}
 
-	// A Zarf package is a bundle of pre-built SBOMs; we cannot re-open the
-	// underlying images from here, so RapidFort detection is limited to
-	// whatever the bundled SBOMs' file catalogs happened to capture — same
-	// best-effort semantics as SBOM-only scans (see syftSBOMProvider).
 	ctx := Context{
 		Source: &source.Description{
 			Metadata: ZarfPackageMetadata{

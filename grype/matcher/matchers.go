@@ -58,12 +58,8 @@ func NewDefaultMatchers(mc Config) []match.Matcher {
 	}
 }
 
-// ApplySelectionPolicy swaps the default OS matchers (dpkg/apk/rpm) for the
-// single RapidFort matcher when the scan target is a RapidFort-curated image.
-// The identity signal comes from ctx.IsRapidFortImage, which the package
-// provider populated by looking for the marker file on the image (see
-// pkg.RapidFortMarkerPath); we intentionally avoid reading it out of the
-// source labels here so the decision is content-based, not metadata-based.
+// ApplySelectionPolicy swaps dpkg/apk/rpm matchers for the RapidFort matcher
+// on RapidFort-curated images (see pkg.RapidFortMarkerPath).
 func ApplySelectionPolicy(matchers []match.Matcher, ctx pkg.Context) []match.Matcher {
 	if !rapidfort.IsRapidFortImage(ctx) {
 		return matchers

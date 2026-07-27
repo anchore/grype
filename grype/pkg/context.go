@@ -12,15 +12,8 @@ type Context struct {
 	// the distro type could not be determined (e.g., unknown distro ID)
 	DistroDetectionFailed bool
 
-	// IsRapidFortImage is true when the scan target has been identified as a
-	// RapidFort-curated container image. Identification is performed at package-
-	// provider time by checking for the marker file at RapidFortMarkerPath in
-	// the source's file resolver (for live image/directory scans) or in the
-	// SBOM's file catalog (for SBOM- and Zarf-based scans, best effort — only
-	// true when the marker file was cataloged during SBOM generation).
-	//
-	// This flag replaces the earlier heuristic based on the "maintainer" Docker
-	// label. Consumers should treat it as authoritative for downstream matcher
-	// selection (see matcher.ApplySelectionPolicy).
+	// IsRapidFortImage is true when RapidFortMarkerPath was found on the source
+	// (live scans) or in the SBOM's file catalog (SBOM/Zarf scans, best effort).
+	// Populated by the package providers; read by matcher.ApplySelectionPolicy.
 	IsRapidFortImage bool
 }
