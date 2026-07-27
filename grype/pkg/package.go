@@ -254,6 +254,14 @@ func excludePackage(p *Package, parent *Package) bool {
 	// python      3.9.2      binary
 	// python3.9   3.9.2-1    deb
 
+	comprehensiveDistroOwner := distroFeedIsComprehensive(parent.Distro) && isOSPackage(parent)
+
+	// Go module versions describe the embedded modules rather than the owning
+	// distro package, so they cannot be compared to determine ownership.
+	if comprehensiveDistroOwner && p.Type == syftPkg.GoModulePkg {
+		return true
+	}
+
 	// If the version is not approximately the same, keep both
 	if !strings.HasPrefix(parent.Version, p.Version) && !strings.HasPrefix(p.Version, parent.Version) {
 		return false
@@ -263,7 +271,7 @@ func excludePackage(p *Package, parent *Package) bool {
 	// for distros that have a comprehensive feed. That is, distros that list
 	// vulnerabilities that aren't fixed. Otherwise, the child package might
 	// be needed for matching.
-	if distroFeedIsComprehensive(parent.Distro) && isOSPackage(parent) && !isOSPackage(p) {
+	if comprehensiveDistroOwner && !isOSPackage(p) {
 		return true
 	}
 
