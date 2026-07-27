@@ -15,7 +15,7 @@ import (
 // module granularity and reproduce exactly the false positives the gosymbols
 // feature exists to remove.
 //
-// The merge now bridges GO and GHSA by shared CVE (buildCVEIndex +
+// The merge now bridges GO and GHSA by any shared alias (buildAliasIndex +
 // aliasedGHSAKeys), so these assert the CORRECT behavior and pass. Do not
 // "fix" a future regression by weakening the assertion — keep the merge
 // bridging the whole alias group.
