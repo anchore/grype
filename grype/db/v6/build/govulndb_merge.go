@@ -52,6 +52,10 @@ type goVulnDBMerger struct {
 	goGHSAEntries   map[string]*transformers.RelatedEntries
 	goGHSAOrder     []string
 	govulndbEntries []*transformers.RelatedEntries
+
+	// aliasIndex indexes held GHSA keys by every id they alias, so a GO record
+	// can reach its GHSA twin by any shared id. Built in reconcile.
+	aliasIndex map[string][]string
 }
 
 func newGoVulnDBMerger() *goVulnDBMerger {
@@ -105,6 +109,8 @@ func hasGoModulePackages(entry transformers.RelatedEntries) bool {
 // merger's held state is reset before returning. Called once from Close; the
 // writer persists the returned entries through its own batching path.
 func (m *goVulnDBMerger) reconcile() []transformers.RelatedEntries {
+	m.aliasIndex = m.buildAliasIndex()
+
 	var surviving []*transformers.RelatedEntries
 	for _, entry := range m.govulndbEntries {
 		if m.handleEntry(entry) {
@@ -131,6 +137,7 @@ func (m *goVulnDBMerger) reconcile() []transformers.RelatedEntries {
 	m.govulndbEntries = nil
 	m.goGHSAEntries = make(map[string]*transformers.RelatedEntries)
 	m.goGHSAOrder = nil
+	m.aliasIndex = nil
 	return out
 }
 
@@ -203,7 +210,7 @@ func (m *goVulnDBMerger) handleEntry(entry *transformers.RelatedEntries) bool {
 		return true
 	}
 
-	ghsaKeys := ghsaAliasKeys(handle.BlobValue.Aliases)
+	ghsaKeys := m.aliasedGHSAKeys(handle.BlobValue.Aliases)
 	if len(ghsaKeys) == 0 {
 		return true
 	}
@@ -257,12 +264,52 @@ func unwrapGoVulnDBPackages(entry *transformers.RelatedEntries) map[int]transfor
 	return replacements
 }
 
-// ghsaAliasKeys returns the lowercase GHSA IDs among the given aliases.
-func ghsaAliasKeys(aliases []string) []string {
+// buildAliasIndex maps each id a held GHSA aliases to that GHSA's key, so a GO
+// record can find its GHSA twin by a shared id even when it never names the GHSA
+// directly. Recent govulndb records for golang.org/x/crypto/ssh alias only the
+// CVE (e.g. GO-2026-5013 -> CVE-2026-46597), which otherwise leaves the twin
+// GHSA unbridged and written unscoped at module level (the GHSA-twin
+// symbol-scope bypass).
+//
+// Any shared id bridges, not just CVEs: two records that claim the same alias are
+// the same advisory whatever the id scheme, which is how identity is resolved at
+// match time too (see result.getIdentity). Today the GHSA feed only carries CVE
+// aliases, so this is the same set of bridges with no prefix knowledge baked in.
+func (m *goVulnDBMerger) buildAliasIndex() map[string][]string {
+	index := make(map[string][]string)
+	for _, key := range m.goGHSAOrder {
+		held := m.goGHSAEntries[key]
+		if held.VulnerabilityHandle == nil || held.VulnerabilityHandle.BlobValue == nil {
+			continue
+		}
+		for _, alias := range held.VulnerabilityHandle.BlobValue.Aliases {
+			a := strings.ToLower(alias)
+			index[a] = append(index[a], key)
+		}
+	}
+	return index
+}
+
+// aliasedGHSAKeys returns the held GHSA keys the GO record's alias group reaches:
+// held GHSAs it names directly, plus held GHSAs sharing any other alias with it.
+// Deduplicated, arrival-order stable.
+func (m *goVulnDBMerger) aliasedGHSAKeys(aliases []string) []string {
 	var keys []string
+	seen := make(map[string]bool)
+	add := func(k string) {
+		if seen[k] {
+			return
+		}
+		seen[k] = true
+		keys = append(keys, k)
+	}
 	for _, alias := range aliases {
-		if a := strings.ToLower(alias); strings.HasPrefix(a, "ghsa-") {
-			keys = append(keys, a)
+		a := strings.ToLower(alias)
+		if _, held := m.goGHSAEntries[a]; held {
+			add(a)
+		}
+		for _, k := range m.aliasIndex[a] {
+			add(k)
 		}
 	}
 	return keys

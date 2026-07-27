@@ -1,0 +1,64 @@
+{
+  "identifier": "github:go/ghsa-3vp4-m3rf-835h",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2023-26125"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 7.5,
+          "base_severity": "High",
+          "exploitability_score": 3.9,
+          "impact_score": 3.6
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2023-05-12",
+            "kind": "first-observed"
+          },
+          "ecosystem": "go",
+          "identifier": "1.9.0",
+          "name": "github.com/gin-gonic/gin",
+          "namespace": "github:go",
+          "range": "< 1.9.0"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2023-26125"
+        ]
+      },
+      "Severity": "Moderate",
+      "Summary": "Improper input validation in github.com/gin-gonic/gin",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-3vp4-m3rf-835h",
+      "namespace": "github:go",
+      "published": "2023-05-12T00:00:00Z",
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-26125"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-3vp4-m3rf-835h"
+        }
+      ],
+      "updated": "2023-05-12T00:00:00Z",
+      "url": "https://github.com/advisories/GHSA-3vp4-m3rf-835h",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

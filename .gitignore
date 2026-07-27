@@ -13,6 +13,7 @@ mise.toml
 specs
 *.xxh64
 .context
+hack/
 
 # AI and LLM related files
 CLAUDE.md
