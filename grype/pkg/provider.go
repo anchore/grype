@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
 	"github.com/bmatcuk/doublestar/v2"
@@ -169,28 +170,62 @@ func buildChannelIndex(channels []distro.FixChannel) map[string]distro.FixChanne
 	return idx
 }
 
-func getDistroChannelApplier(channels []distro.FixChannel) func(d *distro.Distro) bool {
+func getDistroChannelApplier(channels []distro.FixChannel) func(d *distro.Distro) {
 	idx := buildChannelIndex(channels)
 
-	return func(d *distro.Distro) bool {
+	return func(d *distro.Distro) {
 		if d == nil {
-			return false
+			return
 		}
 
 		id := strings.ToLower(d.ID())
 		channels, ok := idx[id]
 		if !ok {
-			return false
+			// no channels are configured for this distro, so any channel it carries (e.g. from a
+			// user-supplied --distro string) cannot be honored. Leaving it in place would send an
+			// unsatisfiable channel into the search, which returns nothing and reads like a clean scan.
+			warnRejectedChannels(d, channelSet(d.Channels), nil)
+			d.Channels = nil
+			return
 		}
 
-		return applyChannelsToDistro(d, channels)
+		applyChannelsToDistro(d, channels)
 	}
 }
 
+// channelSet normalizes channel names into a set for comparison. Channel names are matched
+// case-insensitively, consistent with the matchers (see dpkg.shouldUseUbuntuESMMatching) and with
+// distro.FixChannels.Get.
+func channelSet(channels []string) *strset.Set {
+	s := strset.New()
+	for _, c := range channels {
+		if n := strings.ToLower(strings.TrimSpace(c)); n != "" {
+			s.Add(n)
+		}
+	}
+	return s
+}
+
+// warnRejectedChannels reports any fix channel that was requested but will not be applied. A request
+// grype cannot honor must never be silently ignored: the result is always fewer vulnerabilities than
+// reality, which is the one direction a scanner cannot afford to be quiet about.
+func warnRejectedChannels(d *distro.Distro, requested *strset.Set, applied []string) {
+	rejected := strset.Difference(requested, channelSet(applied))
+	if rejected.IsEmpty() {
+		return
+	}
+
+	names := rejected.List()
+	sort.Strings(names)
+
+	log.WithFields("distro", d.Type, "channels", strings.Join(names, ", ")).
+		Warn("ignoring requested fix channel(s) that are unavailable or disabled for this distro")
+}
+
 // applyChannelsToDistro applies fix channels to a distro based on channel configuration
-func applyChannelsToDistro(d *distro.Distro, channels distro.FixChannels) bool {
+func applyChannelsToDistro(d *distro.Distro, channels distro.FixChannels) {
 	var result []string
-	existing := strset.New(d.Channels...)
+	existing := channelSet(d.Channels)
 	ver := version.New(d.Version, version.SemanticFormat)
 
 	shouldReview := func(channel distro.FixChannel) bool {
@@ -205,7 +240,6 @@ func applyChannelsToDistro(d *distro.Distro, channels distro.FixChannels) bool {
 		return true
 	}
 
-	var modified bool
 	for _, channel := range channels {
 		if channel.Name == "" {
 			continue
@@ -218,27 +252,25 @@ func applyChannelsToDistro(d *distro.Distro, channels distro.FixChannels) bool {
 
 		switch channel.Apply {
 		case distro.ChannelNeverEnabled:
-			if existing.Has(channel.Name) {
-				modified = true
-			}
+			// never applied, regardless of what was requested
 		case distro.ChannelAlwaysEnabled:
 			result = append(result, channel.Name)
-			if !existing.Has(channel.Name) {
-				modified = true
-			}
 		case distro.ChannelConditionallyEnabled:
-			if existing.Has(channel.Name) {
+			if existing.Has(strings.ToLower(channel.Name)) {
+				// note: the configured spelling is kept, not the requested one, so that a request
+				// like "+ESM" is normalized to "esm" for the search and for display
 				result = append(result, channel.Name)
 			}
 		}
 	}
 
+	warnRejectedChannels(d, existing, result)
+
 	d.Channels = result
-	return modified
 }
 
 // Provide a set of packages and context metadata describing where they were sourced from.
-func provide(userInput string, config ProviderConfig, applyChannel func(d *distro.Distro) bool) ([]*Package, Context, *sbom.SBOM, error) {
+func provide(userInput string, config ProviderConfig, applyChannel func(d *distro.Distro)) ([]*Package, Context, *sbom.SBOM, error) {
 	packages, ctx, s, err := purlProvider(userInput, config, applyChannel)
 	if !errors.Is(err, errDoesNotProvide) {
 		log.WithFields("input", userInput).Trace("interpreting input as one or more PURLs")
