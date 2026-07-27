@@ -62,11 +62,6 @@ type Package struct {
 
 	// Related packages may be used for scanning
 	RelatedPackages map[artifact.RelationshipType][]*Package
-
-	// RustCargoLockSource is present only when the package originated from a
-	// Cargo.lock entry. An empty value distinguishes workspace and path packages
-	// from packages whose source metadata is unavailable.
-	RustCargoLockSource *string `json:"-"`
 }
 
 type Enhancer func(out *Package, purl packageurl.PackageURL, pkg syftPkg.Package)
@@ -97,9 +92,6 @@ func New(p syftPkg.Package, enhancers ...Enhancer) Package {
 		Upstreams: upstreams,
 		Metadata:  metadata,
 	}
-	if rustMetadata, ok := p.Metadata.(syftPkg.RustCargoLockEntry); ok {
-		out.RustCargoLockSource = &rustMetadata.Source
-	}
 
 	if len(enhancers) > 0 {
 		purl, err := packageurl.FromString(p.PURL)
@@ -112,12 +104,6 @@ func New(p syftPkg.Package, enhancers ...Enhancer) Package {
 	}
 
 	return out
-}
-
-// IsRustCargoLockLocalPackage reports whether a package came from a workspace
-// or path entry in Cargo.lock. Cargo omits the source field for those entries.
-func (p Package) IsRustCargoLockLocalPackage() bool {
-	return p.RustCargoLockSource != nil && *p.RustCargoLockSource == ""
 }
 
 func FromCollection(catalog *syftPkg.Collection, relationships []artifact.Relationship, config SynthesisConfig, enhancers ...Enhancer) []*Package {
@@ -364,6 +350,8 @@ func dataFromPkg(p syftPkg.Package) (any, []UpstreamPackage) {
 		upstreams = apkDataFromPkg(p)
 	case syftPkg.JavaVMInstallation:
 		metadata = javaVMDataFromPkg(p)
+	case syftPkg.RustCargoLockEntry:
+		metadata = rustMetadataFromPkg(p)
 	}
 
 	// there are still cases where we could still fill the metadata from other info (such as the PURL)
@@ -374,6 +362,16 @@ func dataFromPkg(p syftPkg.Package) (any, []UpstreamPackage) {
 	}
 
 	return metadata, upstreams
+}
+
+func rustMetadataFromPkg(p syftPkg.Package) any {
+	if value, ok := p.Metadata.(syftPkg.RustCargoLockEntry); ok {
+		return RustMetadata{
+			RustCargoLockSource: value.Source,
+		}
+	}
+
+	return nil
 }
 
 func javaVMDataFromPkg(p syftPkg.Package) any {

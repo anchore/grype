@@ -121,6 +121,24 @@ func TestMatcher_LocalCargoPackagePreservesOptInCPEMatching(t *testing.T) {
 	require.Equal(t, match.CPEMatch, matches[0].Details[0].Type)
 }
 
+func TestMatcher_LocalCargoPackageWithCPEMatchingAndNoCPEsDoesNotError(t *testing.T) {
+	syftPackage := syftPkg.Package{
+		Name:     "telemetry",
+		Version:  "0.1.0",
+		Language: syftPkg.Rust,
+		Type:     syftPkg.RustPkg,
+		Metadata: syftPkg.RustCargoLockEntry{
+			Name:    "telemetry",
+			Version: "0.1.0",
+		},
+	}
+
+	matches, ignores, err := NewRustMatcher(MatcherConfig{UseCPEs: true}).Match(mock.VulnerabilityProvider(), pkg.New(syftPackage))
+	require.NoError(t, err)
+	require.Empty(t, matches)
+	require.Empty(t, ignores)
+}
+
 func TestMatcher_RustBinaryAuditPackagePreservesMatching(t *testing.T) {
 	provider := mock.VulnerabilityProvider(vulnerability.Vulnerability{
 		Reference: vulnerability.Reference{
