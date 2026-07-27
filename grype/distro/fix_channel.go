@@ -113,11 +113,17 @@ func applyChannels(release linux.Release, ver *version.Version, existingChannels
 				log.WithFields("error", err, "constraint", channel.Versions).Debugf("unable to determine if channel %q is applicable for distro %q with version %q", channel.Name, release.ID, ver)
 				continue
 			}
-			if isApplicable {
-				log.Debugf("using channel %q for distro %q with version %q", channel.Name, release.ID, ver)
-				addResult(channel.Name, extendedSupport, channel.Apply)
+			if !isApplicable {
+				// the channel has a version window and this distro falls outside it, so the channel
+				// does not apply. Falling through here would add it anyway, contradicting the same
+				// check in pkg.applyChannelsToDistro.
+				log.Debugf("skipping channel %q for distro %q with version %q, outside the channel version window", channel.Name, release.ID, ver)
 				continue
 			}
+
+			log.Debugf("using channel %q for distro %q with version %q", channel.Name, release.ID, ver)
+			addResult(channel.Name, extendedSupport, channel.Apply)
+			continue
 		}
 		log.Debugf("using channel %q for distro %q", channel.Name, release.ID)
 		addResult(channel.Name, extendedSupport, channel.Apply)

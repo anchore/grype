@@ -39,7 +39,7 @@ type ZarfPackageMetadata struct {
 	Path string
 }
 
-func zarfProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]*Package, Context, *sbom.SBOM, error) {
+func zarfProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro)) ([]*Package, Context, *sbom.SBOM, error) {
 	if !strings.HasPrefix(userInput, zarfInputPrefix) {
 		return nil, Context{}, nil, errDoesNotProvide
 	}
@@ -64,7 +64,7 @@ func zarfProvider(userInput string, config ProviderConfig, applyChannel func(*di
 
 // readZarfPackage opens a Zarf .tar.zst archive, locates sboms.tar within it,
 // and decodes each SBOM entry into a merged package list.
-func readZarfPackage(archivePath string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]*Package, *sbom.SBOM, error) {
+func readZarfPackage(archivePath string, config ProviderConfig, applyChannel func(*distro.Distro)) ([]*Package, *sbom.SBOM, error) {
 	f, err := os.Open(archivePath)
 	if err != nil {
 		return nil, nil, fmt.Errorf("unable to open Zarf package %s: %w", archivePath, err)
@@ -103,7 +103,7 @@ func readZarfPackage(archivePath string, config ProviderConfig, applyChannel fun
 
 // readSBOMsFromTar iterates over entries in sboms.tar, decoding each SBOM
 // and merging all packages into a single result set.
-func readSBOMsFromTar(r io.Reader, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]*Package, *sbom.SBOM, error) {
+func readSBOMsFromTar(r io.Reader, config ProviderConfig, applyChannel func(*distro.Distro)) ([]*Package, *sbom.SBOM, error) {
 	sbomTar := tar.NewReader(r)
 
 	var allPackages []*Package
