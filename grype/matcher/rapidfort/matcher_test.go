@@ -43,27 +43,28 @@ func TestInstalledReleaseIdentifier(t *testing.T) {
 			pkg:      pkg.Package{Name: "curl", Version: "1.2.3-1"},
 			expected: "",
 		},
-		// Ubuntu-distro cases: dpkgVariantID mirrors the vunnel annotator's
-		// ordered substring rule ("rf" takes precedence over "ubuntu").
+		// Ubuntu-distro cases: dpkgVariantID checks "rf" first, then "ubuntu",
+		// then defaults to "ubuntu" (unmarkered version on RapidFortUbuntu is
+		// treated as stock Ubuntu since the distro is already known).
 		{
 			name:     "ubuntu rf-curated variant (rf substring wins over ubuntu)",
 			pkg:      pkg.Package{Name: "curl", Version: "3.12.10-1rfubu.1", Distro: distro.New(distro.RapidFortUbuntu, "20.04", "")},
 			expected: "rf",
 		},
 		{
-			name:     "ubuntu stock variant",
+			name:     "ubuntu stock variant (explicit ubuntu substring)",
 			pkg:      pkg.Package{Name: "curl", Version: "2.39-0ubuntu8.3", Distro: distro.New(distro.RapidFortUbuntu, "20.04", "")},
 			expected: "ubuntu",
 		},
 		{
-			name:     "ubuntu unmarkered version (legacy) — fallback path takes over",
+			name:     "ubuntu unmarkered version defaults to ubuntu (no rf marker ⇒ stock)",
 			pkg:      pkg.Package{Name: "curl", Version: "3.14.5", Distro: distro.New(distro.RapidFortUbuntu, "20.04", "")},
-			expected: "",
+			expected: "ubuntu",
 		},
 		{
-			name:     "ubuntu distro does NOT apply RPM chain (fc marker in dpkg-style version is ignored)",
+			name:     "ubuntu distro does NOT apply RPM chain (fc marker in dpkg-style version is ignored, defaults to ubuntu)",
 			pkg:      pkg.Package{Name: "curl", Version: "1.2.3.fc41-1", Distro: distro.New(distro.RapidFortUbuntu, "20.04", "")},
-			expected: "",
+			expected: "ubuntu",
 		},
 	}
 
@@ -199,18 +200,21 @@ func TestByReleaseIdentifier_Ubuntu(t *testing.T) {
 	})
 }
 
-// TestByReleaseIdentifier_FallsBackToUbuntu_WhenInstalledIdentifierUnknown
-// verifies the distro-scoped fallback: an unmarkered Ubuntu package accepts
-// a release-identifier:ubuntu advisory (conservative safety net) but rejects
-// an el9-only advisory with the Ubuntu-specific reason string.
-func TestByReleaseIdentifier_FallsBackToUbuntu_WhenInstalledIdentifierUnknown(t *testing.T) {
+// TestByReleaseIdentifier_Ubuntu_UnmarkeredVersionDefaultsToStock verifies
+// that an unmarkered Ubuntu-distro package (no "rf" or "ubuntu" substring in
+// its version) is treated as stock Ubuntu — dpkgVariantID's default — and
+// then goes through the normal (non-fallback) match path. Same practical
+// outcomes as the old fallback logic; the level-2 fallback path is now
+// unreachable for Ubuntu.
+func TestByReleaseIdentifier_Ubuntu_UnmarkeredVersionDefaultsToStock(t *testing.T) {
 	criteria := byReleaseIdentifier(pkg.Package{
 		Name:    "curl",
 		Version: "3.14.5",
 		Distro:  distro.New(distro.RapidFortUbuntu, "20.04", ""),
 	})
 
-	// legacy (untagged) ubuntu advisory — accept via fallback
+	// legacy (untagged) ubuntu advisory — accept via the normal path
+	// (expected="ubuntu" matches release-identifier:ubuntu exactly).
 	matched, reason, err := criteria.MatchesVulnerability(vulnerability.Vulnerability{
 		Advisories: []vulnerability.Advisory{
 			{ID: "release-identifier:ubuntu"},
@@ -220,7 +224,8 @@ func TestByReleaseIdentifier_FallsBackToUbuntu_WhenInstalledIdentifierUnknown(t 
 	assert.True(t, matched)
 	assert.Empty(t, reason)
 
-	// el9-only advisory — reject with the Ubuntu-specific fallback reason
+	// el9-only advisory — the normal path finds a release-identifier but not
+	// one matching "ubuntu", so it rejects with the mismatch reason.
 	matched, reason, err = criteria.MatchesVulnerability(vulnerability.Vulnerability{
 		Advisories: []vulnerability.Advisory{
 			{ID: "release-identifier:el9"},
@@ -228,7 +233,7 @@ func TestByReleaseIdentifier_FallsBackToUbuntu_WhenInstalledIdentifierUnknown(t 
 	})
 	assert.NoError(t, err)
 	assert.False(t, matched)
-	assert.Contains(t, reason, "no ubuntu release identifier")
+	assert.Equal(t, reasonReleaseIdentifierMismatch, reason)
 }
 
 // TestReleaseVariantRules_Gate documents that adding a new RF-curated distro
