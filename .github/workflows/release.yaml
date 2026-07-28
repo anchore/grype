@@ -102,7 +102,6 @@ jobs:
           GITHUB_BREW_TOKEN: ${{ secrets.ANCHOREOPS_GITHUB_OSS_WRITE_TOKEN }}
 
       - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
-        continue-on-error: true
         with:
           artifact-name: sbom.spdx.json
 
