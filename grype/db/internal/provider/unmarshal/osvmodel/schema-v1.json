@@ -175,6 +175,74 @@
                   }
                 },
                 {
+                  "title": "GIT ranges must use full-length commit hashes",
+                  "if": {
+                    "properties": {
+                      "type": {
+                        "const": "GIT"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "events": {
+                        "items": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "introduced": {
+                                  "type": "string",
+                                  "pattern": "^(0|[a-f0-9]{40}|[a-f0-9]{64})$"
+                                }
+                              },
+                              "required": [
+                                "introduced"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "fixed": {
+                                  "type": "string",
+                                  "pattern": "^(0|[a-f0-9]{40}|[a-f0-9]{64})$"
+                                }
+                              },
+                              "required": [
+                                "fixed"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "last_affected": {
+                                  "type": "string",
+                                  "pattern": "^(0|[a-f0-9]{40}|[a-f0-9]{64})$"
+                                }
+                              },
+                              "required": [
+                                "last_affected"
+                              ]
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "limit": {
+                                  "type": "string",
+                                  "pattern": "^(0|[a-f0-9]{40}|[a-f0-9]{64})$"
+                                }
+                              },
+                              "required": [
+                                "limit"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                {
                   "title": "last_affected and fixed events are mutually exclusive",
                   "if": {
                     "properties": {
@@ -333,6 +401,7 @@
         "Alpaquita",
         "Alpine",
         "Android",
+        "Azure Linux",
         "BellSoft Hardened Containers",
         "Bioconductor",
         "Bitnami",
@@ -372,7 +441,9 @@
         "RubyGems",
         "SUSE",
         "SwiftURL",
+        "TuxCare",
         "Ubuntu",
+        "vcpkg",
         "VSCode",
         "Wolfi"
       ]
@@ -385,13 +456,13 @@
       "type": "string",
       "title": "Currently supported ecosystems",
       "description": "These ecosystems are also documented at https://ossf.github.io/osv-schema/#affectedpackage-field",
-      "pattern": "^(AlmaLinux|Alpaquita|Alpine|Android|BellSoft Hardened Containers|Bioconductor|Bitnami|Chainguard|CleanStart|ConanCenter|CRAN|crates\\.io|Debian|Docker Hardened Images|Echo|FreeBSD|GHC|GitHub Actions|Go|Hackage|Hex|Julia|Kubernetes|Linux|Mageia|Maven|MinimOS|npm|NuGet|opam|openEuler|openSUSE|OSS-Fuzz|Packagist|Photon OS|Pub|PyPI|Red Hat|Rocky Linux|Root|RubyGems|SUSE|SwiftURL|Ubuntu|VSCode|Wolfi|GIT)(:.+)?$"
+      "pattern": "^(AlmaLinux|Alpaquita|Alpine|Android|Azure Linux|BellSoft Hardened Containers|Bioconductor|Bitnami|Chainguard|CleanStart|ConanCenter|CRAN|crates\\.io|Debian|Docker Hardened Images|Echo|FreeBSD|GHC|GitHub Actions|Go|Hackage|Hex|Julia|Kubernetes|Linux|Mageia|Maven|MinimOS|npm|NuGet|opam|openEuler|openSUSE|OSS-Fuzz|Packagist|Photon OS|Pub|PyPI|Red Hat|Rocky Linux|Root|RubyGems|SUSE|SwiftURL|TuxCare|Ubuntu|vcpkg|VSCode|Wolfi|GIT)(:.+)?$"
     },
     "prefix": {
       "type": "string",
       "title": "Currently supported home database identifier prefixes",
       "description": "These home databases are also documented at https://ossf.github.io/osv-schema/#id-modified-fields",
-      "pattern": "^(ASB-A|PUB-A|ALPINE|ALSA|ALBA|ALEA|BELL|BIT|CGA|CLEANSTART|CURL|CVE|DEBIAN|DHI|DRUPAL|DSA|DLA|ELA|DTSA|ECHO|EEF|FreeBSD|GHSA|GO|GSD|HSEC|JLSEC|KUBE|LBSEC|LSN|MAL|MINI|MGASA|OESA|OSEC|OSV|openSUSE-SU|PHSA|PSF|PYSEC|RHBA|RHEA|RHSA|RLSA|RXSA|RSEC|ROOT|RUSTSEC|SUSE-[SRFO]U|UBUNTU|USN|V8)-"
+      "pattern": "^(x_|(ASB-A|PUB-A|ALPINE|ALSA|ALBA|ALEA|AZL|BELL|BIT|CGA|CLEANSTART|CLSA|CURL|CVE|DEBIAN|DHI|DRUPAL|DSA|DLA|ELA|DTSA|ECHO|EEF|FreeBSD|GHSA|GO|GSD|HSEC|JLSEC|KUBE|LBSEC|LSN|MAL|MINI|MGASA|OESA|OSEC|OSV|openSUSE-SU|PHSA|PSF|PYSEC|RHBA|RHEA|RHSA|RLSA|RXSA|RSEC|ROOT|RUSTSEC|SUSE-[SRFO]U|UBUNTU|USN|V8|VCPKG)-)"
     },
     "severity": {
       "type": [
@@ -412,6 +483,14 @@
           },
           "score": {
             "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "NVD",
+              "CNA",
+              "SELF"
+            ]
           }
         },
         "allOf": [

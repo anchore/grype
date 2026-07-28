@@ -1645,7 +1645,7 @@ func Test_ExcludeRetainsCorrectRelationships(t *testing.T) {
 
 	d := distro.FromRelease(s.Artifacts.LinuxDistribution, nil)
 	pkgs := FromCollection(s.Artifacts.Packages, s.Relationships, SynthesisConfig{},
-		setDistroFromPURL(func(d *distro.Distro) bool { return true }),
+		setDistroFromPURL(func(d *distro.Distro) {}),
 		func(out *Package, _ packageurl.PackageURL, _ syftPkg.Package) {
 			if out.Type == syftPkg.ApkPkg {
 				out.Distro = d
