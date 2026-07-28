@@ -12,7 +12,7 @@ type Context struct {
 	// the distro type could not be determined (e.g., unknown distro ID)
 	DistroDetectionFailed bool
 
-	// IsRapidFortImage is true when RapidFortMarkerPath was found on the source
+	// IsRapidFortImage is true when rapidfort.MarkerPath was found on the source
 	// (live scans) or in the SBOM's file catalog (SBOM/Zarf scans, best effort).
 	// Populated by the package providers; read by matcher.ApplySelectionPolicy.
 	IsRapidFortImage bool

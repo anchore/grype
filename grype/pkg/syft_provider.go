@@ -6,6 +6,7 @@ import (
 
 	"github.com/anchore/go-collections"
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/rapidfort"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/stereoscope/pkg/image"
@@ -42,7 +43,7 @@ func syftProvider(userInput string, config ProviderConfig, applyChannel func(*di
 	if resolverErr != nil {
 		log.WithFields("error", resolverErr).Trace("unable to acquire file resolver for RapidFort marker check")
 	} else {
-		isRapidFortImage = hasRapidFortMarkerInResolver(resolver)
+		isRapidFortImage = rapidfort.HasMarkerInResolver(resolver)
 	}
 
 	packages := FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig)

@@ -1,9 +1,9 @@
-// Package rapidfort provides vulnerability matching for RapidFort-curated images.
-// It is activated only when the scanned image is identified as RapidFort-curated
-// via the presence of the marker file /usr/share/rapidfort/curated.json (see
-// pkg.RapidFortMarkerPath and pkg.Context.IsRapidFortImage). The matcher queries
-// the DB for advisories stored under the "rapidfort-<baseOS>" OS name (e.g.
-// "rapidfort-ubuntu"), which are never returned for standard distro scans.
+// Package rapidfort provides vulnerability matching for RapidFort-curated
+// images. It is activated only when the scanned image is identified as
+// RapidFort-curated via the marker file at grype/rapidfort.MarkerPath (see
+// pkg.Context.IsRapidFortImage). The matcher queries the DB for advisories
+// stored under the "rapidfort-<baseOS>" OS name (e.g. "rapidfort-ubuntu"),
+// which are never returned for standard distro scans.
 package rapidfort
 
 import (
