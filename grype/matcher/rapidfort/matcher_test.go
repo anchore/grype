@@ -128,7 +128,7 @@ func TestByReleaseIdentifier_FallsBackToEL_WhenInstalledIdentifierUnknown(t *tes
 
 // TestByReleaseIdentifier_Ubuntu exercises the Ubuntu path through the same
 // byReleaseIdentifier function used by RedHat — verifying that adding a new
-// RF-curated base distro is a policy-registry entry, not a code fork.
+// RF-curated base distro is a rule-registry entry, not a code fork.
 func TestByReleaseIdentifier_Ubuntu(t *testing.T) {
 	t.Run("ubuntu rf variant matches release-identifier:rf", func(t *testing.T) {
 		criteria := byReleaseIdentifier(pkg.Package{
@@ -231,21 +231,21 @@ func TestByReleaseIdentifier_FallsBackToUbuntu_WhenInstalledIdentifierUnknown(t 
 	assert.Contains(t, reason, "no ubuntu release identifier")
 }
 
-// TestReleasePolicies_Gate documents that adding a new RF-curated distro
-// requires exactly one addition to releasePolicies (and nothing else in this
-// file). If this test starts asserting on more distros than are actually
+// TestReleaseVariantRules_Gate documents that adding a new RF-curated distro
+// requires exactly one addition to releaseVariantRules (and nothing else in
+// this file). If this test starts asserting on more distros than are actually
 // registered, someone regressed the registry.
-func TestReleasePolicies_Gate(t *testing.T) {
-	// Every entry in releasePolicies must gate byReleaseIdentifier (see
+func TestReleaseVariantRules_Gate(t *testing.T) {
+	// Every entry in releaseVariantRules must gate byReleaseIdentifier (see
 	// matchPackageByDistro). Missing entries mean the filter silently doesn't
 	// run for that distro.
-	assert.Contains(t, releasePolicies, distro.RapidFortRedHat)
-	assert.Contains(t, releasePolicies, distro.RapidFortUbuntu)
+	assert.Contains(t, releaseVariantRules, distro.RapidFortRedHat)
+	assert.Contains(t, releaseVariantRules, distro.RapidFortUbuntu)
 
 	// Non-RF distros must NOT be registered — the filter should stay
 	// specific to RF-curated content.
-	assert.NotContains(t, releasePolicies, distro.RedHat)
-	assert.NotContains(t, releasePolicies, distro.Ubuntu)
+	assert.NotContains(t, releaseVariantRules, distro.RedHat)
+	assert.NotContains(t, releaseVariantRules, distro.Ubuntu)
 }
 
 func TestRapidfortDistroVersion(t *testing.T) {

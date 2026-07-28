@@ -41,7 +41,7 @@ const (
 
 	// reasonCannotDeriveReleaseID is the generic fallback reason used when the
 	// package has no distro (defensive path in byReleaseIdentifier). Distro-
-	// specific fallback reasons live in releasePolicies[<distro>].fallbackReason.
+	// specific fallback reasons live in releaseVariantRules[<distro>].fallbackReason.
 	reasonCannotDeriveReleaseID = "unable to derive release identifier"
 
 	// Per-distro fallback reasons: emitted when installedReleaseIdentifier
@@ -52,9 +52,9 @@ const (
 	reasonNoUbuntuReleaseIdentifier = "unable to derive release identifier and no ubuntu release identifier on vulnerability"
 )
 
-// releasePolicy configures release-variant matching for one RapidFort-curated
-// base distro. See releasePolicies for the registry.
-type releasePolicy struct {
+// releaseVariantRule configures release-variant matching for one
+// RapidFort-curated base distro. See releaseVariantRules for the registry.
+type releaseVariantRule struct {
 	// fallbackAdvisoryPrefix is the release-identifier prefix that is
 	// conservatively accepted when installedReleaseIdentifier returns "" for a
 	// package of this distro. Serves as a safety net for legacy/untagged fixes
@@ -65,14 +65,14 @@ type releasePolicy struct {
 	fallbackReason string
 }
 
-// releasePolicies is the single registry that gates release-identifier matching:
+// releaseVariantRules is the single registry that gates release-identifier matching:
 //   - Membership decides which RapidFort distros run byReleaseIdentifier at all
 //     (see matchPackageByDistro).
 //   - Each entry supplies the per-distro fallback prefix + reason so the
 //     matching logic itself stays generic (no per-distro switch statements).
 //
 // Extend this map when RF starts curating another base distro.
-var releasePolicies = map[distro.Type]releasePolicy{
+var releaseVariantRules = map[distro.Type]releaseVariantRule{
 	distro.RapidFortRedHat: {
 		fallbackAdvisoryPrefix: "release-identifier:el",
 		fallbackReason:         reasonNoELReleaseIdentifier,
@@ -83,15 +83,15 @@ var releasePolicies = map[distro.Type]releasePolicy{
 	},
 }
 
-// policyFor returns the releasePolicy for the given package's distro, if any.
-// The bool is false when no policy is registered (e.g. non-RF distro or nil
+// ruleFor returns the releaseVariantRule for the given package's distro, if any.
+// The bool is false when no rule is registered (e.g. non-RF distro or nil
 // Distro) — callers should not run release-identifier filtering in that case.
-func policyFor(p pkg.Package) (releasePolicy, bool) {
+func ruleFor(p pkg.Package) (releaseVariantRule, bool) {
 	if p.Distro == nil {
-		return releasePolicy{}, false
+		return releaseVariantRule{}, false
 	}
-	policy, ok := releasePolicies[p.Distro.Type]
-	return policy, ok
+	rule, ok := releaseVariantRules[p.Distro.Type]
+	return rule, ok
 }
 
 // Matcher matches packages against RapidFort-specific advisories.
@@ -208,9 +208,9 @@ func (m *Matcher) matchPackageByDistro(store vulnerability.Provider, searchPkg p
 	}
 
 	// Apply the release-variant filter for any distro that has a registered
-	// policy (see releasePolicies). Adding a new RF-curated distro is a
+	// rule (see releaseVariantRules). Adding a new RF-curated distro is a
 	// one-line map entry — no change needed here.
-	if _, ok := releasePolicies[searchPkg.Distro.Type]; ok {
+	if _, ok := releaseVariantRules[searchPkg.Distro.Type]; ok {
 		criteria = append(criteria, byReleaseIdentifier(searchPkg))
 	}
 
@@ -241,7 +241,7 @@ func (m *Matcher) matchPackageByDistro(store vulnerability.Provider, searchPkg p
 // byReleaseIdentifier returns a criteria that filters vulnerabilities to those
 // whose release-identifier advisory matches the installed package's release
 // variant (see installedReleaseIdentifier). Applies to any RF-curated distro
-// registered in releasePolicies — both RPM-based (RedHat) and dpkg-based
+// registered in releaseVariantRules — both RPM-based (RedHat) and dpkg-based
 // (Ubuntu) paths use this single implementation.
 func byReleaseIdentifier(p pkg.Package) vulnerability.Criteria {
 	return search.ByFunc(func(vuln vulnerability.Vulnerability) (bool, string, error) {
@@ -252,16 +252,16 @@ func byReleaseIdentifier(p pkg.Package) vulnerability.Criteria {
 			// prefix (e.g. release-identifier:el* for RedHat, ubuntu* for Ubuntu)
 			// and reject the rest. Distro-specific so an unresolvable RedHat
 			// package doesn't accidentally match an ubuntu-only fix.
-			policy, ok := policyFor(p)
+			rule, ok := ruleFor(p)
 			if !ok {
 				return false, reasonCannotDeriveReleaseID, nil
 			}
 			for _, advisory := range vuln.Advisories {
-				if strings.HasPrefix(advisoryID(advisory), policy.fallbackAdvisoryPrefix) {
+				if strings.HasPrefix(advisoryID(advisory), rule.fallbackAdvisoryPrefix) {
 					return true, "", nil
 				}
 			}
-			return false, policy.fallbackReason, nil
+			return false, rule.fallbackReason, nil
 		}
 
 		// Normal path: package variant is known; require an exact release-
