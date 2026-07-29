@@ -120,6 +120,8 @@ func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {
 		{Ecosystem: pkg.JavaScript.String(), ReplacementEcosystem: ptr(string(pkg.NpmPkg))},
 		{Ecosystem: pkg.Lua.String(), ReplacementEcosystem: ptr(string(pkg.LuaRocksPkg))},
 		{Ecosystem: pkg.OCaml.String(), ReplacementEcosystem: ptr(string(pkg.OpamPkg))},
+		// TODO: use pkg.Perl.String() / string(pkg.CpanPkg) once the syft release carrying them is vendored
+		{Ecosystem: "perl", ReplacementEcosystem: ptr("cpan")},
 		{Ecosystem: pkg.PHP.String(), ReplacementEcosystem: ptr(string(pkg.PhpComposerPkg))},
 		{Ecosystem: pkg.Python.String(), ReplacementEcosystem: ptr(string(pkg.PythonPkg))},
 		{Ecosystem: pkg.R.String(), ReplacementEcosystem: ptr(string(pkg.Rpkg))},
