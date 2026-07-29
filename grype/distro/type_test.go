@@ -16,6 +16,14 @@ func TestTypeFromRelease(t *testing.T) {
 		want    Type
 	}{
 		{
+			name: "DHI ID takes precedence over Alpine lineage",
+			release: linux.Release{
+				ID:     "dhi",
+				IDLike: []string{"alpine"},
+			},
+			want: DHI,
+		},
+		{
 			name: "direct ID mapping",
 			release: linux.Release{
 				ID: "ubuntu",
