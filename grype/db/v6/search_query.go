@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/anchore/grype/grype/db/v6/name"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/cpe"
@@ -139,6 +140,9 @@ func (b *searchQueryBuilder) handleCPE(c *search.CPECriteria) error {
 
 func (b *searchQueryBuilder) handleDistro(c *search.DistroCriteria) {
 	for _, d := range c.Distros {
+		// DHI advisories are release-specific. Never fall back from a requested
+		// minor release (for example 3.25) to another DHI release's records.
+		disableFallback := d.Type == distro.DHI
 		var foundChannels int
 		for _, channel := range d.Channels {
 			if channel == "" {
@@ -154,6 +158,7 @@ func (b *searchQueryBuilder) handleDistro(c *search.DistroCriteria) {
 				LabelVersion:     d.LabelVersion(),
 				Channel:          channel,
 				DisableAliasing:  c.Exact,
+				DisableFallback:  disableFallback,
 			})
 		}
 		if foundChannels == 0 {
@@ -164,6 +169,7 @@ func (b *searchQueryBuilder) handleDistro(c *search.DistroCriteria) {
 				RemainingVersion: d.RemainingVersion(),
 				LabelVersion:     d.LabelVersion(),
 				DisableAliasing:  c.Exact,
+				DisableFallback:  disableFallback,
 			})
 		}
 	}
