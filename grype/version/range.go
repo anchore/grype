@@ -70,20 +70,20 @@ func trimQuotes(s string) (string, error) {
 	}
 }
 
-func (c *rangeUnit) Satisfied(comparison int) bool {
+func (c *rangeUnit) Satisfied(comparison int) (bool, error) {
 	switch c.Operator {
 	case EQ:
-		return comparison == 0
+		return comparison == 0, nil
 	case GT:
-		return comparison > 0
+		return comparison > 0, nil
 	case GTE:
-		return comparison >= 0
+		return comparison >= 0, nil
 	case LT:
-		return comparison < 0
+		return comparison < 0, nil
 	case LTE:
-		return comparison <= 0
+		return comparison <= 0, nil
 	default:
-		panic(fmt.Errorf("unknown operator: %s", c.Operator))
+		return false, fmt.Errorf("unknown operator: %s", c.Operator)
 	}
 }
 
