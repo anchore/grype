@@ -74,7 +74,11 @@ func (c *simpleRangeExpression) satisfiedWithConfig(format Format, version *Vers
 			}
 			unit := c.Units[i][j]
 
-			if !unit.Satisfied(result) {
+			satisfied, err := unit.Satisfied(result)
+			if err != nil {
+				return false, fmt.Errorf("unable to evaluate satisfaction for %q: %w", andUnit.Version, err)
+			}
+			if !satisfied {
 				allSatisfied = false
 			}
 		}
