@@ -28,6 +28,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/rpm"
 	"github.com/anchore/grype/grype/matcher/ruby"
+	"github.com/anchore/grype/grype/matcher/rust"
 	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -382,6 +383,7 @@ func getMatcherConfig(opts *options.Grype) matcher.Config {
 			AlwaysUseCPEForStdlib:                  opts.Match.Golang.AlwaysUseCPEForStdlib,
 			AllowMainModulePseudoVersionComparison: opts.Match.Golang.AllowMainModulePseudoVersionComparison,
 		},
+		Rust:  rust.MatcherConfig(opts.Match.Rust),
 		Hex:   hex.MatcherConfig(opts.Match.Hex),
 		Stock: stock.MatcherConfig(opts.Match.Stock),
 		Dpkg: dpkg.MatcherConfig{
