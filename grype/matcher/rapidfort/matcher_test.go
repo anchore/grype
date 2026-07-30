@@ -43,6 +43,29 @@ func TestInstalledReleaseIdentifier(t *testing.T) {
 			pkg:      pkg.Package{Name: "curl", Version: "1.2.3-1"},
 			expected: "",
 		},
+		// Ubuntu-distro cases: dpkgVariantID checks "rf" first, then "ubuntu",
+		// then defaults to "ubuntu" (unmarkered version on RapidFortUbuntu is
+		// treated as stock Ubuntu since the distro is already known).
+		{
+			name:     "ubuntu rf-curated variant (rf substring wins over ubuntu)",
+			pkg:      pkg.Package{Name: "curl", Version: "3.12.10-1rfubu.1", Distro: distro.New(distro.RapidFortUbuntu, "20.04", "")},
+			expected: "rf",
+		},
+		{
+			name:     "ubuntu stock variant (explicit ubuntu substring)",
+			pkg:      pkg.Package{Name: "curl", Version: "2.39-0ubuntu8.3", Distro: distro.New(distro.RapidFortUbuntu, "20.04", "")},
+			expected: "ubuntu",
+		},
+		{
+			name:     "ubuntu unmarkered version defaults to ubuntu (no rf marker ⇒ stock)",
+			pkg:      pkg.Package{Name: "curl", Version: "3.14.5", Distro: distro.New(distro.RapidFortUbuntu, "20.04", "")},
+			expected: "ubuntu",
+		},
+		{
+			name:     "ubuntu distro does NOT apply RPM chain (fc marker in dpkg-style version is ignored, defaults to ubuntu)",
+			pkg:      pkg.Package{Name: "curl", Version: "1.2.3.fc41-1", Distro: distro.New(distro.RapidFortUbuntu, "20.04", "")},
+			expected: "ubuntu",
+		},
 	}
 
 	for _, test := range tests {
@@ -52,8 +75,8 @@ func TestInstalledReleaseIdentifier(t *testing.T) {
 	}
 }
 
-func TestByRPMReleaseIdentifier(t *testing.T) {
-	criteria := byRPMReleaseIdentifier(pkg.Package{
+func TestByReleaseIdentifier_RedHat(t *testing.T) {
+	criteria := byReleaseIdentifier(pkg.Package{
 		Name:    "curl",
 		Version: "8.6.0-7.fc41",
 		Distro:  distro.New(distro.RapidFortRedHat, "9", ""),
@@ -78,8 +101,8 @@ func TestByRPMReleaseIdentifier(t *testing.T) {
 	assert.Equal(t, reasonReleaseIdentifierMismatch, reason)
 }
 
-func TestByRPMReleaseIdentifier_FallsBackToELWhenInstalledIdentifierUnknown(t *testing.T) {
-	criteria := byRPMReleaseIdentifier(pkg.Package{
+func TestByReleaseIdentifier_FallsBackToEL_WhenInstalledIdentifierUnknown(t *testing.T) {
+	criteria := byReleaseIdentifier(pkg.Package{
 		Name:    "curl",
 		Version: "1.2.3-1",
 		Distro:  distro.New(distro.RapidFortRedHat, "9", ""),
@@ -102,6 +125,132 @@ func TestByRPMReleaseIdentifier_FallsBackToELWhenInstalledIdentifierUnknown(t *t
 	assert.NoError(t, err)
 	assert.False(t, matched)
 	assert.Contains(t, reason, "no el release identifier")
+}
+
+// TestByReleaseIdentifier_Ubuntu exercises the Ubuntu path through the same
+// byReleaseIdentifier function used by RedHat — verifying that adding a new
+// RF-curated base distro is a rule-registry entry, not a code fork.
+func TestByReleaseIdentifier_Ubuntu(t *testing.T) {
+	t.Run("ubuntu rf variant matches release-identifier:rf", func(t *testing.T) {
+		criteria := byReleaseIdentifier(pkg.Package{
+			Name:    "openssl",
+			Version: "3.12.10-1rfubu.1",
+			Distro:  distro.New(distro.RapidFortUbuntu, "20.04", ""),
+		})
+
+		matched, reason, err := criteria.MatchesVulnerability(vulnerability.Vulnerability{
+			Advisories: []vulnerability.Advisory{
+				{ID: "release-identifier:rf"},
+			},
+		})
+		assert.NoError(t, err)
+		assert.True(t, matched)
+		assert.Empty(t, reason)
+	})
+
+	t.Run("ubuntu rf variant rejects release-identifier:ubuntu (variant mismatch)", func(t *testing.T) {
+		criteria := byReleaseIdentifier(pkg.Package{
+			Name:    "openssl",
+			Version: "3.12.10-1rfubu.1",
+			Distro:  distro.New(distro.RapidFortUbuntu, "20.04", ""),
+		})
+
+		matched, reason, err := criteria.MatchesVulnerability(vulnerability.Vulnerability{
+			Advisories: []vulnerability.Advisory{
+				{ID: "release-identifier:ubuntu"},
+			},
+		})
+		assert.NoError(t, err)
+		assert.False(t, matched)
+		assert.Equal(t, reasonReleaseIdentifierMismatch, reason)
+	})
+
+	t.Run("ubuntu stock variant matches release-identifier:ubuntu", func(t *testing.T) {
+		criteria := byReleaseIdentifier(pkg.Package{
+			Name:    "libc6",
+			Version: "2.39-0ubuntu8.3",
+			Distro:  distro.New(distro.RapidFortUbuntu, "20.04", ""),
+		})
+
+		matched, reason, err := criteria.MatchesVulnerability(vulnerability.Vulnerability{
+			Advisories: []vulnerability.Advisory{
+				{ID: "release-identifier:ubuntu"},
+			},
+		})
+		assert.NoError(t, err)
+		assert.True(t, matched)
+		assert.Empty(t, reason)
+	})
+
+	t.Run("ubuntu stock variant rejects release-identifier:rf (variant mismatch)", func(t *testing.T) {
+		criteria := byReleaseIdentifier(pkg.Package{
+			Name:    "libc6",
+			Version: "2.39-0ubuntu8.3",
+			Distro:  distro.New(distro.RapidFortUbuntu, "20.04", ""),
+		})
+
+		matched, reason, err := criteria.MatchesVulnerability(vulnerability.Vulnerability{
+			Advisories: []vulnerability.Advisory{
+				{ID: "release-identifier:rf"},
+			},
+		})
+		assert.NoError(t, err)
+		assert.False(t, matched)
+		assert.Equal(t, reasonReleaseIdentifierMismatch, reason)
+	})
+}
+
+// TestByReleaseIdentifier_Ubuntu_UnmarkeredVersionDefaultsToStock verifies
+// that an unmarkered Ubuntu-distro package (no "rf" or "ubuntu" substring in
+// its version) is treated as stock Ubuntu — dpkgVariantID's default — and
+// then goes through the normal (non-fallback) match path. Same practical
+// outcomes as the old fallback logic; the level-2 fallback path is now
+// unreachable for Ubuntu.
+func TestByReleaseIdentifier_Ubuntu_UnmarkeredVersionDefaultsToStock(t *testing.T) {
+	criteria := byReleaseIdentifier(pkg.Package{
+		Name:    "curl",
+		Version: "3.14.5",
+		Distro:  distro.New(distro.RapidFortUbuntu, "20.04", ""),
+	})
+
+	// legacy (untagged) ubuntu advisory — accept via the normal path
+	// (expected="ubuntu" matches release-identifier:ubuntu exactly).
+	matched, reason, err := criteria.MatchesVulnerability(vulnerability.Vulnerability{
+		Advisories: []vulnerability.Advisory{
+			{ID: "release-identifier:ubuntu"},
+		},
+	})
+	assert.NoError(t, err)
+	assert.True(t, matched)
+	assert.Empty(t, reason)
+
+	// el9-only advisory — the normal path finds a release-identifier but not
+	// one matching "ubuntu", so it rejects with the mismatch reason.
+	matched, reason, err = criteria.MatchesVulnerability(vulnerability.Vulnerability{
+		Advisories: []vulnerability.Advisory{
+			{ID: "release-identifier:el9"},
+		},
+	})
+	assert.NoError(t, err)
+	assert.False(t, matched)
+	assert.Equal(t, reasonReleaseIdentifierMismatch, reason)
+}
+
+// TestReleaseVariantRules_Gate documents that adding a new RF-curated distro
+// requires exactly one addition to releaseVariantRules (and nothing else in
+// this file). If this test starts asserting on more distros than are actually
+// registered, someone regressed the registry.
+func TestReleaseVariantRules_Gate(t *testing.T) {
+	// Every entry in releaseVariantRules must gate byReleaseIdentifier (see
+	// matchPackageByDistro). Missing entries mean the filter silently doesn't
+	// run for that distro.
+	assert.Contains(t, releaseVariantRules, distro.RapidFortRedHat)
+	assert.Contains(t, releaseVariantRules, distro.RapidFortUbuntu)
+
+	// Non-RF distros must NOT be registered — the filter should stay
+	// specific to RF-curated content.
+	assert.NotContains(t, releaseVariantRules, distro.RedHat)
+	assert.NotContains(t, releaseVariantRules, distro.Ubuntu)
 }
 
 func TestRapidfortDistroVersion(t *testing.T) {

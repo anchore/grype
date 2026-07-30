@@ -38,9 +38,62 @@ var (
 
 const (
 	reasonNoReleaseIdentifier       = "no release identifier on vulnerability"
-	reasonCannotDeriveReleaseID     = "unable to derive rpm release identifier and no el release identifier on vulnerability"
 	reasonReleaseIdentifierMismatch = "package release identifier did not match vulnerability"
+
+	// reasonCannotDeriveReleaseID is the generic fallback reason used when the
+	// package has no distro (defensive path in byReleaseIdentifier). Distro-
+	// specific fallback reasons live in releaseVariantRules[<distro>].fallbackReason.
+	reasonCannotDeriveReleaseID = "unable to derive release identifier"
+
+	// Per-distro fallback reason: emitted when installedReleaseIdentifier
+	// returned "" and no advisory carried the distro's fallback prefix. Only
+	// RedHat needs one — Ubuntu defaults to "ubuntu" in dpkgVariantID so its
+	// fallback path is unreachable in normal operation.
+	reasonNoELReleaseIdentifier = "unable to derive rpm release identifier and no el release identifier on vulnerability"
 )
+
+// releaseVariantRule configures release-variant matching for one
+// RapidFort-curated base distro. See releaseVariantRules for the registry.
+type releaseVariantRule struct {
+	// fallbackAdvisoryPrefix is the release-identifier prefix that is
+	// conservatively accepted when installedReleaseIdentifier returns "" for a
+	// package of this distro. Empty means this distro has no fallback path —
+	// its variant derivation always yields a concrete tag (e.g. Ubuntu, which
+	// defaults to "ubuntu" for unmarkered versions).
+	fallbackAdvisoryPrefix string
+	// fallbackReason is emitted when the fallback path finds no advisory with
+	// fallbackAdvisoryPrefix. Ignored when fallbackAdvisoryPrefix is empty.
+	fallbackReason string
+}
+
+// releaseVariantRules is the single registry that gates release-identifier matching:
+//   - Membership decides which RapidFort distros run byReleaseIdentifier at all
+//     (see matchPackageByDistro).
+//   - Each entry optionally supplies a fallback prefix + reason for the
+//     level-2 fallback path in byReleaseIdentifier.
+//
+// Extend this map when RF starts curating another base distro.
+var releaseVariantRules = map[distro.Type]releaseVariantRule{
+	distro.RapidFortRedHat: {
+		fallbackAdvisoryPrefix: "release-identifier:el",
+		fallbackReason:         reasonNoELReleaseIdentifier,
+	},
+	// Ubuntu has no fallback: dpkgVariantID always returns "rf" or "ubuntu"
+	// (defaulting to "ubuntu" for unmarkered versions), so the level-2
+	// fallback path in byReleaseIdentifier never fires for Ubuntu.
+	distro.RapidFortUbuntu: {},
+}
+
+// ruleFor returns the releaseVariantRule for the given package's distro, if any.
+// The bool is false when no rule is registered (e.g. non-RF distro or nil
+// Distro) — callers should not run release-identifier filtering in that case.
+func ruleFor(p pkg.Package) (releaseVariantRule, bool) {
+	if p.Distro == nil {
+		return releaseVariantRule{}, false
+	}
+	rule, ok := releaseVariantRules[p.Distro.Type]
+	return rule, ok
+}
 
 // Matcher matches packages against RapidFort-specific advisories.
 // It is only instantiated when the image under scan is detected as RF-curated.
@@ -155,8 +208,11 @@ func (m *Matcher) matchPackageByDistro(store vulnerability.Provider, searchPkg p
 		internal.OnlyVulnerableVersions(pkgVersion),
 	}
 
-	if searchPkg.Distro.Type == distro.RapidFortRedHat {
-		criteria = append(criteria, byRPMReleaseIdentifier(searchPkg))
+	// Apply the release-variant filter for any distro that has a registered
+	// rule (see releaseVariantRules). Adding a new RF-curated distro is a
+	// one-line map entry — no change needed here.
+	if _, ok := releaseVariantRules[searchPkg.Distro.Type]; ok {
+		criteria = append(criteria, byReleaseIdentifier(searchPkg))
 	}
 
 	vulns, err := store.FindVulnerabilities(criteria...)
@@ -183,19 +239,36 @@ func (m *Matcher) matchPackageByDistro(store vulnerability.Provider, searchPkg p
 	return matches, nil
 }
 
-func byRPMReleaseIdentifier(p pkg.Package) vulnerability.Criteria {
+// byReleaseIdentifier returns a criteria that filters vulnerabilities to those
+// whose release-identifier advisory matches the installed package's release
+// variant (see installedReleaseIdentifier). Applies to any RF-curated distro
+// registered in releaseVariantRules — both RPM-based (RedHat) and dpkg-based
+// (Ubuntu) paths use this single implementation.
+func byReleaseIdentifier(p pkg.Package) vulnerability.Criteria {
 	return search.ByFunc(func(vuln vulnerability.Vulnerability) (bool, string, error) {
 		expected := installedReleaseIdentifier(p)
 		if expected == "" {
+			// Fallback: we couldn't derive a variant from the package version.
+			// Only fires for distros whose rule declares a fallback prefix
+			// (RedHat's release-identifier:el*). Distros with an empty prefix
+			// (Ubuntu) never reach here in normal operation — dpkgVariantID
+			// always returns a concrete tag for them.
+			rule, ok := ruleFor(p)
+			if !ok || rule.fallbackAdvisoryPrefix == "" {
+				return false, reasonCannotDeriveReleaseID, nil
+			}
 			for _, advisory := range vuln.Advisories {
-				id := advisoryID(advisory)
-				if strings.HasPrefix(id, "release-identifier:el") {
+				if strings.HasPrefix(advisoryID(advisory), rule.fallbackAdvisoryPrefix) {
 					return true, "", nil
 				}
 			}
-			return false, reasonCannotDeriveReleaseID, nil
+			return false, rule.fallbackReason, nil
 		}
 
+		// Normal path: package variant is known; require an exact release-
+		// identifier advisory match. Any release-identifier that's neither a
+		// match nor absent is a "found but mismatch" (fix targets a different
+		// variant), which is a reject.
 		found := false
 		for _, advisory := range vuln.Advisories {
 			id := advisoryID(advisory)
@@ -220,9 +293,21 @@ func advisoryID(advisory vulnerability.Advisory) string {
 	return strings.ToLower(strings.TrimSpace(advisory.ID))
 }
 
+// installedReleaseIdentifier derives the release-variant tag for the installed
+// package from its version string, mirroring the tags emitted by the vunnel
+// annotator. Rule selection is distro-scoped so a dpkg-style substring rule
+// doesn't get accidentally applied to an RPM version (and vice versa).
+//
+// Packages without a distro fall through to the RPM chain to preserve
+// backward-compatible behavior for legacy callers/tests.
 func installedReleaseIdentifier(p pkg.Package) string {
 	version := strings.ToLower(strings.TrimSpace(p.Version))
 
+	if p.Distro != nil && p.Distro.Type == distro.RapidFortUbuntu {
+		return dpkgVariantID(version)
+	}
+
+	// RPM chain (RedHat/Fedora and the no-distro legacy path).
 	if id := fedoraReleaseID(version); id != "" {
 		return id
 	}
@@ -237,6 +322,36 @@ func installedReleaseIdentifier(p pkg.Package) string {
 	}
 
 	return ""
+}
+
+// dpkgVariantRules is the ordered substring rule set applied by dpkgVariantID.
+// Order matters: "rf" is checked first so an RF-recompiled ubuntu binary
+// (whose version string typically contains both "rf" and "ubuntu", e.g.
+// "3.12.10-1rfubu.1") is tagged as the RF variant.
+var dpkgVariantRules = []struct{ marker, id string }{
+	{marker: "rf", id: "rf"},
+	{marker: "ubuntu", id: "ubuntu"},
+}
+
+// dpkgVariantID derives the release-variant tag for a dpkg-format version
+// on a RapidFortUbuntu-typed package:
+//
+//  1. version contains "rf"     → "rf"     (RF-curated variant)
+//  2. version contains "ubuntu" → "ubuntu" (stock Ubuntu variant)
+//  3. otherwise                 → "ubuntu" (default — the distro is already
+//                                 known to be Ubuntu, and the absence of an
+//                                 "rf" marker means the package was not
+//                                 RF-recompiled)
+//
+// Never returns "" — the level-2 fallback path in byReleaseIdentifier is
+// unreachable for Ubuntu as a result.
+func dpkgVariantID(version string) string {
+	for _, r := range dpkgVariantRules {
+		if strings.Contains(version, r.marker) {
+			return r.id
+		}
+	}
+	return "ubuntu"
 }
 
 func fedoraReleaseID(version string) string {
