@@ -170,8 +170,8 @@ func getFix(fixedInEntry unmarshal.OSFixedIn) *db.Fix {
 	}
 
 	var refs []db.Reference
-	if fixedInEntry.Identifier != "" {
-		rid := releaseIdentifierReferenceID(fixedInEntry.Identifier)
+	if fixedInEntry.ReleaseIdentifier != "" {
+		rid := releaseIdentifierReferenceID(fixedInEntry.ReleaseIdentifier)
 		refURL := rid
 		for _, adv := range advisoryOrder {
 			if adv.link != "" {
@@ -300,7 +300,7 @@ func groupFixedIns(vuln unmarshal.OSVulnerability) map[groupIndex][]unmarshal.OS
 			osName:     oi.name,
 			osVersion:  oi.version,
 			osChannel:  oi.channel,
-			identifier: fixedIn.Identifier,
+			identifier: fixedIn.ReleaseIdentifier,
 			hasModule:  fixedIn.Module != nil,
 			module:     mod,
 			format:     fixedIn.VersionFormat,

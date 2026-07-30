@@ -7,7 +7,6 @@ import (
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/syft/syft/source"
 )
 
 func TestApplySelectionPolicy_UsesDefaultOSMatchersForNonRapidFortSources(t *testing.T) {
@@ -18,15 +17,11 @@ func TestApplySelectionPolicy_UsesDefaultOSMatchersForNonRapidFortSources(t *tes
 	assert.NotContains(t, matcherTypes(matchers), match.RapidFortMatcher)
 }
 
-func TestApplySelectionPolicy_UsesDefaultOSMatchersForNonRapidFortImage(t *testing.T) {
+func TestApplySelectionPolicy_UsesDefaultOSMatchersWhenMarkerFileAbsent(t *testing.T) {
+	// IsRapidFortImage=false is the state set by the package providers when the
+	// RapidFort curation marker file is not present in the image or SBOM.
 	matchers := ApplySelectionPolicy(NewDefaultMatchers(Config{}), pkg.Context{
-		Source: &source.Description{
-			Metadata: source.ImageMetadata{
-				Labels: map[string]string{
-					"maintainer": "Other Vendor <other@example.com>",
-				},
-			},
-		},
+		IsRapidFortImage: false,
 	})
 
 	assert.Contains(t, matcherTypes(matchers), match.DpkgMatcher)
@@ -34,15 +29,12 @@ func TestApplySelectionPolicy_UsesDefaultOSMatchersForNonRapidFortImage(t *testi
 	assert.NotContains(t, matcherTypes(matchers), match.RapidFortMatcher)
 }
 
-func TestApplySelectionPolicy_UsesRapidFortMatcherInsteadOfDebAndApkMatchers(t *testing.T) {
+func TestApplySelectionPolicy_UsesRapidFortMatcherWhenMarkerFilePresent(t *testing.T) {
+	// IsRapidFortImage=true is the state set by the package providers when the
+	// RapidFort curation marker file (pkg.RapidFortMarkerPath) exists in the
+	// scanned image or SBOM catalog.
 	matchers := ApplySelectionPolicy(NewDefaultMatchers(Config{}), pkg.Context{
-		Source: &source.Description{
-			Metadata: source.ImageMetadata{
-				Labels: map[string]string{
-					"maintainer": "RapidFort Curation Team <rfcurators@rapidfort.com>",
-				},
-			},
-		},
+		IsRapidFortImage: true,
 	})
 
 	assert.Contains(t, matcherTypes(matchers), match.RapidFortMatcher)

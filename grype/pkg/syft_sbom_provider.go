@@ -12,6 +12,7 @@ import (
 
 	"github.com/anchore/go-homedir"
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/rapidfort"
 	"github.com/anchore/grype/internal"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/format"
@@ -47,6 +48,7 @@ func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func
 		Source:                &src,
 		Distro:                d,
 		DistroDetectionFailed: distroDetectionFailed,
+		IsRapidFortImage:      rapidfort.HasMarkerInSBOM(s),
 	}, s, nil
 }
 
@@ -69,6 +71,7 @@ func syftSBOMProviderFromReader(reader io.ReadSeeker, config ProviderConfig, app
 		Source:                &src,
 		Distro:                d,
 		DistroDetectionFailed: distroDetectionFailed,
+		IsRapidFortImage:      rapidfort.HasMarkerInSBOM(s),
 	}, s, nil
 }
 

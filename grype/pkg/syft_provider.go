@@ -6,6 +6,7 @@ import (
 
 	"github.com/anchore/go-collections"
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/rapidfort"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/stereoscope"
 	"github.com/anchore/stereoscope/pkg/image"
@@ -35,11 +36,22 @@ func syftProvider(userInput string, config ProviderConfig, applyChannel func(*di
 
 	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
+	// Must run before src's deferred Close (top of function). Resolver errors
+	// are logged and treated as "not RapidFort" so the check never blocks a scan.
+	isRapidFortImage := false
+	resolver, resolverErr := src.FileResolver(config.SBOMOptions.Search.Scope)
+	if resolverErr != nil {
+		log.WithFields("error", resolverErr).Trace("unable to acquire file resolver for RapidFort marker check")
+	} else {
+		isRapidFortImage = rapidfort.HasMarkerInResolver(resolver)
+	}
+
 	packages := FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig)
 	pkgCtx := Context{
 		Source:                &srcDescription,
 		Distro:                d,
 		DistroDetectionFailed: distroDetectionFailed,
+		IsRapidFortImage:      isRapidFortImage,
 	}
 
 	return packages, pkgCtx, s, nil

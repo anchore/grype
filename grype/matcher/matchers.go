@@ -58,8 +58,10 @@ func NewDefaultMatchers(mc Config) []match.Matcher {
 	}
 }
 
+// ApplySelectionPolicy swaps dpkg/apk/rpm matchers for the RapidFort matcher
+// on RapidFort-curated images (see rapidfort.MarkerPath).
 func ApplySelectionPolicy(matchers []match.Matcher, ctx pkg.Context) []match.Matcher {
-	if !rapidfort.IsRapidFortImage(ctx.Source) {
+	if !ctx.IsRapidFortImage {
 		return matchers
 	}
 
