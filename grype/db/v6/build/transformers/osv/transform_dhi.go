@@ -22,10 +22,12 @@ const dhiEcosystemPrefix = "Docker Hardened Images:"
 
 type dhiStrategy struct{}
 
+// Matches reports whether an OSV record uses the DHI advisory ID prefix.
 func (dhiStrategy) Matches(id string) bool {
 	return strings.HasPrefix(id, "DHI-")
 }
 
+// Transform converts a DHI OSV record into vulnerability and affected-package entries.
 func (dhiStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
 	affected, err := dhiAffectedPackages(vuln, dhiAliases(vuln))
 	if err != nil {
@@ -70,6 +72,7 @@ func (dhiStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.Sta
 	return transformers.NewEntries(in...), nil
 }
 
+// dhiAliases combines and deduplicates the aliases and upstream IDs of a DHI advisory.
 func dhiAliases(vuln unmarshal.OSVVulnerability) []string {
 	seen := make(map[string]struct{})
 	var aliases []string
@@ -86,6 +89,7 @@ func dhiAliases(vuln unmarshal.OSVVulnerability) []string {
 	return aliases
 }
 
+// dhiReferences converts OSV references into their Grype database representation.
 func dhiReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
 	refs := make([]db.Reference, 0, len(vuln.References))
 	for _, ref := range vuln.References {
@@ -98,6 +102,7 @@ func dhiReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
 	return refs
 }
 
+// dhiAffectedPackages validates and converts each affected DHI package into a database handle.
 func dhiAffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string) ([]db.AffectedPackageHandle, error) {
 	var handles []db.AffectedPackageHandle
 	for _, affected := range vuln.Affected {
@@ -141,6 +146,7 @@ type dhiIdentity struct {
 	architecture string
 }
 
+// qualifiers returns the package qualifiers used to constrain matching for this identity.
 func (i dhiIdentity) qualifiers() *db.PackageQualifiers {
 	if i.architecture == "" {
 		return nil
@@ -149,6 +155,7 @@ func (i dhiIdentity) qualifiers() *db.PackageQualifiers {
 	return &db.PackageQualifiers{Architecture: &architecture}
 }
 
+// parseDHIIdentity validates and extracts the package lineage, release, type, and architecture.
 func parseDHIIdentity(osvPackage osvmodel.Package) (dhiIdentity, error) {
 	parts := strings.Split(osvPackage.Ecosystem, ":")
 	if len(parts) != 3 || parts[0] != strings.TrimSuffix(dhiEcosystemPrefix, ":") {
@@ -188,6 +195,7 @@ func parseDHIIdentity(osvPackage osvmodel.Package) (dhiIdentity, error) {
 	return dhiIdentity{packageType: packageType, lineage: lineage, release: release, architecture: qualifiers["arch"]}, nil
 }
 
+// validDHIRelease reports whether a release is a numeric major or major-minor version.
 func validDHIRelease(release string) bool {
 	parts := strings.Split(release, ".")
 	if len(parts) == 0 || len(parts) > 2 {
@@ -206,6 +214,7 @@ func validDHIRelease(release string) bool {
 	return true
 }
 
+// dhiOperatingSystem maps a DHI release into Grype's operating-system representation.
 func dhiOperatingSystem(release string) *db.OperatingSystem {
 	parts := strings.SplitN(release, ".", 2)
 	os := &db.OperatingSystem{Name: "dhi", ReleaseID: "dhi", MajorVersion: parts[0]}
