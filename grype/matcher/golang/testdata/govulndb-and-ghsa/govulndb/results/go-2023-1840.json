@@ -1,0 +1,88 @@
+{
+  "identifier": "go-2023-1840",
+  "item": {
+    "affected": [
+      {
+        "ecosystem_specific": {
+          "imports": [
+            {
+              "path": "runtime"
+            }
+          ]
+        },
+        "package": {
+          "ecosystem": "Go",
+          "name": "stdlib"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2023-06-08",
+                    "kind": "advisory",
+                    "version": "1.19.10"
+                  },
+                  {
+                    "date": "2023-06-08",
+                    "kind": "advisory",
+                    "version": "1.20.5"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1.19.10"
+              },
+              {
+                "introduced": "1.20.0-0"
+              },
+              {
+                "fixed": "1.20.5"
+              }
+            ],
+            "type": "SEMVER"
+          }
+        ]
+      }
+    ],
+    "aliases": [
+      "CVE-2023-29403"
+    ],
+    "credits": [
+      {
+        "name": "Vincent Dehors from Synacktiv"
+      }
+    ],
+    "database_specific": {
+      "review_status": "REVIEWED",
+      "url": "https://pkg.go.dev/vuln/GO-2023-1840"
+    },
+    "details": "On Unix platforms, the Go runtime does not behave differently when a binary is run with the setuid/setgid bits. This can be dangerous in certain cases, such as when dumping memory state, or assuming the status of standard i/o file descriptors.\n\nIf a setuid/setgid binary is executed with standard I/O file descriptors closed, opening any files can result in unexpected content being read or written with elevated privileges. Similarly, if a setuid/setgid program is terminated, either via panic or signal, it may leak the contents of its registers.",
+    "id": "GO-2023-1840",
+    "modified": "2024-05-20T16:03:47Z",
+    "published": "2023-06-08T20:16:06Z",
+    "references": [
+      {
+        "type": "REPORT",
+        "url": "https://go.dev/issue/60272"
+      },
+      {
+        "type": "FIX",
+        "url": "https://go.dev/cl/501223"
+      },
+      {
+        "type": "WEB",
+        "url": "https://groups.google.com/g/golang-announce/c/q5135a9d924/m/j0ZoAJOHAwAJ"
+      }
+    ],
+    "schema_version": "1.3.1",
+    "summary": "Unsafe behavior in setuid/setgid binaries in runtime"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.3.1.json"
+}

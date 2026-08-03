@@ -66,7 +66,7 @@ func parseVersion(version string) (major, minor, remaining, versionWithoutSuffix
 	version = strings.TrimPrefix(version, "v")
 
 	// if starts with a digit, then assume it's a version and extract the major, minor, and remaining versions
-	if version[0] >= '0' && version[0] <= '9' {
+	if len(version) > 0 && version[0] >= '0' && version[0] <= '9' {
 		// extract the major, minor, and remaining versions
 		parts := strings.Split(version, ".")
 		if len(parts) > 0 {
@@ -131,12 +131,23 @@ func ParseDistroString(s string) (name, version string) {
 
 // NewFromNameVersion creates a new Distro object derived from the provided name and version
 func NewFromNameVersion(name, version string) *Distro {
+	// separate any channel suffix before the codename heuristic below. Without this a value like
+	// "jammy+esm" is swallowed whole into the codename, which matches no OS record and silently
+	// yields zero results.
+	base, channels, hasChannels := strings.Cut(version, "+")
+
 	var codename string
 
 	// if there are no digits in the version, it is likely a codename
-	if !strings.ContainsAny(version, "0123456789") {
-		codename = version
-		version = ""
+	if !strings.ContainsAny(base, "0123456789") {
+		codename = base
+		base = ""
+	}
+
+	if hasChannels {
+		// re-attach the suffix so that channel splitting stays in parseVersion alone. When the base
+		// was a codename this leaves a bare "+esm", which parseVersion handles as an empty version.
+		base += "+" + channels
 	}
 
 	typ := IDMapping[name]
@@ -144,7 +155,7 @@ func NewFromNameVersion(name, version string) *Distro {
 		typ = Type(name)
 	}
 
-	return New(typ, version, codename, string(typ))
+	return New(typ, base, codename, string(typ))
 }
 
 // FromRelease attempts to get a distro from the linux release, only logging any errors

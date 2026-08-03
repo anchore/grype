@@ -1,0 +1,138 @@
+{
+    "schema_version": "1.7.0",
+    "id": "CGA-xcpc-gm23-prj9",
+    "published": "2026-02-20T00:00:00Z",
+    "modified": "2026-02-20T00:00:00Z",
+    "summary": "Netty: Information disclosure via local system temporary directory",
+    "severity": [
+        {
+            "type": "CVSS_V3",
+            "score": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N"
+        }
+    ],
+    "upstream": [
+        "CVE-2025-68121",
+        "GHSA-qgxr-kfqx-v5q9"
+    ],
+    "references": [
+        {
+            "type": "ADVISORY",
+            "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-68121"
+        },
+        {
+            "type": "FIX",
+            "url": "https://github.com/netty/netty/pull/12345"
+        }
+    ],
+    "affected": [
+        {
+            "package": {
+                "ecosystem": "Chainguard",
+                "name": "syncthing",
+                "purl": "pkg:apk/chainguard/syncthing?arch=x86_64"
+            },
+            "ranges": [
+                {
+                    "type": "ECOSYSTEM",
+                    "events": [
+                        {
+                            "introduced": "0"
+                        },
+                        {
+                            "fixed": "2.0.14-r1"
+                        }
+                    ]
+                }
+            ],
+            "ecosystem_specific": {
+                "components": [
+                    {
+                        "advisory_id": "CGA-xcpc-gm23-0001",
+                        "component_name": "syncthing",
+                        "component_version": "2.0.13",
+                        "component_type": "go-module",
+                        "component_location": "/usr/bin/syncthing",
+                        "component_purl": "pkg:golang/github.com/syncthing/syncthing@v2.0.13",
+                        "status": "fixed",
+                        "note": "Upgraded to 2.0.14"
+                    }
+                ]
+            }
+        },
+        {
+            "package": {
+                "ecosystem": "Chainguard",
+                "name": "syncthing-fips",
+                "purl": "pkg:apk/chainguard/syncthing-fips?arch=x86_64"
+            },
+            "ranges": [
+                {
+                    "type": "ECOSYSTEM",
+                    "events": [
+                        {
+                            "introduced": "0"
+                        },
+                        {
+                            "fixed": "2.0.14-r1"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "package": {
+                "ecosystem": "Chainguard",
+                "name": "syncthing-compat",
+                "purl": "pkg:apk/chainguard/syncthing-compat?arch=x86_64"
+            },
+            "ranges": [
+                {
+                    "type": "ECOSYSTEM",
+                    "events": [
+                        {
+                            "introduced": "0"
+                        },
+                        {
+                            "fixed": "0"
+                        }
+                    ]
+                }
+            ],
+            "ecosystem_specific": {
+                "components": [
+                    {
+                        "advisory_id": "CGA-xcpc-gm23-0003",
+                        "component_name": "syncthing",
+                        "component_version": "2.0.13",
+                        "component_type": "go-module",
+                        "component_location": "/usr/bin/syncthing",
+                        "component_purl": "pkg:golang/github.com/syncthing/syncthing@v2.0.13",
+                        "status": "not_affected",
+                        "justification": "VULNERABLE_CODE_NOT_PRESENT",
+                        "note": "Binary compiled without affected temp directory code path"
+                    }
+                ]
+            }
+        },
+        {
+            "package": {
+                "ecosystem": "Wolfi",
+                "name": "syncthing",
+                "purl": "pkg:apk/wolfi/syncthing?arch=aarch64"
+            },
+            "ranges": [
+                {
+                    "type": "ECOSYSTEM",
+                    "events": [
+                        {
+                            "introduced": "0"
+                        },
+                        {
+                            "fixed": "2.0.14-r1"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

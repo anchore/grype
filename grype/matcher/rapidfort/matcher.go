@@ -339,9 +339,9 @@ var dpkgVariantRules = []struct{ marker, id string }{
 //  1. version contains "rf"     → "rf"     (RF-curated variant)
 //  2. version contains "ubuntu" → "ubuntu" (stock Ubuntu variant)
 //  3. otherwise                 → "ubuntu" (default — the distro is already
-//                                 known to be Ubuntu, and the absence of an
-//                                 "rf" marker means the package was not
-//                                 RF-recompiled)
+//     known to be Ubuntu, and the absence of an
+//     "rf" marker means the package was not
+//     RF-recompiled)
 //
 // Never returns "" — the level-2 fallback path in byReleaseIdentifier is
 // unreachable for Ubuntu as a result.

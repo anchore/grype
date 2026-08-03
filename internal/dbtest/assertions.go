@@ -740,6 +740,26 @@ func (s *SingleFindingAssertion) HasAdvisories(ids ...string) *SingleFindingAsse
 	return s
 }
 
+// WithAdvisoryLink asserts the match carries an advisory with the given ID whose link is the
+// expected URL. Per-minor RHEL rows pin the RHSA that governs the host's minor (rolled
+// forward across gap minors), so this verifies the correct errata link surfaces for the host
+// - not just that some advisory is attached.
+func (s *SingleFindingAssertion) WithAdvisoryLink(id, link string) *SingleFindingAssertion {
+	s.t.Helper()
+	for _, a := range s.match.Vulnerability.Advisories {
+		if a.ID == id {
+			assert.Equal(s.t, link, a.Link, "unexpected link for advisory %s", id)
+			return s
+		}
+	}
+	got := make([]string, 0, len(s.match.Vulnerability.Advisories))
+	for _, a := range s.match.Vulnerability.Advisories {
+		got = append(got, a.ID)
+	}
+	s.t.Errorf("advisory %q not present on match (have %v)", id, got)
+	return s
+}
+
 // InNamespace asserts the match's vulnerability lives in the expected
 // namespace - useful when one matcher's results are scoped to a different
 // namespace than the package's distro (e.g., AlmaLinux disclosures live in
@@ -1205,5 +1225,18 @@ func (e *EcosystemDetailAssertion) foundVulnerability(vulnID string, constraint 
 func (e *EcosystemDetailAssertion) HasMatchType(matchType match.Type) *EcosystemDetailAssertion {
 	e.t.Helper()
 	assert.Equal(e.t, matchType, e.detail.Type, "unexpected match type")
+	return e
+}
+
+// HasMatchedSymbols asserts that Found.MatchedSymbols equals the expected sorted set of vulnerable Go
+// symbols. Call with no arguments to assert none were matched (the match was not scoped by symbol
+// evidence).
+func (e *EcosystemDetailAssertion) HasMatchedSymbols(matchedSymbols ...string) *EcosystemDetailAssertion {
+	e.t.Helper()
+	var want []string
+	if len(matchedSymbols) > 0 {
+		want = matchedSymbols
+	}
+	assert.Equal(e.t, want, e.found.MatchedSymbols, "unexpected matched symbols in Found")
 	return e
 }

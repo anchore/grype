@@ -69,12 +69,14 @@ func ByFixedVersion(v version.Version) vulnerability.Criteria {
 				return false, "", nil
 			}
 			for _, fixVersion := range vuln.Fix.Versions {
-				cmp, e := version.New(fixVersion, v.Format).Compare(&v)
+				// compare with v (the package) as the receiver so its embedded ComparisonConfig (e.g. missing-epoch
+				// strategy) is honored; cmp >= 0 means the installed version is at or past the fix, so it is fixed.
+				cmp, e := v.Compare(version.New(fixVersion, v.Format))
 				if e != nil {
 					err = e
 				}
-				if cmp <= 0 {
-					// fix version is less than or equal to the provided version, so is considered fixed
+				if cmp >= 0 {
+					// installed version is greater than or equal to the fix version, so is considered fixed
 					return true, fmt.Sprintf("fix version %v is less than %v", v, fixVersion), err
 				}
 			}

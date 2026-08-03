@@ -23,11 +23,11 @@ type PURLLiteralMetadata struct {
 	PURL string
 }
 
-func purlEnhancers(applyChannel func(*distro.Distro) bool) []Enhancer {
+func purlEnhancers(applyChannel func(*distro.Distro)) []Enhancer {
 	return []Enhancer{setUpstreamsFromPURL, setDistroFromPURL(applyChannel)}
 }
 
-func purlProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]*Package, Context, *sbom.SBOM, error) {
+func purlProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro)) ([]*Package, Context, *sbom.SBOM, error) {
 	reader, ctx, err := getPurlReader(userInput)
 	if err != nil {
 		return nil, Context{}, nil, err
@@ -74,7 +74,7 @@ func upstreamsFromPURL(purl packageurl.PackageURL, pkgType syftPkg.Type) (upstre
 	return upstreams
 }
 
-func setDistroFromPURL(applyChannel func(*distro.Distro) bool) func(out *Package, purl packageurl.PackageURL, _ syftPkg.Package) {
+func setDistroFromPURL(applyChannel func(*distro.Distro)) func(out *Package, purl packageurl.PackageURL, _ syftPkg.Package) {
 	return func(out *Package, purl packageurl.PackageURL, _ syftPkg.Package) {
 		if out.Distro == nil {
 			out.Distro = distroFromPURL(purl)

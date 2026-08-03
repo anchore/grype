@@ -1,0 +1,89 @@
+{
+  "identifier": "CGA-22hv-wp9q-4779",
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.0.json",
+  "item": {
+    "schema_version": "1.7.0",
+    "id": "CGA-22hv-wp9q-4779",
+    "published": "2026-02-24T13:07:08Z",
+    "modified": "2026-02-24T13:07:08Z",
+    "summary": "Langfuse: Information disclosure via insecure session handling",
+    "severity": [
+      {
+        "type": "CVSS_V3",
+        "score": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N"
+      }
+    ],
+    "upstream": [
+      "CVE-2026-24398",
+      "GHSA-r354-f388-2fhh"
+    ],
+    "references": [
+      {
+        "type": "ADVISORY",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-24398"
+      }
+    ],
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "Chainguard",
+          "name": "langfuse-3-worker",
+          "purl": "pkg:apk/chainguard/langfuse-3-worker?arch=x86_64"
+        },
+        "ranges": [
+          {
+            "type": "ECOSYSTEM",
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3.153.0-r0"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "package": {
+          "ecosystem": "Chainguard",
+          "name": "langfuse-fips-3-worker",
+          "purl": "pkg:apk/chainguard/langfuse-fips-3-worker?arch=x86_64"
+        },
+        "ranges": [
+          {
+            "type": "ECOSYSTEM",
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3.152.0-r0"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "package": {
+          "ecosystem": "Wolfi",
+          "name": "langfuse-3-worker",
+          "purl": "pkg:apk/wolfi/langfuse-3-worker?arch=aarch64"
+        },
+        "ranges": [
+          {
+            "type": "ECOSYSTEM",
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3.153.0-r0"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
