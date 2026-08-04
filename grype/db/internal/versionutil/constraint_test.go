@@ -12,6 +12,12 @@ func TestEnforceSemVerConstraint(t *testing.T) {
 			expected: ">=5.0.0,<7.1",
 		},
 		{
+			// already comma separated, which is how GHSA writes ranges. Without excluding
+			// commas from the clause pattern this comes back as ">=1.0.0,,<2.0.0".
+			value:    ">= 1.0.0, < 2.0.0",
+			expected: ">=1.0.0,<2.0.0",
+		},
+		{
 			value:    "None",
 			expected: "",
 		},

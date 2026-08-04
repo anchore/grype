@@ -106,13 +106,13 @@ func TestCpansaTransform(t *testing.T) {
 					BlobValue: &db.PackageBlob{
 						CVEs: []string{"CVE-2018-8740"},
 						Ranges: []db.Range{{
-							Version: db.Version{Type: "cpan", Constraint: ">= 1.00 < 1.35"},
+							Version: db.Version{Type: "cpan", Constraint: ">= 1.00, < 1.35"},
 							Fix:     cpanFix("1.35", time.Date(2018, time.March, 17, 0, 0, 0, 0, time.UTC)),
 						}, {
-							Version: db.Version{Type: "cpan", Constraint: ">= 1.36_01 < 1.47_04"},
+							Version: db.Version{Type: "cpan", Constraint: ">= 1.36_01, < 1.47_04"},
 							Fix:     cpanFix("1.47_04", time.Date(2018, time.March, 17, 0, 0, 0, 0, time.UTC)),
 						}, {
-							Version: db.Version{Type: "cpan", Constraint: ">= 1.47_05 < 1.59_01"},
+							Version: db.Version{Type: "cpan", Constraint: ">= 1.47_05, < 1.59_01"},
 							Fix:     cpanFix("1.59_01", time.Date(2018, time.March, 17, 0, 0, 0, 0, time.UTC)),
 						}},
 					},
@@ -164,6 +164,15 @@ func TestCpansaTransform(t *testing.T) {
 		{
 			name:        "advisory with no affected packages is not emitted",
 			fixturePath: "testdata/CPANSA-libwww-perl-1995-01-no-affected.json",
+			want:        nil,
+		},
+		{
+			// the shape upstream actually produces: an affected entry is present but its
+			// ranges resolved to nothing, because the advisory predates any release CPANSA
+			// records. Emitting it would write an empty constraint, and an empty constraint is
+			// satisfied by every version, so this would report against every install.
+			name:        "affected package whose ranges resolved to nothing is not emitted",
+			fixturePath: "testdata/CPANSA-libwww-perl-1995-01-empty-ranges.json",
 			want:        nil,
 		},
 	}
