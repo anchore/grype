@@ -1,0 +1,76 @@
+{
+  "identifier": "cpansa-cgi-session-2006-1279",
+  "item": {
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "CPAN",
+          "name": "CGI-Session"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2006-03-19",
+                    "kind": "advisory",
+                    "version": "4.10"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "4.10"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      }
+    ],
+    "aliases": [
+      "CVE-2006-1279"
+    ],
+    "database_specific": {
+      "cpansa_commit": "2089ff7201b44e5e462742a5baaa080ba003d257",
+      "cpansa_generated": "Sun Jul 26 06:23:50 2026"
+    },
+    "details": "CGI::Session 4.03-1 allows local users to overwrite arbitrary files via a symlink attack on temporary files used by (1) Driver::File, (2) Driver::db_file, and possibly (3) Driver::sqlite.",
+    "id": "CPANSA-CGI-Session-2006-1279",
+    "modified": "2026-07-26T06:23:50Z",
+    "published": "2006-03-19T00:00:00Z",
+    "references": [
+      {
+        "type": "WEB",
+        "url": "http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=356555"
+      },
+      {
+        "type": "WEB",
+        "url": "http://secunia.com/advisories/19211"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.securityfocus.com/bid/17177"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.osvdb.org/23865"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.vupen.com/english/advisories/2006/0946"
+      },
+      {
+        "type": "WEB",
+        "url": "https://exchange.xforce.ibmcloud.com/vulnerabilities/25285"
+      }
+    ],
+    "schema_version": "1.6.1"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.1.json"
+}

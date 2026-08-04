@@ -13,7 +13,10 @@ import (
 // > 5.0.0
 // >=5
 // <6
-var forceSemVerPattern = regexp.MustCompile(`[><=]+\s*[^<>=]+`)
+// the comma exclusion matters: clauses arrive both space separated and already comma
+// separated (GHSA ranges are written ">= 1.0, < 2.0"), and without it the trailing comma is
+// captured as part of the clause and the rejoin below emits ">=1.0,,<2.0".
+var forceSemVerPattern = regexp.MustCompile(`[><=]+\s*[^<>=,]+`)
 
 func EnforceSemVerConstraint(constraint string) string {
 	constraint = CleanConstraint(constraint)
