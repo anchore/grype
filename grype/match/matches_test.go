@@ -702,3 +702,143 @@ func TestMatches_Add_Merge(t *testing.T) {
 		})
 	}
 }
+
+func TestMatches_MergeSurvivorIsIndependentOfAddOrder(t *testing.T) {
+	// Normalizing by CVE rewrites an ecosystem record's ID and namespace to the CVE it aliases, which
+	// makes it collide with the NVD record for the same CVE and package. Only the identity is rewritten,
+	// so the two matches share a fingerprint while still carrying the metadata and fix data of the
+	// records they were found in. Whichever survives the merge is what a caller sees.
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "stdlib",
+		Version: "go1.21.0",
+		Type:    syftPkg.GoModulePkg,
+	}
+
+	// both records report the same fix versions, which is what puts them on the exact-fingerprint
+	// merge path rather than the looser core-fingerprint one
+	fixVersions := []string{"1.21.9", "1.22.2"}
+
+	ecosystemMatch := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			Reference: vulnerability.Reference{ID: "CVE-2023-45288", Namespace: "nvd:cpe"},
+			Fix: vulnerability.Fix{
+				Versions:  fixVersions,
+				State:     vulnerability.FixStateFixed,
+				Available: []vulnerability.FixAvailable{{Version: "1.21.9", Kind: "advisory"}},
+			},
+			Metadata: &vulnerability.Metadata{
+				ID:         "CVE-2023-45288",
+				Namespace:  "govulndb:language:go",
+				DataSource: "https://go.dev/issue/65051",
+			},
+			RelatedVulnerabilities: []vulnerability.Reference{
+				{ID: "GO-2024-2687", Namespace: "govulndb:language:go"},
+			},
+		},
+		Package: p,
+		Details: Details{{Type: ExactDirectMatch, Matcher: GoModuleMatcher, Confidence: 1}},
+	}
+
+	nvdMatch := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			Reference: vulnerability.Reference{ID: "CVE-2023-45288", Namespace: "nvd:cpe"},
+			Fix: vulnerability.Fix{
+				Versions:  fixVersions,
+				State:     vulnerability.FixStateFixed,
+				Available: []vulnerability.FixAvailable{{Version: "1.21.9", Kind: "first-observed"}},
+			},
+			Metadata: &vulnerability.Metadata{
+				ID:         "CVE-2023-45288",
+				Namespace:  "nvd:cpe",
+				DataSource: "https://nvd.nist.gov/vuln/detail/CVE-2023-45288",
+			},
+		},
+		Package: p,
+		Details: Details{{Type: CPEMatch, Matcher: GoModuleMatcher, Confidence: 0.9}},
+	}
+
+	require.Equal(t, ecosystemMatch.Fingerprint(), nvdMatch.Fingerprint(),
+		"test requires both matches to collide on the exact fingerprint")
+
+	tests := []struct {
+		name  string
+		added []Match
+	}{
+		{name: "ecosystem record added first", added: []Match{ecosystemMatch, nvdMatch}},
+		{name: "nvd record added first", added: []Match{nvdMatch, ecosystemMatch}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			matches := NewMatches(tt.added...)
+			require.Equal(t, 1, matches.Count(), "expected the two records to merge into one match")
+
+			actual := matches.Sorted()[0]
+
+			require.NotNil(t, actual.Vulnerability.Metadata)
+			assert.Equal(t, "https://go.dev/issue/65051", actual.Vulnerability.Metadata.DataSource)
+			assert.Equal(t, "govulndb:language:go", actual.Vulnerability.Metadata.Namespace)
+			require.Len(t, actual.Vulnerability.Fix.Available, 1)
+			assert.Equal(t, "advisory", actual.Vulnerability.Fix.Available[0].Kind)
+
+			// the merge should still union what both records contributed
+			assert.ElementsMatch(t, []Type{ExactDirectMatch, CPEMatch}, actual.Details.Types())
+			assert.Equal(t,
+				[]vulnerability.Reference{{ID: "GO-2024-2687", Namespace: "govulndb:language:go"}},
+				actual.Vulnerability.RelatedVulnerabilities)
+		})
+	}
+}
+
+func TestMatches_MergeKeepsTheIdentifiableRecord(t *testing.T) {
+	// the provider leaves Vulnerability.Metadata nil when it cannot resolve metadata for a record, so
+	// an equally-ranked record with no metadata must not displace one that has it
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "stdlib",
+		Version: "go1.21.0",
+		Type:    syftPkg.GoModulePkg,
+	}
+	newMatch := func(metadata *vulnerability.Metadata) Match {
+		return Match{
+			Vulnerability: vulnerability.Vulnerability{
+				Reference: vulnerability.Reference{ID: "CVE-2023-45288", Namespace: "nvd:cpe"},
+				Fix:       vulnerability.Fix{Versions: []string{"1.21.9"}},
+				Metadata:  metadata,
+			},
+			Package: p,
+			Details: Details{{Type: CPEMatch, Matcher: GoModuleMatcher, Confidence: 0.9}},
+		}
+	}
+
+	identified := newMatch(&vulnerability.Metadata{
+		ID:         "CVE-2023-45288",
+		Namespace:  "nvd:cpe",
+		DataSource: "https://nvd.nist.gov/vuln/detail/CVE-2023-45288",
+	})
+	unidentified := newMatch(nil)
+
+	require.Equal(t, identified.Fingerprint(), unidentified.Fingerprint(),
+		"test requires both matches to collide on the exact fingerprint")
+
+	tests := []struct {
+		name  string
+		added []Match
+	}{
+		{name: "identified record added first", added: []Match{identified, unidentified}},
+		{name: "unidentified record added first", added: []Match{unidentified, identified}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			matches := NewMatches(tt.added...)
+			require.Equal(t, 1, matches.Count())
+
+			actual := matches.Sorted()[0]
+
+			require.NotNil(t, actual.Vulnerability.Metadata, "the record with metadata should have survived")
+			assert.Equal(t, "https://nvd.nist.gov/vuln/detail/CVE-2023-45288", actual.Vulnerability.Metadata.DataSource)
+		})
+	}
+}

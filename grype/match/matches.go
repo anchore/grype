@@ -98,13 +98,21 @@ func (r *Matches) addOrMerge(newMatch Match, newFp Fingerprint) {
 
 	if existingMatch, exists := r.byFingerprint[newFp]; exists {
 		// case A
-		if err := existingMatch.Merge(newMatch); err != nil {
-			log.WithFields("original", existingMatch.String(), "new", newMatch.String(), "error", err).Warn("unable to merge matches")
-			// at least capture the additional details
-			existingMatch.Details = append(existingMatch.Details, newMatch.Details...)
+		// Merge keeps the receiver's vulnerability metadata, and matches are not always added in a
+		// deterministic order (Matches.Enumerate ranges over a map), so pick the survivor explicitly
+		// rather than letting it fall out of arrival order.
+		keep, absorb := existingMatch, newMatch
+		if prefersVulnerabilityOf(newMatch, existingMatch) {
+			keep, absorb = newMatch, existingMatch
 		}
 
-		r.byFingerprint[newFp] = existingMatch
+		if err := keep.Merge(absorb); err != nil {
+			log.WithFields("original", keep.String(), "new", absorb.String(), "error", err).Warn("unable to merge matches")
+			// at least capture the additional details
+			keep.Details = append(keep.Details, absorb.Details...)
+		}
+
+		r.byFingerprint[newFp] = keep
 	} else if existingFingerprints, exists := r.byCoreFingerprint[newFp.coreFingerprint]; exists {
 		// case B
 		if !r.mergeCoreMatches(newMatch, newFp, existingFingerprints) {
@@ -192,6 +200,54 @@ func (r *Matches) Sorted() []Match {
 // Count returns the total number of matches in a result
 func (r *Matches) Count() int {
 	return len(r.byFingerprint)
+}
+
+// prefersVulnerabilityOf reports whether candidate's vulnerability metadata should survive a merge
+// with incumbent, given that the two share a fingerprint.
+//
+// Sharing a fingerprint does not mean the two matches describe the same upstream record. Normalizing
+// by CVE rewrites an ecosystem record's ID and namespace to the CVE it aliases, which makes it collide
+// with the NVD record for that CVE and package. Only the identity is rewritten: the description, data
+// source, severity and fix data still describe the record the match was originally found in, so which
+// of the two survives is visible in the output.
+//
+// Prefer the record found by matching the package directly against an ecosystem advisory. Those records
+// carry curated fix data, while a record reached only by CPE describes the same CVE more loosely.
+func prefersVulnerabilityOf(candidate, incumbent Match) bool {
+	candidateRank, incumbentRank := vulnerabilityRank(candidate), vulnerabilityRank(incumbent)
+	if candidateRank != incumbentRank {
+		return candidateRank > incumbentRank
+	}
+
+	// equally ranked records still need a stable winner, otherwise the result depends on which of the
+	// two happened to be added first. A record whose metadata could not be resolved has no
+	// description or data source to contribute, so it loses to one that can be identified.
+	candidateSource, incumbentSource := vulnerabilitySource(candidate), vulnerabilitySource(incumbent)
+	if candidateSource == "" || incumbentSource == "" {
+		return incumbentSource == "" && candidateSource != ""
+	}
+
+	return candidateSource < incumbentSource
+}
+
+// vulnerabilityRank orders matches by how directly the vulnerability record was tied to the package.
+func vulnerabilityRank(m Match) int {
+	switch {
+	case hasMatchType(m.Details, ExactDirectMatch):
+		return 2
+	case hasMatchType(m.Details, ExactIndirectMatch):
+		return 1
+	}
+	return 0
+}
+
+// vulnerabilitySource identifies the record a match's vulnerability metadata came from. Two matches
+// that share a fingerprint can still originate from different providers.
+func vulnerabilitySource(m Match) string {
+	if m.Vulnerability.Metadata == nil {
+		return ""
+	}
+	return m.Vulnerability.Metadata.Namespace + "|" + m.Vulnerability.Metadata.DataSource
 }
 
 func hasMatchType(details Details, ty Type) bool {
