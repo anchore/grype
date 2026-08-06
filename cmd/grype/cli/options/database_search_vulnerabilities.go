@@ -13,6 +13,7 @@ import (
 type DBSearchVulnerabilities struct {
 	VulnerabilityIDs []string `yaml:"vulnerability-ids" json:"vulnerability-ids" mapstructure:"vulnerability-ids"`
 	UseVulnIDFlag    bool     `yaml:"-" json:"-" mapstructure:"-"`
+	IncludeAliases   bool     `yaml:"include-aliases" json:"include-aliases" mapstructure:"include-aliases"`
 
 	PublishedAfter string `yaml:"published-after" json:"published-after" mapstructure:"published-after"`
 	ModifiedAfter  string `yaml:"modified-after" json:"modified-after" mapstructure:"modified-after"`
@@ -27,6 +28,7 @@ func (c *DBSearchVulnerabilities) AddFlags(flags clio.FlagSet) {
 	if c.UseVulnIDFlag {
 		flags.StringArrayVarP(&c.VulnerabilityIDs, "vuln", "", "only show results for the given vulnerability ID")
 	}
+	flags.BoolVarP(&c.IncludeAliases, "include-aliases", "", "include vulnerability rows which are aliases to this vuln id")
 	flags.StringVarP(&c.PublishedAfter, "published-after", "", "only show vulnerabilities originally published after the given date (format: YYYY-MM-DD)")
 	flags.StringVarP(&c.ModifiedAfter, "modified-after", "", "only show vulnerabilities originally published or modified since the given date (format: YYYY-MM-DD)")
 	flags.StringArrayVarP(&c.Providers, "provider", "", "only show vulnerabilities from the given provider")
@@ -82,6 +84,7 @@ func (c *DBSearchVulnerabilities) PostLoad() error {
 			PublishedAfter: publishedAfter,
 			ModifiedAfter:  modifiedAfter,
 			Providers:      c.Providers,
+			IncludeAliases: c.IncludeAliases,
 		})
 	}
 
