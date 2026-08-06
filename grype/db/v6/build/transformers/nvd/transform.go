@@ -115,6 +115,12 @@ func getAssigner(vuln unmarshal.NVDVulnerability) []string {
 }
 
 func getVulnStatus(vuln unmarshal.NVDVulnerability) db.VulnerabilityStatus {
+	// note: a CVE can be tagged as "disputed" via cveTags independently of its vulnStatus (e.g. while "Analyzed"),
+	// so this needs to be checked before falling back to the vulnStatus-derived value below.
+	if vuln.IsDisputed() {
+		return db.VulnerabilityDisputed
+	}
+
 	if vuln.VulnStatus == nil {
 		return db.UnknownVulnerabilityStatus
 	}

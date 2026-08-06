@@ -2609,3 +2609,82 @@ func TestGetReferences(t *testing.T) {
 		})
 	}
 }
+
+func TestGetVulnStatus(t *testing.T) {
+	strPtr := func(s string) *string { return &s }
+
+	tests := []struct {
+		name     string
+		vuln     unmarshal.NVDVulnerability
+		expected db.VulnerabilityStatus
+	}{
+		{
+			name: "no vulnStatus and no cveTags is unknown",
+			vuln: unmarshal.NVDVulnerability{
+				ID: "CVE-2023-12345",
+			},
+			expected: db.UnknownVulnerabilityStatus,
+		},
+		{
+			name: "analyzed vulnStatus with no disputed cveTag is active",
+			vuln: unmarshal.NVDVulnerability{
+				ID:         "CVE-2023-12345",
+				VulnStatus: strPtr("Analyzed"),
+			},
+			expected: db.VulnerabilityActive,
+		},
+		{
+			name: "vulnStatus of Deferred with a disputed cveTag is disputed",
+			// this matches the real-world example from CVE-2001-1517, where the vulnStatus alone (an
+			// unrecognized "Deferred" value) does not convey the dispute captured in cveTags
+			vuln: unmarshal.NVDVulnerability{
+				ID:         "CVE-2001-1517",
+				VulnStatus: strPtr("Deferred"),
+				CveTags: []nvd.CveTag{
+					{SourceIdentifier: "cve@mitre.org", Tags: []string{"disputed"}},
+				},
+			},
+			expected: db.VulnerabilityDisputed,
+		},
+		{
+			name: "analyzed vulnStatus with a disputed cveTag is still disputed",
+			vuln: unmarshal.NVDVulnerability{
+				ID:         "CVE-2023-12345",
+				VulnStatus: strPtr("Analyzed"),
+				CveTags: []nvd.CveTag{
+					{SourceIdentifier: "cve@mitre.org", Tags: []string{"disputed"}},
+				},
+			},
+			expected: db.VulnerabilityDisputed,
+		},
+		{
+			name: "cveTags without a disputed tag does not change status",
+			vuln: unmarshal.NVDVulnerability{
+				ID:         "CVE-2023-12345",
+				VulnStatus: strPtr("Analyzed"),
+				CveTags: []nvd.CveTag{
+					{SourceIdentifier: "cve@mitre.org", Tags: []string{"unsupported-when-assigned"}},
+				},
+			},
+			expected: db.VulnerabilityActive,
+		},
+		{
+			name: "disputed vulnStatus is disputed",
+			vuln: unmarshal.NVDVulnerability{
+				ID:         "CVE-2023-12345",
+				VulnStatus: strPtr("Disputed"),
+			},
+			expected: db.VulnerabilityDisputed,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := getVulnStatus(tt.vuln)
+
+			if diff := cmp.Diff(tt.expected, actual); diff != "" {
+				t.Errorf("getVulnStatus() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
