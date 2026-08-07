@@ -80,7 +80,7 @@ require (
 require (
 	github.com/anchore/syft v1.50.0
 	github.com/bmatcuk/doublestar/v4 v4.10.0
-	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 )
 
 require (
