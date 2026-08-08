@@ -41,6 +41,8 @@ curl -sSfL https://get.anchore.io/grype | sudo sh -s -- -b /usr/local/bin
 > [!TIP]
 > See [Installation docs](https://oss.anchore.com/docs/installation/grype/) for more ways to get Grype, including Homebrew, Docker, Chocolatey, MacPorts, and more!
 
+On Windows (Chocolatey or other package managers), open a **new** terminal after install so `PATH` picks up the `grype` shim.
+
 ## The basics
 
 Scan a container image or directory for vulnerabilities:
