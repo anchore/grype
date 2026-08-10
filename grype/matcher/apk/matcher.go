@@ -11,8 +11,18 @@ import (
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
-	"github.com/anchore/grype/internal/log"
 	syftPkg "github.com/anchore/syft/syft/pkg"
+)
+
+const (
+	// IgnoreReasonDistroFixed - the distro feed marks the package as already fixed at or past the
+	// package's version, so an overlapping package (e.g. a binary owned by the APK) should ignore it.
+	IgnoreReasonDistroFixed = "DistroPackageFixed"
+
+	// IgnoreReasonExplicitNAK - the distro source explicitly reports the package as not affected
+	// (a "< 0" NAK entry). Kept as an ignore so later rules can suppress the same vulnerability on
+	// packages that overlap this one by location.
+	IgnoreReasonExplicitNAK = "Explicit APK NAK"
 )
 
 var (
@@ -34,263 +44,112 @@ func (m *Matcher) Type() match.MatcherType {
 	return match.ApkMatcher
 }
 
-// Match get all matches and ignore filters from package distro and package origin
-func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
-	var matches []match.Match
-	var ignoreFilters []match.IgnoreFilter
+// Match collects vulnerability matches and ignore filters for an APK package from three sources:
+// the authoritative distro security feed (for the package and its upstream/origin packages), the
+// upstream NVD (CPE) data reconciled against that feed, and explicit NAK entries. Everything is
+// reconciled in result.Set space by vulnerability identity (ID plus aliases) so that records
+// referring to the same underlying vulnerability under different IDs (e.g. a CGA and a CVE) are
+// deduplicated correctly.
+func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+	// A nil distro is not an error: the distro-feed and NAK paths simply contribute nothing, and the
+	// package is still matched against the upstream NVD (CPE) data below.
+	provider := result.NewProvider(vp, p, m.Type())
 
-	// direct matches with package itself (+ distro-fixed ignore rules when metadata implements FileOwner)
-	directMatches, directIgnores, err := m.findMatchesForPackage(store, p, nil)
+	var allIgnores []match.IgnoreFilter
+
+	// authoritative distro-feed matches for the package itself
+	directDisclosures, directIgnores, err := m.directDistroMatches(provider, p)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to find direct distro matches for apk pkg=%q: %w", p.Name, err)
 	}
-	matches = append(matches, directMatches...)
-	ignoreFilters = append(ignoreFilters, directIgnores...)
+	allIgnores = append(allIgnores, directIgnores...)
 
-	// indirect matches, via package's origin package
-	indirectMatches, indirectIgnores, err := m.findMatchesForOriginPackage(store, p)
+	// authoritative distro-feed matches via the package's upstream/origin packages (indirect)
+	indirectDisclosures, indirectIgnores, err := m.indirectDistroMatches(provider, p)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to find indirect distro matches for apk pkg=%q: %w", p.Name, err)
 	}
-	matches = append(matches, indirectMatches...)
-	ignoreFilters = append(ignoreFilters, indirectIgnores...)
+	allIgnores = append(allIgnores, indirectIgnores...)
 
-	// APK sources are also able to NAK vulnerabilities, so we want to return these as explicit ignores in order
-	// to allow rules later to use these to ignore "the same" vulnerability found in "the same" locations
-	naks, err := m.findNaksForPackage(store, p)
+	allDisclosures := directDisclosures.Merge(indirectDisclosures)
+
+	// NAK entries contribute only ignore rules (explicit "not affected" records)
+	nakIgnores, err := m.nakMatches(provider, p)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("failed to find naks for apk pkg=%q: %w", p.Name, err)
 	}
-	ignoreFilters = append(ignoreFilters, naks...)
+	allIgnores = append(allIgnores, nakIgnores...)
 
-	return matches, ignoreFilters, nil
+	// upstream NVD (CPE) matches (the hard part) reconciled against the distro feed by identity;
+	// the distro feed is authoritative, so CPE records overlapping a distro match are dropped.
+	upstreamDisclosures, upstreamIgnores, err := m.upstreamMatches(provider, p)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to find upstream nvd matches for apk pkg=%q: %w", p.Name, err)
+	}
+	allIgnores = append(allIgnores, upstreamIgnores...)
+	// only add upstream disclosures that do not overlap the distro disclosures.
+	allDisclosures = allDisclosures.Merge(upstreamDisclosures.Remove(allDisclosures))
+
+	return allDisclosures.ToMatches(), allIgnores, nil
 }
 
-// cpeMatchesWithoutFixes find all relevant upstream match information from NVD by CPE
-func (m *Matcher) cpeMatchesWithoutFixes(provider vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
-	// find CPE-indexed vulnerability matches specific to the given package name and version
-	cpeMatches, ignored, err := internal.MatchPackageByCPEs(provider, p, m.Type())
-	if err != nil {
-		log.WithFields("package", p.Name, "error", err).Debug("failed to find CPE matches for package")
-	}
-	if p.Distro == nil {
-		return cpeMatches, ignored, nil
-	}
-
-	// gather every security feed entry for this package (and its upstreams) so the CPE matches can be
-	// reconciled against the feed by identity (vulnerability ID or alias) below.
-	feedSet, err := vulnSetForPackage(provider, p)
+// directDistroMatches finds the authoritative distro-feed disclosures for the package itself, and
+// returns the vulnerabilities the feed reports as already fixed as distro-fixed ignore filters.
+func (m *Matcher) directDistroMatches(provider result.Provider, p pkg.Package) (result.Set, []match.IgnoreFilter, error) {
+	// APK doesn't use epochs, so pass a nil comparison config.
+	vulnerable, fixed, err := internal.FindResultsByDistro(provider.VulnerabilityProvider(), p, nil, m.Type(), nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// organize cpe matches by unique identifier
-	cpeMatchesByID := matchesByID(cpeMatches)
-	// version object will be used for constraint comparisons
-	verObj := version.New(p.Version, pkg.VersionFormat(p))
+	ignores := internal.OwnershipIgnores(p, IgnoreReasonDistroFixed, fixed.Vulnerabilities()...)
+	return vulnerable, ignores, nil
+}
 
-	var finalCpeMatches []match.Match
+// indirectDistroMatches finds distro-feed disclosures via the package's upstream/origin packages,
+// recorded as indirect matches against the SBOM package p. Fixed vulnerabilities become distro-fixed
+// ignore filters attributed to p (the SBOM package carries the file-ownership metadata, the synthetic
+// upstream does not).
+func (m *Matcher) indirectDistroMatches(provider result.Provider, p pkg.Package) (result.Set, []match.IgnoreFilter, error) {
+	var ignores []match.IgnoreFilter
+	disclosures := result.Set{}
 
-	// get nvd matches which are not superceded by a more specific distro match
-	for _, cpeMatchesForID := range cpeMatchesByID {
-		unresolvedCpeMatches, err := cpeMatchesNotResolvedByFeed(feedSet, cpeMatchesForID, verObj)
+	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
+		vulnerable, fixed, err := internal.FindResultsByDistro(provider.VulnerabilityProvider(), upstreamPkg, &p, m.Type(), nil)
 		if err != nil {
 			return nil, nil, err
 		}
-		finalCpeMatches = append(finalCpeMatches, unresolvedCpeMatches...)
-	}
 
-	return finalCpeMatches, ignored, nil
-}
-
-// cpeMatchesNotResolvedByFeed decides which CPE (NVD) matches for a single vulnerability to keep,
-// given what the distro security feed knows about it. Matches are reconciled against the feed by
-// identity (vulnerability ID or alias). A CPE match is kept when either:
-//   - the vulnerability is not in the feed at all
-//   - the vulnerability is in the feed and the feed still considers the package vulnerable at its version
-//
-// Note this does not itself deduplicate against the distro matches; that occurs later
-func cpeMatchesNotResolvedByFeed(distroFeedSet result.Set, cpeMatchesForVuln []match.Match, verObj *version.Version) ([]match.Match, error) {
-	// find distro security feed entries that overlap these CPE matches by identity (vulnerability ID
-	// or alias) so that, for example, a CPE match keyed by a CVE is reconciled against a feed record
-	// (e.g. a CGA) that lists the same CVE as an alias.
-	feedVulnsForID := distroFeedSet.Intersection(newResultSet(matchVulnerabilities(cpeMatchesForVuln)...)).Vulnerabilities()
-	if len(feedVulnsForID) == 0 {
-		// these matches do not exist in security feed, so the CPE record(s) should be added to the matches
-		// with unknown fix state, since NVD doesn't know when Alpine will fix things
-		var cpeMatches []match.Match
-		for _, nvdOnlyMatch := range cpeMatchesForVuln {
-			if len(nvdOnlyMatch.Vulnerability.Fix.Versions) > 0 {
-				nvdOnlyMatch.Vulnerability.Fix = vulnerability.Fix{
-					State: vulnerability.FixStateUnknown,
+		// these came from an upstream search, so record them as indirect matches — regardless of whether
+		// the upstream name happens to equal p's (the redundant self-upstream case, where the underlying
+		// name-based match-type detection would otherwise mark them direct).
+		vulnerable = vulnerable.Map(func(r *result.Result) {
+			details := make([]match.Detail, len(r.Details))
+			for i, d := range r.Details {
+				if d.Type == match.ExactDirectMatch {
+					d.Type = match.ExactIndirectMatch
 				}
+				details[i] = d
 			}
-			cpeMatches = append(cpeMatches, nvdOnlyMatch)
-		}
-		// since there was no intersection, no need to iterate over it below
-		return cpeMatches, nil
-	}
-
-	// there is a security feed entry...
-	for _, vuln := range feedVulnsForID {
-		// ...is there a fixed in entry? (should always be yes)
-		if len(vuln.Fix.Versions) == 0 {
-			continue
-		}
-
-		// ...is the current package vulnerable?
-		vulnerable, err := vuln.Constraint.Satisfied(verObj)
-		if err != nil {
-			return nil, err
-		}
-
-		if vulnerable {
-			// if there is at least one vulnerable entry, then all CPE record(s) should be surfaced
-			// these will be deduped later against the authoritative distro match for the same vuln
-			return cpeMatchesForVuln, nil
-		}
-	}
-
-	return nil, nil
-}
-
-func deduplicateMatches(feedMatches, cpeMatches []match.Match) (matches []match.Match) {
-	// add additional unique matches from the CPE source that are unique from the feed matches.
-	// Suppression is by identity (vulnerability ID or alias) via result.Set.Remove, so a CPE record
-	// keyed by a CVE is deduplicated against a feed record (e.g. a CGA) that lists that CVE as an alias.
-	unique := newResultSet(matchVulnerabilities(cpeMatches)...).Remove(newResultSet(matchVulnerabilities(feedMatches)...))
-
-	cpeMatchesByID := matchesByID(cpeMatches)
-	for id := range unique {
-		// add only the cpeMatches which are not already in feedMatches
-		matches = append(matches, cpeMatchesByID[id]...)
-	}
-	return matches
-}
-
-func matchesByID(matches []match.Match) map[string][]match.Match {
-	var results = make(map[string][]match.Match)
-	for _, match := range matches {
-		results[match.Vulnerability.ID] = append(results[match.Vulnerability.ID], match)
-	}
-	return results
-}
-
-// vulnSetForPackage collects every security-feed (distro) vulnerability that applies to p, including
-// the vulnerabilities recorded against p's upstream/origin packages, and returns them as a result.Set
-// keyed by vulnerability ID. Because each result carries the record's RelatedVulnerabilities, the
-// returned set supports alias-aware reconciliation: callers can Intersection/Remove CPE (NVD) matches
-// against it so that, for example, a CPE match keyed by a CVE is matched to a feed record (e.g. a
-// Chainguard CGA) that only lists that CVE as an alias.
-func vulnSetForPackage(provider vulnerability.Provider, p pkg.Package) (result.Set, error) {
-	// find all feed vulnerabilities for the package and its upstream/origin packages
-	vulnerabilities, err := provider.FindVulnerabilities(
-		search.ByPackageName(p.Name),
-		search.ByDistro(*p.Distro))
-	if err != nil {
-		return nil, err
-	}
-
-	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
-		vulnerabilitiesForUpstream, err := provider.FindVulnerabilities(
-			search.ByPackageName(upstreamPkg.Name),
-			search.ByDistro(*upstreamPkg.Distro))
-		if err != nil {
-			return nil, err
-		}
-		vulnerabilities = append(vulnerabilities, vulnerabilitiesForUpstream...)
-	}
-
-	// turn into a set for comparisons
-	return newResultSet(vulnerabilities...), nil
-}
-
-// newResultSet groups vulnerabilities into a result.Set keyed by vulnerability ID. The result.Set
-// exposes alias-aware set operations (Remove, Intersection) whose identity is the vulnerability ID
-// plus any RelatedVulnerabilities (aliases). This lets the APK matcher suppress and deduplicate
-// records that refer to the same underlying vulnerability under different IDs (e.g. a CGA and a CVE).
-func newResultSet(vulns ...vulnerability.Vulnerability) result.Set {
-	set := result.Set{}
-	for _, v := range vulns {
-		set[v.ID] = append(set[v.ID], result.Result{
-			ID:              v.ID,
-			Vulnerabilities: []vulnerability.Vulnerability{v},
+			r.Details = details
 		})
+
+		ignores = append(ignores, internal.OwnershipIgnores(p, IgnoreReasonDistroFixed, fixed.Vulnerabilities()...)...)
+		disclosures = disclosures.Merge(vulnerable)
 	}
-	return set
+
+	return disclosures, ignores, nil
 }
 
-// matchVulnerabilities extracts the vulnerability from each match.
-func matchVulnerabilities(matches []match.Match) []vulnerability.Vulnerability {
-	vulns := make([]vulnerability.Vulnerability, 0, len(matches))
-	for _, m := range matches {
-		vulns = append(vulns, m.Vulnerability)
-	}
-	return vulns
-}
-
-// findMatchesForPackage for this provider-package pair, find all relevant vulnerability matches
-// and ignore filters. This uses the security feed for this distro as well as the upstream nvd data.
-func (m *Matcher) findMatchesForPackage(store vulnerability.Provider, p pkg.Package, catalogPkg *pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
-	// find matches for the given package name and version using the security feed for this distro.
-	// APK doesn't use epochs, so pass nil for the config
-	distroMatches, distroIgnores, err := internal.MatchPackageByDistro(store, p, catalogPkg, m.Type(), nil)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// find matches for the given package using the upstream NVD data by CPE
-	// TODO: are there other errors that we should handle here that causes this to short circuit
-	cpeMatches, cpeIgnores, err := m.cpeMatchesWithoutFixes(store, p)
-	if err != nil && !errors.Is(err, internal.ErrEmptyCPEMatch) {
-		return nil, nil, err
-	}
-
-	var matches []match.Match
-
-	// keep all security feed matches, as this is an authoritative source
-	matches = append(matches, distroMatches...)
-
-	// keep only unique CPE matches
-	matches = append(matches, deduplicateMatches(distroMatches, cpeMatches)...)
-
-	return matches, append(distroIgnores, cpeIgnores...), nil
-}
-
-func (m *Matcher) findMatchesForOriginPackage(store vulnerability.Provider, catalogPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
-	var matches []match.Match
-	var ignores []match.IgnoreFilter
-
-	for _, indirectPackage := range pkg.UpstreamPackages(catalogPkg) {
-		indirectMatches, indirectIgnores, err := m.findMatchesForPackage(store, indirectPackage, &catalogPkg)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to find vulnerabilities for apk upstream source package: %w", err)
-		}
-		matches = append(matches, indirectMatches...)
-		ignores = append(ignores, indirectIgnores...)
-	}
-
-	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package)
-	// however, we also want to keep the indirect package around for future reference
-	match.ConvertToIndirectMatches(matches, catalogPkg)
-
-	return matches, ignores, nil
-}
-
-// NAK entries are those reported as explicitly not vulnerable by the upstream provider,
-// for example this entry is present in the v5 database:
-// 312891,CVE-2020-7224,openvpn,alpine:distro:alpine:3.10,,< 0,apk,,"[{""id"":""CVE-2020-7224"",""namespace"":""nvd:cpe""}]","[""0""]",fixed,
-// which indicates, for the alpine:3.10 distro, package openvpn is not vulnerable to CVE-2020-7224
-// we want to report these NAK entries as match.IgnoredMatch, to allow for later processing to create ignore rules
-// based on packages which overlap by location, such as a python binary found in addition to the python APK entry --
-// we want to NAK this vulnerability for BOTH packages
-func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Package) ([]match.IgnoreFilter, error) {
+// nakMatches collects explicit NAK ("< 0") entries for the package and its upstreams and returns
+// them as ignore filters. NAK entries never produce matches; they only allow later rules to
+// suppress the same vulnerability on packages that overlap this one by location.
+func (m *Matcher) nakMatches(provider result.Provider, p pkg.Package) ([]match.IgnoreFilter, error) {
 	if p.Distro == nil {
 		return nil, nil
 	}
 
-	// get all the direct naks
-	naks, err := provider.FindVulnerabilities(
+	naks, err := provider.FindResults(
 		search.ByDistro(*p.Distro),
 		search.ByPackageName(p.Name),
 		nakConstraint,
@@ -299,9 +158,8 @@ func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Pack
 		return nil, err
 	}
 
-	// append all the upstream naks
 	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
-		upstreamNaks, err := provider.FindVulnerabilities(
+		upstreamNaks, err := provider.FindResults(
 			search.ByDistro(*upstreamPkg.Distro),
 			search.ByPackageName(upstreamPkg.Name),
 			nakConstraint,
@@ -309,9 +167,136 @@ func (m *Matcher) findNaksForPackage(provider vulnerability.Provider, p pkg.Pack
 		if err != nil {
 			return nil, err
 		}
-
-		naks = append(naks, upstreamNaks...)
+		naks = naks.Merge(upstreamNaks)
 	}
 
-	return internal.OwnershipIgnores(p, "Explicit APK NAK", naks...), nil
+	return internal.OwnershipIgnores(p, IgnoreReasonExplicitNAK, naks.Vulnerabilities()...), nil
+}
+
+// upstreamMatches finds NVD (CPE-indexed) matches for the package itself and for each of its
+// upstream/origin packages (the latter recorded as indirect matches against the SBOM package),
+// reconciled against the distro feed. Upstream CPE matching is what surfaces, for example, an
+// openssl CVE for a libssl3 APK whose origin is openssl.
+func (m *Matcher) upstreamMatches(provider result.Provider, p pkg.Package) (result.Set, []match.IgnoreFilter, error) {
+	disclosures, ignores, err := m.cpeDisclosures(provider, p, p)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
+		upstreamDisclosures, upstreamIgnores, err := m.cpeDisclosures(provider, upstreamPkg, p)
+		if err != nil {
+			return nil, nil, err
+		}
+		disclosures = disclosures.Merge(upstreamDisclosures)
+		ignores = append(ignores, upstreamIgnores...)
+	}
+
+	return disclosures, ignores, nil
+}
+
+// cpeDisclosures finds NVD (CPE) results for searchPkg and reconciles them against the distro feed by
+// identity (ID or alias). The distro feed is authoritative for fix state, so:
+//   - a record the feed knows nothing about is kept, but its NVD fix state is cleared (NVD can't know
+//     when the distro will fix things);
+//   - a record the feed still considers vulnerable at this version is kept (and later deduped against
+//     the authoritative distro match by Match);
+//   - a record the feed considers fixed is dropped.
+//
+// When searchPkg is an upstream/origin package (its name differs from the SBOM catalogPkg) the results
+// are recorded against catalogPkg, which carries the location metadata.
+func (m *Matcher) cpeDisclosures(provider result.Provider, searchPkg, catalogPkg pkg.Package) (result.Set, []match.IgnoreFilter, error) {
+	// APK-specific CPE preprocessing (e.g. alpineCPEComparableVersion) lives in FindResultsByCPEs.
+	// A package with no CPEs is not an error here; it simply contributes no NVD matches.
+	cpeSet, ignores, err := internal.FindResultsByCPEs(provider.VulnerabilityProvider(), searchPkg, m.Type())
+	if err != nil {
+		if !errors.Is(err, internal.ErrEmptyCPEMatch) {
+			return nil, nil, err
+		}
+		return result.Set{}, ignores, nil
+	}
+
+	if len(cpeSet) == 0 {
+		return cpeSet, ignores, nil
+	}
+
+	if searchPkg.Name != catalogPkg.Name {
+		cpeSet = indirectResults(cpeSet, catalogPkg)
+	}
+
+	if searchPkg.Distro == nil {
+		// no distro feed to reconcile against; surface the raw NVD matches (as main did for nil distro)
+		return cpeSet, ignores, nil
+	}
+
+	// gather every distro-feed entry for searchPkg and its upstreams (unfiltered by version) so CPE
+	// records can be reconciled against the feed by identity.
+	feed, err := feedSet(provider, searchPkg)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// records the feed knows nothing about: keep them, but clear the (untrustworthy) NVD fix state
+	notInFeed := stripFixState(cpeSet.Remove(feed))
+
+	// records the feed still considers vulnerable at this version: keep them as-is. These usually
+	// duplicate an authoritative distro match and are dropped by Match's Remove(allDisclosures).
+	// Edge case: it preserves a ForUnaffected-suppressed-but-version-vulnerable CPE record — one the
+	// feed reports vulnerable at this version but that the distro path removed via a ForUnaffected
+	// record, so it is not in allDisclosures for Match to dedup against.
+	verObj := version.New(searchPkg.Version, pkg.VersionFormat(searchPkg))
+	feedVulnerable := feed.Filter(internal.OnlyVulnerableVersions(verObj))
+	stillVulnerable := cpeSet.Intersection(feedVulnerable)
+
+	return notInFeed.Merge(stillVulnerable), ignores, nil
+}
+
+// feedSet gathers every distro-feed entry for the package and its upstream/origin packages, unfiltered
+// by version, so callers can reconcile other sources against the feed by identity.
+func feedSet(provider result.Provider, p pkg.Package) (result.Set, error) {
+	feed, err := provider.FindResults(
+		search.ByPackageName(p.Name),
+		search.ByDistro(*p.Distro),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
+		u, err := provider.FindResults(
+			search.ByPackageName(upstreamPkg.Name),
+			search.ByDistro(*upstreamPkg.Distro),
+		)
+		if err != nil {
+			return nil, err
+		}
+		feed = feed.Merge(u)
+	}
+
+	return feed, nil
+}
+
+// indirectResults records the results against the SBOM (catalog) package rather than the upstream
+// package they were searched with (mirrors match.ConvertToIndirectMatches for the result.Set model).
+func indirectResults(s result.Set, catalogPkg pkg.Package) result.Set {
+	return s.Map(func(r *result.Result) {
+		r.Package = &catalogPkg
+	})
+}
+
+// stripFixState clears the fix information on any vulnerability that carries fix versions, marking it
+// unknown. Used for NVD-only records where the distro fix state is not knowable from NVD.
+func stripFixState(s result.Set) result.Set {
+	return s.Map(func(r *result.Result) {
+		// replace the slice rather than mutate in place: Map shallow-copies results, so the
+		// Vulnerabilities backing array is shared with the source set.
+		vulns := make([]vulnerability.Vulnerability, len(r.Vulnerabilities))
+		for i, v := range r.Vulnerabilities {
+			if len(v.Fix.Versions) > 0 {
+				v.Fix = vulnerability.Fix{State: vulnerability.FixStateUnknown}
+			}
+			vulns[i] = v
+		}
+		r.Vulnerabilities = vulns
+	})
 }

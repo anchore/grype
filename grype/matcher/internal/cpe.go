@@ -3,7 +3,6 @@ package internal
 import (
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/facebookincubator/nvdtools/wfn"
@@ -15,7 +14,6 @@ import (
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
-	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -37,12 +35,27 @@ func alpineCPEComparableVersion(version string) string {
 
 var ErrEmptyCPEMatch = errors.New("attempted CPE match against package with no CPEs")
 
-// MatchPackageByCPEs retrieves all vulnerabilities that match any of the provided package's CPEs
+// MatchPackageByCPEs retrieves all vulnerabilities that match any of the provided package's CPEs,
+// returned as a flat slice of matches. It is a thin wrapper over FindResultsByCPEs for callers that
+// work in []match.Match rather than result.Set.
+func MatchPackageByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
+	results, ignore, err := FindResultsByCPEs(vulnProvider, p, upstreamMatcher)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return results.ToMatches(), ignore, nil
+}
+
+// FindResultsByCPEs retrieves all vulnerabilities that match any of the provided package's CPEs as a
+// result.Set, so callers can reconcile them against other sources by vulnerability identity. Records
+// the CPE search finds but whose version is not affected are returned as "CPE not vulnerable" ignores.
 //
 //nolint:funlen
-func MatchPackageByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
+func FindResultsByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) (result.Set, []match.IgnoreFilter, error) {
 	provider := result.NewProvider(vulnProvider, p, upstreamMatcher)
 
+	affected := result.Set{}
 	var ignores []match.IgnoreFilter
 	// we attempt to merge match details within the same matcher when searching by CPEs, in this way there are fewer duplicated match
 	// objects (and fewer duplicated match details).
@@ -52,7 +65,6 @@ func MatchPackageByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upst
 		return nil, nil, ErrEmptyCPEMatch
 	}
 
-	matchesByFingerprint := make(map[match.Fingerprint]match.Match)
 	for _, c := range p.CPEs {
 		// prefer the CPE version, but if npt specified use the package version
 		searchVersion := c.Attributes.Version
@@ -110,18 +122,46 @@ func MatchPackageByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upst
 			return nil, nil, fmt.Errorf("matcher failed to fetch unaffected CPE records for pkg=%q: %w", p.Name, err)
 		}
 
+		// add affected vulns to top level set, collapsing records that share a match fingerprint (the same
+		// vulnerability found via multiple CPEs of this package) into one record with unioned CPE details.
+		affected = affected.Merge(vulns, mergeCPEResultsByFingerprint(p))
+		// mark unaffected as ignores
 		unaffected = all.Remove(vulns).Merge(unaffected)
 		ignores = append(ignores, OwnershipIgnores(p, "CPE not vulnerable", unaffected.Vulnerabilities()...)...)
-
-		// for each vulnerability record found, check the version constraint. If the constraint is satisfied
-		// relative to the current version information from the CPE (or the package) then the given package
-		// is vulnerable.
-		for _, vuln := range vulns.Vulnerabilities() {
-			addNewMatch(matchesByFingerprint, vuln, p, verObj, upstreamMatcher, c)
-		}
 	}
 
-	return toMatches(matchesByFingerprint), ignores, nil
+	return affected, ignores, nil
+}
+
+// mergeCPEResultsByFingerprint is a result.Set merge function that collapses result records sharing a
+// match.Fingerprint into a single record, unioning their CPE details. It is the result.Set equivalent
+// of main's matchesByFingerprint + addMatchDetails: a vulnerability found via several of the package's
+// CPEs becomes one record whose CPE detail lists every CPE that matched.
+func mergeCPEResultsByFingerprint(p pkg.Package) func(existing, incoming []result.Result) []result.Result {
+	return func(existing, incoming []result.Result) []result.Result {
+		byFingerprint := map[match.Fingerprint]int{}
+		var out []result.Result
+		for _, r := range append(append([]result.Result(nil), existing...), incoming...) {
+			for _, v := range r.Vulnerabilities {
+				candidateMatch := match.Match{Vulnerability: v, Package: p}
+				fingerprint := candidateMatch.Fingerprint()
+				if i, exists := byFingerprint[fingerprint]; exists {
+					for _, d := range r.Details {
+						out[i].Details = addMatchDetails(out[i].Details, d)
+					}
+					continue
+				}
+				byFingerprint[fingerprint] = len(out)
+				out = append(out, result.Result{
+					ID:              r.ID,
+					Package:         r.Package,
+					Vulnerabilities: []vulnerability.Vulnerability{v},
+					Details:         append([]match.Detail(nil), r.Details...),
+				})
+			}
+		}
+		return out
+	}
 }
 
 func transformJvmVersion(searchVersion, updateCpeField string) string {
@@ -130,48 +170,6 @@ func transformJvmVersion(searchVersion, updateCpeField string) string {
 		searchVersion = fmt.Sprintf("%s_%s", searchVersion, strings.TrimPrefix(updateCpeField, "update"))
 	}
 	return searchVersion
-}
-
-func addNewMatch(matchesByFingerprint map[match.Fingerprint]match.Match, vuln vulnerability.Vulnerability, p pkg.Package, searchVersion *version.Version, upstreamMatcher match.MatcherType, searchedByCPE cpe.CPE) {
-	candidateMatch := match.Match{
-
-		Vulnerability: vuln,
-		Package:       p,
-	}
-
-	if existingMatch, exists := matchesByFingerprint[candidateMatch.Fingerprint()]; exists {
-		candidateMatch = existingMatch
-	}
-
-	candidateMatch.Details = addMatchDetails(candidateMatch.Details,
-		CPEMatchDetails(upstreamMatcher, vuln, searchedByCPE, p, searchVersion),
-	)
-
-	matchesByFingerprint[candidateMatch.Fingerprint()] = candidateMatch
-}
-
-func CPEMatchDetails(matcherType match.MatcherType, vuln vulnerability.Vulnerability, searchedByCPE cpe.CPE, p pkg.Package, searchVersion *version.Version) match.Detail {
-	return match.Detail{
-		Type:       match.CPEMatch,
-		Confidence: 0.9, // TODO: this is hard coded for now
-		Matcher:    matcherType,
-		SearchedBy: match.CPEParameters{
-			Namespace: vuln.Namespace,
-			CPEs: []string{
-				// use .String() for proper escaping
-				searchedByCPE.Attributes.String(),
-			},
-			Package: match.PackageParameter{
-				Name:    p.Name,
-				Version: p.Version,
-			},
-		},
-		Found: match.CPEResult{
-			VulnerabilityID:   vuln.ID,
-			VersionConstraint: vuln.Constraint.String(),
-			CPEs:              cpesToString(filterCPEsByVersion(searchVersion, vuln.CPEs)),
-		},
-	}
 }
 
 func addMatchDetails(existingDetails []match.Detail, newDetails match.Detail) []match.Detail {
@@ -211,59 +209,4 @@ func addMatchDetails(existingDetails []match.Detail, newDetails match.Detail) []
 	// could not merge with another entry, append to the end
 	existingDetails = append(existingDetails, newDetails)
 	return existingDetails
-}
-
-func filterCPEsByVersion(pkgVersion *version.Version, allCPEs []cpe.CPE) (matchedCPEs []cpe.CPE) {
-	if pkgVersion == nil {
-		// all CPEs are valid in the case when a version is not specified
-		return allCPEs
-	}
-	for _, c := range allCPEs {
-		if c.Attributes.Version == wfn.Any || c.Attributes.Version == wfn.NA {
-			matchedCPEs = append(matchedCPEs, c)
-			continue
-		}
-
-		ver := c.Attributes.Version
-
-		if pkgVersion.Format == version.JVMFormat {
-			if c.Attributes.Update != wfn.Any && c.Attributes.Update != wfn.NA {
-				ver = transformJvmVersion(ver, c.Attributes.Update)
-			}
-		}
-
-		constraint, err := version.GetConstraint(ver, pkgVersion.Format)
-		if err != nil {
-			// if we can't get a version constraint, don't filter out the CPE
-			matchedCPEs = append(matchedCPEs, c)
-			continue
-		}
-
-		satisfied, err := constraint.Satisfied(pkgVersion)
-		if err != nil || satisfied {
-			// if we can't check for version satisfaction, don't filter out the CPE
-			matchedCPEs = append(matchedCPEs, c)
-			continue
-		}
-	}
-	return matchedCPEs
-}
-
-func toMatches(matchesByFingerprint map[match.Fingerprint]match.Match) (matches []match.Match) {
-	for _, m := range matchesByFingerprint {
-		matches = append(matches, m)
-	}
-	sort.Sort(match.ByElements(matches))
-	return matches
-}
-
-// cpesToString receives one or more CPEs and stringifies them
-func cpesToString(cpes []cpe.CPE) []string {
-	var strs = make([]string, len(cpes))
-	for idx, c := range cpes {
-		// use .String() for proper escaping
-		strs[idx] = c.Attributes.String()
-	}
-	sort.Strings(strs)
-	return strs
 }

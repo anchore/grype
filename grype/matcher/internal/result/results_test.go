@@ -1127,3 +1127,77 @@ func TestSet_Update(t *testing.T) {
 		})
 	}
 }
+
+func TestSet_Map(t *testing.T) {
+	// fn replaces the Vulnerabilities slice (the safe pattern for the shallow copy) setting Status.
+	setStatus := func(r *Result) {
+		vulns := make([]vulnerability.Vulnerability, len(r.Vulnerabilities))
+		for i, v := range r.Vulnerabilities {
+			v.Status = "mapped"
+			vulns[i] = v
+		}
+		r.Vulnerabilities = vulns
+	}
+
+	tests := []struct {
+		name string
+		in   Set
+		want Set
+	}{
+		{
+			name: "applies fn to every result under every id",
+			in: Set{
+				"CVE-1": []Result{
+					{ID: "CVE-1", Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-1"}, Status: "orig"}}},
+				},
+				"CVE-2": []Result{
+					{ID: "CVE-2", Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2"}, Status: "orig"}}},
+					{ID: "CVE-2", Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2"}, Status: "orig"}}},
+				},
+			},
+			want: Set{
+				"CVE-1": []Result{
+					{ID: "CVE-1", Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-1"}, Status: "mapped"}}},
+				},
+				"CVE-2": []Result{
+					{ID: "CVE-2", Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2"}, Status: "mapped"}}},
+					{ID: "CVE-2", Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-2"}, Status: "mapped"}}},
+				},
+			},
+		},
+		{
+			name: "empty set",
+			in:   Set{},
+			want: Set{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.in.Map(setStatus)
+			if diff := cmp.Diff(tt.want, got); diff != "" {
+				t.Errorf("Set.Map() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestSet_Map_doesNotMutateSource(t *testing.T) {
+	src := Set{
+		"CVE-1": []Result{
+			{ID: "CVE-1", Vulnerabilities: []vulnerability.Vulnerability{{Reference: vulnerability.Reference{ID: "CVE-1"}, Status: "orig"}}},
+		},
+	}
+
+	// fn replaces the slice (as callers must); the source must be untouched.
+	_ = src.Map(func(r *Result) {
+		vulns := make([]vulnerability.Vulnerability, len(r.Vulnerabilities))
+		for i, v := range r.Vulnerabilities {
+			v.Status = "mapped"
+			vulns[i] = v
+		}
+		r.Vulnerabilities = vulns
+	})
+
+	require.Equal(t, "orig", string(src["CVE-1"][0].Vulnerabilities[0].Status))
+}

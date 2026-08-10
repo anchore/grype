@@ -1,6 +1,8 @@
 package result
 
 import (
+	"sort"
+
 	"github.com/scylladb/go-set/strset"
 
 	"github.com/anchore/grype/grype/match"
@@ -68,6 +70,8 @@ func (s Set) ToMatches() []match.Match {
 		}
 	}
 
+	// deterministic output order (map iteration above is not ordered)
+	sort.Sort(match.ByElements(out))
 	return out
 }
 
@@ -265,6 +269,22 @@ func (s Set) Update(incoming Set, shouldUpdate func(existing Result, incoming Re
 		out[id] = existingResults
 	}
 
+	return out
+}
+
+// Map returns a new Set with fn applied to a copy of every result. Because the copy is shallow, fn
+// must not mutate the elements of a slice field (e.g. Vulnerabilities, Details) in place — replace the
+// whole slice instead — otherwise it will corrupt the source set's shared backing arrays.
+func (s Set) Map(fn func(r *Result)) Set {
+	out := make(Set, len(s))
+	for id, results := range s {
+		updated := make([]Result, len(results))
+		for i, r := range results {
+			fn(&r)
+			updated[i] = r
+		}
+		out[id] = updated
+	}
 	return out
 }
 
