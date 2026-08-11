@@ -3,6 +3,8 @@ package result
 import (
 	"sort"
 
+	"github.com/facebookincubator/nvdtools/wfn"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/pkg/qualifier/gosymbols"
@@ -10,7 +12,6 @@ import (
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/cpe"
-	"github.com/facebookincubator/nvdtools/wfn"
 )
 
 var _ Provider = (*provider)(nil)
