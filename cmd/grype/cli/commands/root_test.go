@@ -23,6 +23,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/rpm"
 	"github.com/anchore/grype/grype/matcher/ruby"
+	"github.com/anchore/grype/grype/matcher/rust"
 	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
@@ -203,6 +204,42 @@ func Test_getMatcherConfig(t *testing.T) {
 				},
 				Dpkg: dpkg.MatcherConfig{
 					MissingEpochStrategy: "auto",
+				},
+			},
+		},
+		{
+			name: "rust using-cpes enabled",
+			opts: func() *options.Grype {
+				opts := options.DefaultGrype(clio.Identification{Name: "test", Version: "1.0"})
+				opts.Match.Rust.UseCPEs = true
+				return opts
+			}(),
+			want: matcher.Config{
+				Java: java.MatcherConfig{
+					ExternalSearchConfig: java.ExternalSearchConfig{
+						SearchMavenUpstream: false,
+						MavenBaseURL:        "https://search.maven.org/solrsearch/select",
+						MavenRateLimit:      300000000,
+					},
+					UseCPEs: false,
+				},
+				Ruby:       ruby.MatcherConfig{},
+				Python:     python.MatcherConfig{},
+				Dotnet:     dotnet.MatcherConfig{},
+				Javascript: javascript.MatcherConfig{},
+				Golang: golang.MatcherConfig{
+					UseCPEs:                                false,
+					AlwaysUseCPEForStdlib:                  false,
+					AllowMainModulePseudoVersionComparison: false,
+				},
+				Rust:  rust.MatcherConfig{UseCPEs: true},
+				Hex:   hex.MatcherConfig{},
+				Stock: stock.MatcherConfig{UseCPEs: true},
+				Rpm: rpm.MatcherConfig{
+					MissingEpochStrategy: "auto",
+				},
+				Dpkg: dpkg.MatcherConfig{
+					MissingEpochStrategy: "zero",
 				},
 			},
 		},
