@@ -470,6 +470,80 @@ func TestMatcherApk_NvdCanceledByUpstreamSecdbNak(t *testing.T) {
 		})
 }
 
+// === upstream (NVD) suppression by alias ===
+//
+// The chainguard-rolling fixture pairs a distro advisory with its upstream NVD
+// record so the alias-aware reconciliation can be exercised end to end:
+//   - distro:  CGA-22hv-wp9q-4779 (Chainguard langfuse-3-worker, arch x86_64,
+//              fixed 3.153.0-r0) carries upstream aliases CVE-2026-24398 and
+//              GHSA-r354-f388-2fhh.
+//   - NVD:     CVE-2026-24398 flags cpe:2.3:a:langfuse:langfuse in [3.0.0, 4.0.0).
+//
+// Because the distro feed is authoritative and the two records share identity
+// via the CGA's alias set, the NVD CVE-2026-24398 CPE finding must never surface
+// on its own - it is either dropped (distro considers it fixed) or deduped into
+// the authoritative distro match (distro considers it vulnerable).
+
+// TestMatcherApk_UpstreamCveSuppressedByFixedAlias langfuse-3-worker is
+// past the CGA fix (3.153.1-r0 > 3.153.0-r0), so the distro feed reports
+// the vulnerability fixed. NVD still flags CVE-2026-24398 for the langfuse
+// CPE at this version, since CVE-2026-24398 is an alias of the fixed CGA,
+// it is neither "not in feed" nor "still vulnerable" and gets dropped.
+func TestMatcherApk_UpstreamCveSuppressedByFixedAlias(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		pkgID := pkg.ID("langfuse-past-fix-with-cpe")
+		p := dbtest.NewPackage("langfuse-3-worker", "3.153.1-r0", syftPkg.ApkPkg).
+			WithID(pkgID).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("x86_64").
+			WithCPE("cpe:2.3:a:langfuse:langfuse:3.153.1-r0:*:*:*:*:*:*:*").
+			Build()
+
+		findings := db.Match(t, &matcher, p)
+
+		// the NVD CVE alias is suppressed by the fixed CGA distro record - it
+		// must not surface as its own match.
+		findings.DoesNotHaveAnyVulnerabilities("CVE-2026-24398")
+
+		// the distro fixed path still emits one DistroPackageFixed ignore per
+		// identifier (the CGA id plus its CVE/GHSA aliases).
+		findings.Ignores().
+			SelectRelatedPackageIgnores(reasonDistroPackageFixed,
+				"CGA-22hv-wp9q-4779",
+				"CVE-2026-24398",
+				"GHSA-r354-f388-2fhh").
+			ForPackage(pkgID).
+			WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
+	})
+}
+
+// TestMatcherApk_UpstreamCveDedupedByVulnerableAlias langfuse-3-worker is below the CGA fix
+// (3.152.0-r0 < 3.153.0-r0), so both the distro CGA record and the NVD CVE-2026-24398 CPE
+// record consider it vulnerable. The two share identity via the CGA's alias set, so the
+// upstream NVD finding is deduped into the authoritative distro match rather than surfacing
+// separately - only the CGA distro match is returned.
+func TestMatcherApk_UpstreamCveDedupedByVulnerableAlias(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		p := dbtest.NewPackage("langfuse-3-worker", "3.152.0-r0", syftPkg.ApkPkg).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("x86_64").
+			WithCPE("cpe:2.3:a:langfuse:langfuse:3.152.0-r0:*:*:*:*:*:*:*").
+			Build()
+
+		findings := db.Match(t, &matcher, p)
+
+		// only the authoritative distro record surfaces...
+		findings.SelectMatch("CGA-22hv-wp9q-4779").
+			SelectDetailByType(match.ExactDirectMatch).
+			AsDistroSearch()
+
+		// ...the aliased upstream NVD CVE is deduped away.
+		findings.DoesNotHaveAnyVulnerabilities("CVE-2026-24398")
+	})
+}
+
 // === architecture qualifier filtering (CG OSV records) ===
 //
 // The chainguard-rolling fixture has CGA-22hv-wp9q-4779, which emits
