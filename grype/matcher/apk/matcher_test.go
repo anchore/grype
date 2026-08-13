@@ -544,6 +544,40 @@ func TestMatcherApk_UpstreamCveDedupedByVulnerableAlias(t *testing.T) {
 	})
 }
 
+// TestMatcherApk_UpstreamCveDedupedByIntroducedZeroAlias covers an unfixed distro advisory:
+// CGA-n0f1-x000-0000 lists grafana with a single "introduced: 0" event and no fixed event, so the
+// distro feed considers grafana vulnerable at every version (a package handle with no ranges is
+// implicitly vulnerable to all versions). NVD flags the aliased CVE-2026-30000 for the grafana CPE
+// at this version, but the two share identity via the CGA's alias set, so the upstream NVD finding
+// is deduped into the authoritative distro match - only the CGA distro match is returned.
+func TestMatcherApk_UpstreamCveDedupedByIntroducedZeroAlias(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		pkgID := pkg.ID("grafana-introduced-zero")
+		p := dbtest.NewPackage("grafana", "9.0.0-r0", syftPkg.ApkPkg).
+			WithID(pkgID).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("x86_64").
+			WithCPE("cpe:2.3:a:grafana:grafana:9.0.0-r0:*:*:*:*:*:*:*").
+			Build()
+
+		findings := db.Match(t, &matcher, p)
+
+		// the unfixed distro advisory surfaces...
+		findings.SelectMatch("CGA-n0f1-x000-0000").
+			SelectDetailByType(match.ExactDirectMatch).
+			AsDistroSearch()
+
+		// ...the aliased upstream NVD CVE is deduped away.
+		findings.DoesNotHaveAnyVulnerabilities("CVE-2026-30000")
+
+		// the ranges-less advisory must NOT be treated as an apk NAK: it is affected at every
+		// version, not "not affected". The "< 0" NAK filter no longer matches a record that
+		// carries no "< 0" constraint, so no Explicit APK NAK ignores are emitted.
+		findings.Ignores().IsEmpty()
+	})
+}
+
 // === architecture qualifier filtering (CG OSV records) ===
 //
 // The chainguard-rolling fixture has CGA-22hv-wp9q-4779, which emits
