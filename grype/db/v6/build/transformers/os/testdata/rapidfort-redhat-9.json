@@ -2,35 +2,26 @@
   {
     "Vulnerability": {
       "CVSS": [],
-      "Description": "curl wildcard certificate validation issue",
+      "Description": "The default configuration in cURL and libcurl before 7.36.0 re-uses SCP, SFTP, POP3, POP3S, IMAP, IMAPS, SMTP, SMTPS, LDAP, and LDAPS connections.",
       "FixedIn": [
         {
-          "Identifier": "el9",
           "Name": "curl",
           "NamespaceName": "rapidfort-redhat:9",
-          "Version": "None",
-          "VersionFormat": "rpm",
-          "VulnerableRange": ">= 0",
           "VendorAdvisory": {
             "AdvisorySummary": [
               {
-                "ID": "RHSA-TEST-EL9",
-                "Link": "https://access.redhat.com/errata/RHSA-TEST-EL9"
+                "ID": "RHSA-2024:1234",
+                "Link": "https://access.redhat.com/errata/RHSA-2024:1234"
               }
             ],
             "NoAdvisory": false
-          }
-        },
-        {
-          "Identifier": "fc36",
-          "Name": "curl",
-          "NamespaceName": "rapidfort-redhat:9",
-          "Version": "7.78.0-4.fc36",
+          },
+          "Version": "0:7.88.0-1.el9_2",
           "VersionFormat": "rpm",
-          "VulnerableRange": ">= 0, < 7.78.0-4.fc36",
+          "VulnerableRange": ">= 0:7.61.0-1.el9, < 0:7.88.0-1.el9_2",
           "Available": {
-            "Date": "2024-01-01T00:00:00Z",
-            "Kind": "advisory"
+            "Date": "2024-01-01",
+            "Kind": "first-observed"
           }
         }
       ],
@@ -38,7 +29,55 @@
       "Metadata": {},
       "Name": "CVE-2014-0139",
       "NamespaceName": "rapidfort-redhat:9",
-      "Severity": "Low"
+      "Severity": "High"
+    }
+  },
+  {
+    "Vulnerability": {
+      "CVSS": [],
+      "Description": "The default configuration in cURL and libcurl before 7.36.0 re-uses SCP, SFTP, POP3, POP3S, IMAP, IMAPS, SMTP, SMTPS, LDAP, and LDAPS connections.",
+      "FixedIn": [
+        {
+          "Name": "curl",
+          "NamespaceName": "rapidfort-redhat:9+fc36",
+          "VendorAdvisory": {
+            "AdvisorySummary": [],
+            "NoAdvisory": false
+          },
+          "Version": "7.78.0-4.fc36",
+          "VersionFormat": "rpm",
+          "VulnerableRange": ">= 7.61.0-1.fc36, < 7.78.0-4.fc36"
+        }
+      ],
+      "Link": "https://www.cve.org/CVERecord?id=CVE-2014-0139",
+      "Metadata": {},
+      "Name": "CVE-2014-0139",
+      "NamespaceName": "rapidfort-redhat:9+fc36",
+      "Severity": "High"
+    }
+  },
+  {
+    "Vulnerability": {
+      "CVSS": [],
+      "Description": "The default configuration in cURL and libcurl before 7.36.0 re-uses SCP, SFTP, POP3, POP3S, IMAP, IMAPS, SMTP, SMTPS, LDAP, and LDAPS connections.",
+      "FixedIn": [
+        {
+          "Name": "curl",
+          "NamespaceName": "rapidfort-redhat:9+rf",
+          "VendorAdvisory": {
+            "AdvisorySummary": [],
+            "NoAdvisory": false
+          },
+          "Version": "0:7.88.0-1.rf",
+          "VersionFormat": "rpm",
+          "VulnerableRange": ">= 0, < 0:7.88.0-1.rf"
+        }
+      ],
+      "Link": "https://www.cve.org/CVERecord?id=CVE-2014-0139",
+      "Metadata": {},
+      "Name": "CVE-2014-0139",
+      "NamespaceName": "rapidfort-redhat:9+rf",
+      "Severity": "High"
     }
   }
 ]

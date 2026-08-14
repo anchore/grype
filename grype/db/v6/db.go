@@ -24,7 +24,7 @@ const (
 	Revision = 1
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 9
+	Addition = 10
 
 	// v6 model changelog:
 	// 6.0.0: Initial version 🎉
@@ -57,6 +57,16 @@ const (
 	//        runtime qualifier in pkg/qualifier/gosymbols matches captured Go binary symbols
 	//        so stdlib and golang.org/x/* advisories don't FP-match binaries that don't use
 	//        vulnerable symbols)
+	// 6.1.10: Add SearchRule table (search_rules): data-defined rules that rewrite the specifiers
+	//        a package's vulnerability lookup is performed with — which names are searched, which
+	//        OS rows are queried (e.g. rapidfort release-stream channels such as rapidfort-redhat:9
+	//        +fc43, and vendors that publish under their own OS identity such as echo), and
+	//        whether that data is the complete picture for the package or fixes only
+	//        (include_base_distro; e.g. rapidfort-alpine's curated feed suppressing the apk
+	//        matcher's NVD/CPE fallback for disclosures). Rules are ranked by priority: only the matching
+	//        rules with the highest priority apply, and rules tied there apply together. Older
+	//        clients ignore the table; clients reading a DB built before it existed fall back to
+	//        the built-in defaults.
 )
 
 const (
@@ -87,6 +97,7 @@ type Reader interface {
 	AffectedCPEStoreReader
 	UnaffectedCPEStoreReader
 	ArchitectureAliasStoreReader
+	SearchRuleStoreReader
 	io.Closer
 	attachBlobValue(...blobable) error
 }

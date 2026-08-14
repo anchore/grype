@@ -470,6 +470,7 @@ var cacheBuildFingerprintPaths = []string{
 	"grype/db/v6/vulnerability.go",
 	"grype/db/v6/models.go",
 	"grype/db/v6/blob_store.go",
+	"grype/db/v6/data.go",
 	"grype/db/v6/build",
 }
 

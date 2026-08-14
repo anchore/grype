@@ -2,25 +2,54 @@
   {
     "Vulnerability": {
       "CVSS": [],
-      "Description": "curl: OAUTH2 bearer bypass in connection re-use",
+      "Description": "curl 7.62.0 through 7.70.0 is vulnerable to an information disclosure vulnerability that can lead to a partial password being leaked over the network and to the DNS server.",
       "FixedIn": [
         {
           "Name": "curl",
           "NamespaceName": "rapidfort-ubuntu:20.04",
-          "Version": "7.68.0-1ubuntu2.10",
+          "VendorAdvisory": {
+            "AdvisorySummary": [
+              {
+                "ID": "curl",
+                "Link": "https://github.com/rapidfort/security-advisories/blob/main/OS/ubuntu/curl_advisory.json"
+              }
+            ],
+            "NoAdvisory": false
+          },
+          "Version": "7.68.0-1ubuntu2.1",
           "VersionFormat": "dpkg",
-          "VulnerableRange": ">= 7.68.0, < 7.68.0-1ubuntu2.10",
-          "Available": {
-            "Date": "2022-05-01T00:00:00Z",
-            "Kind": "advisory"
-          }
+          "VulnerableRange": ">= 7.68.0, < 7.68.0-1ubuntu2.1"
         }
       ],
-      "Link": "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2022-22576",
+      "Link": "https://www.cve.org/CVERecord?id=CVE-2020-8169",
       "Metadata": {},
-      "Name": "CVE-2022-22576",
+      "Name": "CVE-2020-8169",
       "NamespaceName": "rapidfort-ubuntu:20.04",
-      "Severity": "Medium"
+      "Severity": "High"
+    }
+  },
+  {
+    "Vulnerability": {
+      "CVSS": [],
+      "Description": "curl 7.62.0 through 7.70.0 is vulnerable to an information disclosure vulnerability that can lead to a partial password being leaked over the network and to the DNS server.",
+      "FixedIn": [
+        {
+          "Name": "curl",
+          "NamespaceName": "rapidfort-ubuntu:20.04+rf",
+          "VendorAdvisory": {
+            "AdvisorySummary": [],
+            "NoAdvisory": false
+          },
+          "Version": "7.68.0-1rfubu.1",
+          "VersionFormat": "dpkg",
+          "VulnerableRange": ">= 7.68.0, < 7.68.0-1rfubu.1"
+        }
+      ],
+      "Link": "https://www.cve.org/CVERecord?id=CVE-2020-8169",
+      "Metadata": {},
+      "Name": "CVE-2020-8169",
+      "NamespaceName": "rapidfort-ubuntu:20.04+rf",
+      "Severity": "High"
     }
   }
 ]

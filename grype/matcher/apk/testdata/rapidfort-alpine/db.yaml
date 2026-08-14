@@ -1,0 +1,7 @@
+auto-generate: false
+extractions:
+    nvd:
+        - 2024/cve-2024-2398
+        - 2024/cve-2024-2466
+    rapidfort:
+        - rapidfort-alpine:3.18/cve-2024-2398

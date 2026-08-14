@@ -37,10 +37,20 @@ type DB struct {
 
 var _ vulnerability.Provider = &DB{}
 var _ vulnerability.EOLChecker = &DB{}
+var _ vulnerability.SearchRuleProvider = &DB{}
 
 // PackageSearchNames returns the package names to search for in the database.
 func (db *DB) PackageSearchNames(p grypePkg.Package) []string {
 	return db.provider.PackageSearchNames(p)
+}
+
+// SearchRules returns the search rules that apply to the given package, delegating to the
+// underlying provider when it exposes them.
+func (db *DB) SearchRules(p grypePkg.Package) []vulnerability.SearchRule {
+	if rp, ok := db.provider.(vulnerability.SearchRuleProvider); ok {
+		return rp.SearchRules(p)
+	}
+	return nil
 }
 
 // FindVulnerabilities returns vulnerabilities matching all the provided criteria.

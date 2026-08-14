@@ -53,6 +53,11 @@ func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package
 			search.ByPackageName(name),
 			search.ByDistro(*searchPkg.Distro),
 			OnlyQualifiedPackages(searchPkg),
+			// the version is conveyed without constraining results (this query deliberately
+			// fetches fixed records too — see the vulnerable/fixed partition below) so the
+			// provider can still resolve version-routed searches (e.g. search rules that select
+			// an OS release-stream channel from version markers)
+			search.WithVersion(*pkgVersion),
 		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", searchPkg.Distro, name, err)

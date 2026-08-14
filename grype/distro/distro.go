@@ -84,8 +84,10 @@ func parseVersion(version string) (major, minor, remaining, versionWithoutSuffix
 }
 
 // ParseDistroString parses a user-provided distro string in the format "name<separator>version"
-// where separator can be "-", ":", or "@". It handles the special case of opensuse-leap
-// which contains a hyphen in its distro ID. Returns the distro name and version parts.
+// where separator can be "-", ":", or "@". Distro IDs that themselves contain a separator
+// (e.g. "opensuse-leap", "rapidfort-ubuntu") are matched against the known ID set first so the
+// separator within the ID is not treated as the name/version split. Returns the distro name and
+// version parts.
 func ParseDistroString(s string) (name, version string) {
 	if s == "" {
 		return "", ""
@@ -93,21 +95,10 @@ func ParseDistroString(s string) (name, version string) {
 
 	s = strings.TrimSpace(s)
 
-	// Special handling for opensuse-leap which has a hyphen in its ID
-	// Check if it starts with "opensuse-leap" and handle accordingly
-	const opensuseLeap = "opensuse-leap"
-	if strings.HasPrefix(strings.ToLower(s), opensuseLeap) {
-		// Check if there's a separator after "opensuse-leap"
-		remaining := s[len(opensuseLeap):]
-		if len(remaining) == 0 {
-			return opensuseLeap, ""
-		}
-		// If the next character is a separator, split there
-		if remaining[0] == '-' || remaining[0] == ':' || remaining[0] == '@' {
-			return opensuseLeap, strings.TrimSpace(remaining[1:])
-		}
-		// Otherwise, treat the whole thing as the name
-		return s, ""
+	// handle distro IDs that contain a separator character (e.g. "opensuse-leap", "rapidfort-ubuntu"):
+	// the longest matching known ID wins, then split on any separator that follows it
+	if id, remaining, ok := splitKnownCompoundID(s); ok {
+		return id, remaining
 	}
 
 	// Find the first occurrence of any separator
@@ -127,6 +118,38 @@ func ParseDistroString(s string) (name, version string) {
 	}
 
 	return strings.TrimSpace(s[:minIdx]), strings.TrimSpace(s[minIdx+len(foundSep):])
+}
+
+func isDistroStringSeparator(b byte) bool {
+	return b == '-' || b == ':' || b == '@'
+}
+
+// splitKnownCompoundID checks whether s begins with a known distro ID that itself contains a
+// separator character; if so it returns the ID and whatever follows the next separator.
+func splitKnownCompoundID(s string) (name, version string, ok bool) {
+	lower := strings.ToLower(s)
+	var match string
+	for id := range IDMapping {
+		if !strings.ContainsAny(id, "-:@") {
+			continue
+		}
+		if strings.HasPrefix(lower, id) && len(id) > len(match) {
+			match = id
+		}
+	}
+	if match == "" {
+		return "", "", false
+	}
+	remaining := s[len(match):]
+	if len(remaining) == 0 {
+		return match, "", true
+	}
+	if isDistroStringSeparator(remaining[0]) {
+		return match, strings.TrimSpace(remaining[1:]), true
+	}
+	// the known ID is only a prefix of a longer string with no separator boundary; treat the
+	// whole input as a name (matches the previous opensuse-leap behavior)
+	return s, "", true
 }
 
 // NewFromNameVersion creates a new Distro object derived from the provided name and version
@@ -150,10 +173,7 @@ func NewFromNameVersion(name, version string) *Distro {
 		base += "+" + channels
 	}
 
-	typ := IDMapping[name]
-	if typ == "" {
-		typ = Type(name)
-	}
+	typ := TypeFromID(name)
 
 	return New(typ, base, codename, string(typ))
 }

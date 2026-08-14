@@ -2,7 +2,7 @@ package dbsearch
 
 const (
 	// MatchesSchemaVersion is the schema version for the `db search` command
-	MatchesSchemaVersion = "1.1.7"
+	MatchesSchemaVersion = "1.1.8"
 
 	// MatchesSchemaVersion Changelog:
 	// 1.0.0 - Initial schema 🎉
@@ -17,6 +17,7 @@ const (
 	// 1.1.5 - Add rootio field to PackageQualifiers (for Root IO NAK-pattern matching via the OSV rootio strategy)
 	// 1.1.6 - Rename rpm_arch field on PackageQualifiers to architecture (semantics unchanged; rpm-specific prefix dropped)
 	// 1.1.7 - Add go_imports field to PackageQualifiers (per-symbol reachability from govulndb ecosystem_specific.imports, used for Go binary symbol matching via the gosymbols qualifier)
+	// 1.1.8 - Add search_rules table to the DB (data-defined package/OS search specifier rewrites; no change to the search result shape itself)
 
 	// VulnerabilitiesSchemaVersion is the schema version for the `db search vuln` command
 	VulnerabilitiesSchemaVersion = "1.0.6"

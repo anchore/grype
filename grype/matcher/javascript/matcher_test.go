@@ -3,6 +3,7 @@ package javascript
 import (
 	"testing"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/internal/dbtest"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -66,6 +67,31 @@ func TestMatcher_ScopedAndUnscopedNames(t *testing.T) {
 				})
 		})
 	}
+}
+
+// TestMatcher_DistroBearingPackageStillMatches guards the OS dimension of language
+// matching. Every package in a scanned image carries that image's distro, including
+// language packages — but language ecosystem data (GHSA, OSV) is stored with no OS at
+// all. Constraining these queries by the package's distro therefore filters out every
+// record: an OS-scoped query resolves to `operating_system_id IN (...)`, which the
+// OS-less advisory rows can never satisfy. The failure is total and silent (zero
+// language matches in any distro image), so it is worth a test of its own rather than
+// leaving it to the distro-free fixtures the rest of this file uses.
+func TestMatcher_DistroBearingPackageStillMatches(t *testing.T) {
+	dbtest.DBs(t, "npm-scope-handling").
+		SelectOnly("github:npm/GHSA-67hx-6x53-jw92").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := NewJavascriptMatcher(MatcherConfig{})
+			p := dbtest.NewPackage("@babel/traverse", "7.20.0", syftPkg.NpmPkg).
+				WithLanguage(syftPkg.JavaScript).
+				WithDistro(distro.New(distro.Debian, "12", "bookworm")).
+				Build()
+
+			db.Match(t, matcher, p).
+				SelectMatch("GHSA-67hx-6x53-jw92").
+				SelectDetailByType(match.ExactDirectMatch).
+				AsEcosystemSearch()
+		})
 }
 
 // TestMatcher_ScopeStreamsDoNotCross is the sharp version of the

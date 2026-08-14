@@ -20,7 +20,6 @@ const (
 	BitnamiMatcher     MatcherType = "bitnami-matcher"
 	PacmanMatcher      MatcherType = "pacman-matcher"
 	HexMatcher         MatcherType = "hex-matcher"
-	RapidFortMatcher   MatcherType = "rapidfort-matcher"
 )
 
 var AllMatcherTypes = []MatcherType{

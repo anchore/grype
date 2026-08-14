@@ -64,8 +64,20 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	return matches, ignoreFilters, nil
 }
 
+// cpeMatchesWithoutSecDBFixes searches the upstream vulnerability data (NVD, via CPE) and
+// subtracts anything the distro secDB already answers. Alpine secDB reports fixes, not
+// disclosures, so the upstream data is where apk disclosures come from — but a package whose
+// distro data is already the complete picture (e.g. rapidfort-alpine's curated feed carries both
+// disclosures and fixes) must not fall back here at all.
+//
 //nolint:funlen,gocognit
 func (m *Matcher) cpeMatchesWithoutSecDBFixes(provider vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+	if !internal.IncludeBaseDistro(provider, p) {
+		// the search rules route this package to data that is the complete picture for it: skip
+		// the upstream (NVD/CPE) search
+		return nil, nil, nil
+	}
+
 	// find CPE-indexed vulnerability matches specific to the given package name and version
 	cpeMatches, ignored, err := internal.MatchPackageByCPEs(provider, p, m.Type())
 	if err != nil {

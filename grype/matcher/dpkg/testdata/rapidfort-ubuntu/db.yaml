@@ -1,0 +1,7 @@
+auto-generate: false
+extractions:
+    rapidfort:
+        - rapidfort-ubuntu:20.04/cve-2020-8169
+        - rapidfort-ubuntu:20.04/cve-2022-48303
+        - rapidfort-ubuntu:20.04/cve-2021-31879
+        - rapidfort-ubuntu:20.04+rf/cve-2022-48303

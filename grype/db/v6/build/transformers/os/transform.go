@@ -148,12 +148,28 @@ func getPackages(vuln unmarshal.OSVulnerability) ([]db.AffectedPackageHandle, []
 func buildRanges(vuln unmarshal.OSVulnerability, fixedIns []unmarshal.OSFixedIn) []db.Range {
 	var ranges []db.Range
 	for _, fixedInEntry := range fixedIns {
+		v := db.Version{
+			Type:       fixedInEntry.VersionFormat,
+			Constraint: enforceConstraint(fixedInEntry.Version, fixedInEntry.VulnerableRange, fixedInEntry.VersionFormat, vuln.Vulnerability.Name),
+		}
+		fix := getFix(fixedInEntry)
+
+		// this is the only range built from a provider-supplied constraint (the other sites derive
+		// `< fix`, which is closed above by construction), so it is the only one that can pair a
+		// fix version with a range that does not exclude it
+		if fix != nil && fix.State == db.FixedStatus && internal.FixVersionIsVulnerable(v, fix.Version) {
+			log.WithFields(
+				"vulnerability", vuln.Vulnerability.Name,
+				"package", fixedInEntry.Name,
+				"namespace", fixedInEntry.NamespaceName,
+				"constraint", v.Constraint,
+				"fixVersion", fix.Version,
+			).Warn("vulnerable range includes its own fix version; a package installed at the fix version will still match")
+		}
+
 		ranges = append(ranges, db.Range{
-			Version: db.Version{
-				Type:       fixedInEntry.VersionFormat,
-				Constraint: enforceConstraint(fixedInEntry.Version, fixedInEntry.VulnerableRange, fixedInEntry.VersionFormat, vuln.Vulnerability.Name),
-			},
-			Fix: getFix(fixedInEntry),
+			Version: v,
+			Fix:     fix,
 		})
 	}
 	return ranges
@@ -398,21 +414,6 @@ func getFix(fixedInEntry unmarshal.OSFixedIn) *db.Fix {
 	}
 
 	var refs []db.Reference
-	if fixedInEntry.ReleaseIdentifier != "" {
-		rid := releaseIdentifierReferenceID(fixedInEntry.ReleaseIdentifier)
-		refURL := rid
-		for _, adv := range advisoryOrder {
-			if adv.link != "" {
-				refURL = adv.link
-				break
-			}
-		}
-		refs = append(refs, db.Reference{
-			ID:   rid,
-			URL:  refURL, // prefer vendor advisory URL; else rid so toAdvisories includes the ref
-			Tags: []string{db.AdvisoryReferenceTag},
-		})
-	}
 	for _, adv := range advisoryOrder {
 		refs = append(refs, db.Reference{
 			ID:   adv.id,
@@ -454,10 +455,6 @@ func getFixAvailability(fixedInEntry unmarshal.OSFixedIn) *db.FixAvailability {
 	}
 }
 
-func releaseIdentifierReferenceID(identifier string) string {
-	return "release-identifier:" + strings.ToLower(strings.TrimSpace(identifier))
-}
-
 func enforceConstraint(fixedVersion, vulnerableRange, format, vulnerabilityID string) string {
 	if len(vulnerableRange) > 0 {
 		return vulnerableRange
@@ -497,16 +494,15 @@ func deriveConstraintFromFix(fixVersion, vulnerabilityID string) string {
 }
 
 type groupIndex struct {
-	name       string
-	id         string
-	osName     string
-	osVersion  string
-	osChannel  string
-	identifier string
-	hasModule  bool
-	module     string
-	format     string
-	arch       string
+	name      string
+	id        string
+	osName    string
+	osVersion string
+	osChannel string
+	hasModule bool
+	module    string
+	format    string
+	arch      string
 }
 
 func groupFixedIns(vuln unmarshal.OSVulnerability) map[groupIndex][]unmarshal.OSFixedIn {
@@ -523,15 +519,14 @@ func groupFixedIns(vuln unmarshal.OSVulnerability) map[groupIndex][]unmarshal.OS
 			arch = *fixedIn.Arch
 		}
 		g := groupIndex{
-			name:       fixedIn.Name,
-			id:         oi.id,
-			osName:     oi.name,
-			osVersion:  oi.version,
-			osChannel:  oi.channel,
-			identifier: fixedIn.ReleaseIdentifier,
-			hasModule:  fixedIn.Module != nil,
-			module:     mod,
-			format:     fixedIn.VersionFormat,
+			name:      fixedIn.Name,
+			id:        oi.id,
+			osName:    oi.name,
+			osVersion: oi.version,
+			osChannel: oi.channel,
+			hasModule: fixedIn.Module != nil,
+			module:    mod,
+			format:    fixedIn.VersionFormat,
 			// arch splits a per-arch fix into its own affected package handle so the architecture
 			// qualifier can scope it; empty means the fix applies to all arches.
 			arch: arch,
@@ -543,6 +538,10 @@ func groupFixedIns(vuln unmarshal.OSVulnerability) map[groupIndex][]unmarshal.OS
 }
 
 func getPackageType(osName string) pkg.Type {
+	// vendor-curated derivatives reuse the base distro's packaging ecosystem
+	// (e.g. rapidfort-ubuntu -> ubuntu -> deb)
+	osName = strings.TrimPrefix(osName, "rapidfort-")
+
 	switch osName {
 	case "arch", "archlinux":
 		return pkg.AlpmPkg
@@ -554,12 +553,6 @@ func getPackageType(osName string) pkg.Type {
 		return pkg.ApkPkg
 	case "windows":
 		return pkg.KbPkg
-	case "rapidfort-ubuntu":
-		return pkg.DebPkg
-	case "rapidfort-alpine":
-		return pkg.ApkPkg
-	case "rapidfort-redhat":
-		return pkg.RpmPkg
 	}
 
 	return ""

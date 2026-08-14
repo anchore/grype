@@ -261,6 +261,11 @@ func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Packag
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
 		internal.OnlyQualifiedPackages(searchPkg),
+		// the version is conveyed without constraining results (this query deliberately fetches
+		// fixed records too — see the disclosures/unaffected partition below) so the provider can
+		// still resolve version-routed searches (e.g. search rules that select
+		// an OS release-stream channel from version markers)
+		search.WithVersion(*pkgVersion),
 	}
 
 	all, err := provider.FindResults(disclosureCriteria...)

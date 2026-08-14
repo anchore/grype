@@ -76,6 +76,7 @@ func Test_getProviderConfig(t *testing.T) {
 								Versions: nil,
 							},
 						},
+						Identifiers: distro.DefaultIdentifiers(),
 					},
 				},
 			},
