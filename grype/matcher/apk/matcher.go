@@ -15,14 +15,14 @@ import (
 )
 
 const (
-	// IgnoreReasonDistroFixed - the distro feed marks the package as already fixed at or past the
+	// ignoreReasonDistroFixed - the distro feed marks the package as already fixed at or past the
 	// package's version, so an overlapping package (e.g. a binary owned by the APK) should ignore it.
-	IgnoreReasonDistroFixed = "DistroPackageFixed"
+	ignoreReasonDistroFixed = "DistroPackageFixed"
 
-	// IgnoreReasonExplicitNAK - the distro source explicitly reports the package as not affected
+	// ignoreReasonExplicitNAK - the distro source explicitly reports the package as not affected
 	// (a "< 0" NAK entry). Kept as an ignore so later rules can suppress the same vulnerability on
 	// packages that overlap this one by location.
-	IgnoreReasonExplicitNAK = "Explicit APK NAK"
+	ignoreReasonExplicitNAK = "Explicit APK NAK"
 )
 
 var (
@@ -102,7 +102,7 @@ func (m *Matcher) directDistroMatches(provider result.Provider, p pkg.Package) (
 		return nil, nil, err
 	}
 
-	ignores := internal.OwnershipIgnores(p, IgnoreReasonDistroFixed, fixed.Vulnerabilities()...)
+	ignores := internal.OwnershipIgnores(p, ignoreReasonDistroFixed, fixed.Vulnerabilities()...)
 	return vulnerable, ignores, nil
 }
 
@@ -134,7 +134,7 @@ func (m *Matcher) indirectDistroMatches(provider result.Provider, p pkg.Package)
 			r.Details = details
 		})
 
-		ignores = append(ignores, internal.OwnershipIgnores(p, IgnoreReasonDistroFixed, fixed.Vulnerabilities()...)...)
+		ignores = append(ignores, internal.OwnershipIgnores(p, ignoreReasonDistroFixed, fixed.Vulnerabilities()...)...)
 		disclosures = disclosures.Merge(vulnerable)
 	}
 
@@ -170,7 +170,7 @@ func (m *Matcher) nakMatches(provider result.Provider, p pkg.Package) ([]match.I
 		naks = naks.Merge(upstreamNaks)
 	}
 
-	return internal.OwnershipIgnores(p, IgnoreReasonExplicitNAK, naks.Vulnerabilities()...), nil
+	return internal.OwnershipIgnores(p, ignoreReasonExplicitNAK, naks.Vulnerabilities()...), nil
 }
 
 // upstreamMatches finds NVD (CPE-indexed) matches for the package itself and for each of its

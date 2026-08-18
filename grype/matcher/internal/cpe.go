@@ -57,9 +57,6 @@ func FindResultsByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstr
 
 	affected := result.Set{}
 	var ignores []match.IgnoreFilter
-	// we attempt to merge match details within the same matcher when searching by CPEs, in this way there are fewer duplicated match
-	// objects (and fewer duplicated match details).
-
 	// Warn the user if they are matching by CPE, but there are no CPEs available.
 	if len(p.CPEs) == 0 {
 		return nil, nil, ErrEmptyCPEMatch
@@ -122,9 +119,8 @@ func FindResultsByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstr
 			return nil, nil, fmt.Errorf("matcher failed to fetch unaffected CPE records for pkg=%q: %w", p.Name, err)
 		}
 
-		// add affected vulns to top level set, collapsing records that share a match fingerprint (the same
-		// vulnerability found via multiple CPEs of this package) into one record with unioned CPE details.
-		affected = affected.Merge(vulns, mergeCPEResultsByFingerprint(p))
+		// add affected vulns to the top level set; nothing is reconciled until the set becomes matches
+		affected = affected.Merge(vulns)
 		// mark unaffected as ignores
 		unaffected = all.Remove(vulns).Merge(unaffected)
 		ignores = append(ignores, OwnershipIgnores(p, "CPE not vulnerable", unaffected.Vulnerabilities()...)...)
@@ -133,85 +129,10 @@ func FindResultsByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstr
 	return affected, ignores, nil
 }
 
-// mergeCPEResultsByFingerprint is a result.Set merge function that collapses result records sharing a
-// match.Fingerprint into a single record, unioning their CPE details: a vulnerability found via
-// several of the package's CPEs becomes one record whose CPE detail lists every CPE that matched.
-//
-// Every grouped vulnerability record is kept, not just the first. A fingerprint is one vulnerability
-// from one source on one package, so records in a group still differ in constraint and fixed-in
-// version -- NVD stores one record per vulnerable CPE. Reconciling those is match.Match.Merge's job,
-// and it only gets the chance if they survive to result.Set.ToMatches.
-func mergeCPEResultsByFingerprint(p pkg.Package) func(existing, incoming []result.Result) []result.Result {
-	return func(existing, incoming []result.Result) []result.Result {
-		byFingerprint := map[match.Fingerprint]int{}
-		var out []result.Result
-		for _, r := range append(append([]result.Result(nil), existing...), incoming...) {
-			for _, v := range r.Vulnerabilities {
-				candidateMatch := match.Match{Vulnerability: v, Package: p}
-				fingerprint := candidateMatch.Fingerprint()
-				if i, exists := byFingerprint[fingerprint]; exists {
-					out[i].Vulnerabilities = append(out[i].Vulnerabilities, v)
-					for _, d := range r.Details {
-						out[i].Details = addMatchDetails(out[i].Details, d)
-					}
-					continue
-				}
-				byFingerprint[fingerprint] = len(out)
-				out = append(out, result.Result{
-					ID:              r.ID,
-					Package:         r.Package,
-					Vulnerabilities: []vulnerability.Vulnerability{v},
-					Details:         append([]match.Detail(nil), r.Details...),
-				})
-			}
-		}
-		return out
-	}
-}
-
 func transformJvmVersion(searchVersion, updateCpeField string) string {
 	// we should take into consideration the CPE update field for JVM packages
 	if strings.HasPrefix(searchVersion, "1.") && !strings.Contains(searchVersion, "_") && updateCpeField != wfn.NA && updateCpeField != wfn.Any {
 		searchVersion = fmt.Sprintf("%s_%s", searchVersion, strings.TrimPrefix(updateCpeField, "update"))
 	}
 	return searchVersion
-}
-
-func addMatchDetails(existingDetails []match.Detail, newDetails match.Detail) []match.Detail {
-	newFound, ok := newDetails.Found.(match.CPEResult)
-	if !ok {
-		return existingDetails
-	}
-
-	newSearchedBy, ok := newDetails.SearchedBy.(match.CPEParameters)
-	if !ok {
-		return existingDetails
-	}
-	for idx, detail := range existingDetails {
-		found, ok := detail.Found.(match.CPEResult)
-		if !ok {
-			continue
-		}
-
-		searchedBy, ok := detail.SearchedBy.(match.CPEParameters)
-		if !ok {
-			continue
-		}
-
-		if !found.Equals(newFound) {
-			continue
-		}
-
-		err := searchedBy.Merge(newSearchedBy)
-		if err != nil {
-			continue
-		}
-
-		existingDetails[idx].SearchedBy = searchedBy
-		return existingDetails
-	}
-
-	// could not merge with another entry, append to the end
-	existingDetails = append(existingDetails, newDetails)
-	return existingDetails
 }

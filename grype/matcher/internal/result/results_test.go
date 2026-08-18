@@ -605,6 +605,32 @@ func TestSet_ToMatches(t *testing.T) {
 			},
 		},
 		{
+			// results may carry the same detail more than once; match.Matches.Add collapses them
+			name: "duplicate details collapse into one",
+			receiver: Set{
+				"vuln-1": []Result{
+					{
+						ID: "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{Reference: vulnerability.Reference{ID: "CVE-2021-1"}},
+						},
+						Details: match.Details{
+							{Type: match.ExactDirectMatch, SearchedBy: "attr", Found: "value", Matcher: "matcher"},
+							{Type: match.ExactDirectMatch, SearchedBy: "attr", Found: "value", Matcher: "matcher"},
+						},
+						Package: &testPkg,
+					},
+				},
+			},
+			want: []match.Match{
+				{
+					Vulnerability: vulnerability.Vulnerability{Reference: vulnerability.Reference{ID: "CVE-2021-1"}},
+					Package:       testPkg,
+					Details:       match.Details{{Type: match.ExactDirectMatch, SearchedBy: "attr", Found: "value", Matcher: "matcher"}},
+				},
+			},
+		},
+		{
 			name:     "empty set returns no matches",
 			receiver: Set{},
 			want:     []match.Match{},

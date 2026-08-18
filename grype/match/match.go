@@ -1,6 +1,7 @@
 package match
 
 import (
+	"cmp"
 	"fmt"
 	"slices"
 	"strings"
@@ -50,11 +51,9 @@ func (m *Match) Merge(other Match) error {
 		return ErrCannotMerge
 	}
 
-	// the strongest match describes the finding; the weaker record only contributes to the unions
-	// below. when neither is stronger the receiver wins, so callers must add matches in a
-	// deterministic order (this is why normalization iterates Sorted() and not Enumerate()).
+	// the record that matched most strongly describes the finding; the other only feeds the unions below
 	base, secondary := m.Vulnerability, other.Vulnerability
-	if other.Details.rank() < m.Details.rank() {
+	if compareRecordAuthority(other, *m) < 0 {
 		base, secondary = other.Vulnerability, m.Vulnerability
 	}
 
@@ -83,10 +82,17 @@ func (m *Match) Merge(other Match) error {
 	return nil
 }
 
-// mergeFix unions the fix information of two records describing the same finding. A fix known to one
-// record is a fix for the finding, so a "fixed" state wins over a record that reports none -- an NVD
-// record that lists a vulnerable CPE without a version end carries no fix at all, and must not mask
-// the fixed-in version a sibling record reports for the same CVE.
+// compareRecordAuthority orders two matches for the same finding by how well each describes it, best
+// first, so that the winner does not depend on the order the matches were added in.
+func compareRecordAuthority(a, b Match) int {
+	if c := cmp.Compare(a.Details.rank(), b.Details.rank()); c != 0 {
+		return c
+	}
+	return compareDetailSets(a.Details, b.Details)
+}
+
+// mergeFix unions the fix information of two records describing the same finding, with a fix reported
+// by either record clearing it (see TestMergeFix_StateResolution for the whole state table).
 func mergeFix(base, other vulnerability.Fix) vulnerability.Fix {
 	out := vulnerability.Fix{
 		State: base.State,

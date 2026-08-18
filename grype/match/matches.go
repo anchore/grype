@@ -71,6 +71,9 @@ func (r *Matches) Add(matches ...Match) {
 	for _, newMatch := range matches {
 		fingerprint := newMatch.Fingerprint()
 
+		// normalize first: every detail set this collection holds is deduped and ordered strongest-first
+		newMatch.Details = mergeDetails(newMatch.Details)
+
 		if existingMatch, exists := r.byFingerprint[fingerprint]; exists {
 			if err := existingMatch.Merge(newMatch); err != nil {
 				// unreachable: an equal fingerprint is the only thing Merge rejects on
@@ -80,9 +83,6 @@ func (r *Matches) Add(matches ...Match) {
 			}
 			r.byFingerprint[fingerprint] = existingMatch
 		} else {
-			// dedup on the way in too, so a match stored without ever being merged is held to the
-			// same standard as one that was
-			newMatch.Details = mergeDetails(newMatch.Details)
 			r.byFingerprint[fingerprint] = newMatch
 		}
 

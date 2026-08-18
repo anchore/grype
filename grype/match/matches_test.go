@@ -1,6 +1,7 @@
 package match
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -801,5 +802,26 @@ func TestMatches_Add_KeepsSeparateSources(t *testing.T) {
 	for _, got := range matches {
 		require.Len(t, got.Vulnerability.Fix.Versions, 1,
 			"fixed-in versions from different sources must not be unioned: %v", got.Vulnerability.Fix.Versions)
+	}
+}
+
+// BenchmarkMatchesAddOneFinding tracks the cost of building a single finding out of N database records.
+func BenchmarkMatchesAddOneFinding(b *testing.B) {
+	for _, n := range []int{2, 10, 50} {
+		b.Run(fmt.Sprintf("records=%d", n), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				matches := NewMatches()
+				for j := 0; j < n; j++ {
+					matches.Add(Match{
+						Vulnerability: vulnerability.Vulnerability{
+							Reference: vulnerability.Reference{ID: "CVE-2026-1", Namespace: "nvd:cpe"},
+							Fix:       vulnerability.Fix{Versions: []string{fmt.Sprintf("%d.0.0", j)}},
+						},
+						Package: pkg.Package{ID: "pkg1", Name: "widget", Version: "1.5.0"},
+						Details: Details{benchmarkCPEDetail(j)},
+					})
+				}
+			}
+		})
 	}
 }
