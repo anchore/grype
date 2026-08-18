@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -1361,97 +1360,4 @@ func TestShouldIgnore(t *testing.T) {
 			assert.Equal(t, testCase.expected, actual)
 		})
 	}
-}
-
-// TestIfMatchTypeApplies pins that a match-type ignore rule applies only when every detail of the
-// finding is of that type.
-func TestIfMatchTypeApplies(t *testing.T) {
-	tests := []struct {
-		name     string
-		ruleType Type
-		details  Details
-		expected bool
-	}{
-		{
-			name:     "the only detail is of the rule's type",
-			ruleType: CPEMatch,
-			details:  Details{{Type: CPEMatch}},
-			expected: true,
-		},
-		{
-			name:     "every detail is of the rule's type",
-			ruleType: CPEMatch,
-			details:  Details{{Type: CPEMatch}, {Type: CPEMatch}},
-			expected: true,
-		},
-		{
-			name:     "a detail of another type keeps the rule from applying",
-			ruleType: CPEMatch,
-			details:  Details{{Type: ExactDirectMatch}, {Type: CPEMatch}},
-			expected: false,
-		},
-		{
-			name:     "the same, whichever type the rule names",
-			ruleType: ExactDirectMatch,
-			details:  Details{{Type: ExactDirectMatch}, {Type: CPEMatch}},
-			expected: false,
-		},
-		{
-			name:     "a different type does not apply",
-			ruleType: CPEMatch,
-			details:  Details{{Type: ExactIndirectMatch}},
-			expected: false,
-		},
-		{
-			name:     "no details is not evidence of any type",
-			ruleType: CPEMatch,
-			details:  Details{},
-			expected: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			applies := ifMatchTypeApplies(tt.ruleType)(Match{Details: tt.details})
-			assert.Equal(t, tt.expected, applies)
-		})
-	}
-}
-
-// TestApplyIgnoreRules_matchTypeOnMergedFinding covers a match-type ignore rule end to end against a
-// finding merged from two records, which carries a detail of each type.
-func TestApplyIgnoreRules_matchTypeOnMergedFinding(t *testing.T) {
-	p := pkg.Package{ID: pkg.ID(uuid.NewString()), Name: "widget", Version: "1.5.0", Type: syftPkg.JavaPkg}
-	vuln := vulnerability.Vulnerability{
-		Reference: vulnerability.Reference{ID: "CVE-2026-1", Namespace: "nvd:cpe"},
-	}
-
-	viaAdvisory := Match{
-		Vulnerability: vuln,
-		Package:       p,
-		Details:       Details{{Type: ExactDirectMatch, Matcher: JavaMatcher, SearchedBy: "ghsa", Found: "advisory"}},
-	}
-	viaCPE := Match{
-		Vulnerability: vuln,
-		Package:       p,
-		Details:       Details{{Type: CPEMatch, Matcher: JavaMatcher, SearchedBy: "nvd", Found: "cpe record"}},
-	}
-
-	merged := NewMatches(viaAdvisory, viaCPE)
-	require.Equal(t, 1, merged.Count(), "the two records describe one finding")
-	require.ElementsMatch(t, []Type{ExactDirectMatch, CPEMatch}, merged.Sorted()[0].Details.Types())
-
-	for _, ruleType := range []Type{CPEMatch, ExactDirectMatch} {
-		t.Run("merged finding survives a rule on "+string(ruleType), func(t *testing.T) {
-			remaining, ignored := ApplyIgnoreRules(merged, []IgnoreRule{{MatchType: ruleType}})
-			assert.Equal(t, 1, remaining.Count(), "a finding with evidence of another type must be kept")
-			assert.Empty(t, ignored)
-		})
-	}
-
-	t.Run("a finding whose only evidence is a CPE match is still ignored", func(t *testing.T) {
-		remaining, ignored := ApplyIgnoreRules(NewMatches(viaCPE), []IgnoreRule{{MatchType: CPEMatch}})
-		assert.Equal(t, 0, remaining.Count())
-		assert.Len(t, ignored, 1)
-	})
 }

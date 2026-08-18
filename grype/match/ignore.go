@@ -353,18 +353,9 @@ func isLikelyARegex(s string) bool {
 	return isRegexPattern.MatchString(s)
 }
 
-// ifMatchTypeApplies returns a condition that holds when every detail of the match is of the given
-// type, and the match has at least one detail.
 func ifMatchTypeApplies(matchType Type) ignoreCondition {
 	return func(match Match) bool {
-		types := match.Details.Types()
-		if len(types) == 0 {
-			// no evidence at all is not evidence of this type
-			return false
-		}
-		return !slices.ContainsFunc(types, func(ty Type) bool {
-			return ty != matchType
-		})
+		return slices.Contains(match.Details.Types(), matchType)
 	}
 }
 
