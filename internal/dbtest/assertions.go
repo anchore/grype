@@ -895,8 +895,18 @@ func (s *SingleFindingAssertion) SelectDetailByDistro(distroType, distroVersion 
 // and validates the found vulnerability.
 // Fails if not exactly one detail matches.
 // Takes an optional version constraint to validate (0 = no assertion, 1 = assert, 2+ = error).
+//
+// When a constraint is given it also disambiguates: one package CPE can match several records of the
+// same vulnerability (NVD stores one record per vulnerable CPE, e.g. an unqualified entry plus one
+// scoped to a target software), which merge into a single finding carrying a detail per record. Those
+// details share a searched-by CPE and differ only by the record they found.
 func (s *SingleFindingAssertion) SelectDetailByCPE(cpe string, constraint ...string) *CPEDetailAssertion {
 	s.t.Helper()
+
+	if len(constraint) > 1 {
+		s.t.Fatalf("SelectDetailByCPE accepts at most one constraint argument, got %d", len(constraint))
+		return nil
+	}
 
 	var matchedIdx = -1
 	var matched *match.Detail
@@ -917,25 +927,33 @@ func (s *SingleFindingAssertion) SelectDetailByCPE(cpe string, constraint ...str
 				break
 			}
 		}
-		if hasCPE {
-			if matched != nil {
-				s.t.Fatalf("SelectDetailByCPE expected exactly one detail with CPE %q, but found multiple", cpe)
-				return nil
-			}
-			matchedIdx = i
-			matched = d
-			searchedBy = sb
-			f, ok := d.Found.(match.CPEResult)
-			if !ok {
-				s.t.Fatalf("expected Found to be CPEResult, got %T", d.Found)
-				return nil
-			}
-			found = f
+		if !hasCPE {
+			continue
 		}
+
+		f, ok := d.Found.(match.CPEResult)
+		if !ok {
+			s.t.Fatalf("expected Found to be CPEResult, got %T", d.Found)
+			return nil
+		}
+
+		// when given, the constraint identifies which of the CPE's records this assertion is about
+		if len(constraint) == 1 && f.VersionConstraint != constraint[0] {
+			continue
+		}
+
+		if matched != nil {
+			s.t.Fatalf("SelectDetailByCPE expected exactly one detail with CPE %q (constraint %v), but found multiple", cpe, constraint)
+			return nil
+		}
+		matchedIdx = i
+		matched = d
+		searchedBy = sb
+		found = f
 	}
 
 	if matched == nil {
-		s.t.Fatalf("SelectDetailByCPE found no detail with CPE %q", cpe)
+		s.t.Fatalf("SelectDetailByCPE found no detail with CPE %q (constraint %v)", cpe, constraint)
 		return nil
 	}
 

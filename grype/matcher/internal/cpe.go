@@ -134,9 +134,13 @@ func FindResultsByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstr
 }
 
 // mergeCPEResultsByFingerprint is a result.Set merge function that collapses result records sharing a
-// match.Fingerprint into a single record, unioning their CPE details. It is the result.Set equivalent
-// of main's matchesByFingerprint + addMatchDetails: a vulnerability found via several of the package's
-// CPEs becomes one record whose CPE detail lists every CPE that matched.
+// match.Fingerprint into a single record, unioning their CPE details: a vulnerability found via
+// several of the package's CPEs becomes one record whose CPE detail lists every CPE that matched.
+//
+// Every grouped vulnerability record is kept, not just the first. A fingerprint is one vulnerability
+// from one source on one package, so records in a group still differ in constraint and fixed-in
+// version -- NVD stores one record per vulnerable CPE. Reconciling those is match.Match.Merge's job,
+// and it only gets the chance if they survive to result.Set.ToMatches.
 func mergeCPEResultsByFingerprint(p pkg.Package) func(existing, incoming []result.Result) []result.Result {
 	return func(existing, incoming []result.Result) []result.Result {
 		byFingerprint := map[match.Fingerprint]int{}
@@ -146,6 +150,7 @@ func mergeCPEResultsByFingerprint(p pkg.Package) func(existing, incoming []resul
 				candidateMatch := match.Match{Vulnerability: v, Package: p}
 				fingerprint := candidateMatch.Fingerprint()
 				if i, exists := byFingerprint[fingerprint]; exists {
+					out[i].Vulnerabilities = append(out[i].Vulnerabilities, v)
 					for _, d := range r.Details {
 						out[i].Details = addMatchDetails(out[i].Details, d)
 					}

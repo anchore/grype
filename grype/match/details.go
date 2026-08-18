@@ -2,9 +2,12 @@ package match
 
 import (
 	"fmt"
+	"math"
+	"sort"
 	"strings"
 
 	"github.com/gohugoio/hashstructure"
+	"github.com/scylladb/go-set/strset"
 )
 
 type Details []Detail
@@ -87,4 +90,52 @@ func (m Details) Less(i, j int) bool {
 
 func (m Details) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
+}
+
+// rank returns the position of the best match in a detail set, counting from 1, as ordered by
+// typeOrder: exact-direct-match (1) beats exact-indirect-match (2) beats cpe-match (3). Lower wins,
+// as with any ranking -- a set ranks as well as its best detail. Details with an unrecognized type
+// do not contribute, and a set with no recognized type ranks last.
+//
+// Match.Merge uses this to decide which of two records for the same finding describes it -- the role
+// the old direct-supersedes-indirect rules in Matches.Add used to play.
+func (m Details) rank() int {
+	best := math.MaxInt
+	for _, d := range m {
+		r, ok := typeOrder[d.Type]
+		if !ok {
+			continue
+		}
+		if r < best {
+			best = r
+		}
+	}
+	return best
+}
+
+// mergeDetails returns the union of the given detail sets, sorted for stable output. Exact
+// duplicates are dropped -- both across the sets and within each one, since the same record can be
+// reached more than once, and a detail says how the finding was matched, so saying it twice adds
+// nothing.
+//
+// Details are compared by Detail.ID(), a hash over every field, so only wholly identical details
+// collapse: two CPE details that searched by different CPEs are both kept. Unlike the other merge
+// helpers this cannot key on the value itself -- SearchedBy and Found are `any` and routinely hold
+// slice-bearing types (CPEResult.CPEs, EcosystemResult.MatchedSymbols), which are not valid map keys
+// and panic on ==.
+func mergeDetails(sets ...Details) Details {
+	seen := strset.New()
+	var out Details
+	for _, set := range sets {
+		for _, d := range set {
+			id := d.ID()
+			if seen.Has(id) {
+				continue
+			}
+			seen.Add(id)
+			out = append(out, d)
+		}
+	}
+	sort.Sort(out)
+	return out
 }

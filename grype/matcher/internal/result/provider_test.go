@@ -3,10 +3,11 @@ package result
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/cpe"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestMatchedCPEsForSearch(t *testing.T) {

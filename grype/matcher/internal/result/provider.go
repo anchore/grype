@@ -114,7 +114,7 @@ func extractSearchParameters(criteriaSet []vulnerability.Criteria, vuln vulnerab
 			cpeParams = append(cpeParams, match.CPEParameters{
 				Namespace: vuln.Namespace, // TODO: this is a holdover and will be removed in the future
 				CPEs: []string{
-					c.CPE.Attributes.BindToFmtString(),
+					c.CPE.Attributes.String(),
 				},
 				// CPE searches carry no package-name criterion, so record package identity from the cataloged package
 				Package: match.PackageParameter{
