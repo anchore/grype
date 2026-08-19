@@ -18,10 +18,6 @@ var _ Provider = (*provider)(nil)
 
 type Provider interface {
 	FindResults(criteria ...vulnerability.Criteria) (Set, error)
-	// VulnerabilityProvider returns the underlying vulnerability.Provider, for callers that need to
-	// reach APIs not surfaced by FindResults (e.g. PackageSearchNames) or to build a result provider
-	// scoped to a different package.
-	VulnerabilityProvider() vulnerability.Provider
 }
 
 type provider struct {
@@ -36,10 +32,6 @@ func NewProvider(vp vulnerability.Provider, catalogedPkg pkg.Package, matcher ma
 		catalogedPkg: catalogedPkg,
 		matcher:      matcher,
 	}
-}
-
-func (p provider) VulnerabilityProvider() vulnerability.Provider {
-	return p.vulnProvider
 }
 
 func (p provider) FindResults(criteria ...vulnerability.Criteria) (Set, error) {
