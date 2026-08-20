@@ -56,6 +56,13 @@ func TestSubprocessStdin(t *testing.T) {
 			}
 		}
 
-		testWithTimeout(t, test.name, 60*time.Second, testFn)
+		// each case runs grype in a container with an empty DB cache, so the
+		// budget has to cover downloading and importing the vulnerability DB
+		// (~140MB compressed, ~1.5GB on disk) plus pulling the scanned image,
+		// on top of the hang this case is actually guarding against. Keep the
+		// per-case budget well under the suite-wide -timeout so a real hang
+		// still fails here, with a useful message, rather than panicking the
+		// whole package.
+		testWithTimeout(t, test.name, 3*time.Minute, testFn)
 	}
 }
