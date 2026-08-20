@@ -73,13 +73,12 @@ func productIdentifiersFromContext(pkgContext *pkg.Context) []string {
 	}
 }
 
-// canonicalDockerHubHost folds Docker Hub's alternate registry hostnames
-// (docker.io, registry-1.docker.io) down to index.docker.io.
-// See: https://github.com/google/go-containerregistry/issues/68
+const canonicalDockerHubRegistry = "index.docker.io"
+
 func canonicalDockerHubHost(host string) string {
 	switch strings.ToLower(host) {
-	case "docker.io", "index.docker.io", "registry-1.docker.io":
-		return "index.docker.io"
+	case "docker.io", canonicalDockerHubRegistry, "registry-1.docker.io":
+		return canonicalDockerHubRegistry
 	default:
 		return host
 	}
@@ -117,7 +116,7 @@ func ociRepositoryIdentity(repo name.Repository, ref string) (baseName, repoURL 
 
 	// Apply the same defaulting here so the repository_url is consistent
 	// regardless of the host's original casing.
-	if host == "index.docker.io" && !strings.Contains(repoPath, "/") {
+	if host == canonicalDockerHubRegistry && !strings.Contains(repoPath, "/") {
 		repoPath = "library/" + repoPath
 	}
 
