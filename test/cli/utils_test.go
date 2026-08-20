@@ -70,24 +70,42 @@ func getGrypeSnapshotLocation(t testing.TB, goOS, goArch string) string {
 	return loc
 }
 
+// goreleaserArchSuffix is the microarchitecture level goreleaser appends to the build target
+// directory for each arch we build in .goreleaser.yaml. goreleaser always appends the level for
+// arches that have one -- even when it is the default -- and appends nothing for arches that don't
+// (s390x), e.g. linux-build_linux_amd64_v1 vs linux-build_linux_s390x. The values here are
+// goreleaser's defaults (GOAMD64, GOARM64, GOPPC64), since .goreleaser.yaml does not override them.
+// see: https://goreleaser.com/customization/build/#why-is-there-a-_v1-suffix-on-amd64-builds
+var goreleaserArchSuffix = map[string]string{
+	"amd64":   "_v1",
+	"arm64":   "_v8.0",
+	"ppc64le": "_power8",
+	"s390x":   "",
+}
+
+// getGrypeBinaryLocationByOS returns the goreleaser snapshot location for a given target: the
+// dist dir holds one directory per build target, named <build id>_<goos>_<goarch><microarch level>.
+// The build IDs in .goreleaser.yaml are <goos>-build, hence the subtle - vs _ difference below.
 func getGrypeBinaryLocationByOS(t testing.TB, goOS, goArch string) string {
-	// note: for amd64 we need to update the snapshot location with the v1 suffix
-	// see : https://goreleaser.com/customization/build/#why-is-there-a-_v1-suffix-on-amd64-builds
-	if goArch == "amd64" {
-		goArch = fmt.Sprintf("%s_v1", goArch)
-	}
 	executable := "grype"
-	// note: there is a subtle - vs _ difference between these versions
 	switch goOS {
 	case "windows":
+		// windows-build: amd64
 		executable += ".exe"
-		fallthrough
 	case "darwin", "linux":
-		return filepath.Join(repoRoot(t), "snapshot", fmt.Sprintf("%s-build_%s_%s", goOS, goOS, goArch), executable)
+		// darwin-build: amd64, arm64; linux-build: amd64, arm64, ppc64le, s390x
 	default:
-		t.Fatalf("unsupported OS: %s", runtime.GOOS)
+		t.Fatalf("unsupported OS: %s", goOS)
+		return ""
 	}
-	return ""
+
+	suffix, ok := goreleaserArchSuffix[goArch]
+	if !ok {
+		t.Fatalf("unsupported arch: %s (add its goreleaser microarchitecture level to goreleaserArchSuffix)", goArch)
+		return ""
+	}
+
+	return filepath.Join(repoRoot(t), "snapshot", fmt.Sprintf("%s-build_%s_%s%s", goOS, goOS, goArch, suffix), executable)
 }
 
 func buildBinary(t testing.TB, loc, goOS, goArch string) {
