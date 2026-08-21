@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="grype-vulnerability-scan">
+    <testsuite name="grype-vulnerability-scan" tests="{{ len .Matches }}" failures="{{ len .Matches }}" errors="0" skipped="0">
+        {{- range .Matches }}
+        <testcase classname="{{ .Artifact.Name }}" name="{{ .Vulnerability.ID }} ({{ .Vulnerability.Severity }})" time="0">
+            <failure message="{{ .Vulnerability.ID }}: Vulnerability discovered in package {{ .Artifact.Name }}" type="{{ .Vulnerability.Severity }}">
+Package: {{ .Artifact.Name }}
+Version: {{ .Artifact.Version }}
+Type: {{ .Artifact.Type }}
+Vulnerability: {{ .Vulnerability.ID }}
+Severity: {{ .Vulnerability.Severity }}
+Link: {{ .Vulnerability.DataSource }}
+Fix Version: {{ if .Vulnerability.Fix.Versions }}{{ join ", " .Vulnerability.Fix.Versions }}{{ else }}None{{ end }}
+
+Description:
+{{ .Vulnerability.Description }}
+            </failure>
+        </testcase>
+        {{- end }}
+    </testsuite>
+</testsuites>
