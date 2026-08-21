@@ -62,7 +62,7 @@ func (o *DBSearchPackages) PostLoad() error {
 				log.Warnf("ignoring version and qualifiers for package URL %q", purl)
 			}
 
-			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: purl.Name, Ecosystem: purl.Type})
+			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: packageNameFromPURL(purl), Ecosystem: purl.Type})
 			o.CPESpecs = append(o.CPESpecs, &v6.PackageSpecifier{CPE: &cpe.Attributes{Part: "a", Product: purl.Name, TargetSW: purl.Type}})
 
 		default:
@@ -81,4 +81,23 @@ func (o *DBSearchPackages) PostLoad() error {
 	}
 
 	return nil
+}
+
+// packageNameFromPURL joins the PURL namespace back onto the name, in the form
+// the DB stores names for that ecosystem. Go modules and npm scopes are stored
+// as the full "namespace/name" path and Maven coordinates as
+// "groupId:artifactId", so without this a search for
+// "pkg:golang/github.com/gin-gonic/gin" looks up the bare name "gin" and never
+// matches. The CPE specifier keeps the bare name, since CPE product attributes
+// are not namespaced.
+func packageNameFromPURL(purl packageurl.PackageURL) string {
+	if purl.Namespace == "" {
+		return purl.Name
+	}
+
+	if purl.Type == packageurl.TypeMaven {
+		return purl.Namespace + ":" + purl.Name
+	}
+
+	return purl.Namespace + "/" + purl.Name
 }
