@@ -103,6 +103,16 @@ func newCPETestStore() vulnerability.Provider {
 			Constraint:  version.MustGetConstraint("< 4.7.7", version.UnknownFormat),
 			CPEs:        []cpe.CPE{cpe.Must("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:node.js:*:*", "")},
 		},
+		// NTP-like vulnerability with update field — constraint uses combined "version+update" no-dash format
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-ntp",
+				Namespace: "nvd:cpe",
+			},
+			PackageName: "ntp",
+			Constraint:  version.MustGetConstraint("= 4.2.8p9", version.UnknownFormat),
+			CPEs:        []cpe.CPE{cpe.Must("cpe:2.3:a:ntp:ntp:*:*:*:*:*:*:*:*", "")},
+		},
 	}...)
 }
 
@@ -996,6 +1006,64 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "package with CPE update field matches vulnerability using combined version",
+			p: pkg.Package{
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:a:ntp:ntp:4.2.8:p9:*:*:*:*:*:*", ""),
+				},
+				Name:    "ntp",
+				Version: "4.2.8p9",
+				Type:    syftPkg.UnknownPkg,
+			},
+			expected: []match.Match{
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						Reference: vulnerability.Reference{ID: "CVE-2017-fake-ntp"},
+					},
+					Package: pkg.Package{
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:a:ntp:ntp:4.2.8:p9:*:*:*:*:*:*", ""),
+						},
+						Name:    "ntp",
+						Version: "4.2.8p9",
+						Type:    syftPkg.UnknownPkg,
+					},
+					Details: []match.Detail{
+						{
+							Type:       match.CPEMatch,
+							Confidence: 0.9,
+							SearchedBy: match.CPEParameters{
+								Namespace: "nvd:cpe",
+								CPEs:      []string{"cpe:2.3:a:ntp:ntp:4.2.8:p9:*:*:*:*:*:*"},
+								Package: match.PackageParameter{
+									Name:    "ntp",
+									Version: "4.2.8p9",
+								},
+							},
+							Found: match.CPEResult{
+								CPEs:              []string{"cpe:2.3:a:ntp:ntp:*:*:*:*:*:*:*:*"},
+								VersionConstraint: "= 4.2.8p9 (unknown)",
+								VulnerabilityID:   "CVE-2017-fake-ntp",
+							},
+							Matcher: matcher,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "package with CPE update field does not match when version differs",
+			p: pkg.Package{
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:a:ntp:ntp:4.2.8:p18:*:*:*:*:*:*", ""),
+				},
+				Name:    "ntp",
+				Version: "4.2.8p18",
+				Type:    syftPkg.UnknownPkg,
+			},
+			expected: []match.Match{},
+		},
 	}
 
 	for _, test := range tests {
@@ -1079,6 +1147,101 @@ func TestFilterCPEsByVersion(t *testing.T) {
 			}
 
 			assert.ElementsMatch(t, test.expected, actualStrs)
+		})
+	}
+}
+
+func TestCombineVersionAndUpdate(t *testing.T) {
+	tests := []struct {
+		name            string
+		searchVersion   string
+		updateCpeField  string
+		format          version.Format
+		expectedVersion string
+	}{
+		{
+			name:            "non-JVM package with update field (NTP example)",
+			searchVersion:   "4.2.8",
+			updateCpeField:  "p18",
+			format:          version.UnknownFormat,
+			expectedVersion: "4.2.8p18",
+		},
+		{
+			name:            "non-JVM package without update field",
+			searchVersion:   "1.2.3",
+			updateCpeField:  "",
+			format:          version.UnknownFormat,
+			expectedVersion: "1.2.3",
+		},
+		{
+			name:            "non-JVM package with Any update field",
+			searchVersion:   "1.2.3",
+			updateCpeField:  "",
+			format:          version.UnknownFormat,
+			expectedVersion: "1.2.3",
+		},
+		{
+			name:            "non-JVM package with NA update field",
+			searchVersion:   "1.2.3",
+			updateCpeField:  "-",
+			format:          version.UnknownFormat,
+			expectedVersion: "1.2.3",
+		},
+		{
+			name:            "JVM package with update field",
+			searchVersion:   "1.8.0",
+			updateCpeField:  "update400",
+			format:          version.JVMFormat,
+			expectedVersion: "1.8.0_400",
+		},
+		{
+			name:            "JVM package without update field (Any)",
+			searchVersion:   "1.8.0",
+			updateCpeField:  "",
+			format:          version.JVMFormat,
+			expectedVersion: "1.8.0",
+		},
+		{
+			name:            "JVM package without update field (NA)",
+			searchVersion:   "1.8.0",
+			updateCpeField:  "-",
+			format:          version.JVMFormat,
+			expectedVersion: "1.8.0",
+		},
+		{
+			name:            "semantic package with patch update",
+			searchVersion:   "2.4.1",
+			updateCpeField:  "rc1",
+			format:          version.SemanticFormat,
+			expectedVersion: "2.4.1rc1",
+		},
+		{
+			name:            "debian package with update",
+			searchVersion:   "1.0.0",
+			updateCpeField:  "deb1",
+			format:          version.DebFormat,
+			expectedVersion: "1.0.0deb1",
+		},
+		{
+			name:            "non-JVM package with wildcard version should not combine",
+			searchVersion:   "",
+			updateCpeField:  "update123",
+			format:          version.UnknownFormat,
+			expectedVersion: "",
+		},
+		{
+			name:            "non-JVM package with NA version should not combine",
+			searchVersion:   "-",
+			updateCpeField:  "update123",
+			format:          version.UnknownFormat,
+			expectedVersion: "-",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result := combineVersionAndUpdate(test.searchVersion, test.updateCpeField, test.format)
+			assert.Equal(t, test.expectedVersion, result)
 		})
 	}
 }
