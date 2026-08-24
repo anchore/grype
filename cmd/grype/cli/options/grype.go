@@ -199,12 +199,18 @@ default is unset which will skip this validation (options: negligible, low, medi
 	descriptions.Add(&o.Ignore, `A list of vulnerability ignore rules, one or more property may be specified and all matching vulnerabilities will be ignored.
 This is the full set of supported rule fields:
   - vulnerability: CVE-2008-4318
+    include-aliases: true
+    reason: ignore this vulnerability
+    namespace: nvd:cpe
     fix-state: unknown
+    match-type: exact-direct-match
     package:
       name: libcurl
       version: 1.5.1
+      language: python
       type: npm
       location: "/usr/local/lib/node_modules/**"
+      upstream-name: curl
 
 VEX fields apply when Grype reads vex data:
   - vex-status: not_affected
