@@ -83,12 +83,41 @@ func (m *Match) Merge(other Match) error {
 }
 
 // compareRecordAuthority orders two matches for the same finding by how well each describes it, best
-// first, so that the winner does not depend on the order the matches were added in.
+// first, so that the winner does not depend on the order the matches were added in. That holds for any
+// number of records, which needs both halves to survive a merge unchanged:
+//
+//   - rank is the strongest detail type in a set, and merging unions detail sets, so a merged record
+//     ranks as the better of the two it came from. The best-ranked record wins whatever the order.
+//   - the tiebreak compares only fields the winner keeps intact, so they read the same on a merged
+//     record as on an input. Detail sets cannot serve here: merging unions them, so a third record
+//     would be compared against a set that was never an input, and the winner would depend on order.
 func compareRecordAuthority(a, b Match) int {
 	if c := cmp.Compare(a.Details.rank(), b.Details.rank()); c != 0 {
 		return c
 	}
-	return compareDetailSets(a.Details, b.Details)
+	return compareUnmergedFields(a.Vulnerability, b.Vulnerability)
+}
+
+// compareUnmergedFields orders two records for one finding by the fields Merge takes from the winner
+// rather than unioning. Everything else the winner supplies is either fixed by the fingerprint -- the
+// ID, the namespace, and the metadata cached against them -- or already spent by the time a match
+// exists, as package qualifiers are. So when these compare equal, either record can win and the merge
+// produces the same match.
+func compareUnmergedFields(a, b vulnerability.Vulnerability) int {
+	if c := strings.Compare(a.PackageName, b.PackageName); c != 0 {
+		return c
+	}
+	if c := strings.Compare(a.Status, b.Status); c != 0 {
+		return c
+	}
+	if a.Unaffected != b.Unaffected {
+		// a record calling the package unaffected describes the finding least well
+		if a.Unaffected {
+			return 1
+		}
+		return -1
+	}
+	return 0
 }
 
 // mergeFix unions the fix information of two records describing the same finding, with a fix reported
@@ -112,16 +141,34 @@ func mergeFix(base, other vulnerability.Fix) vulnerability.Fix {
 		out.Available = append(out.Available, a)
 	}
 
-	switch {
-	case other.State == vulnerability.FixStateFixed:
-		out.State = vulnerability.FixStateFixed
-	case out.State == "" || out.State == vulnerability.FixStateUnknown:
-		if other.State != "" {
-			out.State = other.State
-		}
-	}
+	out.State = mergeFixState(base.State, other.State)
 
 	return out
+}
+
+// fixStatePrecedence ranks fix states from least to most informative, so that mergeFixState can take
+// the higher of two rather than favouring whichever record happened to be the base. Without it the
+// merged state depends on merge direction, and for three or more records that means it depends on the
+// order they arrived in.
+//
+// not-fixed outranking wont-fix is the one judgement call here. Both say no fix is available, and
+// merging should not make a finding easier to suppress than either record was on its own -- users
+// routinely ignore `fix-state: wont-fix`, so promoting to it would hide a finding one of the records
+// never claimed was closed.
+var fixStatePrecedence = map[vulnerability.FixState]int{
+	"":                             0, // a record that states nothing at all
+	vulnerability.FixStateUnknown:  1,
+	vulnerability.FixStateWontFix:  2,
+	vulnerability.FixStateNotFixed: 3,
+	vulnerability.FixStateFixed:    4,
+}
+
+// mergeFixState resolves the fix states of two records describing one finding, most informative first.
+func mergeFixState(a, b vulnerability.FixState) vulnerability.FixState {
+	if fixStatePrecedence[b] > fixStatePrecedence[a] {
+		return b
+	}
+	return a
 }
 
 // mergeReferences unions two sets of vulnerability references (aliases), sorted for stable output.

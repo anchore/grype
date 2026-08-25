@@ -148,11 +148,6 @@ func comparePayloads(a, b any) int {
 	return strings.Compare(fmt.Sprintf("%v", a), fmt.Sprintf("%v", b))
 }
 
-// compareDetailSets orders two detail sets, the set describing its finding best first.
-func compareDetailSets(a, b Details) int {
-	return slices.CompareFunc(a, b, compareDetails)
-}
-
 func (m Details) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
 }

@@ -337,7 +337,7 @@ func TestMergeFix_StateResolution(t *testing.T) {
 		none:     {none, unknown, notFixed, wontFix, fixed},
 		unknown:  {unknown, unknown, notFixed, wontFix, fixed},
 		notFixed: {notFixed, notFixed, notFixed, notFixed, fixed},
-		wontFix:  {wontFix, wontFix, wontFix, wontFix, fixed},
+		wontFix:  {wontFix, wontFix, notFixed, wontFix, fixed},
 		fixed:    {fixed, fixed, fixed, fixed, fixed},
 	}
 
@@ -350,6 +350,19 @@ func TestMergeFix_StateResolution(t *testing.T) {
 			})
 		}
 	}
+
+	// the table must be symmetric: compareRecordAuthority can leave either record as the base when
+	// they are equally authoritative, and for three or more records a direction-sensitive cell would
+	// make the merged state depend on arrival order
+	t.Run("is commutative", func(t *testing.T) {
+		for _, a := range others {
+			for _, b := range others {
+				forward := mergeFix(vulnerability.Fix{State: a}, vulnerability.Fix{State: b}).State
+				reverse := mergeFix(vulnerability.Fix{State: b}, vulnerability.Fix{State: a}).State
+				assert.Equal(t, forward, reverse, "mergeFix(%q, %q) must not depend on direction", a, b)
+			}
+		}
+	})
 
 	// the pair the policy exists for, stated on its own so a change to it cannot pass unnoticed
 	t.Run("wont-fix merged with fixed reports fixed, either direction", func(t *testing.T) {
@@ -404,4 +417,65 @@ func TestMatch_Merge_isOrderIndependent(t *testing.T) {
 	first := NewMatches(a, b)
 	second := NewMatches(b, a)
 	assert.Equal(t, first.Sorted(), second.Sorted(), "Matches.Add must not depend on the order matches arrive in")
+}
+
+// TestMatch_Merge_isOrderIndependentForThreeRecords extends the two-record case above
+// to three, which is where compareRecordAuthority stops holding its promise.
+//
+// compareDetailSets is slices.CompareFunc, so a shorter set that is a prefix of a longer
+// one sorts first: a record carrying only the shared detail outranks a record carrying
+// the shared detail plus one of its own. Merging then replaces the winner's details with
+// the union of both, so the third comparison runs against a set that never existed as an
+// input, and the relation is not associative.
+//
+// The surviving record supplies Metadata (severity/CVSS), PackageName, Status and the
+// mergeFix base state, so which one wins is user-visible. Reached in practice whenever
+// one fingerprint collects three or more records, e.g. two package CPEs against two NVD
+// records on the apk upstream path.
+func TestMatch_Merge_isOrderIndependentForThreeRecords(t *testing.T) {
+	p := pkg.Package{ID: "pkg-1", Name: "openssl", Version: "1.0"}
+	detail := func(searchedCPE string) Detail {
+		return Detail{
+			Type: CPEMatch, Matcher: JavaMatcher, Confidence: 0.9,
+			SearchedBy: CPEParameters{Namespace: "nvd:cpe", CPEs: []string{searchedCPE}, Package: PackageParameter{Name: "openssl", Version: "1.0"}},
+			Found:      CPEResult{VulnerabilityID: "CVE-1", VersionConstraint: "< 1.0.0"},
+		}
+	}
+	record := func(packageName string, state vulnerability.FixState, details ...Detail) Match {
+		return Match{
+			Package: p,
+			Vulnerability: vulnerability.Vulnerability{
+				Reference:   vulnerability.Reference{ID: "CVE-1", Namespace: "nvd:cpe"},
+				PackageName: packageName,
+				Fix:         vulnerability.Fix{State: state},
+			},
+			Details: details,
+		}
+	}
+
+	// every record was found through the same shared CPE; b and c were each also found
+	// through a second one, so their detail sets are supersets of a's
+	shared := detail("cpe:2.3:a:o:openssl:*:*:*:*:*:*:*:*")
+	a := record("openssl-a", vulnerability.FixStateNotFixed, shared)
+	b := record("openssl-b", vulnerability.FixStateWontFix, shared, detail("cpe:2.3:a:o:openssl:1:*:*:*:*:*:*:*"))
+	c := record("openssl-c", vulnerability.FixStateNotFixed, shared, detail("cpe:2.3:a:o:openssl:2:*:*:*:*:*:*:*"))
+
+	permutations := [][]Match{
+		{a, b, c}, {a, c, b}, {b, a, c},
+		{b, c, a}, {c, a, b}, {c, b, a},
+	}
+
+	var want Match
+	for i, order := range permutations {
+		collection := NewMatches(order...)
+		got := collection.Sorted()
+		require.Len(t, got, 1, "all three records share a fingerprint, so they must collapse to one match")
+
+		if i == 0 {
+			want = got[0]
+			continue
+		}
+		assert.Equal(t, want.Vulnerability.PackageName, got[0].Vulnerability.PackageName, "the surviving record must not depend on the order matches arrive in")
+		assert.Equal(t, want.Vulnerability.Fix.State, got[0].Vulnerability.Fix.State, "the surviving fix state must not depend on the order matches arrive in")
+	}
 }
