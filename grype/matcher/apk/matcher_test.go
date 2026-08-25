@@ -578,6 +578,60 @@ func TestMatcherApk_UpstreamCveDedupedByIntroducedZeroAlias(t *testing.T) {
 	})
 }
 
+// TestMatcherApk_SelfUpstreamIsRecordedAsIndirect covers an apk whose origin package is itself, which
+// is common (an apk that is its own origin still lists one). The distro feed is searched twice for
+// it, once directly and once as its own upstream, and the upstream pass must record what it finds as
+// an indirect match.
+//
+// The match-type is otherwise derived by comparing the searched name against the cataloged one, and
+// here they are equal, so nothing downstream can tell the two passes apart. The upstream pass has to
+// say so explicitly, which is why the package override and the detail-type rewrite belong together.
+func TestMatcherApk_SelfUpstreamIsRecordedAsIndirect(t *testing.T) {
+	dbtest.DBs(t, "alpine318").SelectOnly("3.18/CVE-2024-0727").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		p := dbtest.NewPackage("openssl", "3.1.4-r0", syftPkg.ApkPkg).
+			WithDistro(dbtest.Alpine318).
+			WithUpstream("openssl", "3.1.4-r0").
+			Build()
+
+		finding := db.Match(t, &matcher, p).SelectMatch("CVE-2024-0727")
+
+		// the direct search finds it...
+		finding.SelectDetailByType(match.ExactDirectMatch).AsDistroSearch()
+		// ...and so does the pass over its own upstream, which must not look direct as well
+		finding.SelectDetailByType(match.ExactIndirectMatch).AsDistroSearch()
+	})
+}
+
+// TestMatcherApk_NoDistroKeepsNvdFix covers an apk package with no distro, which happens for
+// SBOM-only input. apk clears NVD-inferred fix data because the distro feed is the authority on when
+// an apk ships (#2162) -- but with no distro there is no feed and no authority to defer to, so NVD's
+// fix is the only information available and dropping it just loses data.
+func TestMatcherApk_NoDistroKeepsNvdFix(t *testing.T) {
+	dbtest.DBs(t, "alpine318").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		pkgID := pkg.ID("openssl-no-distro")
+		p := dbtest.NewPackage("openssl", "1.0.1f-r0", syftPkg.ApkPkg).
+			WithID(pkgID).
+			// no distro, deliberately
+			WithCPE("cpe:2.3:a:openssl:openssl:1.0.1f-r0:*:*:*:*:*:*:*").
+			Build()
+
+		findings := db.Match(t, &matcher, p)
+
+		finding := findings.SelectMatch("CVE-2014-0224")
+		finding.SelectDetailByType(match.CPEMatch).AsCPESearch()
+		finding.HasFix(vulnerability.FixStateFixed, "0.9.8za", "1.0.0m", "1.0.1h")
+
+		// this version is outside NVD's range for CVE-2024-0727, so the CPE search reports it as an
+		// ignore rather than a match
+		findings.Ignores().
+			SelectRelatedPackageIgnore(reasonCPENotVulnerable, "CVE-2024-0727").
+			ForPackage(pkgID).
+			WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
+	})
+}
+
 // === architecture qualifier filtering (CG OSV records) ===
 //
 // The chainguard-rolling fixture has CGA-22hv-wp9q-4779, which emits
@@ -701,6 +755,38 @@ func TestMatcherApk_NvdOnlyMatchGetsFixStripped(t *testing.T) {
 		// being NVD-only, its inferred fix must be stripped
 		finding.HasNoFixVersions()
 		finding.HasFix(vulnerability.FixStateUnknown)
+	})
+}
+
+// TestMatcherApk_ArchFilter_WrongArchRowMustNotSuppressNvdMatch is the arch mismatch again, but
+// with the package PAST the CGA's fix version rather than below it.
+//
+// The only Chainguard row for this name is x86_64, so on aarch64 nothing in the distro feed applies
+// and the aliased NVD CVE-2026-24398 (langfuse [3.0.0, 4.0.0), and 3.153.1 is inside it) is the only
+// thing that has an opinion. It should be reported.
+//
+// It is not. feedSet queries the feed without OnlyQualifiedPackages, so it sees the x86_64 row that
+// the distro path correctly filtered out. That row aliases this CVE, which removes it from notInFeed,
+// and the row is fixed at this version, which keeps it out of feedVulnerable and so out of
+// stillVulnerable too. The record falls out of both exits and is dropped: a finding is lost because
+// of a row for another architecture.
+func TestMatcherApk_ArchFilter_WrongArchRowMustNotSuppressNvdMatch(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		p := dbtest.NewPackage("langfuse-3-worker", "3.153.1-r0", syftPkg.ApkPkg).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("aarch64"). // the Chainguard row is x86_64, so it says nothing here
+			WithCPE("cpe:2.3:a:langfuse:langfuse:3.153.1-r0:*:*:*:*:*:*:*").
+			Build()
+
+		findings := db.Match(t, &matcher, p)
+
+		// the x86_64 row does not apply, so it must not suppress anything either
+		findings.DoesNotHaveAnyVulnerabilities("CGA-22hv-wp9q-4779")
+		findings.SelectMatch("CVE-2026-24398").
+			InNamespace("nvd:cpe").
+			SelectDetailByType(match.CPEMatch).
+			AsCPESearch()
 	})
 }
 
