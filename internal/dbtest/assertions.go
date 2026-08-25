@@ -728,6 +728,17 @@ func (s *SingleFindingAssertion) HasFix(state vulnerability.FixState, versions .
 	return s
 }
 
+// HasNoFixVersions asserts the match's vulnerability carries no fix versions at
+// all. HasFix skips its version check when passed none, so this is the only way
+// to pin the empty case - which matters wherever a fix version from one source
+// must not be reported against a package from another (e.g. an NVD upstream
+// release leaking onto a distro package).
+func (s *SingleFindingAssertion) HasNoFixVersions() *SingleFindingAssertion {
+	s.t.Helper()
+	assert.Empty(s.t, s.match.Vulnerability.Fix.Versions, "expected no fix versions")
+	return s
+}
+
 // HasAdvisories asserts the match's vulnerability has exactly the given
 // advisory IDs (order doesn't matter, but the count must match).
 func (s *SingleFindingAssertion) HasAdvisories(ids ...string) *SingleFindingAssertion {

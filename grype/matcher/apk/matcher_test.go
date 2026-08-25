@@ -661,6 +661,49 @@ func TestMatcherApk_ArchFilter_NoMatchWhenArchDisagrees(t *testing.T) {
 	})
 }
 
+// TestMatcherApk_NvdOnlyMatchGetsFixStripped pins the rule from #2162: grype-db infers
+// fixes from NVD end-of-range data and apk discards them, because an NVD "fix" is an
+// upstream release number and only the distro feed knows when an apk ships. Here NVD's
+// [3.0.0, 4.0.0) range for CVE-2026-24398 becomes fix 4.0.0. main (ffbca561) reports
+// this same match with fix=[] state=unknown.
+//
+// The port of that rule is faithful. main's cpeMatchesWithoutSecDBFixes had the same two
+// exits cpeDisclosures does: "no feed entry for this ID" strips, "feed says vulnerable at
+// this version" does not. What changed is identity. main keyed that lookup on the exact
+// vulnerability ID, so a CGA-keyed row could never match a CVE-keyed NVD record and every
+// NVD CVE on an OSV feed took the stripping exit. Alias-aware identity resolves the CGA to
+// this CVE, reaching the non-stripping exit for the first time.
+//
+// So the question this raises is not "what did the port break" but what that second exit
+// should mean now that "the feed knows this vulnerability" can be true by alias: #2162's
+// argument does not care which exit a record arrived on.
+func TestMatcherApk_NvdOnlyMatchGetsFixStripped(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		p := dbtest.NewPackage("langfuse-3-worker", "3.152.0-r0", syftPkg.ApkPkg).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("aarch64"). // mismatch: the Chainguard row is x86_64... we just want to test NVD-only
+			WithCPE("cpe:2.3:a:langfuse:langfuse:3.152.0-r0:*:*:*:*:*:*:*").
+			Build()
+
+		findings := db.Match(t, &matcher, p)
+
+		// no distro match: the x86_64 row does not apply to this package
+		findings.DoesNotHaveAnyVulnerabilities("CGA-22hv-wp9q-4779")
+
+		// so the NVD record is the only match, and it is the [3.0.0, 4.0.0) one
+		finding := findings.SelectMatch("CVE-2026-24398").InNamespace("nvd:cpe")
+		finding.SelectDetailByCPE(
+			"cpe:2.3:a:langfuse:langfuse:3.152.0:*:*:*:*:*:*:*",
+			">= 3.0.0, < 4.0.0 (unknown)",
+		).HasMatchType(match.CPEMatch)
+
+		// being NVD-only, its inferred fix must be stripped
+		finding.HasNoFixVersions()
+		finding.HasFix(vulnerability.FixStateUnknown)
+	})
+}
+
 // TestMatcherApk_ArchFilter_InertWhenPackageHasNoArch documents the
 // passthrough branch of Satisfied(p): if p.Arch == "" the qualifier is
 // treated as inert, preserving pre-change behavior for input paths that
