@@ -284,11 +284,6 @@ func distroFeedIsComprehensive(dst *distro.Distro) bool {
 	if dst == nil {
 		return false
 	}
-	if dst.Type == distro.AmazonLinux {
-		// AmazonLinux shows "like rhel" but is not an rhel clone
-		// and does not have an exhaustive vulnerability feed.
-		return false
-	}
 	for _, d := range comprehensiveDistros {
 		if strings.EqualFold(string(d), dst.Name()) {
 			return true
@@ -305,7 +300,14 @@ func distroFeedIsComprehensive(dst *distro.Distro) bool {
 // computed by:
 // sqlite3 vulnerability.db 'select distinct namespace from vulnerability where fix_state in ("wont-fix", "not-fixed") order by namespace;' | cut -d ':' -f 1 | sort | uniq
 // then removing 'github'
+//
+// AmazonLinux was added separately (see https://github.com/anchore/grype/issues/3612):
+// the ALAS feed ingested by grype-db tracks both fixed and unfixed/pending-fix CVEs per
+// package (see https://explore.alas.aws.amazon.com), the same criterion used to derive
+// the rest of this list, but it was excluded by an explicit override that predates that
+// feed's current coverage.
 var comprehensiveDistros = []distro.Type{
+	distro.AmazonLinux,
 	distro.ArchLinux,
 	distro.Azure,
 	distro.Debian,

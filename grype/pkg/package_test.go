@@ -1523,11 +1523,16 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8"},
 		},
 		{
-			name: "amzn linux doesn't remove packages in this way",
+			// AmazonLinux's ALAS feed is comprehensive (tracks both fixed and unfixed CVEs per
+			// package, see https://github.com/anchore/grype/issues/3612), so this behaves the
+			// same as the "python bindings for system RPM install" case above: the language-level
+			// duplicate is removed rather than matched separately against the upstream PyPI
+			// version, which would misreport CVEs already backported by Amazon's RPM.
+			name: "amzn linux removes packages in this way, same as other comprehensive distros",
 			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
 				[]string{"rpm:python3-rpm@4.14.3-26.el8 -> python:rpm@4.14.3"}), "amzn"),
-			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
+			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8"},
 		},
 		{
 			name: "remove overlapping package when parent version is prefix of child version",
