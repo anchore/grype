@@ -296,3 +296,55 @@ func TestPortageVersion_Compare_EdgeCases(t *testing.T) {
 		})
 	}
 }
+
+func TestPortageVersion_WithoutNumericComponent(t *testing.T) {
+	// every portage version carries a numeric component, so versionRegexp finds nothing in
+	// values like these. that no-match result used to be indexed unconditionally, which
+	// panicked. the matcher recovers matcher panics into a fatal error, and the fatal path
+	// throws away every match collected so far, so one such package took down the whole scan
+	// instead of just being skipped.
+	nonNumeric := []string{"none", "latest", "rolling", "stable", "git", "N/A", "abc"}
+
+	for _, raw := range nonNumeric {
+		t.Run("package version "+raw, func(t *testing.T) {
+			require.NotPanics(t, func() {
+				_, err := New(raw, PortageFormat).Compare(New("1.2.3", PortageFormat))
+				require.ErrorContains(t, err, "no numeric version component")
+			})
+		})
+
+		t.Run("compared-against version "+raw, func(t *testing.T) {
+			require.NotPanics(t, func() {
+				_, err := New("1.2.3", PortageFormat).Compare(New(raw, PortageFormat))
+				require.ErrorContains(t, err, "no numeric version component")
+			})
+		})
+
+		t.Run("constraint check "+raw, func(t *testing.T) {
+			constraint, err := GetConstraint("< 1.2.3", PortageFormat)
+			require.NoError(t, err)
+
+			require.NotPanics(t, func() {
+				_, err := constraint.Satisfied(New(raw, PortageFormat))
+				require.Error(t, err)
+			})
+		})
+	}
+}
+
+func TestPortageVersion_NumericComponentStillAccepted(t *testing.T) {
+	// guards against the rejection above being tightened into something that turns away
+	// versions portage does accept. the check reuses versionRegexp unanchored, so anything
+	// that compared successfully before still does.
+	accepted := []string{"1", "1.2.3", "1.2.3-r1", "1.2.3_alpha1", "1.2.3b", "12.2", "a1"}
+
+	for _, raw := range accepted {
+		t.Run(raw, func(t *testing.T) {
+			_, err := newPortageVersion(raw)
+			require.NoError(t, err)
+
+			_, err = New(raw, PortageFormat).Compare(New("1.2.3", PortageFormat))
+			require.NoError(t, err)
+		})
+	}
+}
