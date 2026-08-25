@@ -11,12 +11,17 @@ import (
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/cpe"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
+//nolint:funlen
 func TestMatchedCPEsForSearch(t *testing.T) {
 	tests := []struct {
 		name              string
 		version           string
+		pkgType           syftPkg.Type
+		pkgMetadata       any
+		searchedCPE       string // the CPE the search was made with; its version is already ecosystem-normalized
 		vulnerabilityCPEs []string
 		expected          []string
 	}{
@@ -47,6 +52,61 @@ func TestMatchedCPEsForSearch(t *testing.T) {
 				"cpe:2.3:*:multiple:multiple:2.0:*:*:*:*:*:*:*",
 			},
 		},
+		{
+			// an apk version carries a -rN build suffix that the CPE version never does, so comparing
+			// them raw makes 1.2.3-r4 fail a "1.2.3" constraint and the record's own CPE drops out of
+			// the detail. the deleted filterCPEsByVersion compared against the alpine-normalized
+			// search version instead, which is what alpineCPEComparableVersion exists for.
+			name:        "apk build suffix does not exclude the record's CPE",
+			version:     "1.2.3-r4",
+			pkgType:     syftPkg.ApkPkg,
+			searchedCPE: "cpe:2.3:a:acme:widget:1.2.3:*:*:*:*:*:*:*",
+			vulnerabilityCPEs: []string{
+				"cpe:2.3:a:acme:widget:*:*:*:*:*:*:*:*",
+				"cpe:2.3:a:acme:widget:1.2.3:*:*:*:*:*:*:*",
+				"cpe:2.3:a:acme:widget:2.0.0:*:*:*:*:*:*:*",
+			},
+			expected: []string{
+				"cpe:2.3:a:acme:widget:*:*:*:*:*:*:*:*",
+				"cpe:2.3:a:acme:widget:1.2.3:*:*:*:*:*:*:*",
+			},
+		},
+		{
+			// the package's own CPE carries no version, so FindResultsByCPEs falls back to the raw
+			// package version -- and that fallback happens after the alpine normalization, so the
+			// searched CPE carries the -rN suffix. the comparison has to normalize it here too.
+			name:        "apk build suffix does not exclude the record's CPE, with no version to search by",
+			version:     "1.2.3-r4",
+			pkgType:     syftPkg.ApkPkg,
+			searchedCPE: "cpe:2.3:a:acme:widget:*:*:*:*:*:*:*:*",
+			vulnerabilityCPEs: []string{
+				"cpe:2.3:a:acme:widget:1.2.3:*:*:*:*:*:*:*",
+				"cpe:2.3:a:acme:widget:2.0.0:*:*:*:*:*:*:*",
+			},
+			expected: []string{
+				"cpe:2.3:a:acme:widget:1.2.3:*:*:*:*:*:*:*",
+			},
+		},
+		{
+			// a JVM CPE splits the version across the version and update fields, so "1.8.0" plus
+			// update "update351" describes the same release as 1.8.0_351. the deleted
+			// filterCPEsByVersion folded the update field in via transformJvmVersion before comparing;
+			// without that the CPE fails its own package's constraint.
+			name:        "jvm update field does not exclude the record's CPE",
+			version:     "1.8.0_351",
+			pkgType:     syftPkg.BinaryPkg,
+			pkgMetadata: pkg.JavaVMInstallationMetadata{},
+			searchedCPE: "cpe:2.3:a:oracle:jre:1.8.0:update351:*:*:*:*:*:*",
+			vulnerabilityCPEs: []string{
+				"cpe:2.3:a:oracle:jre:*:*:*:*:*:*:*:*",
+				"cpe:2.3:a:oracle:jre:1.8.0:update351:*:*:*:*:*:*",
+				"cpe:2.3:a:oracle:jre:1.8.0:update400:*:*:*:*:*:*",
+			},
+			expected: []string{
+				"cpe:2.3:a:oracle:jre:*:*:*:*:*:*:*:*",
+				"cpe:2.3:a:oracle:jre:1.8.0:update351:*:*:*:*:*:*",
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -57,11 +117,17 @@ func TestMatchedCPEsForSearch(t *testing.T) {
 				vulnerabilityCPEs[idx] = cpe.Must(c, "")
 			}
 
-			catalogedPkg := pkg.Package{Version: test.version}
+			catalogedPkg := pkg.Package{Version: test.version, Type: test.pkgType, Metadata: test.pkgMetadata}
 			vuln := vulnerability.Vulnerability{CPEs: vulnerabilityCPEs}
 
+			var searchedBy *cpe.CPE
+			if test.searchedCPE != "" {
+				c := cpe.Must(test.searchedCPE, "")
+				searchedBy = &c
+			}
+
 			// run the test subject...
-			actual := matchedCPEsForSearch(catalogedPkg, vuln)
+			actual := matchedCPEsForSearch(catalogedPkg, searchedBy, vuln)
 
 			// format CPE objects to string...
 			actualStrs := make([]string, len(actual))

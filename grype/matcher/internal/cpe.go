@@ -3,11 +3,11 @@ package internal
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/facebookincubator/nvdtools/wfn"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher/internal/cpeversion"
 	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
@@ -16,22 +16,6 @@ import (
 	"github.com/anchore/grype/internal/log"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
-
-func alpineCPEComparableVersion(version string) string {
-	// clean the alpine package version so that it compares correctly with the CPE version comparison logic
-	// alpine versions are suffixed with -r{buildindex}; however, if left intact CPE comparison logic will
-	// incorrectly treat these as a pre-release.  In actuality, we just want to treat 1.2.3-r21 as equivalent to
-	// 1.2.3 for purposes of CPE-based matching since the alpine fix should filter out any cases where a later
-	// build fixes something that was vulnerable in 1.2.3
-	components := strings.Split(version, "-r")
-	cpeComparableVersion := version
-
-	if len(components) == 2 {
-		cpeComparableVersion = components[0]
-	}
-
-	return cpeComparableVersion
-}
 
 var ErrEmptyCPEMatch = errors.New("attempted CPE match against package with no CPEs")
 
@@ -67,7 +51,7 @@ func FindResultsByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstr
 		searchVersion := c.Attributes.Version
 
 		if p.Type == syftPkg.ApkPkg {
-			searchVersion = alpineCPEComparableVersion(searchVersion)
+			searchVersion = cpeversion.Alpine(searchVersion)
 		}
 
 		if searchVersion == wfn.NA || searchVersion == wfn.Any || isUnknownVersion(searchVersion) {
@@ -86,7 +70,7 @@ func FindResultsByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstr
 		format := pkg.VersionFormat(p)
 
 		if format == version.JVMFormat {
-			searchVersion = transformJvmVersion(searchVersion, c.Attributes.Update)
+			searchVersion = cpeversion.JVM(searchVersion, c.Attributes.Update)
 		}
 
 		var verObj *version.Version
@@ -127,12 +111,4 @@ func FindResultsByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstr
 	}
 
 	return affected, ignores, nil
-}
-
-func transformJvmVersion(searchVersion, updateCpeField string) string {
-	// we should take into consideration the CPE update field for JVM packages
-	if strings.HasPrefix(searchVersion, "1.") && !strings.Contains(searchVersion, "_") && updateCpeField != wfn.NA && updateCpeField != wfn.Any {
-		searchVersion = fmt.Sprintf("%s_%s", searchVersion, strings.TrimPrefix(updateCpeField, "update"))
-	}
-	return searchVersion
 }

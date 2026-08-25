@@ -6,6 +6,7 @@ import (
 	"github.com/facebookincubator/nvdtools/wfn"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher/internal/cpeversion"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/pkg/qualifier/gosymbols"
 	"github.com/anchore/grype/grype/search"
@@ -70,7 +71,7 @@ func detailProvider(matcher match.MatcherType, catalogedPkg pkg.Package, criteri
 	// module-granularity Go matches where no specific symbol intersection decided the match.
 	matchedSymbols := gosymbols.MatchedSymbols(vuln.PackageQualifiers, catalogedPkg)
 	// the vulnerability's CPEs relevant at the searched version, surfaced on the CPE match detail
-	foundCPEs := matchedCPEsForSearch(catalogedPkg, vuln)
+	foundCPEs := matchedCPEsForSearch(catalogedPkg, searchedCPE(criteriaSet), vuln)
 
 	return buildMatchDetails(matcher, distroMatchType, constraintStr, vuln, cpeParams, distroParams, ecosystemParams, matchedSymbols, foundCPEs)
 }
@@ -231,19 +232,46 @@ func buildMatchDetails(
 	return details
 }
 
-// matchedCPEsForSearch returns the vulnerability's CPEs that are relevant at the cataloged package's
-// version. It is empty when the vulnerability carries no CPEs.
-func matchedCPEsForSearch(catalogedPkg pkg.Package, vuln vulnerability.Vulnerability) []cpe.CPE {
+// searchedCPE returns the CPE a search was made with, or nil when the criteria hold no CPE search.
+func searchedCPE(criteriaSet []vulnerability.Criteria) *cpe.CPE {
+	for i := range criteriaSet {
+		if c, ok := criteriaSet[i].(*search.CPECriteria); ok {
+			return &c.CPE
+		}
+	}
+	return nil
+}
+
+// matchedCPEsForSearch returns the vulnerability's CPEs that are relevant at the version the search
+// was made with. It is empty when the vulnerability carries no CPEs.
+//
+// The comparison uses searchedBy's version rather than the package's own. By the time a CPE search
+// runs, that version has been put in terms a CPE can be compared against -- an apk's -rN build suffix
+// dropped, for one -- and a CPE the search already matched must not then be filtered back out by a
+// version its ecosystem happens to spell differently. Without a CPE search there is no searched
+// version, and the result is unused anyway: only CPE details carry found CPEs.
+func matchedCPEsForSearch(catalogedPkg pkg.Package, searchedBy *cpe.CPE, vuln vulnerability.Vulnerability) []cpe.CPE {
 	if len(vuln.CPEs) == 0 {
 		return nil
 	}
 
-	if catalogedPkg.Version == "" {
+	format := pkg.VersionFormat(catalogedPkg)
+
+	searchVersion := catalogedPkg.Version
+	var searchUpdate string
+	if searchedBy != nil {
+		if v := searchedBy.Attributes.Version; v != "" && v != wfn.Any && v != wfn.NA {
+			searchVersion = v
+		}
+		searchUpdate = searchedBy.Attributes.Update
+	}
+
+	if searchVersion == "" {
 		// no filtering available by version
 		return vuln.CPEs
 	}
 
-	pkgVersion := version.New(catalogedPkg.Version, pkg.VersionFormat(catalogedPkg))
+	pkgVersion := version.New(comparableCPEVersion(searchVersion, searchUpdate, format), format)
 	matchedCPEs := make([]cpe.CPE, 0, len(vuln.CPEs))
 	for _, c := range vuln.CPEs {
 		if c.Attributes.Version == wfn.Any || c.Attributes.Version == wfn.NA {
@@ -251,7 +279,7 @@ func matchedCPEsForSearch(catalogedPkg pkg.Package, vuln vulnerability.Vulnerabi
 			continue
 		}
 
-		constraint, err := version.GetConstraint(c.Attributes.Version, pkgVersion.Format)
+		constraint, err := version.GetConstraint(comparableCPEVersion(c.Attributes.Version, c.Attributes.Update, format), format)
 		if err != nil {
 			// if we can't get a version constraint, don't filter out the CPE
 			matchedCPEs = append(matchedCPEs, c)
@@ -267,4 +295,19 @@ func matchedCPEsForSearch(catalogedPkg pkg.Package, vuln vulnerability.Vulnerabi
 	}
 
 	return matchedCPEs
+}
+
+// comparableCPEVersion renders a CPE's version and update fields as one version string the given
+// format can be compared against.
+func comparableCPEVersion(cpeVersion, cpeUpdate string, format version.Format) string {
+	switch format {
+	case version.ApkFormat:
+		// the searched version is normalized before a CPE search runs, but only when the package's own
+		// CPE carried a version -- the fallback to the raw package version is not -- so normalize here
+		// rather than relying on where the version came from
+		return cpeversion.Alpine(cpeVersion)
+	case version.JVMFormat:
+		return cpeversion.JVM(cpeVersion, cpeUpdate)
+	}
+	return cpeVersion
 }
