@@ -236,10 +236,10 @@ func (m *Matcher) cpeDisclosures(provider vulnerability.Provider, searchPkg, cat
 		return nil, nil, err
 	}
 
-	// records the feed knows nothing about: keep them, but clear the (untrustworthy) NVD fix state
-	notInFeed := stripFixState(cpeSet.Remove(feed))
+	// records the feed knows nothing about
+	notInFeed := cpeSet.Remove(feed)
 
-	// records the feed still considers vulnerable at this version: keep them as-is. These usually
+	// records the feed still considers vulnerable at this version: keep them. These usually
 	// duplicate an authoritative distro match and are dropped by Match's Remove(allDisclosures).
 	// Edge case: it preserves a ForUnaffected-suppressed-but-version-vulnerable CPE record — one the
 	// feed reports vulnerable at this version but that the distro path removed via a ForUnaffected
@@ -248,7 +248,11 @@ func (m *Matcher) cpeDisclosures(provider vulnerability.Provider, searchPkg, cat
 	feedVulnerable := feed.Filter(internal.OnlyVulnerableVersions(verObj))
 	stillVulnerable := cpeSet.Intersection(feedVulnerable)
 
-	return notInFeed.Merge(stillVulnerable), ignores, nil
+	// NVD cannot know when the distro will ship a fix, and an inferred NVD fix is an upstream
+	// release number rather than an apk version, so no record leaves this function carrying one
+	// (see #2162). this holds on both paths above: whether the feed knows this vulnerability --
+	// now decidable by alias, not just by ID -- does not make NVD's fix data trustworthy.
+	return stripFixState(notInFeed.Merge(stillVulnerable)), ignores, nil
 }
 
 // feedSet gathers every distro-feed entry for the package and its upstream/origin packages, unfiltered
