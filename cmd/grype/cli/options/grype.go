@@ -31,6 +31,7 @@ type Grype struct {
 	FailOn                     string             `yaml:"fail-on-severity" json:"fail-on-severity" mapstructure:"fail-on-severity"`
 	Registry                   registry           `yaml:"registry" json:"registry" mapstructure:"registry"`
 	ShowSuppressed             bool               `yaml:"show-suppressed" json:"show-suppressed" mapstructure:"show-suppressed"`
+	SuppressedSources          string             `yaml:"suppressed-sources" json:"suppressed-sources" mapstructure:"suppressed-sources"` // --suppressed-sources, comma-separated list of ignore-source categories to filter --show-suppressed output
 	ByCVE                      bool               `yaml:"by-cve" json:"by-cve" mapstructure:"by-cve"` // --by-cve, indicates if the original match vulnerability IDs should be preserved or the CVE should be used instead
 	SortBy                     SortBy             `yaml:",inline" json:",inline" mapstructure:",squash"`
 	Name                       string             `yaml:"name" json:"name" mapstructure:"name"`
@@ -141,6 +142,11 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 	flags.BoolVarP(&o.ShowSuppressed,
 		"show-suppressed", "",
 		"show suppressed/ignored vulnerabilities in the output (only supported with table output format)",
+	)
+
+	flags.StringVarP(&o.SuppressedSources,
+		"suppressed-sources", "",
+		fmt.Sprintf("filter --show-suppressed output to a comma-separated list of ignore-source categories, options=%v; implies --show-suppressed when set (only supported with table output format)", match.ValidIgnoreSources()),
 	)
 
 	flags.StringArrayVarP(&o.Exclusions,

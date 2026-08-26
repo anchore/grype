@@ -103,7 +103,7 @@ func TestCreateRow(t *testing.T) {
 
 	for _, testCase := range cases {
 		t.Run(testCase.name, func(t *testing.T) {
-			p := NewPresenter(models.PresenterConfig{}, false)
+			p := NewPresenter(models.PresenterConfig{}, false, nil)
 			row := p.newRow(testCase.match, testCase.extraAnnotation, false)
 			cols := rows{row}.Render()[0]
 
@@ -118,7 +118,7 @@ func TestTablePresenter(t *testing.T) {
 	t.Run("no color", func(t *testing.T) {
 		var buffer bytes.Buffer
 		lipgloss.SetColorProfile(termenv.Ascii)
-		pres := NewPresenter(pb, false)
+		pres := NewPresenter(pb, false, nil)
 
 		err := pres.Present(&buffer)
 		require.NoError(t, err)
@@ -134,7 +134,7 @@ func TestTablePresenter(t *testing.T) {
 			// don't affect other tests
 			lipgloss.SetColorProfile(termenv.Ascii)
 		})
-		pres := NewPresenter(pb, false)
+		pres := NewPresenter(pb, false, nil)
 
 		err := pres.Present(&buffer)
 		require.NoError(t, err)
@@ -155,7 +155,7 @@ func TestEmptyTablePresenter(t *testing.T) {
 		Document: doc,
 	}
 
-	pres := NewPresenter(pb, false)
+	pres := NewPresenter(pb, false, nil)
 
 	// run presenter
 	err = pres.Present(&buffer)
@@ -172,7 +172,7 @@ func TestHidesIgnoredMatches(t *testing.T) {
 		Document: internal.GenerateAnalysisWithIgnoredMatches(t, internal.ImageSource),
 	}
 
-	pres := NewPresenter(pb, false)
+	pres := NewPresenter(pb, false, nil)
 
 	err := pres.Present(&buffer)
 	require.NoError(t, err)
@@ -187,7 +187,7 @@ func TestDisplaysIgnoredMatches(t *testing.T) {
 		Document: internal.GenerateAnalysisWithIgnoredMatches(t, internal.ImageSource),
 	}
 
-	pres := NewPresenter(pb, true)
+	pres := NewPresenter(pb, true, nil)
 
 	err := pres.Present(&buffer)
 	require.NoError(t, err)
@@ -205,7 +205,7 @@ func TestDisplaysDistro(t *testing.T) {
 	pb.Document.Matches[0].Vulnerability.Namespace = "ubuntu:distro:ubuntu:2.5"
 	pb.Document.Matches[1].Vulnerability.Namespace = "ubuntu:distro:ubuntu:3.5"
 
-	pres := NewPresenter(pb, false)
+	pres := NewPresenter(pb, false, nil)
 
 	err := pres.Present(&buffer)
 	require.NoError(t, err)
@@ -226,7 +226,7 @@ func TestDisplaysIgnoredMatchesAndDistro(t *testing.T) {
 	pb.Document.IgnoredMatches[0].Vulnerability.Namespace = "ubuntu:distro:ubuntu:2.5"
 	pb.Document.IgnoredMatches[1].Vulnerability.Namespace = "ubuntu:distro:ubuntu:3.5"
 
-	pres := NewPresenter(pb, true)
+	pres := NewPresenter(pb, true, nil)
 
 	err := pres.Present(&buffer)
 	require.NoError(t, err)
@@ -336,7 +336,7 @@ func createTestRow(name, version, fix, pkgType, vulnID, severity string, fixStat
 		},
 	}
 
-	p := NewPresenter(models.PresenterConfig{}, false)
+	p := NewPresenter(models.PresenterConfig{}, false, nil)
 	r := p.newRow(m, "", false)
 
 	return r, nil
@@ -465,4 +465,116 @@ func mustRow(t *testing.T, name, version, fix, pkgType, vulnID, severity string,
 		t.Fatalf("failed to create test row: %v", err)
 	}
 	return r
+}
+
+func TestSuppressedSourceAllows(t *testing.T) {
+	tests := []struct {
+		name         string
+		matchSources []string
+		requested    []string
+		want         bool
+	}{
+		{
+			name:         "empty requested renders everything",
+			matchSources: []string{"distro-fixed"},
+			requested:    nil,
+			want:         true,
+		},
+		{
+			name:         "single-value requested that matches",
+			matchSources: []string{"distro-fixed"},
+			requested:    []string{"distro-fixed"},
+			want:         true,
+		},
+		{
+			name:         "single-value requested that does not match",
+			matchSources: []string{"user-rule"},
+			requested:    []string{"distro-fixed"},
+			want:         false,
+		},
+		{
+			name:         "multi-value requested with one matching entry",
+			matchSources: []string{"vex"},
+			requested:    []string{"distro-fixed", "vex"},
+			want:         true,
+		},
+		{
+			name:         "multi-value requested, none matching",
+			matchSources: []string{"user-rule"},
+			requested:    []string{"distro-fixed", "vex"},
+			want:         false,
+		},
+		{
+			name:         "match has multiple sources, one in requested",
+			matchSources: []string{"explicit-exclusion", "distro-fixed"},
+			requested:    []string{"vex", "distro-fixed"},
+			want:         true,
+		},
+		{
+			name:         "match has no sources, filter is active",
+			matchSources: nil,
+			requested:    []string{"distro-fixed"},
+			want:         false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := suppressedSourceAllows(tt.matchSources, tt.requested)
+			if got != tt.want {
+				t.Errorf("suppressedSourceAllows(%v, %v) = %v, want %v", tt.matchSources, tt.requested, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDisplaysIgnoredMatches_FilteredBySuppressedSource(t *testing.T) {
+	// Base document with two IgnoredMatch entries produced by the shared
+	// fixture. Tag each with a distinct Source so the filter can distinguish
+	// them.
+	build := func() models.Document {
+		d := internal.GenerateAnalysisWithIgnoredMatches(t, internal.ImageSource)
+		require.GreaterOrEqual(t, len(d.IgnoredMatches), 2, "fixture must supply at least two ignored matches for this test")
+		d.IgnoredMatches[0].Sources = []string{string(match.IgnoreSourceDistroFixed)}
+		d.IgnoredMatches[1].Sources = []string{string(match.IgnoreSourceUserRule)}
+		return d
+	}
+
+	t.Run("nil filter renders every ignored entry", func(t *testing.T) {
+		var buffer bytes.Buffer
+		pres := NewPresenter(models.PresenterConfig{Document: build()}, true, nil)
+		require.NoError(t, pres.Present(&buffer))
+
+		out := buffer.String()
+		assert.Contains(t, out, "CVE-1999-0001")
+		assert.Contains(t, out, "CVE-1999-0002")
+	})
+
+	t.Run("distro-fixed filter drops the user-rule entry", func(t *testing.T) {
+		var buffer bytes.Buffer
+		pres := NewPresenter(models.PresenterConfig{Document: build()}, true, []string{string(match.IgnoreSourceDistroFixed)})
+		require.NoError(t, pres.Present(&buffer))
+
+		out := buffer.String()
+		assert.Contains(t, out, "CVE-1999-0001", "distro-fixed entry should render")
+		// CVE-1999-0002 is the user-rule entry in this test fixture; it must be
+		// filtered out. Note: it also appears as a top-level Match in the same
+		// document (Sources filter is scoped to IgnoredMatches only), so we
+		// assert on the suppressed-annotation row instead.
+		assert.NotContains(t, out, "CVE-1999-0002  Low       suppressed", "user-rule entry should be filtered out under --suppressed-sources=distro-fixed")
+	})
+
+	t.Run("multi-value filter renders every matching entry", func(t *testing.T) {
+		var buffer bytes.Buffer
+		pres := NewPresenter(
+			models.PresenterConfig{Document: build()},
+			true,
+			[]string{string(match.IgnoreSourceDistroFixed), string(match.IgnoreSourceUserRule)},
+		)
+		require.NoError(t, pres.Present(&buffer))
+
+		out := buffer.String()
+		assert.Contains(t, out, "CVE-1999-0001")
+		assert.Contains(t, out, "CVE-1999-0002")
+	})
 }

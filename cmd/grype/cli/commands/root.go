@@ -120,10 +120,21 @@ var ignoreLinuxKernelHeaders = []match.IgnoreRule{
 
 //nolint:funlen
 func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, userInput string) (errs error) {
+	suppressedSources, err := parseSuppressedSources(opts.SuppressedSources)
+	if err != nil {
+		return err
+	}
+
+	// --suppressed-sources implies --show-suppressed. Without this the filter
+	// would silently drop every row because the underlying rendering loop
+	// short-circuits when ShowSuppressed is false.
+	showSuppressed := opts.ShowSuppressed || len(suppressedSources) > 0
+
 	writer, err := format.MakeScanResultWriter(opts.Outputs, opts.File, format.PresentationConfig{
-		TemplateFilePath: opts.OutputTemplateFile,
-		ShowSuppressed:   opts.ShowSuppressed,
-		Pretty:           opts.Pretty,
+		TemplateFilePath:  opts.OutputTemplateFile,
+		ShowSuppressed:    showSuppressed,
+		SuppressedSources: suppressedSources,
+		Pretty:            opts.Pretty,
 	})
 	if err != nil {
 		return err
@@ -560,4 +571,23 @@ func applyVexRules(opts *options.Grype) error {
 	}
 
 	return nil
+}
+
+// parseSuppressedSources splits raw at commas, validates each entry against
+// the defined IgnoreSource values, and returns the resulting slice. An empty
+// or whitespace-only input yields a nil slice and no error, which the caller
+// treats as "no filter".
+func parseSuppressedSources(raw string) ([]string, error) {
+	entries := stringutil.SplitCommaSeparatedString(raw)
+	if len(entries) == 0 {
+		return nil, nil
+	}
+	out := make([]string, 0, len(entries))
+	for _, s := range entries {
+		if !match.IsValidIgnoreSource(s) {
+			return nil, fmt.Errorf("unknown --suppressed-sources %q: valid values are %v", s, match.ValidIgnoreSources())
+		}
+		out = append(out, s)
+	}
+	return out, nil
 }
