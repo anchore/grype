@@ -71,9 +71,18 @@ func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Con
 			return Document{}, err
 		}
 
+		var sources []string
+		if len(m.Sources) > 0 {
+			sources = make([]string, 0, len(m.Sources))
+			for _, s := range m.Sources {
+				sources = append(sources, string(s))
+			}
+		}
+
 		ignoredMatch := IgnoredMatch{
 			Match:              *matchModel,
 			AppliedIgnoreRules: mapIgnoreRules(m.AppliedIgnoreRules),
+			Sources:            sources,
 		}
 		ignoredMatchModels = append(ignoredMatchModels, ignoredMatch)
 	}
