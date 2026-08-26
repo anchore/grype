@@ -130,7 +130,7 @@ func DedupeIgnoredMatches(matches []IgnoredMatch) []IgnoredMatch {
 	seen := make(map[Fingerprint]int, len(matches))
 	out := make([]IgnoredMatch, 0, len(matches))
 	for _, im := range matches {
-		fp := im.Match.Fingerprint()
+		fp := im.Fingerprint()
 		if idx, ok := seen[fp]; ok {
 			existing := out[idx]
 			for _, s := range im.Sources {
