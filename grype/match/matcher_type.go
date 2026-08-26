@@ -18,6 +18,7 @@ const (
 	CsafVexMatcher     MatcherType = "csafvex-matcher"
 	RustMatcher        MatcherType = "rust-matcher"
 	BitnamiMatcher     MatcherType = "bitnami-matcher"
+	KernelMatcher      MatcherType = "kernel-matcher"
 	PacmanMatcher      MatcherType = "pacman-matcher"
 	HexMatcher         MatcherType = "hex-matcher"
 )
@@ -38,6 +39,7 @@ var AllMatcherTypes = []MatcherType{
 	CsafVexMatcher,
 	RustMatcher,
 	BitnamiMatcher,
+	KernelMatcher,
 	PacmanMatcher,
 	HexMatcher,
 }
