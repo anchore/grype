@@ -71,7 +71,7 @@ func (v *Version) getComparator(format Format) (Comparator, error) {
 	case GemFormat:
 		comparator, err = newGemVersion(v.Raw)
 	case PortageFormat:
-		comparator = newPortageVersion(v.Raw)
+		comparator, err = newPortageVersion(v.Raw)
 	case JVMFormat:
 		comparator, err = newJvmVersion(v.Raw)
 	case PacmanFormat:

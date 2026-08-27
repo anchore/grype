@@ -147,6 +147,7 @@ func generateTask() Task {
 			"generate:db-schema",
 			"generate:codename-data",
 			"generate:osv-model",
+			"generate:rhel-versions",
 		),
 		Tasks: []Task{
 			{
@@ -180,6 +181,14 @@ func generateTask() Task {
 					"(use `update:osv-model` to also fetch latest from github.com/ossf/osv-schema)",
 				Run: func() {
 					Run("go generate ./grype/db/internal/provider/unmarshal/osvmodel/...")
+				},
+			},
+			{
+				Name: "generate:rhel-versions",
+				Description: "regenerate the RHEL minor-version span from Red Hat's product " +
+					"life-cycle API",
+				Run: func() {
+					Run("go generate ./grype/db/v6/build/transformers/os/...")
 				},
 			},
 		},

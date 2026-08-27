@@ -1,11 +1,18 @@
 package result
 
 import (
+	"sort"
+
+	"github.com/facebookincubator/nvdtools/wfn"
+
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher/internal/cpeversion"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/pkg/qualifier/gosymbols"
 	"github.com/anchore/grype/grype/search"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/syft/syft/cpe"
 )
 
 var _ Provider = (*provider)(nil)
@@ -56,19 +63,21 @@ func (p provider) FindResults(criteria ...vulnerability.Criteria) (Set, error) {
 }
 
 func detailProvider(matcher match.MatcherType, catalogedPkg pkg.Package, criteriaSet []vulnerability.Criteria, vuln vulnerability.Vulnerability) match.Details {
-	cpeParams, distroParams, ecosystemParams, pkgParams := extractSearchParameters(criteriaSet, vuln)
+	cpeParams, distroParams, ecosystemParams, pkgParams := extractSearchParameters(criteriaSet, vuln, catalogedPkg)
 	distroMatchType := determineMatchType(catalogedPkg, pkgParams)
 	applyPackageParamsToSearchParams(pkgParams, &cpeParams, &distroParams, &ecosystemParams)
 	constraintStr := getConstraintString(vuln)
 	// the vulnerable Go symbols the package was found to use; empty for every non-Go match and for
 	// module-granularity Go matches where no specific symbol intersection decided the match.
 	matchedSymbols := gosymbols.MatchedSymbols(vuln.PackageQualifiers, catalogedPkg)
+	// the vulnerability's CPEs relevant at the searched version, surfaced on the CPE match detail
+	foundCPEs := matchedCPEsForSearch(catalogedPkg, searchedCPE(criteriaSet), vuln)
 
-	return buildMatchDetails(matcher, distroMatchType, constraintStr, vuln, cpeParams, distroParams, ecosystemParams, matchedSymbols)
+	return buildMatchDetails(matcher, distroMatchType, constraintStr, vuln, cpeParams, distroParams, ecosystemParams, matchedSymbols, foundCPEs)
 }
 
 // extractSearchParameters processes criteria set and extracts search parameters for different match types
-func extractSearchParameters(criteriaSet []vulnerability.Criteria, vuln vulnerability.Vulnerability) ([]match.CPEParameters, []match.DistroParameters, []match.EcosystemParameters, *match.PackageParameter) {
+func extractSearchParameters(criteriaSet []vulnerability.Criteria, vuln vulnerability.Vulnerability, catalogedPkg pkg.Package) ([]match.CPEParameters, []match.DistroParameters, []match.EcosystemParameters, *match.PackageParameter) {
 	var cpeParams []match.CPEParameters
 	var distroParams []match.DistroParameters
 	var ecosystemParams []match.EcosystemParameters
@@ -98,7 +107,12 @@ func extractSearchParameters(criteriaSet []vulnerability.Criteria, vuln vulnerab
 			cpeParams = append(cpeParams, match.CPEParameters{
 				Namespace: vuln.Namespace, // TODO: this is a holdover and will be removed in the future
 				CPEs: []string{
-					c.CPE.Attributes.BindToFmtString(),
+					c.CPE.Attributes.String(),
+				},
+				// CPE searches carry no package-name criterion, so record package identity from the cataloged package
+				Package: match.PackageParameter{
+					Name:    catalogedPkg.Name,
+					Version: catalogedPkg.Version,
 				},
 			})
 
@@ -157,8 +171,19 @@ func getConstraintString(vuln vulnerability.Vulnerability) string {
 }
 
 // buildMatchDetails creates the final match details from all parameters
-func buildMatchDetails(matcher match.MatcherType, distroMatchType match.Type, constraintStr string, vuln vulnerability.Vulnerability, cpeParams []match.CPEParameters, distroParams []match.DistroParameters, ecosystemParams []match.EcosystemParameters, matchedSymbols []string) match.Details {
+func buildMatchDetails(
+	matcher match.MatcherType, distroMatchType match.Type, constraintStr string, vuln vulnerability.Vulnerability,
+	cpeParams []match.CPEParameters, distroParams []match.DistroParameters, ecosystemParams []match.EcosystemParameters,
+	matchedSymbols []string, foundCPEs []cpe.CPE,
+) match.Details {
 	var details match.Details
+
+	// stringify (with proper escaping) and sort the found CPEs for deterministic detail output
+	foundCPEStrings := make([]string, 0, len(foundCPEs))
+	for _, c := range foundCPEs {
+		foundCPEStrings = append(foundCPEStrings, c.Attributes.String())
+	}
+	sort.Strings(foundCPEStrings)
 
 	// add CPE match details
 	for _, cpeParam := range cpeParams {
@@ -169,6 +194,7 @@ func buildMatchDetails(matcher match.MatcherType, distroMatchType match.Type, co
 			Found: match.CPEResult{
 				VulnerabilityID:   vuln.ID,
 				VersionConstraint: constraintStr,
+				CPEs:              foundCPEStrings,
 			},
 			Confidence: 0.9, // TODO: this is hard coded for now
 		})
@@ -204,4 +230,84 @@ func buildMatchDetails(matcher match.MatcherType, distroMatchType match.Type, co
 	}
 
 	return details
+}
+
+// searchedCPE returns the CPE a search was made with, or nil when the criteria hold no CPE search.
+func searchedCPE(criteriaSet []vulnerability.Criteria) *cpe.CPE {
+	for i := range criteriaSet {
+		if c, ok := criteriaSet[i].(*search.CPECriteria); ok {
+			return &c.CPE
+		}
+	}
+	return nil
+}
+
+// matchedCPEsForSearch returns the vulnerability's CPEs that are relevant at the version the search
+// was made with. It is empty when the vulnerability carries no CPEs.
+//
+// The comparison uses searchedBy's version rather than the package's own. By the time a CPE search
+// runs, that version has been put in terms a CPE can be compared against -- an apk's -rN build suffix
+// dropped, for one -- and a CPE the search already matched must not then be filtered back out by a
+// version its ecosystem happens to spell differently. Without a CPE search there is no searched
+// version, and the result is unused anyway: only CPE details carry found CPEs.
+func matchedCPEsForSearch(catalogedPkg pkg.Package, searchedBy *cpe.CPE, vuln vulnerability.Vulnerability) []cpe.CPE {
+	if len(vuln.CPEs) == 0 {
+		return nil
+	}
+
+	format := pkg.VersionFormat(catalogedPkg)
+
+	searchVersion := catalogedPkg.Version
+	var searchUpdate string
+	if searchedBy != nil {
+		if v := searchedBy.Attributes.Version; v != "" && v != wfn.Any && v != wfn.NA {
+			searchVersion = v
+		}
+		searchUpdate = searchedBy.Attributes.Update
+	}
+
+	if searchVersion == "" {
+		// no filtering available by version
+		return vuln.CPEs
+	}
+
+	pkgVersion := version.New(comparableCPEVersion(searchVersion, searchUpdate, format), format)
+	matchedCPEs := make([]cpe.CPE, 0, len(vuln.CPEs))
+	for _, c := range vuln.CPEs {
+		if c.Attributes.Version == wfn.Any || c.Attributes.Version == wfn.NA {
+			matchedCPEs = append(matchedCPEs, c)
+			continue
+		}
+
+		constraint, err := version.GetConstraint(comparableCPEVersion(c.Attributes.Version, c.Attributes.Update, format), format)
+		if err != nil {
+			// if we can't get a version constraint, don't filter out the CPE
+			matchedCPEs = append(matchedCPEs, c)
+			continue
+		}
+
+		satisfied, err := constraint.Satisfied(pkgVersion)
+		if err != nil || satisfied {
+			// if we can't check for version satisfaction, don't filter out the CPE
+			matchedCPEs = append(matchedCPEs, c)
+			continue
+		}
+	}
+
+	return matchedCPEs
+}
+
+// comparableCPEVersion renders a CPE's version and update fields as one version string the given
+// format can be compared against.
+func comparableCPEVersion(cpeVersion, cpeUpdate string, format version.Format) string {
+	switch format {
+	case version.ApkFormat:
+		// the searched version is normalized before a CPE search runs, but only when the package's own
+		// CPE carried a version -- the fallback to the raw package version is not -- so normalize here
+		// rather than relying on where the version came from
+		return cpeversion.Alpine(cpeVersion)
+	case version.JVMFormat:
+		return cpeversion.JVM(cpeVersion, cpeUpdate)
+	}
+	return cpeVersion
 }

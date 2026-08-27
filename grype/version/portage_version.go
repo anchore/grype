@@ -1,6 +1,7 @@
 package version
 
 import (
+	"errors"
 	"math/big"
 	"regexp"
 	"strings"
@@ -20,10 +21,19 @@ type portageVersion struct {
 	version string
 }
 
-func newPortageVersion(raw string) portageVersion {
+// errNoNumericComponent is returned for portage versions that versionRegexp cannot match at all.
+// Every portage version starts with a numeric component, so a value without one (e.g. "none")
+// has nothing for comparePortageVersions to work with.
+var errNoNumericComponent = errors.New("no numeric version component")
+
+func newPortageVersion(raw string) (portageVersion, error) {
+	if versionRegexp.FindStringSubmatch(raw) == nil {
+		return portageVersion{}, invalidFormatError(PortageFormat, raw, errNoNumericComponent)
+	}
+
 	return portageVersion{
 		version: raw,
-	}
+	}, nil
 }
 
 func (v portageVersion) Compare(other *Version) (int, error) {
@@ -31,7 +41,12 @@ func (v portageVersion) Compare(other *Version) (int, error) {
 		return -1, ErrNoVersionProvided
 	}
 
-	return v.compare(newPortageVersion(other.Raw)), nil
+	o, err := newPortageVersion(other.Raw)
+	if err != nil {
+		return 0, err
+	}
+
+	return v.compare(o), nil
 }
 
 // Compare returns 0 if v == v2, -1 if v < v2, and +1 if v > v2.
