@@ -22,13 +22,18 @@ func TestIdentifiersFromTags(t *testing.T) {
 		expected []string
 	}{
 		{
-			// a bare Docker Hub-style name carries no explicit registry-1
-			// no repository_url is synthesized: we don't know whether this image
-			// actually came from Docker Hub, a mirror, or a differently
-			// configured default/unqualified-search registry.
+			// a bare Docker Hub-style name resolves to Docker Hub; every
+			// spelling of it is emitted, along with an unqualified identifier
+			// for documents that name no repository_url at all
 			"alpine:v1.2.3",
 			"alpine",
-			[]string{"alpine:v1.2.3", "pkg:oci/alpine?tag=v1.2.3"},
+			[]string{
+				"alpine:v1.2.3",
+				"pkg:oci/alpine?tag=v1.2.3",
+				"pkg:oci/alpine?repository_url=index.docker.io%2Flibrary%2Falpine&tag=v1.2.3",
+				"pkg:oci/alpine?repository_url=docker.io%2Flibrary%2Falpine&tag=v1.2.3",
+				"pkg:oci/alpine?repository_url=docker.io%2Falpine&tag=v1.2.3",
+			},
 		},
 		{
 			"alpine",
@@ -36,12 +41,16 @@ func TestIdentifiersFromTags(t *testing.T) {
 			[]string{"alpine"},
 		},
 		{
-			// two-segment names without a host-like first segment are ambiguous
-			// go-containerregistry still defaults
-			// them to Docker Hub, but do not assert that provenance.
+			// two-segment names without a host-like first segment default to
+			// Docker Hub, but carry no implicit "library" namespace
 			"myorg/myimage:1.0",
 			"myorg/myimage",
-			[]string{"myorg/myimage:1.0", "pkg:oci/myimage?tag=1.0"},
+			[]string{
+				"myorg/myimage:1.0",
+				"pkg:oci/myimage?tag=1.0",
+				"pkg:oci/myimage?repository_url=index.docker.io%2Fmyorg%2Fmyimage&tag=1.0",
+				"pkg:oci/myimage?repository_url=docker.io%2Fmyorg%2Fmyimage&tag=1.0",
+			},
 		},
 		{
 			// regression test for https://github.com/anchore/grype/issues/3657:
@@ -52,6 +61,7 @@ func TestIdentifiersFromTags(t *testing.T) {
 			"registry.access.redhat.com/ubi10/podman",
 			[]string{
 				"registry.access.redhat.com/ubi10/podman:10.2",
+				"pkg:oci/podman?tag=10.2",
 				"pkg:oci/podman?repository_url=registry.access.redhat.com%2Fubi10%2Fpodman&tag=10.2",
 			},
 		},
@@ -61,7 +71,10 @@ func TestIdentifiersFromTags(t *testing.T) {
 			"docker.io/alpine",
 			[]string{
 				"docker.io/alpine:v1.2.3",
+				"pkg:oci/alpine?tag=v1.2.3",
 				"pkg:oci/alpine?repository_url=index.docker.io%2Flibrary%2Falpine&tag=v1.2.3",
+				"pkg:oci/alpine?repository_url=docker.io%2Flibrary%2Falpine&tag=v1.2.3",
+				"pkg:oci/alpine?repository_url=docker.io%2Falpine&tag=v1.2.3",
 			},
 		},
 		{
@@ -71,6 +84,7 @@ func TestIdentifiersFromTags(t *testing.T) {
 			"localhost:5000/myimage",
 			[]string{
 				"localhost:5000/myimage:1.0",
+				"pkg:oci/myimage?tag=1.0",
 				"pkg:oci/myimage?repository_url=localhost%3A5000%2Fmyimage&tag=1.0",
 			},
 		},
@@ -86,12 +100,15 @@ func TestIdentifiersFromDigests(t *testing.T) {
 		expected []string
 	}{
 		{
-			// a bare digest ref with no explicit registry is ambiguousn
-			// no repository_url is synthesized
+			// a bare digest ref is what the docker daemon reports for a Docker
+			// Hub image, so every spelling of Docker Hub is emitted
 			"alpine@sha256:124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
 			[]string{
 				"alpine@sha256:124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
 				"pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
+				"pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126?repository_url=index.docker.io%2Flibrary%2Falpine",
+				"pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126?repository_url=docker.io%2Flibrary%2Falpine",
+				"pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126?repository_url=docker.io%2Falpine",
 				"124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
 			},
 		},
@@ -102,6 +119,7 @@ func TestIdentifiersFromDigests(t *testing.T) {
 			"cgr.dev/chainguard/curl@sha256:9543ed09a38605c25c75486573cf530bd886615b993d5e1d1aa58fe5491287bc",
 			[]string{
 				"cgr.dev/chainguard/curl@sha256:9543ed09a38605c25c75486573cf530bd886615b993d5e1d1aa58fe5491287bc",
+				"pkg:oci/curl@sha256%3A9543ed09a38605c25c75486573cf530bd886615b993d5e1d1aa58fe5491287bc",
 				"pkg:oci/curl@sha256%3A9543ed09a38605c25c75486573cf530bd886615b993d5e1d1aa58fe5491287bc?repository_url=cgr.dev%2Fchainguard%2Fcurl",
 				"9543ed09a38605c25c75486573cf530bd886615b993d5e1d1aa58fe5491287bc",
 			},
@@ -110,6 +128,7 @@ func TestIdentifiersFromDigests(t *testing.T) {
 			"registry.access.redhat.com/ubi10/podman@sha256:0dbb10bb65e5df8a6d6aecb69f130441dc941e306ce89844c2870a25152c44a2",
 			[]string{
 				"registry.access.redhat.com/ubi10/podman@sha256:0dbb10bb65e5df8a6d6aecb69f130441dc941e306ce89844c2870a25152c44a2",
+				"pkg:oci/podman@sha256%3A0dbb10bb65e5df8a6d6aecb69f130441dc941e306ce89844c2870a25152c44a2",
 				"pkg:oci/podman@sha256%3A0dbb10bb65e5df8a6d6aecb69f130441dc941e306ce89844c2870a25152c44a2?repository_url=registry.access.redhat.com%2Fubi10%2Fpodman",
 				"0dbb10bb65e5df8a6d6aecb69f130441dc941e306ce89844c2870a25152c44a2",
 			},
@@ -470,10 +489,19 @@ func TestProductIdentifiersFromContext(t *testing.T) {
 			want: []string{
 				"alpine:3.18",
 				"pkg:oci/alpine?tag=3.18",
+				"pkg:oci/alpine?repository_url=index.docker.io%2Flibrary%2Falpine&tag=3.18",
+				"pkg:oci/alpine?repository_url=docker.io%2Flibrary%2Falpine&tag=3.18",
+				"pkg:oci/alpine?repository_url=docker.io%2Falpine&tag=3.18",
 				"alpine:latest",
 				"pkg:oci/alpine?tag=latest",
+				"pkg:oci/alpine?repository_url=index.docker.io%2Flibrary%2Falpine&tag=latest",
+				"pkg:oci/alpine?repository_url=docker.io%2Flibrary%2Falpine&tag=latest",
+				"pkg:oci/alpine?repository_url=docker.io%2Falpine&tag=latest",
 				"alpine@sha256:124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
 				"pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
+				"pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126?repository_url=index.docker.io%2Flibrary%2Falpine",
+				"pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126?repository_url=docker.io%2Flibrary%2Falpine",
+				"pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126?repository_url=docker.io%2Falpine",
 				"124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
 			},
 		},
@@ -491,6 +519,9 @@ func TestProductIdentifiersFromContext(t *testing.T) {
 			want: []string{
 				"ubuntu:22.04",
 				"pkg:oci/ubuntu?tag=22.04",
+				"pkg:oci/ubuntu?repository_url=index.docker.io%2Flibrary%2Fubuntu&tag=22.04",
+				"pkg:oci/ubuntu?repository_url=docker.io%2Flibrary%2Fubuntu&tag=22.04",
+				"pkg:oci/ubuntu?repository_url=docker.io%2Fubuntu&tag=22.04",
 			},
 		},
 		{
@@ -605,7 +636,7 @@ func TestIdentifiersFromDigests_NormalizesDockerHubRepositoryURL(t *testing.T) {
 
 	ids := identifiersFromDigests([]string{digest})
 
-	var repoURL string
+	var repoURLs []string
 	for _, id := range ids {
 		if !strings.HasPrefix(id, "pkg:oci/") {
 			continue
@@ -615,80 +646,43 @@ func TestIdentifiersFromDigests_NormalizesDockerHubRepositoryURL(t *testing.T) {
 		require.NoError(t, err)
 
 		if p.Name == "alpine" && p.Version == "sha256:"+hash {
-			repoURL = p.Qualifiers.Map()["repository_url"]
+			repoURLs = append(repoURLs, p.Qualifiers.Map()["repository_url"])
 		}
 	}
 
-	// purl-spec-conformant form: the full registry+repository path
+	// purl-spec-conformant form: the full registry+repository path, in every
+	// spelling of Docker Hub a document may use
 	// see https://github.com/anchore/grype/issues/3657
-	require.Equal(t, "index.docker.io/library/alpine", repoURL)
-}
-
-func TestCanonicalDockerHubHost(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{"docker.io", "index.docker.io"},
-		{"index.docker.io", "index.docker.io"},
-		{"registry-1.docker.io", "index.docker.io"},
-		{"DOCKER.IO", "index.docker.io"},
-		{"gcr.io", "gcr.io"},
-		{"registry.access.redhat.com", "registry.access.redhat.com"},
-		{"", ""},
-	}
-	for _, tc := range tests {
-		t.Run(tc.input, func(t *testing.T) {
-			got := canonicalDockerHubHost(tc.input)
-			require.Equal(t, tc.expected, got)
-		})
-	}
-}
-
-func TestHasExplicitRegistryHost(t *testing.T) {
-	tests := []struct {
-		input    string
-		expected bool
-	}{
-		{"alpine", false},
-		{"myorg/myimage", false},
-		{"docker.io/alpine", true},
-		{"docker.io/library/alpine", true},
-		{"registry.access.redhat.com/ubi10/podman", true},
-		{"localhost/myimage", true},
-		{"localhost:5000/myimage", true},
-		{"gcr.io/myorg/image", true},
-		{"", false},
-	}
-	for _, tc := range tests {
-		t.Run(tc.input, func(t *testing.T) {
-			require.Equal(t, tc.expected, hasExplicitRegistryHost(tc.input))
-		})
-	}
+	require.Equal(t, []string{
+		"",
+		"index.docker.io/library/alpine",
+		"docker.io/library/alpine",
+		"docker.io/alpine",
+	}, repoURLs)
 }
 
 func TestOCIRepositoryIdentity(t *testing.T) {
 	tests := []struct {
 		input            string
 		expectedBaseName string
-		expectedRepoURL  string
+		expectedRepoURLs []string
 	}{
-		{"alpine", "alpine", ""},
-		{"myorg/myimage", "myimage", ""},
-		{"docker.io/alpine", "alpine", "index.docker.io/library/alpine"},
-		{"docker.io/library/alpine", "alpine", "index.docker.io/library/alpine"},
-		{"registry.access.redhat.com/ubi10/podman", "podman", "registry.access.redhat.com/ubi10/podman"},
-		{"gcr.io/myorg/image", "image", "gcr.io/myorg/image"},
-		{"DOCKER.IO/alpine", "alpine", "index.docker.io/library/alpine"},
-		{"registry-1.docker.io/alpine", "alpine", "index.docker.io/library/alpine"},
+		{"alpine", "alpine", []string{"index.docker.io/library/alpine", "docker.io/library/alpine", "docker.io/alpine"}},
+		{"myorg/myimage", "myimage", []string{"index.docker.io/myorg/myimage", "docker.io/myorg/myimage"}},
+		{"docker.io/alpine", "alpine", []string{"index.docker.io/library/alpine", "docker.io/library/alpine", "docker.io/alpine"}},
+		{"docker.io/library/alpine", "alpine", []string{"index.docker.io/library/alpine", "docker.io/library/alpine", "docker.io/alpine"}},
+		{"registry.access.redhat.com/ubi10/podman", "podman", []string{"registry.access.redhat.com/ubi10/podman"}},
+		{"gcr.io/myorg/image", "image", []string{"gcr.io/myorg/image"}},
+		{"DOCKER.IO/alpine", "alpine", []string{"index.docker.io/library/alpine", "docker.io/library/alpine", "docker.io/alpine"}},
+		{"registry-1.docker.io/alpine", "alpine", []string{"index.docker.io/library/alpine", "docker.io/library/alpine", "docker.io/alpine"}},
 	}
 	for _, tc := range tests {
 		t.Run(tc.input, func(t *testing.T) {
 			repo, err := name.NewRepository(tc.input)
 			require.NoError(t, err)
-			baseName, repoURL := ociRepositoryIdentity(repo, tc.input)
+			baseName, repoURLs := ociRepositoryIdentity(repo)
 			require.Equal(t, tc.expectedBaseName, baseName)
-			require.Equal(t, tc.expectedRepoURL, repoURL)
+			require.Equal(t, tc.expectedRepoURLs, repoURLs)
 		})
 	}
 }
