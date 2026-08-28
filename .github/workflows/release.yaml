@@ -13,6 +13,14 @@ on:
       version:
         description: tag the latest commit on main with the given version (prefixed with v)
         required: true
+      phase:
+        description: the specific workflow phase to run or all
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - "all"
+          - "install-script-only"
       skip-checks:
         description: skip the check-gate (release even if checks haven't passed on main)
         type: boolean
@@ -21,6 +29,7 @@ on:
 
 jobs:
   version-available:
+    if: ${{ github.event.inputs.phase == 'all' }}
     permissions:
       contents: read # for the most recent tags
     uses: anchore/workflows/.github/workflows/check-version-available.yaml@7212994dc8fc3a53fe9c8e766ab5b4ddd16ea3d4 # v0.8.0
@@ -28,7 +37,7 @@ jobs:
       version: ${{ github.event.inputs.version }}
 
   check-gate:
-    if: ${{ !inputs.skip-checks }}
+    if: ${{ github.event.inputs.phase == 'all' && !inputs.skip-checks }}
     permissions:
       contents: read
       checks: read # required for getting the status of specific check names
@@ -108,7 +117,7 @@ jobs:
 
   release-install-script:
     needs: [release]
-    if: ${{ needs.release.result == 'success' }}
+    if: ${{ always() && (needs.release.result == 'success' || github.event.inputs.phase == 'install-script-only') }}
     permissions:
       contents: read
     uses: anchore/workflows/.github/workflows/release-install-script.yaml@7212994dc8fc3a53fe9c8e766ab5b4ddd16ea3d4 # v0.8.0
