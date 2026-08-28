@@ -73,7 +73,7 @@ You can also explicitly specify the scheme to use:
     {{.appName}} purl:path/to/purl/file                 read a newline separated file of package URLs from a path on disk
     {{.appName}} PURL                                   read a single package PURL directly (e.g. pkg:apk/openssl@3.2.1?distro=alpine-3.20.3)
     {{.appName}} cpes:path/to/cpes/file                 read a newline separated file of package CPEs from a path on disk
-    {{.appName}} CPE                                    read a single CPE directly (e.g. cpe:2.3:a:openssl:openssl:3.0.14:*:*:*:*:*)
+    {{.appName}} CPE                                    read a single CPE directly (e.g. cpe:2.3:a:openssl:openssl:3.0.14:*:*:*:*:*:*:* or cpe:/a:openssl:openssl:3.0.14)
     {{.appName}} zarf:path/to/package.tar.zst           scan all SBOMs within a Zarf package archive
 
 You can also pipe in Syft JSON directly:
