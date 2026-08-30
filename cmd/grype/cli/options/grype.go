@@ -203,8 +203,14 @@ This is the full set of supported rule fields:
     package:
       name: libcurl
       version: 1.5.1
+      language: javascript
       type: npm
       location: "/usr/local/lib/node_modules/**"
+      upstream-name: libcurl
+    namespace: nvd:cpe
+    match-type: exact-direct-match
+    include-aliases: true
+    reason: "not applicable in this environment"
 
 VEX fields apply when Grype reads vex data:
   - vex-status: not_affected
