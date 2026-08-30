@@ -2676,6 +2676,19 @@ func TestGetVulnStatus(t *testing.T) {
 			},
 			expected: db.VulnerabilityDisputed,
 		},
+		{
+			name: "rejected vulnStatus with a disputed cveTag is still rejected",
+			// rejected must take precedence over a disputed tag: a rejected record must not be acted
+			// upon, which is a stronger signal than a dispute over whether it's a valid vulnerability
+			vuln: unmarshal.NVDVulnerability{
+				ID:         "CVE-2023-12345",
+				VulnStatus: strPtr("Rejected"),
+				CveTags: []nvd.CveTag{
+					{SourceIdentifier: "cve@mitre.org", Tags: []string{"disputed"}},
+				},
+			},
+			expected: db.VulnerabilityRejected,
+		},
 	}
 
 	for _, tt := range tests {
