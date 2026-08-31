@@ -18,7 +18,11 @@ import (
 	"github.com/anchore/syft/syft/pkg"
 )
 
-const dhiEcosystemPrefix = "Docker Hardened Images:"
+const (
+	dhiEcosystemPrefix = "Docker Hardened Images:"
+	dhiLineageAlpine   = "alpine"
+	dhiLineageDebian   = "debian"
+)
 
 type dhiStrategy struct{}
 
@@ -176,9 +180,9 @@ func parseDHIIdentity(osvPackage osvmodel.Package) (dhiIdentity, error) {
 
 	var packageType pkg.Type
 	switch {
-	case lineage == "alpine" && purl.Type == packageurl.TypeApk:
+	case lineage == dhiLineageAlpine && purl.Type == packageurl.TypeApk:
 		packageType = pkg.ApkPkg
-	case lineage == "debian" && purl.Type == packageurl.TypeDebian:
+	case lineage == dhiLineageDebian && purl.Type == packageurl.TypeDebian:
 		packageType = pkg.DebPkg
 	default:
 		return dhiIdentity{}, fmt.Errorf("ecosystem lineage %q does not agree with PURL type %q", lineage, purl.Type)
