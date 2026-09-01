@@ -83,6 +83,8 @@ func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Con
 // newIgnoredMatchModels translates match.IgnoredMatch entries into presenter
 // IgnoredMatch models, resolving each match's owning package and preserving
 // the Sources tags applied upstream.
+//
+//nolint:staticcheck // MetadataProvider is deprecated but still used internally
 func newIgnoredMatchModels(ignoredMatches []match.IgnoredMatch, packages []pkg.Package, metadataProvider vulnerability.MetadataProvider) ([]IgnoredMatch, error) {
 	var models []IgnoredMatch
 	for _, m := range ignoredMatches {
@@ -91,7 +93,7 @@ func newIgnoredMatchModels(ignoredMatches []match.IgnoredMatch, packages []pkg.P
 			return nil, fmt.Errorf("unable to find package in collection: %+v", p)
 		}
 
-		matchModel, err := newMatch(m.Match, *p, metadataProvider) //nolint:staticcheck // MetadataProvider is deprecated but still used internally
+		matchModel, err := newMatch(m.Match, *p, metadataProvider)
 		if err != nil {
 			return nil, err
 		}
