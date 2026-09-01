@@ -36,7 +36,7 @@ func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func
 		}
 	}
 
-	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel, nil)
+	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
 	var enhancers []Enhancer
 	if fmtID != syftjson.ID {
@@ -56,7 +56,7 @@ func syftSBOMProviderFromReader(reader io.ReadSeeker, config ProviderConfig, app
 		return nil, Context{}, nil, err
 	}
 
-	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel, nil)
+	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
 	var enhancers []Enhancer
 	if fmtID != syftjson.ID {

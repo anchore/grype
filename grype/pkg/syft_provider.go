@@ -33,18 +33,7 @@ func syftProvider(userInput string, config ProviderConfig, applyChannel func(*di
 
 	srcDescription := src.Describe()
 
-	// a live source can be probed for distro identification marker files directly (this must run
-	// before src's deferred Close). Resolver errors are logged and treated as "no marker" so the
-	// probe never blocks a scan.
-	var hasPath func(string) bool
-	resolver, resolverErr := src.FileResolver(config.SBOMOptions.Search.Scope)
-	if resolverErr != nil {
-		log.WithFields("error", resolverErr).Trace("unable to acquire file resolver for distro identification marker checks")
-	} else {
-		hasPath = resolver.HasPath
-	}
-
-	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel, hasPath)
+	d, distroDetectionFailed := distroFromSBOM(s, config, applyChannel)
 
 	packages := FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig)
 	pkgCtx := Context{
@@ -56,21 +45,13 @@ func syftProvider(userInput string, config ProviderConfig, applyChannel func(*di
 	return packages, pkgCtx, s, nil
 }
 
-// distroFromSBOM derives the distro to match against. hasPath optionally probes the live source
-// for distro-identification marker files; the SBOM's file catalog is always consulted as well
-// (best effort — see sbomHasPath).
-func distroFromSBOM(s *sbom.SBOM, config ProviderConfig, applyChannel func(*distro.Distro), hasPath func(string) bool) (d *distro.Distro, detectionFailed bool) {
+func distroFromSBOM(s *sbom.SBOM, config ProviderConfig, applyChannel func(*distro.Distro)) (d *distro.Distro, detectionFailed bool) {
 	if config.Distro.Override != nil {
 		d = config.Distro.Override
 	} else {
 		d = distro.FromRelease(s.Artifacts.LinuxDistribution, config.Distro.FixChannels)
 		applyChannel(d)
-		// source evidence (marker files, image labels) may indicate a vendor-curated derivative of
-		// the detected distro; identifiers run after channels since a remapped distro replaces them
-		probe := func(p string) bool {
-			return (hasPath != nil && hasPath(p)) || sbomHasPath(s, p)
-		}
-		d = ApplyDistroIdentifiers(d, &s.Source, probe, config.Distro.Identifiers)
+		d = applyDistroIdentifiers(s, d, config.Distro.Identifiers)
 		// detection failed if we had linux release info but couldn't determine distro type
 		detectionFailed = s.Artifacts.LinuxDistribution != nil && d == nil
 	}

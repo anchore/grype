@@ -34,7 +34,7 @@ CREATE TABLE `packages` (`id` integer PRIMARY KEY AUTOINCREMENT,`ecosystem` text
 
 CREATE TABLE `providers` (`id` text,`version` text,`processor` text,`date_captured` datetime,`input_digest` text,PRIMARY KEY (`id`));
 
-CREATE TABLE `search_rules` (`match_distro_name` text,`match_distro_version` text,`match_ecosystem` text,`match_package_name` text,`exclude_package_name` text,`match_package_version` text,`exclude_package_version` text,`replacement_channel` text,`replacement_distro_name` text,`replacement_package_name` text,`include_base_distro` numeric,`priority` integer,`applicable_client_db_schemas` text);
+CREATE TABLE `search_rules` (`match_distro_name` text,`match_distro_version` text,`match_ecosystem` text,`match_package_name` text,`exclude_package_name` text,`match_package_version` text,`exclude_package_version` text,`replacement_channel` text,`replacement_distro_name` text,`replacement_package_name` text,`priority` integer,`applicable_client_db_schemas` text);
 
 CREATE TABLE `unaffected_cpe_handles` (`id` integer PRIMARY KEY AUTOINCREMENT,`vulnerability_id` integer NOT NULL,`cpe_id` integer,`blob_id` integer,CONSTRAINT `fk_unaffected_cpe_handles_cpe` FOREIGN KEY (`cpe_id`) REFERENCES `cpes`(`id`,CONSTRAINT `fk_unaffected_cpe_handles_vulnerability` FOREIGN KEY (`vulnerability_id`) REFERENCES `vulnerability_handles`(`id`);
 

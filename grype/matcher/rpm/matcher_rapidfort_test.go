@@ -55,9 +55,11 @@ func TestRapidFortRedHat_Matching(t *testing.T) {
 			},
 		},
 		{
-			// a .fc43 rpm routes to the +fc43 channel and keeps the channel-less rows: its version
-			// is inside both streams' constraints, so both fixes surface
-			name:        "fc43 rpm surfaces the fedora-stream fix alongside the native one",
+			// a .fc43 rpm routes to the +fc43 channel and keeps the channel-less rows: its version is
+			// inside both streams' constraints, but the fedora stream is the one that built this
+			// rpm, so its fix is the one that applies and the native row it outranks is not
+			// reported alongside it
+			name:        "fc43 rpm surfaces the fedora-stream fix, not the native one",
 			pkgName:     "curl",
 			pkgVersion:  "7.70.0-1.fc43",
 			d:           rfDistro,
@@ -66,7 +68,6 @@ func TestRapidFortRedHat_Matching(t *testing.T) {
 			expectState: vulnerability.FixStateFixed,
 			expect: []streamFinding{
 				{namespace: "rapidfort:distro:rapidfort-redhat:9+fc43", fixes: []string{"7.78.0-4.fc43"}},
-				{namespace: "rapidfort:distro:rapidfort-redhat:9", fixes: []string{"0:7.76.1-19.el9_2"}},
 			},
 		},
 		{

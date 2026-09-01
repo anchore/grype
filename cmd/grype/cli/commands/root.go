@@ -438,18 +438,6 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 	}
 }
 
-// getDistroIdentifiers starts from the API default identifier rules and overlays the
-// user-configurable options (mirrors getFixChannels).
-func getDistroIdentifiers(idOpts options.DistroIdentifiers) []distro.Identifier {
-	defaults := distro.DefaultIdentifiers()
-	for i := range defaults {
-		if defaults[i].Name == "rapidfort" {
-			defaults[i].Apply = distro.FixChannelEnabled(idOpts.RapidFort.Apply)
-		}
-	}
-	return defaults
-}
-
 func getFixChannels(fixChannelOpts options.FixChannels) distro.FixChannels {
 	// use the API defaults as a starting point, then overlay the application options
 	defaults := distro.DefaultFixChannels()
@@ -502,6 +490,18 @@ func applyDistroHint(hint string) *distro.Distro {
 
 	name, version := distro.ParseDistroString(hint)
 	return distro.NewFromNameVersion(name, version)
+}
+
+// getDistroIdentifiers starts from the API default identifier rules and overlays the
+// user-configurable options (mirrors getFixChannels).
+func getDistroIdentifiers(idOpts options.DistroIdentifiers) []distro.Identifier {
+	defaults := distro.DefaultIdentifiers()
+	for i := range defaults {
+		if defaults[i].Name == "rapidfort" {
+			defaults[i].Apply = distro.FixChannelEnabled(idOpts.RapidFort.Apply)
+		}
+	}
+	return defaults
 }
 
 func validateDBLoad(loadErr error, status *vulnerability.ProviderStatus) error {

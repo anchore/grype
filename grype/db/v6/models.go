@@ -715,6 +715,10 @@ func (os *OperatingSystemSpecifierOverride) BeforeCreate(_ *gorm.DB) (err error)
 // in addition to debian, which keeps the two vendors' data separately addressable), and how a
 // vendor rebuild naming scheme can fan the search out across names.
 //
+// A rule that substitutes nothing is meaningful too: it states that a vendor's own data is the
+// complete picture for the packages it matches, which is what tells a matcher not to fall back to
+// the upstream (NVD/CPE) search it would otherwise make for itself.
+//
 // Of the rows that match a package and that apply to the reading client (see
 // ApplicableClientDBSchemas), only those at the highest Priority are applied; rows tied at that
 // priority all apply together.
@@ -761,7 +765,10 @@ type SearchRule struct {
 	// value resolves to the channel-less rows of the OS.
 	ReplacementChannel *string `gorm:"column:replacement_channel"`
 
-	// ReplacementDistroName is a different OS name to search for matched packages
+	// ReplacementDistroName is a different OS name to search for matched packages. Non-NULL but
+	// empty names the CPE-indexed (NVD) records instead -- the absence of an operating system, not
+	// the absence of a statement about one -- which no store search reaches; it says those records
+	// still count for the matched packages.
 	ReplacementDistroName *string `gorm:"column:replacement_distro_name"`
 
 	// ReplacementPackageName is a name to add to the search list, expanded from MatchPackageName's
@@ -769,26 +776,11 @@ type SearchRule struct {
 	// rather than replacing a value, which is why it is not named replacement_*.
 	ReplacementPackageName string `gorm:"column:replacement_package_name"`
 
-	// IncludeBaseDistro says whether the queried (base) OS rows are searched in addition to the
-	// data this rule selects. false marks that data as the complete picture for the matched
-	// package: everything the matcher needs is in those records (e.g. rapidfort-alpine's curated
-	// feed carries both disclosures and fixes, and an rf-rebuilt package's rf channel carries
-	// everything known about that build). That has two consequences: the queried OS rows are not
-	// searched in addition to the rule's substitution, and matchers must not fall back to the
-	// ecosystem's upstream data either — for apk that is the NVD/CPE search that alpine secDB
-	// relies on. true says the records report fixes but not disclosures, so both the base OS rows
-	// and the upstream data are still searched. NULL expresses no preference and reads as true. A
-	// rule whose only substitution is this field may omit package predicates when
-	// match_distro_name is set (the intended shape of an OS-scoped data policy). When rows applied
-	// together disagree, true wins (see vulnerabilityProvider.SearchRules).
-	IncludeBaseDistro *bool `gorm:"column:include_base_distro"`
-
 	// Priority ranks this rule against the other rules matching the same search: only the matching
 	// rules with the highest priority are applied, and rules tied at that priority all apply
 	// together. Unset (0) is the lowest priority. Priority decides which substitution describes a
-	// package, so a rule that substitutes nothing — an OS-scoped data policy, whose only output is
-	// IncludeBaseDistro — is outside the contest and applies whatever else matches (see
-	// highestPriority).
+	// package, so a rule that substitutes nothing is outside the contest and applies whatever else
+	// matches (see highestPriority).
 	Priority int `gorm:"column:priority;index"`
 
 	// ApplicableClientDBSchemas is a constraint on the database version that this override can be applied to (relative to the client library being used to access the DB).

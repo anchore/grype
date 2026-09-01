@@ -12,24 +12,6 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-// singleSearchQuery parses criteria that no search rule fans out — which is every case in this file,
-// since these tests pass no rules — asserting exactly one query came back.
-func singleSearchQuery(t *testing.T, criteria []vulnerability.Criteria) (*searchQuery, []vulnerability.Criteria) {
-	t.Helper()
-	queries, err := newSearchQuery(criteria, nil)
-	require.NoError(t, err)
-	require.Len(t, queries, 1)
-	return queries[0], queries[0].filters
-}
-
-func singleBuiltQuery(t *testing.T, builder *searchQueryBuilder) *searchQuery {
-	t.Helper()
-	queries, err := builder.Build(nil)
-	require.NoError(t, err)
-	require.Len(t, queries, 1)
-	return queries[0]
-}
-
 func TestNewSearchCriteria(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -91,7 +73,8 @@ func TestNewSearchCriteria(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			query, _ := singleSearchQuery(t, test.criteria)
+			query, _, err := newSearchQuery(test.criteria)
+			require.NoError(t, err)
 			test.validate(t, query)
 		})
 	}
@@ -277,7 +260,7 @@ func TestQueryBuilder_PostProcess(t *testing.T) {
 			builder := newSearchQueryBuilder()
 			tt.setup(builder)
 
-			_, err := builder.Build(nil)
+			_, _, err := builder.Build()
 			require.NoError(t, err)
 
 			tt.validate(t, builder)
@@ -294,10 +277,11 @@ func TestQueryBuilder_Build(t *testing.T) {
 		search.ByPackageName("some-remaining-criteria"),
 	}
 
-	query := singleBuiltQuery(t, builder)
+	query, remaining, err := builder.Build()
+	require.NoError(t, err)
 	require.NotNil(t, query)
 	require.True(t, query.unaffectedOnly)
-	require.Len(t, query.filters, 1)
+	require.Len(t, remaining, 1)
 }
 
 func TestQueryBuilder_ExactDistroCriteria(t *testing.T) {
@@ -353,7 +337,8 @@ func TestQueryBuilder_ExactDistroCriteria(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			query, remaining := singleSearchQuery(t, test.criteria)
+			query, remaining, err := newSearchQuery(test.criteria)
+			require.NoError(t, err)
 			test.validate(t, query, remaining)
 		})
 	}
@@ -377,7 +362,8 @@ func TestQueryBuilder_IntegrationWithRealCriteria(t *testing.T) {
 	err := builder.ApplyCriteria(criteria)
 	require.NoError(t, err)
 
-	query := singleBuiltQuery(t, builder)
+	query, remaining, err := builder.Build()
+	require.NoError(t, err)
 
 	// validate the built query
 	require.NotNil(t, query.pkgSpec)
@@ -390,5 +376,5 @@ func TestQueryBuilder_IntegrationWithRealCriteria(t *testing.T) {
 	require.True(t, query.unaffectedOnly)
 
 	// func criteria should remain unprocessed
-	require.Len(t, query.filters, 1)
+	require.Len(t, remaining, 1)
 }

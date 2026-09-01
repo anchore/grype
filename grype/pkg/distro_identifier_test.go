@@ -7,48 +7,88 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/syft/syft/file"
+	"github.com/anchore/syft/syft/pkg"
+	"github.com/anchore/syft/syft/sbom"
 	"github.com/anchore/syft/syft/source"
 )
 
 func TestApplyDistroIdentifiers(t *testing.T) {
-	rapidfortImageSource := func(labels map[string]string) *source.Description {
-		return &source.Description{
-			Metadata: source.ImageMetadata{
-				Labels: labels,
+	// newSBOM builds an SBOM shaped the way syft would report it: an image source with config
+	// labels, and a file catalog holding whatever marker paths a file cataloger recorded.
+	newSBOM := func(src source.Description, paths ...string) *sbom.SBOM {
+		fileMetadata := make(map[file.Coordinates]file.Metadata)
+		for _, p := range paths {
+			coords := file.Coordinates{RealPath: p}
+			fileMetadata[coords] = file.Metadata{
+				Path: p,
+			}
+		}
+
+		return &sbom.SBOM{
+			Artifacts: sbom.Artifacts{
+				Packages:     pkg.NewCollection(),
+				FileMetadata: fileMetadata,
+			},
+			Source: src,
+			Descriptor: sbom.Descriptor{
+				Name:    "syft",
+				Version: "v1.0.0",
 			},
 		}
 	}
 
+	imageSBOM := func(labels map[string]string, paths ...string) *sbom.SBOM {
+		return newSBOM(source.Description{
+			ID:      "sha256:0123456789abcdef",
+			Name:    "docker.io/some/image",
+			Version: "sha256:0123456789abcdef",
+			Metadata: source.ImageMetadata{
+				UserInput:      "some/image:latest",
+				ID:             "sha256:0123456789abcdef",
+				ManifestDigest: "sha256:0123456789abcdef",
+				MediaType:      "application/vnd.docker.distribution.manifest.v2+json",
+				Labels:         labels,
+			},
+		}, paths...)
+	}
+
+	dirSBOM := func(path string, paths ...string) *sbom.SBOM {
+		return newSBOM(source.Description{
+			ID:       "dir-source",
+			Name:     path,
+			Metadata: source.DirectoryMetadata{Path: path},
+		}, paths...)
+	}
+
 	tests := []struct {
-		name      string
-		distro    *distro.Distro
-		src       *source.Description
-		hasPath   func(string) bool
-		overrides []distro.Identifier
-		want      func(t *testing.T, got *distro.Distro)
+		name        string
+		distro      *distro.Distro
+		sbom        *sbom.SBOM
+		identifiers []distro.Identifier
+		want        func(t *testing.T, got *distro.Distro)
 	}{
 		{
 			name:   "nil distro is a no-op",
 			distro: nil,
-			src:    rapidfortImageSource(map[string]string{"maintainer": "RapidFort Curation Team"}),
+			sbom:   imageSBOM(map[string]string{"maintainer": "RapidFort Curation Team"}),
 			want: func(t *testing.T, got *distro.Distro) {
 				assert.Nil(t, got)
 			},
 		},
 		{
-			name:   "nil source and nil probe is a no-op",
+			name:   "nil sbom is a no-op",
 			distro: distro.New(distro.Ubuntu, "20.04", ""),
-			src:    nil,
+			sbom:   nil,
 			want: func(t *testing.T, got *distro.Distro) {
 				require.NotNil(t, got)
 				assert.Equal(t, distro.Ubuntu, got.Type)
 			},
 		},
 		{
-			name:    "marker file triggers the override without any label",
-			distro:  distro.New(distro.Ubuntu, "20.04", ""),
-			src:     nil,
-			hasPath: func(path string) bool { return path == "/usr/share/rapidfort/curated.json" },
+			name:   "marker file triggers the identifier without any label",
+			distro: distro.New(distro.Ubuntu, "20.04", ""),
+			sbom:   dirSBOM("/some/path", "/usr/share/rapidfort/curated.json"),
 			want: func(t *testing.T, got *distro.Distro) {
 				require.NotNil(t, got)
 				assert.Equal(t, distro.RapidFortUbuntu, got.Type)
@@ -56,10 +96,9 @@ func TestApplyDistroIdentifiers(t *testing.T) {
 			},
 		},
 		{
-			name:    "probe without the marker file is a no-op",
-			distro:  distro.New(distro.Ubuntu, "20.04", ""),
-			src:     nil,
-			hasPath: func(string) bool { return false },
+			name:   "file catalog without the marker file is a no-op",
+			distro: distro.New(distro.Ubuntu, "20.04", ""),
+			sbom:   dirSBOM("/some/path", "/etc/os-release", "/usr/lib/os-release"),
 			want: func(t *testing.T, got *distro.Distro) {
 				assert.Equal(t, distro.Ubuntu, got.Type)
 			},
@@ -67,9 +106,7 @@ func TestApplyDistroIdentifiers(t *testing.T) {
 		{
 			name:   "non-image source is a no-op",
 			distro: distro.New(distro.Ubuntu, "20.04", ""),
-			src: &source.Description{
-				Metadata: source.DirectoryMetadata{Path: "/some/path"},
-			},
+			sbom:   dirSBOM("/some/path"),
 			want: func(t *testing.T, got *distro.Distro) {
 				assert.Equal(t, distro.Ubuntu, got.Type)
 			},
@@ -77,12 +114,12 @@ func TestApplyDistroIdentifiers(t *testing.T) {
 		{
 			name:   "matching label remaps ubuntu and drops the codename",
 			distro: distro.New(distro.Ubuntu, "20.04", "focal"),
-			src:    rapidfortImageSource(map[string]string{"maintainer": "RapidFort Curation Team <rfcurators@rapidfort.com>"}),
+			sbom:   imageSBOM(map[string]string{"maintainer": "RapidFort Curation Team <rfcurators@rapidfort.com>"}),
 			want: func(t *testing.T, got *distro.Distro) {
 				require.NotNil(t, got)
 				assert.Equal(t, distro.RapidFortUbuntu, got.Type)
 				assert.Equal(t, "20.04", got.Version)
-				// the codename must be dropped: override OS records carry no codenames, and a
+				// the codename must be dropped: identified OS records carry no codenames, and a
 				// codename on the distro adds an OS row filter that would yield zero rows
 				assert.Empty(t, got.Codename)
 			},
@@ -90,7 +127,7 @@ func TestApplyDistroIdentifiers(t *testing.T) {
 		{
 			name:   "matching label remaps rhel and preserves id-like",
 			distro: distro.New(distro.RedHat, "9.4", "", "fedora"),
-			src:    rapidfortImageSource(map[string]string{"maintainer": "rapidfort"}),
+			sbom:   imageSBOM(map[string]string{"maintainer": "rapidfort"}),
 			want: func(t *testing.T, got *distro.Distro) {
 				assert.Equal(t, distro.RapidFortRedHat, got.Type)
 				assert.Equal(t, "9.4", got.Version)
@@ -104,7 +141,7 @@ func TestApplyDistroIdentifiers(t *testing.T) {
 				d.Channels = []string{"esm"}
 				return d
 			}(),
-			src: rapidfortImageSource(map[string]string{"maintainer": "RapidFort"}),
+			sbom: imageSBOM(map[string]string{"maintainer": "RapidFort"}),
 			want: func(t *testing.T, got *distro.Distro) {
 				assert.Equal(t, distro.RapidFortUbuntu, got.Type)
 				assert.Empty(t, got.Channels)
@@ -113,7 +150,7 @@ func TestApplyDistroIdentifiers(t *testing.T) {
 		{
 			name:   "label key is case-insensitive",
 			distro: distro.New(distro.Alpine, "3.20", ""),
-			src:    rapidfortImageSource(map[string]string{"Maintainer": "RAPIDFORT team"}),
+			sbom:   imageSBOM(map[string]string{"Maintainer": "RAPIDFORT team"}),
 			want: func(t *testing.T, got *distro.Distro) {
 				assert.Equal(t, distro.RapidFortAlpine, got.Type)
 			},
@@ -121,7 +158,7 @@ func TestApplyDistroIdentifiers(t *testing.T) {
 		{
 			name:   "other maintainer is a no-op",
 			distro: distro.New(distro.Ubuntu, "20.04", ""),
-			src:    rapidfortImageSource(map[string]string{"maintainer": "Some Other Vendor"}),
+			sbom:   imageSBOM(map[string]string{"maintainer": "Some Other Vendor"}),
 			want: func(t *testing.T, got *distro.Distro) {
 				assert.Equal(t, distro.Ubuntu, got.Type)
 			},
@@ -129,7 +166,7 @@ func TestApplyDistroIdentifiers(t *testing.T) {
 		{
 			name:   "unmapped distro is a no-op",
 			distro: distro.New(distro.Gentoo, "2.15", ""),
-			src:    rapidfortImageSource(map[string]string{"maintainer": "rapidfort"}),
+			sbom:   imageSBOM(map[string]string{"maintainer": "rapidfort"}),
 			want: func(t *testing.T, got *distro.Distro) {
 				assert.Equal(t, distro.Gentoo, got.Type)
 			},
@@ -137,23 +174,23 @@ func TestApplyDistroIdentifiers(t *testing.T) {
 		{
 			name:   "apply never disables the rule",
 			distro: distro.New(distro.Ubuntu, "20.04", ""),
-			src:    rapidfortImageSource(map[string]string{"maintainer": "rapidfort"}),
-			overrides: func() []distro.Identifier {
-				overrides := distro.DefaultIdentifiers()
-				for i := range overrides {
-					overrides[i].Apply = distro.ChannelNeverEnabled
+			sbom:   imageSBOM(map[string]string{"maintainer": "rapidfort"}),
+			identifiers: func() []distro.Identifier {
+				identifiers := distro.DefaultIdentifiers()
+				for i := range identifiers {
+					identifiers[i].Apply = distro.ChannelNeverEnabled
 				}
-				return overrides
+				return identifiers
 			}(),
 			want: func(t *testing.T, got *distro.Distro) {
 				assert.Equal(t, distro.Ubuntu, got.Type)
 			},
 		},
 		{
-			name:   "override with channels pins them",
+			name:   "identifier with channels pins them",
 			distro: distro.New(distro.Debian, "12", ""),
-			src:    rapidfortImageSource(map[string]string{"maintainer": "rapidfort"}),
-			overrides: []distro.Identifier{
+			sbom:   imageSBOM(map[string]string{"maintainer": "rapidfort"}),
+			identifiers: []distro.Identifier{
 				{
 					Name:      "rapidfort",
 					Label:     distro.LabelMatcher{Key: "maintainer", ValuePrefix: "rapidfort"},
@@ -171,11 +208,11 @@ func TestApplyDistroIdentifiers(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			overrides := tt.overrides
-			if overrides == nil {
-				overrides = distro.DefaultIdentifiers()
+			identifiers := tt.identifiers
+			if identifiers == nil {
+				identifiers = distro.DefaultIdentifiers()
 			}
-			got := ApplyDistroIdentifiers(tt.distro, tt.src, tt.hasPath, overrides)
+			got := applyDistroIdentifiers(tt.sbom, tt.distro, identifiers)
 			tt.want(t, got)
 		})
 	}

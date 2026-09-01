@@ -103,109 +103,47 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 	}
 }
 
-// KnownSearchRules is the built-in search rule set: the seed written into the DB at build time and
-// the match-time fallback for clients reading a DB built before the search_rules table existed — a
-// single source of truth that keeps the two from drifting apart.
-//
-// Rules are matched against the criteria each query provides (see search_rule.go): distro queries
-// carry distro + package name (+ version) but no ecosystem, so the rapidfort rules carry no
-// ecosystem predicate; ecosystem queries carry ecosystem + package name + version but no distro,
-// so the echo rule carries no distro predicate. Where two rules could both claim a package, the
-// higher priority wins outright — only the exclusions that a priority cannot express (a stream
-// that has no rule of its own) are still written as patterns.
-//
-// Every pattern below is fully anchored when compiled (see anchorPattern), which is why the markers
-// carry explicit `.*` wildcards: a bare `\.rf` would describe a whole version rather than a marker
-// within one.
-//
-// TODO: in a future iteration these should be raised up more explicitly by the vunnel providers
+// KnownSearchRules state how individual packages are searched: which OS rows are queried for them,
+// which additional names, and which packages a vendor's own data fully describes.
+// Patterns are fully anchored when compiled (^ pattern $), so need explicit wildcards `.*`.
 func KnownSearchRules() []SearchRule {
 	return []SearchRule{
-		// rapidfort: images mix packages from several release streams (native el/ubuntu builds,
-		// Fedora builds, and RapidFort rebuilds). The native stream lives in the channel-less
-		// rapidfort-* OS rows; foreign streams live in per-stream channels (e.g. "fc43", "rf")
-		// that these rules select from version/name markers on incoming distro queries. A stream
-		// channel is searched in addition to the queried channel-less rows, not in place of them
-		// (IncludeBaseDistro is left unset, which reads as "include"): the channel records what
-		// rapidfort knows about a package built in that stream, and the channel-less rows carry the
-		// rest of the vendor's data for the OS, so a matched package is searched against both.
-		// The release stream is derived from version markers first and the rf- name prefix only as
-		// a last resort — rf-named advisory files carry events from every stream (native, fcNN, and
-		// rf), so an rf-named package with a .fc43 or stock version must route by its version, not
-		// its name; the priorities below are what say so.
-		//
-		// The `~` in the separator classes below is rpm's pre-release marker: real rapidfort
-		// versions such as `1:12.6.0-2.fc31~bootstrap` terminate the dist tag with it, and
-		// without it the tag reads as unmarked and the package routes to the wrong stream.
-
-		// rf version markers (RapidFort rebuilds): an rf-rebuilt package is in the rf stream, and
-		// this marker outranks every other one.
+		// rapidfort: route foreign release streams (fcNN, rf) to channels; native el/ubuntu is channel-less
 		{MatchDistroName: "rapidfort-redhat", MatchPackageVersion: `.*\.rf(?:[._~-].*)?`, ReplacementChannel: ptr("rf"), Priority: priorityRapidFortRebuildMarker},
-		// the dpkg rf markers are shared across both base distros — rapidfort tags its debian
-		// rebuilds `rfubu` too, alongside `rfdeb`, `+rf.` and `~rf.` — so one pattern serves both.
-		// Validated against every rf-channel version in a built DB: it selects all of them
-		// (bar the `0:0` sentinel, which is a range bound rather than a build) and matches
-		// nothing in the native or debian-stream rows.
+
+		// rapidfort ubuntu debian have their own patched rapidfort release stream
 		{MatchDistroName: "rapidfort-ubuntu", MatchPackageVersion: rapidfortDpkgRebuildMarker, ReplacementChannel: ptr("rf"), Priority: priorityRapidFortRebuildMarker},
 		{MatchDistroName: "rapidfort-debian", MatchPackageVersion: rapidfortDpkgRebuildMarker, ReplacementChannel: ptr("rf"), Priority: priorityRapidFortRebuildMarker},
+		// no rf- name rule for dpkg: an unmarked version is the native stream, and rf- names appear
+		// in both streams, so routing by name alone would answer a stock build with a rebuild's fix
 
-		// rapidfort: Fedora-stream rpms carry a .fcNN dist tag; route to the matching stream
-		// channel. An rf rebuild of a fedora package carries both markers and belongs to rf,
-		// which the rf rule's higher priority decides.
-		//
-		// The leading wildcard is lazy because a capture group follows it: anchoring pins the match
-		// start, so backtracking order alone decides which .fcNN tag $1 binds to, and a greedy `.*`
-		// would bind the last rather than the first (e.g. `1.2-3.fc31.fc43` -> fc43, not fc31).
+		// lazy wildcard so $1 binds the first dist tag (`1.2-3.fc31.fc43` -> fc31)
 		{MatchDistroName: "rapidfort-redhat", MatchPackageVersion: `.*?\.fc(\d+)(?:[._~-].*)?`, ReplacementChannel: ptr("fc$1"), Priority: priorityRapidFortDistTag},
 
-		// rapidfort: an elN dist tag is the native stream, which lives in the channel-less rows —
-		// so there is no rule for it; matching no rule at all leaves the queried distro, which
-		// queries exactly those rows.
-
-		// rapidfort: rf- name prefix as a fallback for rpm versions with no derivable stream
-		// marker (ubuntu needs no name fallback: unmarked dpkg versions are the native stream).
-		// Priority is what keeps this from firing alongside the version-derived rules; the one
-		// exclusion left is the el tag, whose native stream has no rule of its own to outrank
-		// this fallback.
+		// rf- name is a fallback; elN has no rule to outrank it, so exclude it here
 		{MatchDistroName: "rapidfort-redhat", MatchPackageName: `rf-.*`, ExcludePackageVersion: `.*\.el\d+(?:[._~-].*)?`, ReplacementChannel: ptr("rf"), Priority: priorityRapidFortNameMarker},
 
-		// rapidfort curates complete vulnerability data (disclosures and fixes) for its alpine
-		// stream, unlike alpine secDB which reports only fixes and relies on the upstream NVD/CPE
-		// search for disclosures — so matched packages must not fall back to the upstream data
-		// (see matcher/internal.IncludeBaseDistro). This is an OS-scoped data policy: it names no
-		// package and substitutes nothing, so it applies to every rapidfort-alpine package and is
-		// exempt from priority ranking (see highestPriority) — the NVD/CPE search stays suppressed
-		// even for a package a higher-priority stream rule routes to a channel. Alpine has no
-		// stream rules today: vunnel emits no release-stream identifiers for alpine, so every
-		// alpine record lands in the channel-less rows, which is exactly what an unrouted query
-		// searches. A channel rule (e.g. an rf rebuild marker) belongs here if that changes, and
-		// this policy will hold alongside it.
-		{MatchDistroName: "rapidfort-alpine", IncludeBaseDistro: ptr(false)},
+		// rapidfort curates complete alpine data: its own OS rows are the whole picture, disclosures
+		// as well as fixes, so there is no NVD/CPE fallback to make beneath them. The rule
+		// substitutes nothing — that a rule speaks for the package at all is the whole statement.
+		{MatchDistroName: "rapidfort-alpine"},
 
-		// echo-patched debian packages carry `[.-]echo` version markers; the rule unions echo's
-		// own OS identity into matched queries (echo is a rolling alias, so the overlay resolves
-		// version-free). Echo publishes fixes for packages it patches rather than a complete
-		// feed, so the rule leaves IncludeBaseDistro unset and the debian data is still searched. It is
-		// matched by package type and version alone so it applies to incoming ecosystem queries,
-		// which carry no distro criteria.
+		// echo-patched debian packages; echo publishes only fixes, so debian data is still searched
 		{MatchEcosystem: "deb", MatchPackageVersion: `.*[.-]echo.*`, ReplacementDistroName: ptr("echo")},
 	}
 }
 
-// rapidfort release-stream precedence: a version marker names the stream a package was built in,
-// so it outranks the rf- name prefix, which only says which advisory file the package appears in.
-// An rf rebuild of a Fedora package carries both markers and belongs to the rf stream.
+// a version marker names the stream a package was built in, so it outranks the rf- name prefix,
+// which only says which advisory file the package appears in.
 const (
 	priorityRapidFortRebuildMarker = 30
 	priorityRapidFortDistTag       = 20
 	priorityRapidFortNameMarker    = 10
-)
 
-// rapidfortDpkgRebuildMarker selects a RapidFort-rebuilt dpkg package by its version. RapidFort
-// uses one naming scheme across both dpkg base distros — `rfubu` appears on debian rebuilds as
-// well as ubuntu ones — so both rules share this pattern. The `~` in the separator class is
-// dpkg's pre-release marker, which terminates the tag in versions like `1.2-4rfdebian~rf.1`.
-const rapidfortDpkgRebuildMarker = `.*(?:rfubu|rfdeb).*|.*[.+~-]rf(?:[._].*)?`
+	// one naming scheme across both dpkg base distros (`rfubu` appears on debian rebuilds too).
+	// `~` is dpkg's pre-release marker, terminating the tag in e.g. `1.2-4rfdebian~rf.1`.
+	rapidfortDpkgRebuildMarker = `.*(?:rfubu|rfdeb).*|.*[.+~-]rf(?:[._].*)?`
+)
 
 func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {
 	// when matching packages, grype will always attempt to do so based off of the package type which means

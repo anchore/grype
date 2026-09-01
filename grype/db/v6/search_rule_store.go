@@ -24,7 +24,7 @@ func newSearchRuleStore(db *gorm.DB) *searchRuleStore {
 // GetSearchRules returns all search rules. Which rules apply to a search is decided by their
 // priority, so the order rows come back in carries no meaning and none is imposed. A database
 // built before this table existed has no such table; that is not an error — nil is returned,
-// which the caller reads as "fall back to the built-in defaults".
+// which the caller reads as "fall back to the built-in defaults", the same as any empty result.
 func (s *searchRuleStore) GetSearchRules() ([]SearchRule, error) {
 	if !s.db.Migrator().HasTable(&SearchRule{}) {
 		return nil, nil

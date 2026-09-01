@@ -138,7 +138,7 @@ func readSBOMsFromTar(r io.Reader, config ProviderConfig, applyChannel func(*dis
 		}
 		decodedCount++
 
-		d, _ := distroFromSBOM(s, config, applyChannel, nil)
+		d, _ := distroFromSBOM(s, config, applyChannel)
 
 		var enhancers []Enhancer
 		if fmtID != syftjson.ID {

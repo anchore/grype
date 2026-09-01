@@ -104,23 +104,14 @@ func GenerateListingFile(resultsDir, listingPath string) error {
 	// sort for determinism
 	sort.Strings(files)
 
-	// Write to a sibling temp file and rename into place. EnsureListingFile regenerates
-	// unconditionally, so two callers sharing a workspace both rewrite this file; truncating in
-	// place lets a concurrent reader observe a half-written listing and silently miss result
-	// files. The rename is atomic, so a reader sees either the old file or the new one. The
-	// temp name's ".xxh64" suffix keeps it invisible to the walk above, so a concurrent
-	// regeneration never mistakes it for a result file.
-	tmp, err := os.CreateTemp(filepath.Dir(listingPath), ".listing-tmp-*.xxh64")
+	// create listing file
+	f, err := os.Create(listingPath)
 	if err != nil {
 		return fmt.Errorf("failed to create listing file: %w", err)
 	}
-	tmpPath := tmp.Name()
-	defer func() {
-		tmp.Close()
-		_ = os.Remove(tmpPath) // no-op once the rename has succeeded
-	}()
+	defer f.Close()
 
-	writer := bufio.NewWriter(tmp)
+	writer := bufio.NewWriter(f)
 	for _, relPath := range files {
 		filePath := filepath.Join(resultsDir, relPath)
 		hash, err := HashFileXXH64(filePath)
@@ -130,22 +121,13 @@ func GenerateListingFile(resultsDir, listingPath string) error {
 
 		// format: <hash>  results/<relative-path>
 		// the path is relative to the provider directory
-		entryPath := filepath.Join("results", relPath)
-		if _, err := fmt.Fprintf(writer, "%s  %s\n", hash, entryPath); err != nil {
+		listingPath := filepath.Join("results", relPath)
+		if _, err := fmt.Fprintf(writer, "%s  %s\n", hash, listingPath); err != nil {
 			return err
 		}
 	}
 
-	if err := writer.Flush(); err != nil {
-		return err
-	}
-	if err := tmp.Close(); err != nil {
-		return fmt.Errorf("failed to close listing file: %w", err)
-	}
-	if err := os.Rename(tmpPath, listingPath); err != nil {
-		return fmt.Errorf("failed to write listing file: %w", err)
-	}
-	return nil
+	return writer.Flush()
 }
 
 // HashFileXXH64 computes the xxhash64 of a file and returns it as a hex string.

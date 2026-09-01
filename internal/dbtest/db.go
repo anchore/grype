@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	grypePkg "github.com/anchore/grype/grype/pkg"
@@ -37,20 +38,22 @@ type DB struct {
 
 var _ vulnerability.Provider = &DB{}
 var _ vulnerability.EOLChecker = &DB{}
-var _ vulnerability.SearchRuleProvider = &DB{}
+
+// SearchRules returns the search rules that apply to the given package, delegating to the
+// underlying provider when it exposes them. Matching reads these through the result provider, so a
+// wrapper that dropped them would silently un-route every rule-driven search under test.
+func (db *DB) SearchRules(p grypePkg.Package) []v6.SearchRule {
+	if rp, ok := db.provider.(interface {
+		SearchRules(grypePkg.Package) []v6.SearchRule
+	}); ok {
+		return rp.SearchRules(p)
+	}
+	return nil
+}
 
 // PackageSearchNames returns the package names to search for in the database.
 func (db *DB) PackageSearchNames(p grypePkg.Package) []string {
 	return db.provider.PackageSearchNames(p)
-}
-
-// SearchRules returns the search rules that apply to the given package, delegating to the
-// underlying provider when it exposes them.
-func (db *DB) SearchRules(p grypePkg.Package) []vulnerability.SearchRule {
-	if rp, ok := db.provider.(vulnerability.SearchRuleProvider); ok {
-		return rp.SearchRules(p)
-	}
-	return nil
 }
 
 // FindVulnerabilities returns vulnerabilities matching all the provided criteria.

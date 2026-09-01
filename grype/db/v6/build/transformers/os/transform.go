@@ -148,28 +148,12 @@ func getPackages(vuln unmarshal.OSVulnerability) ([]db.AffectedPackageHandle, []
 func buildRanges(vuln unmarshal.OSVulnerability, fixedIns []unmarshal.OSFixedIn) []db.Range {
 	var ranges []db.Range
 	for _, fixedInEntry := range fixedIns {
-		v := db.Version{
-			Type:       fixedInEntry.VersionFormat,
-			Constraint: enforceConstraint(fixedInEntry.Version, fixedInEntry.VulnerableRange, fixedInEntry.VersionFormat, vuln.Vulnerability.Name),
-		}
-		fix := getFix(fixedInEntry)
-
-		// this is the only range built from a provider-supplied constraint (the other sites derive
-		// `< fix`, which is closed above by construction), so it is the only one that can pair a
-		// fix version with a range that does not exclude it
-		if fix != nil && fix.State == db.FixedStatus && internal.FixVersionIsVulnerable(v, fix.Version) {
-			log.WithFields(
-				"vulnerability", vuln.Vulnerability.Name,
-				"package", fixedInEntry.Name,
-				"namespace", fixedInEntry.NamespaceName,
-				"constraint", v.Constraint,
-				"fixVersion", fix.Version,
-			).Warn("vulnerable range includes its own fix version; a package installed at the fix version will still match")
-		}
-
 		ranges = append(ranges, db.Range{
-			Version: v,
-			Fix:     fix,
+			Version: db.Version{
+				Type:       fixedInEntry.VersionFormat,
+				Constraint: enforceConstraint(fixedInEntry.Version, fixedInEntry.VulnerableRange, fixedInEntry.VersionFormat, vuln.Vulnerability.Name),
+			},
+			Fix: getFix(fixedInEntry),
 		})
 	}
 	return ranges

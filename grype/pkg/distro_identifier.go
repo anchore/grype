@@ -7,10 +7,8 @@ import (
 	"github.com/anchore/syft/syft/source"
 )
 
-// ApplyDistroIdentifiers returns the identified distro based on source evidence: a marker file
-// (probed via hasPath, which may be nil when no file evidence is available) or a matching
-// container image label.
-func ApplyDistroIdentifiers(d *distro.Distro, src *source.Description, hasPath func(string) bool, identifiers []distro.Identifier) *distro.Distro {
+// applyDistroIdentifiers returns the identified distro based on source evidence
+func applyDistroIdentifiers(s *sbom.SBOM, d *distro.Distro, identifiers []distro.Identifier) *distro.Distro {
 	if d == nil {
 		return d
 	}
@@ -19,7 +17,7 @@ func ApplyDistroIdentifiers(d *distro.Distro, src *source.Description, hasPath f
 		if o.Apply == distro.ChannelNeverEnabled {
 			continue
 		}
-		if !identifierTriggered(o, src, hasPath) {
+		if !identifierTriggered(o, s) {
 			continue
 		}
 		newID, ok := o.DistroIDs[d.ID()]
@@ -48,17 +46,17 @@ func ApplyDistroIdentifiers(d *distro.Distro, src *source.Description, hasPath f
 
 // identifierTriggered indicates if the scanned source carries any of the identifier's
 // evidence: a marker file (via hasPath) or a matching container image label.
-func identifierTriggered(o distro.Identifier, src *source.Description, hasPath func(string) bool) bool {
-	if hasPath != nil {
+func identifierTriggered(o distro.Identifier, s *sbom.SBOM) bool {
+	if s != nil {
 		for _, p := range o.MarkerPaths {
-			if hasPath(p) {
+			if sbomHasPath(s, p) {
 				return true
 			}
 		}
-	}
 
-	if o.Label.Key != "" && sourceMatchesLabel(src, o.Label) {
-		return true
+		if o.Label.Key != "" && sourceMatchesLabel(&s.Source, o.Label) {
+			return true
+		}
 	}
 
 	return false

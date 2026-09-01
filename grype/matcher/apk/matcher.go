@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 
+	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/matcher/internal/result"
@@ -88,23 +89,10 @@ func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match
 // the feed calls unaffected, and apk "< 0" NAKs, which are vulnerable at no version and so land here
 // too. That is what makes it the right thing to reconcile other sources against.
 func (m *Matcher) distroResults(vp vulnerability.Provider, p pkg.Package) (vulnerable, allFixed result.Set, err error) {
-	// APK doesn't use epochs, so pass a nil comparison config.
-	vulnerable, allFixed, err = internal.FindResultsByDistro(vp, p, nil, m.Type(), nil)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
-		upstreamVulnerable, upstreamFixed, err := internal.FindResultsByDistro(vp, upstreamPkg, &p, m.Type(), nil)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		vulnerable = vulnerable.Merge(markIndirect(upstreamVulnerable, p))
-		allFixed = allFixed.Merge(upstreamFixed)
-	}
-
-	return vulnerable, allFixed, nil
+	// the package and its origin packages are split together, so a fix recorded under the origin
+	// name can resolve a disclosure recorded under the package's own name. APK doesn't use epochs,
+	// so pass a nil comparison config.
+	return internal.FindResultsByDistroAcrossUpstreams(vp, p, nil, m.Type(), nil)
 }
 
 // nakIgnores collects explicit NAK ("< 0") entries for the package and its upstreams and returns them
@@ -127,6 +115,9 @@ func (m *Matcher) nakIgnores(vp vulnerability.Provider, p pkg.Package) ([]match.
 	}
 
 	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
+		if upstreamPkg.Distro == nil {
+			continue
+		}
 		upstreamNaks, err := provider.FindResults(
 			search.ByDistro(*upstreamPkg.Distro),
 			search.ByPackageName(upstreamPkg.Name),
@@ -145,9 +136,7 @@ func (m *Matcher) nakIgnores(vp vulnerability.Provider, p pkg.Package) ([]match.
 // upstream/origin packages, the latter recorded against the SBOM package. Searching the origin is what
 // surfaces, for example, an openssl CVE for a libssl3 APK whose origin is openssl.
 func (m *Matcher) cpeResults(provider vulnerability.Provider, p pkg.Package) (result.Set, []match.IgnoreFilter, error) {
-	if !internal.IncludeBaseDistro(provider, p) {
-		// the search rules route this package to data that is the complete picture for it: skip
-		// the upstream (NVD/CPE) search
+	if !includeNVD(provider, p) {
 		return nil, nil, nil
 	}
 
@@ -230,4 +219,35 @@ func stripFixState(s result.Set) result.Set {
 		}
 		r.Vulnerabilities = vulns
 	})
+}
+
+// includeNVD reports whether the upstream NVD (CPE-indexed) search should be made for this package.
+//
+// Alpine's secDB records fixes without disclosures, which is why an apk match falls back to NVD for
+// the disclosures at all. A vendor that curates its own complete alpine feed -- disclosures as well
+// as fixes -- says so by carrying a search rule for the package (see v6.KnownSearchRules), and for
+// those the NVD search only adds findings the vendor has already answered.
+//
+// A rule can ask for the NVD records back by naming them as its OS -- a non-NULL but empty
+// replacement OS name -- which is how a vendor whose feed carries only fixes keeps the disclosure
+// fallback its packages still need.
+func includeNVD(provider vulnerability.Provider, p pkg.Package) bool {
+	rp, ok := provider.(interface {
+		SearchRules(pkg.Package) []v6.SearchRule
+	})
+	if !ok {
+		return true
+	}
+
+	rules := rp.SearchRules(p)
+	if len(rules) == 0 {
+		return true
+	}
+	for _, r := range rules {
+		// an empty replacement distro name indicates to search the base distro-less record set
+		if r.IsDistrolessSearch() {
+			return true
+		}
+	}
+	return false
 }

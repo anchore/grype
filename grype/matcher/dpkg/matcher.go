@@ -51,17 +51,13 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 		matches = append(matches, esmMatches...)
 		ignores = append(ignores, esmIgnores...)
 	} else {
-		upstreamMatches, upstreamIgnores, err := m.matchUpstreamPackages(store, p)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to match by source indirection: %w", err)
-		}
-		matches = append(matches, upstreamMatches...)
-		ignores = append(ignores, upstreamIgnores...)
-
 		versionConfig := version.ComparisonConfig{
 			MissingEpochStrategy: m.cfg.MissingEpochStrategy,
 		}
-		exactMatches, exactIgnores, err := internal.MatchPackageByDistro(store, p, nil, m.Type(), &versionConfig)
+		// the binary and its source packages are split together: ubuntu and debian data is
+		// source-keyed, so the fix that answers a binary's disclosure is routinely stored under the
+		// source name, and only one split over both can let it do so
+		exactMatches, exactIgnores, err := internal.MatchPackageByDistroAcrossUpstreams(store, p, m.Type(), &versionConfig)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
 		}
@@ -107,29 +103,6 @@ func (m *Matcher) matchUbuntuESM(store vulnerability.Provider, p pkg.Package) ([
 		matches = append(matches, indirectMatches...)
 		ignores = append(ignores, indirectIgnores...)
 	}
-
-	return matches, ignores, nil
-}
-
-func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
-	var matches []match.Match
-	var ignores []match.IgnoreFilter
-
-	versionConfig := version.ComparisonConfig{
-		MissingEpochStrategy: m.cfg.MissingEpochStrategy,
-	}
-	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, ignored, err := internal.MatchPackageByDistro(store, indirectPackage, &p, m.Type(), &versionConfig)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to find vulnerabilities for dpkg upstream source package: %w", err)
-		}
-		matches = append(matches, indirectMatches...)
-		ignores = append(ignores, ignored...)
-	}
-
-	// we want to make certain that we are tracking the match based on the package from the SBOM (not the indirect package)
-	// however, we also want to keep the indirect package around for future reference
-	match.ConvertToIndirectMatches(matches, p)
 
 	return matches, ignores, nil
 }

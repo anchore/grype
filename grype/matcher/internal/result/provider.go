@@ -1,6 +1,7 @@
 package result
 
 import (
+	"slices"
 	"sort"
 
 	"github.com/facebookincubator/nvdtools/wfn"
@@ -19,6 +20,9 @@ var _ Provider = (*provider)(nil)
 
 type Provider interface {
 	FindResults(criteria ...vulnerability.Criteria) (Set, error)
+
+	// FindAll runs FindResults and includes all unaffected records
+	FindAll(criteria ...vulnerability.Criteria) (Set, error)
 }
 
 type provider struct {
@@ -39,27 +43,58 @@ func (p provider) FindResults(criteria ...vulnerability.Criteria) (Set, error) {
 	results := Set{}
 	// get each iteration here so detailProvider will have the specific values used for searches
 	for _, cs := range search.CriteriaIterator(criteria) {
-		vulns, err := p.vulnProvider.FindVulnerabilities(cs...)
-		if err != nil {
-			return Set{}, err
-		}
-
-		for _, v := range vulns {
-			if v.ID == "" {
-				continue // skip vulnerabilities without an ID (should never happen)
+		// the provider's search rules may route this search to additional OS rows (a release-stream
+		// channel, another vendor's OS name); each is its own store search, so how confidently its
+		// rows speak for this package is known here, per search, and travels on the details it
+		// produces
+		for _, s := range applySearchRules(p.vulnProvider, p.catalogedPkg, cs) {
+			vulns, err := p.vulnProvider.FindVulnerabilities(s.criteria...)
+			if err != nil {
+				return Set{}, err
 			}
 
-			newResult := Result{
-				ID:              v.ID,
-				Vulnerabilities: []vulnerability.Vulnerability{v},
-				Details:         detailProvider(p.matcher, p.catalogedPkg, criteria, v),
-				Package:         &p.catalogedPkg,
-			}
+			for _, v := range vulns {
+				if v.ID == "" {
+					continue // skip vulnerabilities without an ID (should never happen)
+				}
 
-			results[v.ID] = append(results[v.ID], newResult)
+				details := detailProvider(p.matcher, p.catalogedPkg, s.criteria, v)
+				if s.confidence > 0 {
+					details = append(details, match.ConfidenceDetail(p.matcher, s.stream, s.confidence))
+				}
+
+				newResult := Result{
+					ID:              v.ID,
+					Vulnerabilities: []vulnerability.Vulnerability{v},
+					Details:         details,
+					Package:         &p.catalogedPkg,
+				}
+
+				results[v.ID] = append(results[v.ID], newResult)
+			}
 		}
 	}
 	return results, nil
+}
+
+func (p provider) FindAll(criteria ...vulnerability.Criteria) (Set, error) {
+	// the affected records and the unaffected ones live in separate stores and are reached by
+	// mutually exclusive searches, so the only way to hold both at once is to ask twice and union
+	affected, err := p.FindResults(criteria...)
+	if err != nil {
+		return Set{}, err
+	}
+
+	// note: no version criteria on either search. The split needs the records this version falls
+	// outside of -- a record already fixed at this version is what distinguishes "resolved" from
+	// "this stream is describing some other release line", and a nak that does not cover this
+	// version must not read as a denial.
+	unaffected, err := p.FindResults(append(slices.Clone(criteria), search.ForUnaffected())...)
+	if err != nil {
+		return Set{}, err
+	}
+
+	return affected.Merge(unaffected), nil
 }
 
 func detailProvider(matcher match.MatcherType, catalogedPkg pkg.Package, criteriaSet []vulnerability.Criteria, vuln vulnerability.Vulnerability) match.Details {
@@ -92,6 +127,15 @@ func extractSearchParameters(criteriaSet []vulnerability.Criteria, vuln vulnerab
 			pkgParams.Name = c.PackageName
 
 		case *search.VersionCriteria:
+			if pkgParams == nil {
+				pkgParams = &match.PackageParameter{}
+			}
+			pkgParams.Version = c.Version.Raw
+
+		case *search.PackageVersionCriteria:
+			// the version a search was made at, conveyed without constraining results. Recording it
+			// here is what lets Set.SplitVulnerable read each record's own searched version back off
+			// its details rather than assuming every record in a set was searched at the same one.
 			if pkgParams == nil {
 				pkgParams = &match.PackageParameter{}
 			}

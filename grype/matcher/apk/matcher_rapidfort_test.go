@@ -12,11 +12,10 @@ import (
 )
 
 // TestRapidFortAlpine_Matching proves the data-driven completeness policy: rapidfort curates
-// complete vulnerability data (disclosures and fixes) for its alpine stream, so the search rules
-// mark rapidfort-alpine apk data as the whole picture (IncludeBaseDistro: false)
-// and the apk matcher must not fall back to the upstream (NVD/CPE) search it normally runs
-// unconditionally (alpine secDB reports fixes, not disclosures, so plain alpine relies on
-// that fallback for disclosures).
+// complete vulnerability data (disclosures and fixes) for its alpine stream, so a search rule
+// speaks for rapidfort-alpine packages, and the apk matcher must not fall back to the upstream
+// (NVD/CPE) search it normally runs unconditionally (see includeNVD; alpine secDB reports fixes,
+// not disclosures, so plain alpine relies on that fallback for disclosures).
 //
 // The fixture carries:
 //

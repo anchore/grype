@@ -17,8 +17,7 @@ type PackageVersionCriteria struct {
 	Version version.Version
 }
 
-// WithVersion returns criteria conveying the searched package's version without
-// constraining results by it.
+// WithVersion returns criteria conveying the searched package's version without matching by version ranges
 func WithVersion(v version.Version) vulnerability.Criteria {
 	return &PackageVersionCriteria{Version: v}
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -101,6 +102,39 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, ignored)
 	assert.Empty(t, actual)
+}
+
+func TestFindResultsByDistroAcrossUpstreams_UnknownBinaryVersion(t *testing.T) {
+	// the binary's own version says nothing, but its upstream carries one of its own: the upstream
+	// is still searched, and only the binary's own search is skipped
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "neutron-devel",
+		Version: "unknown",
+		Type:    syftPkg.DebPkg,
+		Distro:  distro.New(distro.Debian, "8", ""),
+		Upstreams: []pkg.UpstreamPackage{
+			{Name: "neutron", Version: "2014.1.3-6"},
+		},
+	}
+
+	vulnerable, _, err := FindResultsByDistroAcrossUpstreams(newMockProviderByDistro(), p, nil, match.PythonMatcher, nil)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"CVE-2014-fake-1"}, idsOf(vulnerable))
+
+	// with nothing else to search, an unknown version still finds nothing
+	p.Upstreams = nil
+	vulnerable, _, err = FindResultsByDistroAcrossUpstreams(newMockProviderByDistro(), p, nil, match.PythonMatcher, nil)
+	require.NoError(t, err)
+	assert.Empty(t, idsOf(vulnerable))
+}
+
+func idsOf(s result.Set) []string {
+	var out []string
+	for _, v := range s.Vulnerabilities() {
+		out = append(out, v.ID)
+	}
+	return out
 }
 
 func TestMatchPackageByDistroWithIgnoreRules(t *testing.T) {

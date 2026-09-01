@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/cpe"
 )
@@ -310,7 +311,7 @@ func TestMergeFix_AvailableDedup(t *testing.T) {
 		},
 	}
 
-	got := mergeFix(base, other)
+	got := mergeFix(base, other, version.UnknownFormat)
 
 	assert.Equal(t, []string{"1.0.0", "2.0.0", "3.0.0"}, got.Versions, "versions should be sorted and deduped")
 	assert.Equal(t, vulnerability.FixStateFixed, got.State)
@@ -345,7 +346,7 @@ func TestMergeFix_StateResolution(t *testing.T) {
 		for i, other := range others {
 			name := fmt.Sprintf("base=%q other=%q", base, other)
 			t.Run(name, func(t *testing.T) {
-				got := mergeFix(vulnerability.Fix{State: base}, vulnerability.Fix{State: other})
+				got := mergeFix(vulnerability.Fix{State: base}, vulnerability.Fix{State: other}, version.UnknownFormat)
 				assert.Equal(t, expected[base][i], got.State)
 			})
 		}
@@ -357,8 +358,8 @@ func TestMergeFix_StateResolution(t *testing.T) {
 	t.Run("is commutative", func(t *testing.T) {
 		for _, a := range others {
 			for _, b := range others {
-				forward := mergeFix(vulnerability.Fix{State: a}, vulnerability.Fix{State: b}).State
-				reverse := mergeFix(vulnerability.Fix{State: b}, vulnerability.Fix{State: a}).State
+				forward := mergeFix(vulnerability.Fix{State: a}, vulnerability.Fix{State: b}, version.UnknownFormat).State
+				reverse := mergeFix(vulnerability.Fix{State: b}, vulnerability.Fix{State: a}, version.UnknownFormat).State
 				assert.Equal(t, forward, reverse, "mergeFix(%q, %q) must not depend on direction", a, b)
 			}
 		}
@@ -369,11 +370,11 @@ func TestMergeFix_StateResolution(t *testing.T) {
 		wontFixRecord := vulnerability.Fix{State: wontFix}
 		fixedRecord := vulnerability.Fix{State: fixed, Versions: []string{"2.0.0"}}
 
-		forward := mergeFix(wontFixRecord, fixedRecord)
+		forward := mergeFix(wontFixRecord, fixedRecord, version.UnknownFormat)
 		assert.Equal(t, fixed, forward.State)
 		assert.Equal(t, []string{"2.0.0"}, forward.Versions)
 
-		reverse := mergeFix(fixedRecord, wontFixRecord)
+		reverse := mergeFix(fixedRecord, wontFixRecord, version.UnknownFormat)
 		assert.Equal(t, fixed, reverse.State)
 		assert.Equal(t, []string{"2.0.0"}, reverse.Versions)
 	})
@@ -478,4 +479,29 @@ func TestMatch_Merge_isOrderIndependentForThreeRecords(t *testing.T) {
 		assert.Equal(t, want.Vulnerability.PackageName, got[0].Vulnerability.PackageName, "the surviving record must not depend on the order matches arrive in")
 		assert.Equal(t, want.Vulnerability.Fix.State, got[0].Vulnerability.Fix.State, "the surviving fix state must not depend on the order matches arrive in")
 	}
+}
+
+// TestMergeFix_DedupesEpochSpellings pins that two records naming the same build under different
+// spellings produce one upgrade target, not two. Real advisory data spells the same rpm fix both
+// with and without its zero epoch across sibling entries, and a reader shown both has no way to know
+// they are the same thing.
+func TestMergeFix_DedupesEpochSpellings(t *testing.T) {
+	fixed := func(versions ...string) vulnerability.Fix {
+		return vulnerability.Fix{State: vulnerability.FixStateFixed, Versions: versions}
+	}
+
+	t.Run("rpm zero epoch collapses", func(t *testing.T) {
+		got := mergeFix(fixed("0:0.26.4-1.fc43"), fixed("0.26.4-1.fc43"), version.RpmFormat)
+		assert.Len(t, got.Versions, 1)
+	})
+
+	t.Run("genuinely different builds both survive", func(t *testing.T) {
+		got := mergeFix(fixed("0:0.26.4-1.fc43"), fixed("0:0.26.5-1.fc43"), version.RpmFormat)
+		assert.Equal(t, []string{"0:0.26.4-1.fc43", "0:0.26.5-1.fc43"}, got.Versions)
+	})
+
+	t.Run("an unknown format leaves the versions exactly as they arrived", func(t *testing.T) {
+		got := mergeFix(fixed("0:0.26.4-1.fc43"), fixed("0.26.4-1.fc43"), version.UnknownFormat)
+		assert.Len(t, got.Versions, 2, "never remove a version we cannot prove is a duplicate")
+	})
 }
