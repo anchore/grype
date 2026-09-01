@@ -196,17 +196,23 @@ when using template as the output type, you must also provide a value for 'outpu
 	descriptions.Add(&o.Pretty, `pretty-print output`)
 	descriptions.Add(&o.FailOn, `upon scanning, if a severity is found at or above the given severity then the return code will be 1
 default is unset which will skip this validation (options: negligible, low, medium, high, critical)`)
-	descriptions.Add(&o.Ignore, `A list of vulnerability ignore rules, one or more property may be specified and all matching vulnerabilities will be ignored.
-This is the full set of supported rule fields:
-  - vulnerability: CVE-2008-4318
-    fix-state: unknown
+	descriptions.Add(&o.Ignore, `a list of vulnerability ignore rules; a match must meet ALL criteria in a rule to be ignored.
+Full set of supported rule fields with examples:
+  - vulnerability: CVE-2008-4318        # match by vulnerability ID (required if no other criteria)
+    namespace: nvd                       # match by vulnerability namespace (e.g. nvd, github:language:go)
+    fix-state: unknown                   # ignore if fix state matches; options: unknown, fixed, not-fixed, wont-fix
+    match-type: exact-direct-match       # ignore by match type; options: exact-direct-match, exact-indirect-match, cpe-match
+    reason: "tolerated by policy"        # optional human-readable note (does not affect matching)
+    include-aliases: true                # also apply the vulnerability ID match to related/alias CVEs (default: false)
     package:
-      name: libcurl
-      version: 1.5.1
-      type: npm
-      location: "/usr/local/lib/node_modules/**"
+      name: libcurl                      # match by package name (supports regex)
+      version: 1.5.1                     # match by package version
+      type: npm                          # match by package type (e.g. rpm, deb, apk, gem, npm, …)
+      location: "/usr/local/lib/**"      # match by package file location glob
+      language: go                       # match by package language (e.g. go, java, python, …)
+      upstream-name: curl                # match by upstream package name (supports regex)
 
-VEX fields apply when Grype reads vex data:
+VEX fields apply when Grype reads VEX documents (--vex):
   - vex-status: not_affected
     vex-justification: vulnerable_code_not_present
 `)
