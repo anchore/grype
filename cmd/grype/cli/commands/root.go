@@ -573,21 +573,27 @@ func applyVexRules(opts *options.Grype) error {
 	return nil
 }
 
-// parseSuppressedSources splits raw at commas, validates each entry against
-// the defined IgnoreSource values, and returns the resulting slice. An empty
-// or whitespace-only input yields a nil slice and no error, which the caller
-// treats as "no filter".
+// parseSuppressedSources splits raw at commas, trims each entry, drops
+// entries that are empty after trimming, and validates the remaining entries
+// against the defined IgnoreSource values. Empty or whitespace-only input
+// yields a nil slice and no error, which the caller treats as "no filter".
+// Trimming is what makes list forms like "user-rule, vex" work; without it
+// the leading space on the second entry would fail validation.
 func parseSuppressedSources(raw string) ([]string, error) {
 	entries := stringutil.SplitCommaSeparatedString(raw)
-	if len(entries) == 0 {
-		return nil, nil
-	}
 	out := make([]string, 0, len(entries))
 	for _, s := range entries {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			continue
+		}
 		if !match.IsValidIgnoreSource(s) {
 			return nil, fmt.Errorf("unknown --suppressed-sources %q: valid values are %v", s, match.ValidIgnoreSources())
 		}
 		out = append(out, s)
+	}
+	if len(out) == 0 {
+		return nil, nil
 	}
 	return out, nil
 }
