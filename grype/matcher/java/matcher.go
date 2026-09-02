@@ -39,8 +39,11 @@ type MatcherConfig struct {
 func NewJavaMatcher(cfg MatcherConfig) *Matcher {
 	client := http.DefaultClient
 	if cfg.MavenTimeout > 0 {
-		// dedicated client so a configured per-request timeout does not bleed onto unrelated callers
-		client = &http.Client{Timeout: cfg.MavenTimeout}
+		// shallow-copy the default client so the configured per-request timeout does not
+		// bleed onto unrelated callers, while preserving any Transport, CheckRedirect, or Jar
+		clientCopy := *http.DefaultClient
+		clientCopy.Timeout = cfg.MavenTimeout
+		client = &clientCopy
 	}
 	return &Matcher{
 		cfg:           cfg,
