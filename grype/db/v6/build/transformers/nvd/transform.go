@@ -115,6 +115,30 @@ func getAssigner(vuln unmarshal.NVDVulnerability) []string {
 }
 
 func getVulnStatus(vuln unmarshal.NVDVulnerability) db.VulnerabilityStatus {
+	var s string
+	if vuln.VulnStatus != nil {
+		s = strings.TrimSpace(strings.ReplaceAll(strings.ToLower(*vuln.VulnStatus), " ", ""))
+	}
+
+	// reject (CVE list): A CVE Entry listed as "REJECT" is a CVE Entry that is not accepted as a CVE Entry. The reason a CVE Entry is marked
+	//    REJECT will most often be stated in the description of the CVE Entry. Possible examples include it being a duplicate CVE Entry, it being
+	//    withdrawn by the original requester, it being assigned incorrectly, or some other administrative reason.
+	//    As a rule, REJECT CVE Entries should be ignored.
+	//
+	// rejected (NVD): CVE has been marked as "**REJECT**" in the CVE List. These CVEs are stored in the NVD, but do not show up in search results.
+	//
+	// this takes precedence over a disputed tag: a rejected record must not be acted upon, which is a stronger
+	// signal than a dispute over whether it's a valid vulnerability.
+	if s == "rejected" || s == "reject" {
+		return db.VulnerabilityRejected
+	}
+
+	// note: a CVE can be tagged as "disputed" via cveTags independently of its vulnStatus (e.g. while "Analyzed"),
+	// so this needs to be checked before falling back to the vulnStatus-derived value below.
+	if vuln.IsDisputed() {
+		return db.VulnerabilityDisputed
+	}
+
 	if vuln.VulnStatus == nil {
 		return db.UnknownVulnerabilityStatus
 	}
@@ -123,7 +147,6 @@ func getVulnStatus(vuln unmarshal.NVDVulnerability) db.VulnerabilityStatus {
 
 	// based off of the NVD or CVE list status, set the current vulnerability record status
 	// see https://nvd.nist.gov/vuln/vulnerability-status
-	s := strings.TrimSpace(strings.ReplaceAll(strings.ToLower(*vuln.VulnStatus), " ", ""))
 	switch s {
 	case "reserved", "received":
 		// reserved (CVE list): A CVE Entry is marked as "RESERVED" when it has been reserved for use by a CVE Numbering Authority (CNA) or security
@@ -147,14 +170,6 @@ func getVulnStatus(vuln unmarshal.NVDVulnerability) db.VulnerabilityStatus {
 		//    vendor or developer for more information.
 		//
 		return db.VulnerabilityDisputed
-	case "rejected", "reject":
-		// reject (CVE list): A CVE Entry listed as "REJECT" is a CVE Entry that is not accepted as a CVE Entry. The reason a CVE Entry is marked
-		//    REJECT will most often be stated in the description of the CVE Entry. Possible examples include it being a duplicate CVE Entry, it being
-		//    withdrawn by the original requester, it being assigned incorrectly, or some other administrative reason.
-		//    As a rule, REJECT CVE Entries should be ignored.
-		//
-		// rejected (NVD): CVE has been marked as "**REJECT**" in the CVE List. These CVEs are stored in the NVD, but do not show up in search results.
-		return db.VulnerabilityRejected
 	case "modified", "analyzed", "published":
 		// modified (NVD): CVE has been amended by a source (CVE Primary CNA or another CNA). Analysis data supplied by the NVD may be no longer be accurate due to these changes.
 		//
