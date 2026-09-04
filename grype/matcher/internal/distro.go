@@ -29,7 +29,7 @@ func FindResultsByDistro(provider vulnerability.Provider, searchPkg pkg.Package,
 		return result.Set{}, result.Set{}, nil
 	}
 
-	if isUnknownVersion(searchPkg.Version) {
+	if isMissingVersion(searchPkg.Version) {
 		log.WithFields("package", searchPkg.Name).Trace("skipping package with unknown version")
 		return result.Set{}, result.Set{}, nil
 	}
@@ -111,4 +111,16 @@ func matchPackage(searchPkg pkg.Package, catalogPkg *pkg.Package) pkg.Package {
 
 func isUnknownVersion(v string) bool {
 	return strings.ToLower(v) == "unknown"
+}
+
+// isMissingVersion reports whether a package carries no usable version for
+// range comparison. Both an empty string and the literal "unknown" sentinel
+// mean "we don't know the version". Range-based matchers must skip these
+// packages: OnlyVulnerableVersions treats a blank version as "match every
+// disclosure", so without this guard an unversioned package (e.g. a component
+// imported from an SBOM that omits its version) would report every CVE ever
+// recorded for its name. The rpm matcher's own isUnknownVersion already treats
+// both forms this way.
+func isMissingVersion(v string) bool {
+	return v == "" || isUnknownVersion(v)
 }
