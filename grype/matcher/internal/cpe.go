@@ -47,15 +47,15 @@ func FindResultsByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstr
 	}
 
 	for _, c := range p.CPEs {
-		// prefer the CPE version, but if npt specified use the package version
+		// prefer the CPE version, but if not specified use the package version
 		searchVersion := c.Attributes.Version
-
-		if p.Type == syftPkg.ApkPkg {
-			searchVersion = cpeversion.Alpine(searchVersion)
-		}
 
 		if searchVersion == wfn.NA || searchVersion == wfn.Any || isUnknownVersion(searchVersion) {
 			searchVersion = p.Version
+		}
+
+		if p.Type == syftPkg.ApkPkg {
+			searchVersion = cpeversion.Alpine(searchVersion)
 		}
 
 		if isUnknownVersion(searchVersion) {
