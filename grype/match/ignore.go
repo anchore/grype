@@ -1,8 +1,10 @@
 package match
 
 import (
+	"fmt"
 	"regexp"
 	"slices"
+	"time"
 
 	"github.com/bmatcuk/doublestar/v2"
 
@@ -11,6 +13,37 @@ import (
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/artifact"
 )
+
+// expiresAfterDateFmt is the date layout accepted for IgnoreRule.ExpiresAfter (YYYY-MM-DD).
+const expiresAfterDateFmt = "2006-01-02"
+
+// parseExpiresAfter parses a YYYY-MM-DD string into a UTC time.Time.
+// An empty string returns the zero value with no error.
+func parseExpiresAfter(s string) (time.Time, error) {
+	if s == "" {
+		return time.Time{}, nil
+	}
+	t, err := time.ParseInLocation(expiresAfterDateFmt, s, time.UTC)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid expires-after %q (expected YYYY-MM-DD): %w", s, err)
+	}
+	return t, nil
+}
+
+// isExpiresAfterInPast reports whether the given expires-after string represents a date that has already passed.
+// An empty string is never considered expired. Malformed values are treated as not expired (a warning is logged).
+func isExpiresAfterInPast(s string) bool {
+	if s == "" {
+		return false
+	}
+	t, err := parseExpiresAfter(s)
+	if err != nil {
+		log.WithFields("expires-after", s, "error", err).Warn("ignoring malformed expires-after on ignore rule")
+		return false
+	}
+	// the rule remains active for the entire calendar day it expires on
+	return time.Now().UTC().After(t.Add(24 * time.Hour))
+}
 
 // IgnoreFilter implementations are used to filter matches, returning all applicable IgnoreRule(s) that applied,
 // these could include an IgnoreRule with only a Reason value filled in for synthetically generated rules
@@ -40,6 +73,7 @@ type IgnoreRule struct {
 	VexStatus        string            `yaml:"vex-status" json:"vex-status" mapstructure:"vex-status"`
 	VexJustification string            `yaml:"vex-justification" json:"vex-justification" mapstructure:"vex-justification"`
 	MatchType        Type              `yaml:"match-type" json:"match-type" mapstructure:"match-type"`
+	ExpiresAfter 	 string 		   `yaml:"expires-after,omitempty" json:"expires-after,omitempty" mapstructure:"expires-after"`
 }
 
 // IgnoreRulePackage describes the Package-specific fields that comprise the IgnoreRule.
@@ -138,9 +172,23 @@ func ApplyIgnoreFilters[T IgnoreFilter](matches []Match, filters ...T) ([]Match,
 	return out, ignoredMatches
 }
 
+// Validate returns an error if the rule contains malformed fields. It is intended to be called once
+// during config loading so the user gets a clear error at startup rather than at scan time.
+func (r IgnoreRule) Validate() error {
+	if _, err := parseExpiresAfter(r.ExpiresAfter); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (r IgnoreRule) IgnoreMatch(match Match) []IgnoreRule {
 	// VEX rules are handled by the vex processor
 	if r.VexStatus != "" {
+		return nil
+	}
+
+	// If the rule has an expiry date and it has passed, the rule no longer applies.
+	if isExpiresAfterInPast(r.ExpiresAfter) {
 		return nil
 	}
 

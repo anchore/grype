@@ -2,9 +2,11 @@ package match
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -1352,6 +1354,42 @@ func TestShouldIgnore(t *testing.T) {
 			},
 			expected: false,
 		},
+		{
+			name:  "rule applies when expires-after is in the future",
+			match: exampleMatch,
+			rule: IgnoreRule{
+				Vulnerability: exampleMatch.Vulnerability.ID,
+				ExpiresAfter:  time.Now().UTC().Add(48 * time.Hour).Format(expiresAfterDateFmt),
+			},
+			expected: true,
+		},
+		{
+			name:  "rule does not apply when expires-after is in the past",
+			match: exampleMatch,
+			rule: IgnoreRule{
+				Vulnerability: exampleMatch.Vulnerability.ID,
+				ExpiresAfter:  time.Now().UTC().Add(-48 * time.Hour).Format(expiresAfterDateFmt),
+			},
+			expected: false,
+		},
+		{
+			name:  "rule applies when expires-after is empty",
+			match: exampleMatch,
+			rule: IgnoreRule{
+				Vulnerability: exampleMatch.Vulnerability.ID,
+				ExpiresAfter:  "",
+			},
+			expected: true,
+		},
+		{
+			name:  "rule applies (does not crash) when expires-after is malformed",
+			match: exampleMatch,
+			rule: IgnoreRule{
+				Vulnerability: exampleMatch.Vulnerability.ID,
+				ExpiresAfter:  "not-a-date",
+			},
+			expected: true,
+		},
 	}
 
 	for _, testCase := range cases {
@@ -1360,4 +1398,45 @@ func TestShouldIgnore(t *testing.T) {
 			assert.Equal(t, testCase.expected, actual)
 		})
 	}
+}
+
+func TestParseExpiresAfter(t *testing.T) {
+	cases := []struct {
+		name        string
+		input       string
+		expectZero  bool
+		expectError bool
+		expectDate  string
+	}{
+		{name: "valid date", input: "2026-12-31", expectDate: "2026-12-31"},
+		{name: "empty string returns zero with no error", input: "", expectZero: true},
+		{name: "invalid format returns error", input: "31-12-2026", expectError: true},
+		{name: "not a date returns error", input: "tomorrow", expectError: true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := parseExpiresAfter(tc.input)
+			if tc.expectError {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			if tc.expectZero {
+				assert.True(t, got.IsZero())
+				return
+			}
+			assert.Equal(t, tc.expectDate, got.Format(expiresAfterDateFmt))
+		})
+	}
+}
+
+func TestIsExpiresAfterInPast(t *testing.T) {
+	past := time.Now().UTC().Add(-48 * time.Hour).Format(expiresAfterDateFmt)
+	future := time.Now().UTC().Add(48 * time.Hour).Format(expiresAfterDateFmt)
+
+	assert.True(t, isExpiresAfterInPast(past), "a past date should be expired")
+	assert.False(t, isExpiresAfterInPast(future), "a future date should not be expired")
+	assert.False(t, isExpiresAfterInPast(""), "empty string should not be expired")
+	assert.False(t, isExpiresAfterInPast("not-a-date"), "malformed input should not be expired (defensive)")
 }
