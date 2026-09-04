@@ -5,6 +5,11 @@ import "github.com/anchore/grype/grype/match"
 type IgnoredMatch struct {
 	Match
 	AppliedIgnoreRules []IgnoreRule `json:"appliedIgnoreRules"`
+	// Sources identifies the category(ies) of rule that caused the match to
+	// be suppressed. Populated by grype/match.IgnoreSource; consumers can
+	// filter/group by category without pattern-matching on rule reason
+	// strings. See #3450.
+	Sources []string `json:"sources,omitempty"`
 }
 
 type IgnoreRule struct {

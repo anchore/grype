@@ -120,10 +120,21 @@ var ignoreLinuxKernelHeaders = []match.IgnoreRule{
 
 //nolint:funlen
 func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, userInput string) (errs error) {
+	suppressedSources, err := parseSuppressedSources(opts.SuppressedSources)
+	if err != nil {
+		return err
+	}
+
+	// --suppressed-sources implies --show-suppressed. Without this the filter
+	// would silently drop every row because the underlying rendering loop
+	// short-circuits when ShowSuppressed is false.
+	showSuppressed := opts.ShowSuppressed || len(suppressedSources) > 0
+
 	writer, err := format.MakeScanResultWriter(opts.Outputs, opts.File, format.PresentationConfig{
-		TemplateFilePath: opts.OutputTemplateFile,
-		ShowSuppressed:   opts.ShowSuppressed,
-		Pretty:           opts.Pretty,
+		TemplateFilePath:  opts.OutputTemplateFile,
+		ShowSuppressed:    showSuppressed,
+		SuppressedSources: suppressedSources,
+		Pretty:            opts.Pretty,
 	})
 	if err != nil {
 		return err
@@ -560,4 +571,29 @@ func applyVexRules(opts *options.Grype) error {
 	}
 
 	return nil
+}
+
+// parseSuppressedSources splits raw at commas, trims each entry, drops
+// entries that are empty after trimming, and validates the remaining entries
+// against the defined IgnoreSource values. Empty or whitespace-only input
+// yields a nil slice and no error, which the caller treats as "no filter".
+// Trimming is what makes list forms like "user-rule, vex" work; without it
+// the leading space on the second entry would fail validation.
+func parseSuppressedSources(raw string) ([]string, error) {
+	entries := stringutil.SplitCommaSeparatedString(raw)
+	out := make([]string, 0, len(entries))
+	for _, s := range entries {
+		s = strings.TrimSpace(s)
+		if s == "" {
+			continue
+		}
+		if !match.IsValidIgnoreSource(s) {
+			return nil, fmt.Errorf("unknown --suppressed-sources %q: valid values are %v", s, match.ValidIgnoreSources())
+		}
+		out = append(out, s)
+	}
+	if len(out) == 0 {
+		return nil, nil
+	}
+	return out, nil
 }

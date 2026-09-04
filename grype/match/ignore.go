@@ -18,12 +18,132 @@ type IgnoreFilter interface {
 	IgnoreMatch(match Match) []IgnoreRule
 }
 
+// IgnoreSource identifies the class of rule that caused a match to end up in
+// the ignored set. Consumers such as the --show-suppressed presenter can group
+// or filter by this without pattern-matching on rule reason strings.
+type IgnoreSource string
+
+const (
+	// IgnoreSourceUserRule marks matches suppressed by a user-provided ignore
+	// rule (e.g. .grype.yaml, --ignore).
+	IgnoreSourceUserRule IgnoreSource = "user-rule"
+
+	// IgnoreSourceDistroFixed marks matches suppressed because the containing
+	// distro package has a FIXED entry that covers this CVE. Emitted by
+	// OwnershipIgnores called with reason "DistroPackageFixed" (introduced in
+	// #3282 to suppress GHSAs on language packages inside fixed APKs).
+	IgnoreSourceDistroFixed IgnoreSource = "distro-fixed"
+
+	// IgnoreSourceExplicitExclusion marks matches dropped by the grype
+	// database's explicit exclusion table (see ApplyExplicitIgnoreRules).
+	IgnoreSourceExplicitExclusion IgnoreSource = "explicit-exclusion"
+
+	// IgnoreSourceVEX marks matches suppressed by a VEX statement.
+	IgnoreSourceVEX IgnoreSource = "vex"
+
+	// IgnoreSourceHardcodedCorrection marks matches suppressed by any other
+	// matcher-returned hard-coded ignore rule (e.g. per-package corrections
+	// for known false positives).
+	IgnoreSourceHardcodedCorrection IgnoreSource = "hardcoded-correction"
+)
+
+// ValidIgnoreSources returns every defined IgnoreSource value as a string
+// slice. CLI flag validation and help text use this to enumerate the valid
+// values without hard-coding the list twice.
+func ValidIgnoreSources() []string {
+	return []string{
+		string(IgnoreSourceUserRule),
+		string(IgnoreSourceDistroFixed),
+		string(IgnoreSourceExplicitExclusion),
+		string(IgnoreSourceVEX),
+		string(IgnoreSourceHardcodedCorrection),
+	}
+}
+
+// IsValidIgnoreSource reports whether s matches one of the defined
+// IgnoreSource string values.
+func IsValidIgnoreSource(s string) bool {
+	switch IgnoreSource(s) {
+	case IgnoreSourceUserRule,
+		IgnoreSourceDistroFixed,
+		IgnoreSourceExplicitExclusion,
+		IgnoreSourceVEX,
+		IgnoreSourceHardcodedCorrection:
+		return true
+	}
+	return false
+}
+
 // An IgnoredMatch is a vulnerability Match that has been ignored because one or more IgnoreRules applied to the match.
 type IgnoredMatch struct {
 	Match
 
 	// AppliedIgnoreRules are the rules that were applied to the match that caused Grype to ignore it.
 	AppliedIgnoreRules []IgnoreRule
+
+	// Sources identifies the category(ies) of rule that caused this match to
+	// be suppressed. When more than one category applied to the same match
+	// fingerprint (e.g. a user rule and a distro-fixed rule both matched, or
+	// two independently-produced matches with the same fingerprint were
+	// dropped for different reasons and later merged by fingerprint), all
+	// applicable categories are preserved in first-observed order. Empty when
+	// callers construct IgnoredMatch directly without tagging.
+	Sources []IgnoreSource `json:"sources,omitempty"`
+}
+
+// WithSource appends src to the Sources slice if it is not already present,
+// preserving order of first occurrence. Returns the receiver so calls can be
+// chained.
+func (im IgnoredMatch) WithSource(src IgnoreSource) IgnoredMatch {
+	for _, existing := range im.Sources {
+		if existing == src {
+			return im
+		}
+	}
+	im.Sources = append(im.Sources, src)
+	return im
+}
+
+// TagIgnoredMatches returns a new slice where every entry has been tagged with
+// the given IgnoreSource. Used by callers that produce a homogeneous batch of
+// suppressions (e.g. all VEX suppressions, all user-rule suppressions).
+func TagIgnoredMatches(matches []IgnoredMatch, src IgnoreSource) []IgnoredMatch {
+	if len(matches) == 0 {
+		return matches
+	}
+	out := make([]IgnoredMatch, len(matches))
+	for i := range matches {
+		out[i] = matches[i].WithSource(src)
+	}
+	return out
+}
+
+// DedupeIgnoredMatches collapses entries that share a Match.Fingerprint,
+// merging Sources as a set (deduped, order-of-first-occurrence) and
+// AppliedIgnoreRules as an append-only union (no dedupe, order-of-first-
+// occurrence). Order of the returned slice follows first-observation order
+// of each unique fingerprint.
+func DedupeIgnoredMatches(matches []IgnoredMatch) []IgnoredMatch {
+	if len(matches) < 2 {
+		return matches
+	}
+	seen := make(map[Fingerprint]int, len(matches))
+	out := make([]IgnoredMatch, 0, len(matches))
+	for _, im := range matches {
+		fp := im.Fingerprint()
+		if idx, ok := seen[fp]; ok {
+			existing := out[idx]
+			for _, s := range im.Sources {
+				existing = existing.WithSource(s)
+			}
+			existing.AppliedIgnoreRules = append(existing.AppliedIgnoreRules, im.AppliedIgnoreRules...)
+			out[idx] = existing
+			continue
+		}
+		seen[fp] = len(out)
+		out = append(out, im)
+	}
+	return out
 }
 
 // An IgnoreRule specifies criteria for a vulnerability match to meet in order

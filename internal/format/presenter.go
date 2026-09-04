@@ -13,9 +13,10 @@ import (
 )
 
 type PresentationConfig struct {
-	TemplateFilePath string
-	ShowSuppressed   bool
-	Pretty           bool
+	TemplateFilePath  string
+	ShowSuppressed    bool
+	SuppressedSources []string
+	Pretty            bool
 }
 
 // GetPresenter retrieves a Presenter that matches a CLI option
@@ -24,7 +25,7 @@ func GetPresenter(format Format, c PresentationConfig, pb models.PresenterConfig
 	case JSONFormat:
 		return json.NewPresenter(pb)
 	case TableFormat:
-		return table.NewPresenter(pb, c.ShowSuppressed)
+		return table.NewPresenter(pb, c.ShowSuppressed, c.SuppressedSources)
 
 	// NOTE: cyclonedx is identical to EmbeddedVEXJSON
 	// The cyclonedx library only provides two BOM formats: JSON and XML

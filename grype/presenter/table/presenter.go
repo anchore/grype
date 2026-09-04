@@ -23,9 +23,10 @@ const (
 
 // Presenter is a generic struct for holding fields needed for reporting
 type Presenter struct {
-	document       models.Document
-	showSuppressed bool
-	withColor      bool
+	document          models.Document
+	showSuppressed    bool
+	suppressedSources []string
+	withColor         bool
 
 	recommendedFixStyle lipgloss.Style
 	kevStyle            lipgloss.Style
@@ -93,8 +94,10 @@ func formatPercentileWithSuffix(percentile float64) string {
 	}
 }
 
-// NewPresenter is a *Presenter constructor
-func NewPresenter(pb models.PresenterConfig, showSuppressed bool) *Presenter {
+// NewPresenter is a *Presenter constructor. suppressedSources, when non-empty,
+// restricts the suppressed rows rendered under --show-suppressed to entries
+// whose Sources overlap with the given category list.
+func NewPresenter(pb models.PresenterConfig, showSuppressed bool, suppressedSources []string) *Presenter {
 	withColor := supportsColor()
 	fixStyle := lipgloss.NewStyle().Border(lipgloss.Border{Left: "*"}, false, false, false, true)
 	if withColor {
@@ -103,6 +106,7 @@ func NewPresenter(pb models.PresenterConfig, showSuppressed bool) *Presenter {
 	return &Presenter{
 		document:            pb.Document,
 		showSuppressed:      showSuppressed,
+		suppressedSources:   suppressedSources,
 		withColor:           withColor,
 		recommendedFixStyle: fixStyle,
 		negligibleStyle:     lipgloss.NewStyle().Foreground(lipgloss.Color("240")),                          // dark gray
@@ -119,7 +123,7 @@ func NewPresenter(pb models.PresenterConfig, showSuppressed bool) *Presenter {
 
 // Present creates a JSON-based reporting
 func (p *Presenter) Present(output io.Writer) error {
-	rs := p.getRows(p.document, p.showSuppressed)
+	rs := p.getRows(p.document, p.showSuppressed, p.suppressedSources)
 
 	if len(rs) == 0 {
 		_, err := io.WriteString(output, "No vulnerabilities found\n")
@@ -170,7 +174,7 @@ func newTable(output io.Writer, columns []string) *tablewriter.Table {
 	)
 }
 
-func (p *Presenter) getRows(doc models.Document, showSuppressed bool) rows {
+func (p *Presenter) getRows(doc models.Document, showSuppressed bool, suppressedSources []string) rows {
 	var rs rows
 
 	multipleDistros := false
@@ -194,6 +198,9 @@ func (p *Presenter) getRows(doc models.Document, showSuppressed bool) rows {
 	// generate rows for suppressed vulnerabilities
 	if showSuppressed {
 		for _, m := range doc.IgnoredMatches {
+			if !suppressedSourceAllows(m.Sources, suppressedSources) {
+				continue
+			}
 			msg := appendSuppressed
 			if m.AppliedIgnoreRules != nil {
 				for i := range m.AppliedIgnoreRules {
@@ -206,6 +213,24 @@ func (p *Presenter) getRows(doc models.Document, showSuppressed bool) rows {
 		}
 	}
 	return rs
+}
+
+// suppressedSourceAllows reports whether an IgnoredMatch with the given
+// matchSources should be rendered under the requested filter. An empty
+// requested list means no filter is active (render everything). Otherwise the
+// match passes iff at least one of its Sources appears in requested.
+func suppressedSourceAllows(matchSources []string, requested []string) bool {
+	if len(requested) == 0 {
+		return true
+	}
+	for _, r := range requested {
+		for _, ms := range matchSources {
+			if ms == r {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func supportsColor() bool {

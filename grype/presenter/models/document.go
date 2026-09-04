@@ -59,23 +59,9 @@ func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Con
 		src = &theSrc
 	}
 
-	var ignoredMatchModels []IgnoredMatch
-	for _, m := range ignoredMatches {
-		p := pkg.ByID(m.Package.ID, packages)
-		if p == nil {
-			return Document{}, fmt.Errorf("unable to find package in collection: %+v", p)
-		}
-
-		matchModel, err := newMatch(m.Match, *p, metadataProvider)
-		if err != nil {
-			return Document{}, err
-		}
-
-		ignoredMatch := IgnoredMatch{
-			Match:              *matchModel,
-			AppliedIgnoreRules: mapIgnoreRules(m.AppliedIgnoreRules),
-		}
-		ignoredMatchModels = append(ignoredMatchModels, ignoredMatch)
+	ignoredMatchModels, err := newIgnoredMatchModels(ignoredMatches, packages, metadataProvider)
+	if err != nil {
+		return Document{}, err
 	}
 
 	return Document{
@@ -92,6 +78,41 @@ func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Con
 			Timestamp:     timestamp,
 		},
 	}, nil
+}
+
+// newIgnoredMatchModels translates match.IgnoredMatch entries into presenter
+// IgnoredMatch models, resolving each match's owning package and preserving
+// the Sources tags applied upstream.
+//
+//nolint:staticcheck // MetadataProvider is deprecated but still used internally
+func newIgnoredMatchModels(ignoredMatches []match.IgnoredMatch, packages []pkg.Package, metadataProvider vulnerability.MetadataProvider) ([]IgnoredMatch, error) {
+	var models []IgnoredMatch
+	for _, m := range ignoredMatches {
+		p := pkg.ByID(m.Package.ID, packages)
+		if p == nil {
+			return nil, fmt.Errorf("unable to find package in collection: %+v", p)
+		}
+
+		matchModel, err := newMatch(m.Match, *p, metadataProvider)
+		if err != nil {
+			return nil, err
+		}
+
+		var sources []string
+		if len(m.Sources) > 0 {
+			sources = make([]string, 0, len(m.Sources))
+			for _, s := range m.Sources {
+				sources = append(sources, string(s))
+			}
+		}
+
+		models = append(models, IgnoredMatch{
+			Match:              *matchModel,
+			AppliedIgnoreRules: mapIgnoreRules(m.AppliedIgnoreRules),
+			Sources:            sources,
+		})
+	}
+	return models, nil
 }
 
 // createTimestamp creates a timestamp string for the document descriptor.

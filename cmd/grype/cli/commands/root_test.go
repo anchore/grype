@@ -367,3 +367,61 @@ func Test_applyVexRules(t *testing.T) {
 		})
 	}
 }
+
+func TestParseSuppressedSources(t *testing.T) {
+	tests := []struct {
+		name       string
+		raw        string
+		wantResult []string
+		wantErrSub string
+	}{
+		{
+			name:       "whitespace-only input yields no filter",
+			raw:        "   ",
+			wantResult: nil,
+		},
+		{
+			name:       "empty input yields no filter",
+			raw:        "",
+			wantResult: nil,
+		},
+		{
+			name:       "spaced comma list is trimmed before validation",
+			raw:        "user-rule, vex",
+			wantResult: []string{"user-rule", "vex"},
+		},
+		{
+			name:       "surrounding whitespace on each entry is trimmed",
+			raw:        "  distro-fixed  ,  vex  ",
+			wantResult: []string{"distro-fixed", "vex"},
+		},
+		{
+			name:       "empty entries in the list are dropped",
+			raw:        "user-rule,,vex,",
+			wantResult: []string{"user-rule", "vex"},
+		},
+		{
+			name:       "valid single value",
+			raw:        "distro-fixed",
+			wantResult: []string{"distro-fixed"},
+		},
+		{
+			name:       "invalid value reports the offending token and lists valid values",
+			raw:        "user-config",
+			wantErrSub: `unknown --suppressed-sources "user-config"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseSuppressedSources(tt.raw)
+			if tt.wantErrSub != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErrSub)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantResult, got)
+		})
+	}
+}
