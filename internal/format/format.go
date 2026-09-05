@@ -7,6 +7,7 @@ import (
 const (
 	UnknownFormat   Format = "unknown"
 	JSONFormat      Format = "json"
+	JSONLinesFormat Format = "jsonl"
 	TableFormat     Format = "table"
 	CycloneDXFormat Format = "cyclonedx"
 	CycloneDXJSON   Format = "cyclonedx-json"
@@ -33,6 +34,8 @@ func Parse(userInput string) Format {
 		return TableFormat
 	case strings.ToLower(JSONFormat.String()):
 		return JSONFormat
+	case strings.ToLower(JSONLinesFormat.String()), "ndjson":
+		return JSONLinesFormat
 	case strings.ToLower(TableFormat.String()):
 		return TableFormat
 	case strings.ToLower(SarifFormat.String()):
@@ -57,6 +60,7 @@ func Parse(userInput string) Format {
 // AvailableFormats is a list of presenter format options available to users.
 var AvailableFormats = []Format{
 	JSONFormat,
+	JSONLinesFormat,
 	TableFormat,
 	CycloneDXFormat,
 	CycloneDXJSON,
