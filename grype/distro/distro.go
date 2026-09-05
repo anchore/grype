@@ -2,6 +2,7 @@ package distro
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/anchore/grype/grype/version"
@@ -83,9 +84,24 @@ func parseVersion(version string) (major, minor, remaining, versionWithoutSuffix
 	return major, minor, remaining, versionWithoutSuffix, stringutil.SplitOnAny(strings.TrimSpace(channelStr), ",", "+")
 }
 
+// hyphenatedDistroIDs are the known distro IDs that themselves contain a
+// hyphen (e.g. "opensuse-leap", "bellsoft-hardened-containers"), longest
+// first, so ParseDistroString can match them before splitting on "-".
+var hyphenatedDistroIDs = func() []string {
+	var ids []string
+	for id := range IDMapping {
+		if strings.Contains(id, "-") {
+			ids = append(ids, id)
+		}
+	}
+	sort.Slice(ids, func(i, j int) bool { return len(ids[i]) > len(ids[j]) })
+	return ids
+}()
+
 // ParseDistroString parses a user-provided distro string in the format "name<separator>version"
-// where separator can be "-", ":", or "@". It handles the special case of opensuse-leap
-// which contains a hyphen in its distro ID. Returns the distro name and version parts.
+// where separator can be "-", ":", or "@". It handles the special case of distro IDs that
+// themselves contain a hyphen (e.g. opensuse-leap, bellsoft-hardened-containers).
+// Returns the distro name and version parts.
 func ParseDistroString(s string) (name, version string) {
 	if s == "" {
 		return "", ""
@@ -93,18 +109,20 @@ func ParseDistroString(s string) (name, version string) {
 
 	s = strings.TrimSpace(s)
 
-	// Special handling for opensuse-leap which has a hyphen in its ID
-	// Check if it starts with "opensuse-leap" and handle accordingly
-	const opensuseLeap = "opensuse-leap"
-	if strings.HasPrefix(strings.ToLower(s), opensuseLeap) {
-		// Check if there's a separator after "opensuse-leap"
-		remaining := s[len(opensuseLeap):]
+	// Special handling for distro IDs that contain a hyphen: match the longest
+	// known hyphenated ID before splitting on separators
+	for _, id := range hyphenatedDistroIDs {
+		if !strings.HasPrefix(strings.ToLower(s), id) {
+			continue
+		}
+		// Check if there's a separator after the ID
+		remaining := s[len(id):]
 		if len(remaining) == 0 {
-			return opensuseLeap, ""
+			return id, ""
 		}
 		// If the next character is a separator, split there
 		if remaining[0] == '-' || remaining[0] == ':' || remaining[0] == '@' {
-			return opensuseLeap, strings.TrimSpace(remaining[1:])
+			return id, strings.TrimSpace(remaining[1:])
 		}
 		// Otherwise, treat the whole thing as the name
 		return s, ""

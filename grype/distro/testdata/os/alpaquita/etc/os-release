@@ -1,0 +1,8 @@
+NAME="BellSoft Alpaquita Linux"
+ID=alpaquita
+ID_LIKE="alpine"
+VERSION_ID=stream
+VERSION="Stream"
+PRETTY_NAME="BellSoft Alpaquita Linux Stream (musl)"
+HOME_URL="https://bell-sw.com/"
+BUG_REPORT_URL="https://bell-sw.com/support/"
