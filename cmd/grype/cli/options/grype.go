@@ -29,6 +29,7 @@ type Grype struct {
 	ExternalSources            externalSources    `yaml:"external-sources" json:"externalSources" mapstructure:"external-sources"`
 	Match                      matchConfig        `yaml:"match" json:"match" mapstructure:"match"`
 	FailOn                     string             `yaml:"fail-on-severity" json:"fail-on-severity" mapstructure:"fail-on-severity"`
+	MinSeverity                string             `yaml:"min-severity" json:"min-severity" mapstructure:"min-severity"`
 	Registry                   registry           `yaml:"registry" json:"registry" mapstructure:"registry"`
 	ShowSuppressed             bool               `yaml:"show-suppressed" json:"show-suppressed" mapstructure:"show-suppressed"`
 	ByCVE                      bool               `yaml:"by-cve" json:"by-cve" mapstructure:"by-cve"` // --by-cve, indicates if the original match vulnerability IDs should be preserved or the CVE should be used instead
@@ -118,6 +119,11 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 		fmt.Sprintf("set the return code to 2 if a vulnerability is found with a severity >= the given severity, options=%v", vulnerability.AllSeverities()),
 	)
 
+	flags.StringVarP(&o.MinSeverity,
+		"min-severity", "",
+		fmt.Sprintf("filter the report to vulnerabilities with a severity >= the given severity; unknown severities are excluded; does not affect --fail-on, options=%v", vulnerability.AllSeverities()),
+	)
+
 	flags.BoolVarP(&o.OnlyFixed,
 		"only-fixed", "",
 		"ignore matches for vulnerabilities that are not fixed",
@@ -173,6 +179,12 @@ func (o *Grype) PostLoad() error {
 			return fmt.Errorf("bad --fail-on severity value '%s'", o.FailOn)
 		}
 	}
+
+	if minSeverity := o.MinSeverityThreshold(); minSeverity != nil {
+		if *minSeverity == vulnerability.UnknownSeverity {
+			return fmt.Errorf("bad --min-severity value '%s'", o.MinSeverity)
+		}
+	}
 	return nil
 }
 
@@ -196,6 +208,9 @@ when using template as the output type, you must also provide a value for 'outpu
 	descriptions.Add(&o.Pretty, `pretty-print output`)
 	descriptions.Add(&o.FailOn, `upon scanning, if a severity is found at or above the given severity then the return code will be 1
 default is unset which will skip this validation (options: negligible, low, medium, high, critical)`)
+	descriptions.Add(&o.MinSeverity, `filter report output to vulnerabilities at or above the given severity (options: negligible, low, medium, high, critical)
+unknown-severity vulnerabilities are excluded when this option is configured
+this option controls report visibility only and does not affect --fail-on`)
 	descriptions.Add(&o.Ignore, `A list of vulnerability ignore rules, one or more property may be specified and all matching vulnerabilities will be ignored.
 This is the full set of supported rule fields:
   - vulnerability: CVE-2008-4318
@@ -216,6 +231,14 @@ VEX fields apply when Grype reads vex data:
 
 func (o Grype) FailOnSeverity() *vulnerability.Severity {
 	severity := vulnerability.ParseSeverity(o.FailOn)
+	return &severity
+}
+
+func (o Grype) MinSeverityThreshold() *vulnerability.Severity {
+	if o.MinSeverity == "" {
+		return nil
+	}
+	severity := vulnerability.ParseSeverity(o.MinSeverity)
 	return &severity
 }
 
