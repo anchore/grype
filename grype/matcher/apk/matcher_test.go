@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
@@ -64,6 +65,56 @@ func TestMatcherApk_DirectMatch_Wolfi(t *testing.T) {
 				SelectDetailByType(match.ExactDirectMatch).
 				AsDistroSearch()
 		})
+}
+
+func TestMatcherApk_DirectMatch_DHI(t *testing.T) {
+	dbtest.DBs(t, "dhi-324").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+
+		t.Run("affected DHI package matches", func(t *testing.T) {
+			p := dbtest.NewPackage("coreutils", "9.11-r0", syftPkg.ApkPkg).
+				WithDistro(dbtest.DHI324).
+				WithPURL("pkg:apk/dhi/coreutils@9.11-r0?arch=aarch64&distro=dhi-3.24").
+				Build()
+
+			db.Match(t, &matcher, p).
+				SelectMatch("DHI-CVE-2016-2781-coreutils").
+				SelectDetailByType(match.ExactDirectMatch).
+				AsDistroSearch()
+		})
+
+		t.Run("fixed DHI package does not match", func(t *testing.T) {
+			p := dbtest.NewPackage("coreutils", "9.11-r1", syftPkg.ApkPkg).
+				WithDistro(dbtest.DHI324).
+				Build()
+
+			// Fixed distro packages produce an ownership ignore, rather than a finding.
+			db.Match(t, &matcher, p).Ignores().
+				SelectRelatedPackageIgnores(reasonDistroPackageFixed,
+					"DHI-CVE-2016-2781-coreutils", "CVE-2016-2781")
+		})
+
+		t.Run("different DHI release is isolated", func(t *testing.T) {
+			p := dbtest.NewPackage("coreutils", "9.11-r0", syftPkg.ApkPkg).
+				WithDistro(dbtest.DHI325).
+				Build()
+			db.Match(t, &matcher, p).IsEmpty()
+		})
+
+		t.Run("ordinary Alpine is isolated", func(t *testing.T) {
+			p := dbtest.NewPackage("coreutils", "9.11-r0", syftPkg.ApkPkg).
+				WithDistro(distro.New(distro.Alpine, "3.24", "")).
+				Build()
+			db.Match(t, &matcher, p).IsEmpty()
+		})
+
+		t.Run("withdrawn DHI advisory is ignored", func(t *testing.T) {
+			p := dbtest.NewPackage("withdrawn-only", "1.0-r0", syftPkg.ApkPkg).
+				WithDistro(dbtest.DHI324).
+				Build()
+			db.Match(t, &matcher, p).IsEmpty()
+		})
+	})
 }
 
 // TestMatcherApk_IndirectMatchBySource verifies the upstream/origin
