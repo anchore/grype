@@ -195,6 +195,8 @@ func toOS(os *v6.OperatingSystem) *OperatingSystem {
 func FindAffectedPackages(reader interface {
 	v6.AffectedPackageStoreReader
 	v6.AffectedCPEStoreReader
+	v6.UnaffectedPackageStoreReader
+	v6.UnaffectedCPEStoreReader
 	v6.VulnerabilityDecoratorStoreReader
 }, criteria AffectedPackagesOptions,
 ) ([]AffectedPackage, error) {
@@ -211,9 +213,11 @@ func FindAffectedPackages(reader interface {
 	return newAffectedPackageRows(allAffectedPkgs, allAffectedCPEs), nil
 }
 
-func findAffectedPackages(reader interface { //nolint:funlen,gocognit
+func findAffectedPackages(reader interface { //nolint:funlen,gocognit,gocyclo
 	v6.AffectedPackageStoreReader
 	v6.AffectedCPEStoreReader
+	v6.UnaffectedPackageStoreReader
+	v6.UnaffectedCPEStoreReader
 	v6.VulnerabilityDecoratorStoreReader
 }, config AffectedPackagesOptions,
 ) ([]affectedPackageWithDecorations, []affectedCPEWithDecorations, error) {
@@ -286,6 +290,33 @@ func findAffectedPackages(reader interface { //nolint:funlen,gocognit
 			}
 			return nil, nil, fmt.Errorf("unable to get affected packages for %s: %w", vulnSpecs, err)
 		}
+
+		unaffectedPkgs, err := reader.GetUnaffectedPackages(pkgSpec, &v6.GetPackageOptions{
+			PreloadOS:             true,
+			PreloadPackage:        true,
+			PreloadPackageCPEs:    false,
+			PreloadVulnerability:  true,
+			PreloadBlob:           true,
+			OSs:                   osSpecs,
+			Vulnerabilities:       vulnSpecs,
+			AllowBroadCPEMatching: config.AllowBroadCPEMatching,
+			Limit:                 config.RecordLimit,
+		})
+
+		for i := range unaffectedPkgs {
+			p := v6.AffectedPackageHandle(unaffectedPkgs[i])
+			markUnaffected(&p.BlobValue)
+			allAffectedPkgs = append(allAffectedPkgs, affectedPackageWithDecorations{
+				AffectedPackageHandle: p,
+			})
+		}
+
+		if err != nil {
+			if errors.Is(err, v6.ErrLimitReached) {
+				return allAffectedPkgs, allAffectedCPEs, err
+			}
+			return nil, nil, fmt.Errorf("unable to get unaffected packages for %s: %w", vulnSpecs, err)
+		}
 	}
 
 	if osSpecs.IsAny() {
@@ -319,8 +350,63 @@ func findAffectedPackages(reader interface { //nolint:funlen,gocognit
 				}
 				return nil, nil, fmt.Errorf("unable to get affected cpes for %s: %w", vulnSpecs, err)
 			}
+
+			unaffectedCPEs, err := reader.GetUnaffectedCPEs(searchCPE, &v6.GetCPEOptions{
+				PreloadCPE:            true,
+				PreloadVulnerability:  true,
+				PreloadBlob:           true,
+				Vulnerabilities:       vulnSpecs,
+				AllowBroadCPEMatching: config.AllowBroadCPEMatching,
+				Limit:                 config.RecordLimit,
+			})
+
+			for i := range unaffectedCPEs {
+				p := v6.AffectedCPEHandle(unaffectedCPEs[i])
+				if p.BlobValue != nil && len(p.BlobValue.Ranges) > 0 {
+					for r := range p.BlobValue.Ranges {
+						p.BlobValue.Ranges[r].Fix.Version += " (unaffected)"
+					}
+				} else {
+					if p.BlobValue == nil {
+						p.BlobValue = &v6.PackageBlob{}
+					}
+					p.BlobValue.Ranges = append(p.BlobValue.Ranges, v6.Range{
+						Fix: &v6.Fix{
+							Version: "unaffected",
+						},
+					})
+				}
+				allAffectedCPEs = append(allAffectedCPEs, affectedCPEWithDecorations{
+					AffectedCPEHandle: p,
+				})
+			}
+
+			if err != nil {
+				if errors.Is(err, v6.ErrLimitReached) {
+					return allAffectedPkgs, allAffectedCPEs, err
+				}
+				return nil, nil, fmt.Errorf("unable to get affected cpes for %s: %w", vulnSpecs, err)
+			}
 		}
 	}
 
 	return allAffectedPkgs, allAffectedCPEs, nil
+}
+
+func markUnaffected(i **v6.PackageBlob) {
+	if *i == nil {
+		*i = &v6.PackageBlob{}
+	}
+	b := *i
+	if len(b.Ranges) > 0 {
+		for r := range b.Ranges {
+			b.Ranges[r].Version.Constraint += " (unaffected)"
+		}
+	} else {
+		b.Ranges = append(b.Ranges, v6.Range{
+			Version: v6.Version{
+				Constraint: "(unaffected)",
+			},
+		})
+	}
 }
