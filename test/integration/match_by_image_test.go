@@ -898,10 +898,12 @@ func TestMatchByImage(t *testing.T) {
 		vexStatus    vexStatus.Status
 		vexDocuments []string
 	}{
-		"csaf-affected":               {vexStatus.Affected, []string{"testdata/vex/csaf/affected.csaf.json"}},
-		"csaf-under_investigation":    {vexStatus.UnderInvestigation, []string{"testdata/vex/csaf/under_investigation.csaf.json"}},
-		"openvex-affected":            {vexStatus.Affected, []string{"testdata/vex/openvex/affected.openvex.json"}},
-		"openvex-under_investigation": {vexStatus.UnderInvestigation, []string{"testdata/vex/openvex/under_investigation.openvex.json"}},
+		"csaf-affected":                    {vexStatus.Affected, []string{"testdata/vex/csaf/affected.csaf.json"}},
+		"csaf-under_investigation":         {vexStatus.UnderInvestigation, []string{"testdata/vex/csaf/under_investigation.csaf.json"}},
+		"openvex-affected":                 {vexStatus.Affected, []string{"testdata/vex/openvex/affected.openvex.json"}},
+		"openvex-under_investigation":      {vexStatus.UnderInvestigation, []string{"testdata/vex/openvex/under_investigation.openvex.json"}},
+		"cyclonedxvex-affected":            {vexStatus.Affected, []string{"testdata/vex/cyclonedx/affected.cdx.json"}},
+		"cyclonedxvex-under_investigation": {vexStatus.UnderInvestigation, []string{"testdata/vex/cyclonedx/under_investigation.cdx.json"}},
 	} {
 		t.Run(n, func(t *testing.T) {
 			ignoredMatches := testIgnoredMatches()
