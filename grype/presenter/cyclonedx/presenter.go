@@ -18,6 +18,7 @@ type Presenter struct {
 	document models.Document
 	src      source.Description
 	format   cyclonedx.BOMFileFormat
+	version  cyclonedx.SpecVersion
 	sbom     *sbom.SBOM
 }
 
@@ -28,6 +29,7 @@ func NewJSONPresenter(pb models.PresenterConfig) *Presenter {
 		document: pb.Document,
 		src:      pb.SBOM.Source,
 		sbom:     pb.SBOM,
+		version:  cyclonedx.SpecVersion1_6,
 		format:   cyclonedx.BOMFileFormatJSON,
 	}
 }
@@ -39,6 +41,31 @@ func NewXMLPresenter(pb models.PresenterConfig) *Presenter {
 		document: pb.Document,
 		src:      pb.SBOM.Source,
 		sbom:     pb.SBOM,
+		version:  cyclonedx.SpecVersion1_6,
+		format:   cyclonedx.BOMFileFormatXML,
+	}
+}
+
+// NewJSONPresenterv1_5 is a *Presenter constructor
+func NewJSONPresenterv1_5(pb models.PresenterConfig) *Presenter {
+	return &Presenter{
+		id:       pb.ID,
+		document: pb.Document,
+		src:      pb.SBOM.Source,
+		sbom:     pb.SBOM,
+		version:  cyclonedx.SpecVersion1_5,
+		format:   cyclonedx.BOMFileFormatJSON,
+	}
+}
+
+// NewXMLPresenterv1_5 is a *Presenter constructor
+func NewXMLPresenterv1_5(pb models.PresenterConfig) *Presenter {
+	return &Presenter{
+		id:       pb.ID,
+		document: pb.Document,
+		src:      pb.SBOM.Source,
+		sbom:     pb.SBOM,
+		version:  cyclonedx.SpecVersion1_5,
 		format:   cyclonedx.BOMFileFormatXML,
 	}
 }
@@ -74,5 +101,5 @@ func (p *Presenter) Present(output io.Writer) error {
 	enc.SetPretty(true)
 	enc.SetEscapeHTML(false)
 
-	return enc.EncodeVersion(cyclonedxBOM, cyclonedxBOM.SpecVersion)
+	return enc.EncodeVersion(cyclonedxBOM, p.version)
 }
