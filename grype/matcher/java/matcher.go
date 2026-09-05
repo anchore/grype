@@ -28,6 +28,7 @@ type ExternalSearchConfig struct {
 	SearchMavenUpstream bool
 	MavenBaseURL        string
 	MavenRateLimit      time.Duration
+	MavenTimeout        time.Duration
 }
 
 type MatcherConfig struct {
@@ -36,9 +37,17 @@ type MatcherConfig struct {
 }
 
 func NewJavaMatcher(cfg MatcherConfig) *Matcher {
+	client := http.DefaultClient
+	if cfg.MavenTimeout > 0 {
+		// shallow-copy the default client so the configured per-request timeout does not
+		// bleed onto unrelated callers, while preserving any Transport, CheckRedirect, or Jar
+		clientCopy := *http.DefaultClient
+		clientCopy.Timeout = cfg.MavenTimeout
+		client = &clientCopy
+	}
 	return &Matcher{
 		cfg:           cfg,
-		MavenSearcher: newMavenSearch(http.DefaultClient, cfg.MavenBaseURL, cfg.MavenRateLimit),
+		MavenSearcher: newMavenSearch(client, cfg.MavenBaseURL, cfg.MavenRateLimit),
 	}
 }
 
