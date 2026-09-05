@@ -2,16 +2,19 @@ package options
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/format"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/source"
 )
 
 type Grype struct {
+	Config                     string             `yaml:"config" json:"config" mapstructure:"config"` // the configuration file(s) used to load application configuration (populated by fangs)
 	Outputs                    []string           `yaml:"output" json:"output" mapstructure:"output"` // -o, <presenter>=<file> the Presenter hint string to use for report formatting and the output file
 	File                       string             `yaml:"file" json:"file" mapstructure:"file"`       // --file, the file to write report output to
 	Pretty                     bool               `yaml:"pretty" json:"pretty" mapstructure:"pretty"`
@@ -167,6 +170,12 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 func (o *Grype) PostLoad() error {
 	o.From = flatten(o.From)
 
+	// warn when a configuration file was picked up from the current working directory, since reading a
+	// hidden config (e.g. ./.grype.yaml) implicitly can be a surprising debugging hazard (see #3427)
+	for _, p := range configFilesFromCWD(o.Config) {
+		log.Warnf("using configuration file from current directory: %s", p)
+	}
+
 	if o.FailOn != "" {
 		failOnSeverity := *o.FailOnSeverity()
 		if failOnSeverity == vulnerability.UnknownSeverity {
@@ -217,6 +226,19 @@ VEX fields apply when Grype reads vex data:
 func (o Grype) FailOnSeverity() *vulnerability.Severity {
 	severity := vulnerability.ParseSeverity(o.FailOn)
 	return &severity
+}
+
+// configFilesFromCWD returns the comma-separated config paths (as recorded by fangs) that were loaded from the
+// current working directory, i.e. those whose directory is "." (e.g. ./.grype.yaml).
+func configFilesFromCWD(config string) []string {
+	var out []string
+	for _, p := range strings.Split(config, ",") {
+		p = strings.TrimSpace(p)
+		if p != "" && filepath.Dir(p) == "." {
+			out = append(out, p)
+		}
+	}
+	return out
 }
 
 // flatten takes a list of comma-separated entries and returns a flattened list of trimmed values (preserving order)
