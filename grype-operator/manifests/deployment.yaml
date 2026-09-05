@@ -1,0 +1,74 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grype-operator
+  namespace: grype-operator-system
+  labels:
+    app: grype-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grype-operator
+  template:
+    metadata:
+      labels:
+        app: grype-operator
+    spec:
+      serviceAccountName: grype-operator
+      containers:
+        - name: operator
+          image: rohanrustagi18/grype-operator:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          # securityContext:  I commented these as they might cause issues in some environments (Beta Thing You know)
+          #   allowPrivilegeEscalation: false
+          #   runAsNonRoot: true
+          #   runAsUser: 1000
+          #   capabilities:
+          #     drop:
+          #       - ALL
+          #   readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      # securityContext: I commented these as they might cause issues in some environments (Beta Thing You know)
+      #   fsGroup: 1000
+      #   runAsNonRoot: true
+      #   seccompProfile:
+      #     type: RuntimeDefault
