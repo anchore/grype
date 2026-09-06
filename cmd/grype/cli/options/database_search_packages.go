@@ -68,7 +68,7 @@ func (o *DBSearchPackages) PostLoad() error {
 			// the name resolver for the DB search names. This keeps namespaced ecosystems (golang
 			// module paths, npm scopes, Maven group:artifact) in sync with how records are stored
 			// instead of reimplementing the reconstruction here.
-			if err := o.appendPURLSpecs(p, purl.Type); err != nil {
+			if err := o.appendPURLSpecs(p, purl); err != nil {
 				return err
 			}
 
@@ -98,9 +98,14 @@ func (o *DBSearchPackages) PostLoad() error {
 // applies ecosystem-specific normalization (for example PEP 503 for Python), so search and
 // the data side stay in agreement without this command reimplementing that logic.
 //
-// fallbackEcosystem is the PURL type; it is used when a decoded package carries no type so an
-// otherwise-valid PURL still searches within its ecosystem.
-func (o *DBSearchPackages) appendPURLSpecs(purlStr, fallbackEcosystem string) error {
+// The CPE specifier is deliberately not built from those search names. A CPE product is not a
+// package name: for pkg:golang/github.com/gin-gonic/gin the DB package name is the full module
+// path, but the CPE product is "gin" with target software "golang". The CPE spec is therefore
+// built once from the parsed PURL, preserving the existing fallback behaviour.
+//
+// purl is the already-parsed package URL; its type is used as the ecosystem when a decoded
+// package carries no type, so an otherwise-valid PURL still searches within its ecosystem.
+func (o *DBSearchPackages) appendPURLSpecs(purlStr string, purl packageurl.PackageURL) error {
 	pkgs, _, _, err := grypePkg.Provide(purlStr, grypePkg.ProviderConfig{})
 	if err != nil {
 		return fmt.Errorf("unable to resolve package URL from %q: %w", purlStr, err)
@@ -110,13 +115,14 @@ func (o *DBSearchPackages) appendPURLSpecs(purlStr, fallbackEcosystem string) er
 		p := pkgs[i]
 		ecosystem := string(p.Type)
 		if ecosystem == "" {
-			ecosystem = fallbackEcosystem
+			ecosystem = purl.Type
 		}
 		for _, n := range name.PackageNames(p) {
 			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: n, Ecosystem: ecosystem})
-			o.CPESpecs = append(o.CPESpecs, &v6.PackageSpecifier{CPE: &cpe.Attributes{Part: "a", Product: n, TargetSW: ecosystem}})
 		}
 	}
+
+	o.CPESpecs = append(o.CPESpecs, &v6.PackageSpecifier{CPE: &cpe.Attributes{Part: "a", Product: purl.Name, TargetSW: purl.Type}})
 
 	return nil
 }

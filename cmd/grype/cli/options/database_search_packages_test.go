@@ -46,8 +46,9 @@ func TestDBSearchPackagesPostLoad(t *testing.T) {
 			// the module path is split across the PURL namespace and name; decoding through the
 			// provider rebuilds the full "github.com/gin-gonic/gin" the DB keys the record under.
 			// the ecosystem is the syft package type (go-module), which the DB search normalizes
-			// back from the golang PURL type.
-			name: "golang PURL keeps the module path",
+			// back from the golang PURL type. the CPE side is unaffected: a CPE product is not a
+			// package name, so it stays the PURL name "gin" with target software "golang".
+			name: "golang PURL keeps the module path but not for the CPE product",
 			input: DBSearchPackages{
 				Packages: []string{"pkg:golang/github.com/gin-gonic/gin@v1.9.0"},
 			},
@@ -55,7 +56,7 @@ func TestDBSearchPackagesPostLoad(t *testing.T) {
 				{Name: "github.com/gin-gonic/gin", Ecosystem: "go-module"},
 			},
 			expectedCPE: v6.PackageSpecifiers{
-				{CPE: &cpe.Attributes{Part: "a", Product: "github.com/gin-gonic/gin", TargetSW: "go-module"}},
+				{CPE: &cpe.Attributes{Part: "a", Product: "gin", TargetSW: "golang"}},
 			},
 		},
 		{
@@ -67,7 +68,7 @@ func TestDBSearchPackagesPostLoad(t *testing.T) {
 				{Name: "@babel/core", Ecosystem: "npm"},
 			},
 			expectedCPE: v6.PackageSpecifiers{
-				{CPE: &cpe.Attributes{Part: "a", Product: "@babel/core", TargetSW: "npm"}},
+				{CPE: &cpe.Attributes{Part: "a", Product: "core", TargetSW: "npm"}},
 			},
 		},
 		{
@@ -82,7 +83,7 @@ func TestDBSearchPackagesPostLoad(t *testing.T) {
 				{Name: "org.apache.commons:commons-lang3", Ecosystem: "java-archive"},
 			},
 			expectedCPE: v6.PackageSpecifiers{
-				{CPE: &cpe.Attributes{Part: "a", Product: "org.apache.commons:commons-lang3", TargetSW: "java-archive"}},
+				{CPE: &cpe.Attributes{Part: "a", Product: "commons-lang3", TargetSW: "maven"}},
 			},
 		},
 		{
@@ -96,7 +97,7 @@ func TestDBSearchPackagesPostLoad(t *testing.T) {
 				{Name: "django-extensions", Ecosystem: "python"},
 			},
 			expectedCPE: v6.PackageSpecifiers{
-				{CPE: &cpe.Attributes{Part: "a", Product: "django-extensions", TargetSW: "python"}},
+				{CPE: &cpe.Attributes{Part: "a", Product: "django-extensions", TargetSW: "pypi"}},
 			},
 		},
 		{
