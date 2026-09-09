@@ -4,6 +4,18 @@ This folder contains a set of "helper" go templates you can use for your own rep
 
 Please feel free to extend and/or update the templates for your needs, be sure to contribute back into this folder any new templates!
 
+## Template data model
+
+Custom templates receive a [presenter `Document`](../grype/presenter/models/document.go) value. That type (and the nested types in [`grype/presenter/models`](../grype/presenter/models)) is the source of truth for field names and nesting.
+
+Use the **exported Go field names** in templates (for example `{{ .Matches }}`, `{{ .Vulnerability.Severity }}`, `{{ .Artifact.Name }}`). Do not rely on `grype -o json` key names for casing: JSON keys come from `json` struct tags and can differ from the Go identifiers templates must use.
+
+Example:
+
+```bash
+grype alpine:latest -o template -t ./templates/table.tmpl
+```
+
 Current templates:
 
 <pre>

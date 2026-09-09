@@ -186,7 +186,9 @@ valid values are: registry, docker, podman`)
   - './out/**/*.json'
 same as --exclude`)
 	descriptions.Add(&o.File, `if using template output, you must provide a path to a Go template file
-see https://github.com/anchore/grype#using-templates for more information on template output
+see https://github.com/anchore/grype/blob/main/templates/README.md for template output guidance
+and https://github.com/anchore/grype/blob/main/grype/presenter/models for the presenter models
+(Go field names used by templates; not the -o json key casing)
 the default path to the template file is the current working directory
 output-template-file: .grype/html.tmpl
 
