@@ -43,6 +43,64 @@ func TestDBSearchPackagesPostLoad(t *testing.T) {
 			},
 		},
 		{
+			// the module path is split across the PURL namespace and name; decoding through the
+			// provider rebuilds the full "github.com/gin-gonic/gin" the DB keys the record under.
+			// the ecosystem is the syft package type (go-module), which the DB search normalizes
+			// back from the golang PURL type. the CPE side is unaffected: a CPE product is not a
+			// package name, so it stays the PURL name "gin" with target software "golang".
+			name: "golang PURL keeps the module path but not for the CPE product",
+			input: DBSearchPackages{
+				Packages: []string{"pkg:golang/github.com/gin-gonic/gin@v1.9.0"},
+			},
+			expectedPkg: v6.PackageSpecifiers{
+				{Name: "github.com/gin-gonic/gin", Ecosystem: "go-module"},
+			},
+			expectedCPE: v6.PackageSpecifiers{
+				{CPE: &cpe.Attributes{Part: "a", Product: "gin", TargetSW: "golang"}},
+			},
+		},
+		{
+			name: "npm scoped PURL keeps the scope",
+			input: DBSearchPackages{
+				Packages: []string{"pkg:npm/%40babel/core@7.0.0"},
+			},
+			expectedPkg: v6.PackageSpecifiers{
+				{Name: "@babel/core", Ecosystem: "npm"},
+			},
+			expectedCPE: v6.PackageSpecifiers{
+				{CPE: &cpe.Attributes{Part: "a", Product: "core", TargetSW: "npm"}},
+			},
+		},
+		{
+			// the java name resolver rebuilds the Maven "group:artifact" coordinate from the PURL,
+			// and the ecosystem is the syft package type (java-archive) which the DB search
+			// normalizes back from the maven PURL type.
+			name: "maven PURL joins group and artifact",
+			input: DBSearchPackages{
+				Packages: []string{"pkg:maven/org.apache.commons/commons-lang3@3.12.0"},
+			},
+			expectedPkg: v6.PackageSpecifiers{
+				{Name: "org.apache.commons:commons-lang3", Ecosystem: "java-archive"},
+			},
+			expectedCPE: v6.PackageSpecifiers{
+				{CPE: &cpe.Attributes{Part: "a", Product: "commons-lang3", TargetSW: "maven"}},
+			},
+		},
+		{
+			// decoding through the provider lets the python name resolver apply PEP 503
+			// normalization (lowercase, "_" -> "-"), so the search matches the stored name.
+			name: "pypi PURL is PEP 503 normalized",
+			input: DBSearchPackages{
+				Packages: []string{"pkg:pypi/Django_extensions@1.0.0"},
+			},
+			expectedPkg: v6.PackageSpecifiers{
+				{Name: "django-extensions", Ecosystem: "python"},
+			},
+			expectedCPE: v6.PackageSpecifiers{
+				{CPE: &cpe.Attributes{Part: "a", Product: "django-extensions", TargetSW: "pypi"}},
+			},
+		},
+		{
 			name: "plain package name",
 			input: DBSearchPackages{
 				Packages: []string{"package-name"},
