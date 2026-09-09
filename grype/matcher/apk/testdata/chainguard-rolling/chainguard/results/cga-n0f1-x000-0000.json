@@ -1,0 +1,46 @@
+{
+  "identifier": "CGA-n0f1-x000-0000",
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.0.json",
+  "item": {
+    "schema_version": "1.7.0",
+    "id": "CGA-n0f1-x000-0000",
+    "published": "2026-02-24T13:07:08Z",
+    "modified": "2026-02-24T13:07:08Z",
+    "summary": "Grafana: unfixed information disclosure (affected at all versions)",
+    "severity": [
+      {
+        "type": "CVSS_V3",
+        "score": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N"
+      }
+    ],
+    "upstream": [
+      "CVE-2026-30000",
+      "GHSA-n0f1-n0f1-n0f1"
+    ],
+    "references": [
+      {
+        "type": "ADVISORY",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-30000"
+      }
+    ],
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "Chainguard",
+          "name": "grafana",
+          "purl": "pkg:apk/chainguard/grafana?arch=x86_64"
+        },
+        "ranges": [
+          {
+            "type": "ECOSYSTEM",
+            "events": [
+              {
+                "introduced": "0"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

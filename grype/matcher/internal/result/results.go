@@ -30,45 +30,32 @@ type Result struct {
 
 type Set map[string][]Result
 
-func unionIntoResult(existing []Result) Result {
-	var merged Result
-	for _, r := range existing {
-		if merged.ID == "" {
-			merged.ID = r.ID
-			merged.Package = r.Package
-		}
-		merged.Vulnerabilities = append(merged.Vulnerabilities, r.Vulnerabilities...)
-		merged.Details = append(merged.Details, r.Details...)
-	}
-	merged.Details = NewMatchDetailsSet(merged.Details...).ToSlice()
-	return merged
-}
-
+// ToMatches converts the set into matches, one per finding.
+//
+// Each record contributes a match carrying only the details that describe *that* record. Records
+// that turn out to be the same finding -- same vulnerability, same source, same package -- are then
+// folded together by match.Matches, which unions their fixed-in versions and details. Attaching the
+// whole set's details to every match instead would make each duplicate claim the others' evidence.
 func (s Set) ToMatches() []match.Match {
-	var out []match.Match
+	out := match.NewMatches()
+
 	for _, results := range s {
-		merged := unionIntoResult(results)
-
-		if len(merged.Vulnerabilities) == 0 {
-			continue
-		}
-
-		if merged.Package == nil {
-			continue // skip results without a package
-		}
-
-		for _, vv := range merged.Vulnerabilities {
-			out = append(out,
-				match.Match{
-					Vulnerability: vv,
-					Package:       *merged.Package,
-					Details:       merged.Details,
-				},
-			)
+		for _, r := range results {
+			if r.Package == nil {
+				continue // skip results without a package
+			}
+			for _, v := range r.Vulnerabilities {
+				out.Add(match.Match{
+					Vulnerability: v,
+					Package:       *r.Package,
+					Details:       r.Details,
+				})
+			}
 		}
 	}
 
-	return out
+	// deterministic output order (map iteration above is not ordered)
+	return out.Sorted()
 }
 
 // Vulnerabilities returns a flattened slice of all vulnerabilities in the set
@@ -265,6 +252,22 @@ func (s Set) Update(incoming Set, shouldUpdate func(existing Result, incoming Re
 		out[id] = existingResults
 	}
 
+	return out
+}
+
+// Map returns a new Set with fn applied to a copy of every result. Because the copy is shallow, fn
+// must not mutate the elements of a slice field (e.g. Vulnerabilities, Details) in place — replace the
+// whole slice instead — otherwise it will corrupt the source set's shared backing arrays.
+func (s Set) Map(fn func(r *Result)) Set {
+	out := make(Set, len(s))
+	for id, results := range s {
+		updated := make([]Result, len(results))
+		for i, r := range results {
+			fn(&r)
+			updated[i] = r
+		}
+		out[id] = updated
+	}
 	return out
 }
 

@@ -2,7 +2,9 @@ package match
 
 import (
 	"fmt"
+	"slices"
 	"sort"
+	"strings"
 
 	"github.com/scylladb/go-set/strset"
 )
@@ -18,6 +20,13 @@ type PackageParameter struct {
 	Version string `json:"version"`
 }
 
+func (p PackageParameter) compare(other PackageParameter) int {
+	if c := strings.Compare(p.Name, other.Name); c != 0 {
+		return c
+	}
+	return strings.Compare(p.Version, other.Version)
+}
+
 func (i *CPEParameters) Merge(other CPEParameters) error {
 	if i.Namespace != other.Namespace {
 		return fmt.Errorf("namespaces do not match")
@@ -29,6 +38,17 @@ func (i *CPEParameters) Merge(other CPEParameters) error {
 	sort.Strings(mergedCPEs)
 	i.CPEs = mergedCPEs
 	return nil
+}
+
+// compare orders two CPE search parameters, most significant field first.
+func (i CPEParameters) compare(other CPEParameters) int {
+	if c := strings.Compare(i.Namespace, other.Namespace); c != 0 {
+		return c
+	}
+	if c := i.Package.compare(other.Package); c != 0 {
+		return c
+	}
+	return slices.Compare(i.CPEs, other.CPEs)
 }
 
 type CPEResult struct {
@@ -53,6 +73,16 @@ func (h CPEResult) Equals(other CPEResult) bool {
 	}
 
 	return true
+}
+
+func (h CPEResult) compare(other CPEResult) int {
+	if c := strings.Compare(h.VulnerabilityID, other.VulnerabilityID); c != 0 {
+		return c
+	}
+	if c := strings.Compare(h.VersionConstraint, other.VersionConstraint); c != 0 {
+		return c
+	}
+	return slices.Compare(h.CPEs, other.CPEs)
 }
 
 type DistroParameters struct {
@@ -85,6 +115,19 @@ func (d *DistroParameters) Merge(other DistroParameters) error {
 	return nil
 }
 
+func (d DistroParameters) compare(other DistroParameters) int {
+	if c := strings.Compare(d.Namespace, other.Namespace); c != 0 {
+		return c
+	}
+	if c := strings.Compare(d.Distro.Type, other.Distro.Type); c != 0 {
+		return c
+	}
+	if c := strings.Compare(d.Distro.Version, other.Distro.Version); c != 0 {
+		return c
+	}
+	return d.Package.compare(other.Package)
+}
+
 type DistroResult struct {
 	VulnerabilityID   string `json:"vulnerabilityID"`
 	VersionConstraint string `json:"versionConstraint"`
@@ -93,6 +136,13 @@ type DistroResult struct {
 func (d DistroResult) Equals(other DistroResult) bool {
 	return d.VulnerabilityID == other.VulnerabilityID &&
 		d.VersionConstraint == other.VersionConstraint
+}
+
+func (d DistroResult) compare(other DistroResult) int {
+	if c := strings.Compare(d.VulnerabilityID, other.VulnerabilityID); c != 0 {
+		return c
+	}
+	return strings.Compare(d.VersionConstraint, other.VersionConstraint)
 }
 
 type EcosystemParameters struct {
@@ -117,13 +167,30 @@ func (e *EcosystemParameters) Merge(other EcosystemParameters) error {
 	return nil
 }
 
+func (e EcosystemParameters) compare(other EcosystemParameters) int {
+	if c := strings.Compare(e.Namespace, other.Namespace); c != 0 {
+		return c
+	}
+	if c := strings.Compare(e.Language, other.Language); c != 0 {
+		return c
+	}
+	return e.Package.compare(other.Package)
+}
+
 type EcosystemResult struct {
 	VulnerabilityID   string `json:"vulnerabilityID"`
 	VersionConstraint string `json:"versionConstraint"`
-	// MatchedSymbols is the sorted, de-duplicated set of vulnerable Go symbols the package was found
-	// to use (empty unless the match was scoped by symbol evidence). A slice, not a scalar: detail
-	// identity is computed via hashstructure (SlicesAsSets), and EcosystemResult is only ever carried
-	// in Detail.Found (never compared or used as a map key), so no comparability constraint applies —
-	// the sibling CPEResult.CPEs is likewise a slice.
+	// MatchedSymbols is the sorted, de-duplicated set of vulnerable Go symbols the package was found to
+	// use, empty unless the match was scoped by symbol evidence.
 	MatchedSymbols []string `json:"matchedSymbols,omitempty"`
+}
+
+func (e EcosystemResult) compare(other EcosystemResult) int {
+	if c := strings.Compare(e.VulnerabilityID, other.VulnerabilityID); c != 0 {
+		return c
+	}
+	if c := strings.Compare(e.VersionConstraint, other.VersionConstraint); c != 0 {
+		return c
+	}
+	return slices.Compare(e.MatchedSymbols, other.MatchedSymbols)
 }

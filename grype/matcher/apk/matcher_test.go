@@ -470,6 +470,168 @@ func TestMatcherApk_NvdCanceledByUpstreamSecdbNak(t *testing.T) {
 		})
 }
 
+// === upstream (NVD) suppression by alias ===
+//
+// The chainguard-rolling fixture pairs a distro advisory with its upstream NVD
+// record so the alias-aware reconciliation can be exercised end to end:
+//   - distro:  CGA-22hv-wp9q-4779 (Chainguard langfuse-3-worker, arch x86_64,
+//              fixed 3.153.0-r0) carries upstream aliases CVE-2026-24398 and
+//              GHSA-r354-f388-2fhh.
+//   - NVD:     CVE-2026-24398 flags cpe:2.3:a:langfuse:langfuse in [3.0.0, 4.0.0).
+//
+// Because the distro feed is authoritative and the two records share identity
+// via the CGA's alias set, the NVD CVE-2026-24398 CPE finding must never surface
+// on its own - it is either dropped (distro considers it fixed) or deduped into
+// the authoritative distro match (distro considers it vulnerable).
+
+// TestMatcherApk_UpstreamCveSuppressedByFixedAlias langfuse-3-worker is
+// past the CGA fix (3.153.1-r0 > 3.153.0-r0), so the distro feed reports
+// the vulnerability fixed. NVD still flags CVE-2026-24398 for the langfuse
+// CPE at this version, since CVE-2026-24398 is an alias of the fixed CGA,
+// it is neither "not in feed" nor "still vulnerable" and gets dropped.
+func TestMatcherApk_UpstreamCveSuppressedByFixedAlias(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		pkgID := pkg.ID("langfuse-past-fix-with-cpe")
+		p := dbtest.NewPackage("langfuse-3-worker", "3.153.1-r0", syftPkg.ApkPkg).
+			WithID(pkgID).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("x86_64").
+			WithCPE("cpe:2.3:a:langfuse:langfuse:3.153.1-r0:*:*:*:*:*:*:*").
+			Build()
+
+		findings := db.Match(t, &matcher, p)
+
+		// the NVD CVE alias is suppressed by the fixed CGA distro record - it
+		// must not surface as its own match.
+		findings.DoesNotHaveAnyVulnerabilities("CVE-2026-24398")
+
+		// the distro fixed path still emits one DistroPackageFixed ignore per
+		// identifier (the CGA id plus its CVE/GHSA aliases).
+		findings.Ignores().
+			SelectRelatedPackageIgnores(reasonDistroPackageFixed,
+				"CGA-22hv-wp9q-4779",
+				"CVE-2026-24398",
+				"GHSA-r354-f388-2fhh").
+			ForPackage(pkgID).
+			WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
+	})
+}
+
+// TestMatcherApk_UpstreamCveDedupedByVulnerableAlias langfuse-3-worker is below the CGA fix
+// (3.152.0-r0 < 3.153.0-r0), so both the distro CGA record and the NVD CVE-2026-24398 CPE
+// record consider it vulnerable. The two share identity via the CGA's alias set, so the
+// upstream NVD finding is deduped into the authoritative distro match rather than surfacing
+// separately - only the CGA distro match is returned.
+func TestMatcherApk_UpstreamCveDedupedByVulnerableAlias(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		p := dbtest.NewPackage("langfuse-3-worker", "3.152.0-r0", syftPkg.ApkPkg).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("x86_64").
+			WithCPE("cpe:2.3:a:langfuse:langfuse:3.152.0-r0:*:*:*:*:*:*:*").
+			Build()
+
+		findings := db.Match(t, &matcher, p)
+
+		// only the authoritative distro record surfaces...
+		findings.SelectMatch("CGA-22hv-wp9q-4779").
+			SelectDetailByType(match.ExactDirectMatch).
+			AsDistroSearch()
+
+		// ...the aliased upstream NVD CVE is deduped away.
+		findings.DoesNotHaveAnyVulnerabilities("CVE-2026-24398")
+	})
+}
+
+// TestMatcherApk_UpstreamCveDedupedByIntroducedZeroAlias covers an unfixed distro advisory:
+// CGA-n0f1-x000-0000 lists grafana with a single "introduced: 0" event and no fixed event, so the
+// distro feed considers grafana vulnerable at every version (a package handle with no ranges is
+// implicitly vulnerable to all versions). NVD flags the aliased CVE-2026-30000 for the grafana CPE
+// at this version, but the two share identity via the CGA's alias set, so the upstream NVD finding
+// is deduped into the authoritative distro match - only the CGA distro match is returned.
+func TestMatcherApk_UpstreamCveDedupedByIntroducedZeroAlias(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		pkgID := pkg.ID("grafana-introduced-zero")
+		p := dbtest.NewPackage("grafana", "9.0.0-r0", syftPkg.ApkPkg).
+			WithID(pkgID).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("x86_64").
+			WithCPE("cpe:2.3:a:grafana:grafana:9.0.0-r0:*:*:*:*:*:*:*").
+			Build()
+
+		findings := db.Match(t, &matcher, p)
+
+		// the unfixed distro advisory surfaces...
+		findings.SelectMatch("CGA-n0f1-x000-0000").
+			SelectDetailByType(match.ExactDirectMatch).
+			AsDistroSearch()
+
+		// ...the aliased upstream NVD CVE is deduped away.
+		findings.DoesNotHaveAnyVulnerabilities("CVE-2026-30000")
+
+		// the ranges-less advisory must NOT be treated as an apk NAK: it is affected at every
+		// version, not "not affected". The "< 0" NAK filter no longer matches a record that
+		// carries no "< 0" constraint, so no Explicit APK NAK ignores are emitted.
+		findings.Ignores().IsEmpty()
+	})
+}
+
+// TestMatcherApk_SelfUpstreamIsRecordedAsIndirect covers an apk whose origin package is itself, which
+// is common (an apk that is its own origin still lists one). The distro feed is searched twice for
+// it, once directly and once as its own upstream, and the upstream pass must record what it finds as
+// an indirect match.
+//
+// The match-type is otherwise derived by comparing the searched name against the cataloged one, and
+// here they are equal, so nothing downstream can tell the two passes apart. The upstream pass has to
+// say so explicitly, which is why the package override and the detail-type rewrite belong together.
+func TestMatcherApk_SelfUpstreamIsRecordedAsIndirect(t *testing.T) {
+	dbtest.DBs(t, "alpine318").SelectOnly("3.18/CVE-2024-0727").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		p := dbtest.NewPackage("openssl", "3.1.4-r0", syftPkg.ApkPkg).
+			WithDistro(dbtest.Alpine318).
+			WithUpstream("openssl", "3.1.4-r0").
+			Build()
+
+		finding := db.Match(t, &matcher, p).SelectMatch("CVE-2024-0727")
+
+		// the direct search finds it...
+		finding.SelectDetailByType(match.ExactDirectMatch).AsDistroSearch()
+		// ...and so does the pass over its own upstream, which must not look direct as well
+		finding.SelectDetailByType(match.ExactIndirectMatch).AsDistroSearch()
+	})
+}
+
+// TestMatcherApk_NoDistroKeepsNvdFix covers an apk package with no distro, which happens for
+// SBOM-only input. apk clears NVD-inferred fix data because the distro feed is the authority on when
+// an apk ships (#2162) -- but with no distro there is no feed and no authority to defer to, so NVD's
+// fix is the only information available and dropping it just loses data.
+func TestMatcherApk_NoDistroKeepsNvdFix(t *testing.T) {
+	dbtest.DBs(t, "alpine318").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		pkgID := pkg.ID("openssl-no-distro")
+		p := dbtest.NewPackage("openssl", "1.0.1f-r0", syftPkg.ApkPkg).
+			WithID(pkgID).
+			// no distro, deliberately
+			WithCPE("cpe:2.3:a:openssl:openssl:1.0.1f-r0:*:*:*:*:*:*:*").
+			Build()
+
+		findings := db.Match(t, &matcher, p)
+
+		finding := findings.SelectMatch("CVE-2014-0224")
+		finding.SelectDetailByType(match.CPEMatch).AsCPESearch()
+		finding.HasFix(vulnerability.FixStateFixed, "0.9.8za", "1.0.0m", "1.0.1h")
+
+		// this version is outside NVD's range for CVE-2024-0727, so the CPE search reports it as an
+		// ignore rather than a match
+		findings.Ignores().
+			SelectRelatedPackageIgnore(reasonCPENotVulnerable, "CVE-2024-0727").
+			ForPackage(pkgID).
+			WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
+	})
+}
+
 // === architecture qualifier filtering (CG OSV records) ===
 //
 // The chainguard-rolling fixture has CGA-22hv-wp9q-4779, which emits
@@ -550,6 +712,81 @@ func TestMatcherApk_ArchFilter_NoMatchWhenArchDisagrees(t *testing.T) {
 
 		// no records match chainguard - aarch64
 		db.Match(t, &matcher, p).IsEmpty()
+	})
+}
+
+// TestMatcherApk_NvdOnlyMatchGetsFixStripped pins the rule from #2162: grype-db infers
+// fixes from NVD end-of-range data and apk discards them, because an NVD "fix" is an
+// upstream release number and only the distro feed knows when an apk ships. Here NVD's
+// [3.0.0, 4.0.0) range for CVE-2026-24398 becomes fix 4.0.0. main (ffbca561) reports
+// this same match with fix=[] state=unknown.
+//
+// The port of that rule is faithful. main's cpeMatchesWithoutSecDBFixes had the same two
+// exits cpeDisclosures does: "no feed entry for this ID" strips, "feed says vulnerable at
+// this version" does not. What changed is identity. main keyed that lookup on the exact
+// vulnerability ID, so a CGA-keyed row could never match a CVE-keyed NVD record and every
+// NVD CVE on an OSV feed took the stripping exit. Alias-aware identity resolves the CGA to
+// this CVE, reaching the non-stripping exit for the first time.
+//
+// So the question this raises is not "what did the port break" but what that second exit
+// should mean now that "the feed knows this vulnerability" can be true by alias: #2162's
+// argument does not care which exit a record arrived on.
+func TestMatcherApk_NvdOnlyMatchGetsFixStripped(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		p := dbtest.NewPackage("langfuse-3-worker", "3.152.0-r0", syftPkg.ApkPkg).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("aarch64"). // mismatch: the Chainguard row is x86_64... we just want to test NVD-only
+			WithCPE("cpe:2.3:a:langfuse:langfuse:3.152.0-r0:*:*:*:*:*:*:*").
+			Build()
+
+		findings := db.Match(t, &matcher, p)
+
+		// no distro match: the x86_64 row does not apply to this package
+		findings.DoesNotHaveAnyVulnerabilities("CGA-22hv-wp9q-4779")
+
+		// so the NVD record is the only match, and it is the [3.0.0, 4.0.0) one
+		finding := findings.SelectMatch("CVE-2026-24398").InNamespace("nvd:cpe")
+		finding.SelectDetailByCPE(
+			"cpe:2.3:a:langfuse:langfuse:3.152.0:*:*:*:*:*:*:*",
+			">= 3.0.0, < 4.0.0 (unknown)",
+		).HasMatchType(match.CPEMatch)
+
+		// being NVD-only, its inferred fix must be stripped
+		finding.HasNoFixVersions()
+		finding.HasFix(vulnerability.FixStateUnknown)
+	})
+}
+
+// TestMatcherApk_ArchFilter_WrongArchRowMustNotSuppressNvdMatch is the arch mismatch again, but
+// with the package PAST the CGA's fix version rather than below it.
+//
+// The only Chainguard row for this name is x86_64, so on aarch64 nothing in the distro feed applies
+// and the aliased NVD CVE-2026-24398 (langfuse [3.0.0, 4.0.0), and 3.153.1 is inside it) is the only
+// thing that has an opinion. It should be reported.
+//
+// It is not. feedSet queries the feed without OnlyQualifiedPackages, so it sees the x86_64 row that
+// the distro path correctly filtered out. That row aliases this CVE, which removes it from notInFeed,
+// and the row is fixed at this version, which keeps it out of feedVulnerable and so out of
+// stillVulnerable too. The record falls out of both exits and is dropped: a finding is lost because
+// of a row for another architecture.
+func TestMatcherApk_ArchFilter_WrongArchRowMustNotSuppressNvdMatch(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		p := dbtest.NewPackage("langfuse-3-worker", "3.153.1-r0", syftPkg.ApkPkg).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("aarch64"). // the Chainguard row is x86_64, so it says nothing here
+			WithCPE("cpe:2.3:a:langfuse:langfuse:3.153.1-r0:*:*:*:*:*:*:*").
+			Build()
+
+		findings := db.Match(t, &matcher, p)
+
+		// the x86_64 row does not apply, so it must not suppress anything either
+		findings.DoesNotHaveAnyVulnerabilities("CGA-22hv-wp9q-4779")
+		findings.SelectMatch("CVE-2026-24398").
+			InNamespace("nvd:cpe").
+			SelectDetailByType(match.CPEMatch).
+			AsCPESearch()
 	})
 }
 

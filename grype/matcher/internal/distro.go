@@ -13,23 +13,25 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-// MatchPackageByDistro searches the distro namespace for every name the
+// FindResultsByDistro searches the distro namespace for every name the
 // provider claims for searchPkg, then partitions the unioned results in
-// memory into vulnerable matches and fixes the matcher should ignore on
-// overlapping packages (e.g. an APK that owns NPM).
+// memory into vulnerable disclosures and fixed records (folding the distro
+// "unaffected"/NAK records into fixed). It returns result.Sets so callers can
+// reconcile them against other sources (e.g. NVD/CPE) by identity, or convert
+// to matches + ignores via MatchPackageByDistro.
 //
 // The fanout over PackageSearchNames is what makes the rootio NAK pattern
 // work: a scan against `rootio-libssl3` also searches for the bare
 // `libssl3` upstream disclosure, and any rootio NAK in the unaffected set
 // suppresses the match via ID + alias identity in result.Set.Remove.
-func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package, catalogPkg *pkg.Package, upstreamMatcher match.MatcherType, cfg *version.ComparisonConfig) ([]match.Match, []match.IgnoreFilter, error) {
+func FindResultsByDistro(provider vulnerability.Provider, searchPkg pkg.Package, catalogPkg *pkg.Package, upstreamMatcher match.MatcherType, cfg *version.ComparisonConfig) (vulnerable result.Set, fixed result.Set, err error) {
 	if searchPkg.Distro == nil {
-		return nil, nil, nil
+		return result.Set{}, result.Set{}, nil
 	}
 
 	if isUnknownVersion(searchPkg.Version) {
 		log.WithFields("package", searchPkg.Name).Trace("skipping package with unknown version")
-		return nil, nil, nil
+		return result.Set{}, result.Set{}, nil
 	}
 
 	var pkgVersion *version.Version
@@ -60,8 +62,8 @@ func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package
 		allVulns = allVulns.Merge(v)
 	}
 
-	vulnerable := allVulns.Filter(versionCriteria)
-	fixed := allVulns.Remove(vulnerable)
+	vulnerable = allVulns.Filter(versionCriteria)
+	fixed = allVulns.Remove(vulnerable)
 
 	unaffected := result.Set{}
 	for _, name := range searchNames {
@@ -79,6 +81,20 @@ func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package
 
 	vulnerable = vulnerable.Remove(unaffected)
 	fixed = fixed.Merge(unaffected)
+
+	return vulnerable, fixed, nil
+}
+
+// MatchPackageByDistro searches the distro namespace for every name the
+// provider claims for searchPkg, then partitions the unioned results in
+// memory into vulnerable matches and fixes the matcher should ignore on
+// overlapping packages (e.g. an APK that owns NPM). It is a thin wrapper over
+// FindResultsByDistro for callers that work in []match.Match.
+func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package, catalogPkg *pkg.Package, upstreamMatcher match.MatcherType, cfg *version.ComparisonConfig) ([]match.Match, []match.IgnoreFilter, error) {
+	vulnerable, fixed, err := FindResultsByDistro(provider, searchPkg, catalogPkg, upstreamMatcher, cfg)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// Use the SBOM package (not the synthetic upstream) for file ownership — the upstream package doesn't have file metadata.
 	ignores := OwnershipIgnores(matchPackage(searchPkg, catalogPkg), "DistroPackageFixed", fixed.Vulnerabilities()...)

@@ -119,6 +119,13 @@ func TestJVMVersion_Compare(t *testing.T) {
 		// invalid but we should work with these
 		{"1.8.0_131", "1.8.0-update131-b02", 0},
 		{"1.8.0_131", "1.8.0-update_131-b02", 0},
+
+		// the "u" update shorthand (e.g. 1.6.0u141) is equivalent to the underscore form
+		{"1.6.0u141", "1.6.0_141", 0},
+		{"1.6.0u141", "6.0.141", 0},
+		{"1.6.0u141", "1.6.0u142", -1},
+		{"1.6.0u141", "1.6.0", 1},
+		{"1.8.0u131-b11", "1.8.0_131", 0},
 	}
 
 	for _, test := range tests {
