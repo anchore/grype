@@ -2,9 +2,11 @@ package pkg
 
 import (
 	"fmt"
+	"path"
 	"regexp"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/anchore/grype/grype/distro"
@@ -254,6 +256,19 @@ func excludePackage(p *Package, parent *Package) bool {
 	// python      3.9.2      binary
 	// python3.9   3.9.2-1    deb
 
+	comprehensiveDistroOwner := distroFeedIsComprehensive(parent.Distro) && isOSPackage(parent)
+
+	// Go module versions describe the embedded module rather than the owning
+	// distro package, so the version-similarity check below cannot recognize an
+	// owned duplicate. Only treat the module as a duplicate when it appears to
+	// be the distro package's own main module (e.g. the containerd package
+	// owning github.com/containerd/containerd); dependency modules embedded in
+	// the same binaries must stay matchable, since a distro feed does not track
+	// vulnerabilities for a third-party package's vendored dependencies.
+	if comprehensiveDistroOwner && p.Type == syftPkg.GoModulePkg && goModuleIsOwnersMainModule(p.Name, parent.Name) {
+		return true
+	}
+
 	// If the version is not approximately the same, keep both
 	if !strings.HasPrefix(parent.Version, p.Version) && !strings.HasPrefix(p.Version, parent.Version) {
 		return false
@@ -263,7 +278,7 @@ func excludePackage(p *Package, parent *Package) bool {
 	// for distros that have a comprehensive feed. That is, distros that list
 	// vulnerabilities that aren't fixed. Otherwise, the child package might
 	// be needed for matching.
-	if distroFeedIsComprehensive(parent.Distro) && isOSPackage(parent) && !isOSPackage(p) {
+	if comprehensiveDistroOwner && !isOSPackage(p) {
 		return true
 	}
 
@@ -312,6 +327,25 @@ var comprehensiveDistros = []distro.Type{
 	distro.Mariner,
 	distro.RedHat,
 	distro.Ubuntu,
+}
+
+// goModuleIsOwnersMainModule indicates whether a Go module found within an OS
+// package's files appears to be that package's own main module rather than an
+// embedded dependency. The comparison is based on the module path's base name
+// (accounting for /vN major-version suffixes), e.g. the "containerd" package
+// matches "github.com/containerd/containerd". The Go standard library
+// ("stdlib") is only considered owned by a distro's Go toolchain package.
+func goModuleIsOwnersMainModule(modulePath, packageName string) bool {
+	if modulePath == "stdlib" {
+		return strings.EqualFold(packageName, "go") || strings.EqualFold(packageName, "golang")
+	}
+	base := path.Base(modulePath)
+	if len(base) > 1 && base[0] == 'v' {
+		if _, err := strconv.Atoi(base[1:]); err == nil {
+			base = path.Base(path.Dir(modulePath))
+		}
+	}
+	return strings.EqualFold(base, packageName)
 }
 
 func isOSPackage(p *Package) bool {
