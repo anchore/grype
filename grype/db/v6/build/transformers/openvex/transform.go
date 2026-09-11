@@ -151,6 +151,13 @@ func getPackageHandle(product *govex.Product, vuln *unmarshal.OpenVEXVulnerabili
 // FixedIn name verbatim ("@scope/name"). Joining Namespace+"/"+Name
 // reproduces that string. Callers can extend this switch as more VEX
 // providers come online for additional ecosystems.
+//
+// Go modules are stored under their full module path by the go advisory
+// path ("github.com/gin-gonic/gin"), which lives split across the purl
+// namespace and name; joining them keeps the OpenVEX handle on the same
+// packages row the go matcher searches. Ecosystems whose namespace is
+// metadata rather than package identity (e.g. github archives) keep the
+// short name and are not listed here.
 func packageNameFromPURL(purl *packageurl.PackageURL) string {
 	if purl.Namespace == "" {
 		return purl.Name
@@ -159,6 +166,8 @@ func packageNameFromPURL(purl *packageurl.PackageURL) string {
 	case packageurl.TypeMaven:
 		return purl.Namespace + ":" + purl.Name
 	case packageurl.TypeNPM:
+		return purl.Namespace + "/" + purl.Name
+	case packageurl.TypeGolang:
 		return purl.Namespace + "/" + purl.Name
 	}
 	return purl.Name

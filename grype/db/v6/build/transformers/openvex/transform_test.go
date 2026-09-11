@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/anchore/packageurl-go"
 	"github.com/google/go-cmp/cmp"
 	govex "github.com/openvex/go-vex/pkg/vex"
 	"github.com/stretchr/testify/require"
@@ -619,5 +620,16 @@ func Test_GetPackageHandles(t *testing.T) {
 				t.Errorf("GetPackages() mismatch (-want +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+func TestGolangPURLKeepsNamespace(t *testing.T) {
+	purl, err := packageurl.FromString("pkg:golang/github.com/gin-gonic/gin@v1.9.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got, want := packageNameFromPURL(&purl), "github.com/gin-gonic/gin"; got != want {
+		t.Fatalf("packageNameFromPURL() = %q, want %q", got, want)
 	}
 }
