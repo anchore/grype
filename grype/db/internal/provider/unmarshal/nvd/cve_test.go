@@ -1,6 +1,7 @@
 package nvd
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -193,6 +194,66 @@ func TestCvssSummaryVersion(t *testing.T) {
 			version := summary.version()
 			if version.String() != tc.expected {
 				t.Errorf("Expected version %s, got %s", tc.expected, version.String())
+			}
+		})
+	}
+}
+
+func TestCveItem_CveTags_UnmarshalJSON(t *testing.T) {
+	// this payload shape matches the documented NVD API schema
+	// (https://csrc.nist.gov/schema/nvd/api/2.0/cve_api_json_2.0.schema) and the real-world
+	// CVE-2001-1517 record, which carries a disputed cveTag independently of vulnStatus.
+	tests := []struct {
+		name             string
+		payload          string
+		expectedTags     []CveTag
+		expectedDisputed bool
+	}{
+		{
+			name: "cveTags with a disputed tag decodes and is disputed",
+			payload: `{
+				"id": "CVE-2001-1517",
+				"vulnStatus": "Deferred",
+				"descriptions": [],
+				"references": [],
+				"cveTags": [
+					{
+						"sourceIdentifier": "cve@mitre.org",
+						"tags": ["disputed"]
+					}
+				]
+			}`,
+			expectedTags: []CveTag{
+				{SourceIdentifier: "cve@mitre.org", Tags: []string{"disputed"}},
+			},
+			expectedDisputed: true,
+		},
+		{
+			name: "no cveTags decodes to nil and is not disputed",
+			payload: `{
+				"id": "CVE-2023-12345",
+				"vulnStatus": "Analyzed",
+				"descriptions": [],
+				"references": []
+			}`,
+			expectedTags:     nil,
+			expectedDisputed: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var item CveItem
+			if err := json.Unmarshal([]byte(tc.payload), &item); err != nil {
+				t.Fatalf("failed to unmarshal CveItem: %v", err)
+			}
+
+			if d := cmp.Diff(tc.expectedTags, item.CveTags); d != "" {
+				t.Errorf("unexpected CveTags (-want +got):\n%s", d)
+			}
+
+			if actual := item.IsDisputed(); actual != tc.expectedDisputed {
+				t.Errorf("IsDisputed() = %v, want %v", actual, tc.expectedDisputed)
 			}
 		})
 	}

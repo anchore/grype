@@ -2,6 +2,7 @@ package nvd
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/jinzhu/copier"
@@ -47,6 +48,7 @@ type CveItem struct {
 	// CisaRequiredAction    *string         `json:"cisaRequiredAction,omitempty"`
 	// CisaVulnerabilityName *string         `json:"cisaVulnerabilityName,omitempty"`
 	Configurations []Configuration `json:"configurations,omitempty"`
+	CveTags        []CveTag        `json:"cveTags,omitempty"`
 	Descriptions   []LangString    `json:"descriptions"`
 	// EvaluatorComment      *string         `json:"evaluatorComment,omitempty"`
 	// EvaluatorImpact       *string         `json:"evaluatorImpact,omitempty"`
@@ -169,6 +171,15 @@ type Weakness struct {
 	Type        string       `json:"type"`
 }
 
+// CveTag captures source-provided labels for a CVE record, such as "disputed" or "unsupported-when-assigned".
+// see https://csrc.nist.gov/schema/nvd/api/2.0/cve_api_json_2.0.schema
+type CveTag struct {
+	SourceIdentifier string   `json:"sourceIdentifier,omitempty"`
+	Tags             []string `json:"tags,omitempty"`
+}
+
+const disputedTag = "disputed"
+
 func (o CveItem) Description() string {
 	for _, d := range o.Descriptions {
 		if d.Lang == englishLanguage {
@@ -176,6 +187,19 @@ func (o CveItem) Description() string {
 		}
 	}
 	return ""
+}
+
+// IsDisputed returns true if any source has tagged this CVE as "disputed" via cveTags. Unlike vulnStatus, this
+// tag is not mutually exclusive with other statuses (e.g. a CVE can be "Analyzed" and disputed at the same time).
+func (o CveItem) IsDisputed() bool {
+	for _, t := range o.CveTags {
+		for _, tag := range t.Tags {
+			if strings.EqualFold(tag, disputedTag) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 type CvssSummary struct {
