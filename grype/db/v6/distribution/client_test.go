@@ -3,6 +3,8 @@ package distribution
 import (
 	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"testing"
 	"time"
@@ -13,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/wagoodman/go-progress"
 
+	"github.com/anchore/clio"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/internal/schemaver"
 )
@@ -299,6 +302,29 @@ func TestClient_IsUpdateAvailable(t *testing.T) {
 			assert.Equal(t, tt.archive, archive)
 		})
 	}
+}
+
+func Test_defaultHTTPClient_preservesTimeoutAfterUserAgent(t *testing.T) {
+	// regression test: withUserAgent used to replace the entire http.Client (losing any
+	// fields set by earlier post-processors, notably c.Timeout from withClientTimeout),
+	// which meant the configured CheckTimeout/UpdateTimeout was silently ignored and a
+	// stalled request could hang indefinitely instead of timing out as configured.
+	c, err := defaultHTTPClient(afero.NewMemMapFs(), "", withClientTimeout(30*time.Second), withUserAgent(clio.Identification{Name: "grype", Version: "1.2.3"}))
+	require.NoError(t, err)
+	assert.Equal(t, 30*time.Second, c.Timeout, "client timeout must survive being wrapped with a user agent")
+
+	// also verify the user agent is still applied via the wrapped transport
+	var gotUserAgent string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotUserAgent = r.Header.Get("User-Agent")
+	}))
+	defer server.Close()
+
+	resp, err := c.Get(server.URL)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, "grype 1.2.3", gotUserAgent)
 }
 
 func TestDatabaseDescription_IsSupersededBy(t *testing.T) {
