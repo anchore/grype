@@ -31,7 +31,8 @@ type Grype struct {
 	FailOn                     string             `yaml:"fail-on-severity" json:"fail-on-severity" mapstructure:"fail-on-severity"`
 	Registry                   registry           `yaml:"registry" json:"registry" mapstructure:"registry"`
 	ShowSuppressed             bool               `yaml:"show-suppressed" json:"show-suppressed" mapstructure:"show-suppressed"`
-	ByCVE                      bool               `yaml:"by-cve" json:"by-cve" mapstructure:"by-cve"` // --by-cve, indicates if the original match vulnerability IDs should be preserved or the CVE should be used instead
+	IncludeMatcherSuppressions bool               `yaml:"include-matcher-suppressions" json:"include-matcher-suppressions" mapstructure:"include-matcher-suppressions"` // include matches suppressed internally by matchers (distro fixed/NAK records, built-in false-positive list) in the ignored matches output, default=false
+	ByCVE                      bool               `yaml:"by-cve" json:"by-cve" mapstructure:"by-cve"`                                                                   // --by-cve, indicates if the original match vulnerability IDs should be preserved or the CVE should be used instead
 	SortBy                     SortBy             `yaml:",inline" json:",inline" mapstructure:",squash"`
 	Name                       string             `yaml:"name" json:"name" mapstructure:"name"`
 	DefaultImagePullSource     string             `yaml:"default-image-pull-source" json:"default-image-pull-source" mapstructure:"default-image-pull-source"`
@@ -71,6 +72,7 @@ func DefaultGrype(id clio.Identification) *Grype {
 		CheckForAppUpdate:          true,
 		VexAdd:                     []string{},
 		MatchUpstreamKernelHeaders: false,
+		IncludeMatcherSuppressions: false,
 		SortBy:                     defaultSortBy(),
 		Timestamp:                  true,
 		Alerts:                     defaultAlerts(),
@@ -218,6 +220,7 @@ VEX fields apply when Grype reads VEX data:
 `)
 	descriptions.Add(&o.VexAdd, `VEX statuses to consider as ignored rules`)
 	descriptions.Add(&o.MatchUpstreamKernelHeaders, `match kernel-header packages with upstream kernel as kernel vulnerabilities`)
+	descriptions.Add(&o.IncludeMatcherSuppressions, `include matches suppressed internally by matchers (e.g. distro fixed/NAK records, the built-in false-positive list) in the ignored matches output`)
 }
 
 func (o Grype) FailOnSeverity() *vulnerability.Severity {
