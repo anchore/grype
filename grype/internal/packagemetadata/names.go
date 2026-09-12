@@ -19,6 +19,7 @@ var jsonNameFromType = map[reflect.Type][]string{
 	reflect.TypeFor[pkg.GolangSourceMetadata]():       nameList("GolangSourceMetadata"),
 	reflect.TypeFor[pkg.JavaMetadata]():               nameList("JavaMetadata"),
 	reflect.TypeFor[pkg.RpmMetadata]():                nameList("RpmMetadata"),
+	reflect.TypeFor[pkg.RustMetadata]():               nameList("RustMetadata"),
 	reflect.TypeFor[pkg.JavaVMInstallationMetadata](): nameList("JavaVMInstallationMetadata"),
 }
 
