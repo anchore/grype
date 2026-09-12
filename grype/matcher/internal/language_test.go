@@ -101,6 +101,28 @@ func expectedMatchRuby(p pkg.Package, constraint string) []match.Match {
 	}
 }
 
+func TestMatchPackageByLanguageSkipsMissingVersion(t *testing.T) {
+	store := newMockProviderRuby()
+
+	// activerecord carries two disclosures in the mock feed. Without a version
+	// to compare, OnlyVulnerableVersions would report both of them (and, with a
+	// real feed, every historical CVE for the name). A versionless package must
+	// be skipped, consistent with the "unknown" sentinel and the rpm matcher.
+	for _, blank := range []string{"", "unknown"} {
+		p := pkg.Package{
+			ID:       pkg.ID(uuid.NewString()),
+			Name:     "activerecord",
+			Version:  blank,
+			Language: syftPkg.Ruby,
+			Type:     syftPkg.GemPkg,
+		}
+
+		actual, _, err := MatchPackageByLanguage(store, p, match.RubyGemMatcher)
+		require.NoError(t, err)
+		assert.Emptyf(t, actual, "expected no matches for blank version %q", blank)
+	}
+}
+
 func TestFindMatchesByPackageRuby(t *testing.T) {
 	cases := []struct {
 		p           pkg.Package

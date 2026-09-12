@@ -103,6 +103,29 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 	assert.Empty(t, actual)
 }
 
+func TestMatchPackageByDistroSkipsMissingVersion(t *testing.T) {
+	store := newMockProviderByDistro()
+
+	// a package that reaches the matcher without a version (for example a
+	// component imported from an SBOM that omits its version) has nothing to
+	// compare against the affected ranges. It must be skipped like the
+	// "unknown" sentinel is, not matched against every disclosure for the name.
+	for _, blank := range []string{"", "unknown", "UNKNOWN"} {
+		p := pkg.Package{
+			ID:      pkg.ID(uuid.NewString()),
+			Name:    "neutron",
+			Version: blank,
+			Type:    syftPkg.DebPkg,
+		}
+		p.Distro = distro.New(distro.Debian, "8", "")
+
+		actual, ignored, err := MatchPackageByDistro(store, p, nil, match.PythonMatcher, nil)
+		require.NoError(t, err)
+		require.Empty(t, ignored)
+		assert.Emptyf(t, actual, "expected no matches for blank version %q", blank)
+	}
+}
+
 func TestMatchPackageByDistroWithIgnoreRules(t *testing.T) {
 	ownedFiles := pkg.ApkMetadata{Files: []pkg.ApkFileRecord{
 		{Path: "/usr/lib/python3/dist-packages/requests"},
