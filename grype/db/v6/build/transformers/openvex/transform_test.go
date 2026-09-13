@@ -621,3 +621,11 @@ func Test_GetPackageHandles(t *testing.T) {
 		})
 	}
 }
+
+func TestGolangPURLKeepsNamespace(t *testing.T) {
+	purl, err := packageurl.FromString("pkg:golang/github.com/gin-gonic/gin@v1.9.0")
+	require.NoError(t, err)
+
+	require.Equal(t, "github.com/gin-gonic/gin", packageNameFromPURL(&purl))
+}
+

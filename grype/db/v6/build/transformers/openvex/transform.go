@@ -158,7 +158,7 @@ func packageNameFromPURL(purl *packageurl.PackageURL) string {
 	switch purl.Type {
 	case packageurl.TypeMaven:
 		return purl.Namespace + ":" + purl.Name
-	case packageurl.TypeNPM:
+	case packageurl.TypeNPM, packageurl.TypeGolang:
 		return purl.Namespace + "/" + purl.Name
 	}
 	return purl.Name
