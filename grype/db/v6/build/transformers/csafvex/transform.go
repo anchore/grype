@@ -562,7 +562,7 @@ func versionTypeFromPURL(purl *packageurl.PackageURL) string {
 
 func getDescription(vuln *unmarshal.CSAFVulnerability) string {
 	for _, note := range vuln.Notes {
-		if note.Category == "description" {
+		if note.Category == "description" || note.Category == "summary" || note.Category == "details" {
 			return note.Text
 		}
 	}
