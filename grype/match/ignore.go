@@ -18,6 +18,19 @@ type IgnoreFilter interface {
 	IgnoreMatch(match Match) []IgnoreRule
 }
 
+// Reason values written by grype's own internal suppressions, first surfaced
+// to consumers via VulnerabilityMatcher.IncludeMatcherSuppressions. Exported
+// so consumers can compare against them without repeating the literals.
+const (
+	// IgnoreReasonDistroFixed is the reason recorded when a distro fix record
+	// for an owning package suppresses a match on an owned package.
+	IgnoreReasonDistroFixed = "distro-fixed"
+
+	// IgnoreReasonDistroNAK is the reason recorded when a distro record
+	// declaring a package not vulnerable suppresses a match.
+	IgnoreReasonDistroNAK = "distro-nak"
+)
+
 // An IgnoredMatch is a vulnerability Match that has been ignored because one or more IgnoreRules applied to the match.
 type IgnoredMatch struct {
 	Match

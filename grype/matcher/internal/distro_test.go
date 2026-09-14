@@ -301,7 +301,7 @@ func TestMatchPackageByDistroWithIgnoreRules(t *testing.T) {
 				require.True(t, ok, "expected IgnoreRule or IgnoreRelatedPackage types")
 				gotVulnIDs.Add(rule.Vulnerability)
 				assert.True(t, rule.IncludeAliases, "expected IncludeAliases to be true")
-				assert.Contains(t, rule.Reason, "DistroPackageFixed")
+				assert.Contains(t, rule.Reason, match.IgnoreReasonDistroFixed)
 				assert.NotEmpty(t, rule.Package.Location, "expected location to be set")
 			}
 

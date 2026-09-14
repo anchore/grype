@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	ignoreReasonDistroFixed = "DistroPackageFixed"
-	ignoreReasonExplicitNAK = "Explicit APK NAK"
+	ignoreReasonDistroFixed = match.IgnoreReasonDistroFixed
+	ignoreReasonExplicitNAK = match.IgnoreReasonDistroNAK
 )
 
 var (

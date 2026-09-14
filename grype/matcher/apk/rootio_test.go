@@ -27,7 +27,7 @@ import (
 //   - the NVD CPE match, but only where the distro feed has no opinion.
 //     A rootio NAK covering the same vulnerability by alias means the
 //     vendor has answered it, so no match is reported at all;
-//   - the rootio NAK as DistroPackageFixed IgnoreFilters that
+//   - the rootio NAK as distro-fixed IgnoreFilters that
 //     alias-unwind into the rootio record ID + the upstream CVE. Those
 //     are for packages that overlap this one by file, which is the only
 //     thing an IgnoreRelatedPackage can suppress — never the package it
@@ -88,7 +88,7 @@ func TestMatcherApk_RootIO(t *testing.T) {
 
 		// rootio-libuv at the rootio fix. NVD CPE flags 1.44.2 (< vEnd
 		// 1.48.0) — match surfaces. The rootio NAK matches alias
-		// CVE-2024-24806 and appears as the DistroPackageFixed ignore
+		// CVE-2024-24806 and appears as the distro-fixed ignore
 		// pair that downstream code uses to drop the match.
 		t.Run("rootio-libuv at rootio fix: no match, NAK ignore only", func(t *testing.T) {
 			pkgID := pkg.ID("rootio-libuv-at-fix")
@@ -103,7 +103,7 @@ func TestMatcherApk_RootIO(t *testing.T) {
 			// NVD CPE record is answered and never becomes a match
 			findings.DoesNotHaveAnyVulnerabilities("CVE-2024-24806")
 			findings.Ignores().
-				SelectRelatedPackageIgnores("DistroPackageFixed",
+				SelectRelatedPackageIgnores(reasonDistroFixed,
 					"ROOT-OS-ALPINE-318-CVE-2024-24806",
 					"CVE-2024-24806").
 				ForPackage(pkgID).
@@ -140,7 +140,7 @@ func TestMatcherApk_RootIO(t *testing.T) {
 			// NVD CPE record is answered and never becomes a match
 			findings.DoesNotHaveAnyVulnerabilities("CVE-2024-28182")
 			findings.Ignores().
-				SelectRelatedPackageIgnores("DistroPackageFixed",
+				SelectRelatedPackageIgnores(reasonDistroFixed,
 					"ROOT-OS-ALPINE-318-CVE-2024-28182",
 					"CVE-2024-28182").
 				ForPackage(pkgID).
@@ -174,7 +174,7 @@ func TestMatcherApk_RootIO(t *testing.T) {
 			// NVD CPE record is answered and never becomes a match
 			findings.DoesNotHaveAnyVulnerabilities("CVE-2024-10524")
 			findings.Ignores().
-				SelectRelatedPackageIgnores("DistroPackageFixed",
+				SelectRelatedPackageIgnores(reasonDistroFixed,
 					"ROOT-OS-ALPINE-318-CVE-2024-10524",
 					"CVE-2024-10524").
 				ForPackage(pkgID).
@@ -183,7 +183,7 @@ func TestMatcherApk_RootIO(t *testing.T) {
 
 		// rootio-socat at rootio fix. CVE-2024-54661 has no NVD CPE entry
 		// so there's no disclosure to suppress — but the matcher still
-		// emits the NAK as a DistroPackageFixed ignore (it lives in
+		// emits the NAK as a distro-fixed ignore (it lives in
 		// `fixed` after fixed.Merge(unaffected)). This is the
 		// "rootio-only" combination.
 		t.Run("rootio-socat at rootio fix: NAK ignore only, no disclosure", func(t *testing.T) {
@@ -194,7 +194,7 @@ func TestMatcherApk_RootIO(t *testing.T) {
 				Build()
 
 			db.Match(t, &matcher, p).Ignores().
-				SelectRelatedPackageIgnores("DistroPackageFixed",
+				SelectRelatedPackageIgnores(reasonDistroFixed,
 					"ROOT-OS-ALPINE-318-CVE-2024-54661",
 					"CVE-2024-54661").
 				ForPackage(pkgID).
@@ -226,7 +226,7 @@ func TestMatcherApk_RootIO(t *testing.T) {
 				Build()
 
 			db.Match(t, &matcher, p).Ignores().
-				SelectRelatedPackageIgnore("DistroPackageFixed", "CVE-2024-0727").
+				SelectRelatedPackageIgnore(reasonDistroFixed, "CVE-2024-0727").
 				ForPackage(pkgID)
 		})
 

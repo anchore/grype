@@ -97,7 +97,7 @@ func MatchPackageByDistro(provider vulnerability.Provider, searchPkg pkg.Package
 	}
 
 	// Use the SBOM package (not the synthetic upstream) for file ownership — the upstream package doesn't have file metadata.
-	ignores := OwnershipIgnores(matchPackage(searchPkg, catalogPkg), "DistroPackageFixed", fixed.Vulnerabilities()...)
+	ignores := OwnershipIgnores(matchPackage(searchPkg, catalogPkg), match.IgnoreReasonDistroFixed, fixed.Vulnerabilities()...)
 
 	return vulnerable.ToMatches(), ignores, nil
 }
