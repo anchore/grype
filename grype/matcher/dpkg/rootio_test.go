@@ -3,6 +3,7 @@ package dpkg
 import (
 	"testing"
 
+	"github.com/anchore/grype/grype/internal/ignorereasons"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal/dbtest"
@@ -181,7 +182,7 @@ func TestMatcherDpkg_RootIO_Ubuntu(t *testing.T) {
 
 				if len(tt.expectFixedCVEs) > 0 {
 					findings.Ignores().
-						SelectRelatedPackageIgnores(match.IgnoreReasonDistroFixed, tt.expectFixedCVEs...).
+						SelectRelatedPackageIgnores(ignorereasons.DistroFixed, tt.expectFixedCVEs...).
 						ForPackage(pkgID)
 				}
 			})
@@ -272,7 +273,7 @@ func TestMatcherDpkg_RootIO_Debian(t *testing.T) {
 
 				if len(tt.expectFixedCVEs) > 0 {
 					findings.Ignores().
-						SelectRelatedPackageIgnores(match.IgnoreReasonDistroFixed, tt.expectFixedCVEs...).
+						SelectRelatedPackageIgnores(ignorereasons.DistroFixed, tt.expectFixedCVEs...).
 						ForPackage(pkgID)
 				}
 			})

@@ -1181,7 +1181,7 @@ func TestIgnoreRelatedPackage(t *testing.T) {
 	}
 
 	filter := IgnoreRelatedPackage{
-		Reason:           IgnoreReasonDistroNAK + " by ownership",
+		Reason:           "distro-nak-by-ownership",
 		RelationshipType: artifact.OwnershipByFileOverlapRelationship,
 		VulnerabilityID:  "GHSA-xjjg-vmw6-c2p9",
 		RelatedPackageID: ownerPkgID,

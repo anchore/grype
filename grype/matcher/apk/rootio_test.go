@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/grype/internal/ignorereasons"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal/dbtest"
@@ -103,7 +104,7 @@ func TestMatcherApk_RootIO(t *testing.T) {
 			// NVD CPE record is answered and never becomes a match
 			findings.DoesNotHaveAnyVulnerabilities("CVE-2024-24806")
 			findings.Ignores().
-				SelectRelatedPackageIgnores(reasonDistroFixed,
+				SelectRelatedPackageIgnores(ignorereasons.DistroFixed,
 					"ROOT-OS-ALPINE-318-CVE-2024-24806",
 					"CVE-2024-24806").
 				ForPackage(pkgID).
@@ -140,7 +141,7 @@ func TestMatcherApk_RootIO(t *testing.T) {
 			// NVD CPE record is answered and never becomes a match
 			findings.DoesNotHaveAnyVulnerabilities("CVE-2024-28182")
 			findings.Ignores().
-				SelectRelatedPackageIgnores(reasonDistroFixed,
+				SelectRelatedPackageIgnores(ignorereasons.DistroFixed,
 					"ROOT-OS-ALPINE-318-CVE-2024-28182",
 					"CVE-2024-28182").
 				ForPackage(pkgID).
@@ -174,7 +175,7 @@ func TestMatcherApk_RootIO(t *testing.T) {
 			// NVD CPE record is answered and never becomes a match
 			findings.DoesNotHaveAnyVulnerabilities("CVE-2024-10524")
 			findings.Ignores().
-				SelectRelatedPackageIgnores(reasonDistroFixed,
+				SelectRelatedPackageIgnores(ignorereasons.DistroFixed,
 					"ROOT-OS-ALPINE-318-CVE-2024-10524",
 					"CVE-2024-10524").
 				ForPackage(pkgID).
@@ -194,7 +195,7 @@ func TestMatcherApk_RootIO(t *testing.T) {
 				Build()
 
 			db.Match(t, &matcher, p).Ignores().
-				SelectRelatedPackageIgnores(reasonDistroFixed,
+				SelectRelatedPackageIgnores(ignorereasons.DistroFixed,
 					"ROOT-OS-ALPINE-318-CVE-2024-54661",
 					"CVE-2024-54661").
 				ForPackage(pkgID).
@@ -226,7 +227,7 @@ func TestMatcherApk_RootIO(t *testing.T) {
 				Build()
 
 			db.Match(t, &matcher, p).Ignores().
-				SelectRelatedPackageIgnore(reasonDistroFixed, "CVE-2024-0727").
+				SelectRelatedPackageIgnore(ignorereasons.DistroFixed, "CVE-2024-0727").
 				ForPackage(pkgID)
 		})
 
