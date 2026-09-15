@@ -333,6 +333,28 @@ func TestQueryBuilder_ExactDistroCriteria(t *testing.T) {
 				require.Empty(t, remaining)
 			},
 		},
+		{
+			name: "DHI distro criteria disables version fallback",
+			criteria: []vulnerability.Criteria{
+				search.ByDistro(*distro.New(distro.DHI, "3.24", "")),
+			},
+			validate: func(t *testing.T, query *searchQuery, remaining []vulnerability.Criteria) {
+				require.Len(t, query.osSpecs, 1)
+				require.True(t, query.osSpecs[0].DisableFallback)
+				require.Empty(t, remaining)
+			},
+		},
+		{
+			name: "ordinary distro criteria retains version fallback",
+			criteria: []vulnerability.Criteria{
+				search.ByDistro(*distro.New(distro.Alpine, "3.24", "")),
+			},
+			validate: func(t *testing.T, query *searchQuery, remaining []vulnerability.Criteria) {
+				require.Len(t, query.osSpecs, 1)
+				require.False(t, query.osSpecs[0].DisableFallback)
+				require.Empty(t, remaining)
+			},
+		},
 	}
 
 	for _, test := range tests {
