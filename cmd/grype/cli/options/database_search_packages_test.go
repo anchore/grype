@@ -79,6 +79,30 @@ func TestDBSearchPackagesPostLoad(t *testing.T) {
 			},
 		},
 		{
+			name: "rpm PURL namespace names the distro, not the package",
+			input: DBSearchPackages{
+				Packages: []string{"pkg:rpm/redhat/openssl"},
+			},
+			expectedPkg: v6.PackageSpecifiers{
+				{Name: "openssl", Ecosystem: "rpm"},
+			},
+			expectedCPE: v6.PackageSpecifiers{
+				{CPE: &cpe.Attributes{Part: "a", Product: "openssl", TargetSW: "rpm"}},
+			},
+		},
+		{
+			name: "deb PURL namespace names the distro, not the package",
+			input: DBSearchPackages{
+				Packages: []string{"pkg:deb/debian/curl"},
+			},
+			expectedPkg: v6.PackageSpecifiers{
+				{Name: "curl", Ecosystem: "deb"},
+			},
+			expectedCPE: v6.PackageSpecifiers{
+				{CPE: &cpe.Attributes{Part: "a", Product: "curl", TargetSW: "deb"}},
+			},
+		},
+		{
 			name: "plain package name",
 			input: DBSearchPackages{
 				Packages: []string{"package-name"},
