@@ -43,6 +43,66 @@ func TestDBSearchPackagesPostLoad(t *testing.T) {
 			},
 		},
 		{
+			name: "PURL with namespace",
+			input: DBSearchPackages{
+				Packages: []string{"pkg:golang/github.com/gin-gonic/gin@v1.9.0"},
+			},
+			expectedPkg: v6.PackageSpecifiers{
+				{Name: "github.com/gin-gonic/gin", Ecosystem: "golang"},
+			},
+			expectedCPE: v6.PackageSpecifiers{
+				{CPE: &cpe.Attributes{Part: "a", Product: "gin", TargetSW: "golang"}},
+			},
+		},
+		{
+			name: "maven PURL joins namespace with a colon",
+			input: DBSearchPackages{
+				Packages: []string{"pkg:maven/org.apache.commons/commons-lang3@3.12.0"},
+			},
+			expectedPkg: v6.PackageSpecifiers{
+				{Name: "org.apache.commons:commons-lang3", Ecosystem: "maven"},
+			},
+			expectedCPE: v6.PackageSpecifiers{
+				{CPE: &cpe.Attributes{Part: "a", Product: "commons-lang3", TargetSW: "maven"}},
+			},
+		},
+		{
+			name: "scoped npm PURL keeps the scope",
+			input: DBSearchPackages{
+				Packages: []string{"pkg:npm/%40babel/core@7.0.0"},
+			},
+			expectedPkg: v6.PackageSpecifiers{
+				{Name: "@babel/core", Ecosystem: "npm"},
+			},
+			expectedCPE: v6.PackageSpecifiers{
+				{CPE: &cpe.Attributes{Part: "a", Product: "core", TargetSW: "npm"}},
+			},
+		},
+		{
+			name: "rpm PURL namespace names the distro, not the package",
+			input: DBSearchPackages{
+				Packages: []string{"pkg:rpm/redhat/openssl"},
+			},
+			expectedPkg: v6.PackageSpecifiers{
+				{Name: "openssl", Ecosystem: "rpm"},
+			},
+			expectedCPE: v6.PackageSpecifiers{
+				{CPE: &cpe.Attributes{Part: "a", Product: "openssl", TargetSW: "rpm"}},
+			},
+		},
+		{
+			name: "deb PURL namespace names the distro, not the package",
+			input: DBSearchPackages{
+				Packages: []string{"pkg:deb/debian/curl"},
+			},
+			expectedPkg: v6.PackageSpecifiers{
+				{Name: "curl", Ecosystem: "deb"},
+			},
+			expectedCPE: v6.PackageSpecifiers{
+				{CPE: &cpe.Attributes{Part: "a", Product: "curl", TargetSW: "deb"}},
+			},
+		},
+		{
 			name: "plain package name",
 			input: DBSearchPackages{
 				Packages: []string{"package-name"},
