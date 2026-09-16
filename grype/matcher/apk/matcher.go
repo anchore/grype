@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/anchore/grype/grype/internal/ignorereasons"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/matcher/internal/result"
@@ -13,11 +14,6 @@ import (
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
-)
-
-const (
-	ignoreReasonDistroFixed = "DistroPackageFixed"
-	ignoreReasonExplicitNAK = "Explicit APK NAK"
 )
 
 var (
@@ -75,7 +71,7 @@ func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match
 	ignores := slices.Concat(
 		cpeIgnores,
 		nakIgnores,
-		internal.OwnershipIgnores(p, ignoreReasonDistroFixed, allFixed.Vulnerabilities()...),
+		internal.OwnershipIgnores(p, ignorereasons.DistroFixed, allFixed.Vulnerabilities()...),
 	)
 
 	return vulnerable.ToMatches(), ignores, nil
@@ -138,7 +134,7 @@ func (m *Matcher) nakIgnores(vp vulnerability.Provider, p pkg.Package) ([]match.
 		naks = naks.Merge(upstreamNaks)
 	}
 
-	return internal.OwnershipIgnores(p, ignoreReasonExplicitNAK, naks.Vulnerabilities()...), nil
+	return internal.OwnershipIgnores(p, ignorereasons.DistroNAK, naks.Vulnerabilities()...), nil
 }
 
 // cpeResults finds NVD (CPE-indexed) results for the package itself and for each of its

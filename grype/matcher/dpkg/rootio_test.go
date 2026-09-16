@@ -3,6 +3,7 @@ package dpkg
 import (
 	"testing"
 
+	"github.com/anchore/grype/grype/internal/ignorereasons"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal/dbtest"
@@ -47,7 +48,7 @@ func TestMatcherDpkg_RootIO_Ubuntu(t *testing.T) {
 		expectType match.Type // ignored when expectCVE is empty
 
 		// expectFixedCVEs lists the CVE IDs that should surface as
-		// DistroPackageFixed ignores. The rootio NAK alias-unwinds into
+		// distro-fixed ignores. The rootio NAK alias-unwinds into
 		// both the ROOT-OS-* record ID and the upstream CVE, so the
 		// rootio-suppressed cases list both.
 		expectFixedCVEs []string
@@ -65,7 +66,7 @@ func TestMatcherDpkg_RootIO_Ubuntu(t *testing.T) {
 		{
 			// At the rootio fix, the NAK lands in the unaffected set and
 			// shares the CVE alias with the upstream disclosure. The matcher
-			// subtracts the disclosure and emits two DistroPackageFixed
+			// subtracts the disclosure and emits two distro-fixed
 			// ignores: the ROOT-OS-* record and the aliased CVE.
 			name:            "rootio-gnupg2 at rootio fix: NAK suppresses upstream disclosure",
 			pkgName:         "rootio-gnupg2",
@@ -94,7 +95,7 @@ func TestMatcherDpkg_RootIO_Ubuntu(t *testing.T) {
 		},
 		{
 			// Regular gnupg2 at the upstream fix is patched per Ubuntu's
-			// own data. The matcher records a standard DistroPackageFixed
+			// own data. The matcher records a standard distro-fixed
 			// ignore (no rootio involvement at all).
 			name:            "regular gnupg2 at upstream fix: distro-fixed by Ubuntu",
 			pkgName:         "gnupg2",
@@ -181,7 +182,7 @@ func TestMatcherDpkg_RootIO_Ubuntu(t *testing.T) {
 
 				if len(tt.expectFixedCVEs) > 0 {
 					findings.Ignores().
-						SelectRelatedPackageIgnores("DistroPackageFixed", tt.expectFixedCVEs...).
+						SelectRelatedPackageIgnores(ignorereasons.DistroFixed, tt.expectFixedCVEs...).
 						ForPackage(pkgID)
 				}
 			})
@@ -272,7 +273,7 @@ func TestMatcherDpkg_RootIO_Debian(t *testing.T) {
 
 				if len(tt.expectFixedCVEs) > 0 {
 					findings.Ignores().
-						SelectRelatedPackageIgnores("DistroPackageFixed", tt.expectFixedCVEs...).
+						SelectRelatedPackageIgnores(ignorereasons.DistroFixed, tt.expectFixedCVEs...).
 						ForPackage(pkgID)
 				}
 			})
