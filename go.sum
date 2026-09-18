@@ -816,13 +816,13 @@ github.com/opencontainers/image-spec v1.1.1 h1:y0fUlFfIZhPF1W537XOLg0/fcx6zcHCJw
 github.com/opencontainers/image-spec v1.1.1/go.mod h1:qpqAh3Dmcf36wStyyWU+kCeDgrGnAve2nCC8+7h8Q0M=
 github.com/opencontainers/runtime-spec v1.3.0 h1:YZupQUdctfhpZy3TM39nN9Ika5CBWT5diQ8ibYCRkxg=
 github.com/opencontainers/runtime-spec v1.3.0/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
-github.com/openvex/go-vex v0.2.8 h1:m/iH6+0fc7QXwfx7vJ0UeT8Z1oN1zVcyHjcVK+UO11Y=
-github.com/openvex/go-vex v0.2.8/go.mod h1:V09jOICYN/3VS4oU2hthSN8wGI6UAv3FvvYbpYS1xCE=
+github.com/openvex/go-vex v0.2.9 h1:InBYPjk5FQtDjnSQ12RUyQcnMlDO5QAg4QK848LIFm8=
+github.com/openvex/go-vex v0.2.9/go.mod h1:K7NfMaPzwZHZjg5xBvDzl4Wul4ojoNN4ICR5s4xbNHw=
 github.com/orisano/pixelmatch v0.0.0-20220722002657-fb0b55479cde/go.mod h1:nZgzbfBr3hhjoZnS66nKrHmduYNpc34ny7RK4z5/HM0=
 github.com/owenrumney/go-sarif v1.1.2-0.20231003122901-1000f5e05554 h1:FvA4bwjKpPqik5WsQ8+4z4DKWgA1tO1RTTtNKr5oYNA=
 github.com/owenrumney/go-sarif v1.1.2-0.20231003122901-1000f5e05554/go.mod h1:n73K/hcuJ50MiVznXyN4rde6fZY7naGKWBXOLFTyc94=
-github.com/package-url/packageurl-go v0.1.5 h1:O4efRXja2XQ5CtiiYiCZ22k/m7i5ugLiAghgcC+eDgk=
-github.com/package-url/packageurl-go v0.1.5/go.mod h1:nKAWB8E6uk1MHqiS/lQb9pYBGH2+mdJ2PJc2s50dQY0=
+github.com/package-url/packageurl-go v0.1.7 h1:iFWg6tzAjLA6F/qX3M5nZaiMHJgc+p2zxVyr/fY+sZY=
+github.com/package-url/packageurl-go v0.1.7/go.mod h1:nKAWB8E6uk1MHqiS/lQb9pYBGH2+mdJ2PJc2s50dQY0=
 github.com/pandatix/go-cvss v0.6.4 h1:9w2RCO/Q4UTiJyEgpCHRiVc6CfrsFEnkoX+OtATqKio=
 github.com/pandatix/go-cvss v0.6.4/go.mod h1:/ukvQnYlrKl3o/DVp7/GO2UZyZheuo/maOK0U1nBEhQ=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=

@@ -54,7 +54,7 @@ require (
 	github.com/mholt/archives v0.1.5
 	github.com/muesli/termenv v0.16.0
 	github.com/olekukonko/tablewriter v1.1.4
-	github.com/openvex/go-vex v0.2.8
+	github.com/openvex/go-vex v0.2.9
 	github.com/owenrumney/go-sarif v1.1.2-0.20231003122901-1000f5e05554
 	github.com/pandatix/go-cvss v0.6.4
 	// pinned to pull in 386 arch fix: https://github.com/scylladb/go-set/commit/cc7b2070d91ebf40d233207b633e28f5bd8f03a5
@@ -258,7 +258,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/opencontainers/runtime-spec v1.3.0 // indirect
-	github.com/package-url/packageurl-go v0.1.5 // indirect
+	github.com/package-url/packageurl-go v0.1.7 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/pborman/indent v1.2.1 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
