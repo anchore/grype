@@ -13,7 +13,12 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
-// Document represents the JSON document to be presented
+// Document is the top-level presenter model passed to all format presenters
+// (table, JSON, template, and others). Template authors should treat the
+// exported field names on this type and its nested types as the source of
+// truth for Go template field paths (for example .Matches, .Source).
+// JSON struct tags describe the -o json keys, which can differ in casing from
+// the Go field names used in templates.
 type Document struct {
 	Matches         []Match         `json:"matches"`
 	IgnoredMatches  []IgnoredMatch  `json:"ignoredMatches,omitempty"`
@@ -23,7 +28,7 @@ type Document struct {
 	Descriptor      descriptor      `json:"descriptor"`
 }
 
-// NewDocument creates and populates a new Document struct, representing the populated JSON document.
+// NewDocument creates and populates a new Document presenter model.
 //
 //nolint:staticcheck // MetadataProvider is deprecated but still used internally
 func NewDocument(id clio.Identification, packages []pkg.Package, context pkg.Context, matches match.Matches, ignoredMatches []match.IgnoredMatch, metadataProvider vulnerability.MetadataProvider, appConfig any, dbInfo any, strategy SortStrategy, outputTimestamp bool, distroAlerts *DistroAlertData) (Document, error) {
