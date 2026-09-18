@@ -1,5 +1,9 @@
 package v6
 
+import (
+	"github.com/anchore/syft/syft/pkg"
+)
+
 type packageSpecifierLookup struct {
 	Package PackageSpecifier
 	CPEs    []string
@@ -13,7 +17,7 @@ var CPEPackageSpecifierLookup = buildCPEPackageSpecifierLookup(
 	[]packageSpecifierLookup{
 		// Anchore Products
 		{
-			Package: PackageSpecifier{Name: "anchore-enterprise", Ecosystem: "python"},
+			Package: PackageSpecifier{Name: "anchore-enterprise", Ecosystem: string(pkg.PythonPkg)},
 			CPEs: []string{
 				"cpe:2.3:a:anchore:anchore:*:*:*:*:enterprise:*:*:*",
 				"cpe:2.3:a:anchore:anchore:*:*:*:*:enterprise:python:*:*",
@@ -24,7 +28,7 @@ var CPEPackageSpecifierLookup = buildCPEPackageSpecifierLookup(
 			},
 		},
 		{
-			Package: PackageSpecifier{Name: "anchore-engine", Ecosystem: "python"},
+			Package: PackageSpecifier{Name: "anchore-engine", Ecosystem: string(pkg.PythonPkg)},
 			CPEs: []string{
 				"cpe:2.3:a:anchore:engine:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:anchore:engine:*:*:*:*:*:python:*:*",
@@ -33,84 +37,84 @@ var CPEPackageSpecifierLookup = buildCPEPackageSpecifierLookup(
 			},
 		},
 		{
-			Package: PackageSpecifier{Name: "vunnel", Ecosystem: "python"},
+			Package: PackageSpecifier{Name: "vunnel", Ecosystem: string(pkg.PythonPkg)},
 			CPEs: []string{
 				"cpe:2.3:a:anchore:vunnel:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:anchore:vunnel:*:*:*:*:*:python:*:*",
 			},
 		},
 		{
-			Package: PackageSpecifier{Name: "github.com/anchore/anchorectl", Ecosystem: "go-module"},
+			Package: PackageSpecifier{Name: "github.com/anchore/anchorectl", Ecosystem: string(pkg.GoModulePkg)},
 			CPEs: []string{
 				"cpe:2.3:a:anchore:anchorectl:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:anchore:anchorectl:*:*:*:*:*:go:*:*",
 			},
 		},
 		{
-			Package: PackageSpecifier{Name: "github.com/anchore/k8s-inventory", Ecosystem: "go-module"},
+			Package: PackageSpecifier{Name: "github.com/anchore/k8s-inventory", Ecosystem: string(pkg.GoModulePkg)},
 			CPEs: []string{
 				"cpe:2.3:a:anchore:k8s-inventory:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:anchore:k8s-inventory:*:*:*:*:*:go:*:*",
 			},
 		},
 		{
-			Package: PackageSpecifier{Name: "github.com/anchore/ecs-inventory", Ecosystem: "go-module"},
+			Package: PackageSpecifier{Name: "github.com/anchore/ecs-inventory", Ecosystem: string(pkg.GoModulePkg)},
 			CPEs: []string{
 				"cpe:2.3:a:anchore:ecs-inventory:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:anchore:ecs-inventory:*:*:*:*:*:go:*:*",
 			},
 		},
 		{
-			Package: PackageSpecifier{Name: "github.com/anchore/syft", Ecosystem: "go-module"},
+			Package: PackageSpecifier{Name: "github.com/anchore/syft", Ecosystem: string(pkg.GoModulePkg)},
 			CPEs: []string{
 				"cpe:2.3:a:anchore:syft:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:anchore:syft:*:*:*:*:*:go:*:*",
 			},
 		},
 		{
-			Package: PackageSpecifier{Name: "github.com/anchore/grype", Ecosystem: "go-module"},
+			Package: PackageSpecifier{Name: "github.com/anchore/grype", Ecosystem: string(pkg.GoModulePkg)},
 			CPEs: []string{
 				"cpe:2.3:a:anchore:grype:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:anchore:grype:*:*:*:*:*:go:*:*",
 			},
 		},
 		{
-			Package: PackageSpecifier{Name: "github.com/anchore/grype-db", Ecosystem: "go-module"},
+			Package: PackageSpecifier{Name: "github.com/anchore/grype-db", Ecosystem: string(pkg.GoModulePkg)},
 			CPEs: []string{
 				"cpe:2.3:a:anchore:grype-db:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:anchore:grype-db:*:*:*:*:*:go:*:*",
 			},
 		},
 		{
-			Package: PackageSpecifier{Name: "github.com/anchore/stereoscope", Ecosystem: "go-module"},
+			Package: PackageSpecifier{Name: "github.com/anchore/stereoscope", Ecosystem: string(pkg.GoModulePkg)},
 			CPEs: []string{
 				"cpe:2.3:a:anchore:stereoscope:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:anchore:stereoscope:*:*:*:*:*:go:*:*",
 			},
 		},
 		{
-			Package: PackageSpecifier{Name: "github.com/anchore/quill", Ecosystem: "go-module"},
+			Package: PackageSpecifier{Name: "github.com/anchore/quill", Ecosystem: string(pkg.GoModulePkg)},
 			CPEs: []string{
 				"cpe:2.3:a:anchore:quill:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:anchore:quill:*:*:*:*:*:go:*:*",
 			},
 		},
 		{
-			Package: PackageSpecifier{Name: "github.com/anchore/grant", Ecosystem: "go-module"},
+			Package: PackageSpecifier{Name: "github.com/anchore/grant", Ecosystem: string(pkg.GoModulePkg)},
 			CPEs: []string{
 				"cpe:2.3:a:anchore:grant:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:anchore:grant:*:*:*:*:*:go:*:*",
 			},
 		},
 		{
-			Package: PackageSpecifier{Name: "github.com/anchore/binny", Ecosystem: "go-module"},
+			Package: PackageSpecifier{Name: "github.com/anchore/binny", Ecosystem: string(pkg.GoModulePkg)},
 			CPEs: []string{
 				"cpe:2.3:a:anchore:binny:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:anchore:binny:*:*:*:*:*:go:*:*",
 			},
 		},
 		{
-			Package: PackageSpecifier{Name: "yardstick", Ecosystem: "python"},
+			Package: PackageSpecifier{Name: "yardstick", Ecosystem: string(pkg.PythonPkg)},
 			CPEs: []string{
 				"cpe:2.3:a:anchore:yardstick:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:anchore:yardstick:*:*:*:*:*:python:*:*",
@@ -118,7 +122,7 @@ var CPEPackageSpecifierLookup = buildCPEPackageSpecifierLookup(
 		},
 		// Atlassian Products
 		{
-			Package: PackageSpecifier{Name: "com.atlassian.confluence:confluence", Ecosystem: "java-archive"},
+			Package: PackageSpecifier{Name: "com.atlassian.confluence:confluence", Ecosystem: string(pkg.JavaPkg)},
 			CPEs: []string{
 				"cpe:2.3:a:atlassian:confluence:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:atlassian:confluence:*:*:*:*:*:maven:*:*",
@@ -131,7 +135,7 @@ var CPEPackageSpecifierLookup = buildCPEPackageSpecifierLookup(
 			},
 		},
 		{
-			Package: PackageSpecifier{Name: "com.atlassian.jira:jira-core", Ecosystem: "java-archive"},
+			Package: PackageSpecifier{Name: "com.atlassian.jira:jira-core", Ecosystem: string(pkg.JavaPkg)},
 			CPEs: []string{
 				"cpe:2.3:a:atlassian:jira:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:atlassian:jira:*:*:*:*:*:maven:*:*",
@@ -152,7 +156,7 @@ var CPEPackageSpecifierLookup = buildCPEPackageSpecifierLookup(
 			},
 		},
 		{
-			Package: PackageSpecifier{Name: "com.atlassian.bamboo:atlassian-bamboo", Ecosystem: "java-archive"},
+			Package: PackageSpecifier{Name: "com.atlassian.bamboo:atlassian-bamboo", Ecosystem: string(pkg.JavaPkg)},
 			CPEs: []string{
 				"cpe:2.3:a:atlassian:bamboo:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:atlassian:bamboo:*:*:*:*:*:maven:*:*",
@@ -165,7 +169,7 @@ var CPEPackageSpecifierLookup = buildCPEPackageSpecifierLookup(
 			},
 		},
 		{
-			Package: PackageSpecifier{Name: "com.atlassian.bitbucket.server:bitbucket-service-api", Ecosystem: "java-archive"},
+			Package: PackageSpecifier{Name: "com.atlassian.bitbucket.server:bitbucket-service-api", Ecosystem: string(pkg.JavaPkg)},
 			CPEs: []string{
 				"cpe:2.3:a:atlassian:bitbucket_data_center:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:atlassian:bitbucket_data_center:*:*:*:*:*:maven:*:*",
@@ -174,7 +178,7 @@ var CPEPackageSpecifierLookup = buildCPEPackageSpecifierLookup(
 			},
 		},
 		{
-			Package: PackageSpecifier{Name: "com.atlassian.jira.plugins:insight-discovery", Ecosystem: "java-archive"},
+			Package: PackageSpecifier{Name: "com.atlassian.jira.plugins:insight-discovery", Ecosystem: string(pkg.JavaPkg)},
 			CPEs: []string{
 				"cpe:2.3:a:atlassian:assets_discovery_data_center:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:atlassian:assets_discovery_data_center:*:*:*:*:*:maven:*:*",

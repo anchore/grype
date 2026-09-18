@@ -79,8 +79,8 @@ func newSource(src syftSource.Description) (source, error) {
 	case nil:
 		// we may be showing results from a input source that does not support source information
 		return source{
-			Type:   "unknown",
-			Target: "unknown",
+			Type:   unknownValue,
+			Target: unknownValue,
 		}, nil
 	default:
 		return source{}, fmt.Errorf("unsupported source: %T", src.Metadata)
