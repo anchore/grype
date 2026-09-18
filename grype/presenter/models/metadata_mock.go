@@ -7,6 +7,10 @@ import (
 //nolint:staticcheck // MetadataProvider is deprecated but still used internally for testing
 var _ vulnerability.MetadataProvider = (*MetadataMock)(nil)
 
+// lowSeverity is the severity string used by the mock fixtures. Note the capitalization
+// differs from vulnerability.LowSeverity.String(); snapshot tests assert on this form.
+const lowSeverity = "Low"
+
 // MetadataMock provides the behavior required for a vulnerability.Provider for the purpose of testing.
 type MetadataMock struct {
 	store map[string]map[string]vulnerability.Metadata
@@ -24,7 +28,7 @@ func NewMetadataMock() *MetadataMock {
 			"CVE-1999-0001": {
 				"source-1": {
 					Description: "1999-01 description",
-					Severity:    "Low",
+					Severity:    lowSeverity,
 					Cvss: []vulnerability.Cvss{
 						{
 							Metrics: vulnerability.CvssMetrics{
@@ -50,7 +54,7 @@ func NewMetadataMock() *MetadataMock {
 							Vector:  "vector",
 							Version: "2.0",
 							VendorMetadata: MockVendorMetadata{
-								BaseSeverity: "Low",
+								BaseSeverity: lowSeverity,
 								Status:       "verified",
 							},
 						},
@@ -77,7 +81,7 @@ func NewMetadataMock() *MetadataMock {
 							Vector:  "vector",
 							Version: "2.0",
 							VendorMetadata: MockVendorMetadata{
-								BaseSeverity: "Low",
+								BaseSeverity: lowSeverity,
 								Status:       "verified",
 							},
 						},

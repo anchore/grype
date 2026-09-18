@@ -32,10 +32,31 @@ const (
 
 type SyftSource string
 
+// Fixture values shared across the generated analysis documents below. These are
+// deliberately stable: the presenter snapshot tests assert against them verbatim.
+const (
+	appName = "grype"
+
+	cve19990001 = "CVE-1999-0001"
+	cve19990002 = "CVE-1999-0002"
+	cve19990004 = "CVE-1999-0004"
+
+	nvdSource   = "nvd"
+	cvssType    = "CVSS"
+	cvssVersion = "3.1"
+	sourceTwo   = "source-2"
+
+	cpeKey        = "cpe"
+	constraintKey = "constraint"
+	someCPE       = "somecpe"
+
+	dockerLayerMediaType = "application/vnd.docker.image.rootfs.diff.tar.gzip"
+)
+
 func GeneratePresenterConfig(t *testing.T, scheme SyftSource) models.PresenterConfig {
 	s, doc := GenerateAnalysis(t, scheme)
 	return models.PresenterConfig{
-		ID:       clio.Identification{Name: "grype", Version: "[not provided]"},
+		ID:       clio.Identification{Name: appName, Version: "[not provided]"},
 		Document: doc,
 		SBOM:     s,
 		Pretty:   true,
@@ -58,7 +79,7 @@ func GenerateAnalysis(t *testing.T, scheme SyftSource) (*sbom.SBOM, models.Docum
 
 	matches := generateMatches(t, grypePackages[0], grypePackages[1])
 
-	doc, err := models.NewDocument(clio.Identification{Name: "grype", Version: "[not provided]"}, grypePackages, context, matches, nil, models.NewMetadataMock(), nil, nil, models.SortByPackage, true, nil)
+	doc, err := models.NewDocument(clio.Identification{Name: appName, Version: "[not provided]"}, grypePackages, context, matches, nil, models.NewMetadataMock(), nil, nil, models.SortByPackage, true, nil)
 	require.NoError(t, err)
 
 	return s, doc
@@ -79,7 +100,7 @@ func GenerateAnalysisWithIgnoredMatches(t *testing.T, scheme SyftSource) models.
 	ignoredMatches := generateIgnoredMatches(t, grypePackages[1])
 	context := generateContext(t, scheme)
 
-	doc, err := models.NewDocument(clio.Identification{Name: "grype", Version: "devel"}, grypePackages, context, matches, ignoredMatches, models.NewMetadataMock(), nil, nil, models.SortByPackage, true, nil)
+	doc, err := models.NewDocument(clio.Identification{Name: appName, Version: "devel"}, grypePackages, context, matches, ignoredMatches, models.NewMetadataMock(), nil, nil, models.SortByPackage, true, nil)
 	require.NoError(t, err)
 	return doc
 }
@@ -107,7 +128,7 @@ func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches { // nolint
 
 			Vulnerability: vulnerability.Vulnerability{
 				Reference: vulnerability.Reference{
-					ID:        "CVE-1999-0001",
+					ID:        cve19990001,
 					Namespace: "source-1",
 				},
 				Fix: vulnerability.Fix{
@@ -115,13 +136,13 @@ func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches { // nolint
 					State:    vulnerability.FixStateFixed,
 				},
 				Metadata: &vulnerability.Metadata{
-					ID:       "CVE-1999-0001",
+					ID:       cve19990001,
 					Severity: "Low",
 					Cvss: []vulnerability.Cvss{
 						{
-							Source:  "nvd",
-							Type:    "CVSS",
-							Version: "3.1",
+							Source:  nvdSource,
+							Type:    cvssType,
+							Version: cvssVersion,
 							Vector:  "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:H",
 							Metrics: vulnerability.CvssMetrics{
 								BaseScore: 8.2,
@@ -131,7 +152,7 @@ func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches { // nolint
 					KnownExploited: nil,
 					EPSS: []vulnerability.EPSS{
 						{
-							CVE:        "CVE-1999-0001",
+							CVE:        cve19990001,
 							EPSS:       0.03,
 							Percentile: 0.42,
 						},
@@ -150,7 +171,7 @@ func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches { // nolint
 						},
 					},
 					Found: map[string]any{
-						"constraint": ">= 20",
+						constraintKey: ">= 20",
 					},
 				},
 			},
@@ -159,17 +180,17 @@ func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches { // nolint
 
 			Vulnerability: vulnerability.Vulnerability{
 				Reference: vulnerability.Reference{
-					ID:        "CVE-1999-0002",
-					Namespace: "source-2",
+					ID:        cve19990002,
+					Namespace: sourceTwo,
 				},
 				Metadata: &vulnerability.Metadata{
-					ID:       "CVE-1999-0002",
+					ID:       cve19990002,
 					Severity: "Critical",
 					Cvss: []vulnerability.Cvss{
 						{
-							Source:  "nvd",
-							Type:    "CVSS",
-							Version: "3.1",
+							Source:  nvdSource,
+							Type:    cvssType,
+							Version: cvssVersion,
 							Vector:  "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:H/I:H/A:H",
 							Metrics: vulnerability.CvssMetrics{
 								BaseScore: 8.5,
@@ -178,13 +199,13 @@ func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches { // nolint
 					},
 					KnownExploited: []vulnerability.KnownExploited{
 						{
-							CVE:                        "CVE-1999-0002",
+							CVE:                        cve19990002,
 							KnownRansomwareCampaignUse: "Known",
 						},
 					},
 					EPSS: []vulnerability.EPSS{
 						{
-							CVE:        "CVE-1999-0002",
+							CVE:        cve19990002,
 							EPSS:       0.08,
 							Percentile: 0.53,
 						},
@@ -197,10 +218,10 @@ func generateMatches(t *testing.T, p1, p2 pkg.Package) match.Matches { // nolint
 					Type:    match.ExactIndirectMatch,
 					Matcher: match.DpkgMatcher,
 					SearchedBy: map[string]any{
-						"cpe": "somecpe",
+						cpeKey: someCPE,
 					},
 					Found: map[string]any{
-						"constraint": "somecpe",
+						constraintKey: someCPE,
 					},
 				},
 			},
@@ -221,17 +242,17 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 			Match: match.Match{
 				Vulnerability: vulnerability.Vulnerability{
 					Reference: vulnerability.Reference{
-						ID:        "CVE-1999-0001",
+						ID:        cve19990001,
 						Namespace: "source-1",
 					},
 					Metadata: &vulnerability.Metadata{
-						ID:       "CVE-1999-0001",
+						ID:       cve19990001,
 						Severity: "Low",
 						Cvss: []vulnerability.Cvss{
 							{
-								Source:  "nvd",
-								Type:    "CVSS",
-								Version: "3.1",
+								Source:  nvdSource,
+								Type:    cvssType,
+								Version: cvssVersion,
 								Vector:  "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:L/I:L/A:H",
 								Metrics: vulnerability.CvssMetrics{
 									BaseScore: 8.2,
@@ -241,7 +262,7 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 						KnownExploited: nil,
 						EPSS: []vulnerability.EPSS{
 							{
-								CVE:        "CVE-1999-0001",
+								CVE:        cve19990001,
 								EPSS:       0.03,
 								Percentile: 0.42,
 							},
@@ -260,7 +281,7 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 							},
 						},
 						Found: map[string]any{
-							"constraint": ">= 20",
+							constraintKey: ">= 20",
 						},
 					},
 				},
@@ -271,17 +292,17 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 			Match: match.Match{
 				Vulnerability: vulnerability.Vulnerability{
 					Reference: vulnerability.Reference{
-						ID:        "CVE-1999-0002",
-						Namespace: "source-2",
+						ID:        cve19990002,
+						Namespace: sourceTwo,
 					},
 					Metadata: &vulnerability.Metadata{
-						ID:       "CVE-1999-0002",
+						ID:       cve19990002,
 						Severity: "Critical",
 						Cvss: []vulnerability.Cvss{
 							{
-								Source:  "nvd",
-								Type:    "CVSS",
-								Version: "3.1",
+								Source:  nvdSource,
+								Type:    cvssType,
+								Version: cvssVersion,
 								Vector:  "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:H/I:H/A:H",
 								Metrics: vulnerability.CvssMetrics{
 									BaseScore: 8.5,
@@ -290,13 +311,13 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 						},
 						KnownExploited: []vulnerability.KnownExploited{
 							{
-								CVE:                        "CVE-1999-0002",
+								CVE:                        cve19990002,
 								KnownRansomwareCampaignUse: "Known",
 							},
 						},
 						EPSS: []vulnerability.EPSS{
 							{
-								CVE:        "CVE-1999-0002",
+								CVE:        cve19990002,
 								EPSS:       0.08,
 								Percentile: 0.53,
 							},
@@ -309,10 +330,10 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 						Type:    match.ExactDirectMatch,
 						Matcher: match.DpkgMatcher,
 						SearchedBy: map[string]any{
-							"cpe": "somecpe",
+							cpeKey: someCPE,
 						},
 						Found: map[string]any{
-							"constraint": "somecpe",
+							constraintKey: someCPE,
 						},
 					},
 				},
@@ -323,17 +344,17 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 			Match: match.Match{
 				Vulnerability: vulnerability.Vulnerability{
 					Reference: vulnerability.Reference{
-						ID:        "CVE-1999-0004",
-						Namespace: "source-2",
+						ID:        cve19990004,
+						Namespace: sourceTwo,
 					},
 					Metadata: &vulnerability.Metadata{
-						ID:       "CVE-1999-0004",
+						ID:       cve19990004,
 						Severity: "High",
 						Cvss: []vulnerability.Cvss{
 							{
-								Source:  "nvd",
-								Type:    "CVSS",
-								Version: "3.1",
+								Source:  nvdSource,
+								Type:    cvssType,
+								Version: cvssVersion,
 								Vector:  "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:H/I:L/A:L",
 								Metrics: vulnerability.CvssMetrics{
 									BaseScore: 7.2,
@@ -342,7 +363,7 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 						},
 						EPSS: []vulnerability.EPSS{
 							{
-								CVE:        "CVE-1999-0004",
+								CVE:        cve19990004,
 								EPSS:       0.03,
 								Percentile: 0.75,
 							},
@@ -355,17 +376,17 @@ func generateIgnoredMatches(t *testing.T, p pkg.Package) []match.IgnoredMatch {
 						Type:    match.ExactDirectMatch,
 						Matcher: match.DpkgMatcher,
 						SearchedBy: map[string]any{
-							"cpe": "somecpe",
+							cpeKey: someCPE,
 						},
 						Found: map[string]any{
-							"constraint": "somecpe",
+							constraintKey: someCPE,
 						},
 					},
 				},
 			},
 			AppliedIgnoreRules: []match.IgnoreRule{
 				{
-					Vulnerability:    "CVE-1999-0004",
+					Vulnerability:    cve19990004,
 					Namespace:        "vex",
 					Package:          match.IgnoreRulePackage{},
 					VexStatus:        string(vexStatus.NotAffected),
@@ -462,21 +483,21 @@ func generateContext(t *testing.T, scheme SyftSource) pkg.Context {
 				{
 					Metadata: image.LayerMetadata{
 						Digest:    "sha256:ca738abb87a8d58f112d3400ebb079b61ceae7dc290beb34bda735be4b1941d5",
-						MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
+						MediaType: dockerLayerMediaType,
 						Size:      22,
 					},
 				},
 				{
 					Metadata: image.LayerMetadata{
 						Digest:    "sha256:a05cd9ebf88af96450f1e25367281ab232ac0645f314124fe01af759b93f3006",
-						MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
+						MediaType: dockerLayerMediaType,
 						Size:      16,
 					},
 				},
 				{
 					Metadata: image.LayerMetadata{
 						Digest:    "sha256:ab5608d634db2716a297adbfa6a5dd5d8f8f5a7d0cab73649ea7fbb8c8da544f",
-						MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
+						MediaType: dockerLayerMediaType,
 						Size:      27,
 					},
 				},

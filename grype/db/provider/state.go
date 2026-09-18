@@ -59,7 +59,7 @@ func ReadState(location string) (*State, error) {
 
 	start := time.Now()
 	if sd.Listing != nil {
-		algorithm := "xxh64" // sane default for performance
+		algorithm := xxh64Algorithm // sane default for performance
 
 		// get extension from listing file
 		extension := filepath.Ext(sd.Listing.Path)
