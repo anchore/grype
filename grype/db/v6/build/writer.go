@@ -33,6 +33,10 @@ type writer struct {
 	// govulndb_merge.go.
 	goMerge *goVulnDBMerger
 
+	// nameMerge folds entries sharing a provider and name into one handle at Close time.
+	// See name_merge.go.
+	nameMerge *nameMerger
+
 	// Two-tier batching: parent records (vulnerabilities + providers) and child records (related entries)
 	// This maintains FK integrity while maximizing batch sizes
 	parentBatchSize int
@@ -104,6 +108,7 @@ func NewWriter(directory string, states provider.States, failOnMissingFixDate bo
 		states:               states,
 		severityCache:        make(map[string]db.Severity),
 		goMerge:              newGoVulnDBMerger(),
+		nameMerge:            newNameMerger(),
 		parentBatchSize:      batchSize,
 		childBatchSize:       batchSize,
 		parentBuffer:         make([]func() error, 0, batchSize),
@@ -132,6 +137,13 @@ func (w *writer) Write(entries ...data.Entry) error {
 
 func (w *writer) writeEntry(entry transformers.RelatedEntries) error {
 	log.WithFields("entry", entry.String()).Trace("writing entry")
+
+	// Order is load-bearing: goMerge.hold claims any "GO-*" name with no provider or ecosystem
+	// guard, so it would swallow chainguard apk advisories whose only upstream id is a govulndb
+	// one and reconcile them against Go modules. A merge-by-name entry is never a govulndb record.
+	if w.nameMerge.hold(entry) {
+		return nil
+	}
 
 	if w.goMerge.hold(entry) {
 		return nil
@@ -487,6 +499,13 @@ func (w *writer) Close() error {
 	for _, entry := range w.goMerge.reconcile() {
 		if err := w.writeEntryToBatch(entry); err != nil {
 			return fmt.Errorf("unable to write reconciled go entry %q: %w", entry.VulnerabilityHandle.Name, err)
+		}
+	}
+
+	// Runs after the govulndb reconciliation so both sets land through the same batching path.
+	for _, entry := range w.nameMerge.reconcile() {
+		if err := w.writeEntryToBatch(entry); err != nil {
+			return fmt.Errorf("unable to write merged entry %q: %w", entry.VulnerabilityHandle.Name, err)
 		}
 	}
 

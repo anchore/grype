@@ -12,6 +12,11 @@ type RelatedEntries struct {
 	VulnerabilityHandle *db.VulnerabilityHandle
 	Provider            *db.Provider
 	Related             []any
+
+	// MergeByName asks the writer to fold this entry with others sharing its provider and
+	// name. Transformers set it when one advisory identity is spread across many source
+	// records; the store's write-once dedup is not sufficient. See name_merge.go.
+	MergeByName bool
 }
 
 // GoVulnDBAffectedPackage wraps an affected package emitted by the govulndb transformer with
@@ -31,8 +36,19 @@ type GoVulnDBAffectedPackage struct {
 	CustomRanges []db.Range
 }
 
+// NewEntries keeps only the last VulnerabilityHandle passed, so callers needing several
+// names must call it once per name and concatenate.
 func NewEntries(models ...any) []data.Entry {
-	var entry RelatedEntries
+	return newEntries(false, models...)
+}
+
+// NewMergeableEntries is NewEntries with MergeByName set.
+func NewMergeableEntries(models ...any) []data.Entry {
+	return newEntries(true, models...)
+}
+
+func newEntries(mergeByName bool, models ...any) []data.Entry {
+	entry := RelatedEntries{MergeByName: mergeByName}
 
 	for i := range models {
 		model := models[i]

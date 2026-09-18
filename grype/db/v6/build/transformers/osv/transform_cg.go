@@ -2,6 +2,7 @@ package osv
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
 	"github.com/anchore/grype/grype/db/v6/name"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/pkg"
 )
@@ -24,52 +26,127 @@ func (chainguardStrategy) Matches(id string) bool {
 	return strings.HasPrefix(id, "CGA-")
 }
 
+// Strict on purpose: the feed carries "cve36" and CVE ids typed with U+2011 hyphens, which
+// must fall through to a later tier rather than become a wrong CVE name.
+var cveIDPattern = regexp.MustCompile(`^CVE-\d{4}-\d{4,}$`)
+
+// cgNames picks the name(s): every strict CVE, else first GHSA, else first GO, else the CGA.
+//
+// Chainguard mints one CGA per (package x arch x bundled component), so one CVE spreads over
+// up to ~14k records identical in every rendered field. match.Fingerprint keys on the
+// vulnerability id, so CGA names both hide the searchable id and multiply findings. Only the
+// CVE tier fans out: two-CVE records were checked and are genuinely distinct issues.
+func cgNames(vuln unmarshal.OSVVulnerability) []string {
+	var cves, ghsas, gos []string
+	for _, id := range vuln.Upstream {
+		switch {
+		case cveIDPattern.MatchString(id):
+			cves = append(cves, id)
+		case strings.HasPrefix(id, "GHSA-"):
+			ghsas = append(ghsas, id)
+		case strings.HasPrefix(id, "GO-"):
+			gos = append(gos, id)
+		}
+	}
+
+	switch {
+	case len(cves) > 0:
+		return cves
+	case len(ghsas) > 0:
+		return ghsas[:1]
+	case len(gos) > 0:
+		return gos[:1]
+	}
+
+	log.WithFields("id", vuln.ID, "upstream", vuln.Upstream).
+		Warn("chainguard record carries no usable upstream identifier; keeping the CGA as the vulnerability name")
+	return []string{vuln.ID}
+}
+
 // Transform CG OSV records into grype DB entries. CG OSV records specify the range of vulnerable versions
-// for a given vulnerability
+// for a given vulnerability. Entries are marked MergeByName because renaming alone would
+// leave one handle per CGA; see name_merge.go.
 func (chainguardStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
 	severities, err := getSeverities(vuln)
 	if err != nil {
 		return nil, fmt.Errorf("unable to obtain severities: %w", err)
 	}
 
-	aliases := vuln.Aliases
-	in := []any{
-		db.VulnerabilityHandle{
-			Name:          vuln.ID,
-			Status:        db.VulnerabilityActive,
-			PublishedDate: &vuln.Published,
-			ModifiedDate:  &vuln.Modified,
-			WithdrawnDate: nil,
-			ProviderID:    state.Provider,
-			Provider:      provider.Model(state),
-			BlobValue: &db.VulnerabilityBlob{
-				ID:          vuln.ID,
-				Assigners:   nil,
-				Description: vuln.Details,
-				References:  cgReferences(vuln),
-				// cg puts CVEs in `upstream`, so we append those
-				Aliases:    append(aliases, vuln.Upstream...),
-				Severities: severities,
-			},
-		},
-	}
+	// cg puts CVEs in `upstream`, not `aliases`.
+	upstreamIDs := dedupeIDs(append(append([]string{}, vuln.Aliases...), vuln.Upstream...))
 
-	for _, uph := range cgAffectedPackages(vuln) {
-		in = append(in, uph)
+	// The CGA names a component instance, so it belongs on the package row. In vulnerability
+	// aliases it would attach every CGA minted for a CVE (~14k) to every finding for it.
+	packageCVEs := dedupeIDs(append(append([]string{}, upstreamIDs...), vuln.ID))
+
+	var entries []data.Entry
+	for _, vulnName := range cgNames(vuln) {
+		in := []any{
+			db.VulnerabilityHandle{
+				Name:          vulnName,
+				Status:        db.VulnerabilityActive,
+				PublishedDate: &vuln.Published,
+				ModifiedDate:  &vuln.Modified,
+				WithdrawnDate: nil,
+				ProviderID:    state.Provider,
+				Provider:      provider.Model(state),
+				BlobValue: &db.VulnerabilityBlob{
+					// must track Name: blobs dedupe by digest, so a per-record CGA here
+					// would keep every digest distinct and forfeit the collapse
+					ID:          vulnName,
+					Assigners:   nil,
+					Description: vuln.Details,
+					References:  cgReferences(vuln),
+					Aliases:     withoutID(upstreamIDs, vulnName),
+					Severities:  append([]db.Severity{}, severities...),
+				},
+			},
+		}
+
+		for _, uph := range cgAffectedPackages(vuln, packageCVEs) {
+			in = append(in, uph)
+		}
+		entries = append(entries, transformers.NewMergeableEntries(in...)...)
 	}
-	return transformers.NewEntries(in...), nil
+	return entries, nil
 }
 
-// cgReferences convert OSV references into grype DB references
+// dedupeIDs preserves first-seen (feed) order, so blob digests stay reproducible across builds.
+func dedupeIDs(ids []string) []string {
+	if len(ids) < 2 {
+		return ids
+	}
+	seen := make(map[string]struct{}, len(ids))
+	out := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		out = append(out, id)
+	}
+	return out
+}
+
+// withoutID stops a record aliasing itself, which would render as its own related vulnerability.
+func withoutID(ids []string, id string) []string {
+	var out []string
+	for _, candidate := range ids {
+		if candidate != id {
+			out = append(out, candidate)
+		}
+	}
+	return out
+}
+
+// cgReferences convert OSV references into grype DB references.
+//
+// Reference.ID is left empty: stamping the CGA on ADVISORY refs mislabeled third-party URLs
+// (Red Hat errata) and re-injected per-record entropy into the blob, defeating the merge.
 func cgReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
 	var refs []db.Reference
 	for _, ref := range vuln.References {
-		refID := ""
-		if ref.Type == osvmodel.ReferenceAdvisory {
-			refID = vuln.ID
-		}
 		refs = append(refs, db.Reference{
-			ID:   refID,
 			URL:  ref.URL,
 			Tags: []string{string(ref.Type)},
 		})
@@ -80,17 +157,17 @@ func cgReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
 // cgAffectedPackages converts OSV affected packages into grype DB affected package handles. CG OSV records
 // specify the range of vulnerable versions for a given vulnerability, so we convert those ranges into grype
 // DB ranges and attach them to the affected package handle blob.
-func cgAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHandle {
+func cgAffectedPackages(vuln unmarshal.OSVVulnerability, cves []string) []db.AffectedPackageHandle {
 	if len(vuln.Affected) == 0 {
 		return nil
 	}
-	aliases := vuln.Aliases
 	var aphs []db.AffectedPackageHandle
 	for _, affected := range vuln.Affected {
 		var ranges []db.Range
 		for _, r := range affected.Ranges {
 			ranges = append(ranges, getGrypeRangesFromRange(r, cgRangeType(r.Type))...)
 		}
+		ranges = cgWithUnfixedState(ranges, affected)
 		purlType := pkg.TypeFromPURL(affected.Package.Purl)
 		aphs = append(aphs, db.AffectedPackageHandle{
 			OperatingSystem: cgOperatingSystem(affected.Package.Ecosystem),
@@ -101,8 +178,7 @@ func cgAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHan
 				Name:      name.Normalize(affected.Package.Name, purlType),
 			},
 			BlobValue: &db.PackageBlob{
-				// cg puts CVEs in `upstream`, so we append those
-				CVEs:       append(aliases, vuln.Upstream...),
+				CVEs:       cves,
 				Ranges:     ranges,
 				Qualifiers: cgGetQualifiers(affected),
 			},
@@ -110,6 +186,74 @@ func cgAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHan
 	}
 	sort.Sort(internal.ByAffectedPackage(aphs))
 	return aphs
+}
+
+// affected[].ecosystem_specific.components[].latest_event_status. The feed's other two values
+// ("fixed", and "false_positive_determination" = the apk NAK) already reach grype via the range.
+const (
+	cgStatusFixNotPlanned   = "fix_not_planned"
+	cgStatusPendingUpstream = "pending_upstream_fix"
+	cgStatusTruePositive    = "true_positive_determination"
+	cgStatusDetection       = "detection"
+)
+
+// cgLatestEventStatus requires unanimity rather than taking components[0]: zero affected
+// entries in the feed disagree, so insisting costs nothing and refuses to invent an answer
+// if that ever changes.
+func cgLatestEventStatus(affected osvmodel.Affected) string {
+	components, ok := affected.EcosystemSpecific["components"].([]any)
+	if !ok {
+		return ""
+	}
+	var status string
+	for _, component := range components {
+		fields, ok := component.(map[string]any)
+		if !ok {
+			continue
+		}
+		value, ok := fields["latest_event_status"].(string)
+		if !ok || value == "" {
+			continue
+		}
+		switch {
+		case status == "":
+			status = value
+		case status != value:
+			log.WithFields("package", affected.Package.Name, "statuses", []string{status, value}).
+				Warn("chainguard affected entry has components with disagreeing latest_event_status; leaving the fix state unknown")
+			return ""
+		}
+	}
+	return status
+}
+
+// "detection" stays unknown deliberately: NotFixedStatus affirms "affected, no fix available",
+// which Chainguard has not said -- detection means triage is unfinished, and grype has no state
+// for that.
+func cgUnfixedFixStatus(affected osvmodel.Affected) db.FixStatus {
+	switch cgLatestEventStatus(affected) {
+	case cgStatusFixNotPlanned:
+		return db.WontFixStatus
+	case cgStatusPendingUpstream, cgStatusTruePositive:
+		return db.NotFixedStatus
+	case cgStatusDetection:
+		return db.UnknownFixStatus
+	}
+	return db.UnknownFixStatus
+}
+
+// An entry whose only event is `introduced: "0"` produces no range, and a fix state has
+// nowhere to live but a Range. The synthesized one carries no version: getVersionConstraint
+// ignores a range's Type when its Constraint is empty, so matching is unchanged.
+func cgWithUnfixedState(ranges []db.Range, affected osvmodel.Affected) []db.Range {
+	if len(ranges) > 0 {
+		return ranges
+	}
+	state := cgUnfixedFixStatus(affected)
+	if state == db.UnknownFixStatus {
+		return ranges
+	}
+	return []db.Range{{Fix: &db.Fix{State: state}}}
 }
 
 // cgRangeType maps an OSV range type to the grype version-format string.

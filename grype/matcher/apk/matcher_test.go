@@ -466,19 +466,18 @@ func TestMatcherApk_NvdCanceledByUpstreamSecdbNak(t *testing.T) {
 // The chainguard-rolling fixture pairs a distro advisory with its upstream NVD
 // record so the alias-aware reconciliation can be exercised end to end:
 //   - distro:  CGA-22hv-wp9q-4779 (Chainguard langfuse-3-worker, arch x86_64,
-//              fixed 3.153.0-r0) carries upstream aliases CVE-2026-24398 and
+//              fixed 3.153.0-r0), whose upstream ids are CVE-2026-24398 and
 //              GHSA-r354-f388-2fhh.
 //   - NVD:     CVE-2026-24398 flags cpe:2.3:a:langfuse:langfuse in [3.0.0, 4.0.0).
 //
-// Because the distro feed is authoritative and the two records share identity
-// via the CGA's alias set, the NVD CVE-2026-24398 CPE finding must never surface
-// on its own - it is either dropped (distro considers it fixed) or deduped into
-// the authoritative distro match (distro considers it vulnerable).
+// The cg transformer names the distro record by its upstream CVE, so the two records now
+// share an id outright and the NVD CPE finding must never surface on its own - it is either
+// dropped (distro considers it fixed) or deduped into the distro match.
 
 // TestMatcherApk_UpstreamCveSuppressedByFixedAlias langfuse-3-worker is
-// past the CGA fix (3.153.1-r0 > 3.153.0-r0), so the distro feed reports
+// past the distro fix (3.153.1-r0 > 3.153.0-r0), so the distro feed reports
 // the vulnerability fixed. NVD still flags CVE-2026-24398 for the langfuse
-// CPE at this version, since CVE-2026-24398 is an alias of the fixed CGA,
+// CPE at this version; since the distro record is itself CVE-2026-24398,
 // it is neither "not in feed" nor "still vulnerable" and gets dropped.
 func TestMatcherApk_UpstreamCveSuppressedByFixedAlias(t *testing.T) {
 	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
@@ -498,10 +497,10 @@ func TestMatcherApk_UpstreamCveSuppressedByFixedAlias(t *testing.T) {
 		findings.DoesNotHaveAnyVulnerabilities("CVE-2026-24398")
 
 		// the distro fixed path still emits one distro-fixed ignore per
-		// identifier (the CGA id plus its CVE/GHSA aliases).
+		// identifier. The CGA is not among them: getRelatedVulnerabilities only
+		// surfaces CVE- and GHSA-prefixed ids.
 		findings.Ignores().
 			SelectRelatedPackageIgnores(ignorereasons.DistroFixed,
-				"CGA-22hv-wp9q-4779",
 				"CVE-2026-24398",
 				"GHSA-r354-f388-2fhh").
 			ForPackage(pkgID).
@@ -509,11 +508,10 @@ func TestMatcherApk_UpstreamCveSuppressedByFixedAlias(t *testing.T) {
 	})
 }
 
-// TestMatcherApk_UpstreamCveDedupedByVulnerableAlias langfuse-3-worker is below the CGA fix
-// (3.152.0-r0 < 3.153.0-r0), so both the distro CGA record and the NVD CVE-2026-24398 CPE
-// record consider it vulnerable. The two share identity via the CGA's alias set, so the
-// upstream NVD finding is deduped into the authoritative distro match rather than surfacing
-// separately - only the CGA distro match is returned.
+// TestMatcherApk_UpstreamCveDedupedByVulnerableAlias langfuse-3-worker is below the distro fix
+// (3.152.0-r0 < 3.153.0-r0), so both the distro record and the NVD CVE-2026-24398 CPE record
+// consider it vulnerable. Both are now named CVE-2026-24398, so the NVD finding is deduped
+// into the distro match. SelectMatch fatals on a duplicate id, so it is itself that assertion.
 func TestMatcherApk_UpstreamCveDedupedByVulnerableAlias(t *testing.T) {
 	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
 		matcher := Matcher{}
@@ -525,22 +523,18 @@ func TestMatcherApk_UpstreamCveDedupedByVulnerableAlias(t *testing.T) {
 
 		findings := db.Match(t, &matcher, p)
 
-		// only the authoritative distro record surfaces...
-		findings.SelectMatch("CGA-22hv-wp9q-4779").
+		// exactly one match, and it is the distro record
+		findings.SelectMatch("CVE-2026-24398").
 			SelectDetailByType(match.ExactDirectMatch).
 			AsDistroSearch()
-
-		// ...the aliased upstream NVD CVE is deduped away.
-		findings.DoesNotHaveAnyVulnerabilities("CVE-2026-24398")
 	})
 }
 
 // TestMatcherApk_UpstreamCveDedupedByIntroducedZeroAlias covers an unfixed distro advisory:
 // CGA-n0f1-x000-0000 lists grafana with a single "introduced: 0" event and no fixed event, so the
 // distro feed considers grafana vulnerable at every version (a package handle with no ranges is
-// implicitly vulnerable to all versions). NVD flags the aliased CVE-2026-30000 for the grafana CPE
-// at this version, but the two share identity via the CGA's alias set, so the upstream NVD finding
-// is deduped into the authoritative distro match - only the CGA distro match is returned.
+// implicitly vulnerable to all versions). It is named for its upstream CVE-2026-30000, which NVD
+// also flags at this version, so the NVD finding is deduped into the distro match.
 func TestMatcherApk_UpstreamCveDedupedByIntroducedZeroAlias(t *testing.T) {
 	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
 		matcher := Matcher{}
@@ -554,13 +548,10 @@ func TestMatcherApk_UpstreamCveDedupedByIntroducedZeroAlias(t *testing.T) {
 
 		findings := db.Match(t, &matcher, p)
 
-		// the unfixed distro advisory surfaces...
-		findings.SelectMatch("CGA-n0f1-x000-0000").
+		// exactly one match, and it is the unfixed distro advisory
+		findings.SelectMatch("CVE-2026-30000").
 			SelectDetailByType(match.ExactDirectMatch).
 			AsDistroSearch()
-
-		// ...the aliased upstream NVD CVE is deduped away.
-		findings.DoesNotHaveAnyVulnerabilities("CVE-2026-30000")
 
 		// the ranges-less advisory must NOT be treated as an apk NAK: it is affected at every
 		// version, not "not affected". The "< 0" NAK filter no longer matches a record that
@@ -625,8 +616,9 @@ func TestMatcherApk_NoDistroKeepsNvdFix(t *testing.T) {
 
 // === architecture qualifier filtering (CG OSV records) ===
 //
-// The chainguard-rolling fixture has CGA-22hv-wp9q-4779, which emits
-// AffectedPackageHandles with an Architecture qualifier per row:
+// The chainguard-rolling fixture has CGA-22hv-wp9q-4779 - surfacing under its
+// upstream name CVE-2026-24398 - which emits AffectedPackageHandles with an
+// Architecture qualifier per row:
 //   - langfuse-3-worker      / Chainguard / arch=x86_64   / fixed:3.153.0-r0
 //   - langfuse-fips-3-worker / Chainguard / arch=x86_64   / fixed:3.152.0-r0
 //   - langfuse-3-worker      / Wolfi      / arch=aarch64  / fixed:3.153.0-r0
@@ -651,7 +643,7 @@ func TestMatcherApk_ArchFilter_MatchWhenArchAgrees(t *testing.T) {
 
 		// package p is affected by this vulnerability on this architecture
 		db.Match(t, &matcher, p).
-			SelectMatch("CGA-22hv-wp9q-4779").
+			SelectMatch("CVE-2026-24398").
 			SelectDetailByType(match.ExactDirectMatch).
 			AsDistroSearch()
 	})
@@ -660,7 +652,7 @@ func TestMatcherApk_ArchFilter_MatchWhenArchAgrees(t *testing.T) {
 // TestMatcherApk_ArchFilter_IgnoreWhenArchAgrees is the pair of
 // MatchWhenArchAgrees: same package, same arch, but a version past the
 // fix. The arch qualifier still passes so the fix path runs and emits
-// one distro-fixed ignore per identifier (CGA id + aliases).
+// one distro-fixed ignore per identifier (the record's name + aliases).
 // Cross-checks that arch filtering doesn't short-circuit the
 // fixed-version ignore emission.
 func TestMatcherApk_ArchFilter_IgnoreWhenArchAgrees(t *testing.T) {
@@ -668,7 +660,7 @@ func TestMatcherApk_ArchFilter_IgnoreWhenArchAgrees(t *testing.T) {
 		matcher := Matcher{}
 		// fix is 3.153.0-r0; 3.153.1-r0 is over the fix, so the matcher emits
 		// no match but does emit one distro-fixed ignore per identifier
-		// (the CGA id plus its CVE/GHSA aliases) so consumers can suppress
+		// (the record's CVE name plus its GHSA alias) so consumers can suppress
 		// language-ecosystem findings that overlap by file ownership.
 		pkgID := pkg.ID("langfuse-past-fix")
 		p := dbtest.NewPackage("langfuse-3-worker", "3.153.1-r0", syftPkg.ApkPkg).
@@ -680,7 +672,6 @@ func TestMatcherApk_ArchFilter_IgnoreWhenArchAgrees(t *testing.T) {
 		// vulnerability fixed this pkg-version for this architecture
 		db.Match(t, &matcher, p).Ignores().
 			SelectRelatedPackageIgnores(ignorereasons.DistroFixed,
-				"CGA-22hv-wp9q-4779",
 				"CVE-2026-24398",
 				"GHSA-r354-f388-2fhh").
 			ForPackage(pkgID).
@@ -716,8 +707,8 @@ func TestMatcherApk_ArchFilter_NoMatchWhenArchDisagrees(t *testing.T) {
 // exits cpeDisclosures does: "no feed entry for this ID" strips, "feed says vulnerable at
 // this version" does not. What changed is identity. main keyed that lookup on the exact
 // vulnerability ID, so a CGA-keyed row could never match a CVE-keyed NVD record and every
-// NVD CVE on an OSV feed took the stripping exit. Alias-aware identity resolves the CGA to
-// this CVE, reaching the non-stripping exit for the first time.
+// NVD CVE on an OSV feed took the stripping exit. The cg transformer now names the distro
+// row by that same CVE, reaching the non-stripping exit for the first time.
 //
 // So the question this raises is not "what did the port break" but what that second exit
 // should mean now that "the feed knows this vulnerability" can be true by alias: #2162's
@@ -733,10 +724,8 @@ func TestMatcherApk_NvdOnlyMatchGetsFixStripped(t *testing.T) {
 
 		findings := db.Match(t, &matcher, p)
 
-		// no distro match: the x86_64 row does not apply to this package
-		findings.DoesNotHaveAnyVulnerabilities("CGA-22hv-wp9q-4779")
-
-		// so the NVD record is the only match, and it is the [3.0.0, 4.0.0) one
+		// both records carry this id now, so SelectMatch fataling on duplicates is what pins
+		// "no distro match"; the namespace assertion pins which one survived
 		finding := findings.SelectMatch("CVE-2026-24398").InNamespace("nvd:cpe")
 		finding.SelectDetailByCPE(
 			"cpe:2.3:a:langfuse:langfuse:3.152.0:*:*:*:*:*:*:*",
@@ -772,8 +761,8 @@ func TestMatcherApk_ArchFilter_WrongArchRowMustNotSuppressNvdMatch(t *testing.T)
 
 		findings := db.Match(t, &matcher, p)
 
-		// the x86_64 row does not apply, so it must not suppress anything either
-		findings.DoesNotHaveAnyVulnerabilities("CGA-22hv-wp9q-4779")
+		// the x86_64 row does not apply, so it must not suppress anything either; as above,
+		// SelectMatch's uniqueness check stands in for "no distro match"
 		findings.SelectMatch("CVE-2026-24398").
 			InNamespace("nvd:cpe").
 			SelectDetailByType(match.CPEMatch).
@@ -798,14 +787,14 @@ func TestMatcherApk_ArchFilter_InertWhenPackageHasNoArch(t *testing.T) {
 		// package p is affected by this vulnerability because the qualifier is inert
 		// when the package has no arch
 		db.Match(t, &matcher, p).
-			SelectMatch("CGA-22hv-wp9q-4779").
+			SelectMatch("CVE-2026-24398").
 			SelectDetailByType(match.ExactDirectMatch).
 			AsDistroSearch()
 	})
 }
 
 // TestMatcherApk_ArchFilter_WolfiArchAgrees mirrors the first test against
-// the Wolfi side of the same CGA record. Beyond exercising arch=aarch64,
+// the Wolfi side of the same record. Beyond exercising arch=aarch64,
 // this also confirms the per-ecosystem OS row split: the matcher must reach
 // the Wolfi APH (not the Chainguard APH) when the package's distro is Wolfi.
 func TestMatcherApk_ArchFilter_WolfiArchAgrees(t *testing.T) {
@@ -818,7 +807,7 @@ func TestMatcherApk_ArchFilter_WolfiArchAgrees(t *testing.T) {
 
 		// wolfi package p is affected by this vulnerability on this architecture
 		db.Match(t, &matcher, p).
-			SelectMatch("CGA-22hv-wp9q-4779").
+			SelectMatch("CVE-2026-24398").
 			SelectDetailByType(match.ExactDirectMatch).
 			AsDistroSearch()
 	})
