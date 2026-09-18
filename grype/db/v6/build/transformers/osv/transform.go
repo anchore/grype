@@ -46,6 +46,7 @@ type Strategy interface {
 // true handles the record. Add new providers by appending here.
 var strategies = []Strategy{
 	almaStrategy{},
+	bellsoftStrategy{},
 	bitnamiStrategy{},
 	govulndbStrategy{},
 	rootioStrategy{},
