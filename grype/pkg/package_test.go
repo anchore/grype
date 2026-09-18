@@ -1523,6 +1523,20 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8"},
 		},
 		{
+			name: "distro package owns its own Go main module with a different version",
+			sbom: withLinuxRelease(catalogWithOverlaps(
+				[]string{"deb:containerd@1.7.24~ds1-4ubuntu1", "go-module:github.com/containerd/containerd@1.7.22"},
+				[]string{"deb:containerd@1.7.24~ds1-4ubuntu1 -> go-module:github.com/containerd/containerd@1.7.22"}), "ubuntu"),
+			expectedPackages: []string{"deb:containerd@1.7.24~ds1-4ubuntu1"},
+		},
+		{
+			name: "distro package keeps embedded dependency Go modules",
+			sbom: withLinuxRelease(catalogWithOverlaps(
+				[]string{"deb:gitlab-ce@15.6.1-ce.0", "go-module:golang.org/x/crypto@v0.0.0-20220525230936-793ad666bf5e"},
+				[]string{"deb:gitlab-ce@15.6.1-ce.0 -> go-module:golang.org/x/crypto@v0.0.0-20220525230936-793ad666bf5e"}), "ubuntu"),
+			expectedPackages: []string{"deb:gitlab-ce@15.6.1-ce.0", "go-module:golang.org/x/crypto@v0.0.0-20220525230936-793ad666bf5e"},
+		},
+		{
 			name: "amzn linux doesn't remove packages in this way",
 			sbom: withLinuxRelease(catalogWithOverlaps(
 				[]string{"rpm:python3-rpm@4.14.3-26.el8", "python:rpm@4.14.3"},
