@@ -62,7 +62,9 @@ func (o *DBSearchPackages) PostLoad() error {
 				log.Warnf("ignoring version and qualifiers for package URL %q", purl)
 			}
 
-			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: purl.Name, Ecosystem: purl.Type})
+			name := packageNameFromPURL(purl)
+
+			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: name, Ecosystem: purl.Type})
 			o.CPESpecs = append(o.CPESpecs, &v6.PackageSpecifier{CPE: &cpe.Attributes{Part: "a", Product: purl.Name, TargetSW: purl.Type}})
 
 		default:
@@ -81,4 +83,31 @@ func (o *DBSearchPackages) PostLoad() error {
 	}
 
 	return nil
+}
+
+// packageNameFromPURL builds the package name the DB is keyed by from a parsed
+// package URL. For most ecosystems the PURL name is only the last segment, and
+// dropping the namespace searches for the wrong thing entirely: the Go module
+// "github.com/gin-gonic/gin" arrives as namespace "github.com/gin-gonic" plus
+// name "gin", and searching for "gin" alone finds nothing.
+//
+// How the two are joined is ecosystem-specific, so this only rejoins the types
+// whose convention is known. A namespace that is not part of the package
+// identity, such as the distro on an rpm or deb PURL, is left out.
+func packageNameFromPURL(purl packageurl.PackageURL) string {
+	if purl.Namespace == "" {
+		return purl.Name
+	}
+
+	switch purl.Type {
+	case packageurl.TypeMaven:
+		// Maven coordinates are "<group>:<artifact>", matching how the Java
+		// name resolver builds them (grype/db/v6/name/java.go).
+		return fmt.Sprintf("%s:%s", purl.Namespace, purl.Name)
+	case packageurl.TypeGolang, packageurl.TypeNPM, packageurl.TypeComposer,
+		packageurl.TypeGithub, packageurl.TypeBitbucket, packageurl.TypeSwift:
+		return fmt.Sprintf("%s/%s", purl.Namespace, purl.Name)
+	}
+
+	return purl.Name
 }
