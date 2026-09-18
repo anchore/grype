@@ -12,6 +12,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -76,7 +77,38 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 	matches = append(matches, criteriaMatches...)
 	ignores = append(ignores, ignored...)
 
+	if !m.cfg.UseCPEs {
+		declaredMatches, declaredIgnores, err := m.matchDeclaredCPEs(store, p)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to match by declared CPE: %w", err)
+		}
+		matches = append(matches, declaredMatches...)
+		ignores = append(ignores, declaredIgnores...)
+	}
+
 	return matches, ignores, nil
+}
+
+// matchDeclaredCPEs preserves Java's default protection against false positives
+// from generated CPEs while honoring CPEs explicitly supplied by an input SBOM.
+func (m *Matcher) matchDeclaredCPEs(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+	var declared []cpe.CPE
+	for _, candidate := range p.CPEs {
+		if candidate.Source == cpe.DeclaredSource {
+			declared = append(declared, candidate)
+		}
+	}
+	if len(declared) == 0 {
+		return nil, nil, nil
+	}
+
+	originalPackage := p
+	p.CPEs = declared
+	matches, ignores, err := internal.MatchPackageByCPEs(store, p, m.Type())
+	for i := range matches {
+		matches[i].Package = originalPackage
+	}
+	return matches, ignores, err
 }
 
 func (m *Matcher) matchUpstreamMavenPackages(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {

@@ -9,6 +9,7 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal/dbtest"
+	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -20,6 +21,61 @@ func springPackage(metadata pkg.JavaMetadata) pkg.Package {
 		WithLanguage(syftPkg.Java).
 		WithMetadata(metadata).
 		Build()
+}
+
+func TestMatcherJava_DeclaredCPEs(t *testing.T) {
+	const opensslCPE = "cpe:2.3:a:openssl:openssl:1.1.1k:*:*:*:*:*:*:*"
+
+	tests := []struct {
+		name          string
+		source        cpe.Source
+		useCPEs       bool
+		expectMatches bool
+	}{
+		{
+			name:          "declared CPE is honored by default",
+			source:        cpe.DeclaredSource,
+			expectMatches: true,
+		},
+		{
+			name:   "generated CPE remains disabled by default",
+			source: cpe.GeneratedSource,
+		},
+		{
+			name:          "generated CPE is honored when CPE matching is enabled",
+			source:        cpe.GeneratedSource,
+			useCPEs:       true,
+			expectMatches: true,
+		},
+	}
+
+	dbtest.SharedDBs(t, "all").
+		SelectOnly("CVE-2024-0727").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			for _, test := range tests {
+				t.Run(test.name, func(t *testing.T) {
+					p := dbtest.NewPackage("org.openssl.openssl", "1.1.1k", syftPkg.JavaPkg).
+						WithLanguage(syftPkg.Java).
+						WithPURL("pkg:maven/org.openssl/openssl@1.1.1k").
+						WithMetadata(pkg.JavaMetadata{
+							PomArtifactID: "openssl",
+							PomGroupID:    "org.openssl",
+						}).
+						Build()
+					p.CPEs = []cpe.CPE{cpe.Must(opensslCPE, test.source)}
+
+					findings := db.Match(t, NewJavaMatcher(MatcherConfig{UseCPEs: test.useCPEs}), p)
+					if !test.expectMatches {
+						findings.IsEmpty()
+						return
+					}
+					findings.
+						SelectMatch("CVE-2024-0727").
+						SelectDetailByType(match.CPEMatch).
+						AsCPESearch()
+				})
+			}
+		})
 }
 
 // TestMatcherJava_matchUpstreamMavenPackage exercises the
