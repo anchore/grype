@@ -367,6 +367,18 @@ func TestNew(t *testing.T) {
 					Checksum: "a",
 				},
 			},
+			metadata: RustMetadata{RustCargoLockSource: "a"},
+		},
+		{
+			name: "rust-local-cargo-lock-metadata",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.RustCargoLockEntry{
+					Name:    "a",
+					Version: "a",
+					Source:  "",
+				},
+			},
+			metadata: RustMetadata{RustCargoLockSource: ""},
 		},
 		{
 			name: "github-actions-use-statement",

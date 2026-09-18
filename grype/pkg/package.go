@@ -350,6 +350,8 @@ func dataFromPkg(p syftPkg.Package) (any, []UpstreamPackage) {
 		upstreams = apkDataFromPkg(p)
 	case syftPkg.JavaVMInstallation:
 		metadata = javaVMDataFromPkg(p)
+	case syftPkg.RustCargoLockEntry:
+		metadata = rustMetadataFromPkg(p)
 	}
 
 	// there are still cases where we could still fill the metadata from other info (such as the PURL)
@@ -360,6 +362,16 @@ func dataFromPkg(p syftPkg.Package) (any, []UpstreamPackage) {
 	}
 
 	return metadata, upstreams
+}
+
+func rustMetadataFromPkg(p syftPkg.Package) any {
+	if value, ok := p.Metadata.(syftPkg.RustCargoLockEntry); ok {
+		return RustMetadata{
+			RustCargoLockSource: value.Source,
+		}
+	}
+
+	return nil
 }
 
 func javaVMDataFromPkg(p syftPkg.Package) any {
