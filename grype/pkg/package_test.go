@@ -1523,11 +1523,35 @@ func Test_RemovePackagesByOverlap(t *testing.T) {
 			expectedPackages: []string{"rpm:python3-rpm@4.14.3-26.el8"},
 		},
 		{
-			name: "distro package owns its own Go main module with a different version",
+			// The toolchain package is the authoritative representation of the
+			// standard library it ships, but the two versions never look alike,
+			// so the version-similarity rule alone keeps the duplicate.
+			name: "distro Go toolchain owns the standard library it ships",
 			sbom: withLinuxRelease(catalogWithOverlaps(
-				[]string{"deb:containerd@1.7.24~ds1-4ubuntu1", "go-module:github.com/containerd/containerd@1.7.22"},
-				[]string{"deb:containerd@1.7.24~ds1-4ubuntu1 -> go-module:github.com/containerd/containerd@1.7.22"}), "ubuntu"),
-			expectedPackages: []string{"deb:containerd@1.7.24~ds1-4ubuntu1"},
+				[]string{"deb:golang@1.22.5-1", "go-module:stdlib@go1.22.5"},
+				[]string{"deb:golang@1.22.5-1 -> go-module:stdlib@go1.22.5"}), "ubuntu"),
+			expectedPackages: []string{"deb:golang@1.22.5-1"},
+		},
+		{
+			// Any Go binary reports a stdlib module, but only the toolchain
+			// package is tracked as that standard library by the distro feed.
+			name: "a distro package that is not the Go toolchain keeps stdlib",
+			sbom: withLinuxRelease(catalogWithOverlaps(
+				[]string{"deb:vault@1.16.2-1", "go-module:stdlib@go1.22.5"},
+				[]string{"deb:vault@1.16.2-1 -> go-module:stdlib@go1.22.5"}), "ubuntu"),
+			expectedPackages: []string{"go-module:stdlib@go1.22.5", "deb:vault@1.16.2-1"},
+		},
+		{
+			// The boundary case raised in review on #3602: a third-party OS
+			// package owning the module of the same name. The distro feed does
+			// not track that module's vulnerabilities, and nothing available
+			// here distinguishes this from a distro-maintained package owning
+			// its own module, so the module stays matchable.
+			name: "distro package keeps its own Go main module",
+			sbom: withLinuxRelease(catalogWithOverlaps(
+				[]string{"deb:vault@1.16.2-1", "go-module:github.com/hashicorp/vault@v1.16.2"},
+				[]string{"deb:vault@1.16.2-1 -> go-module:github.com/hashicorp/vault@v1.16.2"}), "ubuntu"),
+			expectedPackages: []string{"go-module:github.com/hashicorp/vault@v1.16.2", "deb:vault@1.16.2-1"},
 		},
 		{
 			name: "distro package keeps embedded dependency Go modules",
