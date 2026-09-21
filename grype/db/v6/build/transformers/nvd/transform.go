@@ -97,6 +97,10 @@ func transform(cfg Config, vulnerability unmarshal.NVDVulnerability, state provi
 		in = append(in, cwe)
 	}
 
+	for _, ssvc := range getSSVC(vulnerability) {
+		in = append(in, ssvc)
+	}
+
 	return transformers.NewEntries(in...), nil
 }
 
@@ -205,6 +209,39 @@ func getCWEs(vulnerability unmarshal.NVDVulnerability) []db.CWEHandle {
 		}
 	}
 	return cwes
+}
+
+// getSSVC folds NVD's metrics.ssvcV203 array into one SsvcHandle per source entry.
+// vulnerability.Metrics is a pointer and, unlike Weaknesses, can be nil.
+func getSSVC(vulnerability unmarshal.NVDVulnerability) []db.SsvcHandle {
+	if vulnerability.Metrics == nil {
+		return nil
+	}
+	var handles []db.SsvcHandle
+	for _, s := range vulnerability.Metrics.SsvcV203 {
+		h := db.SsvcHandle{
+			Cve:     vulnerability.ID,
+			Source:  s.Source,
+			Role:    s.SsvcData.Role,
+			Version: s.SsvcData.Version,
+		}
+		if t := internal.ParseTime(s.SsvcData.Timestamp); t != nil {
+			h.Timestamp = *t
+		}
+		for _, opt := range s.SsvcData.Options {
+			if opt.Exploitation != nil {
+				h.Exploitation = *opt.Exploitation
+			}
+			if opt.Automatable != nil {
+				h.Automatable = *opt.Automatable
+			}
+			if opt.TechnicalImpact != nil {
+				h.TechnicalImpact = *opt.TechnicalImpact
+			}
+		}
+		handles = append(handles, h)
+	}
+	return handles
 }
 
 func isValidCWE(cwe string) bool {

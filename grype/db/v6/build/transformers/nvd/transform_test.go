@@ -2251,7 +2251,253 @@ func TestTransform(t *testing.T) {
 				},
 			},
 		},
+		{
+			// real CVE-2024-3400 data (NVD API, cpeMatch list trimmed the same way
+			// CVE-2023-45283's fixtures are), with a real single-source metrics.ssvcV203
+			// block from CISA.
+			name:     "single ssvcV203 entry produces one SsvcHandle",
+			fixture:  "testdata/CVE-2024-3400-ssvc.json",
+			provider: "nvd",
+			config:   defaultConfig(),
+			want: []transformers.RelatedEntries{
+				{
+					VulnerabilityHandle: &db.VulnerabilityHandle{
+						Name:          "CVE-2024-3400",
+						ProviderID:    "nvd",
+						Provider:      expectedProvider("nvd"),
+						ModifiedDate:  timeRef(time.Date(2026, 6, 17, 7, 44, 11, 533000000, time.UTC)),
+						PublishedDate: timeRef(time.Date(2024, 4, 12, 8, 15, 6, 230000000, time.UTC)),
+						Status:        db.VulnerabilityActive,
+						BlobValue: &db.VulnerabilityBlob{
+							ID:          "CVE-2024-3400",
+							Assigners:   []string{"psirt@paloaltonetworks.com"},
+							Description: "A command injection as a result of arbitrary file creation vulnerability in the GlobalProtect feature of Palo Alto Networks PAN-OS software for specific PAN-OS versions and distinct feature configurations may enable an unauthenticated attacker to execute arbitrary code with root privileges on the firewall.\n\nCloud NGFW, Panorama appliances, and Prisma Access are not impacted by this vulnerability.",
+							References: []db.Reference{
+								{
+									URL: "https://nvd.nist.gov/vuln/detail/CVE-2024-3400",
+								},
+								{
+									URL:  "https://security.paloaltonetworks.com/CVE-2024-3400",
+									Tags: []string{"vendor-advisory"},
+								},
+								{
+									URL:  "https://unit42.paloaltonetworks.com/cve-2024-3400/",
+									Tags: []string{"exploit", "vendor-advisory"},
+								},
+								{
+									URL:  "https://www.paloaltonetworks.com/blog/2024/04/more-on-the-pan-os-cve/",
+									Tags: []string{"technical-description", "vendor-advisory"},
+								},
+								{
+									URL:  "https://www.volexity.com/blog/2024/04/12/zero-day-exploitation-of-unauthenticated-remote-code-execution-vulnerability-in-globalprotect-cve-2024-3400/",
+									Tags: []string{"exploit", "third-party-advisory"},
+								},
+								{
+									URL:  "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?field_cve=CVE-2024-3400",
+									Tags: []string{"us-government-resource"},
+								},
+							},
+							Severities: []db.Severity{
+								{
+									Scheme: db.SeveritySchemeCVSS,
+									Value: db.CVSSSeverity{
+										Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+										Version: "3.1",
+									},
+									Source: "nvd@nist.gov",
+									Rank:   1,
+								},
+								{
+									Scheme: db.SeveritySchemeCVSS,
+									Value: db.CVSSSeverity{
+										Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+										Version: "3.1",
+									},
+									Source: "psirt@paloaltonetworks.com",
+									Rank:   2,
+								},
+							},
+						},
+					},
+					Related: relatedEntries(
+						db.AffectedCPEHandle{
+							BlobValue: &db.PackageBlob{
+								CVEs: []string{"CVE-2024-3400"},
+								Ranges: []db.Range{
+									{Version: db.Version{Constraint: "= 10.2.0"}},
+									{Version: db.Version{Constraint: "= 10.2.0-h1"}},
+								},
+							},
+							CPE: &db.Cpe{
+								Part:    "o",
+								Vendor:  "paloaltonetworks",
+								Product: "pan-os",
+							},
+						},
+						db.CWEHandle{
+							CVE:    "CVE-2024-3400",
+							CWE:    "CWE-20",
+							Source: "psirt@paloaltonetworks.com",
+							Type:   "Secondary",
+						},
+						db.CWEHandle{
+							CVE:    "CVE-2024-3400",
+							CWE:    "CWE-77",
+							Source: "psirt@paloaltonetworks.com",
+							Type:   "Secondary",
+						},
+						db.CWEHandle{
+							CVE:    "CVE-2024-3400",
+							CWE:    "CWE-77",
+							Source: "nvd@nist.gov",
+							Type:   "Primary",
+						},
+						db.SsvcHandle{
+							Cve:             "CVE-2024-3400",
+							Source:          "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+							Role:            "CISA Coordinator",
+							Version:         "2.0.3",
+							Timestamp:       time.Date(2024, 4, 17, 4, 0, 13, 543064000, time.UTC),
+							Exploitation:    "active",
+							Automatable:     "yes",
+							TechnicalImpact: "total",
+						},
+					),
+				},
+			},
+		},
+		{
+			// same base record as the single-source case above, with a second ssvcV203
+			// entry hand-added: no second real-world SSVC source was found for this (or
+			// any) CVE at design time, so only the first entry is real NVD data.
+			name:     "multiple ssvcV203 sources each produce a SsvcHandle",
+			fixture:  "testdata/CVE-2024-3400-ssvc-multi-source.json",
+			provider: "nvd",
+			config:   defaultConfig(),
+			want: []transformers.RelatedEntries{
+				{
+					VulnerabilityHandle: &db.VulnerabilityHandle{
+						Name:          "CVE-2024-3400",
+						ProviderID:    "nvd",
+						Provider:      expectedProvider("nvd"),
+						ModifiedDate:  timeRef(time.Date(2026, 6, 17, 7, 44, 11, 533000000, time.UTC)),
+						PublishedDate: timeRef(time.Date(2024, 4, 12, 8, 15, 6, 230000000, time.UTC)),
+						Status:        db.VulnerabilityActive,
+						BlobValue: &db.VulnerabilityBlob{
+							ID:          "CVE-2024-3400",
+							Assigners:   []string{"psirt@paloaltonetworks.com"},
+							Description: "A command injection as a result of arbitrary file creation vulnerability in the GlobalProtect feature of Palo Alto Networks PAN-OS software for specific PAN-OS versions and distinct feature configurations may enable an unauthenticated attacker to execute arbitrary code with root privileges on the firewall.\n\nCloud NGFW, Panorama appliances, and Prisma Access are not impacted by this vulnerability.",
+							References: []db.Reference{
+								{
+									URL: "https://nvd.nist.gov/vuln/detail/CVE-2024-3400",
+								},
+								{
+									URL:  "https://security.paloaltonetworks.com/CVE-2024-3400",
+									Tags: []string{"vendor-advisory"},
+								},
+								{
+									URL:  "https://unit42.paloaltonetworks.com/cve-2024-3400/",
+									Tags: []string{"exploit", "vendor-advisory"},
+								},
+								{
+									URL:  "https://www.paloaltonetworks.com/blog/2024/04/more-on-the-pan-os-cve/",
+									Tags: []string{"technical-description", "vendor-advisory"},
+								},
+								{
+									URL:  "https://www.volexity.com/blog/2024/04/12/zero-day-exploitation-of-unauthenticated-remote-code-execution-vulnerability-in-globalprotect-cve-2024-3400/",
+									Tags: []string{"exploit", "third-party-advisory"},
+								},
+								{
+									URL:  "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?field_cve=CVE-2024-3400",
+									Tags: []string{"us-government-resource"},
+								},
+							},
+							Severities: []db.Severity{
+								{
+									Scheme: db.SeveritySchemeCVSS,
+									Value: db.CVSSSeverity{
+										Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+										Version: "3.1",
+									},
+									Source: "nvd@nist.gov",
+									Rank:   1,
+								},
+								{
+									Scheme: db.SeveritySchemeCVSS,
+									Value: db.CVSSSeverity{
+										Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+										Version: "3.1",
+									},
+									Source: "psirt@paloaltonetworks.com",
+									Rank:   2,
+								},
+							},
+						},
+					},
+					Related: relatedEntries(
+						db.AffectedCPEHandle{
+							BlobValue: &db.PackageBlob{
+								CVEs: []string{"CVE-2024-3400"},
+								Ranges: []db.Range{
+									{Version: db.Version{Constraint: "= 10.2.0"}},
+									{Version: db.Version{Constraint: "= 10.2.0-h1"}},
+								},
+							},
+							CPE: &db.Cpe{
+								Part:    "o",
+								Vendor:  "paloaltonetworks",
+								Product: "pan-os",
+							},
+						},
+						db.CWEHandle{
+							CVE:    "CVE-2024-3400",
+							CWE:    "CWE-20",
+							Source: "psirt@paloaltonetworks.com",
+							Type:   "Secondary",
+						},
+						db.CWEHandle{
+							CVE:    "CVE-2024-3400",
+							CWE:    "CWE-77",
+							Source: "psirt@paloaltonetworks.com",
+							Type:   "Secondary",
+						},
+						db.CWEHandle{
+							CVE:    "CVE-2024-3400",
+							CWE:    "CWE-77",
+							Source: "nvd@nist.gov",
+							Type:   "Primary",
+						},
+						db.SsvcHandle{
+							Cve:             "CVE-2024-3400",
+							Source:          "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+							Role:            "CISA Coordinator",
+							Version:         "2.0.3",
+							Timestamp:       time.Date(2024, 4, 17, 4, 0, 13, 543064000, time.UTC),
+							Exploitation:    "active",
+							Automatable:     "yes",
+							TechnicalImpact: "total",
+						},
+						db.SsvcHandle{
+							Cve:             "CVE-2024-3400",
+							Source:          "nvd@nist.gov",
+							Role:            "CVE Coordinator",
+							Version:         "2.0.3",
+							Timestamp:       time.Date(2024, 4, 18, 12, 0, 0, 0, time.UTC),
+							Exploitation:    "poc",
+							Automatable:     "no",
+							TechnicalImpact: "partial",
+						},
+					),
+				},
+			},
+		},
 	}
+
+	// the no-SSVC path (metrics.ssvcV203 absent) is already covered by the "basic version
+	// range" case above, whose want carries no db.SsvcHandle entries; the Metrics == nil
+	// path (no metrics block at all) is covered the same way by the pre-existing
+	// "product-affected-and-unaffected-range-with-platforms.json" fixture case below, which
+	// has no metrics key and produces no db.SsvcHandle either.
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

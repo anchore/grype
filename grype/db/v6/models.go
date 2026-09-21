@@ -64,6 +64,7 @@ func Models() []any {
 		&EpssHandle{},
 		&EpssMetadata{},
 		&CWEHandle{},
+		&SsvcHandle{},
 	}
 }
 
@@ -981,6 +982,26 @@ type CWEHandle struct {
 
 func (c CWEHandle) String() string {
 	return fmt.Sprintf("CWE(%s: %s, source=%s, type=%s)", c.CVE, c.CWE, c.Source, c.Type)
+}
+
+// SsvcHandle carries one source's SSVC (Stakeholder-Specific Vulnerability Categorization)
+// decision-point assessment for a CVE. One row per (CVE, source); see CWEHandle for the
+// precedent this follows.
+type SsvcHandle struct {
+	ID int64 `gorm:"primaryKey"`
+
+	Cve             string    `gorm:"column:cve;not null;index:ssvc_cve_idx,collate:NOCASE"`
+	Source          string    `gorm:"column:source"`
+	Role            string    `gorm:"column:role"`
+	Version         string    `gorm:"column:version"`
+	Timestamp       time.Time `gorm:"column:timestamp"`
+	Exploitation    string    `gorm:"column:exploitation"`
+	Automatable     string    `gorm:"column:automatable"`
+	TechnicalImpact string    `gorm:"column:technical_impact"`
+}
+
+func (s SsvcHandle) String() string {
+	return fmt.Sprintf("SSVC(%s: source=%s, role=%s, exploitation=%s, automatable=%s, technicalImpact=%s)", s.Cve, s.Source, s.Role, s.Exploitation, s.Automatable, s.TechnicalImpact)
 }
 
 // OperatingSystemEOLHandle carries end-of-life data for an operating system.

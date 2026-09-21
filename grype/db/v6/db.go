@@ -24,7 +24,7 @@ const (
 	Revision = 1
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 9
+	Addition = 10
 
 	// v6 model changelog:
 	// 6.0.0: Initial version 🎉
@@ -57,6 +57,11 @@ const (
 	//        runtime qualifier in pkg/qualifier/gosymbols matches captured Go binary symbols
 	//        so stdlib and golang.org/x/* advisories don't FP-match binaries that don't use
 	//        vulnerable symbols)
+	// 6.1.10: Add SsvcHandle to VulnerabilityDecorator store (table: ssvc_handles). Carries
+	//        NVD's metrics.ssvcV203 decision-point assessments (source, role, version,
+	//        timestamp, exploitation, automatable, technicalImpact), one row per CVE and
+	//        source. Not surfaced in vulnerability.Metadata or scan output; readable only via
+	//        Reader.GetSSVC.
 )
 
 const (
