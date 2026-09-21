@@ -225,9 +225,7 @@ func getSSVC(vulnerability unmarshal.NVDVulnerability) []db.SsvcHandle {
 			Role:    s.SsvcData.Role,
 			Version: s.SsvcData.Version,
 		}
-		if t := internal.ParseTime(s.SsvcData.Timestamp); t != nil {
-			h.Timestamp = *t
-		}
+		h.Timestamp = internal.ParseTime(s.SsvcData.Timestamp)
 		for _, opt := range s.SsvcData.Options {
 			if opt.Exploitation != nil {
 				h.Exploitation = *opt.Exploitation

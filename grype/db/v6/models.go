@@ -984,20 +984,22 @@ func (c CWEHandle) String() string {
 	return fmt.Sprintf("CWE(%s: %s, source=%s, type=%s)", c.CVE, c.CWE, c.Source, c.Type)
 }
 
-// SsvcHandle carries one source's SSVC (Stakeholder-Specific Vulnerability Categorization)
-// decision-point assessment for a CVE. One row per (CVE, source); see CWEHandle for the
+// SsvcHandle carries one SSVC (Stakeholder-Specific Vulnerability Categorization)
+// decision-point assessment for a CVE, one row per entry in NVD's metrics.ssvcV203 array.
+// Nothing dedupes: NVD is observed emitting several entries for the same CVE and source,
+// sometimes with differing timestamps and sometimes byte-identical. See CWEHandle for the
 // precedent this follows.
 type SsvcHandle struct {
 	ID int64 `gorm:"primaryKey"`
 
-	Cve             string    `gorm:"column:cve;not null;index:ssvc_cve_idx,collate:NOCASE"`
-	Source          string    `gorm:"column:source"`
-	Role            string    `gorm:"column:role"`
-	Version         string    `gorm:"column:version"`
-	Timestamp       time.Time `gorm:"column:timestamp"`
-	Exploitation    string    `gorm:"column:exploitation"`
-	Automatable     string    `gorm:"column:automatable"`
-	TechnicalImpact string    `gorm:"column:technical_impact"`
+	Cve             string     `gorm:"column:cve;not null;index:ssvc_cve_idx,collate:NOCASE"`
+	Source          string     `gorm:"column:source"`
+	Role            string     `gorm:"column:role"`
+	Version         string     `gorm:"column:version"`
+	Timestamp       *time.Time `gorm:"column:timestamp"`
+	Exploitation    string     `gorm:"column:exploitation"`
+	Automatable     string     `gorm:"column:automatable"`
+	TechnicalImpact string     `gorm:"column:technical_impact"`
 }
 
 func (s SsvcHandle) String() string {
