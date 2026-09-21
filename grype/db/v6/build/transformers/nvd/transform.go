@@ -236,6 +236,12 @@ func getSSVC(vulnerability unmarshal.NVDVulnerability) []db.SsvcHandle {
 			if opt.TechnicalImpact != nil {
 				h.TechnicalImpact = *opt.TechnicalImpact
 			}
+			for _, key := range opt.Unrecognized {
+				// the columns cover only the three decision points NVD emits today; a new one
+				// would otherwise vanish, which is the silent drop this table exists to end
+				log.WithFields("cve", vulnerability.ID, "source", s.Source, "decisionPoint", key).
+					Warn("unrecognized NVD SSVC decision point (dropping)")
+			}
 		}
 		handles = append(handles, h)
 	}

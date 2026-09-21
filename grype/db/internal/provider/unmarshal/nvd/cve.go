@@ -1,6 +1,8 @@
 package nvd
 
 import (
+	"encoding/json"
+	"fmt"
 	"sort"
 
 	"github.com/Masterminds/semver/v3"
@@ -124,9 +126,46 @@ type SsvcDataV203 struct {
 // SsvcOptionV203 is a single-key object naming one SSVC decision point; each
 // element of an options array populates exactly one of these fields.
 type SsvcOptionV203 struct {
-	Exploitation    *string `json:"exploitation,omitempty"`    // whether the vulnerability is being exploited.
-	Automatable     *string `json:"automatable,omitempty"`     // whether exploitation can be automated.
-	TechnicalImpact *string `json:"technicalImpact,omitempty"` // the technical impact of a successful exploit.
+	Exploitation    *string  `json:"exploitation,omitempty"`    // whether the vulnerability is being exploited.
+	Automatable     *string  `json:"automatable,omitempty"`     // whether exploitation can be automated.
+	TechnicalImpact *string  `json:"technicalImpact,omitempty"` // the technical impact of a successful exploit.
+	Unrecognized    []string `json:"-"`                         // names of any decision points outside the three above, kept so callers can report them.
+}
+
+// UnmarshalJSON keeps the names of any decision points this struct does not model. SSVC can
+// grow new decision points and NVD would start emitting them with no warning, so an unknown
+// key is recorded rather than discarded.
+func (o *SsvcOptionV203) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	for key, value := range raw {
+		var target **string
+		switch key {
+		case "exploitation":
+			target = &o.Exploitation
+		case "automatable":
+			target = &o.Automatable
+		case "technicalImpact":
+			target = &o.TechnicalImpact
+		default:
+			o.Unrecognized = append(o.Unrecognized, key)
+			continue
+		}
+
+		var s string
+		if err := json.Unmarshal(value, &s); err != nil {
+			return fmt.Errorf("unable to parse SSVC decision point %q: %w", key, err)
+		}
+		*target = &s
+	}
+
+	// map iteration order is random, so sort to keep the reported set deterministic
+	sort.Strings(o.Unrecognized)
+
+	return nil
 }
 
 type CvssV2 struct {
