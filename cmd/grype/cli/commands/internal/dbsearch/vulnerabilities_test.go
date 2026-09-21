@@ -440,7 +440,7 @@ func (m *mockVulnReader) GetCWEs(cve string) ([]v6.CWEHandle, error) {
 	return args.Get(0).([]v6.CWEHandle), args.Error(1)
 }
 
-func (m *mockVulnReader) GetSSVC(cve string) ([]v6.SsvcHandle, error) {
+func (m *mockVulnReader) GetSsvcs(cve string) ([]v6.SsvcHandle, error) {
 	args := m.Called(cve)
 	return args.Get(0).([]v6.SsvcHandle), args.Error(1)
 }

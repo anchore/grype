@@ -900,7 +900,7 @@ func (m *affectedMockReader) GetCWEs(cve string) ([]v6.CWEHandle, error) {
 	return args.Get(0).([]v6.CWEHandle), args.Error(1)
 }
 
-func (m *affectedMockReader) GetSSVC(cve string) ([]v6.SsvcHandle, error) {
+func (m *affectedMockReader) GetSsvcs(cve string) ([]v6.SsvcHandle, error) {
 	args := m.Called(cve)
 	return args.Get(0).([]v6.SsvcHandle), args.Error(1)
 }

@@ -194,7 +194,7 @@ func (w *writer) writeRelatedEntry(vulnHandle *db.VulnerabilityHandle, related a
 		ssvcHandle := row
 		return w.addToChildBatch(func() error {
 			handleCopy := ssvcHandle
-			return w.store.AddSSVC(&handleCopy)
+			return w.store.AddSsvc(&handleCopy)
 		})
 	case db.OperatingSystemEOLHandle:
 		// Add OS EOL to child batch - copy to avoid pointer reuse

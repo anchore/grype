@@ -58,10 +58,10 @@ const (
 	//        so stdlib and golang.org/x/* advisories don't FP-match binaries that don't use
 	//        vulnerable symbols)
 	// 6.1.10: Add SsvcHandle to VulnerabilityDecorator store (table: ssvc_handles). Carries
-	//        NVD's metrics.ssvcV203 decision-point assessments (source, role, version,
-	//        timestamp, exploitation, automatable, technicalImpact), one row per CVE and
-	//        source. Not surfaced in vulnerability.Metadata or scan output; readable only via
-	//        Reader.GetSSVC.
+	//         NVD's metrics.ssvcV203 decision-point assessments (source, role, version,
+	//         timestamp, exploitation, automatable, technicalImpact), one row per CVE and
+	//         source. Not surfaced in vulnerability.Metadata or scan output; readable only via
+	//         Reader.GetSsvcs.
 )
 
 const (
