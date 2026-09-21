@@ -2,6 +2,7 @@ package distro
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -958,6 +959,43 @@ func Test_NewFromNameVersion_channels(t *testing.T) {
 			if d := cmp.Diff(tt.expectedChannels, d.Channels, cmpopts.EquateEmpty()); d != "" {
 				assert.Fail(t, "unexpected channels", d)
 			}
+		})
+	}
+}
+
+func Test_NewFromRelease_supportEnd(t *testing.T) {
+	supportEnd := time.Date(2024, 5, 14, 0, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name     string
+		release  linux.Release
+		expected *time.Time
+	}{
+		{
+			name:     "parses the SUPPORT_END date",
+			release:  linux.Release{ID: "fedora", VersionID: "38", SupportEnd: "2024-05-14"},
+			expected: &supportEnd,
+		},
+		{
+			name:     "tolerates surrounding whitespace",
+			release:  linux.Release{ID: "fedora", VersionID: "38", SupportEnd: "  2024-05-14  "},
+			expected: &supportEnd,
+		},
+		{
+			name:    "absent SUPPORT_END",
+			release: linux.Release{ID: "fedora", VersionID: "38"},
+		},
+		{
+			name:    "malformed SUPPORT_END is ignored",
+			release: linux.Release{ID: "fedora", VersionID: "38", SupportEnd: "May 2024"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d, err := NewFromRelease(tt.release, testFixChannels())
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, d.SupportEnd)
 		})
 	}
 }
