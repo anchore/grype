@@ -2952,3 +2952,52 @@ func TestGetReferences(t *testing.T) {
 		})
 	}
 }
+
+func TestGetSSVC_deduplicatesIdenticalEntries(t *testing.T) {
+	// NVD serves byte-identical repeats of an ssvcV203 entry on some records: CVE-2023-43000
+	// carries the same assessment twice, with the same source and the same timestamp. A repeat
+	// carries no information, and every row of it comes back from GetSsvcs.
+	entry := func(timestamp, exploitation string) nvd.SsvcV203 {
+		return nvd.SsvcV203{
+			Source: "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+			SsvcData: nvd.SsvcDataV203{
+				Timestamp: timestamp,
+				Role:      "CISA Coordinator",
+				Version:   "2.0.3",
+				Options:   []nvd.SsvcOptionV203{{Exploitation: &exploitation}},
+			},
+		}
+	}
+
+	tests := []struct {
+		name    string
+		entries []nvd.SsvcV203
+		want    int
+	}{
+		{
+			name:    "an exact repeat collapses to one row",
+			entries: []nvd.SsvcV203{entry("2026-03-06T05:01:14.932410Z", "active"), entry("2026-03-06T05:01:14.932410Z", "active")},
+			want:    1,
+		},
+		{
+			name:    "a later re-assessment from the same source is kept",
+			entries: []nvd.SsvcV203{entry("2025-04-25T17:58:52.842478Z", "none"), entry("2025-04-30T03:56:24.936967Z", "active")},
+			want:    2,
+		},
+		{
+			name:    "the same timestamp with a different decision is kept",
+			entries: []nvd.SsvcV203{entry("2026-03-06T05:01:14.932410Z", "none"), entry("2026-03-06T05:01:14.932410Z", "active")},
+			want:    2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := getSSVC(unmarshal.NVDVulnerability{
+				ID:      "CVE-2023-43000",
+				Metrics: &nvd.Metrics{SsvcV203: tt.entries},
+			})
+			require.Len(t, got, tt.want)
+		})
+	}
+}

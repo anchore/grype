@@ -986,9 +986,11 @@ func (c CWEHandle) String() string {
 
 // SsvcHandle carries one SSVC (Stakeholder-Specific Vulnerability Categorization)
 // decision-point assessment for a CVE, one row per entry in NVD's metrics.ssvcV203 array.
-// Nothing dedupes: NVD is observed emitting several entries for the same CVE and source,
-// sometimes with differing timestamps and sometimes byte-identical. See CWEHandle for the
-// precedent this follows.
+// NVD emits several entries for the same CVE and source, so a row is not unique by either.
+// Byte-identical repeats are dropped at build time; entries differing in any field, including
+// a later re-assessment from the same source, are all kept, and rows come back unordered.
+// A reader wanting the current assessment picks by Timestamp. See CWEHandle for the precedent
+// this follows.
 type SsvcHandle struct {
 	ID int64 `gorm:"primaryKey"`
 
