@@ -126,6 +126,12 @@ func getGrypeUnaffectedRangesFromRange(r osvmodel.Range, rangeType string) []db.
 	return buildUnaffectedRangesFromEvents(r.Events, fixByVersion, rangeType)
 }
 
+// spaceBeforeComparator matches the whitespace that AndConstraints puts between
+// two bounds, identified by the comparator that follows it. The leading
+// comparator of the whole constraint is never preceded by whitespace, so it is
+// left alone.
+var spaceBeforeComparator = regexp.MustCompile(`\s+([<>]=?)`)
+
 func normalizeConstraint(constraint string, rangeType string) string {
 	// Go versions are semver-shaped (with optional "v"/"go" prefix the parser
 	// strips); multi-window ranges built via versionutil.AndConstraints use
@@ -134,7 +140,13 @@ func normalizeConstraint(constraint string, rangeType string) string {
 	if rangeType == "semver" || rangeType == "bitnami" || rangeType == "go" {
 		return versionutil.EnforceSemVerConstraint(constraint)
 	}
-	return constraint
+	// Every other format (apk, rpm, ...) keeps its versions verbatim, so the
+	// semver rewrite above cannot be used — it strips spaces and would mangle
+	// "8.0.4-r0". The conjunction separator still has to be fixed up: these
+	// parsers reject a space-separated conjunction ("potentially is a version
+	// constraint expression"), which silently turns any two-bound window — an
+	// OSV `introduced` paired with a `fixed` — into a range that never matches.
+	return spaceBeforeComparator.ReplaceAllString(constraint, ", $1")
 }
 
 func normalizeFix(fix string, detail *db.FixDetail) *db.Fix {
