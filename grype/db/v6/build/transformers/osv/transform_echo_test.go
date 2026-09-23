@@ -13,7 +13,7 @@ import (
 )
 
 // TestEchoTransform exercises the Echo language ecosystems supported by the
-// strategy: PyPI, npm, Maven, and Go. Echo-patched builds use a "+echo.N"
+// strategy: PyPI, npm, Maven, Go, and NuGet. Echo-patched builds use a "+echo.N"
 // suffix; each record is emitted as a single UnaffectedPackageHandle (NAK)
 // keyed by an internal Echo name and guarded by the Echo qualifier.
 func TestEchoTransform(t *testing.T) {
@@ -57,6 +57,14 @@ func TestEchoTransform(t *testing.T) {
 			expectedPkgName:    "golang.org/x/net",
 			expectedCVE:        "CVE-2026-46600",
 			expectedFixVersion: "v0.55.0+echo.1",
+		},
+		{
+			name:               "Echo NuGet package",
+			fixturePath:        "testdata/ECHO-08ee-db76-1049.json",
+			pkgType:            pkg.DotnetPkg,
+			expectedPkgName:    "system.security.cryptography.xml",
+			expectedCVE:        "CVE-2026-26171",
+			expectedFixVersion: "8.0.0+echo.1",
 		},
 	}
 

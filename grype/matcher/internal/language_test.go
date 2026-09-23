@@ -475,6 +475,17 @@ func Test_unaffectedVersionCriteria(t *testing.T) {
 	plain := pkg.Package{Name: "ejs", Version: "3.1.9", Type: syftPkg.NpmPkg}
 	assert.Same(t, defaultCriteria, unaffectedVersionCriteria(plain, defaultCriteria))
 
+	// NuGet (dotnet) also resolves to the unknown format, including four-part
+	// versions: +echo.1 stays vulnerable, +echo.2 is suppressed
+	nugetNak := vulnerability.Vulnerability{Constraint: version.MustGetConstraint(">= 4.3.0.1+echo.2", version.UnknownFormat)}
+	for ver, want := range map[string]bool{"4.3.0.1+echo.1": false, "4.3.0.1+echo.2": true, "4.3.0.2+echo.1": true} {
+		nugetEcho := pkg.Package{Name: "System.Net.Http", Version: ver, Type: syftPkg.DotnetPkg}
+		nugetDefault := OnlyVulnerableVersions(version.New(nugetEcho.Version, pkg.VersionFormat(nugetEcho)))
+		matches, _, err = unaffectedVersionCriteria(nugetEcho, nugetDefault).MatchesVulnerability(nugetNak)
+		require.NoError(t, err)
+		assert.Equal(t, want, matches, ver)
+	}
+
 	// ecosystems whose native format already orders +echo.N (e.g. python's
 	// PEP 440 local versions) keep the default criteria untouched
 	pyEcho := pkg.Package{Name: "requests", Version: "2.14.2+echo.1", Type: syftPkg.PythonPkg}

@@ -20,7 +20,7 @@ import (
 )
 
 // echoStrategy handles ECHO-* records from Echo's OSV feed for patched
-// language packages (PyPI/npm/Maven/Go) identified by a "+echo.N" version
+// language packages (PyPI/npm/Maven/Go/NuGet) identified by a "+echo.N" version
 // suffix. These records are *advisories* (NAK semantics): they describe the
 // version range carrying Echo's fix so the upstream disclosure is suppressed
 // on the patched build.
@@ -196,7 +196,7 @@ func validEchoFixedVersion(raw string, pkgType pkg.Type) bool {
 	}
 
 	format := grypePkg.VersionFormat(grypePkg.Package{Version: raw, Type: pkgType})
-	if pkgType == pkg.NpmPkg || pkgType == pkg.GoModulePkg {
+	if pkgType == pkg.NpmPkg || pkgType == pkg.GoModulePkg || pkgType == pkg.DotnetPkg {
 		format = version.EchoFormat
 	}
 	return version.New(raw, format).Validate() == nil
@@ -205,11 +205,12 @@ func validEchoFixedVersion(raw string, pkgType pkg.Type) bool {
 // echoPackageType resolves the grype package type from the OSV ecosystem
 // string. Every Echo language ecosystem is prefixed "Echo:":
 //
-//	"Echo:PyPi", "Echo:npm", "Echo:Maven", "Echo:Go"
+//	"Echo:PyPi", "Echo:npm", "Echo:Maven", "Echo:Go",
+//	"Echo:NuGet"
 //
 // OS-level "Echo" entries (no language suffix) and any unrecognized ecosystem
 // return "" and are skipped by the caller. The suffix match is case-insensitive
-// (the feed uses "PyPi"; OSV/osv.dev use "PyPI").
+// (the feed has used both "PyPi" and "PyPI").
 func echoPackageType(ecosystem string) pkg.Type {
 	rest, ok := strings.CutPrefix(ecosystem, "Echo:")
 	if !ok || rest == "" {
@@ -224,6 +225,8 @@ func echoPackageType(ecosystem string) pkg.Type {
 		return pkg.JavaPkg
 	case "go", "golang":
 		return pkg.GoModulePkg
+	case "nuget":
+		return pkg.DotnetPkg
 	}
 	return ""
 }
