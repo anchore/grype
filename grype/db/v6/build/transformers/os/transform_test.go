@@ -1577,3 +1577,61 @@ func Test_getPackages_perArchFix(t *testing.T) {
 		{name: "zlib", arch: "", fixVers: "0:1.2.7-21.el7"},
 	}, results)
 }
+
+func TestDeriveConstraintFromFix_AmazonKernelLines(t *testing.T) {
+	tests := []struct {
+		name            string
+		vulnerabilityID string
+		fixVersion      string
+		want            string
+	}{
+		{
+			name:            "legacy ALASKERNEL id is bounded to its kernel line",
+			vulnerabilityID: "ALASKERNEL-5.4-2023-048",
+			fixVersion:      "5.4.250-166.369.amzn2",
+			want:            ">= 5.4, < 5.4.250-166.369.amzn2",
+		},
+		{
+			name:            "current ALAS2KERNEL id is bounded to its kernel line",
+			vulnerabilityID: "ALAS2KERNEL-5.10-2026-123",
+			fixVersion:      "5.10.258-257.1041.amzn2",
+			want:            ">= 5.10, < 5.10.258-257.1041.amzn2",
+		},
+		{
+			name:            "other kernel line of the same release stays apart",
+			vulnerabilityID: "ALAS2KERNEL-5.15-2026-107",
+			fixVersion:      "5.15.209-147.245.amzn2",
+			want:            ">= 5.15, < 5.15.209-147.245.amzn2",
+		},
+		{
+			name:            "fix version with an epoch is still recognised as in the line",
+			vulnerabilityID: "ALAS2KERNEL-5.10-2026-123",
+			fixVersion:      "0:5.10.258-257.1041.amzn2",
+			want:            ">= 5.10, < 0:5.10.258-257.1041.amzn2",
+		},
+		{
+			name:            "package in a kernel advisory that does not track the line keeps a plain upper bound",
+			vulnerabilityID: "ALAS2KERNEL-5.10-2026-123",
+			fixVersion:      "1.0-0.amzn2",
+			want:            "< 1.0-0.amzn2",
+		},
+		{
+			name:            "core Amazon Linux 2 advisory is untouched",
+			vulnerabilityID: "ALAS2-2026-2900",
+			fixVersion:      "4.14.355-277.647.amzn2",
+			want:            "< 4.14.355-277.647.amzn2",
+		},
+		{
+			name:            "Amazon Linux 2023 advisory is untouched",
+			vulnerabilityID: "ALAS2023-2026-2143",
+			fixVersion:      "6.1.186-228.374.amzn2023",
+			want:            "< 6.1.186-228.374.amzn2023",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, deriveConstraintFromFix(tt.fixVersion, tt.vulnerabilityID))
+		})
+	}
+}

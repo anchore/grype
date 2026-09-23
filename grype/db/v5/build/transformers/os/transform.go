@@ -2,6 +2,8 @@ package os // nolint:revive
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/anchore/grype/grype/db/data"
@@ -215,25 +217,40 @@ func getRelatedVulnerabilities(entry unmarshal.OSVulnerability) (vulns []db.Vuln
 	return vulns
 }
 
+// amazonKernelAdvisoryID matches Amazon's per-kernel-line advisory ids and captures the line: the
+// original ALASKERNEL-5.4-2023-048 form and the current ALAS2KERNEL-5.10-2026-123 form.
+var amazonKernelAdvisoryID = regexp.MustCompile(`^ALAS2?KERNEL-(\d+\.\d+)-\d+-\d+$`)
+
 func deriveConstraintFromFix(fixVersion, vulnerabilityID string) string {
 	constraint := fmt.Sprintf("< %s", fixVersion)
 
-	if strings.HasPrefix(vulnerabilityID, "ALASKERNEL-") {
-		// Amazon advisories of the form ALASKERNEL-5.4-2023-048 should be interpreted as only applying to
-		// the 5.4.x kernel line since Amazon issue a separate advisory per affected line, thus the constraint
-		// should be >= 5.4, < {fix version}.  In the future the vunnel schema for OS vulns should be enhanced
-		// to emit actual constraints rather than fixed-in entries (tracked in https://github.com/anchore/vunnel/issues/266)
-		// at which point this workaround in grype-db can be removed.
+	// Amazon Linux 2 ships several kernel lines (4.14, 5.4, 5.10, 5.15) under the same package names
+	// and issues a separate advisory per line, so an ALAS2KERNEL-5.15-* fix must only apply to the
+	// 5.15.x line: without a lower bound a 5.10 kernel satisfies "< 5.15.209" and picks up every 5.15
+	// advisory. The lower bound is only added when the fix version itself is in the advisory's line,
+	// since the same advisory also ships packages that do not track it (kernel-livepatch-* is
+	// versioned 1.0-x) and ">= 5.10, < 1.0-0" would match nothing. In the future the vunnel schema for
+	// OS vulns should be enhanced to emit actual constraints rather than fixed-in entries (tracked in
+	// https://github.com/anchore/vunnel/issues/266) at which point this workaround can be removed.
+	if m := amazonKernelAdvisoryID.FindStringSubmatch(vulnerabilityID); m != nil {
+		kernelLine := m[1]
 
-		components := strings.Split(vulnerabilityID, "-")
-
-		if len(components) == 4 {
-			base := components[1]
-			constraint = fmt.Sprintf(">= %s, < %s", base, fixVersion)
+		if strings.HasPrefix(stripRpmEpoch(fixVersion), kernelLine+".") {
+			constraint = fmt.Sprintf(">= %s, < %s", kernelLine, fixVersion)
 		}
 	}
 
 	return constraint
+}
+
+// stripRpmEpoch drops a leading "<epoch>:" from an rpm version string.
+func stripRpmEpoch(version string) string {
+	if i := strings.Index(version, ":"); i > 0 {
+		if _, err := strconv.Atoi(version[:i]); err == nil {
+			return version[i+1:]
+		}
+	}
+	return version
 }
 
 func enforceConstraint(fixedVersion, vulnerableRange, format, vulnerabilityID string) string {
