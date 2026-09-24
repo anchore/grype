@@ -59,6 +59,13 @@ func TestJVMVersion_Constraint(t *testing.T) {
 		{version: "1.8.0_131", constraint: "> 1.8.0_131-ea", satisfied: true},
 		{version: "9.0.0-ea", constraint: "< 9.0.0", satisfied: true},
 		{version: "9.0.0-ea", constraint: "> 1.8.0_131", satisfied: true},
+
+		// shorthand "u" update versions
+		{version: "6u141", constraint: "< 6u142", satisfied: true},
+		{version: "6u141", constraint: "= 1.6.0_141", satisfied: true},
+		{version: "6u141", constraint: "> 1.6.0", satisfied: true},
+		{version: "1.6.0_141", constraint: "<= 6u141", satisfied: true},
+		{version: "6u141", constraint: "> 6u142", satisfied: false},
 	}
 
 	for _, test := range tests {
@@ -126,6 +133,22 @@ func TestJVMVersion_Compare(t *testing.T) {
 		{"1.6.0u141", "1.6.0u142", -1},
 		{"1.6.0u141", "1.6.0", 1},
 		{"1.8.0u131-b11", "1.8.0_131", 0},
+
+		// shorthand "u" update form without a minor version (e.g. 6u141), which should be
+		// equivalent to the 1.<major>.0_<update> and <major>.0.<update> forms
+		{"6u141", "1.6.0_141", 0},
+		{"6u141", "1.6.0u141", 0},
+		{"6u141", "6.0.141", 0},
+		{"1.6u141", "6u141", 0},
+		{"1.6u141", "1.6.0_141", 0},
+		{"6u141", "6u142", -1},
+		{"6u141", "6u140", 1},
+		{"6u141", "1.6.0", 1},
+		{"6u141", "6", 1},
+		{"6u141", "1.6", 1},
+		{"6u141", "7", -1},
+		{"8u302-b08", "1.8.0_302", 0},
+		{"8u302", "8.0.302", 0},
 	}
 
 	for _, test := range tests {
@@ -184,6 +207,21 @@ func TestJVMVersion_ConvertNonCompliantSemver(t *testing.T) {
 			name:     "invalid update format, no update keyword",
 			input:    "8.0-foo302",
 			expected: "8.0-foo302",
+		},
+		{
+			name:     "shorthand u update without minor",
+			input:    "6u141",
+			expected: "6.0.141",
+		},
+		{
+			name:     "shorthand u update without minor, with build",
+			input:    "8u302-b08",
+			expected: "8.0.302+8",
+		},
+		{
+			name:     "shorthand u update with minor",
+			input:    "8.0u302",
+			expected: "8.0.302",
 		},
 	}
 
