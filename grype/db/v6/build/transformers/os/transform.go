@@ -74,6 +74,8 @@ func getPackages(vuln unmarshal.OSVulnerability) ([]db.AffectedPackageHandle, []
 	var unafs []db.UnaffectedPackageHandle
 	groups := groupFixedIns(vuln)
 	for group, fixedIns := range groups {
+		qualifiers := getQualifiers(group)
+
 		// APK providers already handle not-affected signaling in their own matching layer,
 		// so skip emitting unaffected package handles for them.
 		pkgType := getPackageType(group.osName)
@@ -84,28 +86,8 @@ func getPackages(vuln unmarshal.OSVulnerability) ([]db.AffectedPackageHandle, []
 			// resolves to a per-minor affected row while the lone major-only unaffected
 			// handle is never consulted (grype returns the most-specific OS row and does
 			// not union the major row back in), leaking a false positive.
-			unafs = append(unafs, expandUnaffectedHandles(vuln, group, fixedIns)...)
+			unafs = append(unafs, expandUnaffectedHandles(vuln, group, fixedIns, qualifiers)...)
 			continue
-		}
-
-		// we only care about a single qualifier: rpm modules. The important thing to note about this is that
-		// a package with no module vs a package with a module should be detectable in the DB.
-		var qualifiers *db.PackageQualifiers
-		if group.format == "rpm" {
-			module := "" // means the target package must have no module (where as nil means the module has no sway on matching)
-			if group.hasModule {
-				module = group.module
-			}
-			qualifiers = &db.PackageQualifiers{
-				RpmModularity: &module,
-			}
-			// when the advisory scoped this fix to a specific architecture, carry it so the
-			// architecture qualifier only applies the fix to packages of that arch (see
-			// pkg/qualifier/architecture). Absent arch means the fix applies to all arches.
-			if group.arch != "" {
-				arch := group.arch
-				qualifiers.Architecture = &arch
-			}
 		}
 
 		// SERVER-SIDE stream-affinity expansion: for RHEL GA groups, emit one
@@ -157,6 +139,32 @@ func buildRanges(vuln unmarshal.OSVulnerability, fixedIns []unmarshal.OSFixedIn)
 		})
 	}
 	return ranges
+}
+
+// getQualifiers scopes a group's rows to the packages it describes. Only rpm modules matter: a
+// package with no module and one with a module must be distinguishable in the DB.
+//
+// Affected and unaffected rows alike need this. Groups are keyed on module (see groupIndex), so the
+// two sides of a multi-stream advisory (mariadb:10.5 not affected, mariadb:10.3 fixed) are distinct
+// groups; an unaffected row without the qualifier would deny the CVE for every stream.
+func getQualifiers(group groupIndex) *db.PackageQualifiers {
+	if group.format != "rpm" {
+		return nil
+	}
+	module := "" // the target package must have no module (nil means the module does not affect matching)
+	if group.hasModule {
+		module = group.module
+	}
+	qualifiers := &db.PackageQualifiers{
+		RpmModularity: &module,
+	}
+	// an advisory scoped to one architecture only applies to packages of that arch (see
+	// pkg/qualifier/architecture); no arch applies to all
+	if group.arch != "" {
+		arch := group.arch
+		qualifiers.Architecture = &arch
+	}
+	return qualifiers
 }
 
 // minorFix pairs a known fix minor with the fix build (Version) shipped for it.
@@ -270,13 +278,17 @@ func expandRHELMinorRows(vuln unmarshal.OSVulnerability, group groupIndex, fixed
 // suppressing handle; without this the expanded affected rows would match a minored host
 // while the major-only unaffected handle is never consulted (a false positive). For all
 // other groups it returns the single major-scoped handle (unchanged behavior).
-func expandUnaffectedHandles(vuln unmarshal.OSVulnerability, group groupIndex, fixedIns []unmarshal.OSFixedIn) []db.UnaffectedPackageHandle {
+//
+// The handle carries the group's qualifiers so a not-affected row denies only its own module
+// stream (see getQualifiers).
+func expandUnaffectedHandles(vuln unmarshal.OSVulnerability, group groupIndex, fixedIns []unmarshal.OSFixedIn, qualifiers *db.PackageQualifiers) []db.UnaffectedPackageHandle {
 	mk := func(os *db.OperatingSystem) db.UnaffectedPackageHandle {
 		return db.UnaffectedPackageHandle{
 			OperatingSystem: os,
 			Package:         getPackage(group),
 			BlobValue: &db.PackageBlob{
-				CVEs: getAliases(vuln),
+				CVEs:       getAliases(vuln),
+				Qualifiers: qualifiers,
 				Ranges: []db.Range{
 					{
 						Version: db.Version{Type: fixedIns[0].VersionFormat, Constraint: ""},
