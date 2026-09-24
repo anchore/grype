@@ -2251,6 +2251,266 @@ func TestTransform(t *testing.T) {
 				},
 			},
 		},
+		{
+			// real CVE-2024-3400 data (NVD API, cpeMatch list trimmed the same way
+			// CVE-2023-45283's fixtures are), with a real single-source metrics.ssvcV203
+			// block from CISA.
+			name:     "single ssvcV203 entry produces one SsvcHandle",
+			fixture:  "testdata/CVE-2024-3400-ssvc.json",
+			provider: "nvd",
+			config:   defaultConfig(),
+			want: []transformers.RelatedEntries{
+				{
+					VulnerabilityHandle: &db.VulnerabilityHandle{
+						Name:          "CVE-2024-3400",
+						ProviderID:    "nvd",
+						Provider:      expectedProvider("nvd"),
+						ModifiedDate:  timeRef(time.Date(2026, 6, 17, 7, 44, 11, 533000000, time.UTC)),
+						PublishedDate: timeRef(time.Date(2024, 4, 12, 8, 15, 6, 230000000, time.UTC)),
+						Status:        db.VulnerabilityActive,
+						BlobValue: &db.VulnerabilityBlob{
+							ID:          "CVE-2024-3400",
+							Assigners:   []string{"psirt@paloaltonetworks.com"},
+							Description: "A command injection as a result of arbitrary file creation vulnerability in the GlobalProtect feature of Palo Alto Networks PAN-OS software for specific PAN-OS versions and distinct feature configurations may enable an unauthenticated attacker to execute arbitrary code with root privileges on the firewall.\n\nCloud NGFW, Panorama appliances, and Prisma Access are not impacted by this vulnerability.",
+							References: []db.Reference{
+								{
+									URL: "https://nvd.nist.gov/vuln/detail/CVE-2024-3400",
+								},
+								{
+									URL:  "https://security.paloaltonetworks.com/CVE-2024-3400",
+									Tags: []string{"vendor-advisory"},
+								},
+								{
+									URL:  "https://unit42.paloaltonetworks.com/cve-2024-3400/",
+									Tags: []string{"exploit", "vendor-advisory"},
+								},
+								{
+									URL:  "https://www.paloaltonetworks.com/blog/2024/04/more-on-the-pan-os-cve/",
+									Tags: []string{"technical-description", "vendor-advisory"},
+								},
+								{
+									URL:  "https://www.volexity.com/blog/2024/04/12/zero-day-exploitation-of-unauthenticated-remote-code-execution-vulnerability-in-globalprotect-cve-2024-3400/",
+									Tags: []string{"exploit", "third-party-advisory"},
+								},
+								{
+									URL:  "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?field_cve=CVE-2024-3400",
+									Tags: []string{"us-government-resource"},
+								},
+							},
+							Severities: []db.Severity{
+								{
+									Scheme: db.SeveritySchemeCVSS,
+									Value: db.CVSSSeverity{
+										Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+										Version: "3.1",
+									},
+									Source: "nvd@nist.gov",
+									Rank:   1,
+								},
+								{
+									Scheme: db.SeveritySchemeCVSS,
+									Value: db.CVSSSeverity{
+										Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+										Version: "3.1",
+									},
+									Source: "psirt@paloaltonetworks.com",
+									Rank:   2,
+								},
+							},
+						},
+					},
+					Related: relatedEntries(
+						db.AffectedCPEHandle{
+							BlobValue: &db.PackageBlob{
+								CVEs: []string{"CVE-2024-3400"},
+								Ranges: []db.Range{
+									{Version: db.Version{Constraint: "= 10.2.0"}},
+									{Version: db.Version{Constraint: "= 10.2.0-h1"}},
+								},
+							},
+							CPE: &db.Cpe{
+								Part:    "o",
+								Vendor:  "paloaltonetworks",
+								Product: "pan-os",
+							},
+						},
+						db.CWEHandle{
+							CVE:    "CVE-2024-3400",
+							CWE:    "CWE-20",
+							Source: "psirt@paloaltonetworks.com",
+							Type:   "Secondary",
+						},
+						db.CWEHandle{
+							CVE:    "CVE-2024-3400",
+							CWE:    "CWE-77",
+							Source: "psirt@paloaltonetworks.com",
+							Type:   "Secondary",
+						},
+						db.CWEHandle{
+							CVE:    "CVE-2024-3400",
+							CWE:    "CWE-77",
+							Source: "nvd@nist.gov",
+							Type:   "Primary",
+						},
+						db.SsvcHandle{
+							Cve:             "CVE-2024-3400",
+							Source:          "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+							Role:            "CISA Coordinator",
+							Version:         "2.0.3",
+							Timestamp:       timeRef(time.Date(2024, 4, 17, 4, 0, 13, 543064000, time.UTC)),
+							Exploitation:    "active",
+							Automatable:     "yes",
+							TechnicalImpact: "total",
+						},
+					),
+				},
+			},
+		},
+		{
+			// real CVE-2025-3928 data (NVD API), verbatim apart from the configurations block,
+			// which is trimmed to its single vulnerable OR node the way the CVE-2023-45283
+			// fixtures trim theirs. CISA publishes SSVC assessments under two source UUIDs, so
+			// more than one ssvcV203 entry is a shape NVD really emits; NVD is also observed
+			// repeating the same source with a later timestamp (CVE-2023-43000) and repeating
+			// byte-identical entries (CVE-2025-31277), which is why nothing here dedupes.
+			name:     "multiple ssvcV203 sources each produce a SsvcHandle",
+			fixture:  "testdata/CVE-2025-3928-ssvc-multi-source.json",
+			provider: "nvd",
+			config:   defaultConfig(),
+			want: []transformers.RelatedEntries{
+				{
+					VulnerabilityHandle: &db.VulnerabilityHandle{
+						Name:          "CVE-2025-3928",
+						ProviderID:    "nvd",
+						Provider:      expectedProvider("nvd"),
+						ModifiedDate:  timeRef(time.Date(2026, 6, 17, 9, 20, 56, 593000000, time.UTC)),
+						PublishedDate: timeRef(time.Date(2025, 4, 25, 16, 15, 27, 817000000, time.UTC)),
+						Status:        db.VulnerabilityActive,
+						BlobValue: &db.VulnerabilityBlob{
+							ID:          "CVE-2025-3928",
+							Assigners:   []string{"9119a7d8-5eab-497f-8521-727c672e3725"},
+							Description: "Commvault Web Server has an unspecified vulnerability that can be exploited by a remote, authenticated attacker. According to the Commvault advisory: \"Webservers can be compromised through bad actors creating and executing webshells.\" Fixed in version 11.36.46, 11.32.89, 11.28.141, and 11.20.217 for Windows and Linux platforms. This vulnerability was added to the CISA Known Exploited Vulnerabilities (KEV) Catalog on 2025-04-28.",
+							References: []db.Reference{
+								{
+									URL: "https://nvd.nist.gov/vuln/detail/CVE-2025-3928",
+								},
+								{
+									URL:  "https://documentation.commvault.com/securityadvisories/CV_2025_03_1.html",
+									Tags: []string{"vendor-advisory"},
+								},
+								{
+									URL:  "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?search_api_fulltext=CVE-2025-3928",
+									Tags: []string{"third-party-advisory", "us-government-resource"},
+								},
+								{
+									URL:  "https://www.cisa.gov/news-events/alerts/2025/05/22/advisory-update-cyber-threat-activity-targeting-commvaults-saas-cloud-application-metallic",
+									Tags: []string{"third-party-advisory", "us-government-resource"},
+								},
+								{
+									URL:  "https://www.commvault.com/blogs/customer-security-update",
+									Tags: []string{"vendor-advisory"},
+								},
+								{
+									URL:  "https://www.commvault.com/blogs/notice-security-advisory-update",
+									Tags: []string{"vendor-advisory"},
+								},
+								{
+									URL:  "https://www.commvault.com/blogs/security-advisory-march-7-2025",
+									Tags: []string{"vendor-advisory"},
+								},
+								{
+									URL:  "https://www.bleepingcomputer.com/news/security/commvault-says-recent-breach-didnt-impact-customer-backup-data/",
+									Tags: []string{"third-party-advisory"},
+								},
+								{
+									URL:  "https://www.cisa.gov/known-exploited-vulnerabilities-catalog?field_cve=CVE-2025-3928",
+									Tags: []string{"us-government-resource"},
+								},
+							},
+							Severities: []db.Severity{
+								{
+									Scheme: db.SeveritySchemeCVSS,
+									Value: db.CVSSSeverity{
+										Vector:  "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+										Version: "3.1",
+									},
+									Source: "nvd@nist.gov",
+									Rank:   1,
+								},
+								{
+									Scheme: db.SeveritySchemeCVSS,
+									Value: db.CVSSSeverity{
+										Vector:  "CVSS:4.0/AV:N/AC:L/AT:N/PR:L/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N/E:X/CR:X/IR:X/AR:X/MAV:X/MAC:X/MAT:X/MPR:X/MUI:X/MVC:X/MVI:X/MVA:X/MSC:X/MSI:X/MSA:X/S:X/AU:X/R:X/V:X/RE:X/U:X",
+										Version: "4.0",
+									},
+									Source: "9119a7d8-5eab-497f-8521-727c672e3725",
+									Rank:   2,
+								},
+								{
+									Scheme: db.SeveritySchemeCVSS,
+									Value: db.CVSSSeverity{
+										Vector:  "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+										Version: "3.1",
+									},
+									Source: "9119a7d8-5eab-497f-8521-727c672e3725",
+									Rank:   2,
+								},
+							},
+						},
+					},
+					Related: relatedEntries(
+						db.AffectedCPEHandle{
+							BlobValue: &db.PackageBlob{
+								CVEs: []string{"CVE-2025-3928"},
+								Ranges: []db.Range{
+									{
+										Version: db.Version{Constraint: ">= 11.20.0, < 11.20.217"},
+										Fix:     &db.Fix{Version: "11.20.217", State: db.FixedStatus},
+									},
+									{
+										Version: db.Version{Constraint: ">= 11.28.0, < 11.28.141"},
+										Fix:     &db.Fix{Version: "11.28.141", State: db.FixedStatus},
+									},
+									{
+										Version: db.Version{Constraint: ">= 11.32.0, < 11.32.89"},
+										Fix:     &db.Fix{Version: "11.32.89", State: db.FixedStatus},
+									},
+									{
+										Version: db.Version{Constraint: ">= 11.36.0, < 11.36.46"},
+										Fix:     &db.Fix{Version: "11.36.46", State: db.FixedStatus},
+									},
+								},
+							},
+							CPE: &db.Cpe{
+								Part:    "a",
+								Vendor:  "commvault",
+								Product: "commvault",
+							},
+						},
+						db.SsvcHandle{
+							Cve:             "CVE-2025-3928",
+							Source:          "9119a7d8-5eab-497f-8521-727c672e3725",
+							Role:            "CISA Coordinator",
+							Version:         "2.0.3",
+							Timestamp:       timeRef(time.Date(2025, 4, 25, 17, 58, 52, 842478000, time.UTC)),
+							Exploitation:    "none",
+							Automatable:     "no",
+							TechnicalImpact: "total",
+						},
+						db.SsvcHandle{
+							Cve:             "CVE-2025-3928",
+							Source:          "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+							Role:            "CISA Coordinator",
+							Version:         "2.0.3",
+							Timestamp:       timeRef(time.Date(2025, 4, 30, 3, 56, 24, 936967000, time.UTC)),
+							Exploitation:    "active",
+							Automatable:     "no",
+							TechnicalImpact: "total",
+						},
+					),
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -2304,6 +2564,89 @@ func loadFixture(t *testing.T, fixturePath string) []unmarshal.NVDVulnerability 
 
 func timeRef(ti time.Time) *time.Time {
 	return &ti
+}
+
+func TestGetSSVC(t *testing.T) {
+	ssvc := func(opts ...nvd.SsvcOptionV203) unmarshal.NVDVulnerability {
+		return unmarshal.NVDVulnerability{
+			ID: "CVE-2025-3928",
+			Metrics: &nvd.Metrics{
+				SsvcV203: []nvd.SsvcV203{
+					{
+						Source: "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+						SsvcData: nvd.SsvcDataV203{
+							Role:    "CISA Coordinator",
+							Version: "2.0.3",
+							Options: opts,
+						},
+					},
+				},
+			},
+		}
+	}
+
+	tests := []struct {
+		name string
+		vuln unmarshal.NVDVulnerability
+		want []db.SsvcHandle
+	}{
+		{
+			name: "no metrics block at all",
+			vuln: unmarshal.NVDVulnerability{ID: "CVE-2025-3928"},
+			want: nil,
+		},
+		{
+			name: "metrics block present but no ssvcV203",
+			vuln: unmarshal.NVDVulnerability{
+				ID:      "CVE-2025-3928",
+				Metrics: &nvd.Metrics{CvssMetricV31: []nvd.CvssV31{{Source: "nvd@nist.gov"}}},
+			},
+			want: nil,
+		},
+		{
+			name: "no timestamp stays nil rather than becoming year 1",
+			vuln: ssvc(nvd.SsvcOptionV203{Exploitation: strRef("active")}),
+			want: []db.SsvcHandle{
+				{
+					Cve:          "CVE-2025-3928",
+					Source:       "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+					Role:         "CISA Coordinator",
+					Version:      "2.0.3",
+					Exploitation: "active",
+				},
+			},
+		},
+		{
+			name: "unrecognized decision point does not break the rest of the assessment",
+			vuln: ssvc(
+				nvd.SsvcOptionV203{Exploitation: strRef("active")},
+				nvd.SsvcOptionV203{Unrecognized: []string{"missionPrevalence"}},
+				nvd.SsvcOptionV203{TechnicalImpact: strRef("total")},
+			),
+			want: []db.SsvcHandle{
+				{
+					Cve:             "CVE-2025-3928",
+					Source:          "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+					Role:            "CISA Coordinator",
+					Version:         "2.0.3",
+					Exploitation:    "active",
+					TechnicalImpact: "total",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if d := cmp.Diff(tt.want, getSSVC(tt.vuln)); d != "" {
+				t.Errorf("unexpected SSVC handles (-want +got):\n%s", d)
+			}
+		})
+	}
+}
+
+func strRef(s string) *string {
+	return &s
 }
 
 func TestIsValidCWE(t *testing.T) {
@@ -2606,6 +2949,55 @@ func TestGetReferences(t *testing.T) {
 			if diff := cmp.Diff(tt.expected, actual, cmpopts.EquateEmpty()); diff != "" {
 				t.Errorf("getReferences() mismatch (-want +got):\n%s", diff)
 			}
+		})
+	}
+}
+
+func TestGetSSVC_deduplicatesIdenticalEntries(t *testing.T) {
+	// NVD serves byte-identical repeats of an ssvcV203 entry on some records: CVE-2023-43000
+	// carries the same assessment twice, with the same source and the same timestamp. A repeat
+	// carries no information, and every row of it comes back from GetSsvcs.
+	entry := func(timestamp, exploitation string) nvd.SsvcV203 {
+		return nvd.SsvcV203{
+			Source: "134c704f-9b21-4f2e-91b3-4a467353bcc0",
+			SsvcData: nvd.SsvcDataV203{
+				Timestamp: timestamp,
+				Role:      "CISA Coordinator",
+				Version:   "2.0.3",
+				Options:   []nvd.SsvcOptionV203{{Exploitation: &exploitation}},
+			},
+		}
+	}
+
+	tests := []struct {
+		name    string
+		entries []nvd.SsvcV203
+		want    int
+	}{
+		{
+			name:    "an exact repeat collapses to one row",
+			entries: []nvd.SsvcV203{entry("2026-03-06T05:01:14.932410Z", "active"), entry("2026-03-06T05:01:14.932410Z", "active")},
+			want:    1,
+		},
+		{
+			name:    "a later re-assessment from the same source is kept",
+			entries: []nvd.SsvcV203{entry("2025-04-25T17:58:52.842478Z", "none"), entry("2025-04-30T03:56:24.936967Z", "active")},
+			want:    2,
+		},
+		{
+			name:    "the same timestamp with a different decision is kept",
+			entries: []nvd.SsvcV203{entry("2026-03-06T05:01:14.932410Z", "none"), entry("2026-03-06T05:01:14.932410Z", "active")},
+			want:    2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := getSSVC(unmarshal.NVDVulnerability{
+				ID:      "CVE-2023-43000",
+				Metrics: &nvd.Metrics{SsvcV203: tt.entries},
+			})
+			require.Len(t, got, tt.want)
 		})
 	}
 }

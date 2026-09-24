@@ -1,6 +1,8 @@
 package nvd
 
 import (
+	"encoding/json"
+	"fmt"
 	"sort"
 
 	"github.com/Masterminds/semver/v3"
@@ -97,10 +99,73 @@ type LangString struct {
 
 // Metrics scores for a vulnerability as found on NVD.
 type Metrics struct {
-	CvssMetricV2  []CvssV2  `json:"cvssMetricV2,omitempty"`  // CVSS V2.0 score.
-	CvssMetricV30 []CvssV30 `json:"cvssMetricV30,omitempty"` // CVSS V3.0 score.
-	CvssMetricV31 []CvssV31 `json:"cvssMetricV31,omitempty"` // CVSS V3.1 score.
-	CvssMetricV40 []CvssV40 `json:"cvssMetricV40,omitempty"` // CVSS V4.1 score.
+	CvssMetricV2  []CvssV2   `json:"cvssMetricV2,omitempty"`  // CVSS V2.0 score.
+	CvssMetricV30 []CvssV30  `json:"cvssMetricV30,omitempty"` // CVSS V3.0 score.
+	CvssMetricV31 []CvssV31  `json:"cvssMetricV31,omitempty"` // CVSS V3.1 score.
+	CvssMetricV40 []CvssV40  `json:"cvssMetricV40,omitempty"` // CVSS V4.1 score.
+	SsvcV203      []SsvcV203 `json:"ssvcV203,omitempty"`      // SSVC decision-point assessment (e.g. from CISA).
+}
+
+// SsvcV203 is one source's SSVC (Stakeholder-Specific Vulnerability Categorization) v2.0.3
+// decision-point assessment for a vulnerability, as found on NVD.
+type SsvcV203 struct {
+	Source   string       `json:"source"`   // identifier of the organization that produced this assessment.
+	SsvcData SsvcDataV203 `json:"ssvcData"` // the assessment itself.
+}
+
+// SsvcDataV203 carries the role, version, timestamp, and decision-point values of a single
+// SSVC assessment.
+type SsvcDataV203 struct {
+	Timestamp string           `json:"timestamp"` // when this assessment was made.
+	ID        string           `json:"id"`        // the CVE ID this assessment is for.
+	Options   []SsvcOptionV203 `json:"options"`   // the decision-point values that make up this assessment.
+	Role      string           `json:"role"`      // the role of the organization that produced this assessment (e.g. "CISA Coordinator").
+	Version   string           `json:"version"`   // the version of the SSVC framework used.
+}
+
+// SsvcOptionV203 is a single-key object naming one SSVC decision point; each
+// element of an options array populates exactly one of these fields.
+type SsvcOptionV203 struct {
+	Exploitation    *string  `json:"exploitation,omitempty"`    // whether the vulnerability is being exploited.
+	Automatable     *string  `json:"automatable,omitempty"`     // whether exploitation can be automated.
+	TechnicalImpact *string  `json:"technicalImpact,omitempty"` // the technical impact of a successful exploit.
+	Unrecognized    []string `json:"-"`                         // names of any decision points outside the three above, kept so callers can report them.
+}
+
+// UnmarshalJSON keeps the names of any decision points this struct does not model. SSVC can
+// grow new decision points and NVD would start emitting them with no warning, so an unknown
+// key is recorded rather than discarded.
+func (o *SsvcOptionV203) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	for key, value := range raw {
+		var target **string
+		switch key {
+		case "exploitation":
+			target = &o.Exploitation
+		case "automatable":
+			target = &o.Automatable
+		case "technicalImpact":
+			target = &o.TechnicalImpact
+		default:
+			o.Unrecognized = append(o.Unrecognized, key)
+			continue
+		}
+
+		var s string
+		if err := json.Unmarshal(value, &s); err != nil {
+			return fmt.Errorf("unable to parse SSVC decision point %q: %w", key, err)
+		}
+		*target = &s
+	}
+
+	// map iteration order is random, so sort to keep the reported set deterministic
+	sort.Strings(o.Unrecognized)
+
+	return nil
 }
 
 type CvssV2 struct {
