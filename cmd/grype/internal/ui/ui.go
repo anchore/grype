@@ -1,12 +1,16 @@
 package ui
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"sync"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
 	"github.com/wagoodman/go-partybus"
 
 	"github.com/anchore/bubbly"
@@ -47,7 +51,7 @@ func New(quiet bool, handlers ...bubbly.EventHandler) *UI {
 func (m *UI) Setup(subscription partybus.Unsubscribable) error {
 	// we still want to collect log messages, however, we also the logger shouldn't write to the screen directly
 	if logWrapper, ok := log.Get().(logger.Controller); ok {
-		logWrapper.SetOutput(m.frame.(*frame.Frame).Footer())
+		logWrapper.SetOutput(newLogFooter(m.frame.(*frame.Frame).Footer()))
 	}
 
 	m.subscription = subscription
@@ -182,6 +186,55 @@ func (m *UI) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m UI) View() string {
 	return m.frame.View()
 }
+
+const logIndent = "    "
+
+// logFooter decorates log entries drawn below the TUI with a one-time title (written when the first entry arrives)
+// and a branch from the title to the first log line. Writes are serialized by the logger.
+type logFooter struct {
+	w          io.Writer
+	titleStyle lipgloss.Style
+	started    bool
+}
+
+func newLogFooter(w io.Writer) *logFooter {
+	// the TUI (and so this footer) is drawn on stderr, which is only enabled when stderr is a TTY. Assuming a TTY
+	// here also keeps the CI env var from disabling colors, while NO_COLOR is still honored by the renderer.
+	r := lipgloss.NewRenderer(os.Stderr, termenv.WithTTY(true))
+	return &logFooter{
+		w:          w,
+		titleStyle: r.NewStyle().Foreground(lipgloss.Color("8")), // dark grey
+	}
+}
+
+func (l *logFooter) Write(p []byte) (int, error) {
+	var buf bytes.Buffer
+	first := !l.started
+	if first {
+		buf.WriteString(l.titleStyle.Render("Logs (non-fatal, see -v for more):") + "\n")
+		l.started = true
+	}
+	for i, line := range bytes.SplitAfter(p, []byte("\n")) {
+		if len(line) == 0 {
+			continue
+		}
+		if first && i == 0 {
+			// the first log line gets a branch pointing at it from the title, the rest are indented to match
+			buf.WriteString(l.titleStyle.Render("└─▶") + " ")
+		} else {
+			buf.WriteString(logIndent)
+		}
+		buf.Write(line)
+	}
+	if _, err := l.w.Write(buf.Bytes()); err != nil {
+		return 0, err
+	}
+	return len(p), nil
+}
+
+// IsTerminal marks the footer as terminal-bound (it is drawn by the TUI) so the logger keeps colors. NO_COLOR still
+// applies since clio sets the formatter's DisableColors from it.
+func (*logFooter) IsTerminal() bool { return true }
 
 func runWithTimeout(timeout time.Duration, fn func() error) (err error) {
 	c := make(chan struct{}, 1)
