@@ -1,0 +1,62 @@
+{
+  "identifier": "cpansa-mojolicious-2022-03",
+  "item": {
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "CPAN",
+          "name": "Mojolicious"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2022-12-10",
+                    "kind": "advisory",
+                    "version": "9.31"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "9.31"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      }
+    ],
+    "aliases": [],
+    "database_specific": {
+      "cpansa_commit": "2089ff7201b44e5e462742a5baaa080ba003d257",
+      "cpansa_generated": "Sun Jul 26 06:23:50 2026"
+    },
+    "details": "Mojo::DOM did not correctly parse <script> tags.",
+    "id": "CPANSA-Mojolicious-2022-03",
+    "modified": "2026-07-26T06:23:50Z",
+    "published": "2022-12-10T00:00:00Z",
+    "references": [
+      {
+        "type": "WEB",
+        "url": "https://github.com/mojolicious/mojo/commit/6f195d85db6756022d3599f7d2634975688c9550"
+      },
+      {
+        "type": "WEB",
+        "url": "https://github.com/mojolicious/mojo/issues/2014"
+      },
+      {
+        "type": "WEB",
+        "url": "https://github.com/mojolicious/mojo/issues/2015"
+      }
+    ],
+    "schema_version": "1.6.1"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.1.json"
+}

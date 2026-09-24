@@ -751,6 +751,21 @@ func (s *SingleFindingAssertion) HasAdvisories(ids ...string) *SingleFindingAsse
 	return s
 }
 
+// HasRelatedVulnerabilities asserts the match's vulnerability has exactly the
+// given related vulnerability IDs (order doesn't matter). This is how a record
+// keyed by a provider-specific id declares the CVE it is really about, so it is
+// the only way to show that two findings under different ids are the same
+// underlying vulnerability.
+func (s *SingleFindingAssertion) HasRelatedVulnerabilities(ids ...string) *SingleFindingAssertion {
+	s.t.Helper()
+	got := make([]string, 0, len(s.match.Vulnerability.RelatedVulnerabilities))
+	for _, r := range s.match.Vulnerability.RelatedVulnerabilities {
+		got = append(got, r.ID)
+	}
+	assert.ElementsMatch(s.t, ids, got, "unexpected related vulnerability IDs")
+	return s
+}
+
 // WithAdvisoryLink asserts the match carries an advisory with the given ID whose link is the
 // expected URL. Per-minor RHEL rows pin the RHSA that governs the host's minor (rolled
 // forward across gap minors), so this verifies the correct errata link surfaces for the host

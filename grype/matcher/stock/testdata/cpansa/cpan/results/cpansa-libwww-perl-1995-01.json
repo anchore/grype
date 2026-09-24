@@ -1,0 +1,38 @@
+{
+  "identifier": "cpansa-libwww-perl-1995-01",
+  "item": {
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "CPAN",
+          "name": "libwww-perl"
+        },
+        "ranges": []
+      },
+      {
+        "package": {
+          "ecosystem": "CPAN",
+          "name": "LWP"
+        },
+        "ranges": []
+      }
+    ],
+    "aliases": [],
+    "database_specific": {
+      "cpansa_commit": "2089ff7201b44e5e462742a5baaa080ba003d257",
+      "cpansa_generated": "Sun Jul 26 06:23:50 2026"
+    },
+    "details": "There is a security hole with the implementation of getBasicCredentials().",
+    "id": "CPANSA-libwww-perl-1995-01",
+    "modified": "2026-07-26T06:23:50Z",
+    "published": "1995-09-06T00:00:00Z",
+    "references": [
+      {
+        "type": "WEB",
+        "url": "https://metacpan.org/dist/libwww-perl/changes"
+      }
+    ],
+    "schema_version": "1.6.1"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.1.json"
+}
