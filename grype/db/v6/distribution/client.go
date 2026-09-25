@@ -210,7 +210,12 @@ func withClientTimeout(timeout time.Duration) func(*http.Client) {
 
 func withUserAgent(id clio.Identification) func(*http.Client) {
 	return func(c *http.Client) {
-		*(c) = *newHTTPClientWithDefaultUserAgent(c.Transport, fmt.Sprintf("%s %s", id.Name, id.Version))
+		// note: this must only mutate c.Transport (not replace c itself), otherwise any
+		// fields already set on c by earlier post-processors (e.g. withClientTimeout) are lost
+		c.Transport = roundTripperWithUserAgent{
+			transport: c.Transport,
+			userAgent: fmt.Sprintf("%s %s", id.Name, id.Version),
+		}
 	}
 }
 
@@ -276,15 +281,6 @@ func isSupersededBy(current *v6.Description, candidate v6.Description) bool {
 
 	log.Debugf("existing database is already up to date")
 	return false
-}
-
-func newHTTPClientWithDefaultUserAgent(baseTransport http.RoundTripper, userAgent string) *http.Client {
-	return &http.Client{
-		Transport: roundTripperWithUserAgent{
-			transport: baseTransport,
-			userAgent: userAgent,
-		},
-	}
 }
 
 type roundTripperWithUserAgent struct {
