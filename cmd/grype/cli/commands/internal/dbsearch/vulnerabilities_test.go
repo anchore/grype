@@ -258,6 +258,12 @@ func TestVulnerabilities(t *testing.T) {
 		},
 	}, nil)
 
+	mockReader.On("GetUnaffectedPackages", mock.Anything, mock.Anything).Return([]v6.UnaffectedPackageHandle{
+		{
+			OperatingSystem: &v6.OperatingSystem{Name: "Linux", MajorVersion: "5", MinorVersion: "10"},
+		},
+	}, nil)
+
 	mockReader.On("GetKnownExploitedVulnerabilities", "CVE-1234-5678").Return([]v6.KnownExploitedVulnerabilityHandle{
 		{
 			Cve: "CVE-1234-5678",
@@ -289,6 +295,61 @@ func TestVulnerabilities(t *testing.T) {
 	require.NoError(t, err)
 
 	expected := []Vulnerability{
+		{
+			VulnerabilityInfo: VulnerabilityInfo{
+				VulnerabilityBlob: v6.VulnerabilityBlob{
+					Description: "Test description",
+					Severities: []v6.Severity{
+						{
+							Scheme: "CVSS",
+							Value: CVSSSeverity{
+								Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+								Version: "3.1",
+								Metrics: CvssMetrics{
+									BaseScore:           7.5,
+									ExploitabilityScore: ptr(3.9),
+									ImpactScore:         ptr(3.6),
+								},
+							},
+							Source: "nvd",
+							Rank:   1,
+						},
+					},
+				},
+				Severity:      "high",
+				Provider:      "provider1",
+				Status:        "active",
+				PublishedDate: ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
+				ModifiedDate:  ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
+				WithdrawnDate: nil,
+				KnownExploited: []KnownExploited{
+					{
+						CVE:                        "CVE-1234-5678",
+						VendorProject:              "LinuxFoundation",
+						Product:                    "Linux",
+						DateAdded:                  "2025-02-02",
+						RequiredAction:             "Yes",
+						DueDate:                    "2025-02-02",
+						KnownRansomwareCampaignUse: "Known",
+						Notes:                      "note!",
+						URLs:                       []string{"https://example.com"},
+						CWEs:                       []string{"CWE-1234"},
+					},
+				},
+				EPSS: []EPSS{
+					{
+						CVE:        "CVE-1234-5678",
+						EPSS:       0.893,
+						Percentile: 0.99,
+						Date:       "2025-02-24",
+					},
+				},
+			},
+			OperatingSystems: []OperatingSystem{
+				{Name: "Linux", Version: "5.10"},
+			},
+			AffectedPackages: 1,
+		},
 		{
 			VulnerabilityInfo: VulnerabilityInfo{
 				VulnerabilityBlob: v6.VulnerabilityBlob{
@@ -390,6 +451,8 @@ func TestFindVulnerabilities_DecorationErrors(t *testing.T) {
 
 			mockReader.On("GetAffectedPackages", mock.Anything, mock.Anything).Return([]v6.AffectedPackageHandle{}, nil)
 
+			mockReader.On("GetUnaffectedPackages", mock.Anything, mock.Anything).Return([]v6.UnaffectedPackageHandle{}, nil)
+
 			mockReader.On("GetKnownExploitedVulnerabilities", "CVE-2021-22947").Return(
 				[]v6.KnownExploitedVulnerabilityHandle{}, tt.kevErr,
 			)
@@ -403,7 +466,7 @@ func TestFindVulnerabilities_DecorationErrors(t *testing.T) {
 			})
 
 			require.NoError(t, err, "decoration errors should not propagate as fatal errors")
-			require.Len(t, results, 1)
+			require.Len(t, results, 2)
 			require.Equal(t, "Test vuln", results[0].VulnerabilityBlob.Description)
 			require.Empty(t, results[0].KnownExploited)
 			require.Empty(t, results[0].EPSS)
@@ -423,6 +486,11 @@ func (m *mockVulnReader) GetVulnerabilities(vuln *v6.VulnerabilitySpecifier, con
 func (m *mockVulnReader) GetAffectedPackages(pkg *v6.PackageSpecifier, config *v6.GetPackageOptions) ([]v6.AffectedPackageHandle, error) {
 	args := m.Called(pkg, config)
 	return args.Get(0).([]v6.AffectedPackageHandle), args.Error(1)
+}
+
+func (m *mockVulnReader) GetUnaffectedPackages(pkg *v6.PackageSpecifier, config *v6.GetPackageOptions) ([]v6.UnaffectedPackageHandle, error) {
+	args := m.Called(pkg, config)
+	return args.Get(0).([]v6.UnaffectedPackageHandle), args.Error(1)
 }
 
 func (m *mockVulnReader) GetKnownExploitedVulnerabilities(cve string) ([]v6.KnownExploitedVulnerabilityHandle, error) {

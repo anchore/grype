@@ -120,6 +120,8 @@ func newMatchesRows(affectedPkgs []affectedPackageWithDecorations, affectedCPEs 
 func FindMatches(reader interface {
 	v6.AffectedPackageStoreReader
 	v6.AffectedCPEStoreReader
+	v6.UnaffectedPackageStoreReader
+	v6.UnaffectedCPEStoreReader
 	v6.VulnerabilityDecoratorStoreReader
 }, criteria AffectedPackagesOptions) (Matches, error) {
 	allAffectedPkgs, allAffectedCPEs, fetchErr := findAffectedPackages(reader, criteria)

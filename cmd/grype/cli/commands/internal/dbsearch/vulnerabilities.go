@@ -123,8 +123,9 @@ type vulnerabilityAffectedPackageJoin struct {
 }
 
 type VulnerabilitiesOptions struct {
-	Vulnerability v6.VulnerabilitySpecifiers
-	RecordLimit   int
+	Vulnerability  v6.VulnerabilitySpecifiers
+	RecordLimit    int
+	IncludeAliases bool
 }
 
 func newVulnerabilityRows(vaps ...vulnerabilityAffectedPackageJoin) (rows []Vulnerability) {
@@ -191,9 +192,10 @@ func newOperatingSystems(oss []v6.OperatingSystem) (os []OperatingSystem) {
 	return os
 }
 
-func FindVulnerabilities(reader interface { //nolint:funlen
+func FindVulnerabilities(reader interface { //nolint:funlen,gocognit
 	v6.VulnerabilityStoreReader
 	v6.AffectedPackageStoreReader
+	v6.UnaffectedPackageStoreReader
 	v6.VulnerabilityDecoratorStoreReader
 }, config VulnerabilitiesOptions,
 ) ([]Vulnerability, error) {
@@ -230,6 +232,23 @@ func FindVulnerabilities(reader interface { //nolint:funlen
 			PreloadOS: true,
 			Vulnerabilities: []v6.VulnerabilitySpecifier{
 				{
+					ID:             vuln.ID,
+					IncludeAliases: config.IncludeAliases,
+				},
+			},
+			Limit: config.RecordLimit,
+		})
+		if fetchErr != nil {
+			if !errors.Is(fetchErr, v6.ErrLimitReached) {
+				return nil, fmt.Errorf("unable to get affected packages: %w", fetchErr)
+			}
+			limitReached = true
+		}
+
+		unaffected, fetchErr := reader.GetUnaffectedPackages(nil, &v6.GetPackageOptions{
+			PreloadOS: true,
+			Vulnerabilities: []v6.VulnerabilitySpecifier{
+				{
 					ID: vuln.ID,
 				},
 			},
@@ -244,6 +263,14 @@ func FindVulnerabilities(reader interface { //nolint:funlen
 
 		distros := make(map[v6.ID]v6.OperatingSystem)
 		for _, a := range affected {
+			if a.OperatingSystem != nil {
+				if _, ok := distros[a.OperatingSystem.ID]; !ok {
+					distros[a.OperatingSystem.ID] = *a.OperatingSystem
+				}
+			}
+		}
+
+		for _, a := range unaffected {
 			if a.OperatingSystem != nil {
 				if _, ok := distros[a.OperatingSystem.ID]; !ok {
 					distros[a.OperatingSystem.ID] = *a.OperatingSystem
@@ -266,7 +293,13 @@ func FindVulnerabilities(reader interface { //nolint:funlen
 			AffectedPackages: len(affected),
 		})
 
-		if errors.Is(fetchErr, v6.ErrLimitReached) {
+		pairs = append(pairs, vulnerabilityAffectedPackageJoin{
+			Vulnerability:    vuln,
+			OperatingSystems: distrosSlice,
+			AffectedPackages: len(unaffected),
+		})
+
+		if limitReached {
 			break
 		}
 	}
