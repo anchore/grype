@@ -1,6 +1,7 @@
 package match
 
 import (
+	"slices"
 	"sort"
 	"strings"
 )
@@ -22,12 +23,8 @@ func (m ByElements) Less(i, j int) bool {
 				if m[i].Package.Type == m[j].Package.Type {
 					// this is an approximate ordering, but is not accurate in terms of semver and other version formats
 					// but stability is what is important here, not the accuracy of the sort.
-					fixVersions1 := m[i].Vulnerability.Fix.Versions
-					fixVersions2 := m[j].Vulnerability.Fix.Versions
-					sort.Strings(fixVersions1)
-					sort.Strings(fixVersions2)
-					fixStr1 := strings.Join(fixVersions1, ",")
-					fixStr2 := strings.Join(fixVersions2, ",")
+					fixStr1 := sortedFixVersions(m[i].Vulnerability.Fix.Versions)
+					fixStr2 := sortedFixVersions(m[j].Vulnerability.Fix.Versions)
 
 					if fixStr1 == fixStr2 {
 						loc1 := m[i].Package.Locations.ToSlice()
@@ -57,4 +54,20 @@ func (m ByElements) Less(i, j int) bool {
 // Swap swaps the elements with indexes i and j.
 func (m ByElements) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
+}
+
+// sortedFixVersions renders fix versions in a stable order for comparison.
+//
+// This deliberately works on a copy. The slice belongs to the Match being compared, and the
+// presenters emit Fix.Versions in the order the match holds them, so sorting it in place here would
+// let a comparison rewrite what a caller later reads back from its own match.
+func sortedFixVersions(versions []string) string {
+	if len(versions) < 2 {
+		return strings.Join(versions, ",")
+	}
+
+	sorted := slices.Clone(versions)
+	slices.Sort(sorted)
+
+	return strings.Join(sorted, ",")
 }
