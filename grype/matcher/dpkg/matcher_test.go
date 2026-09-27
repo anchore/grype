@@ -91,3 +91,53 @@ func TestMatcherDpkg_CPEFallbackWhenEOL(t *testing.T) {
 		})
 	}
 }
+
+func TestMatcherDpkg_CPEMatchingWhenEnabled(t *testing.T) {
+	// a package from a third-party apt repository: the distro feed has no record for it, only NVD does
+	p := dbtest.NewPackage("vendor-openssl", "1.1.1k", syftPkg.DebPkg). // vulnerable
+										WithDistro(dbtest.Debian12).
+										WithCPE("cpe:2.3:a:openssl:openssl:1.1.1k:*:*:*:*:*:*:*").
+										Build()
+
+	tests := []struct {
+		name             string
+		useCPEs          bool
+		expectCPEMatches bool
+	}{
+		{
+			name:             "CPE matching enabled and distro is not EOL",
+			useCPEs:          true,
+			expectCPEMatches: true,
+		},
+		{
+			name:             "CPE matching disabled and distro is not EOL",
+			useCPEs:          false,
+			expectCPEMatches: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dbtest.SharedDBs(t, "all").
+				SelectOnly("CVE-2024-0727").
+				Run(func(t *testing.T, db *dbtest.DB) {
+					matcher := NewDpkgMatcher(MatcherConfig{
+						UseCPEs: tt.useCPEs,
+					})
+
+					findings := db.Match(t, matcher, p)
+
+					if tt.expectCPEMatches {
+						findings.
+							ContainsVulnerabilities("CVE-2024-0727").
+							SelectMatch("CVE-2024-0727").
+							SelectDetailByType(match.CPEMatch).
+							AsCPESearch().
+							FoundCPEs("cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*")
+					} else {
+						findings.IsEmpty()
+					}
+				})
+		})
+	}
+}
