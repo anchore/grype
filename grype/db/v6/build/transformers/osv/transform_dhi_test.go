@@ -49,10 +49,16 @@ func TestDHITransformAlpineFixture(t *testing.T) {
 		MinorVersion: "24",
 	}, handle.OperatingSystem)
 	require.Equal(t, &db.Package{Ecosystem: "apk", Name: "coreutils"}, handle.Package)
-	require.Equal(t, []db.Range{{
-		Version: db.Version{Type: "apk", Constraint: "< 9.11-r1"},
-		Fix:     &db.Fix{Version: "9.11-r1", State: db.FixedStatus},
-	}}, handle.BlobValue.Ranges)
+	// the fixture lists the affected version and the affected interval; OSV gives them union semantics
+	require.Equal(t, []db.Range{
+		{
+			Version: db.Version{Type: "apk", Constraint: "< 9.11-r1"},
+			Fix:     &db.Fix{Version: "9.11-r1", State: db.FixedStatus},
+		},
+		{
+			Version: db.Version{Type: "apk", Constraint: "= 9.11-r0"},
+		},
+	}, handle.BlobValue.Ranges)
 }
 
 func TestDHITransformMetadataAndWithdrawal(t *testing.T) {
@@ -88,11 +94,35 @@ func TestDHITransformSkipsRecordWithoutAffectedPackages(t *testing.T) {
 	require.Empty(t, entries)
 }
 
-func TestDHITransformRejectsExplicitVersions(t *testing.T) {
+func TestDHITransformExactVersionsOnly(t *testing.T) {
+	// under_investigation assessments enumerate versions and omit ranges
 	vulns := loadFixture(t, "testdata/DHI-CVE-2016-2781-coreutils.json")
-	vulns[0].Affected[0].Versions = []string{"9.11-r0"}
+	vulns[0].Affected[0].Ranges = nil
+	vulns[0].Affected[0].Versions = []string{"9.11-r0", " 9.11-r0 ", "9.10-r2", ""}
+
+	entries, err := Transform(vulns[0], inputProviderState())
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+	handle := entries[0].Data.(transformers.RelatedEntries).Related[0].(db.AffectedPackageHandle)
+	require.Equal(t, []db.Range{
+		{Version: db.Version{Type: "apk", Constraint: "= 9.11-r0"}},
+		{Version: db.Version{Type: "apk", Constraint: "= 9.10-r2"}},
+	}, handle.BlobValue.Ranges)
+}
+
+func TestDHITransformRejectsPackageWithoutCoverage(t *testing.T) {
+	vulns := loadFixture(t, "testdata/DHI-CVE-2016-2781-coreutils.json")
+	vulns[0].Affected[0].Ranges = nil
+	vulns[0].Affected[0].Versions = nil
 	_, err := Transform(vulns[0], inputProviderState())
-	require.ErrorContains(t, err, "uses explicit versions")
+	require.ErrorContains(t, err, "neither affected versions nor ECOSYSTEM ranges")
+}
+
+func TestDHITransformRejectsNonEcosystemRange(t *testing.T) {
+	vulns := loadFixture(t, "testdata/DHI-CVE-2016-2781-coreutils.json")
+	vulns[0].Affected[0].Ranges[0].Type = osvmodel.RangeSemVer
+	_, err := Transform(vulns[0], inputProviderState())
+	require.ErrorContains(t, err, "unsupported SEMVER range")
 }
 
 func TestParseDHIIdentity(t *testing.T) {
