@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/internal/ignorereasons"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/internal/dbtest"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -47,7 +48,7 @@ func TestMatcherDpkg_DirectMatch_DHI(t *testing.T) {
 				WithDistro(dbtest.DHI13).
 				Build()
 			db.Match(t, &matcher, p).Ignores().
-				SelectRelatedPackageIgnores("DistroPackageFixed",
+				SelectRelatedPackageIgnores(ignorereasons.DistroFixed,
 					"DHI-CVE-2017-18018-coreutils", "CVE-2017-18018")
 		})
 
