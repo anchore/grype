@@ -110,20 +110,14 @@ func dhiReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
 func dhiAffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string) ([]db.AffectedPackageHandle, error) {
 	var handles []db.AffectedPackageHandle
 	for _, affected := range vuln.Affected {
-		if len(affected.Versions) > 0 {
-			return nil, fmt.Errorf("invalid DHI affected package in %s: package %s uses explicit versions; DHI OS packages require ECOSYSTEM ranges", vuln.ID, affected.Package.Name)
-		}
 		identity, err := parseDHIIdentity(affected.Package)
 		if err != nil {
 			return nil, fmt.Errorf("invalid DHI affected package in %s: %w", vuln.ID, err)
 		}
 
-		var ranges []db.Range
-		for _, affectedRange := range affected.Ranges {
-			if affectedRange.Type != osvmodel.RangeEcosystem {
-				return nil, fmt.Errorf("package %s uses unsupported %s range; DHI OS packages require ECOSYSTEM ranges", affected.Package.Name, affectedRange.Type)
-			}
-			ranges = append(ranges, getGrypeRangesFromRange(affectedRange, identity.packageType.String())...)
+		ranges, err := dhiRanges(affected, identity.packageType.String())
+		if err != nil {
+			return nil, fmt.Errorf("invalid DHI affected package in %s: %w", vuln.ID, err)
 		}
 
 		handles = append(handles, db.AffectedPackageHandle{
@@ -141,6 +135,41 @@ func dhiAffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string) ([]d
 	}
 	sort.Sort(internal.ByAffectedPackage(handles))
 	return handles, nil
+}
+
+// dhiRanges converts the affected ECOSYSTEM ranges and the enumerated affected versions of a
+// DHI package into database ranges. OSV gives affected[].versions and affected[].ranges union
+// semantics: a version is affected if it is listed or falls within a range. Generated DHI
+// records carry both for assessed intervals and only versions for under_investigation
+// assessments, so exact versions become "= <version>" ranges alongside the interval ranges.
+func dhiRanges(affected osvmodel.Affected, rangeType string) ([]db.Range, error) {
+	var ranges []db.Range
+	for _, affectedRange := range affected.Ranges {
+		if affectedRange.Type != osvmodel.RangeEcosystem {
+			return nil, fmt.Errorf("package %s uses unsupported %s range; DHI OS packages require ECOSYSTEM ranges", affected.Package.Name, affectedRange.Type)
+		}
+		ranges = append(ranges, getGrypeRangesFromRange(affectedRange, rangeType)...)
+	}
+
+	seen := make(map[string]struct{})
+	for _, v := range affected.Versions {
+		v = strings.TrimSpace(v)
+		if v == "" {
+			continue
+		}
+		if _, ok := seen[v]; ok {
+			continue
+		}
+		seen[v] = struct{}{}
+		ranges = append(ranges, db.Range{
+			Version: db.Version{Type: rangeType, Constraint: fmt.Sprintf("= %s", v)},
+		})
+	}
+
+	if len(ranges) == 0 {
+		return nil, fmt.Errorf("package %s has neither affected versions nor ECOSYSTEM ranges", affected.Package.Name)
+	}
+	return ranges, nil
 }
 
 type dhiIdentity struct {
