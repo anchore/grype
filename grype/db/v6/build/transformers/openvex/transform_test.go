@@ -8,13 +8,12 @@ import (
 	govex "github.com/openvex/go-vex/pkg/vex"
 	"github.com/stretchr/testify/require"
 
-	"github.com/anchore/packageurl-go"
-
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/provider"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
+	"github.com/anchore/packageurl-go"
 )
 
 var timeVal = time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
