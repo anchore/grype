@@ -49,6 +49,7 @@ func main() {
 
 		showTestImageCacheTask(),
 		cleanCacheTask(),
+		cleanQualityTasks(),
 	)
 }
 
@@ -393,6 +394,53 @@ func cleanCacheTask() Task {
 		Run: func() {
 			Run(`bash -c "find . -type f -wholename '**/testdata/cache/stereoscope-fixture-*.tar' -delete"`)
 			Run(`bash -c "docker images --format '{{.ID}} {{.Repository}}' | grep stereoscope-fixture- | awk '{print \$1}' | uniq | xargs -r docker rmi --force"`)
+		},
+	}
+}
+
+// cleanQualityTasks removes what the quality gate downloads or produces under test/quality
+// (mirrors test/quality/.gitignore); tracked content is left intact.
+func cleanQualityTasks() Task {
+	const dir = "test/quality"
+	return Task{
+		Tasks: []Task{
+			{
+				Name:        "clean:quality-results",
+				Description: "remove quality gate yardstick results",
+				RunsOn:      lang.List("clean:quality"),
+				Run: func() {
+					file.Delete(dir + "/.yardstick/result")
+				},
+			},
+			{
+				Name:        "clean:quality-downloads",
+				Description: "remove quality gate downloaded DBs, SBOM cache, tools and python envs",
+				RunsOn:      lang.List("clean:quality"),
+				Run: func() {
+					for _, p := range []string{
+						".yardstick/tools",
+						".oras-cache",
+						"venv",
+						"vulnerability-match-labels/venv",
+						"stage",
+						"pull",
+						"migrate.py",
+					} {
+						file.Delete(dir + "/" + p)
+					}
+					for _, glob := range []string{"*.tar.gz", "*.tar.zst"} {
+						for _, f := range file.FindAll(dir + "/" + glob) {
+							file.Delete(f)
+						}
+					}
+					Run(`bash -c "find ` + dir + ` -name '*.pyc' -delete"`)
+				},
+			},
+			{
+				Name:        "clean:quality",
+				Description: "remove all quality gate downloads and results",
+				RunsOn:      lang.List("clean"),
+			},
 		},
 	}
 }
