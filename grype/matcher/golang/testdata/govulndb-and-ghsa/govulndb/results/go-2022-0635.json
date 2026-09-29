@@ -1,0 +1,84 @@
+{
+  "identifier": "go-2022-0635",
+  "item": {
+    "schema_version": "1.3.1",
+    "id": "GO-2022-0635",
+    "modified": "2024-12-12T22:00:07Z",
+    "published": "2024-12-12T22:00:07Z",
+    "aliases": [
+      "CVE-2020-8912",
+      "GHSA-7f33-f4f5-xwgw"
+    ],
+    "summary": "In-band key negotiation issue in AWS S3 Crypto SDK for golang in github.com/aws/aws-sdk-go",
+    "details": "A vulnerability in the in-band key negotiation exists in the AWS S3 Crypto SDK for GoLang versions prior to V2. An attacker with write access to the targeted bucket can change the encryption algorithm of an object in the bucket, which can then allow them to change AES-GCM to AES-CTR. Using this in combination with a decryption oracle can reveal the authentication key used by AES-GCM as decrypting the GMAC tag leaves the authentication key recoverable as an algebraic equation. It is recommended to update your SDK to V2 or later, and re-encrypt your files.",
+    "affected": [
+      {
+        "package": {
+          "name": "github.com/aws/aws-sdk-go",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "imports": [
+            {
+              "path": "github.com/aws/aws-sdk-go/service/s3/s3crypto",
+              "symbols": [
+                "NewDecryptionClient",
+                "NewEncryptionClient"
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "references": [
+      {
+        "type": "ADVISORY",
+        "url": "https://github.com/google/security-research/security/advisories/GHSA-7f33-f4f5-xwgw"
+      },
+      {
+        "type": "FIX",
+        "url": "https://github.com/aws/aws-sdk-go/commit/1e84382fa1c0086362b5a4b68e068d4f8518d40e"
+      },
+      {
+        "type": "FIX",
+        "url": "https://github.com/aws/aws-sdk-go/commit/ae9b9fd92af132cfd8d879809d8611825ba135f4"
+      },
+      {
+        "type": "FIX",
+        "url": "https://github.com/aws/aws-sdk-go/pull/3403"
+      },
+      {
+        "type": "WEB",
+        "url": "https://aws.amazon.com/blogs/developer/updates-to-the-amazon-s3-encryption-client/?s=09"
+      },
+      {
+        "type": "WEB",
+        "url": "https://bugzilla.redhat.com/show_bug.cgi?id=1869801"
+      },
+      {
+        "type": "WEB",
+        "url": "https://github.com/sophieschmieg/exploits/tree/master/aws_s3_crypto_poc"
+      }
+    ],
+    "credits": [
+      {
+        "name": "Sophie Schmieg from the Google ISE team"
+      }
+    ],
+    "database_specific": {
+      "url": "https://pkg.go.dev/vuln/GO-2022-0635",
+      "review_status": "REVIEWED"
+    }
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.3.1.json"
+}

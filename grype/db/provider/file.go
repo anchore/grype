@@ -10,6 +10,10 @@ import (
 	"github.com/anchore/grype/internal/file"
 )
 
+// xxh64Algorithm is the checksum algorithm name recorded in provider file
+// entries and used as the listing file extension.
+const xxh64Algorithm = "xxh64"
+
 type File struct {
 	Path      string `json:"path"`
 	Digest    string `json:"digest"`
@@ -27,7 +31,7 @@ func NewFile(path string) (*File, error) {
 	return &File{
 		Path:      path,
 		Digest:    digest,
-		Algorithm: "xxh64",
+		Algorithm: xxh64Algorithm,
 	}, nil
 }
 

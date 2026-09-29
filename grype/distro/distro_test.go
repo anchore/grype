@@ -271,6 +271,74 @@ func Test_NewDistroFromRelease(t *testing.T) {
 			minor: "4",
 		},
 		{
+			name: "esm hinted at as attribute (ubuntu pro), nil version window applies",
+			release: linux.Release{
+				ID:              "ubuntu",
+				Version:         "16.04",
+				ExtendedSupport: true,
+			},
+			channels: testFixChannels(),
+			expected: &Distro{
+				Type:     Ubuntu,
+				Version:  "16.04",
+				Channels: names("esm"),
+			},
+			major: "16",
+			minor: "04",
+		},
+		{
+			name: "esm not applied for non-pro ubuntu (auto, no extended support)",
+			release: linux.Release{
+				ID:      "ubuntu",
+				Version: "16.04",
+			},
+			channels: testFixChannels(),
+			expected: &Distro{
+				Type:    Ubuntu,
+				Version: "16.04",
+			},
+			major: "16",
+			minor: "04",
+		},
+		{
+			name: "esm embedded in the version",
+			release: linux.Release{
+				ID:      "ubuntu",
+				Version: "16.04+esm",
+			},
+			channels: testFixChannels(),
+			expected: &Distro{
+				Type:     Ubuntu,
+				Version:  "16.04",
+				Channels: names("esm"),
+			},
+			major: "16",
+			minor: "04",
+		},
+		{
+			// force-on (GRYPE_FIX_CHANNEL_UBUNTU_ESM_APPLY=always): esm applies even for a base ubuntu with no
+			// extended-support hint and no +esm suffix.
+			name: "esm applied for non-pro ubuntu (always apply)",
+			release: linux.Release{
+				ID:      "ubuntu",
+				Version: "16.04",
+			},
+			channels: []FixChannel{
+				{
+					Name:  "esm",
+					IDs:   []string{"ubuntu"},
+					Apply: ChannelAlwaysEnabled, // important!
+				},
+			},
+			expected: &Distro{
+				Type:     Ubuntu,
+				Version:  "16.04",
+				Channels: names("esm"),
+			},
+			major: "16",
+			minor: "04",
+		},
+		{
 			name: "v versionID prefix postmarketos",
 			release: linux.Release{
 				ID:        "postmarketos",
@@ -771,6 +839,128 @@ func TestParseDistroString(t *testing.T) {
 			name, version := ParseDistroString(tt.input)
 			assert.Equal(t, tt.expectedName, name, "unexpected name")
 			assert.Equal(t, tt.expectedVersion, version, "unexpected version")
+		})
+	}
+}
+
+// Test_parseVersion_shortVersionNoPanic guards against a process-crashing panic
+// (index out of range) in parseVersion when a version reduces to an empty string
+// after the "v" prefix is trimmed. Such values are fully attacker-controlled: they
+// arrive from an artifact's /etc/os-release VERSION_ID (dir/image scans) or from the
+// "distro.versionID" field of a syft-JSON SBOM (sbom: input). Because distro
+// construction happens in the pre-match parsing phase, which is not wrapped in a
+// panic recover, an unguarded index panic terminates the whole grype process.
+func Test_parseVersion_shortVersionNoPanic(t *testing.T) {
+	inputs := []string{"v", "V", "v+eus", "v+1", "+", ""}
+	for _, in := range inputs {
+		t.Run(in, func(t *testing.T) {
+			require.NotPanics(t, func() {
+				_, _, _, _, _ = parseVersion(in)
+			})
+		})
+	}
+}
+
+// Test_NewFromRelease_shortVersionIDNoPanic reproduces the end-to-end reachability:
+// a recognized distro ID with a VERSION_ID that becomes empty after trimming the "v"
+// prefix must not crash the process during distro construction.
+func Test_NewFromRelease_shortVersionIDNoPanic(t *testing.T) {
+	releases := []linux.Release{
+		{ID: "alpine", VersionID: "v"},   // no Version -> fallback selects VersionID="v"
+		{ID: "alpine", VersionID: "v+1"}, // channel suffix leaves an empty core version
+		{ID: "ubuntu", VersionID: "v", Version: "v"},
+	}
+	for _, r := range releases {
+		require.NotPanics(t, func() {
+			_, _ = NewFromRelease(r, testFixChannels())
+		})
+	}
+}
+
+// Test_NewFromNameVersion_channels covers the user-supplied distro string forms that reach this
+// constructor: the --distro flag, the purl "distro" qualifier, and grype db search --distro. A
+// channel suffix must survive regardless of whether the version part is a number or a codename.
+func Test_NewFromNameVersion_channels(t *testing.T) {
+	tests := []struct {
+		name             string
+		distroName       string
+		version          string
+		expectedVersion  string
+		expectedCodename string
+		expectedChannels []string
+	}{
+		{
+			name:            "version only",
+			distroName:      "ubuntu",
+			version:         "22.04",
+			expectedVersion: "22.04",
+		},
+		{
+			name:             "version with channel",
+			distroName:       "ubuntu",
+			version:          "22.04+esm",
+			expectedVersion:  "22.04",
+			expectedChannels: []string{"esm"},
+		},
+		{
+			name:             "codename only",
+			distroName:       "ubuntu",
+			version:          "jammy",
+			expectedCodename: "jammy",
+		},
+		{
+			// the regression: "jammy+esm" used to become the codename verbatim, dropping the channel
+			// and matching no OS record at all
+			name:             "codename with channel",
+			distroName:       "ubuntu",
+			version:          "jammy+esm",
+			expectedCodename: "jammy",
+			expectedChannels: []string{"esm"},
+		},
+		{
+			name:             "codename with multiple channels",
+			distroName:       "ubuntu",
+			version:          "jammy+esm,other",
+			expectedCodename: "jammy",
+			expectedChannels: []string{"esm", "other"},
+		},
+		{
+			name:             "version with multiple channels",
+			distroName:       "ubuntu",
+			version:          "22.04+esm+other",
+			expectedVersion:  "22.04",
+			expectedChannels: []string{"esm", "other"},
+		},
+		{
+			name:             "rhel eus",
+			distroName:       "rhel",
+			version:          "9+eus",
+			expectedVersion:  "9",
+			expectedChannels: []string{"eus"},
+		},
+		{
+			name:             "bare channel with no version",
+			distroName:       "ubuntu",
+			version:          "+esm",
+			expectedChannels: []string{"esm"},
+		},
+		{
+			name:       "empty version",
+			distroName: "ubuntu",
+			version:    "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := NewFromNameVersion(tt.distroName, tt.version)
+
+			require.NotNil(t, d)
+			assert.Equal(t, tt.expectedVersion, d.Version, "unexpected version")
+			assert.Equal(t, tt.expectedCodename, d.Codename, "unexpected codename")
+			if d := cmp.Diff(tt.expectedChannels, d.Channels, cmpopts.EquateEmpty()); d != "" {
+				assert.Fail(t, "unexpected channels", d)
+			}
 		})
 	}
 }

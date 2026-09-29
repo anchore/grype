@@ -728,6 +728,17 @@ func (s *SingleFindingAssertion) HasFix(state vulnerability.FixState, versions .
 	return s
 }
 
+// HasNoFixVersions asserts the match's vulnerability carries no fix versions at
+// all. HasFix skips its version check when passed none, so this is the only way
+// to pin the empty case - which matters wherever a fix version from one source
+// must not be reported against a package from another (e.g. an NVD upstream
+// release leaking onto a distro package).
+func (s *SingleFindingAssertion) HasNoFixVersions() *SingleFindingAssertion {
+	s.t.Helper()
+	assert.Empty(s.t, s.match.Vulnerability.Fix.Versions, "expected no fix versions")
+	return s
+}
+
 // HasAdvisories asserts the match's vulnerability has exactly the given
 // advisory IDs (order doesn't matter, but the count must match).
 func (s *SingleFindingAssertion) HasAdvisories(ids ...string) *SingleFindingAssertion {
@@ -737,6 +748,26 @@ func (s *SingleFindingAssertion) HasAdvisories(ids ...string) *SingleFindingAsse
 		got = append(got, a.ID)
 	}
 	assert.ElementsMatch(s.t, ids, got, "unexpected advisory IDs")
+	return s
+}
+
+// WithAdvisoryLink asserts the match carries an advisory with the given ID whose link is the
+// expected URL. Per-minor RHEL rows pin the RHSA that governs the host's minor (rolled
+// forward across gap minors), so this verifies the correct errata link surfaces for the host
+// - not just that some advisory is attached.
+func (s *SingleFindingAssertion) WithAdvisoryLink(id, link string) *SingleFindingAssertion {
+	s.t.Helper()
+	for _, a := range s.match.Vulnerability.Advisories {
+		if a.ID == id {
+			assert.Equal(s.t, link, a.Link, "unexpected link for advisory %s", id)
+			return s
+		}
+	}
+	got := make([]string, 0, len(s.match.Vulnerability.Advisories))
+	for _, a := range s.match.Vulnerability.Advisories {
+		got = append(got, a.ID)
+	}
+	s.t.Errorf("advisory %q not present on match (have %v)", id, got)
 	return s
 }
 
@@ -875,8 +906,18 @@ func (s *SingleFindingAssertion) SelectDetailByDistro(distroType, distroVersion 
 // and validates the found vulnerability.
 // Fails if not exactly one detail matches.
 // Takes an optional version constraint to validate (0 = no assertion, 1 = assert, 2+ = error).
+//
+// When a constraint is given it also disambiguates: one package CPE can match several records of the
+// same vulnerability (NVD stores one record per vulnerable CPE, e.g. an unqualified entry plus one
+// scoped to a target software), which merge into a single finding carrying a detail per record. Those
+// details share a searched-by CPE and differ only by the record they found.
 func (s *SingleFindingAssertion) SelectDetailByCPE(cpe string, constraint ...string) *CPEDetailAssertion {
 	s.t.Helper()
+
+	if len(constraint) > 1 {
+		s.t.Fatalf("SelectDetailByCPE accepts at most one constraint argument, got %d", len(constraint))
+		return nil
+	}
 
 	var matchedIdx = -1
 	var matched *match.Detail
@@ -897,25 +938,33 @@ func (s *SingleFindingAssertion) SelectDetailByCPE(cpe string, constraint ...str
 				break
 			}
 		}
-		if hasCPE {
-			if matched != nil {
-				s.t.Fatalf("SelectDetailByCPE expected exactly one detail with CPE %q, but found multiple", cpe)
-				return nil
-			}
-			matchedIdx = i
-			matched = d
-			searchedBy = sb
-			f, ok := d.Found.(match.CPEResult)
-			if !ok {
-				s.t.Fatalf("expected Found to be CPEResult, got %T", d.Found)
-				return nil
-			}
-			found = f
+		if !hasCPE {
+			continue
 		}
+
+		f, ok := d.Found.(match.CPEResult)
+		if !ok {
+			s.t.Fatalf("expected Found to be CPEResult, got %T", d.Found)
+			return nil
+		}
+
+		// when given, the constraint identifies which of the CPE's records this assertion is about
+		if len(constraint) == 1 && f.VersionConstraint != constraint[0] {
+			continue
+		}
+
+		if matched != nil {
+			s.t.Fatalf("SelectDetailByCPE expected exactly one detail with CPE %q (constraint %v), but found multiple", cpe, constraint)
+			return nil
+		}
+		matchedIdx = i
+		matched = d
+		searchedBy = sb
+		found = f
 	}
 
 	if matched == nil {
-		s.t.Fatalf("SelectDetailByCPE found no detail with CPE %q", cpe)
+		s.t.Fatalf("SelectDetailByCPE found no detail with CPE %q (constraint %v)", cpe, constraint)
 		return nil
 	}
 
@@ -1205,5 +1254,18 @@ func (e *EcosystemDetailAssertion) foundVulnerability(vulnID string, constraint 
 func (e *EcosystemDetailAssertion) HasMatchType(matchType match.Type) *EcosystemDetailAssertion {
 	e.t.Helper()
 	assert.Equal(e.t, matchType, e.detail.Type, "unexpected match type")
+	return e
+}
+
+// HasMatchedSymbols asserts that Found.MatchedSymbols equals the expected sorted set of vulnerable Go
+// symbols. Call with no arguments to assert none were matched (the match was not scoped by symbol
+// evidence).
+func (e *EcosystemDetailAssertion) HasMatchedSymbols(matchedSymbols ...string) *EcosystemDetailAssertion {
+	e.t.Helper()
+	var want []string
+	if len(matchedSymbols) > 0 {
+		want = matchedSymbols
+	}
+	assert.Equal(e.t, want, e.found.MatchedSymbols, "unexpected matched symbols in Found")
 	return e
 }

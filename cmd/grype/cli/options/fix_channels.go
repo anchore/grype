@@ -6,6 +6,7 @@ import (
 
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/version"
 )
 
 type FixChannelEnabled string
@@ -15,6 +16,9 @@ type FixChannels struct {
 
 	// EUS is the Extended Update Support channel for RHEL
 	RedHatEUS FixChannel `yaml:"redhat-eus" json:"redhat-eus" mapstructure:"redhat-eus"`
+
+	// UbuntuESM is the Extended Security Maintenance (Ubuntu Pro) channel for Ubuntu
+	UbuntuESM FixChannel `yaml:"ubuntu-esm" json:"ubuntu-esm" mapstructure:"ubuntu-esm"`
 }
 
 type FixChannel struct {
@@ -40,9 +44,13 @@ func (o *FixChannel) PostLoad() error {
 
 func DefaultFixChannels() FixChannels {
 	rhelEUS := distro.DefaultFixChannels().Get("eus")
-
 	if rhelEUS == nil {
 		panic("default fix channels do not contain Red Hat EUS channel")
+	}
+
+	ubuntuESM := distro.DefaultFixChannels().Get("esm")
+	if ubuntuESM == nil {
+		panic("default fix channels do not contain Ubuntu ESM channel")
 	}
 
 	// use API defaults for the CLI configuration
@@ -51,10 +59,26 @@ func DefaultFixChannels() FixChannels {
 			Apply:    string(rhelEUS.Apply),
 			Versions: rhelEUS.Versions.Value(),
 		},
+		UbuntuESM: FixChannel{
+			Apply: string(ubuntuESM.Apply),
+			// note: esm has a nil Versions constraint (no version window), so do not call .Value() on it
+			Versions: constraintValue(ubuntuESM.Versions),
+		},
 	}
+}
+
+// constraintValue returns the string form of a version constraint, tolerating a nil constraint (a channel with no
+// version window, such as Ubuntu ESM).
+func constraintValue(c version.Constraint) string {
+	if c == nil {
+		return ""
+	}
+	return c.Value()
 }
 
 func (o *FixChannels) DescribeFields(descriptions clio.FieldDescriptionSet) {
 	descriptions.Add(&o.RedHatEUS, `whether to always enable, disable, or automatically detect when to use Red Hat Extended Update Support (EUS) vulnerability data`)
 	descriptions.Add(&o.RedHatEUS.Apply, `whether fixes from this channel should be considered, options are "never", "always", or "auto" (conditionally applied based on SBOM data)`)
+	descriptions.Add(&o.UbuntuESM, `whether to always enable, disable, or automatically detect when to use Ubuntu Extended Security Maintenance (ESM / Ubuntu Pro) vulnerability data`)
+	descriptions.Add(&o.UbuntuESM.Apply, `whether fixes from this channel should be considered, options are "never", "always", or "auto" (conditionally applied based on SBOM data)`)
 }

@@ -1,0 +1,123 @@
+{
+    "schema_version": "1.7.0",
+    "id": "CGA-224q-ccj5-2p53",
+    "published": "2026-01-07T00:00:00Z",
+    "modified": "2026-01-07T00:00:00Z",
+    "summary": "HAProxy: HTTP request smuggling via malformed header",
+    "severity": [
+        {
+            "type": "CVSS_V3",
+            "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N"
+        }
+    ],
+    "upstream": [
+        "CVE-2025-32464",
+        "GHSA-frg5-h47x-75j9"
+    ],
+    "references": [
+        {
+            "type": "ADVISORY",
+            "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-32464"
+        },
+        {
+            "type": "ADVISORY",
+            "url": "https://github.com/advisories/GHSA-frg5-h47x-75j9"
+        }
+    ],
+    "affected": [
+        {
+            "package": {
+                "ecosystem": "Chainguard",
+                "name": "haproxy-2.2",
+                "purl": "pkg:apk/chainguard/haproxy-2.2?arch=x86_64"
+            },
+            "ranges": [
+                {
+                    "type": "ECOSYSTEM",
+                    "events": [
+                        {
+                            "introduced": "0"
+                        },
+                        {
+                            "fixed": "2.2.34-r0"
+                        }
+                    ]
+                }
+            ],
+            "ecosystem_specific": {
+                "components": [
+                    {
+                        "advisory_id": "CGA-224q-ccj5-0001",
+                        "component_name": "haproxy",
+                        "component_version": "2.2.33",
+                        "component_type": "apk",
+                        "component_location": "/usr/sbin/haproxy",
+                        "component_purl": "pkg:apk/chainguard/haproxy@2.2.33",
+                        "status": "fixed",
+                        "note": "Upgraded to 2.2.34"
+                    }
+                ]
+            }
+        },
+        {
+            "package": {
+                "ecosystem": "Chainguard",
+                "name": "haproxy-2.8",
+                "purl": "pkg:apk/chainguard/haproxy-2.8?arch=x86_64"
+            },
+            "ranges": [
+                {
+                    "type": "ECOSYSTEM",
+                    "events": [
+                        {
+                            "introduced": "0"
+                        },
+                        {
+                            "fixed": "2.8.18-r0"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "package": {
+                "ecosystem": "Wolfi",
+                "name": "haproxy-3.0",
+                "purl": "pkg:apk/wolfi/haproxy-3.0?arch=aarch64"
+            },
+            "ranges": [
+                {
+                    "type": "ECOSYSTEM",
+                    "events": [
+                        {
+                            "introduced": "0"
+                        },
+                        {
+                            "fixed": "3.0.10-r0"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "package": {
+                "ecosystem": "Wolfi",
+                "name": "haproxy-3.1",
+                "purl": "pkg:apk/wolfi/haproxy-3.1"
+            },
+            "ranges": [
+                {
+                    "type": "ECOSYSTEM",
+                    "events": [
+                        {
+                            "introduced": "0"
+                        },
+                        {
+                            "fixed": "3.1.7-r0"
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

@@ -24,7 +24,7 @@ const (
 	Revision = 1
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 8
+	Addition = 9
 
 	// v6 model changelog:
 	// 6.0.0: Initial version 🎉
@@ -52,6 +52,11 @@ const (
 	//        reads it at match time to fold dialect arch spellings (e.g. "x86_64" <-> "amd64")
 	//        onto a canonical token. Older clients ignore the table; clients reading a DB built
 	//        before it existed fall back to the built-in default aliases.
+	// 6.1.9: Add GoImports field to PackageQualifiers (used by the govulndb OSV strategy to
+	//        carry per-symbol matching from ecosystem_specific.imports; the gosymbols
+	//        runtime qualifier in pkg/qualifier/gosymbols matches captured Go binary symbols
+	//        so stdlib and golang.org/x/* advisories don't FP-match binaries that don't use
+	//        vulnerable symbols)
 )
 
 const (

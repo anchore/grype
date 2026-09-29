@@ -1,0 +1,64 @@
+{
+  "identifier": "github:go/ghsa-7f33-f4f5-xwgw",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2020-8912"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 2.5,
+          "base_severity": "Low",
+          "exploitability_score": 1,
+          "impact_score": 1.4
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:L/AC:H/PR:L/UI:N/S:U/C:L/I:N/A:N",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2022-02-11",
+            "kind": "first-observed"
+          },
+          "ecosystem": "go",
+          "identifier": "1.34.0",
+          "name": "github.com/aws/aws-sdk-go",
+          "namespace": "github:go",
+          "range": "< 1.34.0"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2020-8912"
+        ]
+      },
+      "Severity": "Low",
+      "Summary": "In-band key negotiation issue in AWS S3 Crypto SDK for golang",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:L/AC:H/PR:L/UI:N/S:U/C:L/I:N/A:N",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-7f33-f4f5-xwgw",
+      "namespace": "github:go",
+      "published": "2022-02-11T23:23:13Z",
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-8912"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-7f33-f4f5-xwgw"
+        }
+      ],
+      "updated": "2024-05-20T21:14:51Z",
+      "url": "https://github.com/advisories/GHSA-7f33-f4f5-xwgw",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

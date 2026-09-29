@@ -105,16 +105,19 @@ func compatibleVersion(fullVersion string, partialVersion string) bool {
 	return false
 }
 
+// rhelDistroName is the v6 replacement name shared by the RHEL-compatible distros below.
+const rhelDistroName = "rhel"
+
 // TODO: this is a temporary workaround... in the long term the mock should more strongly enforce
 // data overrides and not require this kind of logic being baked into mocks directly.
 func mimicV6DistroTypeOverrides(t distro.Type) distro.Type {
 	overrideMap := map[string]string{
-		"centos":      "rhel",
-		"rocky":       "rhel",
-		"rockylinux":  "rhel",
-		"alma":        "rhel",
-		"almalinux":   "rhel",
-		"gentoo":      "rhel",
+		"centos":      rhelDistroName,
+		"rocky":       rhelDistroName,
+		"rockylinux":  rhelDistroName,
+		"alma":        rhelDistroName,
+		"almalinux":   rhelDistroName,
+		"gentoo":      rhelDistroName,
 		"archlinux":   "arch",
 		"oracle":      "ol",
 		"oraclelinux": "ol",

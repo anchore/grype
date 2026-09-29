@@ -1,0 +1,265 @@
+{
+  "identifier": "go-2025-3540",
+  "item": {
+    "schema_version": "1.3.1",
+    "id": "GO-2025-3540",
+    "modified": "2025-03-26T17:24:24Z",
+    "published": "2025-03-26T17:24:24Z",
+    "aliases": [
+      "CVE-2025-29923",
+      "GHSA-92cp-5422-2mw7"
+    ],
+    "summary": "Potential out of order responses when CLIENT SETINFO times out during connection establishment in github.com/redis/go-redis",
+    "details": "Potential out of order responses when CLIENT SETINFO times out during connection establishment in github.com/redis/go-redis",
+    "affected": [
+      {
+        "package": {
+          "name": "github.com/redis/go-redis",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "custom_ranges": [
+            {
+              "type": "ECOSYSTEM",
+              "events": [
+                {
+                  "introduced": "9.6.0b1"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "package": {
+          "name": "github.com/redis/go-redis",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "custom_ranges": [
+            {
+              "type": "ECOSYSTEM",
+              "events": [
+                {
+                  "introduced": "9.6.0b1"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "package": {
+          "name": "github.com/redis/go-redis",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "imports": [
+            {
+              "path": "github.com/redis/go-redis/v9",
+              "symbols": [
+                "baseClient.initConn",
+                "redis.ClusterOptions",
+                "redis.FailoverOptions",
+                "redis.RingOptions",
+                "redis.UniversalOptions"
+              ]
+            }
+          ],
+          "custom_ranges": [
+            {
+              "type": "ECOSYSTEM",
+              "events": [
+                {
+                  "introduced": "9.6.0b1"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "package": {
+          "name": "github.com/redis/go-redis/v7",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {}
+      },
+      {
+        "package": {
+          "name": "github.com/redis/go-redis/v8",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {}
+      },
+      {
+        "package": {
+          "name": "github.com/redis/go-redis/v9",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "9.5.1"
+              },
+              {
+                "fixed": "9.5.5"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "imports": [
+            {
+              "path": "github.com/redis/go-redis/v9",
+              "symbols": [
+                "baseClient.initConn",
+                "redis.ClusterOptions",
+                "redis.FailoverOptions",
+                "redis.RingOptions",
+                "redis.UniversalOptions"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "package": {
+          "name": "github.com/redis/go-redis/v9",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "9.6.3"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "imports": [
+            {
+              "path": "github.com/redis/go-redis/v9",
+              "symbols": [
+                "baseClient.initConn",
+                "redis.ClusterOptions",
+                "redis.FailoverOptions",
+                "redis.RingOptions",
+                "redis.UniversalOptions"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "package": {
+          "name": "github.com/redis/go-redis/v9",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "9.7.0-beta.1"
+              },
+              {
+                "fixed": "9.7.3"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "imports": [
+            {
+              "path": "github.com/redis/go-redis/v9",
+              "symbols": [
+                "baseClient.initConn",
+                "redis.ClusterOptions",
+                "redis.FailoverOptions",
+                "redis.RingOptions",
+                "redis.UniversalOptions"
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "references": [
+      {
+        "type": "ADVISORY",
+        "url": "https://github.com/redis/go-redis/security/advisories/GHSA-92cp-5422-2mw7"
+      },
+      {
+        "type": "FIX",
+        "url": "https://github.com/redis/go-redis/commit/d236865b0cfa1b752ea4b7da666b1fdcd0acebb6"
+      },
+      {
+        "type": "FIX",
+        "url": "https://github.com/redis/go-redis/pull/3295"
+      }
+    ],
+    "database_specific": {
+      "url": "https://pkg.go.dev/vuln/GO-2025-3540",
+      "review_status": "REVIEWED"
+    }
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.3.1.json"
+}

@@ -13,6 +13,14 @@ on:
       version:
         description: tag the latest commit on main with the given version (prefixed with v)
         required: true
+      phase:
+        description: the specific workflow phase to run or all
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - "all"
+          - "install-script-only"
       skip-checks:
         description: skip the check-gate (release even if checks haven't passed on main)
         type: boolean
@@ -21,6 +29,7 @@ on:
 
 jobs:
   version-available:
+    if: ${{ github.event.inputs.phase == 'all' }}
     permissions:
       contents: read # for the most recent tags
     uses: anchore/workflows/.github/workflows/check-version-available.yaml@7212994dc8fc3a53fe9c8e766ab5b4ddd16ea3d4 # v0.8.0
@@ -28,11 +37,11 @@ jobs:
       version: ${{ github.event.inputs.version }}
 
   check-gate:
-    if: ${{ !inputs.skip-checks }}
+    if: ${{ github.event.inputs.phase == 'all' && !inputs.skip-checks }}
     permissions:
       contents: read
       checks: read # required for getting the status of specific check names
-    uses: anchore/workflows/.github/workflows/check-gate.yaml@b0c30a80409130d329aaa356fd64a34d8c0b3375 # v0.7.2
+    uses: anchore/workflows/.github/workflows/check-gate.yaml@7212994dc8fc3a53fe9c8e766ab5b4ddd16ea3d4 # v0.8.0
     with:
       # these are checks that should be run on pull-request and merges to main.
       # we do NOT want to kick off a release if these have not been verified on main.
@@ -60,7 +69,7 @@ jobs:
       packages: write
       id-token: write
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 #v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: true
@@ -72,13 +81,13 @@ jobs:
           cache-key-prefix: "snapshot"
 
       - name: Login to Docker Hub
-        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee #v4.2.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f #v4.6.0
         with:
           username: ${{ secrets.ANCHOREOSSWRITE_DH_USERNAME }}
           password: ${{ secrets.ANCHOREOSSWRITE_DH_PAT }}
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee #v4.2.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f #v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -101,17 +110,17 @@ jobs:
           # for updating brew formula in anchore/homebrew-syft
           GITHUB_BREW_TOKEN: ${{ secrets.ANCHOREOPS_GITHUB_OSS_WRITE_TOKEN }}
 
-      - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+      - uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
         continue-on-error: true
         with:
           artifact-name: sbom.spdx.json
 
   release-install-script:
     needs: [release]
-    if: ${{ needs.release.result == 'success' }}
+    if: ${{ always() && (needs.release.result == 'success' || github.event.inputs.phase == 'install-script-only') }}
     permissions:
       contents: read
-    uses: anchore/workflows/.github/workflows/release-install-script.yaml@b0c30a80409130d329aaa356fd64a34d8c0b3375 # v0.7.2
+    uses: anchore/workflows/.github/workflows/release-install-script.yaml@7212994dc8fc3a53fe9c8e766ab5b4ddd16ea3d4 # v0.8.0
     with:
       tag: ${{ github.event.inputs.version }}
     secrets:

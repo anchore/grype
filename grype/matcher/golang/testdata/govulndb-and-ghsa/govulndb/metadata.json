@@ -1,0 +1,19 @@
+{
+  "provider": "govulndb",
+  "version": 1,
+  "processor": "vunnel@0.59.0.post3+53fcd5d",
+  "schema": {
+    "version": "1.0.3",
+    "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
+  },
+  "urls": [
+    "https://vuln.go.dev/vulndb.zip"
+  ],
+  "timestamp": "2026-06-22T00:58:35Z",
+  "listing": {
+    "path": "results/listing.xxh64",
+    "digest": "651b2ab4ad6d62d2",
+    "algorithm": "xxh64"
+  },
+  "store": "flat-file"
+}

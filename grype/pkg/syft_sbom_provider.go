@@ -24,7 +24,7 @@ type SBOMFileMetadata struct {
 	Path string
 }
 
-func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]*Package, Context, *sbom.SBOM, error) {
+func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func(*distro.Distro)) ([]*Package, Context, *sbom.SBOM, error) {
 	s, fmtID, path, err := getSBOM(userInput)
 	if err != nil {
 		return nil, Context{}, nil, err
@@ -52,7 +52,7 @@ func syftSBOMProvider(userInput string, config ProviderConfig, applyChannel func
 	}, s, nil
 }
 
-func syftSBOMProviderFromReader(reader io.ReadSeeker, config ProviderConfig, applyChannel func(*distro.Distro) bool) ([]*Package, Context, *sbom.SBOM, error) {
+func syftSBOMProviderFromReader(reader io.ReadSeeker, config ProviderConfig, applyChannel func(*distro.Distro)) ([]*Package, Context, *sbom.SBOM, error) {
 	s, fmtID, err := readSBOM(reader)
 	if err != nil {
 		return nil, Context{}, nil, err

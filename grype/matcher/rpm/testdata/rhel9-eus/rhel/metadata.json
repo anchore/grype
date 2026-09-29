@@ -1,7 +1,7 @@
 {
   "provider": "rhel",
   "version": 1,
-  "processor": "vunnel@0.55.3.post12+15bf0b9",
+  "processor": "vunnel@0.61.1.post7+4f90462",
   "schema": {
     "version": "1.0.3",
     "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
@@ -9,10 +9,10 @@
   "urls": [
     "https://access.redhat.com/hydra/rest/securitydata/cve.json"
   ],
-  "timestamp": "2026-04-29T16:40:47Z",
+  "timestamp": "2026-07-02T23:41:10Z",
   "listing": {
     "path": "results/listing.xxh64",
-    "digest": "2ab8ba543439e050",
+    "digest": "fd7461cb3ed18c6f",
     "algorithm": "xxh64"
   },
   "store": "flat-file"

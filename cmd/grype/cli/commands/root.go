@@ -28,6 +28,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/rpm"
 	"github.com/anchore/grype/grype/matcher/ruby"
+	"github.com/anchore/grype/grype/matcher/rust"
 	"github.com/anchore/grype/grype/matcher/stock"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/presenter/models"
@@ -72,7 +73,7 @@ You can also explicitly specify the scheme to use:
     {{.appName}} purl:path/to/purl/file                 read a newline separated file of package URLs from a path on disk
     {{.appName}} PURL                                   read a single package PURL directly (e.g. pkg:apk/openssl@3.2.1?distro=alpine-3.20.3)
     {{.appName}} cpes:path/to/cpes/file                 read a newline separated file of package CPEs from a path on disk
-    {{.appName}} CPE                                    read a single CPE directly (e.g. cpe:2.3:a:openssl:openssl:3.0.14:*:*:*:*:*)
+    {{.appName}} CPE                                    read a single CPE directly (e.g. cpe:2.3:a:openssl:openssl:3.0.14:*:*:*:*:*:*:* or cpe:/a:openssl:openssl:3.0.14)
     {{.appName}} zarf:path/to/package.tar.zst           scan all SBOMs within a Zarf package archive
 
 You can also pipe in Syft JSON directly:
@@ -235,6 +236,7 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 		Alerts: grype.AlertsConfig{
 			EnableEOLDistroWarnings: opts.Alerts.EnableEOLDistroWarnings,
 		},
+		IncludeMatcherSuppressions: opts.IncludeMatcherSuppressions,
 	}
 
 	remainingMatches, ignoredMatches, err := vulnMatcher.FindMatchesContext(ctx, packages, pkgContext)
@@ -281,12 +283,13 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 
 func warnWhenDistroHintNeeded(pkgs []pkg.Package, context *pkg.Context) {
 	hasOSPackageWithoutDistro := false
+loop:
 	for _, p := range pkgs {
 		switch p.Type {
 		case syftPkg.AlpmPkg, syftPkg.DebPkg, syftPkg.RpmPkg, syftPkg.KbPkg:
 			if p.Distro == nil {
 				hasOSPackageWithoutDistro = true
-				break
+				break loop
 			}
 		}
 	}
@@ -383,6 +386,7 @@ func getMatcherConfig(opts *options.Grype) matcher.Config {
 			AlwaysUseCPEForStdlib:                  opts.Match.Golang.AlwaysUseCPEForStdlib,
 			AllowMainModulePseudoVersionComparison: opts.Match.Golang.AllowMainModulePseudoVersionComparison,
 		},
+		Rust:  rust.MatcherConfig(opts.Match.Rust),
 		Hex:   hex.MatcherConfig(opts.Match.Hex),
 		Stock: stock.MatcherConfig(opts.Match.Stock),
 		Dpkg: dpkg.MatcherConfig{
@@ -404,6 +408,12 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 	cfg := syft.DefaultCreateSBOMConfig()
 	cfg.Packages.JavaArchive.IncludeIndexedArchives = opts.Search.IncludeIndexedArchives
 	cfg.Packages.JavaArchive.IncludeUnindexedArchives = opts.Search.IncludeUnindexedArchives
+
+	// capture Go binary function symbols so the gosymbols qualifier can suppress false positives for
+	// module- and stdlib-scoped govulndb advisories (e.g. a net/http server DoS matching any binary that
+	// merely links net/http). Syft disables symbol capture by default, but for vulnerability matching the
+	// false-positive reduction is worth the extra catalog cost.
+	cfg.Packages.Golang = cfg.Packages.Golang.WithCaptureSymbols(cataloging.SymbolScopeAll)
 
 	// when we run into a package with missing information like version, then this is not useful in the context
 	// of vulnerability matching. Though there will be downstream processing to handle this case, we can still
@@ -432,8 +442,9 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 
 func getFixChannels(fixChannelOpts options.FixChannels) distro.FixChannels {
 	// use the API defaults as a starting point, then overlay the application options
-	eusOptions := distro.DefaultFixChannels().Get("eus")
+	defaults := distro.DefaultFixChannels()
 
+	eusOptions := defaults.Get("eus")
 	if eusOptions == nil {
 		panic("default fix channels do not contain Red Hat EUS channel")
 	}
@@ -443,15 +454,33 @@ func getFixChannels(fixChannelOpts options.FixChannels) distro.FixChannels {
 		eusOptions.Versions = version.MustGetConstraint(fixChannelOpts.RedHatEUS.Versions, version.SemanticFormat)
 	}
 
+	esmOptions := defaults.Get("esm")
+	if esmOptions == nil {
+		panic("default fix channels do not contain Ubuntu ESM channel")
+	}
+
+	esmOptions.Apply = distro.FixChannelEnabled(fixChannelOpts.UbuntuESM.Apply)
+	// note: esm's default Versions is nil (no version window); only override when the user explicitly sets one
+	if fixChannelOpts.UbuntuESM.Versions != "" {
+		esmOptions.Versions = version.MustGetConstraint(fixChannelOpts.UbuntuESM.Versions, version.SemanticFormat)
+	}
+
 	return []distro.FixChannel{
 		{
 			// information inherent to the channel (part of the API defaults)
-			Name: "eus",
+			Name: eusOptions.Name,
 			IDs:  eusOptions.IDs,
 
 			// user configurable options
 			Versions: eusOptions.Versions,
 			Apply:    eusOptions.Apply,
+		},
+		{
+			Name: esmOptions.Name,
+			IDs:  esmOptions.IDs,
+
+			Versions: esmOptions.Versions,
+			Apply:    esmOptions.Apply,
 		},
 	}
 }

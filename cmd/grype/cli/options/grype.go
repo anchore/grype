@@ -31,7 +31,8 @@ type Grype struct {
 	FailOn                     string             `yaml:"fail-on-severity" json:"fail-on-severity" mapstructure:"fail-on-severity"`
 	Registry                   registry           `yaml:"registry" json:"registry" mapstructure:"registry"`
 	ShowSuppressed             bool               `yaml:"show-suppressed" json:"show-suppressed" mapstructure:"show-suppressed"`
-	ByCVE                      bool               `yaml:"by-cve" json:"by-cve" mapstructure:"by-cve"` // --by-cve, indicates if the original match vulnerability IDs should be preserved or the CVE should be used instead
+	IncludeMatcherSuppressions bool               `yaml:"include-matcher-suppressions" json:"include-matcher-suppressions" mapstructure:"include-matcher-suppressions"` // include matches suppressed internally by matchers (distro fixed/NAK records, built-in false-positive list) in the ignored matches output, default=false
+	ByCVE                      bool               `yaml:"by-cve" json:"by-cve" mapstructure:"by-cve"`                                                                   // --by-cve, indicates if the original match vulnerability IDs should be preserved or the CVE should be used instead
 	SortBy                     SortBy             `yaml:",inline" json:",inline" mapstructure:",squash"`
 	Name                       string             `yaml:"name" json:"name" mapstructure:"name"`
 	DefaultImagePullSource     string             `yaml:"default-image-pull-source" json:"default-image-pull-source" mapstructure:"default-image-pull-source"`
@@ -71,6 +72,7 @@ func DefaultGrype(id clio.Identification) *Grype {
 		CheckForAppUpdate:          true,
 		VexAdd:                     []string{},
 		MatchUpstreamKernelHeaders: false,
+		IncludeMatcherSuppressions: false,
 		SortBy:                     defaultSortBy(),
 		Timestamp:                  true,
 		Alerts:                     defaultAlerts(),
@@ -196,22 +198,29 @@ when using template as the output type, you must also provide a value for 'outpu
 	descriptions.Add(&o.Pretty, `pretty-print output`)
 	descriptions.Add(&o.FailOn, `upon scanning, if a severity is found at or above the given severity then the return code will be 1
 default is unset which will skip this validation (options: negligible, low, medium, high, critical)`)
-	descriptions.Add(&o.Ignore, `A list of vulnerability ignore rules, one or more property may be specified and all matching vulnerabilities will be ignored.
+	descriptions.Add(&o.Ignore, `a list of vulnerability ignore rules; a match must meet ALL criteria specified in a rule to be ignored.
 This is the full set of supported rule fields:
-  - vulnerability: CVE-2008-4318
-    fix-state: unknown
+  - vulnerability: CVE-2008-4318        # match by vulnerability ID (required if no other criteria are given)
+    namespace: nvd:cpe                   # match by vulnerability namespace (e.g. nvd:cpe, github:language:go)
+    fix-state: unknown                   # match by fix state; options: fixed, not-fixed, wont-fix, unknown
+    match-type: exact-direct-match       # match by how the vulnerability was found; options: exact-direct-match, exact-indirect-match, cpe-match
+    reason: "tolerated by policy"        # optional human-readable note recorded on the ignored match (does not affect matching)
+    include-aliases: true                # also apply the vulnerability ID match to aliases/related CVEs (default: false)
     package:
-      name: libcurl
-      version: 1.5.1
-      type: npm
-      location: "/usr/local/lib/node_modules/**"
+      name: libcurl                      # match by package name (supports regular expressions)
+      version: 1.5.1                     # match by package version
+      language: python                   # match by package language (e.g. python, javascript, java, go, …)
+      type: npm                          # match by package type (e.g. rpm, deb, apk, gem, npm, go-module, …)
+      location: "/usr/local/lib/node_modules/**"  # match by package location (supports glob patterns)
+      upstream-name: curl                # match by upstream package name (supports regular expressions)
 
-VEX fields apply when Grype reads vex data:
+VEX fields apply when Grype reads VEX data:
   - vex-status: not_affected
     vex-justification: vulnerable_code_not_present
 `)
 	descriptions.Add(&o.VexAdd, `VEX statuses to consider as ignored rules`)
 	descriptions.Add(&o.MatchUpstreamKernelHeaders, `match kernel-header packages with upstream kernel as kernel vulnerabilities`)
+	descriptions.Add(&o.IncludeMatcherSuppressions, `include matches suppressed internally by matchers (e.g. distro fixed/NAK records, the built-in false-positive list) in the ignored matches output`)
 }
 
 func (o Grype) FailOnSeverity() *vulnerability.Severity {

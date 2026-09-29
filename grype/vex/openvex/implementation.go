@@ -3,6 +3,7 @@ package openvex
 import (
 	"errors"
 	"fmt"
+	"path"
 	"slices"
 	"strings"
 
@@ -72,43 +73,123 @@ func productIdentifiersFromContext(pkgContext *pkg.Context) []string {
 	}
 }
 
-func normalizeDockerHubRepositoryURL(repoURL string) string {
-	repoURL = strings.TrimSpace(repoURL)
-	if repoURL == "" {
-		return repoURL
-	}
+const canonicalDockerHubRegistry = "index.docker.io"
 
-	repoURL = strings.TrimPrefix(repoURL, "https://")
-	repoURL = strings.TrimPrefix(repoURL, "http://")
-
-	repoURL = strings.TrimSuffix(repoURL, "/")
-
-	host, rest, hasSlash := strings.Cut(repoURL, "/")
-
+func canonicalDockerHubHost(host string) string {
 	switch strings.ToLower(host) {
-	case "docker.io", "index.docker.io", "registry-1.docker.io":
-		host = "index.docker.io"
-	}
-
-	if !hasSlash || rest == "" {
+	case "docker.io", canonicalDockerHubRegistry, "registry-1.docker.io":
+		return canonicalDockerHubRegistry
+	default:
 		return host
 	}
-	return host + "/" + rest
 }
 
-func identifiersFromTags(tags []string, name string) []string {
+// tagSuffix extracts the tag component from a tag-qualified image reference
+// (e.g. "10.2" from "registry.access.redhat.com/ubi10/podman:10.2"). A digest
+// is not a tag, though a reference may carry both.
+func tagSuffix(ref string) (tag string, ok bool) {
+	if at := strings.Index(ref, "@"); at != -1 {
+		ref = ref[:at]
+	}
+
+	idx := strings.LastIndex(ref, ":")
+	if idx == -1 {
+		return "", false
+	}
+
+	// a colon in a path segment belongs to a registry host:port, not to a tag
+	tag = ref[idx+1:]
+	if tag == "" || strings.Contains(tag, "/") {
+		return "", false
+	}
+
+	return tag, true
+}
+
+// ociRepositoryIdentity returns the oci purl name (the last path segment of
+// repo) and every repository_url qualifier value that names repo. go-vex
+// compares qualifiers byte-for-byte and only requires the ones the document
+// names, so a spelling we omit can lose a match while an extra one costs
+// nothing; docker hub in particular is spelled both docker.io (as in the
+// purl-spec oci examples) and index.docker.io.
+func ociRepositoryIdentity(repo name.Repository) (baseName string, repoURLs []string) {
+	// RepositoryStr already supplies the implicit "library/" namespace for
+	// docker hub, and RegistryStr already resolves an empty or "docker.io"
+	// registry to index.docker.io.
+	repoPath := repo.RepositoryStr()
+	baseName = path.Base(repoPath)
+
+	host := canonicalDockerHubHost(repo.RegistryStr())
+	if host != canonicalDockerHubRegistry {
+		return baseName, []string{host + "/" + repoPath}
+	}
+
+	// go-containerregistry only supplies the implicit namespace when the
+	// registry is spelled index.docker.io, so apply it for the other spellings
+	// of docker hub as well.
+	shortPath := repoPath
+	if !strings.Contains(repoPath, "/") {
+		repoPath = "library/" + repoPath
+	} else {
+		shortPath = strings.TrimPrefix(repoPath, "library/")
+	}
+
+	repoURLs = []string{
+		canonicalDockerHubRegistry + "/" + repoPath,
+		"docker.io/" + repoPath,
+	}
+	if shortPath != repoPath {
+		repoURLs = append(repoURLs, "docker.io/"+shortPath)
+	}
+
+	return baseName, repoURLs
+}
+
+// repositoryQualifierSets returns one qualifier set per way the product can be
+// spelled: first without a repository_url at all, then one per known spelling.
+func repositoryQualifierSets(repoURLs []string) []map[string]string {
+	sets := []map[string]string{{}}
+	for _, u := range repoURLs {
+		sets = append(sets, map[string]string{"repository_url": u})
+	}
+	return sets
+}
+
+// repositoryOf resolves the repository named by an image reference, falling
+// back to the source name for references that don't parse.
+func repositoryOf(ref, fallback string) (name.Repository, error) {
+	if parsed, err := name.ParseReference(ref); err == nil {
+		return parsed.Context(), nil
+	}
+	return name.NewRepository(fallback)
+}
+
+func identifiersFromTags(tags []string, repoName string) []string {
 	identifiers := []string{}
 
 	for _, tag := range tags {
 		identifiers = append(identifiers, tag)
 
-		tagMap := map[string]string{}
-		_, splitTag, found := strings.Cut(tag, ":")
-		if found {
-			tagMap["tag"] = splitTag
-			qualifiers := packageurl.QualifiersFromMap(tagMap)
+		tagValue, ok := tagSuffix(tag)
+		if !ok {
+			continue
+		}
 
-			identifiers = append(identifiers, packageurl.NewPackageURL("oci", "", name, "", qualifiers, "").String())
+		// a tag is itself a full image reference, and the daemon's tag list can
+		// span registries for a single local image, so the identity comes from
+		// the tag rather than from the source name.
+		baseName := path.Base(strings.TrimSuffix(tag, ":"+tagValue))
+		var repoURLs []string
+
+		if repo, err := repositoryOf(tag, repoName); err == nil {
+			baseName, repoURLs = ociRepositoryIdentity(repo)
+		}
+
+		for _, qMap := range repositoryQualifierSets(repoURLs) {
+			qMap["tag"] = tagValue
+			identifiers = append(identifiers, packageurl.NewPackageURL(
+				"oci", "", baseName, "", packageurl.QualifiersFromMap(qMap), "",
+			).String())
 		}
 	}
 
@@ -128,7 +209,6 @@ func identifiersFromDigests(digests []string) []string {
 			continue
 		}
 
-		var repoURL string
 		shaString := ref.Identifier()
 
 		// If not a digest, we can't form a purl, so skip it
@@ -136,25 +216,16 @@ func identifiersFromDigests(digests []string) []string {
 			continue
 		}
 
-		pts := strings.Split(ref.Context().RepositoryStr(), "/")
-		name := pts[len(pts)-1]
-		repoURL = strings.TrimSuffix(
-			ref.Context().RegistryStr()+"/"+ref.Context().RepositoryStr(),
-			fmt.Sprintf("/%s", name),
-		)
+		// repository_url is the full registry+repository path, including the
+		// trailing image name, matching the purl-spec oci examples (e.g.
+		// repository_url=docker.io/library/debian).
+		imgName, repoURLs := ociRepositoryIdentity(ref.Context())
 
-		repoURL = normalizeDockerHubRepositoryURL(repoURL)
-
-		qMap := map[string]string{}
-
-		if repoURL != "" {
-			qMap["repository_url"] = repoURL
+		for _, qMap := range repositoryQualifierSets(repoURLs) {
+			identifiers = append(identifiers, packageurl.NewPackageURL(
+				"oci", "", imgName, shaString, packageurl.QualifiersFromMap(qMap), "",
+			).String())
 		}
-
-		qs := packageurl.QualifiersFromMap(qMap)
-		identifiers = append(identifiers, packageurl.NewPackageURL(
-			"oci", "", name, shaString, qs, "",
-		).String())
 
 		// Add a hash to the identifier list in case people want to vex
 		// using the value of the image digest

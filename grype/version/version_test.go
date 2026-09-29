@@ -361,3 +361,58 @@ func TestVersion_Is_AllOperators(t *testing.T) {
 		})
 	}
 }
+
+// TestVersion_Compare_HonorsEmbeddedConfig verifies that Version.Compare and Version.Is route through the
+// config-aware comparison when the receiver carries a MissingEpochStrategy (deb/rpm), rather than silently
+// ignoring it. The classic case: an installed version missing the epoch that the constraint/fix carries.
+func TestVersion_Compare_HonorsEmbeddedConfig(t *testing.T) {
+	tests := []struct {
+		name     string
+		format   Format
+		pkg      string // receiver (package), missing epoch
+		other    string // fix/constraint, carries epoch
+		strategy MissingEpochStrategy
+		wantCmp  int
+	}{
+		{
+			name:     "deb auto adopts constraint epoch - equal builds compare equal",
+			format:   DebFormat,
+			pkg:      "8.2p1-4ubuntu0.13+esm1",
+			other:    "1:8.2p1-4ubuntu0.13+esm1",
+			strategy: MissingEpochStrategyAuto,
+			wantCmp:  0,
+		},
+		{
+			name:     "deb zero treats missing epoch as 0 - lower than epoch 1",
+			format:   DebFormat,
+			pkg:      "8.2p1-4ubuntu0.13+esm1",
+			other:    "1:8.2p1-4ubuntu0.13+esm1",
+			strategy: MissingEpochStrategyZero,
+			wantCmp:  -1,
+		},
+		{
+			name:     "rpm auto adopts constraint epoch - equal builds compare equal",
+			format:   RpmFormat,
+			pkg:      "5.14.0-427.68.1.el9_4",
+			other:    "1:5.14.0-427.68.1.el9_4",
+			strategy: MissingEpochStrategyAuto,
+			wantCmp:  0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pkgV := NewWithConfig(tt.pkg, tt.format, ComparisonConfig{MissingEpochStrategy: tt.strategy})
+			other := New(tt.other, tt.format)
+
+			cmp, err := pkgV.Compare(other)
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantCmp, cmp, "Compare")
+
+			// Is must agree with Compare (spot-check the equality operator)
+			isEq, err := pkgV.Is(EQ, other)
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantCmp == 0, isEq, "Is(EQ)")
+		})
+	}
+}

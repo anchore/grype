@@ -3,6 +3,10 @@ package apk
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/anchore/grype/grype/internal/ignorereasons"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal/dbtest"
@@ -21,17 +25,19 @@ import (
 // CVEs. Real-world rootio scans therefore rely on NVD CPE matching for
 // most disclosures. The apk matcher surfaces:
 //
-//   - the NVD CPE match in its `matches` output (downstream pipeline
-//     then drops it when the matcher also emits a covering IgnoreFilter);
-//   - the rootio NAK as DistroPackageFixed IgnoreFilters that
-//     alias-unwind into the rootio record ID + the upstream CVE.
+//   - the NVD CPE match, but only where the distro feed has no opinion.
+//     A rootio NAK covering the same vulnerability by alias means the
+//     vendor has answered it, so no match is reported at all;
+//   - the rootio NAK as distro-fixed IgnoreFilters that
+//     alias-unwind into the rootio record ID + the upstream CVE. Those
+//     are for packages that overlap this one by file, which is the only
+//     thing an IgnoreRelatedPackage can suppress — never the package it
+//     is keyed to.
 //
-// The tests assert both signals: the raw match coming out of the
-// matcher, and the alias-unwound ignore filters that downstream code
-// uses to suppress it. Cases without a disclosure to suppress (socat,
-// which has no NVD CPE entry) still emit the NAK ignore — the matcher
-// reports NAKs from the unaffected set whether or not a disclosure
-// exists in the same scan.
+// The tests assert both signals. Cases without a disclosure to suppress
+// (socat, which has no NVD CPE entry) still emit the NAK ignore — the
+// matcher reports NAKs from the unaffected set whether or not a
+// disclosure exists in the same scan.
 //
 // CVE coverage:
 //
@@ -40,15 +46,52 @@ import (
 //	CVE-2024-10524 / wget:     rootio + nvd     (rootio fix 1.21.4-r00071, nvd vEnd 1.25.0)
 //	CVE-2024-54661 / socat:    rootio only      (rootio fix 1.7.4.4-r10071)
 //	CVE-2024-0727  / openssl:  nvd + alpine     (alpine fix 3.1.4-r5)
+//
+// TestMatcherApk_RootIO_NakIgnoreMustSuppressItsOwnMatch pins what the comment above claims: that
+// the NVD CPE match on a rootio-NAK'd package is fine to emit because "downstream pipeline then drops
+// it when the matcher also emits a covering IgnoreFilter".
+//
+// It does not drop it. The ignore is an IgnoreRelatedPackage keyed to the very package the match is
+// on, and IgnoreRelatedPackage.IgnoreMatch only fires when the ignore's package ID appears in the
+// match package's RelatedPackages -- which never contains the package itself (pkg.Package.go skips
+// `ownerPackage == p` when building the overlap map). So the ignore covers every package that
+// overlaps rootio-libuv by file, and never rootio-libuv.
+//
+// feedSet is why the matcher has to lean on that ignore at all: unlike FindResultsByDistro it runs no
+// ForUnaffected pass, so the rootio NAK is not in the feed, cpeSet.Remove(feed) does not drop the
+// aliased CVE, and the match is emitted for something the vendor explicitly said is not affected.
+func TestMatcherApk_RootIO_NakIgnoreMustSuppressItsOwnMatch(t *testing.T) {
+	dbtest.DBs(t, "rootio-alpine-318").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		p := dbtest.NewPackage("rootio-libuv", "1.44.2-r20071", syftPkg.ApkPkg).
+			WithID(pkg.ID("rootio-libuv-at-fix")).
+			WithDistro(dbtest.Alpine318).
+			WithCPE("cpe:2.3:a:libuv:libuv:1.44.2:*:*:*:*:*:*:*").
+			Build()
+
+		matches, ignores, err := matcher.Match(db, p)
+		require.NoError(t, err)
+		require.NotEmpty(t, ignores, "expected the rootio NAK to produce ignore filters")
+
+		// mirror what the pipeline does with a matcher's ignore filters
+		remaining, _ := match.ApplyIgnoreFilters(matches, ignores...)
+
+		for _, m := range remaining {
+			assert.NotEqual(t, "CVE-2024-24806", m.Vulnerability.ID,
+				"rootio explicitly NAK'd this package for this CVE, but it survives its own ignore")
+		}
+	})
+}
+
 func TestMatcherApk_RootIO(t *testing.T) {
 	dbtest.DBs(t, "rootio-alpine-318").Run(func(t *testing.T, db *dbtest.DB) {
 		matcher := Matcher{}
 
 		// rootio-libuv at the rootio fix. NVD CPE flags 1.44.2 (< vEnd
 		// 1.48.0) — match surfaces. The rootio NAK matches alias
-		// CVE-2024-24806 and appears as the DistroPackageFixed ignore
+		// CVE-2024-24806 and appears as the distro-fixed ignore
 		// pair that downstream code uses to drop the match.
-		t.Run("rootio-libuv at rootio fix: CPE match + NAK ignore", func(t *testing.T) {
+		t.Run("rootio-libuv at rootio fix: no match, NAK ignore only", func(t *testing.T) {
 			pkgID := pkg.ID("rootio-libuv-at-fix")
 			p := dbtest.NewPackage("rootio-libuv", "1.44.2-r20071", syftPkg.ApkPkg).
 				WithID(pkgID).
@@ -57,11 +100,11 @@ func TestMatcherApk_RootIO(t *testing.T) {
 				Build()
 
 			findings := db.Match(t, &matcher, p)
-			findings.SelectMatch("CVE-2024-24806").
-				SelectDetailByType(match.CPEMatch).
-				AsCPESearch()
+			// rootio NAK'd this vulnerability for this package, and the NAK aliases the CVE, so the
+			// NVD CPE record is answered and never becomes a match
+			findings.DoesNotHaveAnyVulnerabilities("CVE-2024-24806")
 			findings.Ignores().
-				SelectRelatedPackageIgnores("DistroPackageFixed",
+				SelectRelatedPackageIgnores(ignorereasons.DistroFixed,
 					"ROOT-OS-ALPINE-318-CVE-2024-24806",
 					"CVE-2024-24806").
 				ForPackage(pkgID).
@@ -85,7 +128,7 @@ func TestMatcherApk_RootIO(t *testing.T) {
 
 		// rootio-nghttp2 at rootio fix: same shape as libuv, different
 		// package and CVE.
-		t.Run("rootio-nghttp2 at rootio fix: CPE match + NAK ignore", func(t *testing.T) {
+		t.Run("rootio-nghttp2 at rootio fix: no match, NAK ignore only", func(t *testing.T) {
 			pkgID := pkg.ID("rootio-nghttp2-at-fix")
 			p := dbtest.NewPackage("rootio-nghttp2", "1.57.0-r00072", syftPkg.ApkPkg).
 				WithID(pkgID).
@@ -94,11 +137,11 @@ func TestMatcherApk_RootIO(t *testing.T) {
 				Build()
 
 			findings := db.Match(t, &matcher, p)
-			findings.SelectMatch("CVE-2024-28182").
-				SelectDetailByType(match.CPEMatch).
-				AsCPESearch()
+			// rootio NAK'd this vulnerability for this package, and the NAK aliases the CVE, so the
+			// NVD CPE record is answered and never becomes a match
+			findings.DoesNotHaveAnyVulnerabilities("CVE-2024-28182")
 			findings.Ignores().
-				SelectRelatedPackageIgnores("DistroPackageFixed",
+				SelectRelatedPackageIgnores(ignorereasons.DistroFixed,
 					"ROOT-OS-ALPINE-318-CVE-2024-28182",
 					"CVE-2024-28182").
 				ForPackage(pkgID).
@@ -119,7 +162,7 @@ func TestMatcherApk_RootIO(t *testing.T) {
 		})
 
 		// rootio-wget at rootio fix.
-		t.Run("rootio-wget at rootio fix: CPE match + NAK ignore", func(t *testing.T) {
+		t.Run("rootio-wget at rootio fix: no match, NAK ignore only", func(t *testing.T) {
 			pkgID := pkg.ID("rootio-wget-at-fix")
 			p := dbtest.NewPackage("rootio-wget", "1.21.4-r00071", syftPkg.ApkPkg).
 				WithID(pkgID).
@@ -128,11 +171,11 @@ func TestMatcherApk_RootIO(t *testing.T) {
 				Build()
 
 			findings := db.Match(t, &matcher, p)
-			findings.SelectMatch("CVE-2024-10524").
-				SelectDetailByType(match.CPEMatch).
-				AsCPESearch()
+			// rootio NAK'd this vulnerability for this package, and the NAK aliases the CVE, so the
+			// NVD CPE record is answered and never becomes a match
+			findings.DoesNotHaveAnyVulnerabilities("CVE-2024-10524")
 			findings.Ignores().
-				SelectRelatedPackageIgnores("DistroPackageFixed",
+				SelectRelatedPackageIgnores(ignorereasons.DistroFixed,
 					"ROOT-OS-ALPINE-318-CVE-2024-10524",
 					"CVE-2024-10524").
 				ForPackage(pkgID).
@@ -141,7 +184,7 @@ func TestMatcherApk_RootIO(t *testing.T) {
 
 		// rootio-socat at rootio fix. CVE-2024-54661 has no NVD CPE entry
 		// so there's no disclosure to suppress — but the matcher still
-		// emits the NAK as a DistroPackageFixed ignore (it lives in
+		// emits the NAK as a distro-fixed ignore (it lives in
 		// `fixed` after fixed.Merge(unaffected)). This is the
 		// "rootio-only" combination.
 		t.Run("rootio-socat at rootio fix: NAK ignore only, no disclosure", func(t *testing.T) {
@@ -152,7 +195,7 @@ func TestMatcherApk_RootIO(t *testing.T) {
 				Build()
 
 			db.Match(t, &matcher, p).Ignores().
-				SelectRelatedPackageIgnores("DistroPackageFixed",
+				SelectRelatedPackageIgnores(ignorereasons.DistroFixed,
 					"ROOT-OS-ALPINE-318-CVE-2024-54661",
 					"CVE-2024-54661").
 				ForPackage(pkgID).
@@ -184,7 +227,7 @@ func TestMatcherApk_RootIO(t *testing.T) {
 				Build()
 
 			db.Match(t, &matcher, p).Ignores().
-				SelectRelatedPackageIgnore("DistroPackageFixed", "CVE-2024-0727").
+				SelectRelatedPackageIgnore(ignorereasons.DistroFixed, "CVE-2024-0727").
 				ForPackage(pkgID)
 		})
 
