@@ -15,6 +15,16 @@ import (
 
 type OSSpecifiers []*OSSpecifier
 
+// isOSLess is true when only the rows of no OS are searched.
+func (d OSSpecifiers) isOSLess() bool {
+	for _, s := range d {
+		if s == AnyOSSpecified || *s != *NoOSSpecified {
+			return false
+		}
+	}
+	return len(d) > 0
+}
+
 // OSSpecifier is a struct that represents a distro in a way that can be used to query the affected package store.
 type OSSpecifier struct {
 	// Name of the distro as identified by the ID field in /etc/os-release (or similar normalized name, e.g. "oracle" instead of "ol")
@@ -316,23 +326,7 @@ func applyOverride(d *OSSpecifier, override OperatingSystemSpecifierOverride) bo
 }
 
 func canUseOverride(override OperatingSystemSpecifierOverride, clientVersion *version.Version) (bool, error) {
-	if override.ApplicableClientDBSchemas == "" || clientVersion == nil {
-		return true, nil
-	}
-	c, err := version.GetConstraint(override.ApplicableClientDBSchemas, version.SemanticFormat)
-	if err != nil {
-		return true, fmt.Errorf("unable to parse version constraint: %w", err)
-	}
-	ok, err := c.Satisfied(clientVersion)
-	if err != nil {
-		return true, fmt.Errorf("unable to check if client constraint: %w", err)
-	}
-	if !ok {
-		// explicitly told that this override does not apply to this client version
-		return false, nil
-	}
-
-	return true, nil
+	return clientSchemaAllows(override.ApplicableClientDBSchemas, clientVersion)
 }
 
 func (s *operatingSystemStore) prepareQuery(d OSSpecifier) *gorm.DB {

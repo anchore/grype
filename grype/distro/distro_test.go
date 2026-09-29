@@ -410,8 +410,12 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 	// Somewhat cheating with Windows. There is no support for detecting/parsing a Windows OS, so it is not
 	// possible to comply with this test unless it is added manually to the "observed distros"
 	definedDistros.Remove(string(Windows))
+
+	// RapidFort distro types are never detected from /etc/os-release; they are applied via
+	// source-metadata distro identifiers (the base image keeps its real os-release)
 	definedDistros.Remove(string(RapidFortUbuntu))
 	definedDistros.Remove(string(RapidFortAlpine))
+	definedDistros.Remove(string(RapidFortDebian))
 	definedDistros.Remove(string(RapidFortRedHat))
 
 	tests := []struct {
@@ -795,6 +799,30 @@ func TestParseDistroString(t *testing.T) {
 			input:           "OpenSUSE-Leap-15.2",
 			expectedName:    "opensuse-leap",
 			expectedVersion: "15.2",
+		},
+		{
+			name:            "rapidfort-ubuntu with colon separator",
+			input:           "rapidfort-ubuntu:20.04",
+			expectedName:    "rapidfort-ubuntu",
+			expectedVersion: "20.04",
+		},
+		{
+			name:            "rapidfort-redhat with at separator and channel",
+			input:           "rapidfort-redhat@9+fc43",
+			expectedName:    "rapidfort-redhat",
+			expectedVersion: "9+fc43",
+		},
+		{
+			name:            "rapidfort-debian with hyphen separator",
+			input:           "rapidfort-debian-12",
+			expectedName:    "rapidfort-debian",
+			expectedVersion: "12",
+		},
+		{
+			name:            "rapidfort-alpine without version",
+			input:           "rapidfort-alpine",
+			expectedName:    "rapidfort-alpine",
+			expectedVersion: "",
 		},
 		{
 			name:            "empty string",

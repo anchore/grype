@@ -52,6 +52,7 @@ func Models() []any {
 		&OperatingSystemSpecifierOverride{},
 		&Package{},
 		&PackageSpecifierOverride{},
+		&SearchRule{},
 		&ArchitectureAlias{},
 
 		// CPE related search tables
@@ -688,7 +689,7 @@ type OperatingSystemSpecifierOverride struct {
 	ReplacementChannel      *string `gorm:"column:replacement_channel;primaryKey"`
 	Rolling                 bool    `gorm:"column:rolling;primaryKey"`
 
-	// ApplicableClientDBSchemas is a constraint on the database version that this override can be applied to (relative to the client library being used to access the DB).
+	// ApplicableClientDBSchemas constrains the client DB schema versions this rule applies to
 	ApplicableClientDBSchemas string `gorm:"column:applicable_client_db_schemas"`
 }
 
@@ -698,6 +699,64 @@ func (os *OperatingSystemSpecifierOverride) BeforeCreate(_ *gorm.DB) (err error)
 	}
 
 	return nil
+}
+
+// SearchRule adds a search to the one it matches: the same search under another package name and/or
+// OS (a channel, another OS name, or no OS). For example, an rpm versioned `...fc43` on
+// rapidfort-redhat:9 also searches the channel "fc43".
+//
+// Every Match*/Exclude* field is an anchored pattern, matched ignoring case: one without regex syntax
+// is compared whole, anything else is a regex. A rule must have an exact package name, distro name or
+// ecosystem; rules are indexed in memory by those three.
+//
+// Replacements are templates: `${name}` references a named group of any match pattern or the matched
+// value of a Match* field the rule has (`${distro_name}`, `${distro_version}`, `${ecosystem}`,
+// `${package_name}`, `${package_version}`). Positional references (`$1`) are not supported.
+//
+// Every matching rule applies; the records its search finds are ranked by its Priority.
+//
+// The table has no primary key: rows are read as a whole set and never referenced.
+type SearchRule struct {
+	// MatchDistroName is matched against the searched distro name; empty matches any distro, including none
+	MatchDistroName string `gorm:"column:match_distro_name"`
+
+	// MatchDistroVersion is matched against the distro version, then its label (e.g. a codename)
+	MatchDistroVersion string `gorm:"column:match_distro_version"`
+
+	// MatchEcosystem is matched against the package type (e.g. "deb")
+	MatchEcosystem string `gorm:"column:match_ecosystem"`
+
+	// MatchPackageName is required by ReplacementPackageName
+	MatchPackageName string `gorm:"column:match_package_name"`
+
+	ExcludePackageName string `gorm:"column:exclude_package_name"`
+
+	MatchPackageVersion string `gorm:"column:match_package_version"`
+
+	ExcludePackageVersion string `gorm:"column:exclude_package_version"`
+
+	// ReplacementChannel is the channel of the searched OS to search, and requires an exact
+	// MatchDistroName. An empty expansion selects the channel-less rows.
+	ReplacementChannel *string `gorm:"column:replacement_channel"`
+
+	// ReplacementDistroName is the OS to search, at the searched OS version. NULL keeps the searched
+	// OS; empty searches the rows of no OS (for a CPE search, NVD's). A CPE search given an OS reads
+	// that OS's CPE rows in place of NVD's.
+	ReplacementDistroName *string `gorm:"column:replacement_distro_name"`
+
+	// ReplacementPackageName is the name to search
+	ReplacementPackageName string `gorm:"column:replacement_package_name"`
+
+	// Priority ranks the records a rule's search finds against those of other rules' searches for the
+	// same package; any rule's records outrank the package's own. Equal priorities rank equally.
+	Priority int `gorm:"column:priority"`
+
+	// ApplicableClientDBSchemas constrains the client DB schema versions this rule applies to
+	ApplicableClientDBSchemas string `gorm:"column:applicable_client_db_schemas"`
+}
+
+func (o *SearchRule) BeforeCreate(_ *gorm.DB) (err error) {
+	return o.Validate()
 }
 
 // CPE related search tables //////////////////////////////////////////////////////

@@ -224,14 +224,12 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 		return fmt.Errorf("failed to create VEX processor: %w", err)
 	}
 
-	matchers := getMatchers(opts, pkgContext)
-
 	vulnMatcher := grype.VulnerabilityMatcher{
 		VulnerabilityProvider: vp,
 		IgnoreRules:           opts.Ignore,
 		NormalizeByCVE:        opts.ByCVE,
 		FailSeverity:          opts.FailOnSeverity(),
-		Matchers:              matchers,
+		Matchers:              getMatchers(opts),
 		VexProcessor:          vexProcessor,
 		Alerts: grype.AlertsConfig{
 			EnableEOLDistroWarnings: opts.Alerts.EnableEOLDistroWarnings,
@@ -400,8 +398,8 @@ func getMatcherConfig(opts *options.Grype) matcher.Config {
 	}
 }
 
-func getMatchers(opts *options.Grype, pkgContext pkg.Context) []match.Matcher {
-	return matcher.ApplySelectionPolicy(matcher.NewDefaultMatchers(getMatcherConfig(opts)), pkgContext)
+func getMatchers(opts *options.Grype) []match.Matcher {
+	return matcher.NewDefaultMatchers(getMatcherConfig(opts))
 }
 
 func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
@@ -435,6 +433,7 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 			Distro: pkg.DistroConfig{
 				Override:    applyDistroHint(opts.Distro),
 				FixChannels: getFixChannels(opts.FixChannel),
+				Identifiers: getDistroIdentifiers(opts.DistroIdentifier),
 			},
 		},
 	}
@@ -492,6 +491,14 @@ func applyDistroHint(hint string) *distro.Distro {
 
 	name, version := distro.ParseDistroString(hint)
 	return distro.NewFromNameVersion(name, version)
+}
+
+func getDistroIdentifiers(idOpts options.DistroIdentifiers) []distro.Identifier {
+	defaults := distro.DefaultIdentifiers()
+	if rapidfort := defaults.Get(distro.RapidFortIdentifier); rapidfort != nil {
+		rapidfort.Apply = distro.IdentifierApply(idOpts.RapidFort.Apply)
+	}
+	return defaults
 }
 
 func validateDBLoad(loadErr error, status *vulnerability.ProviderStatus) error {

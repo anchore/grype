@@ -57,7 +57,7 @@ func (m *Match) Merge(other Match) error {
 		base, secondary = other.Vulnerability, m.Vulnerability
 	}
 
-	base.Fix = mergeFix(base.Fix, secondary.Fix)
+	base.Fix = mergeFix(base.Fix, secondary.Fix, constraintFormat(base.Constraint, secondary.Constraint))
 
 	// note: the combined constraint is informational -- whether each record applies was decided
 	// before the match was created, and every record's own constraint is preserved on the detail it
@@ -122,14 +122,14 @@ func compareUnmergedFields(a, b vulnerability.Vulnerability) int {
 
 // mergeFix unions the fix information of two records describing the same finding, with a fix reported
 // by either record clearing it (see TestMergeFix_StateResolution for the whole state table).
-func mergeFix(base, other vulnerability.Fix) vulnerability.Fix {
+func mergeFix(base, other vulnerability.Fix, format version.Format) vulnerability.Fix {
 	out := vulnerability.Fix{
 		State: base.State,
 	}
 
 	if versions := slices.Concat(base.Versions, other.Versions); len(versions) > 0 {
 		slices.Sort(versions)
-		out.Versions = slices.Compact(versions)
+		out.Versions = dedupeFixVersions(slices.Compact(versions), format)
 	}
 
 	seen := make(map[vulnerability.FixAvailable]struct{}, len(base.Available)+len(other.Available))
@@ -144,6 +144,46 @@ func mergeFix(base, other vulnerability.Fix) vulnerability.Fix {
 	out.State = mergeFixState(base.State, other.State)
 
 	return out
+}
+
+// dedupeFixVersions collapses equal versions spelled differently (e.g. "0:1.2-3" and "1.2-3"),
+// keeping the first spelling.
+func dedupeFixVersions(versions []string, format version.Format) []string {
+	if len(versions) < 2 || format == version.UnknownFormat {
+		return versions
+	}
+
+	out := make([]string, 0, len(versions))
+	kept := make([]*version.Version, 0, len(versions))
+	for _, raw := range versions {
+		v := version.New(raw, format)
+		duplicate := false
+		for _, seen := range kept {
+			if cmp, err := v.Compare(seen); err == nil && cmp == 0 {
+				duplicate = true
+				break
+			}
+		}
+		if duplicate {
+			continue
+		}
+		kept = append(kept, v)
+		out = append(out, raw)
+	}
+	return out
+}
+
+// constraintFormat prefers a's format.
+func constraintFormat(a, b version.Constraint) version.Format {
+	if a != nil {
+		if f := a.Format(); f != version.UnknownFormat {
+			return f
+		}
+	}
+	if b != nil {
+		return b.Format()
+	}
+	return version.UnknownFormat
 }
 
 // fixStatePrecedence ranks fix states from least to most informative, so that mergeFixState can take
@@ -186,12 +226,7 @@ func mergeReferences(base, other []vulnerability.Reference) []vulnerability.Refe
 	}
 
 	// for stable output
-	slices.SortFunc(out, func(a, b vulnerability.Reference) int {
-		if c := strings.Compare(a.Namespace, b.Namespace); c != 0 {
-			return c
-		}
-		return strings.Compare(a.ID, b.ID)
-	})
+	slices.SortFunc(out, vulnerability.CompareReferences)
 	return out
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/internal/ignorereasons"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -91,17 +92,48 @@ func TestFindMatchesByPackageDistro(t *testing.T) {
 	}
 
 	store := newMockProviderByDistro()
-	actual, ignored, err := MatchPackageByDistro(store, p, nil, match.PythonMatcher, nil)
+	actual, ignored, err := MatchPackageByDistro(store, p, match.PythonMatcher, nil)
 	require.NoError(t, err)
 	require.Empty(t, ignored)
 	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)
 
 	// prove we do not search for unknown versions
 	p.Version = "unknown"
-	actual, ignored, err = MatchPackageByDistro(store, p, nil, match.PythonMatcher, nil)
+	actual, ignored, err = MatchPackageByDistro(store, p, match.PythonMatcher, nil)
 	require.NoError(t, err)
 	require.Empty(t, ignored)
 	assert.Empty(t, actual)
+}
+
+func TestFindResultsByDistroAcrossUpstreams_UnknownBinaryVersion(t *testing.T) {
+	// only the binary's own search is skipped; its upstream has a version and is still searched
+	p := pkg.Package{
+		ID:      pkg.ID(uuid.NewString()),
+		Name:    "neutron-devel",
+		Version: "unknown",
+		Type:    syftPkg.DebPkg,
+		Distro:  distro.New(distro.Debian, "8", ""),
+		Upstreams: []pkg.UpstreamPackage{
+			{Name: "neutron", Version: "2014.1.3-6"},
+		},
+	}
+
+	vulnerable, _, err := FindResultsByDistroAcrossUpstreams(newMockProviderByDistro(), p, nil, match.PythonMatcher, nil)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"CVE-2014-fake-1"}, idsOf(vulnerable))
+
+	p.Upstreams = nil
+	vulnerable, _, err = FindResultsByDistroAcrossUpstreams(newMockProviderByDistro(), p, nil, match.PythonMatcher, nil)
+	require.NoError(t, err)
+	assert.Empty(t, idsOf(vulnerable))
+}
+
+func idsOf(s result.Set) []string {
+	var out []string
+	for _, v := range s.Vulnerabilities() {
+		out = append(out, v.ID)
+	}
+	return out
 }
 
 func TestMatchPackageByDistroWithIgnoreRules(t *testing.T) {
@@ -273,7 +305,7 @@ func TestMatchPackageByDistroWithIgnoreRules(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			store := mock.VulnerabilityProvider(test.vulnerabilities...)
 
-			matches, ignoreFilters, err := MatchPackageByDistro(store, test.pkg, nil, match.PythonMatcher, nil)
+			matches, ignoreFilters, err := MatchPackageByDistro(store, test.pkg, match.PythonMatcher, nil)
 			require.NoError(t, err)
 
 			// verify matches
@@ -362,7 +394,7 @@ func TestFindMatchesByPackageDistroSles(t *testing.T) {
 	}
 
 	store := newMockProviderByDistro()
-	actual, ignored, err := MatchPackageByDistro(store, p, nil, match.PythonMatcher, nil)
+	actual, ignored, err := MatchPackageByDistro(store, p, match.PythonMatcher, nil)
 	assert.NoError(t, err)
 	require.Empty(t, ignored)
 	assertMatchesUsingIDsForVulnerabilities(t, expected, actual)

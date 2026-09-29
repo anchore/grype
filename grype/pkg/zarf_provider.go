@@ -12,7 +12,6 @@ import (
 	"github.com/klauspost/compress/zstd"
 
 	"github.com/anchore/grype/grype/distro"
-	"github.com/anchore/grype/grype/rapidfort"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/format/syftjson"
 	"github.com/anchore/syft/syft/sbom"
@@ -58,7 +57,6 @@ func zarfProvider(userInput string, config ProviderConfig, applyChannel func(*di
 				Path: archivePath,
 			},
 		},
-		IsRapidFortImage: rapidfort.HasMarkerInSBOM(s),
 	}
 
 	return packages, ctx, s, nil

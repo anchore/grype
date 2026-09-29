@@ -1,10 +1,12 @@
 package result
 
 import (
+	"slices"
 	"sort"
 
 	"github.com/facebookincubator/nvdtools/wfn"
 
+	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal/cpeversion"
 	"github.com/anchore/grype/grype/pkg"
@@ -19,6 +21,9 @@ var _ Provider = (*provider)(nil)
 
 type Provider interface {
 	FindResults(criteria ...vulnerability.Criteria) (Set, error)
+
+	// FindAll includes unaffected records
+	FindAll(criteria ...vulnerability.Criteria) (Set, error)
 }
 
 type provider struct {
@@ -38,33 +43,76 @@ func NewProvider(vp vulnerability.Provider, catalogedPkg pkg.Package, matcher ma
 func (p provider) FindResults(criteria ...vulnerability.Criteria) (Set, error) {
 	results := Set{}
 	// get each iteration here so detailProvider will have the specific values used for searches
-	for _, cs := range search.CriteriaIterator(criteria) {
-		vulns, err := p.vulnProvider.FindVulnerabilities(cs...)
-		if err != nil {
-			return Set{}, err
+	for _, criteriaSet := range search.CriteriaIterator(criteria) {
+		searches, rewritten := searchRewrites(p.vulnProvider, p.catalogedPkg, criteriaSet)
+		if !rewritten {
+			if err := p.findInto(results, criteriaSet); err != nil {
+				return Set{}, err
+			}
+			continue
 		}
-
-		for _, v := range vulns {
-			if v.ID == "" {
-				continue // skip vulnerabilities without an ID (should never happen)
+		for _, searchCriteria := range searches {
+			if err := p.findInto(results, searchCriteria); err != nil {
+				return Set{}, err
 			}
-
-			newResult := Result{
-				ID:              v.ID,
-				Vulnerabilities: []vulnerability.Vulnerability{v},
-				Details:         detailProvider(p.matcher, p.catalogedPkg, criteria, v),
-				Package:         &p.catalogedPkg,
-			}
-
-			results[v.ID] = append(results[v.ID], newResult)
 		}
 	}
 	return results, nil
 }
 
+// findInto adds the results of one search to results.
+func (p provider) findInto(results Set, searchCriteria []vulnerability.Criteria) error {
+	vulns, err := p.vulnProvider.FindVulnerabilities(searchCriteria...)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range vulns {
+		if v.ID == "" {
+			continue // skip vulnerabilities without an ID (should never happen)
+		}
+
+		details := detailProvider(p.matcher, p.catalogedPkg, searchCriteria, v)
+
+		newResult := Result{
+			ID:              v.ID,
+			Vulnerabilities: []vulnerability.Vulnerability{v},
+			Details:         details,
+			Package:         p.searchedPackage(searchCriteria),
+			Rank:            rankOf(searchCriteria, details),
+		}
+
+		results[v.ID] = append(results[v.ID], newResult)
+	}
+	return nil
+}
+
+// searchRewrites returns the searches to run in place of cs, or false to search cs as is, when the
+// provider evaluates search rules (see v6.SearchRuleProvider).
+func searchRewrites(vp vulnerability.Provider, catalogedPkg pkg.Package, cs []vulnerability.Criteria) ([][]vulnerability.Criteria, bool) {
+	if rp, ok := vp.(v6.SearchRuleProvider); ok {
+		return rp.SearchRewrites(catalogedPkg, cs)
+	}
+	return nil, false
+}
+
+func (p provider) FindAll(criteria ...vulnerability.Criteria) (Set, error) {
+	affected, err := p.FindResults(criteria...)
+	if err != nil {
+		return Set{}, err
+	}
+
+	unaffected, err := p.FindResults(append(slices.Clone(criteria), search.ForUnaffected())...)
+	if err != nil {
+		return Set{}, err
+	}
+
+	return affected.Merge(unaffected), nil
+}
+
 func detailProvider(matcher match.MatcherType, catalogedPkg pkg.Package, criteriaSet []vulnerability.Criteria, vuln vulnerability.Vulnerability) match.Details {
 	cpeParams, distroParams, ecosystemParams, pkgParams := extractSearchParameters(criteriaSet, vuln, catalogedPkg)
-	distroMatchType := determineMatchType(catalogedPkg, pkgParams)
+	distroMatchType := determineMatchType(catalogedPkg, pkgParams, slices.ContainsFunc(criteriaSet, isSourcePackage))
 	applyPackageParamsToSearchParams(pkgParams, &cpeParams, &distroParams, &ecosystemParams)
 	constraintStr := getConstraintString(vuln)
 	// the vulnerable Go symbols the package was found to use; empty for every non-Go match and for
@@ -96,6 +144,17 @@ func extractSearchParameters(criteriaSet []vulnerability.Criteria, vuln vulnerab
 				pkgParams = &match.PackageParameter{}
 			}
 			pkgParams.Version = c.Version.Raw
+
+		case *search.PackageCriteria:
+			// the searched package's version, not the cataloged one (e.g. an upstream's); its name only
+			// when no name criterion states one (e.g. a CPE search)
+			if pkgParams == nil {
+				pkgParams = &match.PackageParameter{}
+			}
+			pkgParams.Version = c.Package.Version
+			if pkgParams.Name == "" {
+				pkgParams.Name = c.Package.Name
+			}
 
 		case *search.EcosystemCriteria:
 			ecosystemParams = append(ecosystemParams, match.EcosystemParameters{
@@ -136,13 +195,16 @@ func extractSearchParameters(criteriaSet []vulnerability.Criteria, vuln vulnerab
 	return cpeParams, distroParams, ecosystemParams, pkgParams
 }
 
-// determineMatchType determines if this is a direct or indirect match based on package names
-func determineMatchType(catalogedPkg pkg.Package, pkgParams *match.PackageParameter) match.Type {
-	if pkgParams != nil && catalogedPkg.Name != pkgParams.Name {
-		// if the cataloged package name does not match the package parameter, then this is an indirect match
+func determineMatchType(catalogedPkg pkg.Package, pkgParams *match.PackageParameter, indirect bool) match.Type {
+	if indirect || pkgParams != nil && catalogedPkg.Name != pkgParams.Name {
 		return match.ExactIndirectMatch
 	}
 	return match.ExactDirectMatch
+}
+
+func isSourcePackage(c vulnerability.Criteria) bool {
+	_, ok := c.(*search.SourcePackageCriteria)
+	return ok
 }
 
 // applyPackageParamsToSearchParams applies discovered package parameters to search parameters
@@ -310,4 +372,17 @@ func comparableCPEVersion(cpeVersion, cpeUpdate string, format version.Format) s
 		return cpeversion.JVM(cpeVersion, cpeUpdate)
 	}
 	return cpeVersion
+}
+
+// searchedPackage returns the package criteriaSet states it searches for (see search.WithPackage),
+// else the cataloged package.
+func (p provider) searchedPackage(criteriaSet []vulnerability.Criteria) *pkg.Package {
+	out := &p.catalogedPkg
+	for _, c := range criteriaSet {
+		if pc, ok := c.(*search.PackageCriteria); ok {
+			searched := pc.Package
+			out = &searched
+		}
+	}
+	return out
 }
