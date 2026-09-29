@@ -1,6 +1,6 @@
 module github.com/anchore/grype
 
-go 1.26.3
+go 1.26.8
 
 require (
 	github.com/CycloneDX/cyclonedx-go v0.12.0
@@ -26,7 +26,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/dave/jennifer v1.7.1
 	github.com/docker/docker v28.5.2+incompatible
-	github.com/dustin/go-humanize v1.0.1
+	github.com/dustin/go-humanize v1.1.0
 	github.com/facebookincubator/nvdtools v0.1.5
 	github.com/gabriel-vasile/mimetype v1.4.15
 	github.com/gkampitakis/go-snaps v0.5.23
@@ -53,7 +53,7 @@ require (
 	github.com/masahiro331/go-mvn-version v0.0.0-20250131095131-f4974fa13b8a
 	github.com/mholt/archives v0.1.5
 	github.com/muesli/termenv v0.16.0
-	github.com/olekukonko/tablewriter v1.1.4
+	github.com/olekukonko/tablewriter v1.1.5
 	github.com/openvex/go-vex v0.2.9
 	github.com/owenrumney/go-sarif v1.1.2-0.20231003122901-1000f5e05554
 	github.com/pandatix/go-cvss v0.6.4
@@ -155,7 +155,7 @@ require (
 	github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2 // indirect
 	github.com/containerd/cgroups/v3 v3.1.3 // indirect
 	github.com/containerd/containerd/api v1.11.1 // indirect
-	github.com/containerd/containerd/v2 v2.3.5 // indirect
+	github.com/containerd/containerd/v2 v2.3.6 // indirect
 	github.com/containerd/continuity v0.5.0 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
