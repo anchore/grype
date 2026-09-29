@@ -113,7 +113,7 @@ func (p provider) FindAll(criteria ...vulnerability.Criteria) (Set, error) {
 func detailProvider(matcher match.MatcherType, catalogedPkg pkg.Package, criteriaSet []vulnerability.Criteria, vuln vulnerability.Vulnerability) match.Details {
 	cpeParams, distroParams, ecosystemParams, pkgParams := extractSearchParameters(criteriaSet, vuln, catalogedPkg)
 	distroMatchType := determineMatchType(catalogedPkg, pkgParams, slices.ContainsFunc(criteriaSet, isSourcePackage))
-	applyPackageParamsToSearchParams(pkgParams, &cpeParams, &distroParams, &ecosystemParams)
+	applyPackageParamsToSearchParams(pkgParams, &distroParams, &ecosystemParams)
 	constraintStr := getConstraintString(vuln)
 	// the vulnerable Go symbols the package was found to use; empty for every non-Go match and for
 	// module-granularity Go matches where no specific symbol intersection decided the match.
@@ -208,7 +208,7 @@ func isSourcePackage(c vulnerability.Criteria) bool {
 }
 
 // applyPackageParamsToSearchParams applies discovered package parameters to search parameters
-func applyPackageParamsToSearchParams(pkgParams *match.PackageParameter, cpeParams *[]match.CPEParameters, distroParams *[]match.DistroParameters, ecosystemParams *[]match.EcosystemParameters) {
+func applyPackageParamsToSearchParams(pkgParams *match.PackageParameter, distroParams *[]match.DistroParameters, ecosystemParams *[]match.EcosystemParameters) {
 	if pkgParams == nil {
 		return
 	}
@@ -216,9 +216,8 @@ func applyPackageParamsToSearchParams(pkgParams *match.PackageParameter, cpePara
 	for i := range *ecosystemParams {
 		(*ecosystemParams)[i].Package = *pkgParams
 	}
-	for i := range *cpeParams {
-		(*cpeParams)[i].Package = *pkgParams
-	}
+	// cpeParams keep the cataloged package (see extractSearchParameters): the version a CPE search
+	// compares against is derived from the CPE (e.g. version+update), and is stated by the CPE itself
 	for i := range *distroParams {
 		(*distroParams)[i].Package = *pkgParams
 	}
