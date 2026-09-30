@@ -1,7 +1,6 @@
 package osv
 
 import (
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -45,33 +44,14 @@ func (rootioStrategy) Matches(id string) bool {
 }
 
 func (rootioStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
-	severities, err := getSeverities(vuln)
-	if err != nil {
-		return nil, fmt.Errorf("unable to obtain severities: %w", err)
-	}
-
 	// Rootio NAK records may carry the upstream CVE in either `aliases` or
 	// `related`; merge both so the full CVE set rides on the vulnerability blob.
-	aliases := append([]string{}, vuln.Aliases...)
-	aliases = append(aliases, vuln.Related...)
-
-	in := []any{
-		db.VulnerabilityHandle{
-			Name:          vuln.ID,
-			ProviderID:    state.Provider,
-			Provider:      provider.Model(state),
-			Status:        db.VulnerabilityActive,
-			ModifiedDate:  &vuln.Modified,
-			PublishedDate: &vuln.Published,
-			BlobValue: &db.VulnerabilityBlob{
-				ID:          vuln.ID,
-				Description: vuln.Details,
-				References:  rootioReferences(vuln),
-				Aliases:     aliases,
-				Severities:  severities,
-			},
-		},
+	handle, aliases, err := newAdvisoryVulnerabilityHandle(vuln, state, rootioReferences(vuln))
+	if err != nil {
+		return nil, err
 	}
+
+	in := []any{handle}
 
 	for _, uph := range rootioUnaffectedPackages(vuln, aliases) {
 		in = append(in, uph)

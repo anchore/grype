@@ -173,8 +173,13 @@ func TestPackageQualifiers_RoundTrip(t *testing.T) {
 				PlatformCPEs:  []string{"cpe:2.3:o:redhat:enterprise_linux:8:*:*:*:*:*:*:*"},
 				RootIO:        asPtr(true),
 				Architecture:  asPtr("aarch64"),
+				GoImports: []GoImport{{
+					Path:    "golang.org/x/net/http2",
+					Symbols: []string{"Server.ServeConn"},
+				}},
+				Echo: asPtr(true),
 			},
-			wantJSON: `{"rpm_modularity":"nodejs:16","platform_cpes":["cpe:2.3:o:redhat:enterprise_linux:8:*:*:*:*:*:*:*"],"rootio":true,"architecture":"aarch64"}`,
+			wantJSON: `{"rpm_modularity":"nodejs:16","platform_cpes":["cpe:2.3:o:redhat:enterprise_linux:8:*:*:*:*:*:*:*"],"rootio":true,"architecture":"aarch64","go_imports":[{"path":"golang.org/x/net/http2","symbols":["Server.ServeConn"]}],"echo":true}`,
 		},
 	}
 

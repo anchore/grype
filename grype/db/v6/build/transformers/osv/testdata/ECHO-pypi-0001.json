@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.6.1",
+  "id": "ECHO-pypi-0001",
+  "modified": "2024-12-15T14:30:00Z",
+  "published": "2024-12-10T09:00:00Z",
+  "aliases": [
+    "CVE-2023-32681"
+  ],
+  "summary": "requests leaks Proxy-Authorization header",
+  "details": "The requests library before 2.14.2+echo.1 leaks the Proxy-Authorization header on redirect.",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "Echo:PyPi",
+        "name": "requests",
+        "purl": "pkg:pypi/requests"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "2.14.2+echo.1"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "ADVISORY",
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-32681"
+    }
+  ],
+  "severity": [
+    {
+      "type": "CVSS_V3",
+      "score": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N"
+    }
+  ],
+  "database_specific": {
+    "source": "Echo",
+    "anchore": {
+      "record_type": "advisory"
+    }
+  }
+}

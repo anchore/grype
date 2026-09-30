@@ -24,7 +24,7 @@ const (
 	Revision = 1
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 9
+	Addition = 10
 
 	// v6 model changelog:
 	// 6.0.0: Initial version 🎉
@@ -57,6 +57,10 @@ const (
 	//        runtime qualifier in pkg/qualifier/gosymbols matches captured Go binary symbols
 	//        so stdlib and golang.org/x/* advisories don't FP-match binaries that don't use
 	//        vulnerable symbols)
+	// 6.1.10: Add Echo field to PackageQualifiers (used by the OSV echo strategy to mark
+	//        vulnerabilities that only apply to Echo-patched language packages; the echo
+	//        runtime qualifier in pkg/qualifier/echo filters non-Echo packages out via the
+	//        NAK pattern, keyed off the "+echo.N" version suffix rather than a name prefix)
 )
 
 const (

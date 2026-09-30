@@ -179,6 +179,11 @@ type PackageQualifiers struct {
 	// (from govulndb's ecosystem_specific.imports). When set, packages carrying binary symbol evidence only
 	// match if at least one of the listed symbols is present in the binary.
 	GoImports []GoImport `json:"go_imports,omitempty"`
+
+	// Echo indicates that the vulnerability applies only to Echo-patched language packages
+	// (identified by a "+echo.N" version suffix). When true, non-Echo packages will not match
+	// this vulnerability (NAK pattern).
+	Echo *bool `json:"echo,omitempty"`
 }
 
 // GoImport describes a single package within an affected Go module and the vulnerable symbols it contains.

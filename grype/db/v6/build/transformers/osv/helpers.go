@@ -8,14 +8,44 @@ import (
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	"github.com/anchore/grype/grype/db/internal/versionutil"
+	"github.com/anchore/grype/grype/db/provider"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
 )
 
 // Shared helpers used by multiple OSV strategies. Per-provider decisions live
 // in transform_<provider>.go; only logic that's genuinely identical across
-// strategies (range normalization, severity parsing, fix-availability decoding)
-// belongs here.
+// strategies (advisory-handle construction, range normalization, severity
+// parsing, fix-availability decoding) belongs here.
+
+// newAdvisoryVulnerabilityHandle builds the common vulnerability half of an
+// OSV advisory/NAK entry and returns the merged aliases needed by its package
+// handles.
+func newAdvisoryVulnerabilityHandle(vuln unmarshal.OSVVulnerability, state provider.State, references []db.Reference) (db.VulnerabilityHandle, []string, error) {
+	severities, err := getSeverities(vuln)
+	if err != nil {
+		return db.VulnerabilityHandle{}, nil, fmt.Errorf("unable to obtain severities: %w", err)
+	}
+
+	aliases := append([]string{}, vuln.Aliases...)
+	aliases = append(aliases, vuln.Related...)
+
+	return db.VulnerabilityHandle{
+		Name:          vuln.ID,
+		ProviderID:    state.Provider,
+		Provider:      provider.Model(state),
+		Status:        db.VulnerabilityActive,
+		ModifiedDate:  &vuln.Modified,
+		PublishedDate: &vuln.Published,
+		BlobValue: &db.VulnerabilityBlob{
+			ID:          vuln.ID,
+			Description: vuln.Details,
+			References:  references,
+			Aliases:     aliases,
+			Severities:  severities,
+		},
+	}, aliases, nil
+}
 
 // ============================================================================
 // Range normalization

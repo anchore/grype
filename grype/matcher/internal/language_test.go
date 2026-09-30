@@ -10,8 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	internalecho "github.com/anchore/grype/grype/internal/echo"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/pkg/qualifier"
+	echoqualifier "github.com/anchore/grype/grype/pkg/qualifier/echo"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/grype/vulnerability/mock"
@@ -389,6 +392,190 @@ func Test_unaffectedPackageIgnoreRules(t *testing.T) {
 			_, ignoreRules, err := MatchPackageByEcosystemPackageName(provider, tt.pkg, tt.pkg.Name, "")
 			require.NoError(t, err)
 			assert.Equal(t, tt.expected, ignoreRules)
+		})
+	}
+}
+
+func Test_unaffectedVersionCriteria(t *testing.T) {
+	// the fuzzy "unknown"-format constraint is the shape NAK ranges take after
+	// the DB's "ecosystem" range type falls through version.ParseFormat
+	nakConstraint := version.MustGetConstraint(">= 3.1.9+echo.2", version.UnknownFormat)
+	vuln := vulnerability.Vulnerability{Constraint: nakConstraint}
+
+	npmEcho := pkg.Package{Name: "ejs", Version: "3.1.9+echo.1", Type: syftPkg.NpmPkg}
+	defaultCriteria := OnlyVulnerableVersions(version.New(npmEcho.Version, pkg.VersionFormat(npmEcho)))
+
+	// sanity: under the default format, SemVer ignores the +echo.N build
+	// number and the still-vulnerable +echo.1 build satisfies the NAK
+	matches, _, err := defaultCriteria.MatchesVulnerability(vuln)
+	require.NoError(t, err)
+	assert.True(t, matches, "expected the default format to be blind to +echo.N (if this fails, the workaround may no longer be needed)")
+
+	// the echo-aware NAK criteria distinguishes the builds: +echo.1 stays vulnerable...
+	matches, _, err = unaffectedVersionCriteria(npmEcho, defaultCriteria).MatchesVulnerability(vuln)
+	require.NoError(t, err)
+	assert.False(t, matches, "the still-vulnerable +echo.1 build must not match the NAK")
+
+	// ...while the fixed +echo.2 build is suppressed
+	fixed := pkg.Package{Name: "ejs", Version: "3.1.9+echo.2", Type: syftPkg.NpmPkg}
+	matches, _, err = unaffectedVersionCriteria(fixed, defaultCriteria).MatchesVulnerability(vuln)
+	require.NoError(t, err)
+	assert.True(t, matches)
+
+	// Go's native comparator also ignores build metadata. Echo's patched Go
+	// toolchain preserves +echo.N in module build info, so Go NAKs need the
+	// same tie-break as npm.
+	goNakConstraint := version.MustGetConstraint(">= v0.55.0+echo.2", version.UnknownFormat)
+	goVuln := vulnerability.Vulnerability{Constraint: goNakConstraint}
+	goEcho := pkg.Package{
+		Name:     "golang.org/x/net",
+		Version:  "v0.55.0+echo.1",
+		Language: syftPkg.Go,
+		Type:     syftPkg.GoModulePkg,
+	}
+	goDefaultCriteria := OnlyVulnerableVersions(version.New(goEcho.Version, pkg.VersionFormat(goEcho)))
+
+	matches, _, err = goDefaultCriteria.MatchesVulnerability(goVuln)
+	require.NoError(t, err)
+	assert.True(t, matches, "expected the Go format to be blind to +echo.N (if this fails, the workaround may no longer be needed)")
+
+	matches, _, err = unaffectedVersionCriteria(goEcho, goDefaultCriteria).MatchesVulnerability(goVuln)
+	require.NoError(t, err)
+	assert.False(t, matches, "the still-vulnerable Go +echo.1 build must not match the NAK")
+
+	fixedGo := pkg.Package{
+		Name:     "golang.org/x/net",
+		Version:  "v0.55.0+echo.2",
+		Language: syftPkg.Go,
+		Type:     syftPkg.GoModulePkg,
+	}
+	matches, _, err = unaffectedVersionCriteria(fixedGo, goDefaultCriteria).MatchesVulnerability(goVuln)
+	require.NoError(t, err)
+	assert.True(t, matches)
+
+	stdlibNakConstraint := version.MustGetConstraint(">= go1.24.1+echo.2", version.UnknownFormat)
+	stdlibVuln := vulnerability.Vulnerability{Constraint: stdlibNakConstraint}
+	stdlibEcho := pkg.Package{
+		Name:     "stdlib",
+		Version:  "go1.24.1+echo.1",
+		Language: syftPkg.Go,
+		Type:     syftPkg.GoModulePkg,
+	}
+	stdlibDefaultCriteria := OnlyVulnerableVersions(version.New(stdlibEcho.Version, pkg.VersionFormat(stdlibEcho)))
+
+	matches, _, err = stdlibDefaultCriteria.MatchesVulnerability(stdlibVuln)
+	require.NoError(t, err)
+	assert.True(t, matches, "expected the Go format to be blind to +echo.N")
+
+	matches, _, err = unaffectedVersionCriteria(stdlibEcho, stdlibDefaultCriteria).MatchesVulnerability(stdlibVuln)
+	require.NoError(t, err)
+	assert.False(t, matches, "the earlier Echo toolchain build must not match a later NAK")
+
+	// non-echo packages keep the default criteria untouched
+	plain := pkg.Package{Name: "ejs", Version: "3.1.9", Type: syftPkg.NpmPkg}
+	assert.Same(t, defaultCriteria, unaffectedVersionCriteria(plain, defaultCriteria))
+
+	// ecosystems whose native format already orders +echo.N (e.g. python's
+	// PEP 440 local versions) keep the default criteria untouched
+	pyEcho := pkg.Package{Name: "requests", Version: "2.14.2+echo.1", Type: syftPkg.PythonPkg}
+	assert.Same(t, defaultCriteria, unaffectedVersionCriteria(pyEcho, defaultCriteria))
+
+	// a bare "+echo" suffix is not a valid Echo build (Echo builds always
+	// carry "+echo.N"); it must not be treated as one
+	bare := pkg.Package{Name: "ejs", Version: "3.1.9+echo", Type: syftPkg.NpmPkg}
+	assert.Same(t, defaultCriteria, unaffectedVersionCriteria(bare, defaultCriteria))
+}
+
+func TestMatchPackageByLanguage_EchoGoBuilds(t *testing.T) {
+	const (
+		cveID  = "CVE-2026-46600"
+		echoID = "ECHO-go-0001"
+	)
+
+	tests := []struct {
+		name           string
+		fixedAt        string
+		version        string
+		wantVulnerable bool
+		wantIgnored    bool
+	}{
+		{
+			name:           "plain upstream remains vulnerable",
+			fixedAt:        "v0.55.0+echo.1",
+			version:        "v0.55.0",
+			wantVulnerable: true,
+		},
+		{
+			name:        "first fixed Echo build suppresses upstream disclosure",
+			fixedAt:     "v0.55.0+echo.1",
+			version:     "v0.55.0+echo.1",
+			wantIgnored: true,
+		},
+		{
+			name:        "later Echo build also suppresses upstream disclosure",
+			fixedAt:     "v0.55.0+echo.1",
+			version:     "v0.55.0+echo.2",
+			wantIgnored: true,
+		},
+		{
+			name:           "Echo build before a later fix remains vulnerable",
+			fixedAt:        "v0.55.0+echo.2",
+			version:        "v0.55.0+echo.1",
+			wantVulnerable: true,
+		},
+		{
+			name:    "newer upstream is outside vulnerable range",
+			fixedAt: "v0.55.0+echo.1",
+			version: "v0.56.0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := mock.VulnerabilityProvider(
+				vulnerability.Vulnerability{
+					Reference: vulnerability.Reference{
+						ID:        cveID,
+						Namespace: "github:language:go",
+					},
+					PackageName: "golang.org/x/net",
+					Constraint:  version.MustGetConstraint("< v0.56.0", version.GolangFormat),
+				},
+				vulnerability.Vulnerability{
+					Reference: vulnerability.Reference{
+						ID:        echoID,
+						Namespace: "osv:language:go",
+					},
+					PackageName:       internalecho.PackageName("golang.org/x/net"),
+					Constraint:        version.MustGetConstraint(">= "+tt.fixedAt, version.UnknownFormat),
+					PackageQualifiers: []qualifier.Qualifier{echoqualifier.New()},
+					RelatedVulnerabilities: []vulnerability.Reference{
+						{ID: cveID, Namespace: "nvd:cpe"},
+					},
+					Unaffected: true,
+				},
+			)
+
+			p := pkg.Package{
+				Name:     "golang.org/x/net",
+				Version:  tt.version,
+				Language: syftPkg.Go,
+				Type:     syftPkg.GoModulePkg,
+			}
+			matches, ignored, err := MatchPackageByLanguage(store, p, match.GoModuleMatcher)
+			require.NoError(t, err)
+
+			if tt.wantVulnerable {
+				require.Len(t, matches, 1)
+				assert.Equal(t, cveID, matches[0].Vulnerability.ID)
+			} else {
+				assert.Empty(t, matches)
+			}
+			if tt.wantIgnored {
+				assert.NotEmpty(t, ignored)
+			} else {
+				assert.Empty(t, ignored)
+			}
 		})
 	}
 }
