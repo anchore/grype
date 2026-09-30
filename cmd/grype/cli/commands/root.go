@@ -395,6 +395,7 @@ func getMatcherConfig(opts *options.Grype) matcher.Config {
 		Rpm: rpm.MatcherConfig{
 			MissingEpochStrategy: opts.Match.Rpm.MissingEpochStrategy,
 			UseCPEsForEOL:        opts.Match.Rpm.UseCPEsForEOL,
+			UseCPEs:              opts.Match.Rpm.UseCPEs,
 		},
 	}
 }

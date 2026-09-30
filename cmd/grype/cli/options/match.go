@@ -175,6 +175,7 @@ func (cfg *matchConfig) DescribeFields(descriptions clio.FieldDescriptionSet) {
 	descriptions.Add(&cfg.Hex.UseCPEs, usingCpeDescription)
 	descriptions.Add(&cfg.Stock.UseCPEs, usingCpeDescription)
 	descriptions.Add(&cfg.Dpkg.UseCPEs, usingCpeDescription)
+	descriptions.Add(&cfg.Rpm.UseCPEs, usingCpeDescription)
 	descriptions.Add(&cfg.Dpkg.MissingEpochStrategy,
 		`strategy for handling missing epochs in dpkg package versions during matching (options: zero, auto)`)
 	descriptions.Add(&cfg.Rpm.MissingEpochStrategy,
