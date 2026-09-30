@@ -3,15 +3,16 @@ package version
 import (
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 var _ Comparator = (*echoVersion)(nil)
 
 // echoBuildRe captures the N in Echo's "+echo.N" version suffix.
-var echoBuildRe = regexp.MustCompile(`\+echo\.(\d+)`)
+var echoBuildRe = regexp.MustCompile(`\+echo\.(\d+)$`)
 
 // echoVersion compares Echo-patched builds of SemVer-versioned packages
-// (e.g. npm). SemVer excludes build metadata from precedence, so
+// (npm and Go modules). SemVer excludes build metadata from precedence, so
 // "3.1.9+echo.1" and "3.1.9+echo.2" compare equal under semantic rules and
 // successive Echo builds of the same upstream version cannot be ordered.
 // This comparator applies semantic ordering first and breaks ties on the
@@ -23,7 +24,7 @@ type echoVersion struct {
 }
 
 func newEchoVersion(raw string) (echoVersion, error) {
-	semVer, err := newSemanticVersion(raw, false)
+	semVer, err := newSemanticVersion(normalizeEchoVersion(raw), false)
 	if err != nil {
 		return echoVersion{}, err
 	}
@@ -35,6 +36,25 @@ func newEchoVersion(raw string) (echoVersion, error) {
 		}
 	}
 	return echoVersion{semVer: semVer, build: build}, nil
+}
+
+func normalizeEchoVersion(raw string) string {
+	normalized := raw
+	if len(normalized) > 2 &&
+		strings.HasPrefix(normalized, "go") &&
+		normalized[2] >= '0' &&
+		normalized[2] <= '9' {
+		normalized = strings.TrimPrefix(normalized, "go")
+	}
+
+	// Go build info can contain multiple '+' separators (for example
+	// "+incompatible+echo.1"). Normalize subsequent separators into legal
+	// SemVer metadata fields, matching the native Go comparator.
+	before, after, found := strings.Cut(normalized, "+")
+	if found {
+		normalized = before + "+" + strings.ReplaceAll(after, "+", ".")
+	}
+	return normalized
 }
 
 func (v echoVersion) Compare(other *Version) (int, error) {

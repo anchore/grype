@@ -5,16 +5,17 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
+	internalecho "github.com/anchore/grype/grype/internal/echo"
 	"github.com/anchore/syft/syft/pkg"
 )
 
-// TestEchoTransform exercises the echo strategy against the three language
-// ecosystems Echo publishes: PyPI, npm, and Maven. Echo ships patched builds of
-// upstream packages with a "+echo.N" suffix; each record is emitted as a single
-// UnaffectedPackageHandle (NAK) keyed by the UPSTREAM package name, with NO
-// qualifier — the "+echo.N" version range scopes it on its own.
+// TestEchoTransform exercises the Echo language ecosystems supported by the
+// strategy: PyPI, npm, Maven, and Go. Echo-patched builds use a "+echo.N"
+// suffix; each record is emitted as a single UnaffectedPackageHandle (NAK)
+// keyed by an internal Echo name and guarded by the Echo qualifier.
 func TestEchoTransform(t *testing.T) {
 	tests := []struct {
 		name               string
@@ -49,6 +50,14 @@ func TestEchoTransform(t *testing.T) {
 			expectedCVE:        "CVE-2024-22259",
 			expectedFixVersion: "5.3.32+echo.1",
 		},
+		{
+			name:               "Echo Go module",
+			fixturePath:        "testdata/ECHO-go-0001.json",
+			pkgType:            pkg.GoModulePkg,
+			expectedPkgName:    "golang.org/x/net",
+			expectedCVE:        "CVE-2026-46600",
+			expectedFixVersion: "v0.55.0+echo.1",
+		},
 	}
 
 	for _, testToRun := range tests {
@@ -77,7 +86,7 @@ func TestEchoTransform(t *testing.T) {
 			require.True(tt, ok, "related entry must be UnaffectedPackageHandle (NAK), not AffectedPackageHandle")
 
 			require.NotNil(tt, uph.Package)
-			require.Equal(tt, test.expectedPkgName, uph.Package.Name, "echo keeps the upstream package name (no prefix)")
+			require.Equal(tt, internalecho.PackageName(test.expectedPkgName), uph.Package.Name)
 			require.Equal(tt, test.pkgType.String(), uph.Package.Ecosystem)
 			require.Nil(tt, uph.OperatingSystem, "language packages carry no OS metadata")
 
@@ -96,4 +105,126 @@ func TestEchoTransform(t *testing.T) {
 			require.Contains(tt, constraint, test.expectedFixVersion)
 		})
 	}
+}
+
+func TestEchoUnaffectedPackages_RejectsUnsafeRanges(t *testing.T) {
+	tests := []struct {
+		name string
+		edit func(*osvmodel.Vulnerability)
+		want int
+	}{
+		{
+			name: "supported ecosystem range",
+			edit: func(*osvmodel.Vulnerability) {},
+			want: 1,
+		},
+		{
+			name: "supported semver range is stored as ecosystem",
+			edit: func(v *osvmodel.Vulnerability) {
+				v.Affected[0].Ranges[0].Type = osvmodel.RangeSemVer
+			},
+			want: 1,
+		},
+		{
+			name: "missing range",
+			edit: func(v *osvmodel.Vulnerability) {
+				v.Affected[0].Ranges = nil
+			},
+		},
+		{
+			name: "missing fix",
+			edit: func(v *osvmodel.Vulnerability) {
+				v.Affected[0].Ranges[0].Events = v.Affected[0].Ranges[0].Events[:1]
+			},
+		},
+		{
+			name: "explicit versions list",
+			edit: func(v *osvmodel.Vulnerability) {
+				v.Affected[0].Versions = []string{"v0.55.0+echo.1"}
+			},
+		},
+		{
+			name: "fixed version must be an Echo build",
+			edit: func(v *osvmodel.Vulnerability) {
+				v.Affected[0].Ranges[0].Events[1].Fixed = "v0.55.0"
+			},
+		},
+		{
+			name: "fixed version cannot contain a constraint",
+			edit: func(v *osvmodel.Vulnerability) {
+				v.Affected[0].Ranges[0].Events[1].Fixed = "v0.55.0 || >=0+echo.1"
+			},
+		},
+		{
+			name: "last affected is not a safe open ended NAK",
+			edit: func(v *osvmodel.Vulnerability) {
+				v.Affected[0].Ranges[0].Events[1] = osvmodel.Event{LastAffected: "v0.55.0"}
+			},
+		},
+		{
+			name: "reintroduced vulnerability window",
+			edit: func(v *osvmodel.Vulnerability) {
+				v.Affected[0].Ranges[0].Events = append(
+					v.Affected[0].Ranges[0].Events,
+					osvmodel.Event{Introduced: "v0.55.1"},
+				)
+			},
+		},
+		{
+			name: "multiple ranges",
+			edit: func(v *osvmodel.Vulnerability) {
+				v.Affected[0].Ranges = append(v.Affected[0].Ranges, v.Affected[0].Ranges[0])
+			},
+		},
+		{
+			name: "duplicate package entries",
+			edit: func(v *osvmodel.Vulnerability) {
+				v.Affected = append(v.Affected, v.Affected[0])
+			},
+		},
+		{
+			name: "git range",
+			edit: func(v *osvmodel.Vulnerability) {
+				v.Affected[0].Ranges[0].Type = osvmodel.RangeGit
+			},
+		},
+		{
+			name: "noncanonical Maven name",
+			edit: func(v *osvmodel.Vulnerability) {
+				v.Affected[0].Package.Ecosystem = "Echo:Maven"
+				v.Affected[0].Package.Name = "artifact"
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vulns := loadFixture(t, "testdata/ECHO-go-0001.json")
+			require.Len(t, vulns, 1)
+			vuln := &vulns[0]
+			tt.edit(vuln)
+
+			got := echoUnaffectedPackages(*vuln, vuln.Aliases)
+			require.Len(t, got, tt.want)
+			if tt.want > 0 {
+				require.Len(t, got[0].BlobValue.Ranges, 1)
+				require.Equal(t, "ecosystem", got[0].BlobValue.Ranges[0].Version.Type)
+			}
+		})
+	}
+}
+
+func TestEchoPackage_EncodesNamesThatStartWithEcho(t *testing.T) {
+	got := echoPackage(osvmodel.Package{
+		Ecosystem: "Echo:Maven",
+		Name:      "echo:artifact",
+	}, pkg.JavaPkg)
+
+	require.NotNil(t, got)
+	require.Equal(t, "echo:echo:artifact", got.Name)
+
+	require.Nil(t, echoPackage(osvmodel.Package{
+		Ecosystem: "Echo:Maven",
+		Name:      "artifact",
+	}, pkg.JavaPkg))
 }

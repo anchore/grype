@@ -18,6 +18,14 @@ func TestEchoVersion_Compare(t *testing.T) {
 		{"3.1.9+echo.2", "3.1.9+echo.1", 1},
 		{"3.1.9+echo.10", "3.1.9+echo.2", 1},
 		{"3.1.9+echo.1", "3.1.9+echo.1", 0},
+		// Go module versions carry the leading "v".
+		{"v0.55.0+echo.1", "v0.55.0", 1},
+		{"v0.55.0+echo.2", "v0.55.0+echo.1", 1},
+		{"v0.55.0+echo.1", "v0.56.0", -1},
+		// Go stdlib/toolchain versions use the "go" prefix.
+		{"go1.24.1+echo.1", "go1.24.1", 1},
+		{"go1.24.1+echo.2", "go1.24.1+echo.1", 1},
+		{"go1.24.1+incompatible+echo.1", "go1.24.1+incompatible", 1},
 		// base SemVer ordering is untouched
 		{"3.1.10", "3.1.9+echo.99", 1},
 		{"3.1.9+echo.1", "3.1.10", -1},
@@ -28,6 +36,8 @@ func TestEchoVersion_Compare(t *testing.T) {
 		// non-echo versions behave exactly like the semantic comparator
 		{"2.0.0", "1.9.9", 1},
 		{"1.0.0", "1.0.0", 0},
+		{"1.0.0+echo.1.extra", "1.0.0", 0},
+		{"1.0.0+build.echo.1", "1.0.0", 0},
 	}
 
 	for _, tt := range tests {
@@ -56,6 +66,11 @@ func TestEchoConstraint_Satisfied(t *testing.T) {
 		{"3.1.9+echo.10", ">= 3.1.9+echo.2", true},
 		{"3.1.10+echo.1", ">= 3.1.9+echo.2", true},
 		{"3.1.9", ">= 3.1.9+echo.1", false},
+		// Go module versions use the same ordering with a leading "v".
+		{"v0.55.0+echo.1", ">= v0.55.0+echo.2", false},
+		{"v0.55.0+echo.2", ">= v0.55.0+echo.2", true},
+		{"go1.24.1+echo.1", ">= go1.24.1+echo.1", true},
+		{"go1.24.1", ">= go1.24.1+echo.1", false},
 		// prerelease echo builds
 		{"19.0.0-next.3+echo.1", ">= 19.0.0-next.3+echo.2", false},
 		{"19.0.0-next.3+echo.2", ">= 19.0.0-next.3+echo.2", true},

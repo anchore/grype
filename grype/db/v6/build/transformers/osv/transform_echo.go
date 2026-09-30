@@ -1,7 +1,6 @@
 package osv
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 
@@ -13,15 +12,18 @@ import (
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
 	"github.com/anchore/grype/grype/db/v6/name"
+	internalecho "github.com/anchore/grype/grype/internal/echo"
+	grypePkg "github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/pkg"
 )
 
-// echoStrategy handles ECHO-* records from Echo's OSV feed. Echo ships patched
-// builds of upstream language packages (PyPI/npm/Maven) identified by a
-// "+echo.N" version suffix. These records are *advisories* (NAK semantics):
-// they describe the version range carrying Echo's fix so the upstream disclosure
-// is suppressed on the patched build.
+// echoStrategy handles ECHO-* records from Echo's OSV feed for patched
+// language packages (PyPI/npm/Maven/Go) identified by a "+echo.N" version
+// suffix. These records are *advisories* (NAK semantics): they describe the
+// version range carrying Echo's fix so the upstream disclosure is suppressed
+// on the patched build.
 type echoStrategy struct{}
 
 func (echoStrategy) Matches(id string) bool {
@@ -29,35 +31,16 @@ func (echoStrategy) Matches(id string) bool {
 }
 
 func (echoStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
-	severities, err := getSeverities(vuln)
-	if err != nil {
-		return nil, fmt.Errorf("unable to obtain severities: %w", err)
-	}
-
 	// Echo records may carry the upstream CVE in either `aliases` or `related`;
 	// merge both so the full CVE set rides on the vulnerability blob and on each
 	// unaffected package handle (lets the language matcher cross-reference the
 	// Echo NAK to the upstream GHSA/NVD disclosure for the same CVE).
-	aliases := append([]string{}, vuln.Aliases...)
-	aliases = append(aliases, vuln.Related...)
-
-	in := []any{
-		db.VulnerabilityHandle{
-			Name:          vuln.ID,
-			ProviderID:    state.Provider,
-			Provider:      provider.Model(state),
-			Status:        db.VulnerabilityActive,
-			ModifiedDate:  &vuln.Modified,
-			PublishedDate: &vuln.Published,
-			BlobValue: &db.VulnerabilityBlob{
-				ID:          vuln.ID,
-				Description: vuln.Details,
-				References:  echoReferences(vuln),
-				Aliases:     aliases,
-				Severities:  severities,
-			},
-		},
+	handle, aliases, err := newAdvisoryVulnerabilityHandle(vuln, state, echoReferences(vuln))
+	if err != nil {
+		return nil, err
 	}
+
+	in := []any{handle}
 
 	for _, uph := range echoUnaffectedPackages(vuln, aliases) {
 		in = append(in, uph)
@@ -87,6 +70,7 @@ func echoUnaffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string) [
 	}
 	echoOnly := true
 	var uphs []db.UnaffectedPackageHandle
+	duplicatePackages := duplicateEchoPackageKeys(vuln.Affected)
 	for _, affected := range vuln.Affected {
 		ecosystem := affected.Package.Ecosystem
 		pkgType := echoPackageType(ecosystem)
@@ -100,22 +84,38 @@ func echoUnaffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string) [
 			continue
 		}
 
-		var ranges []db.Range
-		for _, r := range affected.Ranges {
-			ranges = append(ranges, getGrypeUnaffectedRangesFromRange(r, defaultRangeType(r.Type))...)
+		echoPkg := echoPackage(affected.Package, pkgType)
+		if echoPkg == nil {
+			log.WithFields("id", vuln.ID, "ecosystem", ecosystem, "package", affected.Package.Name).
+				Warn("echo record uses an invalid package name; skipping package")
+			continue
+		}
+		if _, duplicate := duplicatePackages[echoPackageKey(echoPkg)]; duplicate {
+			log.WithFields("id", vuln.ID, "ecosystem", ecosystem, "package", affected.Package.Name).
+				Warn("echo record repeats a package in multiple affected entries; skipping package")
+			continue
+		}
+
+		ranges, ok := echoUnaffectedRanges(affected, pkgType)
+		if !ok {
+			// An unbounded NAK with no fix would match every version, while
+			// flattening multiple vulnerability windows into open-ended ranges
+			// could suppress a later reintroduced vulnerability. Echo records
+			// currently use one introduced-at-zero/fixed window; reject other
+			// shapes until their complements can be represented safely.
+			log.WithFields("id", vuln.ID, "ecosystem", ecosystem, "package", affected.Package.Name).
+				Warn("echo record uses an unsupported affected range; skipping package")
+			continue
 		}
 
 		uphs = append(uphs, db.UnaffectedPackageHandle{
-			Package: echoPackage(affected.Package, pkgType),
+			Package: echoPkg,
 			BlobValue: &db.PackageBlob{
 				CVEs:   aliases,
 				Ranges: ranges,
-				// Gate the NAK to actual Echo builds: the unaffected range is
-				// open-ended (">= X+echo.1"), which on an upstream-named package
-				// would otherwise leak onto plain higher versions (e.g. a plain
-				// "26.1" that is still vulnerable upstream). The echo runtime
-				// qualifier requires the scanned package to carry the "+echo.N"
-				// suffix, so non-Echo packages don't match this NAK.
+				// Defense in depth: the internal echo-prefixed package key keeps
+				// this NAK invisible to old clients, while the runtime qualifier
+				// independently requires a scanned "+echo.N" build.
 				Qualifiers: &db.PackageQualifiers{Echo: &echoOnly},
 			},
 		})
@@ -124,10 +124,88 @@ func echoUnaffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string) [
 	return uphs
 }
 
+func duplicateEchoPackageKeys(affectedEntries []osvmodel.Affected) map[string]struct{} {
+	counts := make(map[string]int)
+	for _, affected := range affectedEntries {
+		pkgType := echoPackageType(affected.Package.Ecosystem)
+		if pkgType == "" {
+			continue
+		}
+		echoPkg := echoPackage(affected.Package, pkgType)
+		if echoPkg != nil {
+			counts[echoPackageKey(echoPkg)]++
+		}
+	}
+
+	duplicates := make(map[string]struct{})
+	for key, count := range counts {
+		if count > 1 {
+			duplicates[key] = struct{}{}
+		}
+	}
+	return duplicates
+}
+
+func echoPackageKey(p *db.Package) string {
+	return strings.ToLower(p.Ecosystem + "\x00" + p.Name)
+}
+
+func echoUnaffectedRanges(affected osvmodel.Affected, pkgType pkg.Type) ([]db.Range, bool) {
+	if len(affected.Versions) != 0 {
+		return nil, false
+	}
+	if len(affected.Ranges) != 1 {
+		return nil, false
+	}
+
+	r := affected.Ranges[0]
+	if r.Type != osvmodel.RangeEcosystem && r.Type != osvmodel.RangeSemVer {
+		return nil, false
+	}
+	if len(r.Events) != 2 {
+		return nil, false
+	}
+
+	introduced, fixed := r.Events[0], r.Events[1]
+	if introduced.Introduced != "0" ||
+		introduced.Fixed != "" ||
+		introduced.LastAffected != "" ||
+		introduced.Limit != "" {
+		return nil, false
+	}
+	if fixed.Fixed == "" ||
+		fixed.Introduced != "" ||
+		fixed.LastAffected != "" ||
+		fixed.Limit != "" ||
+		!validEchoFixedVersion(fixed.Fixed, pkgType) {
+		return nil, false
+	}
+
+	// Keep the stored constraint format unknown so it is evaluated using the
+	// scanned package's ecosystem. npm and Go Echo builds then select the
+	// Echo-aware comparator, while Python and Maven retain native semantics.
+	ranges := getGrypeUnaffectedRangesFromRange(r, "ecosystem")
+	return ranges, len(ranges) == 1
+}
+
+func validEchoFixedVersion(raw string, pkgType pkg.Type) bool {
+	if !internalecho.IsBuild(raw) ||
+		strings.TrimSpace(raw) != raw ||
+		strings.ContainsAny(raw, " \t\r\n<>=|,&()") {
+		return false
+	}
+
+	format := grypePkg.VersionFormat(grypePkg.Package{Version: raw, Type: pkgType})
+	if pkgType == pkg.NpmPkg || pkgType == pkg.GoModulePkg {
+		format = version.EchoFormat
+	}
+	return version.New(raw, format).Validate() == nil
+}
+
 // echoPackageType resolves the grype package type from the OSV ecosystem
 // string. Every Echo language ecosystem is prefixed "Echo:":
 //
-//	"Echo:PyPi", "Echo:npm", "Echo:Maven"
+//	"Echo:PyPi", "Echo:npm", "Echo:Maven", "Echo:Go"
 //
 // OS-level "Echo" entries (no language suffix) and any unrecognized ecosystem
 // return "" and are skipped by the caller. The suffix match is case-insensitive
@@ -144,16 +222,32 @@ func echoPackageType(ecosystem string) pkg.Type {
 		return pkg.NpmPkg
 	case "maven", "java":
 		return pkg.JavaPkg
+	case "go", "golang":
+		return pkg.GoModulePkg
 	}
 	return ""
 }
 
-// echoPackage builds the db.Package, keeping the upstream package name verbatim
-// from the OSV record. Ecosystem is canonicalized to the grype package-type string
-// and the name is normalized per package type (e.g. PEP 503 for PythonPkg).
+// echoPackage builds the db.Package with an internal echo-prefixed key. New
+// clients add that key only when scanning a "+echo.N" package; old clients
+// search only the upstream name and therefore cannot misapply the NAK after
+// silently discarding the unknown Echo qualifier. The upstream name is first
+// normalized per package type (e.g. PEP 503 for PythonPkg). Invalid names,
+// including Maven names without the required group:artifact shape, return nil.
 func echoPackage(p osvmodel.Package, pkgType pkg.Type) *db.Package {
+	if p.Name == "" {
+		return nil
+	}
+	if pkgType == pkg.JavaPkg {
+		group, artifact, ok := strings.Cut(p.Name, ":")
+		if !ok || group == "" || artifact == "" || strings.Contains(artifact, ":") {
+			return nil
+		}
+	}
+
+	normalized := name.Normalize(p.Name, pkgType)
 	return &db.Package{
 		Ecosystem: pkgType.String(),
-		Name:      name.Normalize(p.Name, pkgType),
+		Name:      internalecho.PackageName(normalized),
 	}
 }

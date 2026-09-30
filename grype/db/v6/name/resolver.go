@@ -3,6 +3,7 @@ package name
 import (
 	"slices"
 
+	"github.com/anchore/grype/grype/internal/echo"
 	"github.com/anchore/grype/grype/internal/rootio"
 	grypePkg "github.com/anchore/grype/grype/pkg"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -29,7 +30,9 @@ func FromType(t syftPkg.Type) Resolver {
 // Java) provide alternate canonical forms (PEP 503 normalization, Maven
 // group+artifact splits); rootio packages additionally fan out across both
 // naming directions so the matcher reaches every record relevant to a rootio
-// build regardless of which naming model the SBOM uses:
+// build regardless of which naming model the SBOM uses. Echo builds similarly
+// add an internal prefixed key so new clients can find Echo NAKs while older
+// clients cannot apply them without understanding the Echo qualifier.
 //
 //   - prefixed → bare: a scan against `rootio-libssl3` reaches the upstream
 //     `libssl3` disclosure in the distro namespace.
@@ -52,6 +55,9 @@ func PackageNames(p grypePkg.Package) []string {
 	}
 	if rootio.IsPackage(p.Name, p.Version, p.Type, javaGroupID(p)) {
 		names = appendRootIONameVariants(names, p.Type)
+	}
+	if echo.IsBuild(p.Version) {
+		names = appendEchoNameVariants(names)
 	}
 	return names
 }
@@ -94,6 +100,17 @@ func appendRootIONameVariants(names []string, t syftPkg.Type) []string {
 	for _, n := range names {
 		add(rootio.StripPrefix(n, t))
 		add(rootio.AddPrefix(n, t))
+	}
+	return out
+}
+
+func appendEchoNameVariants(names []string) []string {
+	out := slices.Clone(names)
+	for _, n := range names {
+		candidate := echo.PackageName(n)
+		if candidate != "" && !slices.Contains(out, candidate) {
+			out = append(out, candidate)
+		}
 	}
 	return out
 }

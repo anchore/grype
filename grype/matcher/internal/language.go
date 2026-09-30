@@ -16,15 +16,16 @@ import (
 
 // unaffectedVersionCriteria returns the version criteria used to evaluate
 // unaffected (NAK) records. Echo-patched builds of SemVer-versioned packages
-// (e.g. npm) need the echo-aware format: SemVer excludes the "+echo.N" build
-// number from precedence, so under the default format a NAK fixed at
-// "+echo.2" would also suppress the still-vulnerable "+echo.1" build.
+// (npm and Go modules) need the echo-aware format: SemVer excludes the
+// "+echo.N" build number from precedence, so under the default format a NAK
+// fixed at "+echo.2" would also suppress the still-vulnerable "+echo.1" build.
 // Disclosures intentionally keep the default format — upstream advisories are
 // written against upstream versions and must keep treating "X+echo.N" as "X"
 // (e.g. an unfixed "<= X" advisory must still apply to X+echo.N).
 func unaffectedVersionCriteria(p pkg.Package, defaultCriteria vulnerability.Criteria) vulnerability.Criteria {
 	format := pkg.VersionFormat(p)
-	if (format == version.UnknownFormat || format == version.SemanticFormat) && echo.IsEchoBuild(p.Version) {
+	if (format == version.UnknownFormat || format == version.SemanticFormat || format == version.GolangFormat) &&
+		echo.IsEchoBuild(p.Version) {
 		return OnlyVulnerableVersions(version.New(p.Version, version.EchoFormat))
 	}
 	return defaultCriteria
