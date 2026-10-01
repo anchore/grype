@@ -131,7 +131,7 @@ func TestChainguardTransform(t *testing.T) {
 						OperatingSystem: chainguardOS(),
 						Package: &db.Package{
 							Name:      "syncthing",
-							Ecosystem: "Chainguard",
+							Ecosystem: "apk",
 						},
 						BlobValue: &db.PackageBlob{
 							CVEs: []string{"CVE-2025-68121", "GHSA-qgxr-kfqx-v5q9"},
@@ -154,7 +154,7 @@ func TestChainguardTransform(t *testing.T) {
 						OperatingSystem: wolfiOS(),
 						Package: &db.Package{
 							Name:      "syncthing",
-							Ecosystem: "Wolfi",
+							Ecosystem: "apk",
 						},
 						BlobValue: &db.PackageBlob{
 							CVEs: []string{"CVE-2025-68121", "GHSA-qgxr-kfqx-v5q9"},
@@ -177,7 +177,7 @@ func TestChainguardTransform(t *testing.T) {
 						OperatingSystem: chainguardOS(),
 						Package: &db.Package{
 							Name:      "syncthing-compat",
-							Ecosystem: "Chainguard",
+							Ecosystem: "apk",
 						},
 						BlobValue: &db.PackageBlob{
 							CVEs: []string{"CVE-2025-68121", "GHSA-qgxr-kfqx-v5q9"},
@@ -200,7 +200,7 @@ func TestChainguardTransform(t *testing.T) {
 						OperatingSystem: chainguardOS(),
 						Package: &db.Package{
 							Name:      "syncthing-fips",
-							Ecosystem: "Chainguard",
+							Ecosystem: "apk",
 						},
 						BlobValue: &db.PackageBlob{
 							CVEs: []string{"CVE-2025-68121", "GHSA-qgxr-kfqx-v5q9"},
@@ -258,7 +258,7 @@ func TestChainguardTransform(t *testing.T) {
 						OperatingSystem: chainguardOS(),
 						Package: &db.Package{
 							Name:      "langfuse-3-worker",
-							Ecosystem: "Chainguard",
+							Ecosystem: "apk",
 						},
 						BlobValue: &db.PackageBlob{
 							CVEs: []string{"CVE-2026-24398", "GHSA-r354-f388-2fhh"},
@@ -281,7 +281,7 @@ func TestChainguardTransform(t *testing.T) {
 						OperatingSystem: wolfiOS(),
 						Package: &db.Package{
 							Name:      "langfuse-3-worker",
-							Ecosystem: "Wolfi",
+							Ecosystem: "apk",
 						},
 						BlobValue: &db.PackageBlob{
 							CVEs: []string{"CVE-2026-24398", "GHSA-r354-f388-2fhh"},
@@ -304,7 +304,7 @@ func TestChainguardTransform(t *testing.T) {
 						OperatingSystem: chainguardOS(),
 						Package: &db.Package{
 							Name:      "langfuse-fips-3-worker",
-							Ecosystem: "Chainguard",
+							Ecosystem: "apk",
 						},
 						BlobValue: &db.PackageBlob{
 							CVEs: []string{"CVE-2026-24398", "GHSA-r354-f388-2fhh"},
@@ -367,7 +367,7 @@ func TestChainguardTransform(t *testing.T) {
 						OperatingSystem: chainguardOS(),
 						Package: &db.Package{
 							Name:      "haproxy-2.2",
-							Ecosystem: "Chainguard",
+							Ecosystem: "apk",
 						},
 						BlobValue: &db.PackageBlob{
 							CVEs: []string{"CVE-2025-32464", "GHSA-frg5-h47x-75j9"},
@@ -390,7 +390,7 @@ func TestChainguardTransform(t *testing.T) {
 						OperatingSystem: chainguardOS(),
 						Package: &db.Package{
 							Name:      "haproxy-2.8",
-							Ecosystem: "Chainguard",
+							Ecosystem: "apk",
 						},
 						BlobValue: &db.PackageBlob{
 							CVEs: []string{"CVE-2025-32464", "GHSA-frg5-h47x-75j9"},
@@ -413,7 +413,7 @@ func TestChainguardTransform(t *testing.T) {
 						OperatingSystem: wolfiOS(),
 						Package: &db.Package{
 							Name:      "haproxy-3.0",
-							Ecosystem: "Wolfi",
+							Ecosystem: "apk",
 						},
 						BlobValue: &db.PackageBlob{
 							CVEs: []string{"CVE-2025-32464", "GHSA-frg5-h47x-75j9"},
@@ -436,7 +436,7 @@ func TestChainguardTransform(t *testing.T) {
 						OperatingSystem: wolfiOS(),
 						Package: &db.Package{
 							Name:      "haproxy-3.1",
-							Ecosystem: "Wolfi",
+							Ecosystem: "apk",
 						},
 						BlobValue: &db.PackageBlob{
 							CVEs: []string{"CVE-2025-32464", "GHSA-frg5-h47x-75j9"},
@@ -478,7 +478,7 @@ func TestChainguardTransform_UpstreamToAliases(t *testing.T) {
 	vuln.Affected = []osvmodel.Affected{
 		{
 			Package: osvmodel.Package{
-				Ecosystem: "Chainguard",
+				Ecosystem: "apk",
 				Name:      "demo",
 				Purl:      "pkg:apk/chainguard/demo?arch=x86_64",
 			},
