@@ -55,6 +55,31 @@ assertFileExists() {
   fi
 }
 
+assertContains() {
+  haystack=$1
+  needle=$2
+  msg=$3
+  case "$haystack" in
+    *"$needle"*) ;;
+    *)
+      echo "assertContains failed: '$needle' not found in '$haystack' $msg"
+      exit 2
+      ;;
+  esac
+}
+
+assertNotContains() {
+  haystack=$1
+  needle=$2
+  msg=$3
+  case "$haystack" in
+    *"$needle"*)
+      echo "assertNotContains failed: '$needle' found in '$haystack' $msg"
+      exit 2
+      ;;
+  esac
+}
+
 assertFilesEqual() {
   want=$1
   got=$2
