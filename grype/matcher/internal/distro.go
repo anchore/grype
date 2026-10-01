@@ -119,5 +119,5 @@ func matchPackage(searchPkg pkg.Package, target *pkg.Package) pkg.Package {
 }
 
 func IsUnknownVersion(v string) bool {
-	return strings.ToLower(v) == "unknown"
+	return v == "" || strings.EqualFold(v, "unknown")
 }

@@ -218,7 +218,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 			},
 		},
 		{
-			name: "return all possible matches when missing version",
+			name: "unknown version should return no matches",
 			p: pkg.Package{
 				CPEs: []cpe.CPE{
 					cpe.Must("cpe:2.3:*:activerecord:activerecord:*:rando1:*:ra:*:ruby:*:*", ""),
@@ -229,123 +229,7 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 				Language: syftPkg.Ruby,
 				Type:     syftPkg.GemPkg,
 			},
-			expected: []match.Match{
-				{
-
-					Vulnerability: vulnerability.Vulnerability{
-						Reference: vulnerability.Reference{ID: "CVE-2017-fake-1"},
-					},
-					Package: pkg.Package{
-						CPEs: []cpe.CPE{
-							cpe.Must("cpe:2.3:*:activerecord:activerecord:*:rando1:*:ra:*:ruby:*:*", ""),
-							cpe.Must("cpe:2.3:*:activerecord:activerecord:*:rando4:*:re:*:rails:*:*", ""),
-						},
-						Name:     "activerecord",
-						Version:  "", // important!
-						Language: syftPkg.Ruby,
-						Type:     syftPkg.GemPkg,
-					},
-
-					Details: []match.Detail{
-						{
-							Type:       match.CPEMatch,
-							Confidence: 0.9,
-							SearchedBy: match.CPEParameters{
-								CPEs: []string{
-									"cpe:2.3:*:activerecord:activerecord:*:rando4:*:re:*:rails:*:*", //important!
-								},
-								Namespace: "nvd:cpe",
-								Package: match.PackageParameter{
-									Name:    "activerecord",
-									Version: "", // important!
-								},
-							},
-							Found: match.CPEResult{
-								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
-								VersionConstraint: "< 3.7.6 (gem)",
-								VulnerabilityID:   "CVE-2017-fake-1",
-							},
-							Matcher: matcher,
-						},
-					},
-				},
-				{
-
-					Vulnerability: vulnerability.Vulnerability{
-						Reference: vulnerability.Reference{ID: "CVE-2017-fake-2"},
-					},
-					Package: pkg.Package{
-						CPEs: []cpe.CPE{
-							cpe.Must("cpe:2.3:*:activerecord:activerecord:*:rando1:*:ra:*:ruby:*:*", ""),
-							cpe.Must("cpe:2.3:*:activerecord:activerecord:*:rando4:*:re:*:rails:*:*", ""),
-						},
-						Name:     "activerecord",
-						Version:  "", // important!
-						Language: syftPkg.Ruby,
-						Type:     syftPkg.GemPkg,
-					},
-
-					Details: []match.Detail{
-						{
-							Type:       match.CPEMatch,
-							Confidence: 0.9,
-							SearchedBy: match.CPEParameters{
-								CPEs:      []string{"cpe:2.3:*:activerecord:activerecord:*:rando1:*:ra:*:ruby:*:*"}, //important!
-								Namespace: "nvd:cpe",
-								Package: match.PackageParameter{
-									Name:    "activerecord",
-									Version: "", // important!
-								},
-							},
-							Found: match.CPEResult{
-								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:ruby:*:*"},
-								VersionConstraint: "< 3.7.4 (gem)",
-								VulnerabilityID:   "CVE-2017-fake-2",
-							},
-							Matcher: matcher,
-						},
-					},
-				},
-				{
-
-					Vulnerability: vulnerability.Vulnerability{
-						Reference: vulnerability.Reference{ID: "CVE-2017-fake-3"},
-					},
-					Package: pkg.Package{
-						CPEs: []cpe.CPE{
-							cpe.Must("cpe:2.3:*:activerecord:activerecord:*:rando1:*:ra:*:ruby:*:*", ""),
-							cpe.Must("cpe:2.3:*:activerecord:activerecord:*:rando4:*:re:*:rails:*:*", ""),
-						},
-						Name:     "activerecord",
-						Version:  "", // important!
-						Language: syftPkg.Ruby,
-						Type:     syftPkg.GemPkg,
-					},
-					Details: []match.Detail{
-						{
-							Type:       match.CPEMatch,
-							Confidence: 0.9,
-							SearchedBy: match.CPEParameters{
-								CPEs: []string{
-									"cpe:2.3:*:activerecord:activerecord:*:rando1:*:ra:*:ruby:*:*",  //important!
-									"cpe:2.3:*:activerecord:activerecord:*:rando4:*:re:*:rails:*:*", //important!
-								},
-								Namespace: "nvd:cpe",
-								Package: match.PackageParameter{
-									Name:    "activerecord",
-									Version: "", // important!
-								},
-							},
-							Found: match.CPEResult{
-								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:4.0.1:*:*:*:*:*:*:*"},
-								VersionConstraint: "= 4.0.1 (gem)",
-								VulnerabilityID:   "CVE-2017-fake-3",
-							},
-							Matcher: matcher,
-						},
-					},
-				},
-			},
+			expected: []match.Match{},
 		},
 		{
 			name: "suppress matching when version is unknown",
