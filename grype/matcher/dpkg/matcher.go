@@ -21,6 +21,7 @@ type Matcher struct {
 type MatcherConfig struct {
 	MissingEpochStrategy version.MissingEpochStrategy
 	UseCPEsForEOL        bool
+	UseCPEs              bool
 }
 
 func NewDpkgMatcher(cfg MatcherConfig) *Matcher {
@@ -63,15 +64,20 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 		ignores = append(ignores, exactIgnores...)
 	}
 
-	// if configured, also search by CPEs for packages from EOL distros
-	if m.cfg.UseCPEsForEOL && internal.IsDistroEOL(store, p.Distro) {
+	// if configured, also search by CPEs, either for every package or only for packages from EOL distros
+	searchByCPE := m.cfg.UseCPEs
+	if !searchByCPE && m.cfg.UseCPEsForEOL && internal.IsDistroEOL(store, p.Distro) {
 		log.WithFields("package", p.Name, "distro", p.Distro).Debug("distro is EOL, searching by CPEs")
+		searchByCPE = true
+	}
+
+	if searchByCPE {
 		cpeMatches, ignored, err := internal.MatchPackageByCPEs(store, p, m.Type())
 		switch {
 		case errors.Is(err, internal.ErrEmptyCPEMatch):
-			log.WithFields("package", p.Name).Debug("package has no CPEs for EOL fallback matching")
+			log.WithFields("package", p.Name).Debug("package has no CPEs to match by")
 		case err != nil:
-			log.WithFields("package", p.Name, "error", err).Debug("failed to match by CPEs for EOL distro")
+			log.WithFields("package", p.Name, "error", err).Debug("failed to match by CPEs")
 		default:
 			matches = append(matches, cpeMatches...)
 			ignores = append(ignores, ignored...)

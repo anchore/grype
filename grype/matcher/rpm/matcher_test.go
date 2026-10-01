@@ -526,3 +526,52 @@ func TestMatcherRpm_CPEFallbackWhenEOL_DistroNotEOL_FlagDisabled(t *testing.T) {
 		db.Match(t, matcher, p).IsEmpty()
 	})
 }
+
+func TestMatcherRpm_CPEMatchingWhenEnabled(t *testing.T) {
+	// RHEL 9 is not EOL in the fixture and has no rhel:9 disclosure for openssl, only NVD does
+	p := dbtest.NewPackage("openssl", "1.1.0a", syftPkg.RpmPkg). // vulnerable
+									WithArchitecture("x86_64").
+									WithDistro(dbtest.RHEL9).
+									WithCPE("cpe:2.3:a:openssl:openssl:1.1.0a:*:*:*:*:*:*:*").
+									Build()
+
+	tests := []struct {
+		name             string
+		useCPEs          bool
+		expectCPEMatches bool
+	}{
+		{
+			name:             "CPE matching enabled and distro is not EOL",
+			useCPEs:          true,
+			expectCPEMatches: true,
+		},
+		{
+			name:             "CPE matching disabled and distro is not EOL",
+			useCPEs:          false,
+			expectCPEMatches: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dbtest.DBs(t, "eol-rhel7").Run(func(t *testing.T, db *dbtest.DB) {
+				matcher := NewRpmMatcher(MatcherConfig{
+					UseCPEs: tt.useCPEs,
+				})
+
+				findings := db.Match(t, matcher, p)
+
+				if tt.expectCPEMatches {
+					findings.
+						ContainsVulnerabilities("CVE-2018-0735").
+						SelectMatch("CVE-2018-0735").
+						SelectDetailByType(match.CPEMatch).
+						AsCPESearch().
+						FoundCPEs("cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*")
+				} else {
+					findings.IsEmpty()
+				}
+			})
+		})
+	}
+}

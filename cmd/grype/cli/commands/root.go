@@ -390,10 +390,12 @@ func getMatcherConfig(opts *options.Grype) matcher.Config {
 		Dpkg: dpkg.MatcherConfig{
 			MissingEpochStrategy: opts.Match.Dpkg.MissingEpochStrategy,
 			UseCPEsForEOL:        opts.Match.Dpkg.UseCPEsForEOL,
+			UseCPEs:              opts.Match.Dpkg.UseCPEs,
 		},
 		Rpm: rpm.MatcherConfig{
 			MissingEpochStrategy: opts.Match.Rpm.MissingEpochStrategy,
 			UseCPEsForEOL:        opts.Match.Rpm.UseCPEsForEOL,
+			UseCPEs:              opts.Match.Rpm.UseCPEs,
 		},
 	}
 }

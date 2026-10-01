@@ -34,7 +34,7 @@ CREATE TABLE `packages` (`id` integer PRIMARY KEY AUTOINCREMENT,`ecosystem` text
 
 CREATE TABLE `providers` (`id` text,`version` text,`processor` text,`date_captured` datetime,`input_digest` text,PRIMARY KEY (`id`));
 
-CREATE TABLE `search_rules` (`match_distro_name` text,`match_distro_version` text,`match_ecosystem` text,`match_package_name` text,`exclude_package_name` text,`match_package_version` text,`exclude_package_version` text,`replacement_channel` text,`replacement_distro_name` text,`replacement_package_name` text,`priority` integer,`applicable_client_db_schemas` text);
+CREATE TABLE `ssvc_handles` (`id` integer PRIMARY KEY AUTOINCREMENT,`cve` text NOT NULL,`source` text,`role` text,`version` text,`timestamp` datetime,`exploitation` text,`automatable` text,`technical_impact` text);
 
 CREATE TABLE `unaffected_cpe_handles` (`id` integer PRIMARY KEY AUTOINCREMENT,`vulnerability_id` integer NOT NULL,`cpe_id` integer,`blob_id` integer,CONSTRAINT `fk_unaffected_cpe_handles_cpe` FOREIGN KEY (`cpe_id`) REFERENCES `cpes`(`id`,CONSTRAINT `fk_unaffected_cpe_handles_vulnerability` FOREIGN KEY (`vulnerability_id`) REFERENCES `vulnerability_handles`(`id`);
 
@@ -92,6 +92,8 @@ CREATE INDEX `kev_cve_idx` ON `known_exploited_vulnerability_handles`(`cve` COLL
 CREATE INDEX `os_alias_idx` ON `operating_system_specifier_overrides`(`alias` COLLATE NOCASE);
 
 CREATE INDEX `pkg_ecosystem_idx` ON `package_specifier_overrides`(`ecosystem` COLLATE NOCASE);
+
+CREATE INDEX `ssvc_cve_idx` ON `ssvc_handles`(`cve` COLLATE NOCASE);
 
 CREATE UNIQUE INDEX `idx_cpe` ON `cpes`(`part` COLLATE NOCASE,`vendor` COLLATE NOCASE,`product` COLLATE NOCASE,`edition` COLLATE NOCASE,`language` COLLATE NOCASE,`software_edition` COLLATE NOCASE,`target_hardware` COLLATE NOCASE,`target_software` COLLATE NOCASE,`other` COLLATE NOCASE);
 

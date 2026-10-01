@@ -41,7 +41,7 @@ func NewEntries(models ...any) []data.Entry {
 			entry.VulnerabilityHandle = &m
 		case db.AffectedPackageHandle, db.UnaffectedPackageHandle, db.AffectedCPEHandle,
 			db.UnaffectedCPEHandle, db.KnownExploitedVulnerabilityHandle, db.EpssHandle, db.CWEHandle,
-			db.OperatingSystemEOLHandle, GoVulnDBAffectedPackage:
+			db.SsvcHandle, db.OperatingSystemEOLHandle, GoVulnDBAffectedPackage:
 			entry.Related = append(entry.Related, m)
 		case db.Provider:
 			entry.Provider = &m
