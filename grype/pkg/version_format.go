@@ -29,6 +29,13 @@ func VersionFormat(p Package) version.Format {
 		return version.GolangFormat
 	case syftPkg.AlpmPkg:
 		return version.PacmanFormat
+	// TODO: use syftPkg.CpanPkg once the syft release carrying it is vendored
+	case syftPkg.Type("cpan"):
+		// without this a cpan package falls through to UnknownFormat and the comparison runs
+		// under fuzzy rules, which is where perl versions go wrong: the package side is what
+		// picks the comparator, so `5.22.1` never resolves against a range written `5.022000`
+		// even though the range itself is tagged cpan.
+		return version.CpanFormat
 	}
 
 	if isJvmPackage(p) {

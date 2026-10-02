@@ -1,0 +1,79 @@
+{
+  "identifier": "cpansa-libwww-perl-2001-01",
+  "item": {
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "CPAN",
+          "name": "libwww-perl"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2001-03-14",
+                    "kind": "advisory",
+                    "version": "5.51"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "5.51"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "package": {
+          "ecosystem": "CPAN",
+          "name": "LWP"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2001-03-14",
+                    "kind": "advisory",
+                    "version": "5.51"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "5.51"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      }
+    ],
+    "aliases": [],
+    "database_specific": {
+      "cpansa_commit": "2089ff7201b44e5e462742a5baaa080ba003d257",
+      "cpansa_generated": "Sun Jul 26 06:23:50 2026"
+    },
+    "details": "If LWP::UserAgent::env_proxy is called in a CGI environment, the case-insensitivity when looking for \"http_proxy\" permits \"HTTP_PROXY\" to be found, but this can be trivially set by the web client using the \"Proxy:\" header.",
+    "id": "CPANSA-libwww-perl-2001-01",
+    "modified": "2026-07-26T06:23:50Z",
+    "published": "2001-03-14T00:00:00Z",
+    "references": [],
+    "schema_version": "1.6.1"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.1.json"
+}
