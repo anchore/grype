@@ -71,6 +71,21 @@ func TestIgnoreRuleIndex_PreservesRuleOrder(t *testing.T) {
 	assert.Equal(t, []string{"indexed 0", "unindexed 1", "alias 3", "indexed 4", "unindexed 6", "indexed 0"}, reasons)
 }
 
+func TestIgnoreRuleIndex_LeavesOutRulesThatNeverApply(t *testing.T) {
+	index := newIgnoreRuleIndex([]IgnoreRule{
+		{Vulnerability: "CVE-1", VexStatus: "not_affected"},
+		{VexStatus: "fixed"},
+		{Reason: "no criteria"},
+		{Vulnerability: "CVE-1"},
+		{Package: IgnoreRulePackage{Name: "linux-libc-dev"}},
+	})
+
+	require.Len(t, index.byVulnerabilityID["CVE-1"], 1)
+	assert.Equal(t, 3, index.byVulnerabilityID["CVE-1"][0].position)
+	require.Len(t, index.unindexed, 1)
+	assert.Equal(t, 4, index.unindexed[0].position)
+}
+
 func TestIgnoreRuleIndex_NoRules(t *testing.T) {
 	m := Match{Vulnerability: vulnerability.Vulnerability{Reference: vulnerability.Reference{ID: "CVE-1"}}}
 	assert.Nil(t, newIgnoreRuleIndex(nil).IgnoreMatch(m))

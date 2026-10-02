@@ -7,6 +7,9 @@ package match
 // A rule that names a vulnerability without IncludeAliases can only apply to a match with exactly that
 // vulnerability ID, so those rules are grouped by vulnerability ID and only evaluated against matches with
 // that ID. Every other rule (no vulnerability, or IncludeAliases set) is evaluated against every match.
+//
+// Each rule's conditions are built once, when the index is built, rather than once per match, and rules that
+// can never apply (VEX rules and rules without criteria) are left out.
 type ignoreRuleIndex struct {
 	byVulnerabilityID map[string][]indexedIgnoreRule
 	unindexed         []indexedIgnoreRule
@@ -14,8 +17,9 @@ type ignoreRuleIndex struct {
 
 type indexedIgnoreRule struct {
 	// position is the rule's index in the original list, used to keep applied rules in their original order
-	position int
-	rule     IgnoreRule
+	position   int
+	rule       IgnoreRule
+	conditions []ignoreCondition
 }
 
 var _ IgnoreFilter = (*ignoreRuleIndex)(nil)
@@ -25,7 +29,11 @@ func newIgnoreRuleIndex(rules []IgnoreRule) ignoreRuleIndex {
 		byVulnerabilityID: make(map[string][]indexedIgnoreRule),
 	}
 	for i, rule := range rules {
-		r := indexedIgnoreRule{position: i, rule: rule}
+		conditions := rule.matchConditions()
+		if len(conditions) == 0 {
+			continue
+		}
+		r := indexedIgnoreRule{position: i, rule: rule, conditions: conditions}
 		if rule.Vulnerability != "" && !rule.IncludeAliases {
 			index.byVulnerabilityID[rule.Vulnerability] = append(index.byVulnerabilityID[rule.Vulnerability], r)
 			continue
@@ -49,7 +57,7 @@ func (i ignoreRuleIndex) IgnoreMatch(match Match) []IgnoreRule {
 		} else {
 			next, unindexed = unindexed[0], unindexed[1:]
 		}
-		applied = append(applied, next.rule.IgnoreMatch(match)...)
+		applied = append(applied, next.rule.ignoreMatchWithConditions(match, next.conditions)...)
 	}
 	return applied
 }
