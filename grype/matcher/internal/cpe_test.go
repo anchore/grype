@@ -104,6 +104,24 @@ func newCPETestStore() vulnerability.Provider {
 			Constraint:  version.MustGetConstraint("< 4.7.7", version.UnknownFormat),
 			CPEs:        []cpe.CPE{cpe.Must("cpe:2.3:a:handlebarsjs:handlebars:*:*:*:*:*:node.js:*:*", "")},
 		},
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-9",
+				Namespace: "nvd:cpe",
+			},
+			PackageName: "openssl",
+			Constraint:  version.MustGetConstraint("<= 1.0.1f", version.ApkFormat),
+			CPEs:        []cpe.CPE{cpe.Must("cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*", "")},
+		},
+		{
+			Reference: vulnerability.Reference{
+				ID:        "CVE-2017-fake-10",
+				Namespace: "nvd:cpe",
+			},
+			PackageName: "openssl",
+			Constraint:  version.MustGetConstraint("< 1.0.1f", version.ApkFormat),
+			CPEs:        []cpe.CPE{cpe.Must("cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*", "")},
+		},
 	}...)
 }
 
@@ -210,6 +228,52 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 								CPEs:              []string{"cpe:2.3:*:activerecord:activerecord:*:*:*:*:*:rails:*:*"},
 								VersionConstraint: "< 3.7.6 (gem)",
 								VulnerabilityID:   "CVE-2017-fake-1",
+							},
+							Matcher: matcher,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "fallback to apk package version normalizes build suffix",
+			p: pkg.Package{
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*", ""),
+				},
+				Name:    "openssl",
+				Version: "1.0.1f-r2",
+				Type:    syftPkg.ApkPkg,
+			},
+			expected: []match.Match{
+				{
+					Vulnerability: vulnerability.Vulnerability{
+						Reference: vulnerability.Reference{ID: "CVE-2017-fake-9"},
+					},
+					Package: pkg.Package{
+						CPEs: []cpe.CPE{
+							cpe.Must("cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*", ""),
+						},
+						Name:    "openssl",
+						Version: "1.0.1f-r2",
+						Type:    syftPkg.ApkPkg,
+					},
+					Details: []match.Detail{
+						{
+							Type:       match.CPEMatch,
+							Confidence: 0.9,
+							SearchedBy: match.CPEParameters{
+								CPEs:      []string{"cpe:2.3:a:openssl:openssl:1.0.1f:*:*:*:*:*:*:*"},
+								Namespace: "nvd:cpe",
+								Package: match.PackageParameter{
+									Name:    "openssl",
+									Version: "1.0.1f-r2",
+								},
+							},
+							Found: match.CPEResult{
+								CPEs:              []string{"cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*"},
+								VersionConstraint: "<= 1.0.1f (apk)",
+								VulnerabilityID:   "CVE-2017-fake-9",
 							},
 							Matcher: matcher,
 						},
