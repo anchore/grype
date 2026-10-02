@@ -108,6 +108,7 @@ var aliasTypes = map[string]Type{
 	"Alpine Linux":     Alpine, // needed for CPE matching (see #2039)
 	"windows":          Windows,
 	"scientific linux": Scientific, // Scientific linux prior to v7 didn't have an os-release file and syft raises up "scientific linux" as the release id as parsed from /etc/redhat-release
+	"amazon_linux":     AmazonLinux,
 }
 
 var typeToIDMapping = map[Type]string{}
