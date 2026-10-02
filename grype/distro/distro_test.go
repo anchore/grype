@@ -428,6 +428,18 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Version: "3.22.0_alpha20250108",
 		},
 		{
+			Name:         "testdata/os/alpaquita",
+			Type:         Alpaquita,
+			Version:      "stream",
+			LabelVersion: "stream",
+		},
+		{
+			Name:         "testdata/os/bellsoft-hardened-containers",
+			Type:         BellSoftHardenedContainers,
+			Version:      "stream",
+			LabelVersion: "stream",
+		},
+		{
 			Name:    "testdata/os/amazon",
 			Type:    AmazonLinux,
 			Version: "2",
