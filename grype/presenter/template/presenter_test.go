@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/presenter/internal"
+	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/internal/testutils"
 )
 
@@ -56,4 +57,25 @@ func TestPresenter_SprigDate_Fails(t *testing.T) {
 	var buffer bytes.Buffer
 	err = templatePresenter.Present(&buffer)
 	require.ErrorContains(t, err, `function "now" not defined`)
+}
+
+func TestPresenter_RejectsTemplateWithoutActions(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		contents string
+	}{
+		{name: "empty file", contents: ""},
+		{name: "literal text", contents: "private value\n"},
+		{name: "comment only", contents: "{{/* a comment */}}"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			templatePath := path.Join(t.TempDir(), "output.tmpl")
+			require.NoError(t, os.WriteFile(templatePath, []byte(tc.contents), 0o600))
+
+			var output bytes.Buffer
+			err := NewPresenter(models.PresenterConfig{}, templatePath).Present(&output)
+			require.ErrorContains(t, err, "must contain a template action")
+			assert.Empty(t, output.String())
+		})
+	}
 }
