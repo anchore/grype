@@ -84,8 +84,8 @@ func parseVersion(version string) (major, minor, remaining, versionWithoutSuffix
 }
 
 // ParseDistroString parses a user-provided distro string in the format "name<separator>version"
-// where separator can be "-", ":", or "@". It handles the special case of opensuse-leap
-// which contains a hyphen in its distro ID. Returns the distro name and version parts.
+// where separator can be "-", ":", or "@". Known distro IDs containing a separator (e.g.
+// "opensuse-leap", "rapidfort-ubuntu") are matched first.
 func ParseDistroString(s string) (name, version string) {
 	if s == "" {
 		return "", ""
@@ -93,21 +93,8 @@ func ParseDistroString(s string) (name, version string) {
 
 	s = strings.TrimSpace(s)
 
-	// Special handling for opensuse-leap which has a hyphen in its ID
-	// Check if it starts with "opensuse-leap" and handle accordingly
-	const opensuseLeap = "opensuse-leap"
-	if strings.HasPrefix(strings.ToLower(s), opensuseLeap) {
-		// Check if there's a separator after "opensuse-leap"
-		remaining := s[len(opensuseLeap):]
-		if len(remaining) == 0 {
-			return opensuseLeap, ""
-		}
-		// If the next character is a separator, split there
-		if remaining[0] == '-' || remaining[0] == ':' || remaining[0] == '@' {
-			return opensuseLeap, strings.TrimSpace(remaining[1:])
-		}
-		// Otherwise, treat the whole thing as the name
-		return s, ""
+	if id, remaining, ok := splitKnownCompoundID(s); ok {
+		return id, remaining
 	}
 
 	// Find the first occurrence of any separator
@@ -127,6 +114,38 @@ func ParseDistroString(s string) (name, version string) {
 	}
 
 	return strings.TrimSpace(s[:minIdx]), strings.TrimSpace(s[minIdx+len(foundSep):])
+}
+
+const distroStringSeparators = "-:@"
+
+func isDistroStringSeparator(b byte) bool {
+	return strings.IndexByte(distroStringSeparators, b) >= 0
+}
+
+// splitKnownCompoundID splits s after the longest known distro ID prefix that contains a separator.
+func splitKnownCompoundID(s string) (name, version string, ok bool) {
+	lower := strings.ToLower(s)
+	var match string
+	for id := range IDMapping {
+		if !strings.ContainsAny(id, distroStringSeparators) {
+			continue
+		}
+		if strings.HasPrefix(lower, id) && len(id) > len(match) {
+			match = id
+		}
+	}
+	if match == "" {
+		return "", "", false
+	}
+	remaining := s[len(match):]
+	if len(remaining) == 0 {
+		return match, "", true
+	}
+	if isDistroStringSeparator(remaining[0]) {
+		return match, strings.TrimSpace(remaining[1:]), true
+	}
+	// a longer name that begins with the known ID
+	return s, "", true
 }
 
 // NewFromNameVersion creates a new Distro object derived from the provided name and version
@@ -150,10 +169,7 @@ func NewFromNameVersion(name, version string) *Distro {
 		base += "+" + channels
 	}
 
-	typ := IDMapping[name]
-	if typ == "" {
-		typ = Type(name)
-	}
+	typ := TypeFromID(name)
 
 	return New(typ, base, codename, string(typ))
 }

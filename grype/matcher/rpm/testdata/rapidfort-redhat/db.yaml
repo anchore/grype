@@ -1,0 +1,7 @@
+auto-generate: false
+extractions:
+    rapidfort:
+        - rapidfort-redhat:9/cve-2023-38546
+        - rapidfort-redhat:9+fc43/cve-2023-38546
+        - rapidfort-redhat:9+rf/cve-2024-6923
+        - rapidfort-redhat:9+rf/cve-2021-4034
