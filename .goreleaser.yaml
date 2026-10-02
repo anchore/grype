@@ -13,6 +13,8 @@ builds:
   - id: linux-build
     dir: ./cmd/grype
     binary: grype
+    tags:
+      - containers_image_openpgp
     goos:
       - linux
     goarch:

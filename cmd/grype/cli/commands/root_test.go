@@ -97,6 +97,13 @@ func Test_getProviderConfig(t *testing.T) {
 	}
 }
 
+func Test_getProviderConfigForwardsSources(t *testing.T) {
+	opts := options.DefaultGrype(clio.Identification{Name: "test", Version: "1.0"})
+	opts.From = []string{"containers-storage"}
+
+	assert.Equal(t, []string{"containers-storage"}, getProviderConfig(opts).Sources)
+}
+
 func Test_getMatcherConfig(t *testing.T) {
 	tests := []struct {
 		name string
