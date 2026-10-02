@@ -1,0 +1,6 @@
+ID=cleanstart
+NAME="CleanStart"
+PRETTY_NAME="CleanStart v3.20"
+VERSION_ID="3.20.3"
+HOME_URL="https://www.cleanstart.com/"
+BUG_REPORT_URL="https://github.com/cleanstart-containers/cleanstart/issues"
