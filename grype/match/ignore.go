@@ -104,9 +104,12 @@ func (i IgnoreRelatedPackage) IgnoreMatch(m Match) []IgnoreRule {
 // provided IgnoreRules apply to the match. If any rules apply to the match, all
 // applicable rules are attached to the Match to form an IgnoredMatch.
 // ApplyIgnoreRules returns two collections: the matches that are not being
-// ignored, and the matches that are being ignored.
+// ignored, and the matches that are being ignored. The applicable rules attached
+// to an IgnoredMatch keep the order in which they were provided.
 func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMatch) {
-	matched, ignored := ApplyIgnoreFilters(matches.Sorted(), rules...)
+	// index the rules so each match is only tested against the rules that could apply to it; testing every
+	// match against every rule is quadratic when a large exclusion set is in play
+	matched, ignored := ApplyIgnoreFilters(matches.Sorted(), newIgnoreRuleIndex(rules))
 	return NewMatches(matched...), ignored
 }
 
