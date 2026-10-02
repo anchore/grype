@@ -74,6 +74,7 @@ func ByFixedVersion(v version.Version) vulnerability.Criteria {
 				cmp, e := v.Compare(version.New(fixVersion, v.Format))
 				if e != nil {
 					err = e
+					continue
 				}
 				if cmp >= 0 {
 					// installed version is greater than or equal to the fix version, so is considered fixed
