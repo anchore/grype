@@ -163,6 +163,54 @@ jobs:
           path: snapshot/
           retention-days: 30
 
+  Containers-Storage-Podman:
+    name: "Containers-storage tests (Podman)"
+    needs: [Build-Snapshot-Artifacts]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: snapshot
+          path: snapshot
+
+      - name: Install Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y jq podman uidmap
+
+      - name: Scan image from Podman's local store
+        run: bash test/containers-storage/source-test.sh podman
+
+  Containers-Storage-Buildah:
+    name: "Containers-storage tests (Buildah)"
+    needs: [Build-Snapshot-Artifacts]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: snapshot
+          path: snapshot
+
+      - name: Install Buildah
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y buildah jq uidmap
+
+      - name: Scan image from Buildah's local store
+        run: bash test/containers-storage/source-test.sh buildah
+
   Acceptance-Linux:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Acceptance tests (Linux)"

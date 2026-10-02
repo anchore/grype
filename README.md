@@ -53,6 +53,17 @@ grype alpine:latest
 grype ./my-project
 ```
 
+### Local containers-storage images
+
+Grype's Linux release binaries can scan images in the current user's local containers-storage store, such as images built with Buildah or rootless Podman. The macOS and Windows release binaries do not include this Linux-specific provider. To build the Linux CLI with containers-storage support:
+
+```bash
+GOOS=linux CGO_ENABLED=0 go build -tags containers_image_openpgp -o grype ./cmd/grype
+./grype --from containers-storage localhost/myimage:latest
+```
+
+Plain image references also try containers-storage before pulling from a registry. The provider uses the current user's default store; rootless and rootful stores are separate. Custom builds that enable cgo may require native libraries for the selected storage drivers.
+
 Scan an SBOM for even faster vulnerability detection:
 
 ```bash
