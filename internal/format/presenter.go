@@ -35,6 +35,12 @@ func GetPresenter(format Format, c PresentationConfig, pb models.PresenterConfig
 		return cyclonedx.NewJSONPresenter(pb)
 	case CycloneDXXML:
 		return cyclonedx.NewXMLPresenter(pb)
+	case CycloneDXFormatv1_5:
+		return cyclonedx.NewXMLPresenterv1_5(pb)
+	case CycloneDXJSONv1_5:
+		return cyclonedx.NewJSONPresenterv1_5(pb)
+	case CycloneDXXMLv1_5:
+		return cyclonedx.NewXMLPresenterv1_5(pb)
 	case SarifFormat:
 		return sarif.NewPresenter(pb)
 	case TemplateFormat:
