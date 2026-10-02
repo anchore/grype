@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"os"
+	"runtime"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -134,6 +135,10 @@ func TestProvideFromReader(t *testing.T) {
 }
 
 func TestSyftLocationExcludes(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		// the docker image fixtures are linux images (FROM scratch), which windows docker cannot build
+		t.Skip("linux docker image fixtures are not supported on windows")
+	}
 	tests := []struct {
 		name     string
 		fixture  string

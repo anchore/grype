@@ -223,6 +223,12 @@ func createTestDB(t *testing.T, dbPath string) *gorm.DB {
 	connStr := "file:" + dbPath + "?cache=shared"
 	db, err := gorm.Open(sqlite.Open(connStr), &gorm.Config{Logger: logger.Discard})
 	require.NoError(t, err)
+	// windows can't remove the temp dir while the db is open
+	t.Cleanup(func() {
+		if d, err := db.DB(); err == nil {
+			_ = d.Close()
+		}
+	})
 
 	// create table
 	require.NoError(t, db.AutoMigrate(&testResults{}))

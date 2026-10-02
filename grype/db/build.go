@@ -161,6 +161,7 @@ func build(results []providerResults, writer data.Writer, processors ...data.Pro
 				return fmt.Errorf("failed to open cache entry %q: %w", opener.String(), err)
 			}
 			envelope, err := unmarshal.Envelope(f)
+			_ = f.Close()
 			if err != nil {
 				return fmt.Errorf("failed to unmarshal cache entry %q: %w", opener.String(), err)
 			}

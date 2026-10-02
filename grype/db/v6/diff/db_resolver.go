@@ -156,6 +156,7 @@ func unarchiveDB(source, destination string) error {
 	if err != nil {
 		return err
 	}
+	defer log.CloseAndLogError(root, destination)
 
 	visitor := func(_ context.Context, file archives.FileInfo) error {
 		if file.IsDir() || file.LinkTarget != "" {

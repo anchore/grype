@@ -113,8 +113,10 @@ func Redact(s []byte) []byte {
 	cycloneDxBomRefPattern := regexp.MustCompile(`[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}`)
 	tempDirPattern := regexp.MustCompile(`/tmp/[^"]+`)
 	macTempDirPattern := regexp.MustCompile(`/var/folders/[^"]+`)
+	// json-escaped windows paths (e.g. "C:\\Users\\...\\Temp\\...")
+	windowsTempDirPattern := regexp.MustCompile(`[A-Za-z]:\\\\[^"]+`)
 
-	for _, pattern := range []*regexp.Regexp{serialPattern, rfc3339Pattern, refPattern, uuidPattern, cycloneDxBomRefPattern, tempDirPattern, macTempDirPattern} {
+	for _, pattern := range []*regexp.Regexp{serialPattern, rfc3339Pattern, refPattern, uuidPattern, cycloneDxBomRefPattern, tempDirPattern, macTempDirPattern, windowsTempDirPattern} {
 		s = pattern.ReplaceAll(s, []byte(""))
 	}
 	return s
