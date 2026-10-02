@@ -72,6 +72,7 @@ func ReadState(location string) (*State, error) {
 		if err != nil {
 			return nil, fmt.Errorf("unable to open listing file %q: %w", listingPath, err)
 		}
+		defer f.Close()
 
 		// note: bufio scanner is **much** faster than Fscan
 		scanner := bufio.NewScanner(f)

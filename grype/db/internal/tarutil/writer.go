@@ -51,6 +51,33 @@ func newCompressorWithCommands(archivePath string, compressorCommands map[string
 		return nil, err
 	}
 
+	c, err := newCompressor(archivePath, archive, compressorCommands)
+	if err != nil {
+		_ = archive.Close()
+		return nil, err
+	}
+	if c == io.WriteCloser(archive) {
+		return c, nil
+	}
+	// compressors don't own the underlying file, so close it after the compressor has flushed
+	return &archiveCompressor{WriteCloser: c, archive: archive}, nil
+}
+
+// archiveCompressor closes the archive file after closing the compressor writing to it.
+type archiveCompressor struct {
+	io.WriteCloser
+	archive *os.File
+}
+
+func (a *archiveCompressor) Close() error {
+	err := a.WriteCloser.Close()
+	if closeErr := a.archive.Close(); closeErr != nil && err == nil {
+		err = closeErr
+	}
+	return err
+}
+
+func newCompressor(archivePath string, archive *os.File, compressorCommands map[string]string) (io.WriteCloser, error) {
 	// check for custom compressor command first
 	for ext, cmd := range compressorCommands {
 		if strings.HasSuffix(archivePath, "."+ext) {

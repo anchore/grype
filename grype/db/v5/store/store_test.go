@@ -27,6 +27,15 @@ func assertIDReader(t *testing.T, reader v5.IDReader, expected v5.ID) {
 	}
 }
 
+// closeOnCleanup closes the underlying sqlite handle so the temp dir can be removed (open files can't be deleted on windows)
+func closeOnCleanup(t *testing.T, s v5.Store) {
+	t.Cleanup(func() {
+		if d, err := s.(*store).db.DB(); err == nil {
+			_ = d.Close()
+		}
+	})
+}
+
 func TestStore_GetID_SetID(t *testing.T) {
 	dbTempFile := t.TempDir()
 
@@ -34,6 +43,7 @@ func TestStore_GetID_SetID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
+	closeOnCleanup(t, s)
 
 	expected := v5.ID{
 		BuildTimestamp: time.Now().UTC(),
@@ -72,6 +82,7 @@ func TestStore_GetVulnerability_SetVulnerability(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
+	closeOnCleanup(t, s)
 
 	extra := []v5.Vulnerability{
 		{
@@ -275,6 +286,7 @@ func TestStore_GetVulnerabilityMetadata_SetVulnerabilityMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
+	closeOnCleanup(t, s)
 
 	total := []v5.VulnerabilityMetadata{
 		{
@@ -745,6 +757,7 @@ func TestStore_MergeVulnerabilityMetadata(t *testing.T) {
 			if err != nil {
 				t.Fatalf("could not create store: %+v", err)
 			}
+			closeOnCleanup(t, s)
 
 			// add each metadata in order
 			var theErr error
@@ -1014,6 +1027,7 @@ func TestCvssScoresInMetadata(t *testing.T) {
 			if err != nil {
 				t.Fatalf("could not create s: %+v", err)
 			}
+			closeOnCleanup(t, s)
 
 			// add each metadata in order
 			for _, metadata := range test.add {
@@ -1061,6 +1075,7 @@ func TestStore_GetVulnerabilityMatchExclusion_SetVulnerabilityMatchExclusion(t *
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
+	closeOnCleanup(t, s)
 
 	extra := []v5.VulnerabilityMatchExclusion{
 		{
@@ -1217,11 +1232,13 @@ func Test_DiffStore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
+	closeOnCleanup(t, s1)
 	dbTempFile = t.TempDir()
 	s2, err := New(dbTempFile, true)
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
+	closeOnCleanup(t, s2)
 
 	baseVulns := []v5.Vulnerability{
 		{

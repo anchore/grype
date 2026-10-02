@@ -1,6 +1,7 @@
 package distribution
 
 import (
+	"runtime"
 	"testing"
 	"time"
 
@@ -38,6 +39,9 @@ func TestMetadataParse(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.fixture, func(t *testing.T) {
+			if test.err && runtime.GOOS == "windows" {
+				t.Skip("relies on posix ENOTDIR semantics, windows reports the path as not existing")
+			}
 			metadata, err := NewMetadataFromDir(afero.NewOsFs(), test.fixture)
 			if err != nil && !test.err {
 				t.Fatalf("failed to get metadata: %+v", err)

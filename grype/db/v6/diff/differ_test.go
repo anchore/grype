@@ -275,6 +275,7 @@ func Test_basicPackageDiff(t *testing.T) {
 				NewDB:  newDB,
 			})
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = differ.Close() })
 			require.NotNil(t, differ)
 
 			packageResult, err := differ.Diff()
@@ -887,6 +888,7 @@ func Test_packageDiff(t *testing.T) {
 				NewDB:  newDB,
 			})
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = differ.Close() })
 			require.NotNil(t, differ)
 
 			packageResult, err := differ.Diff()
@@ -1097,6 +1099,7 @@ func Test_hydrationPermutations(t *testing.T) {
 				NewDB:  newDBDir,
 			})
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = differ.Close() })
 			require.NotNil(t, differ)
 
 			packageResult, err := differ.Diff()

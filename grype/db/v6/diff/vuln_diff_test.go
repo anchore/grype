@@ -363,6 +363,7 @@ func Test_vulnDiff(t *testing.T) {
 				EPSSThreshold: epssThreshold,
 			})
 			require.NoError(t, err)
+			t.Cleanup(func() { _ = differ.Close() })
 			require.NotNil(t, differ)
 
 			result, err := differ.Diff()
