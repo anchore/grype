@@ -112,6 +112,67 @@ func TestCreateRow(t *testing.T) {
 	}
 }
 
+func TestFormatFix(t *testing.T) {
+	matchWithFixVersions := func(versions []string, recommended ...string) models.Match {
+		var details []models.MatchDetails
+		for _, r := range recommended {
+			details = append(details, models.MatchDetails{
+				Type:    match.ExactDirectMatch.String(),
+				Matcher: match.DpkgMatcher.String(),
+				Fix:     &models.FixDetails{SuggestedVersion: r},
+			})
+		}
+		return models.Match{
+			Vulnerability: models.Vulnerability{
+				Fix: models.Fix{
+					Versions: versions,
+					State:    vulnerability.FixStateFixed.String(),
+				},
+			},
+			MatchDetails: details,
+		}
+	}
+
+	cases := []struct {
+		name     string
+		match    models.Match
+		expected string
+	}{
+		{
+			name: "all recommended versions are shown without a truncation hint",
+			match: matchWithFixVersions(
+				[]string{"10.20.30-alpha.1", "10.20.30-beta.11"},
+				"10.20.30-alpha.1", "10.20.30-beta.11",
+			),
+			expected: "*10.20.30-alpha.1, *10.20.30-beta.11",
+		},
+		{
+			name: "a version dropped for space keeps the truncation hint",
+			match: matchWithFixVersions(
+				[]string{"1.0.0", "2.0.0-really-long-version-string"},
+				"1.0.0",
+			),
+			expected: "*1.0.0, ...",
+		},
+		{
+			name: "duplicate versions are not reported as truncated",
+			match: matchWithFixVersions(
+				[]string{"10.20.30-alpha.1", "10.20.30-alpha.1"},
+				"10.20.30-alpha.1",
+			),
+			expected: "*10.20.30-alpha.1",
+		},
+	}
+
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			p := NewPresenter(models.PresenterConfig{}, false)
+
+			assert.Equal(t, testCase.expected, p.formatFix(testCase.match))
+		})
+	}
+}
+
 func TestTablePresenter(t *testing.T) {
 	pb := internal.GeneratePresenterConfig(t, internal.ImageSource)
 
