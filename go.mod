@@ -17,7 +17,7 @@ require (
 	github.com/anchore/go-logger v0.2.0
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.2.0
-	github.com/anchore/stereoscope v0.3.3
+	github.com/anchore/stereoscope v0.3.4-0.20261002170525-59d3a69590a6
 	github.com/aquasecurity/go-pep440-version v0.0.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/bitnami/go-version v0.0.0-20250505154626-452e8c5ee607
@@ -78,7 +78,7 @@ require (
 )
 
 require (
-	github.com/anchore/syft v1.54.0
+	github.com/anchore/syft v1.54.1-0.20261005150237-29b92a58c188
 	github.com/bmatcuk/doublestar/v4 v4.10.2
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 )
@@ -111,7 +111,7 @@ require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/anchore/go-lzo v0.1.1 // indirect
 	github.com/anchore/go-macholibre v0.1.1 // indirect
-	github.com/anchore/go-rpmdb v0.2.1 // indirect
+	github.com/anchore/go-rpmdb v0.2.2-0.20261002172926-a488674d6c87 // indirect
 	github.com/anchore/go-struct-converter v0.2.0-rc2 // indirect
 	github.com/anchore/go-sync v0.1.2 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
