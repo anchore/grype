@@ -18,6 +18,7 @@ func Test_GetAllVulnerabilities(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
+	closeOnCleanup(t, s)
 
 	//WHEN
 	result, err := s.GetAllVulnerabilities()
@@ -37,6 +38,7 @@ func Test_GetAllVulnerabilityMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
+	closeOnCleanup(t, s)
 
 	//WHEN
 	result, err := s.GetAllVulnerabilityMetadata()
@@ -54,12 +56,14 @@ func Test_Diff_Vulnerabilities(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
+	closeOnCleanup(t, s1)
 	dbTempFile = t.TempDir()
 
 	s2, err := New(dbTempFile, true)
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
+	closeOnCleanup(t, s2)
 
 	baseVulns := []v5.Vulnerability{
 		{
@@ -159,11 +163,13 @@ func Test_Diff_Metadata(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
+	closeOnCleanup(t, s1)
 	dbTempFile = t.TempDir()
 	s2, err := New(dbTempFile, true)
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
+	closeOnCleanup(t, s2)
 
 	baseVulns := []v5.VulnerabilityMetadata{
 		{

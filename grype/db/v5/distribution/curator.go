@@ -542,6 +542,7 @@ func unarchive(source, destination string) error {
 	if err != nil {
 		return err
 	}
+	defer root.Close()
 
 	visitor := func(_ context.Context, file archives.FileInfo) error {
 		if file.IsDir() || file.LinkTarget != "" {

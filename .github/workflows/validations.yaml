@@ -30,6 +30,25 @@ jobs:
   Unit-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Unit tests"
+    runs-on: ubuntu-latest
+    needs: [Unit-Test-Linux, Unit-Test-Windows]
+    # a skipped job satisfies a required check, so this job must always run and fail explicitly
+    # unless every dependency succeeded (otherwise a failing PR can still be auto-merged)
+    if: ${{ always() }}
+    permissions: {}
+    steps:
+      - name: Require all unit test jobs to succeed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -e 'length > 0 and all(.[]; .result == "success")' > /dev/null || {
+            echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+            exit 1
+          }
+          echo All unit tests passed!
+
+  Unit-Test-Linux:
+    name: "Unit tests (Linux)"
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -42,6 +61,23 @@ jobs:
         uses: ./.github/actions/bootstrap
         with:
           cache-test-fixtures: true
+
+      - name: Run unit tests
+        run: make unit
+
+  Unit-Test-Windows:
+    name: "Unit tests (Windows)"
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # go-make's setup only (not ./.github/actions/bootstrap): no apt, binny tools, or fixture cache are needed
+      - name: Setup go + go-make tooling
+        uses: anchore/go-make/.github/actions/setup@fa5421b3bf24c9d18f11a736c5eb4172f2b7d683 # v0.8.1
 
       - name: Run unit tests
         run: make unit

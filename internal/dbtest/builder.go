@@ -339,10 +339,12 @@ func (b *Builder) createFilteredWorkspace(states provider.States) string {
 // "results/" segment is not present in the path, only the basename is returned
 // to fall back to the prior behavior.
 func relativeResultPath(path string) string {
-	const sep = string(filepath.Separator) + "results" + string(filepath.Separator)
+	// normalize to forward slashes so this behaves the same regardless of platform separators
+	const sep = "/results/"
+	path = filepath.ToSlash(path)
 	idx := strings.LastIndex(path, sep)
 	if idx < 0 {
-		return filepath.Base(path)
+		return filepath.Base(filepath.FromSlash(path))
 	}
 	return path[idx+len(sep):]
 }
