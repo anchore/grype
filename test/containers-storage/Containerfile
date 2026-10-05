@@ -1,2 +1,0 @@
-FROM scratch
-COPY fixture/package.json /app/node_modules/lodash/package.json

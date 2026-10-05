@@ -179,13 +179,19 @@ jobs:
           name: snapshot
           path: snapshot
 
+      # go-make's setup only (not ./.github/actions/bootstrap): the test only needs make + the snapshot binary
+      - name: Setup go + go-make tooling
+        uses: anchore/go-make/.github/actions/setup@fa5421b3bf24c9d18f11a736c5eb4172f2b7d683 # v0.8.1
+
       - name: Install Podman
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y jq podman uidmap
 
       - name: Scan image from Podman's local store
-        run: bash test/containers-storage/source-test.sh podman
+        run: make containers-storage-test
+        env:
+          BUILDER: podman
 
   Containers-Storage-Buildah:
     name: "Containers-storage tests (Buildah)"
@@ -203,13 +209,19 @@ jobs:
           name: snapshot
           path: snapshot
 
+      # go-make's setup only (not ./.github/actions/bootstrap): the test only needs make + the snapshot binary
+      - name: Setup go + go-make tooling
+        uses: anchore/go-make/.github/actions/setup@fa5421b3bf24c9d18f11a736c5eb4172f2b7d683 # v0.8.1
+
       - name: Install Buildah
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y buildah jq uidmap
 
       - name: Scan image from Buildah's local store
-        run: bash test/containers-storage/source-test.sh buildah
+        run: make containers-storage-test
+        env:
+          BUILDER: buildah
 
   Acceptance-Linux:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
