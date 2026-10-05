@@ -163,12 +163,21 @@ jobs:
           path: snapshot/
           retention-days: 30
 
-  Containers-Storage-Podman:
-    name: "Containers-storage tests (Podman)"
+  Containers-Storage:
+    # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
+    name: "Containers-storage tests (${{ matrix.label }})"
     needs: [Build-Snapshot-Artifacts]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - builder: podman
+            label: Podman
+          - builder: buildah
+            label: Buildah
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -183,45 +192,17 @@ jobs:
       - name: Setup go + go-make tooling
         uses: anchore/go-make/.github/actions/setup@fa5421b3bf24c9d18f11a736c5eb4172f2b7d683 # v0.8.1
 
-      - name: Install Podman
+      - name: Install image builder
         run: |
           sudo apt-get update
-          sudo apt-get install --no-install-recommends -y jq podman uidmap
+          sudo apt-get install --no-install-recommends -y "$BUILDER" jq uidmap
+        env:
+          BUILDER: ${{ matrix.builder }}
 
-      - name: Scan image from Podman's local store
+      - name: Scan image from the builder's local store
         run: make containers-storage-test
         env:
-          BUILDER: podman
-
-  Containers-Storage-Buildah:
-    name: "Containers-storage tests (Buildah)"
-    needs: [Build-Snapshot-Artifacts]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: snapshot
-          path: snapshot
-
-      # go-make's setup only (not ./.github/actions/bootstrap): the test only needs make + the snapshot binary
-      - name: Setup go + go-make tooling
-        uses: anchore/go-make/.github/actions/setup@fa5421b3bf24c9d18f11a736c5eb4172f2b7d683 # v0.8.1
-
-      - name: Install Buildah
-        run: |
-          sudo apt-get update
-          sudo apt-get install --no-install-recommends -y buildah jq uidmap
-
-      - name: Scan image from Buildah's local store
-        run: make containers-storage-test
-        env:
-          BUILDER: buildah
+          BUILDER: ${{ matrix.builder }}
 
   Acceptance-Linux:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline

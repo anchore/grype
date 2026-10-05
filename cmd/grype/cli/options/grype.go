@@ -157,7 +157,7 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 
 	flags.StringArrayVarP(&o.From,
 		"from", "",
-		"specify the source behavior to use (e.g. docker, registry, podman, oci-dir, ...)",
+		"specify the source behavior to use (e.g. docker, registry, podman, containers-storage, oci-dir, ...)",
 	)
 
 	flags.StringArrayVarP(&o.VexDocuments,
