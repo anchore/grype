@@ -123,7 +123,7 @@ func (m *Matcher) matchAlmaLinux(vp vulnerability.Provider, p pkg.Package) ([]ma
 	if p.Distro == nil {
 		return nil, nil, nil
 	}
-	if internal.IsUnknownVersion(p.Version) {
+	if isUnknownVersion(p.Version) {
 		log.WithFields("package", p.Name).Trace("skipping package with unknown version")
 		return nil, nil, nil
 	}
@@ -179,7 +179,7 @@ func (m *Matcher) eusMatches(provider result.Provider, target, searchPkg pkg.Pac
 	if searchPkg.Distro == nil {
 		return nil, nil, nil
 	}
-	if internal.IsUnknownVersion(searchPkg.Version) {
+	if isUnknownVersion(searchPkg.Version) {
 		log.WithFields("package", searchPkg.Name).Trace("skipping package with unknown version")
 		return nil, nil, nil
 	}
@@ -231,7 +231,7 @@ func (m *Matcher) eusMatches(provider result.Provider, target, searchPkg pkg.Pac
 // problems since an epoch delimits potentially non-comparable version lineages.
 func (m *Matcher) matchDistro(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	searchPkg := p
-	if !internal.IsUnknownVersion(searchPkg.Version) {
+	if !isUnknownVersion(searchPkg.Version) {
 		// "0:unknown" would defeat the search's own unknown-version check
 		addEpochIfApplicable(&searchPkg)
 	}
@@ -265,4 +265,8 @@ func addEpochIfApplicable(p *pkg.Package) {
 		// no epoch was found, so we will add one
 		p.Version = "0:" + ver
 	}
+}
+
+func isUnknownVersion(v string) bool {
+	return v == "" || strings.ToLower(v) == "unknown"
 }

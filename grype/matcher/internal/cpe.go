@@ -54,11 +54,11 @@ func FindResultsByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstr
 			searchVersion = cpeversion.Alpine(searchVersion)
 		}
 
-		if searchVersion == wfn.NA || searchVersion == wfn.Any || IsUnknownVersion(searchVersion) {
+		if searchVersion == wfn.NA || searchVersion == wfn.Any || isUnknownVersion(searchVersion) {
 			searchVersion = p.Version
 		}
 
-		if IsUnknownVersion(searchVersion) {
+		if isUnknownVersion(searchVersion) {
 			log.WithFields("package", p.Name).Trace("skipping package with unknown version")
 			continue
 		}

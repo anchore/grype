@@ -39,7 +39,7 @@ func findResultsByDistro(provider vulnerability.Provider, searchPkg, target pkg.
 	rp := result.NewProvider(provider, target, matcherType)
 
 	applicable := result.Set{}
-	if IsUnknownVersion(searchPkg.Version) {
+	if isUnknownVersion(searchPkg.Version) {
 		log.WithFields("package", searchPkg.Name).Trace("skipping package with unknown version")
 	} else {
 		applicable, err = applicableForDistro(provider, rp, searchPkg)
@@ -49,7 +49,7 @@ func findResultsByDistro(provider vulnerability.Provider, searchPkg, target pkg.
 	}
 
 	for _, upstreamPkg := range upstreams {
-		if upstreamPkg.Distro == nil || IsUnknownVersion(upstreamPkg.Version) {
+		if upstreamPkg.Distro == nil || isUnknownVersion(upstreamPkg.Version) {
 			continue
 		}
 
@@ -118,6 +118,6 @@ func matchPackage(searchPkg pkg.Package, target *pkg.Package) pkg.Package {
 	return searchPkg
 }
 
-func IsUnknownVersion(v string) bool {
-	return v == "" || strings.EqualFold(v, "unknown")
+func isUnknownVersion(v string) bool {
+	return strings.ToLower(v) == "unknown"
 }

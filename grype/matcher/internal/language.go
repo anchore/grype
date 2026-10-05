@@ -14,7 +14,7 @@ import (
 )
 
 func MatchPackageByLanguage(store vulnerability.Provider, p pkg.Package, matcherType match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
-	if IsUnknownVersion(p.Version) {
+	if isUnknownVersion(p.Version) {
 		log.WithFields("package", p.Name).Trace("skipping package with unknown version")
 		return nil, nil, nil
 	}
@@ -51,7 +51,7 @@ func naks(s result.Set) result.Set {
 }
 
 func MatchPackageByEcosystemPackageName(vp vulnerability.Provider, p pkg.Package, packageName string, matcherType match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
-	if IsUnknownVersion(p.Version) {
+	if isUnknownVersion(p.Version) {
 		log.WithFields("package", p.Name).Trace("skipping package with unknown version")
 		return nil, nil, nil
 	}
