@@ -75,7 +75,7 @@ jobs:
           persist-credentials: true
 
       - name: Bootstrap environment
-        uses: $/.github/actions/bootstrap
+        uses: ./.github/actions/bootstrap
         with:
           # use the same cache we used for building snapshots
           cache-key-prefix: "snapshot"
