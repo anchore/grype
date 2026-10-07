@@ -2,6 +2,7 @@ package rpm
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -263,6 +264,63 @@ func TestAlmaLinuxMatching_FixReplacementDropsRHELDate(t *testing.T) {
 				SelectDetailByDistro("redhat", "8").
 				HasMatchType(match.ExactIndirectMatch)
 		})
+}
+
+func TestAvailableForVersion(t *testing.T) {
+	almaFix := vulnerability.FixAvailable{
+		Version: "2.4.37-43.module_el8.5.0+2597+c4b14997.alma",
+		Date:    time.Date(2021, 11, 9, 0, 0, 0, 0, time.UTC),
+		Kind:    "advisory",
+	}
+	otherFix := vulnerability.FixAvailable{
+		Version: "2.4.37-47.module_el8.6.0+2972+c4b14997.alma",
+		Date:    time.Date(2022, 5, 10, 0, 0, 0, 0, time.UTC),
+		Kind:    "advisory",
+	}
+
+	tests := []struct {
+		name       string
+		available  []vulnerability.FixAvailable
+		fixVersion string
+		expected   []vulnerability.FixAvailable
+	}{
+		{
+			name:       "nil input",
+			available:  nil,
+			fixVersion: almaFix.Version,
+			expected:   nil,
+		},
+		{
+			name:       "single matching entry",
+			available:  []vulnerability.FixAvailable{almaFix},
+			fixVersion: almaFix.Version,
+			expected:   []vulnerability.FixAvailable{almaFix},
+		},
+		{
+			name:       "date for a different version is dropped",
+			available:  []vulnerability.FixAvailable{otherFix},
+			fixVersion: almaFix.Version,
+			expected:   nil,
+		},
+		{
+			name:       "only the matching entry is kept",
+			available:  []vulnerability.FixAvailable{otherFix, almaFix},
+			fixVersion: almaFix.Version,
+			expected:   []vulnerability.FixAvailable{almaFix},
+		},
+		{
+			name:       "epoch prefix must match exactly",
+			available:  []vulnerability.FixAvailable{almaFix},
+			fixVersion: "0:" + almaFix.Version,
+			expected:   nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, availableForVersion(tt.available, tt.fixVersion))
+		})
+	}
 }
 
 // TestAlmaLinuxMatching_RHELFixKeepsDateWithoutAlmaRecord verifies that a RHEL fix with no overlapping
