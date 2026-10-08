@@ -12,17 +12,6 @@
         },
         "ranges": [
           {
-            "database_specific": {
-              "anchore": {
-                "fixes": [
-                  {
-                    "date": "2021-11-09",
-                    "kind": "advisory",
-                    "version": "2.4.37-43.module_el8.5.0+2597+c4b14997.alma"
-                  }
-                ]
-              }
-            },
             "events": [
               {
                 "introduced": "0"
@@ -45,17 +34,6 @@
         },
         "ranges": [
           {
-            "database_specific": {
-              "anchore": {
-                "fixes": [
-                  {
-                    "date": "2021-11-09",
-                    "kind": "advisory",
-                    "version": "2.4.37-43.module_el8.5.0+2597+c4b14997.alma"
-                  }
-                ]
-              }
-            },
             "events": [
               {
                 "introduced": "0"
@@ -78,17 +56,6 @@
         },
         "ranges": [
           {
-            "database_specific": {
-              "anchore": {
-                "fixes": [
-                  {
-                    "date": "2021-11-09",
-                    "kind": "advisory",
-                    "version": "2.4.37-43.module_el8.5.0+2597+c4b14997.alma"
-                  }
-                ]
-              }
-            },
             "events": [
               {
                 "introduced": "0"
@@ -111,17 +78,6 @@
         },
         "ranges": [
           {
-            "database_specific": {
-              "anchore": {
-                "fixes": [
-                  {
-                    "date": "2021-11-09",
-                    "kind": "advisory",
-                    "version": "2.4.37-43.module_el8.5.0+2597+c4b14997.alma"
-                  }
-                ]
-              }
-            },
             "events": [
               {
                 "introduced": "0"
@@ -144,17 +100,6 @@
         },
         "ranges": [
           {
-            "database_specific": {
-              "anchore": {
-                "fixes": [
-                  {
-                    "date": "2021-11-09",
-                    "kind": "advisory",
-                    "version": "2.4.37-43.module_el8.5.0+2597+c4b14997.alma"
-                  }
-                ]
-              }
-            },
             "events": [
               {
                 "introduced": "0"
@@ -177,17 +122,6 @@
         },
         "ranges": [
           {
-            "database_specific": {
-              "anchore": {
-                "fixes": [
-                  {
-                    "date": "2021-11-09",
-                    "kind": "advisory",
-                    "version": "1.15.7-3.module_el8.5.0+2609+b30d9eec"
-                  }
-                ]
-              }
-            },
             "events": [
               {
                 "introduced": "0"
@@ -210,17 +144,6 @@
         },
         "ranges": [
           {
-            "database_specific": {
-              "anchore": {
-                "fixes": [
-                  {
-                    "date": "2021-11-09",
-                    "kind": "advisory",
-                    "version": "2.4.37-43.module_el8.5.0+2597+c4b14997.alma"
-                  }
-                ]
-              }
-            },
             "events": [
               {
                 "introduced": "0"
@@ -243,17 +166,6 @@
         },
         "ranges": [
           {
-            "database_specific": {
-              "anchore": {
-                "fixes": [
-                  {
-                    "date": "2021-11-09",
-                    "kind": "advisory",
-                    "version": "1:2.0.8-8.module_el8.5.0+2609+b30d9eec"
-                  }
-                ]
-              }
-            },
             "events": [
               {
                 "introduced": "0"
@@ -276,17 +188,6 @@
         },
         "ranges": [
           {
-            "database_specific": {
-              "anchore": {
-                "fixes": [
-                  {
-                    "date": "2021-11-09",
-                    "kind": "advisory",
-                    "version": "1:2.0.8-8.module_el8.6.0+2872+fe0ff7aa"
-                  }
-                ]
-              }
-            },
             "events": [
               {
                 "introduced": "0"
@@ -309,17 +210,6 @@
         },
         "ranges": [
           {
-            "database_specific": {
-              "anchore": {
-                "fixes": [
-                  {
-                    "date": "2021-11-09",
-                    "kind": "advisory",
-                    "version": "1:2.4.37-43.module_el8.5.0+2597+c4b14997.alma"
-                  }
-                ]
-              }
-            },
             "events": [
               {
                 "introduced": "0"
@@ -342,17 +232,6 @@
         },
         "ranges": [
           {
-            "database_specific": {
-              "anchore": {
-                "fixes": [
-                  {
-                    "date": "2021-11-09",
-                    "kind": "advisory",
-                    "version": "2.4.37-43.module_el8.5.0+2597+c4b14997.alma"
-                  }
-                ]
-              }
-            },
             "events": [
               {
                 "introduced": "0"
@@ -375,17 +254,6 @@
         },
         "ranges": [
           {
-            "database_specific": {
-              "anchore": {
-                "fixes": [
-                  {
-                    "date": "2021-11-09",
-                    "kind": "advisory",
-                    "version": "1:2.4.37-43.module_el8.5.0+2597+c4b14997.alma"
-                  }
-                ]
-              }
-            },
             "events": [
               {
                 "introduced": "0"

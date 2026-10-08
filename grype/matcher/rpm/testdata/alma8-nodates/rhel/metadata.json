@@ -1,18 +1,18 @@
 {
-  "provider": "alma",
+  "provider": "rhel",
   "version": 1,
-  "processor": "vunnel@0.64.0-post.16+0fc8dac6",
+  "processor": "vunnel@0.56.0.post6+8bb089e",
   "schema": {
     "version": "1.0.3",
     "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
   },
   "urls": [
-    "https://github.com/AlmaLinux/osv-database.git"
+    "https://access.redhat.com/hydra/rest/securitydata/cve.json"
   ],
-  "timestamp": "2026-04-29T00:45:55Z",
+  "timestamp": "2026-04-29T16:40:47Z",
   "listing": {
     "path": "results/listing.xxh64",
-    "digest": "eac9dcbfe0859e7a",
+    "digest": "4cd4696fb157f46f",
     "algorithm": "xxh64"
   },
   "store": "flat-file"
