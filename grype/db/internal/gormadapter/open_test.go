@@ -3,6 +3,7 @@ package gormadapter
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -107,8 +108,9 @@ func TestPrepareWritableDB(t *testing.T) {
 		tempDir := t.TempDir()
 		dbPath := filepath.Join(tempDir, "test.db")
 
-		_, err := os.Create(dbPath)
+		f, err := os.Create(dbPath)
 		require.NoError(t, err)
+		require.NoError(t, f.Close())
 
 		_, err = os.Stat(dbPath)
 		require.NoError(t, err)
@@ -121,6 +123,9 @@ func TestPrepareWritableDB(t *testing.T) {
 	})
 
 	t.Run("returns error if unable to create parent directory", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("relies on posix permissions under /root")
+		}
 		invalidDir := filepath.Join("/root", "invalidDir", "test.db")
 		err := deleteDB(invalidDir)
 		require.Error(t, err)

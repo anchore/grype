@@ -789,6 +789,7 @@ func Test_unarchive(t *testing.T) {
 	}
 	err = format.Archive(t.Context(), out, files)
 	require.NoError(t, err)
+	require.NoError(t, out.Close())
 
 	destination := t.TempDir()
 	err = unarchive(source, destination)

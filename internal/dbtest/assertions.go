@@ -775,6 +775,27 @@ func (s *SingleFindingAssertion) HasFix(state vulnerability.FixState, versions .
 	return s
 }
 
+// HasFixAvailable asserts the match's vulnerability carries exactly one fix availability entry
+// with the given version, date (YYYY-MM-DD, UTC) and kind.
+func (s *SingleFindingAssertion) HasFixAvailable(version, date, kind string) *SingleFindingAssertion {
+	s.t.Helper()
+	if !assert.Len(s.t, s.match.Vulnerability.Fix.Available, 1, "unexpected fix availability entries") {
+		return s
+	}
+	got := s.match.Vulnerability.Fix.Available[0]
+	assert.Equal(s.t, version, got.Version, "unexpected fix availability version")
+	assert.Equal(s.t, date, got.Date.UTC().Format("2006-01-02"), "unexpected fix availability date")
+	assert.Equal(s.t, kind, got.Kind, "unexpected fix availability kind")
+	return s
+}
+
+// HasNoFixAvailable asserts the match's vulnerability carries no fix availability entries.
+func (s *SingleFindingAssertion) HasNoFixAvailable() *SingleFindingAssertion {
+	s.t.Helper()
+	assert.Empty(s.t, s.match.Vulnerability.Fix.Available, "expected no fix availability entries")
+	return s
+}
+
 // HasNoFixVersions asserts the match's vulnerability carries no fix versions at
 // all. HasFix skips its version check when passed none, so this is the only way
 // to pin the empty case - which matters wherever a fix version from one source

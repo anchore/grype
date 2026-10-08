@@ -43,3 +43,9 @@ run_test_case test_download_release_asset "${release}" "linux" "amd64" "deb" "ap
 run_test_case test_download_release_asset "${release}" "linux" "arm64" "tar.gz" "application/gzip"
 run_test_case test_download_release_asset "${release}" "linux" "arm64" "rpm" "application/x-rpm"
 run_test_case test_download_release_asset "${release}" "linux" "arm64" "deb" "application/vnd.debian.binary-package"
+
+# releases before VERIFY_SIGN_BUNDLE_VERSION are signed with a separate .sig and .pem instead of a sigstore bundle,
+# so keep exercising that path against a fixed release
+legacy_release="v0.119.0"
+
+run_test_case test_download_release_asset "${legacy_release}" "linux" "amd64" "tar.gz" "application/gzip"

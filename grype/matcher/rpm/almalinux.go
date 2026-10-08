@@ -217,8 +217,9 @@ func replaceWithAlmaLinuxFixInfo(existing *result.Result, incoming result.Result
 
 			// Update fix version and advisories to AlmaLinux's data
 			existing.Vulnerabilities[i].Fix = vulnerability.Fix{
-				Versions: []string{fixVersion},
-				State:    vulnerability.FixStateFixed,
+				Versions:  []string{fixVersion},
+				State:     vulnerability.FixStateFixed,
+				Available: availableForVersion(incomingVuln.Fix.Available, fixVersion),
 			}
 
 			// Use advisories from database, or construct if missing
@@ -239,6 +240,18 @@ func replaceWithAlmaLinuxFixInfo(existing *result.Result, incoming result.Result
 			break // Only need first match
 		}
 	}
+}
+
+// availableForVersion returns the fix availability entries for the given fix version. RHEL's entries are never
+// carried over, so a date on the match is always for the version shown.
+func availableForVersion(available []vulnerability.FixAvailable, fixVersion string) []vulnerability.FixAvailable {
+	var out []vulnerability.FixAvailable
+	for _, a := range available {
+		if a.Version == fixVersion {
+			out = append(out, a)
+		}
+	}
+	return out
 }
 
 // constructAdvisory builds advisory information from an ALSA vulnerability

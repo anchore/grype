@@ -46,7 +46,7 @@ jobs:
       # these are checks that should be run on pull-request and merges to main.
       # we do NOT want to kick off a release if these have not been verified on main.
       # Please see the validations.yaml workflow for the names that should be used here.
-      checks: '["Acceptance tests (Linux)", "Acceptance tests (Mac)", "Build snapshot artifacts", "CLI tests (Linux)", "Integration tests", "Quality tests", "Static analysis", "Unit tests"]'
+      checks: '["Acceptance tests (Linux)", "Acceptance tests (Mac)", "Build snapshot artifacts", "CLI tests (Linux)", "Containers-storage tests (Buildah)", "Containers-storage tests (Podman)", "Integration tests", "Quality tests", "Static analysis", "Unit tests"]'
 
   # only release core assets within the "release" job. Any other assets not already under the purview of the
   # goreleaser configuration should be added as separate jobs to allow for debugging separately from the release workflow

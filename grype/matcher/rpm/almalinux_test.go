@@ -2,6 +2,7 @@ package rpm
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -231,6 +232,129 @@ func TestAlmaLinuxMatching_UpstreamMatchWithFixReplacement(t *testing.T) {
 				SelectDetailByDistro("redhat", "8"). // alma matching queries the rhel namespace
 				HasMatchType(match.ExactIndirectMatch)
 		})
+}
+
+// TestAlmaLinuxMatching_FixReplacementCarriesAlmaDate verifies that the replaced fix reports the date
+// from the AlmaLinux record (ALSA-2021:4537 published 2021-11-09) and not RHEL's (2021-10-14).
+func TestAlmaLinuxMatching_FixReplacementCarriesAlmaDate(t *testing.T) {
+	dbtest.DBs(t, "alma8").
+		SelectOnly("rhel:8/cve-2021-40438", "almalinux8/alsa-2021:4537").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			db.Match(t, &matcher, httpdToolsPackage()).
+				SelectMatch("CVE-2021-40438").
+				HasFix(vulnerability.FixStateFixed, "2.4.37-43.module_el8.5.0+2597+c4b14997.alma").
+				HasFixAvailable("2.4.37-43.module_el8.5.0+2597+c4b14997.alma", "2021-11-09", "advisory").
+				SelectDetailByDistro("redhat", "8").
+				HasMatchType(match.ExactIndirectMatch)
+		})
+}
+
+// TestAlmaLinuxMatching_FixReplacementDropsRHELDate verifies that RHEL's date is not kept when the
+// AlmaLinux record has none (this fixture's ALSA predates fix dates in the alma provider).
+func TestAlmaLinuxMatching_FixReplacementDropsRHELDate(t *testing.T) {
+	dbtest.DBs(t, "alma8-nodates").
+		SelectOnly("rhel:8/cve-2021-40438", "almalinux8/alsa-2021:4537").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			db.Match(t, &matcher, httpdToolsPackage()).
+				SelectMatch("CVE-2021-40438").
+				HasFix(vulnerability.FixStateFixed, "2.4.37-43.module_el8.5.0+2597+c4b14997.alma").
+				HasNoFixAvailable().
+				SelectDetailByDistro("redhat", "8").
+				HasMatchType(match.ExactIndirectMatch)
+		})
+}
+
+func TestAvailableForVersion(t *testing.T) {
+	almaFix := vulnerability.FixAvailable{
+		Version: "2.4.37-43.module_el8.5.0+2597+c4b14997.alma",
+		Date:    time.Date(2021, 11, 9, 0, 0, 0, 0, time.UTC),
+		Kind:    "advisory",
+	}
+	otherFix := vulnerability.FixAvailable{
+		Version: "2.4.37-47.module_el8.6.0+2972+c4b14997.alma",
+		Date:    time.Date(2022, 5, 10, 0, 0, 0, 0, time.UTC),
+		Kind:    "advisory",
+	}
+
+	tests := []struct {
+		name       string
+		available  []vulnerability.FixAvailable
+		fixVersion string
+		expected   []vulnerability.FixAvailable
+	}{
+		{
+			name:       "nil input",
+			available:  nil,
+			fixVersion: almaFix.Version,
+			expected:   nil,
+		},
+		{
+			name:       "single matching entry",
+			available:  []vulnerability.FixAvailable{almaFix},
+			fixVersion: almaFix.Version,
+			expected:   []vulnerability.FixAvailable{almaFix},
+		},
+		{
+			name:       "date for a different version is dropped",
+			available:  []vulnerability.FixAvailable{otherFix},
+			fixVersion: almaFix.Version,
+			expected:   nil,
+		},
+		{
+			name:       "only the matching entry is kept",
+			available:  []vulnerability.FixAvailable{otherFix, almaFix},
+			fixVersion: almaFix.Version,
+			expected:   []vulnerability.FixAvailable{almaFix},
+		},
+		{
+			name:       "epoch prefix must match exactly",
+			available:  []vulnerability.FixAvailable{almaFix},
+			fixVersion: "0:" + almaFix.Version,
+			expected:   nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, availableForVersion(tt.available, tt.fixVersion))
+		})
+	}
+}
+
+// TestAlmaLinuxMatching_RHELFixKeepsDateWithoutAlmaRecord verifies that a RHEL fix with no overlapping
+// ALSA keeps its own date.
+func TestAlmaLinuxMatching_RHELFixKeepsDateWithoutAlmaRecord(t *testing.T) {
+	dbtest.DBs(t, "alma8").
+		SelectOnly("rhel:8/cve-2019-13636").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			p := dbtest.NewPackage("patch", "2.7.6-10.el8", syftPkg.RpmPkg).
+				WithArchitecture("x86_64").
+				WithDistro(dbtest.AlmaLinux8).
+				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+				Build()
+
+			db.Match(t, &matcher, p).
+				SelectMatch("CVE-2019-13636").
+				HasFix(vulnerability.FixStateFixed).
+				HasFixAvailable("0:2.7.6-11.el8", "2020-07-28", "first-observed").
+				SelectDetailByDistro("redhat", "8").
+				HasMatchType(match.ExactDirectMatch)
+		})
+}
+
+func httpdToolsPackage() pkg.Package {
+	return dbtest.NewPackage("httpd-tools", "2.4.37-30.module_el8.3.0+1234+abcd", syftPkg.RpmPkg).
+		WithArchitecture("x86_64").
+		WithDistro(dbtest.AlmaLinux8).
+		WithUpstream("httpd", "2.4.37-30.module_el8.3.0+1234+abcd").
+		WithMetadata(pkg.RpmMetadata{
+			Epoch:           intPtr(0),
+			ModularityLabel: strPtr("httpd:2.4:1234:5678"),
+		}).
+		Build()
 }
 
 // TestAlmaLinuxMatching_LowerAlmaModuleBuildFiltersVulnerability is the
