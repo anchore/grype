@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/nvd"
 	"github.com/anchore/grype/grype/db/provider"
@@ -3000,4 +3001,181 @@ func TestGetSSVC_deduplicatesIdenticalEntries(t *testing.T) {
 			require.Len(t, got, tt.want)
 		})
 	}
+}
+
+// affectedRows renders the CPE and package rows of a transformed entry, which is what CNA data changes.
+func affectedRows(t *testing.T, entries []data.Entry) (vuln *db.VulnerabilityHandle, cpes, pkgs []string) {
+	t.Helper()
+	require.Len(t, entries, 1)
+	re, ok := entries[0].Data.(transformers.RelatedEntries)
+	require.True(t, ok)
+	for _, r := range re.Related {
+		switch h := r.(type) {
+		case db.AffectedCPEHandle:
+			cpes = append(cpes, h.String())
+		case db.AffectedPackageHandle:
+			pkgs = append(pkgs, h.String())
+		}
+	}
+	return re.VulnerabilityHandle, cpes, pkgs
+}
+
+func transformWithCNA(t *testing.T, nvdFixture string, cna ...string) (cpes, pkgs []string) {
+	t.Helper()
+	cfg := defaultConfig()
+	if len(cna) > 0 {
+		cfg.CNA = newTestIndex(t, cna...)
+	}
+	vulns := loadFixture(t, nvdFixture)
+	require.Len(t, vulns, 1)
+	entries, err := Transformer(cfg)(vulns[0], inputProviderState("nvd"))
+	require.NoError(t, err)
+	_, cpes, pkgs = affectedRows(t, entries)
+	return cpes, pkgs
+}
+
+// the NVD and CVE 5 inputs are unmodified records for the same CVE
+func TestTransform_withCNAIndex(t *testing.T) {
+	tests := []struct {
+		name               string
+		cve                string
+		wantCPEs           []string
+		wantPackages       []string
+		sameCPEsAsNVDAlone bool
+	}{
+		{
+			name: "NVD has no configurations, so the CNA's cpeApplicability gives the CPE row",
+			cve:  "CVE-2026-85091",
+			wantCPEs: []string{
+				`cpe(ranges={ >= 1.3.1.2, <= 1.3.2} (<nil>), cves=CVE-2026-85091, cpe="cpe:2.3:a:zlib:zlib:*:*:*:*:*:*:*:*", vuln=0)`,
+			},
+			// the only affected entry is a pkg:github purl
+		},
+		{
+			name: "NVD configurations win over cpeApplicability, and the CNA still adds a package row",
+			cve:  "CVE-2026-53835",
+			wantCPEs: []string{
+				`cpe(ranges={ < 2026.5.6} (fixed in 2026.5.6), cves=CVE-2026-53835, cpe="cpe:2.3:a:openclaw:openclaw:*:*:*:*:*:node.js:*:*", vuln=0)`,
+			},
+			wantPackages: []string{
+				`package(ranges={npm < 2026.5.6} (fixed in 2026.5.6), cves=CVE-2026-53835, os=0, pkg="npm/openclaw", vuln=0)`,
+			},
+			sameCPEsAsNVDAlone: true,
+		},
+		{
+			name: "Linux kernel cpeApplicability is not used",
+			cve:  "CVE-2026-98165",
+		},
+		{
+			name: "package rows are added next to the CPE rows of an analyzed CVE",
+			cve:  "CVE-2026-59650",
+			wantCPEs: []string{
+				`cpe(ranges={ < 1.85} (fixed in 1.85), cves=CVE-2026-59650, cpe="cpe:2.3:a:bouncycastle:bc-java:*:*:*:*:*:*:*:*", vuln=0)`,
+				`cpe(ranges={ <= 2.73.11} (<nil>), cves=CVE-2026-59650, cpe="cpe:2.3:a:bouncycastle:bouncy_castle_for_java_lts:*:*:*:*:*:*:*:*", vuln=0)`,
+			},
+			wantPackages: []string{
+				`package(ranges={maven < 1.85} (fixed in 1.85), cves=CVE-2026-59650, os=0, pkg="java-archive/org.bouncycastle:bcprov-jdk18on", vuln=0)`,
+				`package(ranges={maven >= 2.73.0, < 2.73.12} (fixed in 2.73.12), cves=CVE-2026-59650, os=0, pkg="java-archive/org.bouncycastle:bcprov-lts8on", vuln=0)`,
+			},
+			sameCPEsAsNVDAlone: true,
+		},
+		{
+			name: "collectionURL with a trailing slash",
+			cve:  "CVE-2026-41608",
+			wantCPEs: []string{
+				`cpe(ranges={ < 0.24.0} (fixed in 0.24.0), cves=CVE-2026-41608, cpe="cpe:2.3:a:apache:thrift:*:*:*:*:*:*:*:*", vuln=0)`,
+			},
+			wantPackages: []string{
+				`package(ranges={pypi < 0.24.0} (fixed in 0.24.0), cves=CVE-2026-41608, os=0, pkg="python/thrift", vuln=0)`,
+			},
+			sameCPEsAsNVDAlone: true,
+		},
+		{
+			name: "collectionURL with no trailing slash",
+			cve:  "CVE-2026-66053",
+			wantCPEs: []string{
+				`cpe(ranges={ < 0.24.0} (fixed in 0.24.0), cves=CVE-2026-66053, cpe="cpe:2.3:a:apache:thrift:*:*:*:*:*:*:*:*", vuln=0)`,
+			},
+			wantPackages: []string{
+				`package(ranges={pypi < 0.24.0} (fixed in 0.24.0), cves=CVE-2026-66053, os=0, pkg="python/thrift", vuln=0)`,
+			},
+			sameCPEsAsNVDAlone: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.cve, func(t *testing.T) {
+			fixture := "testdata/cna/nvd/" + tt.cve + ".json"
+			cpes, pkgs := transformWithCNA(t, fixture, tt.cve)
+			require.Equal(t, tt.wantCPEs, cpes)
+			require.Equal(t, tt.wantPackages, pkgs)
+
+			// the index is consumed by the NVD record it belongs to
+			aloneCPEs, alonePkgs := transformWithCNA(t, fixture)
+			require.Empty(t, alonePkgs, "no index means no CNA package rows")
+			if tt.sameCPEsAsNVDAlone {
+				require.Equal(t, aloneCPEs, cpes)
+			} else {
+				require.Empty(t, aloneCPEs, "NVD has no configurations, so there are no CPE rows without the index")
+			}
+		})
+	}
+}
+
+func TestTransform_withCNAIndexConsumesRecord(t *testing.T) {
+	cfg := defaultConfig()
+	cfg.CNA = newTestIndex(t, "CVE-2026-85091", "CVE-2026-59650")
+
+	vulns := loadFixture(t, "testdata/cna/nvd/CVE-2026-85091.json")
+	_, err := Transformer(cfg)(vulns[0], inputProviderState("nvd"))
+	require.NoError(t, err)
+
+	left := cfg.CNA.Leftovers()
+	require.Len(t, left, 1)
+	require.Equal(t, "CVE-2026-59650", left[0].CVEMetadata.CVEID)
+}
+
+func TestTransformCVE5Only(t *testing.T) {
+	cfg := defaultConfig()
+	state := inputProviderState("nvd")
+
+	t.Run("package rows from a CVE 5 record alone", func(t *testing.T) {
+		entries := TransformCVE5Only(cfg, loadCVE5Fixture(t, "CVE-2026-59650"), state)
+		vuln, cpes, pkgs := affectedRows(t, entries)
+
+		require.Equal(t, "CVE-2026-59650", vuln.Name)
+		require.Equal(t, "nvd", vuln.ProviderID)
+		require.Equal(t, expectedProvider("nvd"), vuln.Provider)
+		require.Equal(t, db.UnknownVulnerabilityStatus, vuln.Status)
+		require.Equal(t, timeRef(time.Date(2026, 8, 3, 0, 42, 46, 157000000, time.UTC)), vuln.PublishedDate)
+		require.Equal(t, timeRef(time.Date(2026, 8, 3, 13, 32, 53, 676000000, time.UTC)), vuln.ModifiedDate)
+		require.Empty(t, vuln.BlobValue.Severities, "CNA metrics are not used")
+		require.Equal(t, "CVE-2026-59650", vuln.BlobValue.ID)
+		require.Equal(t, []string{"bcorg"}, vuln.BlobValue.Assigners)
+		require.Contains(t, vuln.BlobValue.Description, "Bouncy Castle for Java before 1.85")
+		require.NotEmpty(t, vuln.BlobValue.References)
+
+		require.Empty(t, cpes, "this record has no cpeApplicability")
+		require.Equal(t, []string{
+			`package(ranges={maven < 1.85} (fixed in 1.85), cves=CVE-2026-59650, os=0, pkg="java-archive/org.bouncycastle:bcprov-jdk18on", vuln=0)`,
+			`package(ranges={maven >= 2.73.0, < 2.73.12} (fixed in 2.73.12), cves=CVE-2026-59650, os=0, pkg="java-archive/org.bouncycastle:bcprov-lts8on", vuln=0)`,
+		}, pkgs)
+	})
+
+	t.Run("CPE rows from cpeApplicability", func(t *testing.T) {
+		_, cpes, pkgs := affectedRows(t, TransformCVE5Only(cfg, loadCVE5Fixture(t, "CVE-2026-85091"), state))
+		require.Equal(t, []string{
+			`cpe(ranges={ >= 1.3.1.2, <= 1.3.2} (<nil>), cves=CVE-2026-85091, cpe="cpe:2.3:a:zlib:zlib:*:*:*:*:*:*:*:*", vuln=0)`,
+		}, cpes)
+		require.Empty(t, pkgs)
+	})
+
+	t.Run("Linux kernel cpeApplicability alone yields no entry", func(t *testing.T) {
+		require.Empty(t, TransformCVE5Only(cfg, loadCVE5Fixture(t, "CVE-2026-31391"), state))
+	})
+
+	t.Run("a record with no usable entries yields no entry", func(t *testing.T) {
+		require.Empty(t, TransformCVE5Only(cfg, loadCVE5Fixture(t, "CVE-2026-13500"), state))
+		require.Empty(t, TransformCVE5Only(cfg, loadCVE5Fixture(t, "CVE-2026-25904"), state), "the only item has no bound")
+	})
 }

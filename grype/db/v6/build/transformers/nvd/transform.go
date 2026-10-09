@@ -115,6 +115,75 @@ func transform(cfg Config, vulnerability unmarshal.NVDVulnerability, state provi
 	return transformers.NewEntries(in...), nil
 }
 
+// TransformCVE5Only builds the entry for a CVE that has a CVE 5 record and no NVD record. It uses the Config the
+// NVD processor was built with, so both pick the same CPE parts and fix inference. The vulnerability is written
+// under the `nvd` provider, never `cve5`, with the status of an NVD record that has only been received and
+// without severities. It returns nothing when the record yields no CPE row and no package row.
+func TransformCVE5Only(cfg Config, r unmarshal.CVE5Record, nvdState provider.State) []data.Entry {
+	if cfg == (Config{}) {
+		cfg = defaultConfig()
+	}
+
+	id := r.CVEMetadata.CVEID
+	cpeHandles, packageHandles := affectedFromConfigurations(cfg, id, cnaConfigurations(r))
+	packageHandles = append(packageHandles, cnaPackageHandles(r)...)
+	if len(cpeHandles) == 0 && len(packageHandles) == 0 {
+		return nil
+	}
+	sort.Sort(internal.ByAffectedPackage(packageHandles))
+
+	var assigners []string
+	if a := r.CVEMetadata.AssignerShortName; a != "" {
+		assigners = []string{a}
+	}
+
+	in := []any{
+		db.VulnerabilityHandle{
+			Name:          id,
+			ProviderID:    "nvd",
+			Provider:      provider.Model(nvdState),
+			ModifiedDate:  internal.ParseTime(r.CVEMetadata.DateUpdated),
+			PublishedDate: internal.ParseTime(r.CVEMetadata.DatePublished),
+			Status:        db.UnknownVulnerabilityStatus,
+			BlobValue: &db.VulnerabilityBlob{
+				ID:          id,
+				Assigners:   assigners,
+				Description: strings.TrimSpace(cnaDescription(r)),
+				References:  cnaReferences(r),
+			},
+		},
+	}
+
+	for _, a := range cpeHandles {
+		in = append(in, a)
+	}
+	for _, a := range packageHandles {
+		in = append(in, a)
+	}
+
+	return transformers.NewEntries(in...)
+}
+
+func cnaDescription(r unmarshal.CVE5Record) string {
+	for _, d := range r.Containers.CNA.Descriptions {
+		if d.Lang == "en" {
+			return d.Value
+		}
+	}
+	return ""
+}
+
+func cnaReferences(r unmarshal.CVE5Record) []db.Reference {
+	var references []db.Reference
+	for _, ref := range r.Containers.CNA.References {
+		if ref.URL == "" {
+			continue
+		}
+		references = append(references, db.Reference{URL: ref.URL})
+	}
+	return transformers.DeduplicateReferences(references)
+}
+
 func getAssigner(vuln unmarshal.NVDVulnerability) []string {
 	if vuln.SourceIdentifier == nil {
 		return nil
