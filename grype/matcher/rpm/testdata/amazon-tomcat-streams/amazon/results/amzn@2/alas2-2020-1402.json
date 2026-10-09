@@ -1,0 +1,46 @@
+{
+  "identifier": "amzn:2/alas2-2020-1402",
+  "item": {
+    "Vulnerability": {
+      "Description": "Multiple issues were addressed in the tomcat 7 package. (CVE-2020-1938)",
+      "FixedIn": [
+        {
+          "Name": "tomcat",
+          "NamespaceName": "amzn:2",
+          "Version": "7.0.76-10.amzn2.0.1",
+          "VersionFormat": "rpm"
+        },
+        {
+          "Name": "tomcat-servlet-3.0-api",
+          "NamespaceName": "amzn:2",
+          "Version": "7.0.76-10.amzn2.0.1",
+          "VersionFormat": "rpm"
+        }
+      ],
+      "Link": "https://alas.aws.amazon.com/AL2/ALAS2-2020-1402.html",
+      "Metadata": {
+        "CVE": [
+          {
+            "Name": "CVE-2018-1304"
+          },
+          {
+            "Name": "CVE-2018-1305"
+          },
+          {
+            "Name": "CVE-2018-8014"
+          },
+          {
+            "Name": "CVE-2018-8034"
+          },
+          {
+            "Name": "CVE-2020-1938"
+          }
+        ]
+      },
+      "Name": "ALAS2-2020-1402",
+      "NamespaceName": "amzn:2",
+      "Severity": "High"
+    }
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/os/schema-1.1.2.json"
+}

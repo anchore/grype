@@ -20,39 +20,34 @@ func MatchPackageByLanguage(store vulnerability.Provider, p pkg.Package, matcher
 	}
 
 	provider := result.NewProvider(store, p, matcherType)
-	versionCriteria := OnlyVulnerableVersions(version.New(p.Version, pkg.VersionFormat(p)))
+	pkgVersion := version.New(p.Version, pkg.VersionFormat(p))
 
-	disclosures := result.Set{}
-	unaffected := result.Set{}
-
-	// Gather disclosures and unaffected entries across every name the
-	// provider claims for p, then run the cross-name Remove. Doing the
-	// Remove per-name would silo a NAK keyed under one name (e.g.
-	// `rootio-foo`) away from a disclosure keyed under another (`foo`).
+	// split once across names so a NAK under `rootio-foo` denies a disclosure under `foo`
+	applicable := result.Set{}
 	for _, name := range store.PackageSearchNames(p) {
-		criteria := []vulnerability.Criteria{
+		searched := p
+		searched.Name = name
+		found, err := provider.FindAll(
 			search.ByEcosystem(p.Language, p.Type),
 			search.ByPackageName(name),
 			OnlyQualifiedPackages(p),
 			OnlyNonWithdrawnVulnerabilities(),
-		}
-
-		all, err := provider.FindResults(criteria...)
+			search.WithPackage(searched),
+		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("matcher failed to fetch disclosure language=%q pkg=%q: %w", p.Language, name, err)
 		}
-		disclosures = disclosures.Merge(all.Filter(versionCriteria))
-
-		nakCriteria := append(slices.Clone(criteria), search.ForUnaffected(), versionCriteria)
-		u, err := provider.FindResults(nakCriteria...)
-		if err != nil {
-			return nil, nil, fmt.Errorf("matcher failed to fetch resolution language=%q pkg=%q: %w", p.Language, name, err)
-		}
-		unaffected = unaffected.Merge(u)
+		applicable = applicable.Merge(found)
 	}
 
-	remaining := disclosures.Remove(unaffected)
-	return remaining.ToMatches(), constructIgnoreFilters(unaffected, p), nil
+	disclosures, notVulnerable := SplitVulnerable(applicable, pkgVersion)
+
+	// only NAKs become ignores: a fixed record speaks only for this version
+	return disclosures.ToMatches(p), constructIgnoreFilters(naks(notVulnerable), p), nil
+}
+
+func naks(s result.Set) result.Set {
+	return s.Filter(search.ForUnaffected())
 }
 
 func MatchPackageByEcosystemPackageName(vp vulnerability.Provider, p pkg.Package, packageName string, matcherType match.MatcherType) ([]match.Match, []match.IgnoreFilter, error) {
@@ -63,53 +58,42 @@ func MatchPackageByEcosystemPackageName(vp vulnerability.Provider, p pkg.Package
 
 	provider := result.NewProvider(vp, p, matcherType)
 
-	criteria := []vulnerability.Criteria{
+	pkgVersion := version.New(p.Version, pkg.VersionFormat(p))
+
+	searched := p
+	searched.Name = packageName
+	applicable, err := provider.FindAll(
 		search.ByEcosystem(p.Language, p.Type),
 		search.ByPackageName(packageName),
 		OnlyQualifiedPackages(p),
 		OnlyNonWithdrawnVulnerabilities(),
-	}
-
-	versionCriteria := OnlyVulnerableVersions(version.New(p.Version, pkg.VersionFormat(p)))
-
-	// TODO: previous impl set confidence to 1, this results in
-	// a confidence of zero. What should it be?
-	all, err := provider.FindResults(criteria...)
+		search.WithPackage(searched),
+	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch disclosure language=%q pkg=%q: %w", p.Language, p.Name, err)
 	}
 
-	disclosures := all.Filter(versionCriteria)
+	disclosures, notVulnerable := SplitVulnerable(applicable, pkgVersion)
 
-	// we want to perform the same results, but look for explicit naks, which indicates that a vulnerability should not apply
-	criteria = append(criteria, search.ForUnaffected(), versionCriteria)
-	unaffected, err := provider.FindResults(criteria...)
-	if err != nil {
-		return nil, nil, fmt.Errorf("matcher failed to fetch resolution language=%q pkg=%q: %w", p.Language, p.Name, err)
-	}
-
-	// remove any disclosures that have been explicitly nacked
-	remaining := disclosures.Remove(unaffected)
-
-	return remaining.ToMatches(), constructIgnoreFilters(unaffected, p), err
+	return disclosures.ToMatches(p), constructIgnoreFilters(naks(notVulnerable), p), nil
 }
 
 func constructIgnoreFilters(unaffectedVulns result.Set, p pkg.Package) []match.IgnoreFilter {
 	var ignores []match.IgnoreFilter
 
-	// collect all IDs to exclude
 	var ids []string
+	appendID := func(id string) {
+		if id != "" && !slices.Contains(ids, id) {
+			ids = append(ids, id)
+		}
+	}
 	for _, vulnResults := range unaffectedVulns {
 		for _, vulnResult := range vulnResults {
-			ids = append(ids, vulnResult.ID)
+			appendID(vulnResult.ID)
 			for _, vuln := range vulnResult.Vulnerabilities {
-				if !slices.Contains(ids, vuln.ID) {
-					ids = append(ids, vuln.ID)
-				}
+				appendID(vuln.ID)
 				for _, id := range vuln.RelatedVulnerabilities {
-					if !slices.Contains(ids, id.ID) {
-						ids = append(ids, id.ID)
-					}
+					appendID(id.ID)
 				}
 			}
 		}

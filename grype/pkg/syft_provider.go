@@ -51,6 +51,7 @@ func distroFromSBOM(s *sbom.SBOM, config ProviderConfig, applyChannel func(*dist
 	} else {
 		d = distro.FromRelease(s.Artifacts.LinuxDistribution, config.Distro.FixChannels)
 		applyChannel(d)
+		d = applyDistroIdentifiers(s, d, config.Distro.Identifiers)
 		// detection failed if we had linux release info but couldn't determine distro type
 		detectionFailed = s.Artifacts.LinuxDistribution != nil && d == nil
 	}
