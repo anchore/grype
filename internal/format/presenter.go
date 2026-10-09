@@ -5,6 +5,7 @@ import (
 
 	"github.com/anchore/grype/grype/presenter/cyclonedx"
 	"github.com/anchore/grype/grype/presenter/json"
+	"github.com/anchore/grype/grype/presenter/jsonl"
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/grype/presenter/sarif"
 	"github.com/anchore/grype/grype/presenter/table"
@@ -23,6 +24,8 @@ func GetPresenter(format Format, c PresentationConfig, pb models.PresenterConfig
 	switch format {
 	case JSONFormat:
 		return json.NewPresenter(pb)
+	case JSONLinesFormat:
+		return jsonl.NewPresenter(pb)
 	case TableFormat:
 		return table.NewPresenter(pb, c.ShowSuppressed)
 
