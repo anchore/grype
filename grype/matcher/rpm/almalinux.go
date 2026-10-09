@@ -2,6 +2,7 @@ package rpm
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/anchore/grype/grype/distro"
@@ -189,8 +190,45 @@ func applyAlmaLinuxUnaffectedFiltering(disclosures result.Set, unaffectedResults
 		unaffectedResults.Filter(search.ByVersion(*pkgVersion)),
 	)
 
-	// Update remaining vulnerabilities with AlmaLinux fix information
-	return filtered.Update(unaffectedResults, result.IdentitiesOverlap, replaceWithAlmaLinuxFixInfo)
+	// Several AlmaLinux advisories can cover one disclosure. The package stops being affected at the
+	// lowest of their lower bounds, so that is the fix: apply only that record.
+	out := make(result.Set, len(filtered))
+	for id, results := range filtered {
+		results = slices.Clone(results)
+		for i := range results {
+			if lowest, ok := lowestAlmaLinuxFix(results[i], unaffectedResults); ok {
+				replaceWithAlmaLinuxFixInfo(&results[i], lowest)
+			}
+		}
+		out[id] = results
+	}
+	return out
+}
+
+// lowestAlmaLinuxFix returns the AlmaLinux unaffected record overlapping existing whose fix version
+// is lowest; equal versions are broken by advisory ID so the choice never depends on map order.
+func lowestAlmaLinuxFix(existing result.Result, unaffected result.Set) (result.Result, bool) {
+	var best result.Result
+	var bestFix *version.Version
+	for _, records := range unaffected {
+		for _, r := range records {
+			fix := extractFixVersionFromConstraint(r.Vulnerabilities[0].Constraint)
+			if fix == "" || !result.IdentitiesOverlap(existing, r) {
+				continue
+			}
+			v := version.New(fix, version.RpmFormat)
+			if v.Validate() != nil {
+				continue
+			}
+			if bestFix != nil {
+				if cmp, err := v.Compare(bestFix); err != nil || cmp > 0 || (cmp == 0 && r.ID >= best.ID) {
+					continue
+				}
+			}
+			best, bestFix = r, v
+		}
+	}
+	return best, bestFix != nil
 }
 
 // replaceWithAlmaLinuxFixInfo updates the Constraint, Fix, and Advisories fields from AlmaLinux unaffected data
