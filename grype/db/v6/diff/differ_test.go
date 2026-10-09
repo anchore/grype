@@ -45,6 +45,30 @@ func Test_basicPackageDiff(t *testing.T) {
 			},
 		},
 		{
+			// a fix-date-only change updates fix data on matches, so it is reported as a package modification
+			name:  "fix-date-only-package-modified",
+			oldDB: []string{"**/debian-11/cve-2025-13012.json"},
+			newDB: []string{"**/debian-11/cve-2025-13012-fixdate.json"},
+			expected: map[string]changes{
+				"firefox-esr": {
+					modified{"CVE-2025-13012"},
+				},
+				"thunderbird": {},
+			},
+		},
+		{
+			// a fix-kind-only change likewise
+			name:  "fix-kind-only-package-modified",
+			oldDB: []string{"**/debian-11/cve-2025-13012.json"},
+			newDB: []string{"**/debian-11/cve-2025-13012-fixkind.json"},
+			expected: map[string]changes{
+				"firefox-esr": {
+					modified{"CVE-2025-13012"},
+				},
+				"thunderbird": {},
+			},
+		},
+		{
 			name: "os-echo-modify",
 			oldDB: []string{
 				"cve-2025-59800",
