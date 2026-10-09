@@ -77,7 +77,7 @@ jobs:
 
       # go-make's setup only (not ./.github/actions/bootstrap): no apt, binny tools, or fixture cache are needed
       - name: Setup go + go-make tooling
-        uses: anchore/go-make/.github/actions/setup@fa5421b3bf24c9d18f11a736c5eb4172f2b7d683 # v0.8.1
+        uses: anchore/go-make/.github/actions/setup@27a9f35f41b5fe86d68815844efd2ba816e9ba6b # v0.9.1
 
       - name: Run unit tests
         run: make unit
@@ -226,7 +226,7 @@ jobs:
 
       # go-make's setup only (not ./.github/actions/bootstrap): the test only needs make + the snapshot binary
       - name: Setup go + go-make tooling
-        uses: anchore/go-make/.github/actions/setup@fa5421b3bf24c9d18f11a736c5eb4172f2b7d683 # v0.8.1
+        uses: anchore/go-make/.github/actions/setup@27a9f35f41b5fe86d68815844efd2ba816e9ba6b # v0.9.1
 
       - name: Install image builder
         run: |
