@@ -8,7 +8,9 @@ import (
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/dbtest"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -539,4 +541,29 @@ func TestAlmaLinuxIgnoreFilters_AlmaUnaffectedAndAliasUnwind(t *testing.T) {
 				"CVE-2021-20325").
 				ForPackage(pkgID)
 		})
+}
+
+// almaResult builds a single-vulnerability Result the way result.Provider.FindResults does.
+func almaResult(id, alias, constraint string) result.Result {
+	v := vulnerability.Vulnerability{Reference: vulnerability.Reference{ID: id}, Constraint: version.MustGetConstraint(constraint, version.RpmFormat)}
+	if alias != "" {
+		v.RelatedVulnerabilities = []vulnerability.Reference{{ID: alias}}
+	}
+	return result.Result{ID: id, Vulnerabilities: []vulnerability.Vulnerability{v}}
+}
+
+// Two ALSAs cover CVE-2024-8176 for expat on almalinux 9; the package stops being affected at the
+// lower bound (ALSA-2025:3531), so that must be the reported fix regardless of visit order.
+// Both records sit under one key so they are visited in a fixed order (lowest first); overwriting
+// with each visited record would report the last one, ALSA-2025:7444.
+func TestApplyAlmaLinuxUnaffectedFiltering_LowestOverlappingFixWins(t *testing.T) {
+	disclosures := result.Set{"CVE-2024-8176": {almaResult("CVE-2024-8176", "", "< 2.5.0-3.el9_5.3")}}
+	unaffected := result.Set{"ALSA": {
+		almaResult("ALSA-2025:3531", "CVE-2024-8176", ">= 2.5.0-3.el9_5.3"),
+		almaResult("ALSA-2025:7444", "CVE-2024-8176", ">= 2.5.0-5.el9_6"),
+	}}
+	got := applyAlmaLinuxUnaffectedFiltering(disclosures, unaffected, version.New("2.5.0-2.el9_4.1", version.RpmFormat))
+	v := got["CVE-2024-8176"][0].Vulnerabilities[0]
+	assert.Equal(t, []string{"2.5.0-3.el9_5.3"}, v.Fix.Versions)
+	assert.Equal(t, "< 2.5.0-3.el9_5.3", v.Constraint.Value())
 }
