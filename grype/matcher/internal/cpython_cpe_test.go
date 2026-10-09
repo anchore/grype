@@ -126,3 +126,21 @@ func TestMatchPackageByCPEs_CPythonVendorScope(t *testing.T) {
 		})
 	}
 }
+
+func TestMatchPackageByCPEs_CPythonExplicitUpdate(t *testing.T) {
+	for _, update := range []string{"alpha5", "a5", "beta1", "rc3"} {
+		t.Run(update, func(t *testing.T) {
+			// A CPython CPE may split a prerelease across version and update.
+			// Do not interpret only the version as a final release and hide a match.
+			c := cpe.Must(fmt.Sprintf("cpe:2.3:a:python:python:3.15.0:%s:*:*:*:*:*:*", update), "")
+			store := mock.VulnerabilityProvider(vulnerability.Vulnerability{
+				Reference:   vulnerability.Reference{ID: "CVE-2025-15367", Namespace: "nvd:cpe"},
+				PackageName: "python", Constraint: version.MustGetConstraint("< 3.15.0a6", version.UnknownFormat), CPEs: []cpe.CPE{c},
+			})
+			p := pkg.Package{Name: "python", Version: "3.15.0", Type: syftPkg.BinaryPkg, CPEs: []cpe.CPE{c}}
+			matches, _, err := MatchPackageByCPEs(store, p, match.StockMatcher)
+			require.NoError(t, err)
+			require.Len(t, matches, 1, "keep the existing comparison until update normalization is implemented")
+		})
+	}
+}
