@@ -75,3 +75,54 @@ func TestMatchPackageByCPEs_OpenSSLLetterVersions(t *testing.T) {
 		})
 	}
 }
+
+func TestMatchPackageByCPEs_CPythonDistroVersionFallback(t *testing.T) {
+	for _, tt := range []struct {
+		name, v     string
+		packageType syftPkg.Type
+	}{
+		{"deb revision", "3.14.8-1+deb13u1", syftPkg.DebPkg},
+		{"rpm release", "3.14.8-2.el10", syftPkg.RpmPkg},
+		{"apk epoch", "1:3.14.8-r0", syftPkg.ApkPkg},
+		{"deb epoch", "1:3.14.8-1+deb13u1", syftPkg.DebPkg},
+		{"unparseable", "not-a-version", syftPkg.BinaryPkg},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			counts := []int{}
+			errs := []error{}
+			// The unrecognized vendor is a control for the existing package comparator.
+			for _, vendor := range []string{"example", "python"} {
+				store := mock.VulnerabilityProvider(vulnerability.Vulnerability{
+					Reference:   vulnerability.Reference{ID: "CVE-2025-15367", Namespace: "nvd:cpe"},
+					PackageName: "python", Constraint: version.MustGetConstraint("< 3.15.0a6", version.UnknownFormat),
+					CPEs: []cpe.CPE{cpe.Must(fmt.Sprintf("cpe:2.3:a:%s:python:*:*:*:*:*:*:*:*", vendor), "")},
+				})
+				p := pkg.Package{Name: "python3", Version: tt.v, Type: tt.packageType,
+					CPEs: []cpe.CPE{cpe.Must(fmt.Sprintf("cpe:2.3:a:%s:python:*:*:*:*:*:*:*:*", vendor), "")}}
+				matches, _, err := MatchPackageByCPEs(store, p, match.StockMatcher)
+				counts = append(counts, len(matches))
+				errs = append(errs, err)
+			}
+			require.Equal(t, errs[0] != nil, errs[1] != nil, "do not hide comparison errors")
+			require.Equal(t, counts[0], counts[1], "preserve existing distro fallback results")
+		})
+	}
+}
+
+func TestMatchPackageByCPEs_CPythonVendorScope(t *testing.T) {
+	for _, tt := range []struct{ part, vendor, product string }{
+		{"a", "unrelated", "python"}, {"a", "python", "unrelated"}, {"o", "python", "python"},
+	} {
+		t.Run(fmt.Sprintf("%s/%s/%s", tt.part, tt.vendor, tt.product), func(t *testing.T) {
+			c := cpe.Must(fmt.Sprintf("cpe:2.3:%s:%s:%s:*:*:*:*:*:*:*:*", tt.part, tt.vendor, tt.product), "")
+			store := mock.VulnerabilityProvider(vulnerability.Vulnerability{
+				Reference:   vulnerability.Reference{ID: "CVE-generic-ordering", Namespace: "nvd:cpe"},
+				PackageName: tt.product, Constraint: version.MustGetConstraint("< 3.15.0a6", version.UnknownFormat), CPEs: []cpe.CPE{c},
+			})
+			p := pkg.Package{Name: tt.product, Version: "3.15.0", Type: syftPkg.BinaryPkg, CPEs: []cpe.CPE{c}}
+			matches, _, err := MatchPackageByCPEs(store, p, match.StockMatcher)
+			require.NoError(t, err)
+			require.Len(t, matches, 1, "do not change other products' generic letter ordering")
+		})
+	}
+}

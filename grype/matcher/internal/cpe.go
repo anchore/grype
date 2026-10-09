@@ -75,7 +75,11 @@ func FindResultsByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstr
 		// APK and generic letter-suffix comparison do not have that meaning.
 		if strings.EqualFold(c.Attributes.Part, "a") && strings.EqualFold(c.Attributes.Product, "python") &&
 			(strings.EqualFold(c.Attributes.Vendor, "python") || strings.EqualFold(c.Attributes.Vendor, "python_software_foundation")) {
-			format = version.PythonFormat
+			// A wildcard CPE may fall back to an ecosystem-specific package
+			// version. Keep its normal comparison behavior if it is not PEP 440.
+			if version.New(searchVersion, version.PythonFormat).Validate() == nil {
+				format = version.PythonFormat
+			}
 		}
 
 		if format == version.JVMFormat {
