@@ -423,6 +423,11 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 			Version: "3.11.6",
 		},
 		{
+			Name:    "testdata/os/dhi",
+			Type:    DHI,
+			Version: "3.24",
+		},
+		{
 			Name:    "testdata/os/alpine-edge",
 			Type:    Alpine,
 			Version: "3.22.0_alpha20250108",
