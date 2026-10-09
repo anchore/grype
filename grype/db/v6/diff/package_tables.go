@@ -183,6 +183,41 @@ func (d *DBDiffer) createDiffViewsPackages() error {
 			AND p.os_channel = p2.os_channel
 			AND p.pkg_blob = p2.pkg_blob
 			AND p.status = p2.status
+		)
+		-- a new record added beside existing records under the same key: the key is not new, so
+		-- diff_pkg_added does not report it, and the old-side check above finds no change
+		UNION
+		SELECT DISTINCT
+			p2.vulnerability_id,
+			p2.ecosystem,
+			p2.pkg_name,
+			p2.provider_id,
+			p2.vuln_name
+		FROM diff_pkg_new p2
+		JOIN diff_pkg_old p
+			ON p.vuln_name = p2.vuln_name
+			AND p.provider_id = p2.provider_id
+			AND p.ecosystem = p2.ecosystem
+			AND p.pkg_name = p2.pkg_name
+			AND p.os_name = p2.os_name
+			AND p.os_major = p2.os_major
+			AND p.os_minor = p2.os_minor
+			AND p.os_codename = p2.os_codename
+			AND p.os_channel = p2.os_channel
+			AND p.status = p2.status
+		WHERE NOT EXISTS(
+			SELECT 1 FROM diff_pkg_old p
+			WHERE p.vuln_name = p2.vuln_name
+			AND p.provider_id = p2.provider_id
+			AND p.ecosystem = p2.ecosystem
+			AND p.pkg_name = p2.pkg_name
+			AND p.os_name = p2.os_name
+			AND p.os_major = p2.os_major
+			AND p.os_minor = p2.os_minor
+			AND p.os_codename = p2.os_codename
+			AND p.os_channel = p2.os_channel
+			AND p.status = p2.status
+			AND p.pkg_blob = p2.pkg_blob
 		)`,
 
 		`CREATE TEMP VIEW diff_cpe_added AS
