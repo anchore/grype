@@ -50,6 +50,30 @@ func Test_basicPackageDiff(t *testing.T) {
 			},
 		},
 		{
+			// a fix-date-only change updates fix data on matches, so it is reported as a package modification
+			name:  "fix-date-only-package-modified",
+			oldDB: []string{"**/debian-11/cve-2025-13012.json"},
+			newDB: []string{"**/debian-11/cve-2025-13012-fixdate.json"},
+			expected: map[string]changes{
+				"firefox-esr": {
+					modified{"CVE-2025-13012"},
+				},
+				"thunderbird": {},
+			},
+		},
+		{
+			// a fix-kind-only change likewise
+			name:  "fix-kind-only-package-modified",
+			oldDB: []string{"**/debian-11/cve-2025-13012.json"},
+			newDB: []string{"**/debian-11/cve-2025-13012-fixkind.json"},
+			expected: map[string]changes{
+				"firefox-esr": {
+					modified{"CVE-2025-13012"},
+				},
+				"thunderbird": {},
+			},
+		},
+		{
 			name: "os-echo-modify",
 			oldDB: []string{
 				"cve-2025-59800",
@@ -1244,7 +1268,8 @@ func Test_packageDiffExact(t *testing.T) {
 			mutateNew: []string{"UPDATE packages SET ecosystem = ''"},
 		},
 		{
-			// fix availability doesn't affect matching, so blobs that only differ there are not modified
+			// a fix's availability is part of the record, so a change to only its date or kind is a modification:
+			// a consumer that refreshes fix data from the package diff never sees it otherwise
 			name:  "fix availability only change",
 			oldDB: []string{"echo-rolling/CVE-2025-13012", "cve-2025-21916"},
 			newDB: []string{"echo-rolling/CVE-2025-13012", "cve-2025-21916"},
@@ -1253,6 +1278,11 @@ func Test_packageDiffExact(t *testing.T) {
 				 WHERE id IN (SELECT blob_id FROM affected_package_handles) AND value LIKE '%"first-observed"%'`,
 				`UPDATE blobs SET value = replace(value, '"first-observed"', '"advisory"')
 				 WHERE id IN (SELECT blob_id FROM affected_cpe_handles) AND value LIKE '%"first-observed"%'`,
+			},
+			expected: []PackageDiff{
+				{Ecosystem: "deb", Name: "firefox-esr", Vulnerabilities: VulnerabilityChanges{Modified: []VulnerabilityID{{Provider: "echo", ID: "CVE-2025-13012"}}}},
+				{Ecosystem: "cpe", Name: "linux_kernel", CPE: "cpe:2.3:o:linux:linux_kernel:*:*:*:*:*:*:*:*", Vulnerabilities: VulnerabilityChanges{Modified: []VulnerabilityID{{Provider: "nvd", ID: "CVE-2025-21916"}}}},
+				{Ecosystem: "deb", Name: "thunderbird", Vulnerabilities: VulnerabilityChanges{Modified: []VulnerabilityID{{Provider: "echo", ID: "CVE-2025-13012"}}}},
 			},
 		},
 		{
