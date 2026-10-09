@@ -567,3 +567,19 @@ func TestApplyAlmaLinuxUnaffectedFiltering_LowestOverlappingFixWins(t *testing.T
 	assert.Equal(t, []string{"2.5.0-3.el9_5.3"}, v.Fix.Versions)
 	assert.Equal(t, "< 2.5.0-3.el9_5.3", v.Constraint.Value())
 }
+
+// Grype's RPM comparison ignores an epoch present on only one side, so these three candidate fixes
+// compare in a cycle: 2:1.0-1 < 2.0-1 (epoch ignored), 2.0-1 < 1:3.0-1 (epoch ignored), and
+// 1:3.0-1 < 2:1.0-1 (epochs compared). An epoch-1 package stops matching at 1:2.0-1, through the
+// epoch-less 2.0-1 record, so that is the fix in every visit order.
+func TestApplyAlmaLinuxUnaffectedFiltering_MixedEpochFixDoesNotDependOnOrder(t *testing.T) {
+	a := almaResult("ALSA-A", "CVE-X", ">= 2:1.0-1")
+	b := almaResult("ALSA-B", "CVE-X", ">= 2.0-1")
+	c := almaResult("ALSA-C", "CVE-X", ">= 1:3.0-1")
+	for _, order := range [][]result.Result{{a, b, c}, {a, c, b}, {b, a, c}, {b, c, a}, {c, a, b}, {c, b, a}} {
+		disclosures := result.Set{"CVE-X": {almaResult("CVE-X", "", "< 99:0")}}
+		got := applyAlmaLinuxUnaffectedFiltering(disclosures, result.Set{"ALSA": order}, version.New("1:1.5-1", version.RpmFormat))
+		assert.Equal(t, []string{"2.0-1"}, got["CVE-X"][0].Vulnerabilities[0].Fix.Versions,
+			"order %s,%s,%s", order[0].ID, order[1].ID, order[2].ID)
+	}
+}

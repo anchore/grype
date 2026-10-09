@@ -196,7 +196,7 @@ func applyAlmaLinuxUnaffectedFiltering(disclosures result.Set, unaffectedResults
 	for id, results := range filtered {
 		results = slices.Clone(results)
 		for i := range results {
-			if lowest, ok := lowestAlmaLinuxFix(results[i], unaffectedResults); ok {
+			if lowest, ok := lowestAlmaLinuxFix(results[i], unaffectedResults, pkgVersion); ok {
 				replaceWithAlmaLinuxFixInfo(&results[i], lowest)
 			}
 		}
@@ -207,7 +207,9 @@ func applyAlmaLinuxUnaffectedFiltering(disclosures result.Set, unaffectedResults
 
 // lowestAlmaLinuxFix returns the AlmaLinux unaffected record overlapping existing whose fix version
 // is lowest; equal versions are broken by advisory ID so the choice never depends on map order.
-func lowestAlmaLinuxFix(existing result.Result, unaffected result.Set) (result.Result, bool) {
+// Fix versions are compared in the installed package's epoch context (see fixInPackageEpochContext),
+// the same way the unaffected filter compares them with the package.
+func lowestAlmaLinuxFix(existing result.Result, unaffected result.Set, pkgVersion *version.Version) (result.Result, bool) {
 	var best result.Result
 	var bestFix *version.Version
 	for _, records := range unaffected {
@@ -216,7 +218,10 @@ func lowestAlmaLinuxFix(existing result.Result, unaffected result.Set) (result.R
 			if fix == "" || !result.IdentitiesOverlap(existing, r) {
 				continue
 			}
-			v := version.New(fix, version.RpmFormat)
+			if version.New(fix, version.RpmFormat).Validate() != nil {
+				continue
+			}
+			v := version.New(fixInPackageEpochContext(fix, pkgVersion), version.RpmFormat)
 			if v.Validate() != nil {
 				continue
 			}
@@ -229,6 +234,32 @@ func lowestAlmaLinuxFix(existing result.Result, unaffected result.Set) (result.R
 		}
 	}
 	return best, bestFix != nil
+}
+
+// fixInPackageEpochContext rewrites a candidate fix version so candidates compare the way the unaffected
+// filter compares each of them with the installed package: an epoch counts only when both sides have
+// one. If the package has no epoch, candidate epochs are dropped; if it has one, a candidate without an
+// epoch takes the package's. Every candidate then either has an epoch or none, so comparisons between
+// candidates are consistent and the lowest one does not depend on visit order.
+func fixInPackageEpochContext(fix string, pkgVersion *version.Version) string {
+	pkgEpoch, _ := splitRpmEpoch(pkgVersion.Raw)
+	fixEpoch, rest := splitRpmEpoch(fix)
+	switch {
+	case pkgEpoch == "":
+		return rest
+	case fixEpoch == "":
+		return pkgEpoch + ":" + rest
+	default:
+		return fix
+	}
+}
+
+// splitRpmEpoch splits "epoch:version-release" into its epoch (empty when absent) and the remainder.
+func splitRpmEpoch(v string) (string, string) {
+	if i := strings.Index(v, ":"); i > 0 && strings.Trim(v[:i], "0123456789") == "" {
+		return v[:i], v[i+1:]
+	}
+	return "", v
 }
 
 // replaceWithAlmaLinuxFixInfo updates the Constraint, Fix, and Advisories fields from AlmaLinux unaffected data
