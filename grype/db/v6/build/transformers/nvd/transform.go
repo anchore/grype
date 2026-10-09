@@ -26,6 +26,9 @@ var cwePattern = regexp.MustCompile(`^CWE-\d+$`)
 type Config struct {
 	CPEParts            *strset.Set
 	InferNVDFixVersions bool
+
+	// CNA, when set, supplies CVE 5 data that the transformer combines with each NVD record. It is a pointer so Config stays comparable.
+	CNA *Index
 }
 
 func defaultConfig() Config {
@@ -65,6 +68,13 @@ func Transformer(cfg Config) data.NVDTransformerV2 {
 }
 
 func transform(cfg Config, vulnerability unmarshal.NVDVulnerability, state provider.State) ([]data.Entry, error) {
+	var cna *unmarshal.CVE5Record
+	if cfg.CNA != nil {
+		if r, ok := cfg.CNA.Take(vulnerability.ID); ok {
+			cna = &r
+		}
+	}
+
 	in := []any{
 		db.VulnerabilityHandle{
 			Name:          vulnerability.ID,
@@ -83,7 +93,7 @@ func transform(cfg Config, vulnerability unmarshal.NVDVulnerability, state provi
 		},
 	}
 
-	cpeHandles, packageHandles := getAffected(cfg, vulnerability)
+	cpeHandles, packageHandles := getAffected(cfg, vulnerability, cna)
 	sort.Sort(internal.ByAffectedPackage(packageHandles))
 
 	for _, a := range cpeHandles {
@@ -176,8 +186,31 @@ func getVulnStatus(vuln unmarshal.NVDVulnerability) db.VulnerabilityStatus {
 	return db.UnknownVulnerabilityStatus
 }
 
-func getAffected(cfg Config, vulnerability unmarshal.NVDVulnerability) ([]db.AffectedCPEHandle, []db.AffectedPackageHandle) {
-	candidates, err := allCandidates(vulnerability.ID, vulnerability.Configurations, cfg)
+// getAffected builds CPE and package rows. CPE rows come from the NVD configurations when the key is present,
+// and otherwise from the CNA's cpeApplicability unless its assigner is excluded. CNA package rows are added in
+// either case.
+func getAffected(cfg Config, vulnerability unmarshal.NVDVulnerability, cna *unmarshal.CVE5Record) ([]db.AffectedCPEHandle, []db.AffectedPackageHandle) {
+	configurations := vulnerability.Configurations
+	if configurations == nil && cna != nil {
+		configurations = cnaConfigurations(*cna)
+	}
+
+	cpeHandles, packageHandles := affectedFromConfigurations(cfg, vulnerability.ID, configurations)
+	if cna != nil {
+		packageHandles = append(packageHandles, cnaPackageHandles(*cna)...)
+	}
+	return cpeHandles, packageHandles
+}
+
+func cnaConfigurations(r unmarshal.CVE5Record) []nvd.Configuration {
+	if !cpeApplicabilityUsable(r.CVEMetadata.AssignerShortName) {
+		return nil
+	}
+	return r.Containers.CNA.CPEApplicability
+}
+
+func affectedFromConfigurations(cfg Config, id string, configurations []nvd.Configuration) ([]db.AffectedCPEHandle, []db.AffectedPackageHandle) {
+	candidates, err := allCandidates(id, configurations, cfg)
 	if err != nil {
 		log.WithFields("error", err).Warn("failed to process affected NVD CPEs")
 		return nil, nil
@@ -186,7 +219,7 @@ func getAffected(cfg Config, vulnerability unmarshal.NVDVulnerability) ([]db.Aff
 	var affectedCPEHandles []db.AffectedCPEHandle
 	var affectedPackageHandles []db.AffectedPackageHandle
 	for _, candidate := range candidates {
-		cpeHandles, packageHandles := affectedApplicationPackage(cfg, vulnerability, candidate)
+		cpeHandles, packageHandles := affectedApplicationPackage(cfg, id, candidate)
 		affectedCPEHandles = append(affectedCPEHandles, cpeHandles...)
 		affectedPackageHandles = append(affectedPackageHandles, packageHandles...)
 	}
@@ -293,7 +326,7 @@ func encodeCPEs(cpes []cpe.Attributes) []string {
 	return results
 }
 
-func affectedApplicationPackage(cfg Config, vulnerability unmarshal.NVDVulnerability, p affectedPackageCandidate) ([]db.AffectedCPEHandle, []db.AffectedPackageHandle) {
+func affectedApplicationPackage(cfg Config, vulnID string, p affectedPackageCandidate) ([]db.AffectedCPEHandle, []db.AffectedPackageHandle) {
 	var cpeHandles []db.AffectedCPEHandle
 	var packageHandles []db.AffectedPackageHandle
 	var qualifiers *db.PackageQualifiers
@@ -312,8 +345,8 @@ func affectedApplicationPackage(cfg Config, vulnerability unmarshal.NVDVulnerabi
 				packageHandles = append(packageHandles, db.AffectedPackageHandle{
 					Package: &db.Package{Name: packageSpec.Name, Ecosystem: packageSpec.Ecosystem, CPEs: []db.Cpe{*cpe}},
 					BlobValue: &db.PackageBlob{
-						CVEs:   []string{vulnerability.ID},
-						Ranges: getRanges(cfg, p.VulnerableCPE, p.Ranges.toSlice(), vulnerability.ID, &packageSpec),
+						CVEs:   []string{vulnID},
+						Ranges: getRanges(cfg, p.VulnerableCPE, p.Ranges.toSlice(), vulnID, &packageSpec),
 					},
 				})
 			}
@@ -323,9 +356,9 @@ func affectedApplicationPackage(cfg Config, vulnerability unmarshal.NVDVulnerabi
 	cpeHandles = append(cpeHandles, db.AffectedCPEHandle{
 		CPE: cpe,
 		BlobValue: &db.PackageBlob{
-			CVEs:       []string{vulnerability.ID},
+			CVEs:       []string{vulnID},
 			Qualifiers: qualifiers,
-			Ranges:     getRanges(cfg, p.VulnerableCPE, p.Ranges.toSlice(), vulnerability.ID, nil),
+			Ranges:     getRanges(cfg, p.VulnerableCPE, p.Ranges.toSlice(), vulnID, nil),
 		},
 	})
 
