@@ -3,6 +3,7 @@ package internal
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/facebookincubator/nvdtools/wfn"
 
@@ -68,6 +69,14 @@ func FindResultsByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstr
 		c.Attributes.Version = searchVersion
 
 		format := pkg.VersionFormat(p)
+
+		// CPython's CPE versions use Python prerelease ordering regardless of
+		// the packaging ecosystem. For example, 3.15.0 is newer than 3.15.0a6;
+		// APK and generic letter-suffix comparison do not have that meaning.
+		if strings.EqualFold(c.Attributes.Part, "a") && strings.EqualFold(c.Attributes.Product, "python") &&
+			(strings.EqualFold(c.Attributes.Vendor, "python") || strings.EqualFold(c.Attributes.Vendor, "python_software_foundation")) {
+			format = version.PythonFormat
+		}
 
 		if format == version.JVMFormat {
 			searchVersion = cpeversion.JVM(searchVersion, c.Attributes.Update)
