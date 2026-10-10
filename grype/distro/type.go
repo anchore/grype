@@ -10,34 +10,36 @@ type Type string
 const (
 	// represents the set of supported Linux Distributions
 
-	Debian       Type = "debian"
-	Ubuntu       Type = "ubuntu"
-	RedHat       Type = "redhat"
-	CentOS       Type = "centos"
-	Fedora       Type = "fedora"
-	Alpine       Type = "alpine"
-	Busybox      Type = "busybox"
-	AmazonLinux  Type = "amazonlinux"
-	OracleLinux  Type = "oraclelinux"
-	ArchLinux    Type = "archlinux"
-	OpenSuseLeap Type = "opensuseleap"
-	SLES         Type = "sles"
-	Photon       Type = "photon"
-	Echo         Type = "echo"
-	Windows      Type = "windows"
-	Mariner      Type = "mariner"
-	Azure        Type = "azurelinux"
-	RockyLinux   Type = "rockylinux"
-	AlmaLinux    Type = "almalinux"
-	Gentoo       Type = "gentoo"
-	Wolfi        Type = "wolfi"
-	Chainguard   Type = "chainguard"
-	MinimOS      Type = "minimos"
-	Raspbian     Type = "raspbian"
-	Scientific   Type = "scientific"
-	SecureOS     Type = "secureos"
-	PostmarketOS Type = "postmarketos"
-	Hummingbird  Type = "hummingbird"
+	Debian                     Type = "debian"
+	Ubuntu                     Type = "ubuntu"
+	RedHat                     Type = "redhat"
+	CentOS                     Type = "centos"
+	Fedora                     Type = "fedora"
+	Alpine                     Type = "alpine"
+	Alpaquita                  Type = "alpaquita"
+	BellSoftHardenedContainers Type = "bellsoft-hardened-containers"
+	Busybox                    Type = "busybox"
+	AmazonLinux                Type = "amazonlinux"
+	OracleLinux                Type = "oraclelinux"
+	ArchLinux                  Type = "archlinux"
+	OpenSuseLeap               Type = "opensuseleap"
+	SLES                       Type = "sles"
+	Photon                     Type = "photon"
+	Echo                       Type = "echo"
+	Windows                    Type = "windows"
+	Mariner                    Type = "mariner"
+	Azure                      Type = "azurelinux"
+	RockyLinux                 Type = "rockylinux"
+	AlmaLinux                  Type = "almalinux"
+	Gentoo                     Type = "gentoo"
+	Wolfi                      Type = "wolfi"
+	Chainguard                 Type = "chainguard"
+	MinimOS                    Type = "minimos"
+	Raspbian                   Type = "raspbian"
+	Scientific                 Type = "scientific"
+	SecureOS                   Type = "secureos"
+	PostmarketOS               Type = "postmarketos"
+	Hummingbird                Type = "hummingbird"
 )
 
 // All contains all Linux distribution options
@@ -48,6 +50,8 @@ var All = []Type{
 	CentOS,
 	Fedora,
 	Alpine,
+	Alpaquita,
+	BellSoftHardenedContainers,
 	Busybox,
 	AmazonLinux,
 	OracleLinux,
@@ -74,33 +78,35 @@ var All = []Type{
 
 // IDMapping maps a distro ID from the /etc/os-release (e.g. like "ubuntu") to a Distro type.
 var IDMapping = map[string]Type{
-	"debian":        Debian,
-	"ubuntu":        Ubuntu,
-	"rhel":          RedHat,
-	"centos":        CentOS,
-	"fedora":        Fedora,
-	"alpine":        Alpine,
-	"busybox":       Busybox,
-	"amzn":          AmazonLinux,
-	"ol":            OracleLinux,
-	"arch":          ArchLinux,
-	"opensuse-leap": OpenSuseLeap,
-	"sles":          SLES,
-	"photon":        Photon,
-	"echo":          Echo,
-	"mariner":       Mariner,
-	"azurelinux":    Azure,
-	"rocky":         RockyLinux,
-	"almalinux":     AlmaLinux,
-	"gentoo":        Gentoo,
-	"wolfi":         Wolfi,
-	"chainguard":    Chainguard,
-	"minimos":       MinimOS,
-	"raspbian":      Raspbian,
-	"scientific":    Scientific,
-	"secureos":      SecureOS,
-	"postmarketos":  PostmarketOS,
-	"hummingbird":   Hummingbird,
+	"debian":                       Debian,
+	"ubuntu":                       Ubuntu,
+	"rhel":                         RedHat,
+	"centos":                       CentOS,
+	"fedora":                       Fedora,
+	"alpine":                       Alpine,
+	"alpaquita":                    Alpaquita,
+	"bellsoft-hardened-containers": BellSoftHardenedContainers,
+	"busybox":                      Busybox,
+	"amzn":                         AmazonLinux,
+	"ol":                           OracleLinux,
+	"arch":                         ArchLinux,
+	"opensuse-leap":                OpenSuseLeap,
+	"sles":                         SLES,
+	"photon":                       Photon,
+	"echo":                         Echo,
+	"mariner":                      Mariner,
+	"azurelinux":                   Azure,
+	"rocky":                        RockyLinux,
+	"almalinux":                    AlmaLinux,
+	"gentoo":                       Gentoo,
+	"wolfi":                        Wolfi,
+	"chainguard":                   Chainguard,
+	"minimos":                      MinimOS,
+	"raspbian":                     Raspbian,
+	"scientific":                   Scientific,
+	"secureos":                     SecureOS,
+	"postmarketos":                 PostmarketOS,
+	"hummingbird":                  Hummingbird,
 }
 
 // aliasTypes maps common aliases to their corresponding Type.

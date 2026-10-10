@@ -141,7 +141,7 @@ func TestChainguardTransform(t *testing.T) {
 							Ranges: []db.Range{{
 								Version: db.Version{
 									Type:       "apk",
-									Constraint: "< 2.0.14-r1",
+									Constraint: "<2.0.14-r1",
 								},
 								Fix: &db.Fix{
 									Version: "2.0.14-r1",
@@ -164,7 +164,7 @@ func TestChainguardTransform(t *testing.T) {
 							Ranges: []db.Range{{
 								Version: db.Version{
 									Type:       "apk",
-									Constraint: "< 2.0.14-r1",
+									Constraint: "<2.0.14-r1",
 								},
 								Fix: &db.Fix{
 									Version: "2.0.14-r1",
@@ -187,7 +187,7 @@ func TestChainguardTransform(t *testing.T) {
 							Ranges: []db.Range{{
 								Version: db.Version{
 									Type:       "apk",
-									Constraint: "< 0",
+									Constraint: "<0",
 								},
 								Fix: &db.Fix{
 									Version: "0",
@@ -210,7 +210,7 @@ func TestChainguardTransform(t *testing.T) {
 							Ranges: []db.Range{{
 								Version: db.Version{
 									Type:       "apk",
-									Constraint: "< 2.0.14-r1",
+									Constraint: "<2.0.14-r1",
 								},
 								Fix: &db.Fix{
 									Version: "2.0.14-r1",
@@ -268,7 +268,7 @@ func TestChainguardTransform(t *testing.T) {
 							Ranges: []db.Range{{
 								Version: db.Version{
 									Type:       "apk",
-									Constraint: "< 3.153.0-r0",
+									Constraint: "<3.153.0-r0",
 								},
 								Fix: &db.Fix{
 									Version: "3.153.0-r0",
@@ -291,7 +291,7 @@ func TestChainguardTransform(t *testing.T) {
 							Ranges: []db.Range{{
 								Version: db.Version{
 									Type:       "apk",
-									Constraint: "< 3.153.0-r0",
+									Constraint: "<3.153.0-r0",
 								},
 								Fix: &db.Fix{
 									Version: "3.153.0-r0",
@@ -314,7 +314,7 @@ func TestChainguardTransform(t *testing.T) {
 							Ranges: []db.Range{{
 								Version: db.Version{
 									Type:       "apk",
-									Constraint: "< 3.152.0-r0",
+									Constraint: "<3.152.0-r0",
 								},
 								Fix: &db.Fix{
 									Version: "3.152.0-r0",
@@ -377,7 +377,7 @@ func TestChainguardTransform(t *testing.T) {
 							Ranges: []db.Range{{
 								Version: db.Version{
 									Type:       "apk",
-									Constraint: "< 2.2.34-r0",
+									Constraint: "<2.2.34-r0",
 								},
 								Fix: &db.Fix{
 									Version: "2.2.34-r0",
@@ -400,7 +400,7 @@ func TestChainguardTransform(t *testing.T) {
 							Ranges: []db.Range{{
 								Version: db.Version{
 									Type:       "apk",
-									Constraint: "< 2.8.18-r0",
+									Constraint: "<2.8.18-r0",
 								},
 								Fix: &db.Fix{
 									Version: "2.8.18-r0",
@@ -423,7 +423,7 @@ func TestChainguardTransform(t *testing.T) {
 							Ranges: []db.Range{{
 								Version: db.Version{
 									Type:       "apk",
-									Constraint: "< 3.0.10-r0",
+									Constraint: "<3.0.10-r0",
 								},
 								Fix: &db.Fix{
 									Version: "3.0.10-r0",
@@ -448,7 +448,7 @@ func TestChainguardTransform(t *testing.T) {
 							Ranges: []db.Range{{
 								Version: db.Version{
 									Type:       "apk",
-									Constraint: "< 3.1.7-r0",
+									Constraint: "<3.1.7-r0",
 								},
 								Fix: &db.Fix{
 									Version: "3.1.7-r0",
