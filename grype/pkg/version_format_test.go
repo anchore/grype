@@ -50,6 +50,16 @@ func TestVersionFormat(t *testing.T) {
 			format: version.PacmanFormat,
 		},
 		{
+			// the package side is what selects the comparator, so falling through to
+			// UnknownFormat here would compare perl versions under fuzzy rules
+			name: "cpan (perl)",
+			p: Package{
+				// TODO: use syftPkg.CpanPkg once the syft release carrying it is vendored
+				Type: syftPkg.Type("cpan"),
+			},
+			format: version.CpanFormat,
+		},
+		{
 			name: "jvm by metadata",
 			p: Package{
 				Metadata: JavaVMInstallationMetadata{},

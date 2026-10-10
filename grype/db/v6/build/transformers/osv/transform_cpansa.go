@@ -101,11 +101,20 @@ func cpansaReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
 func cpansaAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHandle {
 	var aphs []db.AffectedPackageHandle
 	for _, affected := range vuln.Affected {
+		ranges := cpansaRanges(affected.Ranges)
+		if len(ranges) == 0 {
+			// the provider emits an affected entry with no ranges when an advisory's version
+			// strings resolve against nothing in the distribution's release list, which real
+			// data does (CPANSA-libwww-perl-1995-01 predates any recorded release). An entry
+			// with no ranges is not harmlessly orphaned: an empty constraint is satisfied by
+			// every version, so it would report against every install of the distribution.
+			continue
+		}
 		aphs = append(aphs, db.AffectedPackageHandle{
 			Package: cpansaPackage(affected.Package),
 			BlobValue: &db.PackageBlob{
 				CVEs:   vuln.Aliases,
-				Ranges: cpansaRanges(affected.Ranges),
+				Ranges: ranges,
 			},
 		})
 	}

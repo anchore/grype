@@ -1,0 +1,84 @@
+{
+  "identifier": "cpansa-libwww-perl-2017-01",
+  "item": {
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "CPAN",
+          "name": "libwww-perl"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2017-11-06",
+                    "kind": "advisory",
+                    "version": "6.27"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "6.27"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "package": {
+          "ecosystem": "CPAN",
+          "name": "LWP"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2017-11-06",
+                    "kind": "advisory",
+                    "version": "6.27"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "6.27"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      }
+    ],
+    "aliases": [],
+    "database_specific": {
+      "cpansa_commit": "2089ff7201b44e5e462742a5baaa080ba003d257",
+      "cpansa_generated": "Sun Jul 26 06:23:50 2026"
+    },
+    "details": "LWP::Protocol::file can open existent file from file:// scheme. However, current version of LWP uses open FILEHANDLE,EXPR and it has ability to execute arbitrary command",
+    "id": "CPANSA-libwww-perl-2017-01",
+    "modified": "2026-07-26T06:23:50Z",
+    "published": "2017-11-06T00:00:00Z",
+    "references": [
+      {
+        "type": "WEB",
+        "url": "https://github.com/libwww-perl/libwww-perl/pull/270"
+      }
+    ],
+    "schema_version": "1.6.1"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.1.json"
+}

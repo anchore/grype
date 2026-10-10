@@ -1,0 +1,84 @@
+{
+  "identifier": "cpansa-data-formvalidator-2011-2201",
+  "item": {
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "CPAN",
+          "name": "Data-FormValidator"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2011-09-14",
+                    "kind": "advisory",
+                    "version": "4.67"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "4.67"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      }
+    ],
+    "aliases": [
+      "CVE-2011-2201"
+    ],
+    "database_specific": {
+      "cpansa_commit": "2089ff7201b44e5e462742a5baaa080ba003d257",
+      "cpansa_generated": "Sun Jul 26 06:23:50 2026"
+    },
+    "details": "The Data::FormValidator module 4.66 and earlier for Perl, when untaint_all_constraints is enabled, does not properly preserve the taint attribute of data, which might allow remote attackers to bypass the taint protection mechanism via form input.",
+    "id": "CPANSA-Data-FormValidator-2011-2201",
+    "modified": "2026-07-26T06:23:50Z",
+    "published": "2011-09-14T00:00:00Z",
+    "references": [
+      {
+        "type": "WEB",
+        "url": "http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=629511"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.openwall.com/lists/oss-security/2011/06/13/13"
+      },
+      {
+        "type": "WEB",
+        "url": "https://bugzilla.redhat.com/show_bug.cgi?id=712694"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.openwall.com/lists/oss-security/2011/06/12/3"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.securityfocus.com/bid/48167"
+      },
+      {
+        "type": "WEB",
+        "url": "https://rt.cpan.org/Public/Bug/Display.html?id=61792"
+      },
+      {
+        "type": "WEB",
+        "url": "http://lists.fedoraproject.org/pipermail/package-announce/2011-September/065416.html"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.openwall.com/lists/oss-security/2011/06/13/5"
+      }
+    ],
+    "schema_version": "1.6.1"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.1.json"
+}
