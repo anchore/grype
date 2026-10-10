@@ -129,7 +129,19 @@ func (d *DBDiffer) createDiffViewsPackages() error {
 			AND p.os_codename = p2.os_codename
 			AND p.os_channel = p2.os_channel
 		WHERE p2.vuln_name IS NULL
-		OR (p.status = 1 AND p2.status = 0)`,
+		OR (p.status = 1 AND NOT EXISTS (
+			SELECT 1 FROM diff_pkg_old p3
+			WHERE p3.vuln_name = p.vuln_name
+			AND p3.provider_id = p.provider_id
+			AND p3.ecosystem = p.ecosystem
+			AND p3.pkg_name = p.pkg_name
+			AND p3.os_name = p.os_name
+			AND p3.os_major = p.os_major
+			AND p3.os_minor = p.os_minor
+			AND p3.os_codename = p.os_codename
+			AND p3.os_channel = p.os_channel
+			AND p3.status = 1
+		))`,
 
 		`CREATE TEMP VIEW diff_pkg_removed AS
 		SELECT DISTINCT
@@ -149,7 +161,19 @@ func (d *DBDiffer) createDiffViewsPackages() error {
 			AND p.os_codename = p2.os_codename
 			AND p.os_channel = p2.os_channel
 		WHERE p2.vuln_name IS NULL
-		OR (p.status = 1 AND p2.status = 0)`,
+		OR (p.status = 1 AND NOT EXISTS (
+			SELECT 1 FROM diff_pkg_new p3
+			WHERE p3.vuln_name = p.vuln_name
+			AND p3.provider_id = p.provider_id
+			AND p3.ecosystem = p.ecosystem
+			AND p3.pkg_name = p.pkg_name
+			AND p3.os_name = p.os_name
+			AND p3.os_major = p.os_major
+			AND p3.os_minor = p.os_minor
+			AND p3.os_codename = p.os_codename
+			AND p3.os_channel = p.os_channel
+			AND p3.status = 1
+		))`,
 
 		`CREATE TEMP VIEW diff_pkg_modified AS
 		SELECT DISTINCT
@@ -203,7 +227,21 @@ func (d *DBDiffer) createDiffViewsPackages() error {
 			AND c.target_sw = c2.target_sw
 			AND c.other = c2.other
 		WHERE c2.vuln_name IS NULL
-		OR (c.status = 1 AND c2.status = 0)`,
+		OR (c.status = 1 AND NOT EXISTS (
+			SELECT 1 FROM diff_cpe_old c3
+			WHERE c3.vuln_name = c.vuln_name
+			AND c3.provider_id = c.provider_id
+			AND c3.part = c.part
+			AND c3.vendor = c.vendor
+			AND c3.product = c.product
+			AND c3.edition = c.edition
+			AND c3.language = c.language
+			AND c3.sw_edition = c.sw_edition
+			AND c3.target_hw = c.target_hw
+			AND c3.target_sw = c.target_sw
+			AND c3.other = c.other
+			AND c3.status = 1
+		))`,
 
 		`CREATE TEMP VIEW diff_cpe_removed AS
 		SELECT DISTINCT
@@ -223,7 +261,21 @@ func (d *DBDiffer) createDiffViewsPackages() error {
 			AND c.target_sw = c2.target_sw
 			AND c.other = c2.other
 		WHERE c2.vuln_name IS NULL 
-		OR (c.status = 1 AND c2.status = 0)`,
+		OR (c.status = 1 AND NOT EXISTS (
+			SELECT 1 FROM diff_cpe_new c3
+			WHERE c3.vuln_name = c.vuln_name
+			AND c3.provider_id = c.provider_id
+			AND c3.part = c.part
+			AND c3.vendor = c.vendor
+			AND c3.product = c.product
+			AND c3.edition = c.edition
+			AND c3.language = c.language
+			AND c3.sw_edition = c.sw_edition
+			AND c3.target_hw = c.target_hw
+			AND c3.target_sw = c.target_sw
+			AND c3.other = c.other
+			AND c3.status = 1
+		))`,
 
 		`CREATE TEMP VIEW diff_cpe_modified AS
 		SELECT DISTINCT

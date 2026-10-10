@@ -205,6 +205,18 @@ func Test_basicPackageDiff(t *testing.T) {
 			},
 		},
 		{
+			name: "affected-and-unaffected-same-os-unchanged",
+			oldDB: []string{
+				"rhel-8/cve-2026-19843",
+			},
+			newDB: []string{
+				"rhel-8/cve-2026-19843",
+			},
+			expected: map[string]changes{
+				"389-ds-base": {},
+			},
+		},
+		{
 			name: "status-change-removal",
 			oldDB: []string{
 				"2020/cve-2020-15415",
