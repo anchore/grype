@@ -199,7 +199,11 @@ func (d *DBDiffer) createDiffViewsPackages() error {
 
 	// presence summarizes, for each key, whether the old and new databases have records with a vulnerable (1) or
 	// not-vulnerable (0) status, keeping only the keys that were added or removed. Both tables have an index ordered
-	// by key, so sqlite merges the two indexes in a single pass rather than probing one table for each row of the other
+	// by key, so sqlite merges the two indexes in a single pass rather than probing one table for each row of the other.
+	// A key whose statuses are the same on both sides is unchanged, so it is dropped before the added and removed
+	// views see it: a package with both a vulnerable and a not-vulnerable record for one vulnerability and OS release
+	// (an affected module stream beside a not-affected non-module package, say) otherwise matched the vulnerable record
+	// on one side against the not-vulnerable record on the other, and was reported as both added and removed
 	presence := `CREATE TEMP TABLE diff_{type}_presence AS
 		SELECT vuln_key, {key},
 			MAX(side = 0 AND status = 0) AS o0, MAX(side = 0 AND status = 1) AS o1,
@@ -211,7 +215,8 @@ func (d *DBDiffer) createDiffViewsPackages() error {
 			ORDER BY {cols}
 		)
 		GROUP BY {cols}
-		HAVING NOT ((o0 OR o1) AND (n0 OR n1)) OR (n1 AND o0) OR (o1 AND n0)`
+		HAVING (NOT ((o0 OR o1) AND (n0 OR n1)) OR (n1 AND o0) OR (o1 AND n0))
+		AND (o0 <> n0 OR o1 <> n1)`
 
 	// "added" / "removed" rows are records with no matching record on the other side, or which are vulnerable
 	// where a matching record on the other side is not
