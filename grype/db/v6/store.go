@@ -20,6 +20,7 @@ type store struct {
 	*unaffectedCPEStore
 	*vulnerabilityDecoratorStore
 	*architectureAliasStore
+	*searchRuleStore
 	blobStore *blobStore
 	db        *gorm.DB
 	config    Config
@@ -50,6 +51,11 @@ func InitialData() []any {
 	a := KnownArchitectureAliases()
 	for i := range a {
 		data = append(data, &a[i])
+	}
+
+	sr := KnownSearchRules()
+	for i := range sr {
+		data = append(data, &sr[i])
 	}
 	return data
 }
@@ -103,6 +109,7 @@ func newStore(cfg Config, empty, writable bool) (*store, error) {
 		vulnerabilityDecoratorStore: newVulnerabilityDecoratorStore(db, bs, dbVersion),
 		unaffectedCPEStore:          newUnaffectedCPEStore(db, bs),
 		architectureAliasStore:      newArchitectureAliasStore(db),
+		searchRuleStore:             newSearchRuleStore(db),
 		blobStore:                   bs,
 		db:                          db,
 		config:                      cfg,

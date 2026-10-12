@@ -28,7 +28,7 @@ func MatchPackageByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upst
 		return nil, nil, err
 	}
 
-	return results.ToMatches(), ignore, nil
+	return results.ToMatches(p), ignore, nil
 }
 
 // FindResultsByCPEs retrieves all vulnerabilities that match any of the provided package's CPEs as a
@@ -74,40 +74,31 @@ func FindResultsByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstr
 		}
 
 		var verObj *version.Version
-		var err error
 		if searchVersion != "" {
 			verObj = version.New(searchVersion, format)
 		}
 
-		criteria := []vulnerability.Criteria{
+		// the version the split compares against, so each result carries it (see SplitVulnerable)
+		searched := p
+		searched.Version = searchVersion
+
+		// every record in the DB for this CPE, at any version
+		applicable, err := provider.FindAll(
 			search.ByCPE(c),
 			OnlyVulnerableTargets(p),
 			OnlyQualifiedPackages(p),
 			OnlyNonWithdrawnVulnerabilities(),
-		}
-
-		versionCriteria := OnlyVulnerableVersions(verObj)
-
-		// find all vulnerability records in the DB for the given CPE (not including version comparisons)
-		all, err := provider.FindResults(criteria...)
+			search.WithPackage(searched),
+		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("matcher failed to fetch by CPE pkg=%q: %w", p.Name, err)
 		}
 
-		vulns := all.Filter(versionCriteria)
-
-		unaffected, err := provider.FindResults(
-			append(criteria, search.ForUnaffected(), versionCriteria)...,
-		)
-		if err != nil {
-			return nil, nil, fmt.Errorf("matcher failed to fetch unaffected CPE records for pkg=%q: %w", p.Name, err)
-		}
+		vulns, notVulnerable := SplitVulnerable(applicable, verObj)
 
 		// add affected vulns to the top level set; nothing is reconciled until the set becomes matches
 		affected = affected.Merge(vulns)
-		// mark unaffected as ignores
-		unaffected = all.Remove(vulns).Merge(unaffected)
-		ignores = append(ignores, OwnershipIgnores(p, "CPE not vulnerable", unaffected.Vulnerabilities()...)...)
+		ignores = append(ignores, OwnershipIgnores(p, "CPE not vulnerable", notVulnerable.Vulnerabilities()...)...)
 	}
 
 	return affected, ignores, nil
