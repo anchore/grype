@@ -1,7 +1,7 @@
-github.com/anchore/go-make v0.9.1 h1:OnC830XJEhdHUPhR8jLpnjmLTco9UThNZfHpLefqd94=
-github.com/anchore/go-make v0.9.1/go.mod h1:1KhqPt0STAHLVEngwrXxYsuFftD62Nx497rNujwo8IY=
-github.com/bmatcuk/doublestar/v4 v4.10.0 h1:zU9WiOla1YA122oLM6i4EXvGW62DvKZVxIe6TYWexEs=
-github.com/bmatcuk/doublestar/v4 v4.10.0/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
+github.com/anchore/go-make v0.9.3 h1:D+MkpvEJsOGwkOqKN0rd2zYi9jEzwKtZreNysH0DenI=
+github.com/anchore/go-make v0.9.3/go.mod h1:4HuELygGhxex2SaCEgfCbZ0geJ3xFkqtWpmt1NrYwPg=
+github.com/bmatcuk/doublestar/v4 v4.10.2 h1:eF7W7HWKg3z9NrWV9pTLnNeoXaqq3Tq9DNKXVMfoCnw=
+github.com/bmatcuk/doublestar/v4 v4.10.2/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
 github.com/goccy/go-yaml v1.19.2 h1:PmFC1S6h8ljIz6gMRBopkjP1TVT7xuwrButHID66PoM=
 github.com/goccy/go-yaml v1.19.2/go.mod h1:XBurs7gK8ATbW4ZPGKgcbrY1Br56PdM69F7LkFRi1kA=
 golang.org/x/mod v0.41.0 h1:qJmnOUb4YB+FsEuM3HcWucdZASCPGhsX6uljO6pog0c=
