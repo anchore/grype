@@ -217,7 +217,11 @@ func getWriter(cfg BuildConfig) (data.Writer, error) {
 	case grypeDBv5.SchemaVersion:
 		return v5.NewWriter(cfg.Directory, cfg.Timestamp, cfg.States, batchSize, v5.WithSQLiteCacheSizeKiB(cfg.SQLiteCacheSizeKiB))
 	case grypeDBv6.ModelVersion:
-		return v6.NewWriter(cfg.Directory, cfg.States, cfg.FailOnMissingFixDate, batchSize, v6.WithSQLiteCacheSizeKiB(cfg.SQLiteCacheSizeKiB))
+		options := []v6.WriterOption{v6.WithSQLiteCacheSizeKiB(cfg.SQLiteCacheSizeKiB)}
+		if cfg.ReconcileCNA {
+			options = append(options, v6.WithNVDPackageMerge())
+		}
+		return v6.NewWriter(cfg.Directory, cfg.States, cfg.FailOnMissingFixDate, batchSize, options...)
 	default:
 		return nil, fmt.Errorf("unable to create writer: unsupported schema version: %+v", cfg.SchemaVersion)
 	}
