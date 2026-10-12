@@ -24,6 +24,8 @@ updates:
       # v1 changed SlicesAsSets hashing, which changes every artifact ID syft produces
       - dependency-name: "github.com/gohugoio/hashstructure"
         update-types: ["version-update:semver-major"]
+      # go-make module and action refs are bumped together by automation
+      - dependency-name: "github.com/anchore/go-make"
 
   - package-ecosystem: "github-actions"
     directories:
@@ -37,3 +39,6 @@ updates:
     open-pull-requests-limit: 10
     labels:
       - "dependencies"
+    ignore:
+      # go-make module and action refs are bumped together by automation
+      - dependency-name: "anchore/go-make/*"
