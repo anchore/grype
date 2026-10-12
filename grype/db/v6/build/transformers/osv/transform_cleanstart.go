@@ -46,6 +46,11 @@ const (
 //     AffectedPackageHandle records with "< fixVersion" constraints, matching
 //     how Alpine and Wolfi vulnerability data is stored.
 //   - ADVISORY-type references get their refID set to the record ID.
+//   - An `affected[]` entry whose Ecosystem is not CleanStart/clnstrt
+//     describes a bundled component in a different package ecosystem (e.g. a
+//     Maven library inside an apk package), not the apk package itself. Its
+//     type and name are resolved from Purl instead of being forced through
+//     apk normalization — see cleanstartPackage.
 type cleanstartStrategy struct{}
 
 func (cleanstartStrategy) Matches(id string) bool {
@@ -181,7 +186,7 @@ func cleanstartAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPa
 func cleanstartAffectedBlob(vuln unmarshal.OSVVulnerability, affected osvmodel.Affected) *db.PackageBlob {
 	var ranges []db.Range
 	for _, r := range affected.Ranges {
-		ranges = append(ranges, getGrypeRangesFromRange(r, cleanstartRangeType(r.Type))...)
+		ranges = append(ranges, getGrypeRangesFromRange(r, cleanstartRangeType(affected.Package, r.Type))...)
 	}
 	return &db.PackageBlob{
 		CVEs:   cleanstartAliases(vuln),
@@ -189,18 +194,75 @@ func cleanstartAffectedBlob(vuln unmarshal.OSVVulnerability, affected osvmodel.A
 	}
 }
 
+// cleanstartPackage resolves the db.Package for one `affected[]` entry.
+//
+// The entry describes the apk source package by default (no Purl present, or
+// one that resolves to apk/unknown), so that case is forced through apk
+// type/name normalization exactly as before — including a non-CleanStart
+// ecosystem string with no Purl (e.g. a cross-distro "Alpine:3.20" entry),
+// which still names a real apk package and must not be miscategorized.
+//
+// An entry whose Purl resolves to a different, real package ecosystem
+// describes a bundled component instead (e.g. the Maven library a CVE is
+// actually in, rather than the apk package that bundles it), and is resolved
+// from that Purl — same pattern as chainguardStrategy's cgAffectedPackages,
+// which already does this for CG/Wolfi records.
 func cleanstartPackage(p osvmodel.Package) *db.Package {
+	if t, ok := cleanstartBundledComponentType(p.Purl); ok {
+		return &db.Package{
+			Ecosystem: string(t),
+			Name:      name.Normalize(p.Name, t),
+		}
+	}
 	return &db.Package{
 		Ecosystem: pkg.ApkPkg.String(),
 		Name:      name.Normalize(p.Name, pkg.ApkPkg),
 	}
 }
 
-func cleanstartRangeType(t osvmodel.RangeType) string {
-	if t == osvmodel.RangeEcosystem {
-		return pkg.ApkPkg.String()
+// cleanstartRangeType picks the grype version-format string for one range.
+// ECOSYSTEM-typed ranges on the apk entry use apk's comparison grammar, as
+// before; ECOSYSTEM-typed ranges on a bundled-component entry (see
+// cleanstartPackage) use that component's own ecosystem, so e.g. a Maven
+// version constraint is compared with Maven's grammar instead of apk's.
+func cleanstartRangeType(p osvmodel.Package, t osvmodel.RangeType) string {
+	if t != osvmodel.RangeEcosystem {
+		return defaultRangeType(t)
 	}
-	return defaultRangeType(t)
+	if typ, ok := cleanstartBundledComponentType(p.Purl); ok {
+		return string(typ)
+	}
+	return pkg.ApkPkg.String()
+}
+
+// cleanstartBundledComponentType reports the package type of a bundled
+// component described via Purl, distinct from the apk source package that
+// bundles it. Gated on Purl rather than on Ecosystem: a missing or
+// unparseable Purl, or one that resolves to apk itself, is the ordinary apk
+// entry and must not be diverted, regardless of what Ecosystem says — a
+// cross-distro affected entry with no Purl is still a real apk package.
+func cleanstartBundledComponentType(purl string) (pkg.Type, bool) {
+	if purl == "" {
+		return "", false
+	}
+	t := pkg.TypeFromPURL(purl)
+	if t == "" || t == pkg.UnknownPkg || t == pkg.ApkPkg {
+		return "", false
+	}
+	return t, true
+}
+
+// isCleanstartEcosystem reports whether ecosystem names the CleanStart apk
+// distro itself (optionally suffixed with ":<version>"), as opposed to a
+// bundled component described via a different ecosystem/Purl.
+func isCleanstartEcosystem(ecosystem string) bool {
+	parts := strings.SplitN(ecosystem, ":", 2)
+	switch strings.ToLower(parts[0]) {
+	case cleanStart, cleanStartShort:
+		return true
+	default:
+		return false
+	}
 }
 
 // cleanstartOSFromEcosystem extracts OS metadata from a CleanStart ecosystem
@@ -213,17 +275,11 @@ func cleanstartRangeType(t osvmodel.RangeType) string {
 // what lets the apk distro matcher resolve these rows through
 // operating_system_specifier_overrides.
 func cleanstartOSFromEcosystem(ecosystem string) *db.OperatingSystem {
-	if ecosystem == "" {
+	if !isCleanstartEcosystem(ecosystem) {
 		return nil
 	}
 
 	parts := strings.SplitN(ecosystem, ":", 2)
-	switch strings.ToLower(parts[0]) {
-	case cleanStart, cleanStartShort:
-	default:
-		return nil
-	}
-
 	if len(parts) < 2 || parts[1] == "" {
 		return &db.OperatingSystem{
 			Name:         cleanStart,

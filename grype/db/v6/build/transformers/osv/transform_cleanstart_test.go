@@ -12,6 +12,7 @@ import (
 	"github.com/anchore/grype/grype/db/provider"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
+	"github.com/anchore/syft/syft/pkg"
 )
 
 // cleanstartRollingOS is the OS row every version-less CleanStart record should
@@ -309,6 +310,103 @@ func TestCleanstartTransform_Withdrawn(t *testing.T) {
 	assert.Equal(t, []string{"CVE-2022-48174"}, related.VulnerabilityHandle.BlobValue.Aliases)
 }
 
+// TestCleanstartBundledComponentType pins the discriminator the fix relies
+// on: it must fire ONLY on a Purl that names a real, non-apk ecosystem. The
+// last two cases are the ones that must NOT divert, because they are real
+// apk entries that happen to lack (or resolve to) an apk/unknown type — if
+// this discriminator were gated on Ecosystem instead of Purl, those two would
+// be wrongly diverted (see TestCleanstartTransform_UnknownEcosystem, which
+// pins that a cross-distro ecosystem string with no Purl is still apk).
+func TestCleanstartBundledComponentType(t *testing.T) {
+	tests := []struct {
+		name     string
+		purl     string
+		wantType pkg.Type
+		wantOK   bool
+	}{
+		{
+			name:     "maven purl diverts",
+			purl:     "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.15.2",
+			wantType: pkg.JavaPkg,
+			wantOK:   true,
+		},
+		{
+			name:     "npm purl diverts",
+			purl:     "pkg:npm/lodash@4.17.20",
+			wantType: pkg.NpmPkg,
+			wantOK:   true,
+		},
+		{name: "no purl does not divert", purl: "", wantOK: false},
+		{name: "unparseable purl does not divert", purl: "not-a-purl", wantOK: false},
+		{name: "an apk purl does not divert", purl: "pkg:apk/clnstrt/activemq@5.19.3-r2", wantOK: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := cleanstartBundledComponentType(tt.purl)
+			assert.Equal(t, tt.wantOK, ok)
+			if tt.wantOK {
+				assert.Equal(t, tt.wantType, got)
+			}
+		})
+	}
+}
+
+// TestCleanstartTransform_BundledComponent is the real shape from
+// CLEANSTART-2026-AL85661 (CVE-2026-54517): one CVE, one activemq apk entry,
+// and — synthetically added here, since the live feed does not yet emit one —
+// a second affected entry for the actual bundled Maven library the CVE is in.
+// Negative control: reverting cleanstartPackage/cleanstartRangeType to force
+// every entry through apk (the pre-fix behavior) makes this test fail, since
+// the Maven entry would land as an apk package named
+// "com.fasterxml.jackson.core:jackson-databind" with an apk-grammar range
+// instead of a distinct, correctly-typed Maven row.
+func TestCleanstartTransform_BundledComponent(t *testing.T) {
+	vuln := osvVuln(func(v *osvmodel.Vulnerability) {
+		v.ID = "CLEANSTART-2026-AL85661"
+		v.Upstream = []string{"CVE-2026-54517"}
+		v.Affected = []osvmodel.Affected{
+			cleanstartAffected("CleanStart", "activemq", "6.3.1-r1"),
+			cleanstartAffectedComponent(
+				"com.fasterxml.jackson.core:jackson-databind",
+				"pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.15.2",
+				"2.17.0",
+			),
+		}
+	})
+
+	entries, err := cleanstartStrategy{}.Transform(vuln, provider.State{Provider: "osv"})
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+	related := entries[0].Data.(transformers.RelatedEntries)
+	require.Len(t, related.Related, 2)
+
+	var apkRow, mavenRow *db.AffectedPackageHandle
+	for i := range related.Related {
+		aph := related.Related[i].(db.AffectedPackageHandle)
+		switch aph.Package.Ecosystem {
+		case "apk":
+			apkRow = &aph
+		case string(pkg.JavaPkg):
+			mavenRow = &aph
+		}
+	}
+
+	require.NotNil(t, apkRow, "the activemq apk entry must still land as an apk row")
+	assert.Equal(t, "activemq", apkRow.Package.Name)
+	assert.Equal(t, cleanstartRollingOS(), apkRow.OperatingSystem)
+	require.Len(t, apkRow.BlobValue.Ranges, 1)
+	assert.Equal(t, "apk", apkRow.BlobValue.Ranges[0].Version.Type)
+	assert.Equal(t, "< 6.3.1-r1", apkRow.BlobValue.Ranges[0].Version.Constraint)
+
+	require.NotNil(t, mavenRow, "the bundled Maven component must land as its own, distinctly-typed row")
+	assert.Equal(t, "com.fasterxml.jackson.core:jackson-databind", mavenRow.Package.Name)
+	assert.Nil(t, mavenRow.OperatingSystem, "a Maven component is not an apk OS-matchable row")
+	require.Len(t, mavenRow.BlobValue.Ranges, 1)
+	assert.Equal(t, string(pkg.JavaPkg), mavenRow.BlobValue.Ranges[0].Version.Type,
+		"a Maven range must not be compared with apk's version grammar")
+	assert.Equal(t, "< 2.17.0", mavenRow.BlobValue.Ranges[0].Version.Constraint)
+}
+
 // TestCleanstartTransform_NotWithdrawn is the control for the case above.
 func TestCleanstartTransform_NotWithdrawn(t *testing.T) {
 	vuln := osvVuln(func(v *osvmodel.Vulnerability) {
@@ -343,6 +441,25 @@ func osvVuln(mutate func(*osvmodel.Vulnerability)) unmarshal.OSVVulnerability {
 func cleanstartAffected(ecosystem, pkgName, fixedVersion string) osvmodel.Affected {
 	return osvmodel.Affected{
 		Package: osvmodel.Package{Ecosystem: ecosystem, Name: pkgName},
+		Ranges: []osvmodel.Range{
+			{
+				Type: osvmodel.RangeEcosystem,
+				Events: []osvmodel.Event{
+					{Introduced: "0"},
+					{Fixed: fixedVersion},
+				},
+			},
+		},
+	}
+}
+
+// cleanstartAffectedComponent is cleanstartAffected's counterpart for a
+// bundled, non-apk component identified by Purl rather than by CleanStart's
+// own apk ecosystem — the shape the real feed does not emit yet, but which
+// cleanstartPackage/cleanstartRangeType must resolve correctly once it does.
+func cleanstartAffectedComponent(pkgName, purl, fixedVersion string) osvmodel.Affected {
+	return osvmodel.Affected{
+		Package: osvmodel.Package{Name: pkgName, Purl: purl},
 		Ranges: []osvmodel.Range{
 			{
 				Type: osvmodel.RangeEcosystem,
