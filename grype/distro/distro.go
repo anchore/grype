@@ -3,6 +3,7 @@ package distro
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/internal/log"
@@ -17,6 +18,9 @@ type Distro struct {
 	Codename string   // in lieu of a version e.g. "fossa" instead of "20.04"
 	Channels []string // distinguish between different feeds for fix and vulnerability data, e.g. "eus" for RHEL
 	IDLike   []string
+
+	// SupportEnd is the SUPPORT_END date declared by the OS release file, if present and parseable.
+	SupportEnd *time.Time
 
 	// fields populated in the constructor
 
@@ -202,8 +206,25 @@ func NewFromRelease(release linux.Release, channels []FixChannel) (*Distro, erro
 
 	d := New(t, selectedVersion, release.VersionCodename, release.IDLike...)
 	d.Channels = applyChannels(release, selectedVersionObj, d.Channels, channels)
+	d.SupportEnd = parseSupportEnd(release.SupportEnd)
 
 	return d, nil
+}
+
+// parseSupportEnd parses the os-release SUPPORT_END value, which is specified as YYYY-MM-DD.
+func parseSupportEnd(value string) *time.Time {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil
+	}
+
+	t, err := time.Parse(time.DateOnly, value)
+	if err != nil {
+		log.WithFields("value", value, "error", err).Debug("unable to parse SUPPORT_END date from OS release")
+		return nil
+	}
+
+	return &t
 }
 
 func (d Distro) Name() string {
