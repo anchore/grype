@@ -68,10 +68,12 @@ func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) 
 
 	beforeTime, err := time.Parse(time.RFC3339, oldDB.Info.BuildTimestamp)
 	if err != nil {
+		closeLowLevelDB(db)
 		return nil, fmt.Errorf("failed to parse build timestamp: %w", err)
 	}
 	afterTime, err := time.Parse(time.RFC3339, newDB.Info.BuildTimestamp)
 	if err != nil {
+		closeLowLevelDB(db)
 		return nil, fmt.Errorf("failed to parse build timestamp: %w", err)
 	}
 
@@ -94,10 +96,11 @@ func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) 
 
 // Close detaches the new database and closes the connection.
 func (d *DBDiffer) Close() error {
+	// always release the connection, even if the detach fails (an open handle keeps the db files locked on windows)
+	defer closeLowLevelDB(d.db)
 	if err := d.db.Exec("DETACH DATABASE new_db").Error; err != nil {
 		return fmt.Errorf("failed to detach new database: %w", err)
 	}
-	closeLowLevelDB(d.db)
 	return nil
 }
 

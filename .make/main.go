@@ -3,9 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	. "github.com/anchore/go-make"
+	"github.com/anchore/go-make/config"
 	"github.com/anchore/go-make/file"
 	"github.com/anchore/go-make/lang"
 	"github.com/anchore/go-make/log"
@@ -20,6 +23,12 @@ const (
 	snapshotBn = "snapshot" // goreleaser dist dir
 )
 
+// buildTags must match the linux build in .goreleaser.yaml so tests and lint compile the same code that ships
+// (containers_image_openpgp compiles in stereoscope's real containers-storage provider instead of its stub).
+// exclude_graphdriver_btrfs drops the cgo-only btrfs driver, which needs libbtrfs headers whenever cgo is on (e.g.
+// under -race); release builds are CGO_ENABLED=0 and never include it anyway.
+const buildTags = "containers_image_openpgp,exclude_graphdriver_btrfs"
+
 func main() {
 	Makefile(
 		golint.Tasks(golint.SkipTests()),
@@ -27,12 +36,14 @@ func main() {
 			gotest.CoverageThreshold(47),
 			// excludes both anchore/grype/test/** and anchore/grype/internal/test/**
 			gotest.ExcludeGlob("**/test/**"),
+			gotest.Tags(buildTags),
 		),
 		goreleaser.Tasks(),
 
 		buildTask(),
 		integrationTask(),
 		cliTask(),
+		containersStorageTestTask(),
 		qualityTask(),
 
 		generateTask(),
@@ -49,6 +60,7 @@ func main() {
 
 		showTestImageCacheTask(),
 		cleanCacheTask(),
+		cleanQualityTasks(),
 	)
 }
 
@@ -85,12 +97,12 @@ func integrationTask() Task {
 		Description: "run integration tests",
 		RunsOn:      lang.List("test"),
 		Run: func() {
-			Run(`go test -v ./test/integration`)
+			Run(`go test -v -tags=` + buildTags + ` ./test/integration`)
 			// update database outside race detector, since doing so with
 			// race detector on is very slow
 			Run(fmt.Sprintf(`go run ./cmd/%s db update`, project))
 			// exercise most of the CLI with the data race detector enabled
-			Run(fmt.Sprintf(`go run -race ./cmd/%s alpine:latest`, project))
+			Run(fmt.Sprintf(`go run -race -tags=%s ./cmd/%s alpine:latest`, buildTags, project))
 		},
 	}
 }
@@ -124,6 +136,39 @@ func ensureSnapshotBinary() {
 		log.Info("GRYPE_SNAPSHOT_PREBUILT set but no binary found; rebuilding")
 	}
 	Run(`go run -C .make . snapshot:single-target`)
+}
+
+// containersStorageTestTask builds a fixture image with BUILDER (podman or buildah) into an isolated local store and
+// scans it with the linux snapshot binary. Linux only, and not hooked into "test" since it needs the builder installed.
+func containersStorageTestTask() Task {
+	return Task{
+		Name:        "containers-storage-test",
+		Description: "run containers-storage tests (BUILDER=podman|buildah)",
+		Run: func() {
+			bin := linuxSnapshotBinPath()
+			if !file.Exists(bin) {
+				log.Info("snapshot binary not found at %s; building single-target snapshot", bin)
+				Run(`go run -C .make . build`)
+			}
+			Run(
+				"bash test/containers-storage/source-test.sh "+config.Env("BUILDER", "podman"),
+				run.Env("GRYPE_BINARY_LOCATION", bin),
+			)
+		},
+	}
+}
+
+// linuxSnapshotBinPath returns the absolute path to the linux snapshot binary for the host arch, mirroring
+// goreleaser's <build id>_<goos>_<goarch><microarch level> dist dir naming (see test/cli/utils_test.go).
+func linuxSnapshotBinPath() string {
+	arch := runtime.GOARCH
+	switch arch {
+	case "amd64":
+		arch += "_v1"
+	case "arm64":
+		arch += "_v8.0"
+	}
+	return filepath.Join(RootDir(), snapshotBn, "linux-build_linux_"+arch, project)
 }
 
 func qualityTask() Task {
@@ -393,6 +438,53 @@ func cleanCacheTask() Task {
 		Run: func() {
 			Run(`bash -c "find . -type f -wholename '**/testdata/cache/stereoscope-fixture-*.tar' -delete"`)
 			Run(`bash -c "docker images --format '{{.ID}} {{.Repository}}' | grep stereoscope-fixture- | awk '{print \$1}' | uniq | xargs -r docker rmi --force"`)
+		},
+	}
+}
+
+// cleanQualityTasks removes what the quality gate downloads or produces under test/quality
+// (mirrors test/quality/.gitignore); tracked content is left intact.
+func cleanQualityTasks() Task {
+	const dir = "test/quality"
+	return Task{
+		Tasks: []Task{
+			{
+				Name:        "clean:quality-results",
+				Description: "remove quality gate yardstick results",
+				RunsOn:      lang.List("clean:quality"),
+				Run: func() {
+					file.Delete(dir + "/.yardstick/result")
+				},
+			},
+			{
+				Name:        "clean:quality-downloads",
+				Description: "remove quality gate downloaded DBs, SBOM cache, tools and python envs",
+				RunsOn:      lang.List("clean:quality"),
+				Run: func() {
+					for _, p := range []string{
+						".yardstick/tools",
+						".oras-cache",
+						"venv",
+						"vulnerability-match-labels/venv",
+						"stage",
+						"pull",
+						"migrate.py",
+					} {
+						file.Delete(dir + "/" + p)
+					}
+					for _, glob := range []string{"*.tar.gz", "*.tar.zst"} {
+						for _, f := range file.FindAll(dir + "/" + glob) {
+							file.Delete(f)
+						}
+					}
+					Run(`bash -c "find ` + dir + ` -name '*.pyc' -delete"`)
+				},
+			},
+			{
+				Name:        "clean:quality",
+				Description: "remove all quality gate downloads and results",
+				RunsOn:      lang.List("clean"),
+			},
 		},
 	}
 }

@@ -87,3 +87,61 @@ test_prep_signature_verification() {
 }
 
 run_test_case test_prep_signature_verification
+
+# ensure the verification material is passed through to cosign and the old-cosign hint only shows when warranted
+test_verify_sign() {
+  # verify_sign [checksums-file-path] [verification-material-flags...]
+
+  OG_COSIGN_BINARY=${COSIGN_BINARY}
+
+  tmpdir=$(mktemp -d)
+  args_file="${tmpdir}/args"
+  hint="requires cosign v2.5.0 or newer"
+
+  # stub cosign that records its arguments, then prints STUB_OUTPUT and exits with STUB_EXIT
+  COSIGN_BINARY="${tmpdir}/cosign"
+  cat > "${COSIGN_BINARY}" <<STUB
+#!/bin/sh
+echo "\$@" > "${args_file}"
+echo "\${STUB_OUTPUT}"
+exit "\${STUB_EXIT}"
+STUB
+  chmod +x "${COSIGN_BINARY}"
+
+  identity="--certificate-identity https://github.com/${OWNER}/${REPO}/.github/workflows/release.yaml@refs/heads/main --certificate-oidc-issuer https://token.actions.githubusercontent.com"
+
+  # bundle verification succeeds
+  STUB_OUTPUT="Verified OK" STUB_EXIT=0 verify_sign "checksums.txt" --bundle "checksums.txt.sigstore.json" >/dev/null 2>&1
+  assertEquals "0" "$?" "bundle verification should succeed"
+  assertEquals "verify-blob checksums.txt --bundle checksums.txt.sigstore.json ${identity}" "$(cat "${args_file}")" "unexpected cosign args for bundle"
+
+  # legacy verification succeeds
+  STUB_OUTPUT="Verified OK" STUB_EXIT=0 verify_sign "checksums.txt" --certificate "c.pem" --signature "c.sig" >/dev/null 2>&1
+  assertEquals "0" "$?" "legacy verification should succeed"
+  assertEquals "verify-blob checksums.txt --certificate c.pem --signature c.sig ${identity}" "$(cat "${args_file}")" "unexpected cosign args for legacy"
+
+  # cosign too old to read the bundle: fail with the hint (this is what cosign v2.2.4 through v2.4.1 print)
+  output=$(STUB_OUTPUT="Error: bundle does not contain cert for verification, please provide public key" STUB_EXIT=1 verify_sign "checksums.txt" --bundle "b.json" 2>&1)
+  assertEquals "1" "$?" "old cosign should fail verification"
+  assertContains "${output}" "${hint}" "old cosign should get the version hint"
+
+  # bad signature (e.g. tampered checksums): fail without the hint
+  output=$(STUB_OUTPUT="Error: invalid signature when validating ASN.1 encoded signature" STUB_EXIT=1 verify_sign "checksums.txt" --bundle "b.json" 2>&1)
+  assertEquals "1" "$?" "bad signature should fail verification"
+  assertNotContains "${output}" "${hint}" "bad signature should not get the version hint"
+
+  # unparseable bundle (e.g. a 404 body): fail without the hint
+  output=$(STUB_OUTPUT="Error: invalid character 'N' looking for beginning of value" STUB_EXIT=1 verify_sign "checksums.txt" --bundle "b.json" 2>&1)
+  assertEquals "1" "$?" "unparseable bundle should fail verification"
+  assertNotContains "${output}" "${hint}" "unparseable bundle should not get the version hint"
+
+  # legacy failure never gets the bundle hint, even with the same output
+  output=$(STUB_OUTPUT="Error: bundle does not contain cert for verification, please provide public key" STUB_EXIT=1 verify_sign "checksums.txt" --certificate "c.pem" --signature "c.sig" 2>&1)
+  assertEquals "1" "$?" "legacy failure should fail verification"
+  assertNotContains "${output}" "${hint}" "legacy failure should not get the version hint"
+
+  COSIGN_BINARY=${OG_COSIGN_BINARY}
+  rm -rf -- "${tmpdir}"
+}
+
+run_test_case test_verify_sign

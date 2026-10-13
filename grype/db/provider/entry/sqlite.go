@@ -41,6 +41,7 @@ func QueryRecords(dbPath string, patterns []string) ([]Record, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer closeDB(db)
 
 	query := db.Model(&results{})
 
@@ -93,6 +94,7 @@ func sqliteEntryCount(resultPaths []string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+	defer closeDB(db)
 
 	var count int64
 	db.Model(&results{}).Count(&count)
@@ -124,6 +126,7 @@ func sqliteOpeners(resultPaths []string) (<-chan Opener, int64, error) {
 	openers := make(chan Opener)
 	go func() {
 		defer close(openers)
+		defer closeDB(db)
 
 		var models []results
 
@@ -185,6 +188,12 @@ func openDB(path string) (*gorm.DB, error) {
 	}
 
 	return dbObj, nil
+}
+
+func closeDB(db *gorm.DB) {
+	if d, err := db.DB(); err == nil {
+		_ = d.Close()
+	}
 }
 
 // ConnectionString creates a connection string for sqlite3

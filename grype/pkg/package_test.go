@@ -1073,6 +1073,36 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "cpan-distribution",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.CpanDistribution{
+					Dist:   "URI-5.35",
+					Author: "OALDERS",
+					Path:   "O/OA/OALDERS/URI-5.35.tar.gz",
+					Modules: []syftPkg.CpanModule{
+						{
+							Name:    "URI::Escape",
+							Version: "5.35",
+						},
+					},
+					Files: []string{"/usr/local/share/perl5/URI/Escape.pm"},
+				},
+			},
+		},
+		{
+			name: "cpan-unpacked-release",
+			syftPkg: syftPkg.Package{
+				Metadata: syftPkg.CpanUnpackedRelease{
+					Modules: []syftPkg.CpanModule{
+						{
+							Name:    "URI::Escape",
+							Version: "5.35",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing

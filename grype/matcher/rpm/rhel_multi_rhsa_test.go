@@ -675,3 +675,34 @@ func TestRpmPerMinorExpansion_KernelGASuperseded(t *testing.T) {
 			})
 		})
 }
+
+// TestRpmNotAffected_DoesNotDenyASiblingStream tests a not-affected row for one module stream must not deny the
+// disclosure for another. Red Hat
+// publishes CVE-2021-27928 for mariadb:10.5 as Version "0" (not affected; an unaffected handle with
+// an empty constraint, satisfied by every version) and for mariadb:10.3 with a fix, RHSA-2021:1242 at
+// 3:10.3.28-1.module+el8.3.0+10472+7adc332a. Suppression from unaffected records must be scoped by
+// record, namespace and module, not applied to the whole vulnerability ID.
+//
+// This is the false negative the quality gate caught on
+// docker.io/anchore/test_images:appstreams-centos-stream-8; modular nodejs, php, ruby and postgresql
+// on el8/el9 have the same shape.
+func TestRpmNotAffected_DoesNotDenyASiblingStream(t *testing.T) {
+	dbtest.DBs(t, "rhel-multi-rhsa").
+		SelectOnly("CVE-2021-27928").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			// the 10.3 stream, one build below RHSA-2021:1242 (757 < 10472 in the release segment)
+			p := dbtest.NewPackage("mariadb", "3:10.3.28-1.module_el8.3.0+757+d382997d", syftPkg.RpmPkg).
+				WithID(pkg.ID("mariadb-10.3")).
+				WithDistro(distro.New(distro.RedHat, "8.6", "")).
+				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(3), ModularityLabel: strPtr("mariadb:10.3:8030020210427104546:0d55e02b")}).
+				Build()
+
+			m := db.Match(t, &Matcher{}, p)
+
+			m.Ignores().SkipCompleteness()
+
+			m.SelectMatch("CVE-2021-27928").
+				SelectDetailByType(match.ExactDirectMatch).
+				AsDistroSearch()
+		})
+}

@@ -147,7 +147,15 @@ func Open(path string, options ...Option) (*gorm.DB, error) {
 		return nil, fmt.Errorf("unable to connect to DB: %w", err)
 	}
 
-	return cfg.prepareDB(dbObj)
+	prepared, err := cfg.prepareDB(dbObj)
+	if err != nil {
+		// don't leave the file handle open (this blocks removing the file on windows)
+		if d, dbErr := dbObj.DB(); dbErr == nil {
+			_ = d.Close()
+		}
+		return nil, err
+	}
+	return prepared, nil
 }
 
 func (c config) prepareDB(dbObj *gorm.DB) (*gorm.DB, error) {

@@ -71,6 +71,7 @@ func setupTestStore(t testing.TB, d ...string) *store {
 		DBDirPath: dir,
 	}, true, true)
 	require.NoError(t, err)
+	closeOnCleanup(t, s)
 
 	require.NoError(t, s.SetDBMetadata())
 
@@ -82,6 +83,17 @@ func setupReadOnlyTestStore(t testing.TB, dir string) *store {
 		DBDirPath: dir,
 	}, false, false)
 	require.NoError(t, err)
+	closeOnCleanup(t, s)
 
 	return s
+}
+
+// closeOnCleanup closes the underlying connection when the test ends (without the vacuum/index work that
+// store.Close does), since windows cannot remove the temp dir while the db file is still open.
+func closeOnCleanup(t testing.TB, s *store) {
+	t.Cleanup(func() {
+		if d, err := s.db.DB(); err == nil {
+			_ = d.Close()
+		}
+	})
 }

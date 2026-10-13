@@ -91,11 +91,14 @@ func cgAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHan
 		for _, r := range affected.Ranges {
 			ranges = append(ranges, getGrypeRangesFromRange(r, cgRangeType(r.Type))...)
 		}
+		purlType := pkg.TypeFromPURL(affected.Package.Purl)
 		aphs = append(aphs, db.AffectedPackageHandle{
 			OperatingSystem: cgOperatingSystem(affected.Package.Ecosystem),
 			Package: &db.Package{
-				Ecosystem: affected.Package.Ecosystem,
-				Name:      name.Normalize(affected.Package.Name, pkg.TypeFromPURL(affected.Package.Purl)),
+				// the OSV ecosystem names the distro, which is
+				// the row's OS, ecosystem here is the package type
+				Ecosystem: purlType.String(),
+				Name:      name.Normalize(affected.Package.Name, purlType),
 			},
 			BlobValue: &db.PackageBlob{
 				// cg puts CVEs in `upstream`, so we append those

@@ -157,7 +157,7 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 
 	flags.StringArrayVarP(&o.From,
 		"from", "",
-		"specify the source behavior to use (e.g. docker, registry, podman, oci-dir, ...)",
+		"specify the source behavior to use (e.g. docker, registry, podman, containers-storage, oci-dir, ...)",
 	)
 
 	flags.StringArrayVarP(&o.VexDocuments,
@@ -181,7 +181,7 @@ func (o *Grype) PostLoad() error {
 func (o *Grype) DescribeFields(descriptions clio.FieldDescriptionSet) {
 	descriptions.Add(&o.CheckForAppUpdate, `enable/disable checking for application updates on startup`)
 	descriptions.Add(&o.DefaultImagePullSource, `allows users to specify which image source should be used to generate the sbom
-valid values are: registry, docker, podman`)
+valid values are: registry, docker, podman, containers-storage`)
 	descriptions.Add(&o.Name, `same as --name; set the name of the target being analyzed`)
 	descriptions.Add(&o.Exclusions, `a list of globs to exclude from scanning, for example:
   - '/etc/**'

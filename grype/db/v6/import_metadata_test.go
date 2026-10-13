@@ -62,8 +62,7 @@ func TestReadImportMetadata(t *testing.T) {
 				err := os.WriteFile(filePath, []byte(tt.fileContent), 0644)
 				require.NoError(t, err)
 			} else if tt.emptyFile {
-				_, err := os.Create(filePath)
-				require.NoError(t, err)
+				require.NoError(t, os.WriteFile(filePath, nil, 0644))
 			}
 
 			result, err := ReadImportMetadata(afero.NewOsFs(), dir)

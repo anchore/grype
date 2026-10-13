@@ -1,1 +1,5 @@
-rules: {}
+rules:
+  # "$/" makes the runner download the whole repo as an action archive, which fails to stage: the archive omits
+  # submodules, so test/quality/.yardstick/labels (a symlink into the vulnerability-match-labels submodule) dangles.
+  self-repository:
+    disable: true
