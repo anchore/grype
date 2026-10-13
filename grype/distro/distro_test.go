@@ -999,3 +999,61 @@ func Test_NewFromRelease_supportEnd(t *testing.T) {
 		})
 	}
 }
+
+// a distro identified through ID_LIKE carries its own codename, which no record of the distro it
+// derives from will ever match.
+func Test_NewFromRelease_derivedDistroCodename(t *testing.T) {
+	tests := []struct {
+		name             string
+		release          linux.Release
+		expectedType     Type
+		expectedVersion  string
+		expectedCodename string
+	}{
+		{
+			name: "derived distro with a version drops its own codename",
+			release: linux.Release{
+				ID:              "bluefin",
+				IDLike:          []string{"fedora"},
+				VersionID:       "41",
+				Version:         "41.20250129.4 (Silverblue)",
+				VersionCodename: "Archaeopteryx",
+			},
+			expectedType:    Fedora,
+			expectedVersion: "41",
+		},
+		{
+			name: "derived distro without a version keeps the codename",
+			release: linux.Release{
+				ID:              "some-debian-derivative",
+				IDLike:          []string{"debian"},
+				VersionCodename: "trixie",
+			},
+			expectedType:     Debian,
+			expectedCodename: "trixie",
+		},
+		{
+			name: "distro identified by its own ID keeps the codename",
+			release: linux.Release{
+				ID:              "ubuntu",
+				IDLike:          []string{"debian"},
+				VersionID:       "22.04",
+				VersionCodename: "jammy",
+			},
+			expectedType:     Ubuntu,
+			expectedVersion:  "22.04",
+			expectedCodename: "jammy",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d, err := NewFromRelease(tt.release, testFixChannels())
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedType, d.Type)
+			assert.Equal(t, tt.expectedVersion, d.Version)
+			assert.Equal(t, tt.expectedCodename, d.Codename)
+			assert.Equal(t, tt.expectedCodename, d.LabelVersion())
+		})
+	}
+}
