@@ -37,9 +37,9 @@ func prioritized(id string, vulns ...vulnerability.Vulnerability) result.Set {
 	for i, r := range s[id] {
 		switch r.Vulnerabilities[0].Namespace {
 		case highNS:
-			s[id][i].Rank = result.Rank{FromSearchRule: true, RulePriority: 30}
+			s[id][i].Rank = result.Rank{Priority: 30}
 		case lowNS:
-			s[id][i].Rank = result.Rank{FromSearchRule: true, RulePriority: 20}
+			s[id][i].Rank = result.Rank{Priority: 20}
 		}
 	}
 	return s
@@ -339,7 +339,7 @@ func record(id, namespace, constraint string, fixVersions ...string) vulnerabili
 // result.Rank).
 func rankForNamespace(namespace string) result.Rank {
 	if i := strings.LastIndex(namespace, ":"); i >= 0 && strings.Contains(namespace[i:], "+") {
-		return result.Rank{FromSearchRule: true}
+		return result.Rank{Priority: 10}
 	}
 	return result.Rank{}
 }

@@ -15,16 +15,6 @@ import (
 
 type OSSpecifiers []*OSSpecifier
 
-// isOSLess is true when only the rows of no OS are searched.
-func (d OSSpecifiers) isOSLess() bool {
-	for _, s := range d {
-		if s == AnyOSSpecified || *s != *NoOSSpecified {
-			return false
-		}
-	}
-	return len(d) > 0
-}
-
 // OSSpecifier is a struct that represents a distro in a way that can be used to query the affected package store.
 type OSSpecifier struct {
 	// Name of the distro as identified by the ID field in /etc/os-release (or similar normalized name, e.g. "oracle" instead of "ol")

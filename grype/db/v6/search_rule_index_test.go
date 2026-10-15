@@ -41,18 +41,24 @@ func unsharedMatches(rows []SearchRule, s searchSubject) []orderCaptures {
 func TestSearchIndex_MatchesUnshared(t *testing.T) { //nolint:funlen // one fixture rule set plus the package shapes it has to cover
 	rows := append(KnownSearchRules(),
 		// regex distro name, filed under its ecosystem
-		SearchRule{MatchDistroName: `rapidfort-.*`, MatchEcosystem: "rpm", MatchPackageName: `.*`, ReplacementPackageName: "rf-${package_name}"},
+		SearchRule{Action: SearchRuleAdd, MatchDistroName: `rapidfort-.*`, MatchEcosystem: "rpm", MatchPackageName: `.*`, ReplacementPackageName: "rf-${package_name}"},
 		// distro version pattern with no distro name
-		SearchRule{MatchEcosystem: "rpm", MatchDistroVersion: `9.*`, MatchPackageName: `.*`, ReplacementPackageName: "byver-${package_name}"},
+		SearchRule{Action: SearchRuleAdd, MatchEcosystem: "rpm", MatchDistroVersion: `9.*`, MatchPackageName: `.*`, ReplacementPackageName: "byver-${package_name}"},
 		// shares the regexMatch nodes of the rule above
-		SearchRule{MatchEcosystem: "rpm", MatchDistroVersion: `9.*`, MatchPackageName: `.*`, ExcludePackageName: `openssl`, ReplacementPackageName: "byver2-${package_name}"},
+		SearchRule{Action: SearchRuleAdd, MatchEcosystem: "rpm", MatchDistroVersion: `9.*`, MatchPackageName: `.*`, ExcludePackageName: `openssl`, ReplacementPackageName: "byver2-${package_name}"},
 		// uppercase distro name
-		SearchRule{MatchDistroName: "RapidFort-RedHat", MatchPackageName: `upper-.*`, ReplacementChannel: ptr("upper"), Priority: 99},
+		SearchRule{Action: SearchRuleAdd, MatchDistroName: "RapidFort-RedHat", MatchPackageName: `upper-.*`, ReplacementChannel: ptr("upper"), Priority: 99},
 		// several exact package names under one distro, filed under the package name
-		SearchRule{MatchDistroName: "debian", MatchPackageName: `curl`, ReplacementPackageName: "curl-exact"},
-		SearchRule{MatchDistroName: "debian", MatchPackageName: `curl`, ReplacementPackageName: "curl-also"},
+		SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: `curl`, ReplacementPackageName: "curl-exact"},
+		SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: `curl`, ReplacementPackageName: "curl-also"},
 		// ecosystem-scoped with an exact name
-		SearchRule{MatchEcosystem: "apk", MatchPackageName: `busybox`, ReplacementPackageName: "busybox-alt"},
+		SearchRule{Action: SearchRuleAdd, MatchEcosystem: "apk", MatchPackageName: `busybox`, ReplacementPackageName: "busybox-alt"},
+		// exact CPE vendor and product, filed under both
+		SearchRule{Action: SearchRuleDrop, MatchCPEVendor: "Apache", MatchCPEProduct: "log4j"},
+		// exact CPE product under a regex vendor
+		SearchRule{Action: SearchRuleDrop, MatchCPEVendor: `apache|jboss`, MatchCPEProduct: "log4j"},
+		// exact CPE vendor alone
+		SearchRule{Action: SearchRuleDrop, MatchCPEVendor: "apache"},
 	)
 	requireAllValid(t, rows)
 	idx := newSearchIndex(rows)
@@ -108,6 +114,18 @@ func TestSearchIndex_MatchesUnshared(t *testing.T) { //nolint:funlen // one fixt
 			ecosystem: string(syftPkg.RpmPkg),
 			distro:    rfRedhat,
 		},
+		"a CPE": {
+			name:       "log4j",
+			version:    "2.14.1",
+			cpeVendor:  "apache",
+			cpeProduct: "log4j",
+		},
+		"a CPE no exact rule names": {
+			name:       "log4j",
+			version:    "2.14.1",
+			cpeVendor:  "jboss",
+			cpeProduct: "log4j",
+		},
 		"no version": {
 			name:   "rf-scanner",
 			distro: rfRedhat,
@@ -127,11 +145,21 @@ func TestSearchIndex_MatchesUnshared(t *testing.T) { //nolint:funlen // one fixt
 }
 
 // Rules with the same pattern at the same place share its regexMatch, which runs once.
+func TestSearchIndex_SkipsRulesWithNoAction(t *testing.T) {
+	rf := distro.New(distro.RapidFortRedHat, "9", "")
+	s := searchSubject{name: "curl", ecosystem: "rpm", distro: rf}
+	rule := SearchRule{MatchDistroName: "rapidfort-redhat", MatchEcosystem: "rpm", ReplacementChannel: ptr("rf")}
+	assert.Empty(t, newSearchIndex([]SearchRule{rule}).matchingRules(s))
+
+	rule.Action = SearchRuleAdd
+	assert.Len(t, newSearchIndex([]SearchRule{rule}).matchingRules(s), 1)
+}
+
 func TestSearchIndex_SharesRegexMatches(t *testing.T) {
 	idx := newSearchIndex([]SearchRule{
-		{MatchDistroName: "debian", MatchPackageVersion: `.*\+rf.*`, ReplacementChannel: ptr("a")},
-		{MatchDistroName: "debian", MatchPackageVersion: `.*\+rf.*`, ExcludePackageName: "curl", ReplacementChannel: ptr("b")},
-		{MatchDistroName: "debian", MatchPackageVersion: `.*\+echo.*`, ReplacementChannel: ptr("c")},
+		{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageVersion: `.*\+rf.*`, ReplacementChannel: ptr("a")},
+		{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageVersion: `.*\+rf.*`, ExcludePackageName: "curl", ReplacementChannel: ptr("b")},
+		{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageVersion: `.*\+echo.*`, ReplacementChannel: ptr("c")},
 	})
 	debian := idx.byDistroName["debian"]
 	require.NotNil(t, debian)
@@ -160,49 +188,49 @@ func TestSearchIndex_ExactOrRegexPatterns(t *testing.T) {
 	}{
 		{
 			name:    "an exact distro name and ecosystem ignore case",
-			row:     SearchRule{MatchDistroName: "RapidFort-Ubuntu", MatchEcosystem: "DEB", ReplacementChannel: ptr("rf")},
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "RapidFort-Ubuntu", MatchEcosystem: "DEB", ReplacementChannel: ptr("rf")},
 			subject: searchSubject{name: "curl", ecosystem: "deb", distro: rfUbuntu},
 			want:    true,
 		},
 		{
 			name:    "a regex distro name ignores case",
-			row:     SearchRule{MatchDistroName: `RAPIDFORT-.*`, MatchEcosystem: "deb", ReplacementDistroName: ptr("x")},
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: `RAPIDFORT-.*`, MatchEcosystem: "deb", ReplacementDistroName: ptr("x")},
 			subject: searchSubject{name: "curl", ecosystem: "deb", distro: rfUbuntu},
 			want:    true,
 		},
 		{
 			name:    "a regex distro name is anchored",
-			row:     SearchRule{MatchDistroName: `rapidfort`, MatchEcosystem: "deb", ReplacementDistroName: ptr("x")},
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: `rapidfort`, MatchEcosystem: "deb", ReplacementDistroName: ptr("x")},
 			subject: searchSubject{name: "curl", ecosystem: "deb", distro: rfUbuntu},
 			want:    false,
 		},
 		{
 			name:    "an exact package name ignores case",
-			row:     SearchRule{MatchPackageName: "Curl", ReplacementPackageName: "x"},
+			row:     SearchRule{Action: SearchRuleAdd, MatchPackageName: "Curl", ReplacementPackageName: "x"},
 			subject: searchSubject{name: "curl", ecosystem: "deb"},
 			want:    true,
 		},
 		{
 			name:    "a regex package name ignores case",
-			row:     SearchRule{MatchPackageName: `LIB.*`, MatchEcosystem: "deb", ReplacementPackageName: "x"},
+			row:     SearchRule{Action: SearchRuleAdd, MatchPackageName: `LIB.*`, MatchEcosystem: "deb", ReplacementPackageName: "x"},
 			subject: searchSubject{name: "libcurl", ecosystem: "deb"},
 			want:    true,
 		},
 		{
 			name:    "an exact exclude package name ignores case",
-			row:     SearchRule{MatchPackageName: `.*`, ExcludePackageName: "CURL", MatchEcosystem: "deb", ReplacementPackageName: "x"},
+			row:     SearchRule{Action: SearchRuleAdd, MatchPackageName: `.*`, ExcludePackageName: "CURL", MatchEcosystem: "deb", ReplacementPackageName: "x"},
 			subject: searchSubject{name: "curl", ecosystem: "deb"},
 			want:    false,
 		},
 		{
 			name:    "an exact package version",
-			row:     SearchRule{MatchEcosystem: "deb", MatchPackageVersion: "7.68.0-1", ReplacementPackageName: "x", MatchPackageName: "curl"},
+			row:     SearchRule{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchPackageVersion: "7.68.0-1", ReplacementPackageName: "x", MatchPackageName: "curl"},
 			subject: searchSubject{name: "curl", version: "7.68.0-1", ecosystem: "deb"},
 			want:    true,
 		},
 		{
 			name:    "an exact exclude rejects only its value",
-			row:     SearchRule{MatchPackageName: `.*`, ExcludePackageName: "curl", MatchEcosystem: "deb", ReplacementPackageName: "x"},
+			row:     SearchRule{Action: SearchRuleAdd, MatchPackageName: `.*`, ExcludePackageName: "curl", MatchEcosystem: "deb", ReplacementPackageName: "x"},
 			subject: searchSubject{name: "curl2", ecosystem: "deb"},
 			want:    true,
 		},
@@ -241,4 +269,18 @@ func patternsOf(rms []*regexMatch) []patternNode {
 // matchingRules returns the rules s matches, in read order.
 func (n *searchIndex) matchingRules(s searchSubject) []matchedRule {
 	return n.appendMatchingRules(nil, s)
+}
+
+// An exact CPE vendor and product file a rule under both, so no regex runs for it.
+func TestSearchIndex_FilesExactCPE(t *testing.T) {
+	idx := newSearchIndex([]SearchRule{{Action: SearchRuleDrop, MatchCPEVendor: "Apache", MatchCPEProduct: "log4j"}})
+	product := idx.byCPEVendor["apache"].byCPEProduct["log4j"]
+	require.NotNil(t, product)
+	assert.Empty(t, idx.remaining)
+	assert.Empty(t, product.remaining)
+	assert.Len(t, product.matches, 1)
+
+	assert.Len(t, idx.matchingRules(searchSubject{cpeVendor: "apache", cpeProduct: "log4j"}), 1)
+	assert.Empty(t, idx.matchingRules(searchSubject{cpeVendor: "apache", cpeProduct: "log4j-core"}))
+	assert.Empty(t, idx.matchingRules(searchSubject{name: "log4j"}), "a search by no CPE does not reach it")
 }

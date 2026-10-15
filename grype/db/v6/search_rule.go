@@ -1,6 +1,7 @@
 package v6
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"slices"
@@ -28,7 +29,7 @@ func (o SearchRule) Validate() error {
 }
 
 // isOSLessSearch is true for an empty, non-NULL ReplacementDistroName, which searches the rows of no
-// OS: for a CPE search, the NVD rows.
+// OS.
 func (o SearchRule) isOSLessSearch() bool {
 	return o.ReplacementDistroName != nil && *o.ReplacementDistroName == ""
 }
@@ -39,6 +40,9 @@ type searchSubject struct {
 	version   string
 	ecosystem string
 	distro    *distro.Distro
+
+	// of the searched CPE; empty for a search by no CPE
+	cpeVendor, cpeProduct string
 }
 
 // matchType is which of the search's values a Match*/Exclude* column matches. A match captures the
@@ -48,9 +52,12 @@ type matchType string
 const (
 	distroName     matchType = "distro_name"
 	distroVersion  matchType = "distro_version"
+	distroChannel  matchType = "distro_channel"
 	ecosystem      matchType = "ecosystem"
 	packageName    matchType = "package_name"
 	packageVersion matchType = "package_version"
+	cpeVendor      matchType = "cpe_vendor"
+	cpeProduct     matchType = "cpe_product"
 )
 
 // values are the search's values to try, in order: the first n of values, none when the search does
@@ -64,12 +71,21 @@ func (t matchType) values(s searchSubject) (values [2]string, n int) {
 		if s.distro != nil {
 			values[0], values[1] = s.distro.Version, s.distro.LabelVersion()
 		}
+	case distroChannel:
+		// an OS is searched with at most a channel or two (e.g. "eus")
+		if s.distro != nil {
+			copy(values[:], s.distro.Channels)
+		}
 	case ecosystem:
 		values[0] = s.ecosystem
 	case packageName:
 		values[0] = s.name
 	case packageVersion:
 		values[0] = s.version
+	case cpeVendor:
+		values[0] = s.cpeVendor
+	case cpeProduct:
+		values[0] = s.cpeProduct
 	}
 	for _, v := range values {
 		if v != "" {
@@ -91,7 +107,7 @@ func (t matchType) firstValue(s searchSubject) string {
 
 func (t matchType) isValid() bool {
 	switch t {
-	case distroName, distroVersion, ecosystem, packageName, packageVersion:
+	case distroName, distroVersion, distroChannel, ecosystem, packageName, packageVersion, cpeVendor, cpeProduct:
 		return true
 	}
 	return false
@@ -100,7 +116,7 @@ func (t matchType) isValid() bool {
 // indexKeys are the exact values a rule is indexed by, lowercased; "" is a field it has no exact value
 // for.
 type indexKeys struct {
-	packageName, distroName, ecosystem string
+	packageName, distroName, ecosystem, cpeVendor, cpeProduct string
 }
 
 func distroNameOf(d *distro.Distro) string {
@@ -116,9 +132,10 @@ type searchMatch struct {
 	order  int                    // read order, which decides search order
 	byRule vulnerability.Criteria // marks the searches the rule adds
 
-	channel     template
-	distroName  template
-	packageName template
+	channel       template
+	distroName    template
+	distroVersion template
+	packageName   template
 }
 
 // compiledRule is a rule as it is filed: under its exact values, then down a chain of its remaining
@@ -142,9 +159,12 @@ func compileSearchRule(row SearchRule) (*compiledRule, error) {
 	}{
 		{distroName, row.MatchDistroName, false, &r.keys.distroName},
 		{distroVersion, row.MatchDistroVersion, false, nil},
+		{distroChannel, row.MatchDistroChannel, false, nil},
 		{ecosystem, row.MatchEcosystem, false, &r.keys.ecosystem},
 		{packageName, row.MatchPackageName, false, &r.keys.packageName},
 		{packageVersion, row.MatchPackageVersion, false, nil},
+		{cpeVendor, row.MatchCPEVendor, false, &r.keys.cpeVendor},
+		{cpeProduct, row.MatchCPEProduct, false, &r.keys.cpeProduct},
 		// excludes last, so rules differing only by one share the patterns before it
 		{packageName, row.ExcludePackageName, true, nil},
 		{packageVersion, row.ExcludePackageVersion, true, nil},
@@ -181,6 +201,7 @@ func compileSearchRule(row SearchRule) (*compiledRule, error) {
 	}{
 		{"replacement channel", row.ReplacementChannel, &r.match.channel},
 		{"replacement distro name", row.ReplacementDistroName, &r.match.distroName},
+		{"replacement distro version", row.ReplacementDistroVersion, &r.match.distroVersion},
 		{"replacement package name", &row.ReplacementPackageName, &r.match.packageName},
 	} {
 		if t.value == nil {
@@ -197,19 +218,41 @@ func compileSearchRule(row SearchRule) (*compiledRule, error) {
 }
 
 func validateSearchRule(row SearchRule, keys indexKeys) error {
+	hasReplacement := row.ReplacementChannel != nil || row.ReplacementDistroName != nil || row.ReplacementDistroVersion != nil ||
+		row.ReplacementPackageName != ""
 	switch {
 	case keys == indexKeys{}:
-		return fmt.Errorf("search rule must have an exact (non-regex) package name, distro name or ecosystem")
-	case row.MatchEcosystem == "" && row.MatchPackageName == "" && row.MatchPackageVersion == "":
-		return fmt.Errorf("search rule must match an ecosystem, package name or package version")
+		return fmt.Errorf("search rule must have an exact (non-regex) package name, distro name, ecosystem, CPE vendor or CPE product")
+	case row.MatchEcosystem == "" && row.MatchPackageName == "" && row.MatchPackageVersion == "" &&
+		row.MatchCPEVendor == "" && row.MatchCPEProduct == "":
+		return fmt.Errorf("search rule must match an ecosystem, package name, package version or CPE")
+	}
+	switch row.Action {
+	case SearchRuleAdd, SearchRuleReplace:
+		if !hasReplacement {
+			return fmt.Errorf("search rule with action %q must have a replacement", row.Action)
+		}
+	case SearchRuleDrop:
+		if hasReplacement {
+			return fmt.Errorf("search rule with action %q cannot have a replacement", row.Action)
+		}
+		return nil
+	case "":
+		return errors.New("search rule must have an action")
+	default:
+		return fmt.Errorf("search rule has an unknown action %q (want %q, %q or %q)", row.Action, SearchRuleAdd, SearchRuleReplace, SearchRuleDrop)
+	}
+	switch {
 	case row.ReplacementPackageName != "" && row.MatchPackageName == "":
 		return fmt.Errorf("search rule with a replacement package name must have a package name pattern")
 	case row.ReplacementChannel != nil && keys.distroName == "":
 		return fmt.Errorf("search rule with a channel substitution must have an exact distro name")
-	case row.ReplacementChannel == nil && row.ReplacementDistroName == nil && row.ReplacementPackageName == "":
-		return fmt.Errorf("search rule must have a replacement")
+	case row.ReplacementDistroVersion != nil && row.ReplacementDistroName == nil && keys.distroName == "":
+		return fmt.Errorf("search rule with a distro version substitution must have a distro name substitution or an exact distro name")
 	case row.isOSLessSearch() && row.ReplacementChannel != nil:
 		return fmt.Errorf("search rule searching no OS cannot have a channel substitution")
+	case row.isOSLessSearch() && row.ReplacementDistroVersion != nil:
+		return fmt.Errorf("search rule searching no OS cannot have a distro version substitution")
 	}
 	return nil
 }
@@ -356,14 +399,15 @@ func (m matchedRule) expand(t template, s searchSubject) string {
 }
 
 // overlayDistro returns the OS the rule searches instead of the searched one: the searched OS with
-// the rule's channel, and/or another OS name; ok is false to keep it. osLess is true for a rule
-// searching the rows of no OS. A search with no OS can only gain a version-less OS name.
+// the rule's channel and/or version, and/or another OS name; ok is false to keep it. osLess is true for
+// a rule searching the rows of no OS. A search with no OS can only gain an OS name, version-less unless
+// the rule names a version.
 func (m matchedRule) overlayDistro(s searchSubject) (overlay distro.Distro, ok, osLess bool) {
 	row := m.rule.row
 	if row.isOSLessSearch() {
 		return overlay, false, true
 	}
-	if row.ReplacementChannel == nil && row.ReplacementDistroName == nil {
+	if row.ReplacementChannel == nil && row.ReplacementDistroName == nil && row.ReplacementDistroVersion == nil {
 		return overlay, false, false
 	}
 
@@ -379,12 +423,24 @@ func (m matchedRule) overlayDistro(s searchSubject) (overlay distro.Distro, ok, 
 		if name == "" {
 			return overlay, false, false
 		}
-		return *distro.New(distro.TypeFromID(name), "", ""), true, false
+		var version string
+		if row.ReplacementDistroVersion != nil {
+			version = m.expand(m.rule.distroVersion, s)
+		}
+		return *distro.New(distro.TypeFromID(name), version, ""), true, false
 	}
 
-	if name != "" {
+	switch {
+	case row.ReplacementDistroVersion != nil:
+		// an empty expansion selects the version-less rows
+		t := s.distro.Type
+		if name != "" {
+			t = distro.TypeFromID(name)
+		}
+		overlay = *distro.New(t, m.expand(m.rule.distroVersion, s), "")
+	case name != "":
 		overlay = *distro.New(distro.TypeFromID(name), s.distro.Version, "")
-	} else {
+	default:
 		overlay = *s.distro
 		overlay.Channels = nil
 	}

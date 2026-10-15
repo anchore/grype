@@ -18,16 +18,17 @@ import (
 func TestRank_Compare(t *testing.T) {
 	// strongest first; every rank outranks every rank after it
 	ordered := []Rank{
-		{FromSearchRule: true, RulePriority: 30, MatchType: match.CPEMatch},
-		{FromSearchRule: true, MatchType: match.ExactDirectMatch},
-		{FromSearchRule: true, MatchType: match.ExactIndirectMatch},
-		{FromSearchRule: true, MatchType: match.CPEMatch},
-		{FromSearchRule: true},
-		{FromSearchRule: true, RulePriority: -5, MatchType: match.ExactDirectMatch},
+		{Priority: 30, MatchType: match.CPEMatch},
+		{Priority: 10, MatchType: match.ExactDirectMatch},
+		{Priority: 10, MatchType: match.ExactIndirectMatch},
+		{Priority: 10, MatchType: match.CPEMatch},
+		{Priority: 10},
+		// the package's own searches, and a rule's at priority 0, rank at 0
 		{MatchType: match.ExactDirectMatch},
 		{MatchType: match.ExactIndirectMatch},
 		{MatchType: match.CPEMatch},
 		{},
+		{Priority: -5, MatchType: match.ExactDirectMatch},
 	}
 	for i, a := range ordered {
 		for j, b := range ordered {
@@ -46,12 +47,12 @@ func TestRank_Compare(t *testing.T) {
 
 func TestRankOf_UsesTheStrongestDetail(t *testing.T) {
 	details := match.Details{{Type: match.CPEMatch}, {Type: match.ExactIndirectMatch}}
-	assert.Equal(t, Rank{FromSearchRule: true, RulePriority: 7, MatchType: match.ExactIndirectMatch}, rankOf([]vulnerability.Criteria{search.ByRule(7)}, details))
+	assert.Equal(t, Rank{Priority: 7, MatchType: match.ExactIndirectMatch}, rankOf([]vulnerability.Criteria{search.ByRule(7)}, details))
 	assert.Equal(t, Rank{}, rankOf(nil, nil))
 }
 
 func TestResult_Derive_KeepsRank(t *testing.T) {
-	r := Result{ID: "x", Vulnerabilities: []vulnerability.Vulnerability{{}}, Details: match.Details{{}}, Rank: Rank{FromSearchRule: true, MatchType: match.ExactDirectMatch}}
+	r := Result{ID: "x", Vulnerabilities: []vulnerability.Vulnerability{{}}, Details: match.Details{{}}, Rank: Rank{Priority: 10, MatchType: match.ExactDirectMatch}}
 	assert.Equal(t, Result{ID: "x", Rank: r.Rank}, r.Derive())
 }
 

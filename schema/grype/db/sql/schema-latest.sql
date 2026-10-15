@@ -34,7 +34,7 @@ CREATE TABLE `packages` (`id` integer PRIMARY KEY AUTOINCREMENT,`ecosystem` text
 
 CREATE TABLE `providers` (`id` text,`version` text,`processor` text,`date_captured` datetime,`input_digest` text,PRIMARY KEY (`id`));
 
-CREATE TABLE `search_rules` (`match_distro_name` text,`match_distro_version` text,`match_ecosystem` text,`match_package_name` text,`exclude_package_name` text,`match_package_version` text,`exclude_package_version` text,`replacement_channel` text,`replacement_distro_name` text,`replacement_package_name` text,`priority` integer,`applicable_client_db_schemas` text);
+CREATE TABLE `search_rules` (`action` text,`match_distro_name` text,`match_distro_version` text,`match_distro_channel` text,`match_ecosystem` text,`match_package_name` text,`exclude_package_name` text,`match_package_version` text,`exclude_package_version` text,`match_cpe_vendor` text,`match_cpe_product` text,`replacement_channel` text,`replacement_distro_name` text,`replacement_distro_version` text,`replacement_package_name` text,`priority` integer,`applicable_client_db_schemas` text);
 
 CREATE TABLE `ssvc_handles` (`id` integer PRIMARY KEY AUTOINCREMENT,`cve` text NOT NULL,`source` text,`role` text,`version` text,`timestamp` datetime,`exploitation` text,`automatable` text,`technical_impact` text);
 

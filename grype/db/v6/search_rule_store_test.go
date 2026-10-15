@@ -17,7 +17,7 @@ func TestSearchRuleStore_SeededDefaults(t *testing.T) {
 }
 
 func TestNewVulnerabilityProvider_SearchRuleDefaults(t *testing.T) {
-	custom := SearchRule{MatchEcosystem: "custom", MatchPackageName: "pkg", Behavior: SearchRuleReplace, ReplacementPackageName: "other"}
+	custom := SearchRule{Action: SearchRuleReplace, MatchEcosystem: "custom", MatchPackageName: "pkg", ReplacementPackageName: "other"}
 
 	tests := []struct {
 		name  string

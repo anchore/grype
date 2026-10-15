@@ -23,11 +23,11 @@ func applyDistroIdentifiers(s *sbom.SBOM, d *distro.Distro, identifiers []distro
 		}
 		newType, ok := distro.IDMapping[newID]
 		if !ok {
-			log.WithFields("identifier", id.Name, "distro", newID).Warn("distro identifier maps to an unknown distro ID")
+			log.WithFields("identifier", id.Name, "distro", newID).Debug("distro identifier maps to an unknown distro ID")
 			continue
 		}
 
-		log.WithFields("identifier", id.Name, "from", d.ID(), "to", newID).Info("applying distro identifier")
+		log.WithFields("identifier", id.Name, "from", d.ID(), "to", newID).Debug("applying distro identifier")
 
 		// base-distro channels (e.g. esm, eus) are dropped: they would exclude the vendor's channel-less records
 		return distro.New(newType, d.Version, "", d.IDLike...)

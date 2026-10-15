@@ -8,9 +8,10 @@ import (
 )
 
 // searchIndex is a node of the rule index over exact values. A rule is filed under its exact package
-// name, then distro name, then ecosystem (skipping those it has no exact value for), then down a chain
-// of regexMatch nodes, one per remaining pattern, ending at its match. Rules with the same pattern at
-// the same place share its regexMatch, so it runs once for all of them.
+// name, then distro name, then ecosystem, then CPE vendor, then CPE product (skipping those it has no
+// exact value for), then down a chain of regexMatch nodes, one per remaining pattern, ending at its
+// match. Rules with the same pattern at the same place share its regexMatch, so it runs once for all
+// of them.
 //
 // A search walks, at every node it reaches, the maps for its own values and every regexMatch that
 // matches; each rule has one path, so a search reaches it at most once.
@@ -18,17 +19,19 @@ type searchIndex struct {
 	byPackageName map[string]*searchIndex
 	byDistroName  map[string]*searchIndex
 	byEcosystem   map[string]*searchIndex
+	byCPEVendor   map[string]*searchIndex
+	byCPEProduct  map[string]*searchIndex
 	remaining     []*regexMatch
 	matches       []*searchMatch // rules with no pattern beyond their exact values
 }
 
-// newSearchIndex skips invalid rows with a warning.
+// newSearchIndex skips invalid rows (e.g. with no action) with a debug log.
 func newSearchIndex(rows []SearchRule) *searchIndex {
 	root := &searchIndex{}
 	for i, row := range rows {
 		r, err := compileSearchRule(row)
 		if err != nil {
-			log.WithFields("error", err, "distro", row.MatchDistroName, "ecosystem", row.MatchEcosystem).Warn("skipping invalid search rule")
+			log.WithFields("error", err, "distro", row.MatchDistroName, "ecosystem", row.MatchEcosystem).Debug("skipping invalid search rule")
 			continue
 		}
 
@@ -36,6 +39,8 @@ func newSearchIndex(rows []SearchRule) *searchIndex {
 		n = n.child(&n.byPackageName, r.keys.packageName)
 		n = n.child(&n.byDistroName, r.keys.distroName)
 		n = n.child(&n.byEcosystem, r.keys.ecosystem)
+		n = n.child(&n.byCPEVendor, r.keys.cpeVendor)
+		n = n.child(&n.byCPEProduct, r.keys.cpeProduct)
 		r.match.order = i // relative only, so a skipped row's gap is harmless
 
 		// descend the chain of the rule's patterns, reusing a node with the same pattern
@@ -97,6 +102,12 @@ func (n *searchIndex) walk(s searchSubject, out []matchedRule) []matchedRule {
 	}
 	if len(n.byEcosystem) > 0 {
 		out = n.byEcosystem[strings.ToLower(s.ecosystem)].walk(s, out)
+	}
+	if len(n.byCPEVendor) > 0 {
+		out = n.byCPEVendor[strings.ToLower(s.cpeVendor)].walk(s, out)
+	}
+	if len(n.byCPEProduct) > 0 {
+		out = n.byCPEProduct[strings.ToLower(s.cpeProduct)].walk(s, out)
 	}
 	for _, rm := range n.remaining {
 		out = rm.walk(s, nil, out)

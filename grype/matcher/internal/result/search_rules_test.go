@@ -64,9 +64,10 @@ func TestProvider_RanksBySearchRule(t *testing.T) {
 		return got[id][0].Rank
 	}
 	assert.Equal(t, Rank{}, rankOfID("CVE-1"))
-	assert.Equal(t, Rank{FromSearchRule: true, RulePriority: 30}, rankOfID("CVE-2"))
-	assert.Equal(t, Rank{FromSearchRule: true, RulePriority: -5}, rankOfID("CVE-3"))
-	assert.Positive(t, rankOfID("CVE-3").Compare(rankOfID("CVE-1")), "any rule outranks the package's own rows")
+	assert.Equal(t, Rank{Priority: 30}, rankOfID("CVE-2"))
+	assert.Equal(t, Rank{Priority: -5}, rankOfID("CVE-3"))
+	assert.Positive(t, rankOfID("CVE-2").Compare(rankOfID("CVE-1")), "a positive priority outranks the package's own rows")
+	assert.Negative(t, rankOfID("CVE-3").Compare(rankOfID("CVE-1")), "a negative priority ranks below the package's own rows")
 }
 
 func TestProvider_RewriteToNothingSearchesNothing(t *testing.T) {

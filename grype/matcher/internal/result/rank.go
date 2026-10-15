@@ -8,13 +8,12 @@ import (
 	"github.com/anchore/grype/grype/vulnerability"
 )
 
-// Rank decides which result wins when results for one vulnerability disagree: results found by a
-// search rule's search (see v6.SearchRule) outrank the package's own, then the higher RulePriority
-// wins, then the stronger match type. A rule's result outranks the package's own even when reached
-// indirectly.
+// Rank decides which result wins when results for one vulnerability disagree: the higher Priority
+// wins, then the stronger match type. The package's own searches rank at priority 0 and a search
+// rule's search at the rule's priority (see v6.SearchRule), so a rule's records outrank the
+// package's own when its priority is positive, and rank below them when it is negative.
 type Rank struct {
-	FromSearchRule bool
-	RulePriority   int
+	Priority int
 
 	// MatchType is the strongest match type of the details the result was found with; details merged
 	// in later do not change it
@@ -26,7 +25,7 @@ func rankOf(cs []vulnerability.Criteria, details match.Details) Rank {
 	r := Rank{MatchType: details.BestType()}
 	for _, c := range cs {
 		if rc, ok := c.(*search.RuleCriteria); ok {
-			r.FromSearchRule, r.RulePriority = true, rc.Priority
+			r.Priority = rc.Priority
 		}
 	}
 	return r
@@ -34,13 +33,7 @@ func rankOf(cs []vulnerability.Criteria, details match.Details) Rank {
 
 // Compare is positive when r outranks o.
 func (r Rank) Compare(o Rank) int {
-	if r.FromSearchRule != o.FromSearchRule {
-		if r.FromSearchRule {
-			return 1
-		}
-		return -1
-	}
-	if c := cmp.Compare(r.RulePriority, o.RulePriority); c != 0 {
+	if c := cmp.Compare(r.Priority, o.Priority); c != 0 {
 		return c
 	}
 	return -match.CompareTypes(r.MatchType, o.MatchType)

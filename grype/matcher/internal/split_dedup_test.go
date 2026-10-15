@@ -50,11 +50,11 @@ func TestKeepMoreSpecificCandidates_PreservesNAKDroppedDetails(t *testing.T) {
 	nativeDetail := match.Detail{Type: match.ExactDirectMatch, Matcher: match.DpkgMatcher, Confidence: 1.0, SearchedBy: "native"}
 
 	candidates := result.Set{id: []result.Result{
-		{ID: id, Vulnerabilities: []vulnerability.Vulnerability{mkVuln(streamNS)}, Details: match.Details{streamDetail}, Rank: result.Rank{FromSearchRule: true, MatchType: match.ExactDirectMatch}},
+		{ID: id, Vulnerabilities: []vulnerability.Vulnerability{mkVuln(streamNS)}, Details: match.Details{streamDetail}, Rank: result.Rank{Priority: 10, MatchType: match.ExactDirectMatch}},
 		{ID: id, Vulnerabilities: []vulnerability.Vulnerability{mkVuln(nativeNS)}, Details: match.Details{nativeDetail}, Rank: result.Rank{MatchType: match.ExactDirectMatch}},
 	}}
 	notVulnerable := result.Set{id: []result.Result{
-		{ID: id, Vulnerabilities: []vulnerability.Vulnerability{mkVuln(streamNS)}, Details: match.Details{streamDetail}, Rank: result.Rank{FromSearchRule: true, MatchType: match.ExactDirectMatch}},
+		{ID: id, Vulnerabilities: []vulnerability.Vulnerability{mkVuln(streamNS)}, Details: match.Details{streamDetail}, Rank: result.Rank{Priority: 10, MatchType: match.ExactDirectMatch}},
 	}}
 
 	got := keepMoreSpecificCandidates(candidates, notVulnerable)
