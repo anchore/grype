@@ -420,3 +420,39 @@ func TestSet_SplitVulnerable_ExactFixDoesNotEraseBroaderSharedAliasAdvisory(t *t
 		require.NotContains(t, vulnerable, "ELSA-C", "a higher stream's advisory for a CVE already fixed in the installed stream is not vulnerable")
 	})
 }
+
+// An exact fix is found by comparing versions with the searched version's config, not by string equality:
+// with the auto epoch strategy an installed rpm version without an epoch equals a fix that names one.
+func TestSet_SplitVulnerable_ExactFixHonorsEpochConfig(t *testing.T) {
+	fixed := withAliases(vulnerability.Vulnerability{
+		Reference:   vulnerability.Reference{ID: "RHSA-A", Namespace: nativeNS},
+		PackageName: splitPkg.Name,
+		Constraint:  version.MustGetConstraint("< 1:1.0-1", version.RpmFormat),
+		Fix:         vulnerability.Fix{State: vulnerability.FixStateFixed, Versions: []string{"1:1.0-1"}},
+	}, "CVE-SHARED")
+	sameVuln := record("CVE-SHARED", "nvd:cpe:cpe", ">= 0")
+
+	tests := []struct {
+		name         string
+		strategy     version.MissingEpochStrategy
+		wantResolved bool
+	}{
+		{name: "auto epoch matches the fix's epoch", strategy: version.MissingEpochStrategyAuto, wantResolved: true},
+		{name: "zero epoch is older than the fix", strategy: version.MissingEpochStrategyZero, wantResolved: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			installed := version.NewWithConfig("1.0-1", version.RpmFormat, version.ComparisonConfig{MissingEpochStrategy: tt.strategy})
+			s := result.Set{"RHSA-A": {resultOf(fixed)}, "CVE-SHARED": {resultOf(sameVuln)}}
+
+			vulnerable, _ := SplitVulnerable(s, installed)
+
+			if tt.wantResolved {
+				require.NotContains(t, vulnerable, "CVE-SHARED")
+				require.NotContains(t, vulnerable, "RHSA-A")
+			} else {
+				require.Contains(t, vulnerable, "RHSA-A")
+			}
+		})
+	}
+}

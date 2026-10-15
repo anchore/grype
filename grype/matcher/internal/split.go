@@ -60,12 +60,27 @@ func keepByExactFixVersion(affected result.Set, v *version.Version) result.Set {
 	if v == nil || v.Raw == "" {
 		return result.Set{}
 	}
-	return affected.Filter(search.ByFunc(func(vuln vulnerability.Vulnerability) (bool, string, error) {
-		if slices.Contains(vuln.Fix.Versions, v.Raw) {
-			return true, "", nil
+	return filterByVersion(affected, v, hasExactFixVersion)
+}
+
+// hasExactFixVersion tests that a record names a fix equal to v, compared with v's format and comparison
+// config (e.g. a missing epoch is handled the same as in constraint checks).
+func hasExactFixVersion(v *version.Version) vulnerability.Criteria {
+	return search.ByFunc(func(vuln vulnerability.Vulnerability) (bool, string, error) {
+		if v == nil || v.Raw == "" {
+			return false, "no version to compare", nil
+		}
+		for _, fix := range vuln.Fix.Versions {
+			if fix == "" {
+				continue
+			}
+			cmp, err := v.Compare(version.New(fix, v.Format))
+			if err == nil && cmp == 0 {
+				return true, "", nil
+			}
 		}
 		return false, "does not have exact fix version", nil
-	}))
+	})
 }
 
 // removeExactlyFixed drops candidates whose CVEs are all patched by an advisory fixed exactly at the

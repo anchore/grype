@@ -42,22 +42,23 @@ func TestAmazonTomcatStreams_UpstreamHitDoesNotDenyDirectFix(t *testing.T) {
 
 			findings := db.Match(t, &matcher, amazonTomcat7Host(pkgID))
 
-			// only the tomcat8.5 advisories cover a 7.0.76 build
-			findings.SelectMatch("ALAS2TOMCAT8.5-2023-008").
-				SelectDetailByType(match.ExactIndirectMatch).
-				AsDistroSearch("< 8.5.56-1.amzn2 (rpm)")
+			// only the tomcat8.5 advisories cover a 7.0.76 build; ALAS2TOMCAT8.5-2023-008 is not reported
+			// because its only CVE (CVE-2020-9484) is fixed exactly at this build by ALAS2-2020-1449
+			// (0:7.0.76-10.amzn2.0.2 equals 7.0.76-10.amzn2.0.2 with a zero epoch)
 			findings.SelectMatch("ALAS2TOMCAT8.5-2023-012").
 				SelectDetailByType(match.ExactIndirectMatch).
 				AsDistroSearch("< 8.5.51-1.amzn2 (rpm)")
 
 			// the tomcat 7 advisories this build is at or past, under their own IDs and every CVE
-			// they name, including the CVEs shared with the reported advisories
+			// they name, including the CVEs shared with the reported advisories, and the tomcat8.5
+			// advisory resolved by the exact fix
 			findings.Ignores().
 				SelectRelatedPackageIgnores(IgnoreReasonDistroNotVulnerable,
 					"ALAS2-2020-1402",
 					"CVE-2018-1304", "CVE-2018-1305", "CVE-2018-8014", "CVE-2018-8034", "CVE-2020-1938",
 					"ALAS2-2020-1449",
 					"CVE-2020-9484",
+					"ALAS2TOMCAT8.5-2023-008",
 				).
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
