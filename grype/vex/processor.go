@@ -7,6 +7,7 @@ import (
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vex/csaf"
+	"github.com/anchore/grype/grype/vex/cyclonedx"
 	"github.com/anchore/grype/grype/vex/openvex"
 )
 
@@ -48,6 +49,9 @@ func getVexImplementation(documents []string) (vexProcessorImplementation, error
 
 	if csaf.IsCSAF(firstDoc) {
 		return csaf.New(), nil
+	}
+	if cyclonedx.IsCycloneDX(firstDoc) {
+		return cyclonedx.New(), nil
 	}
 	if openvex.IsOpenVex(firstDoc) {
 		return openvex.New(), nil
