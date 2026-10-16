@@ -10,6 +10,7 @@ import (
 	"github.com/anchore/grype/grype/db/internal/versionutil"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
+	"github.com/anchore/grype/internal/log"
 )
 
 // Shared helpers used by multiple OSV strategies. Per-provider decisions live
@@ -126,6 +127,12 @@ func getGrypeUnaffectedRangesFromRange(r osvmodel.Range, rangeType string) []db.
 	return buildUnaffectedRangesFromEvents(r.Events, fixByVersion, rangeType)
 }
 
+// spaceBeforeComparator matches the whitespace that AndConstraints puts between
+// two bounds, identified by the comparator that follows it. The leading
+// comparator of the whole constraint is never preceded by whitespace, so it is
+// left alone.
+var spaceBeforeComparator = regexp.MustCompile(`\s+([<>]=?)`)
+
 func normalizeConstraint(constraint string, rangeType string) string {
 	// Go versions are semver-shaped (with optional "v"/"go" prefix the parser
 	// strips); multi-window ranges built via versionutil.AndConstraints use
@@ -134,7 +141,13 @@ func normalizeConstraint(constraint string, rangeType string) string {
 	if rangeType == "semver" || rangeType == "bitnami" || rangeType == "go" {
 		return versionutil.EnforceSemVerConstraint(constraint)
 	}
-	return constraint
+	// Every other format (apk, rpm, ...) keeps its versions verbatim, so the
+	// semver rewrite above cannot be used — it strips spaces and would mangle
+	// "8.0.4-r0". The conjunction separator still has to be fixed up: these
+	// parsers reject a space-separated conjunction ("potentially is a version
+	// constraint expression"), which silently turns any two-bound window — an
+	// OSV `introduced` paired with a `fixed` — into a range that never matches.
+	return spaceBeforeComparator.ReplaceAllString(constraint, ", $1")
 }
 
 func normalizeFix(fix string, detail *db.FixDetail) *db.Fix {
@@ -238,18 +251,34 @@ func createUnaffectedRange(fixedVersion string, fixByVersion map[string]db.FixAv
 
 var cvssPattern = regexp.MustCompile(`^CVSS:(\d+\.\d+)/(.+)$`)
 
-func extractCVSSInfo(cvss string) (string, string, error) {
-	matches := cvssPattern.FindStringSubmatch(cvss)
-	if len(matches) != 3 {
-		return "", "", fmt.Errorf("invalid CVSS format")
+// cvssV2BarePattern matches a CVSSv2 vector with no "CVSS:2.0/" prefix -- the
+// conventional way CVSSv2 vectors have always been written (including NVD's
+// own historical feed), unlike v3/v4, which introduced the prefixed form.
+// Anchored, and requires all six base metrics, so it cannot match an
+// arbitrary short string.
+var cvssV2BarePattern = regexp.MustCompile(`^AV:[NAL]/AC:[LMH]/Au:[MSN]/C:[NPC]/I:[NPC]/A:[NPC]$`)
+
+// extractCVSSInfo parses a severity score string for the given CVSS type.
+// cvssType is needed because a bare (unprefixed) vector is only a valid
+// reading for CVSS_V2 -- the same bare string would not be a meaningful
+// CVSS_V3/V4 vector, which have always required the prefix.
+func extractCVSSInfo(cvssType osvmodel.SeverityType, cvss string) (string, string, error) {
+	if matches := cvssPattern.FindStringSubmatch(cvss); len(matches) == 3 {
+		return matches[1], matches[0], nil
 	}
-	return matches[1], matches[0], nil
+	if cvssType == osvmodel.SeverityCVSSV2 && cvssV2BarePattern.MatchString(cvss) {
+		// Reconstruct the prefixed form every other CVSS_V2 record's Vector
+		// carries, so this doesn't become a second, inconsistent shape for
+		// downstream code to handle.
+		return "2.0", "CVSS:2.0/" + cvss, nil
+	}
+	return "", "", fmt.Errorf("invalid CVSS format")
 }
 
 func normalizeSeverity(severity osvmodel.Severity) (db.Severity, error) {
 	switch severity.Type {
 	case osvmodel.SeverityCVSSV2, osvmodel.SeverityCVSSV3, osvmodel.SeverityCVSSV4:
-		version, vector, err := extractCVSSInfo(severity.Score)
+		version, vector, err := extractCVSSInfo(severity.Type, severity.Score)
 		if err != nil {
 			return db.Severity{}, err
 		}
@@ -268,22 +297,31 @@ func normalizeSeverity(severity osvmodel.Severity) (db.Severity, error) {
 	}
 }
 
+// getSeverities never aborts a record over one bad severity entry: a single
+// malformed score used to make getSeverities return an error, which every
+// caller's Transform() treated as fatal for the whole record -- and upstream
+// of that, grype-db's build loop treats a Transform() error as fatal for the
+// whole build (confirmed: one such record among 9,901 real CleanStart
+// advisories aborted the entire database build). The CVSS_V2 bare-vector
+// case above recovers the common, legitimate cause of that; this is the
+// floor for whatever that doesn't catch.
 func getSeverities(vuln unmarshal.OSVVulnerability) ([]db.Severity, error) {
 	var severities []db.Severity
-	for _, sev := range vuln.Severity {
+	collect := func(sev osvmodel.Severity) {
 		severity, err := normalizeSeverity(sev)
 		if err != nil {
-			return nil, err
+			log.WithFields("id", vuln.ID, "severityType", sev.Type, "score", sev.Score).
+				Warn("skipping unparseable severity entry")
+			return
 		}
 		severities = append(severities, severity)
 	}
+	for _, sev := range vuln.Severity {
+		collect(sev)
+	}
 	for _, affected := range vuln.Affected {
 		for _, sev := range affected.Severity {
-			severity, err := normalizeSeverity(sev)
-			if err != nil {
-				return nil, err
-			}
-			severities = append(severities, severity)
+			collect(sev)
 		}
 	}
 	return severities, nil
