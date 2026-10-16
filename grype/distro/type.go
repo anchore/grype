@@ -153,6 +153,15 @@ func TypeFromRelease(release linux.Release) Type {
 	return ""
 }
 
+// isKnownID returns true if the given os-release ID maps to a distro type by itself.
+func isKnownID(id string) bool {
+	if _, ok := IDMapping[id]; ok {
+		return true
+	}
+	_, ok := aliasTypes[id]
+	return ok
+}
+
 // String returns the string representation of the given Linux distribution.
 func (t Type) String() string {
 	return string(t)
