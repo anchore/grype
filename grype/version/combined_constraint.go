@@ -1,6 +1,7 @@
 package version
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -55,17 +56,21 @@ func (c combinedConstraint) Satisfied(version *Version) (bool, error) {
 		return false, fmt.Errorf("cannot evaluate combined constraint with nil version")
 	}
 
+	var errs error
 	for _, op := range c.OrOperands {
 		satisfied, err := op.Satisfied(version)
 		if err != nil {
-			return false, fmt.Errorf("error evaluating constraint %s: %w", op, err)
+			// OR semantics: a sibling operand may still be satisfied, so keep
+			// evaluating and only surface the error if nothing matches.
+			errs = errors.Join(errs, fmt.Errorf("error evaluating constraint %s: %w", op, err))
+			continue
 		}
 		if satisfied {
 			return true, nil
 		}
 	}
 
-	return false, nil
+	return false, errs
 }
 
 func uniqueConstraints(constraints ...Constraint) []Constraint {

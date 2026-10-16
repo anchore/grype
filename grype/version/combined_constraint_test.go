@@ -238,7 +238,9 @@ func TestCombinedConstraint_Satisfied_WithErrors(t *testing.T) {
 		wantErr    require.ErrorAssertionFunc
 	}{
 		{
-			name: "error from first constraint",
+			// OR semantics: an error from an earlier operand must not fail the
+			// whole constraint when a later operand is satisfied.
+			name: "no error when a later operand satisfies despite an earlier error",
 			constraint: combinedConstraint{
 				OrOperands: []Constraint{
 					mockConstraint{value: ">= 1.0.0", format: SemanticFormat, returnErr: true},
@@ -246,7 +248,7 @@ func TestCombinedConstraint_Satisfied_WithErrors(t *testing.T) {
 				},
 			},
 			version: New("1.5.0", SemanticFormat),
-			wantErr: require.Error,
+			wantErr: require.NoError,
 		},
 		{
 			name: "error from second constraint when first doesn't satisfy",
