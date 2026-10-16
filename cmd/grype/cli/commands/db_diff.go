@@ -50,6 +50,13 @@ func (d *dbDiffOptions) ToIncludes() diff.Includes {
 	if d.Include.Vulns != nil {
 		def.Include.Vulns = *d.Include.Vulns
 	}
+	// --packages and --vulns mean "only include ...", so requesting one excludes the other unless both are requested
+	if isTrue(d.Include.Packages) && d.Include.Vulns == nil {
+		def.Include.Vulns = false
+	}
+	if isTrue(d.Include.Vulns) && d.Include.Packages == nil {
+		def.Include.Packages = false
+	}
 	if d.Include.EPSS != nil {
 		def.Include.EPSS = *d.Include.EPSS
 	}
@@ -57,6 +64,10 @@ func (d *dbDiffOptions) ToIncludes() diff.Includes {
 		def.Include.KEV = *d.Include.KEV
 	}
 	return def.Include
+}
+
+func isTrue(b *bool) bool {
+	return b != nil && *b
 }
 
 func DBDiff(app clio.Application) *cobra.Command {

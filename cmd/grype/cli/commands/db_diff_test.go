@@ -11,6 +11,59 @@ import (
 	"github.com/anchore/grype/grype/db/v6/diff"
 )
 
+func TestDBDiffOptionsToIncludes(t *testing.T) {
+	yes, no := true, false
+
+	tests := []struct {
+		name     string
+		include  diffInclude
+		expected diff.Includes
+	}{
+		{
+			name:     "defaults",
+			include:  diffInclude{},
+			expected: diff.Includes{Packages: true, Vulns: true, KEV: true},
+		},
+		{
+			name:     "only packages",
+			include:  diffInclude{Packages: &yes},
+			expected: diff.Includes{Packages: true, KEV: true},
+		},
+		{
+			name:     "only vulns",
+			include:  diffInclude{Vulns: &yes},
+			expected: diff.Includes{Vulns: true, KEV: true},
+		},
+		{
+			name:     "packages and vulns",
+			include:  diffInclude{Packages: &yes, Vulns: &yes},
+			expected: diff.Includes{Packages: true, Vulns: true, KEV: true},
+		},
+		{
+			name:     "exclude packages",
+			include:  diffInclude{Packages: &no},
+			expected: diff.Includes{Vulns: true, KEV: true},
+		},
+		{
+			name:     "exclude vulns",
+			include:  diffInclude{Vulns: &no},
+			expected: diff.Includes{Packages: true, KEV: true},
+		},
+		{
+			name:     "epss and kev overrides",
+			include:  diffInclude{Vulns: &yes, EPSS: &yes, KEV: &no},
+			expected: diff.Includes{Vulns: true, EPSS: true},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := dbDiffOptions{Include: tt.include}
+			require.Equal(t, tt.expected, opts.ToIncludes())
+		})
+	}
+}
+
 func TestDBDiffOutputJSON(t *testing.T) {
 	// outputJSON writes each field of the result explicitly; make sure a new field can't be silently left out
 	require.Equal(t, []string{"Schema", "Databases", "Packages", "Vulnerabilities"}, fieldNames(reflect.TypeOf(diff.Result{})))
