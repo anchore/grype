@@ -24,9 +24,9 @@ type Result struct {
 
 // DatabaseDiff holds metadata for both databases being compared.
 type DatabaseDiff struct {
-	// Before is the starting database, generated chronologically first
+	// Before is the starting database (the first database provided), which the diff is from
 	Before DatabaseInfo `json:"before"`
-	// After is the next database, chronologically after the first
+	// After is the ending database (the second database provided), which the diff is to
 	After DatabaseInfo `json:"after"`
 }
 
