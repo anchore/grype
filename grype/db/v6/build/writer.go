@@ -208,24 +208,34 @@ func (w *writer) writeRelatedEntry(vulnHandle *db.VulnerabilityHandle, related a
 	}
 }
 
+// validateFixDates enforces failOnMissingFixDate for both affected and unaffected package rows.
+func (w *writer) validateFixDates(vulnHandle *db.VulnerabilityHandle, pkg *db.Package, os *db.OperatingSystem, blob *db.PackageBlob) error {
+	if !w.failOnMissingFixDate {
+		return nil
+	}
+	err := ensureFixDates(blob)
+	if err == nil {
+		return nil
+	}
+	fields := logger.Fields{
+		"pkg": pkg,
+	}
+	if vulnHandle != nil {
+		fields["vulnerability"] = vulnHandle.Name
+	}
+	if blob != nil {
+		fields["ranges"] = blob.String()
+	}
+	if os != nil {
+		fields["os"] = os
+	}
+	log.WithFields(fields).Error("fix date validation failed")
+	return fmt.Errorf("unable to validate fix dates: %w", err)
+}
+
 func (w *writer) writeAffectedPackage(vulnHandle *db.VulnerabilityHandle, row db.AffectedPackageHandle) error {
-	if w.failOnMissingFixDate {
-		if err := ensureFixDates(&row); err != nil {
-			fields := logger.Fields{
-				"pkg": row.Package,
-			}
-			if vulnHandle != nil {
-				fields["vulnerability"] = vulnHandle.Name
-			}
-			if row.BlobValue != nil {
-				fields["ranges"] = row.BlobValue.String()
-			}
-			if row.OperatingSystem != nil {
-				fields["os"] = row.OperatingSystem
-			}
-			log.WithFields(fields).Error("fix date validation failed")
-			return fmt.Errorf("unable to validate fix dates: %w", err)
-		}
+	if err := w.validateFixDates(vulnHandle, row.Package, row.OperatingSystem, row.BlobValue); err != nil {
+		return err
 	}
 
 	// Add affected package to child batch - defer VulnerabilityID assignment until flush
@@ -257,6 +267,10 @@ func (w *writer) writeAffectedCPE(vulnHandle *db.VulnerabilityHandle, row db.Aff
 }
 
 func (w *writer) writeUnaffectedPackage(vulnHandle *db.VulnerabilityHandle, row db.UnaffectedPackageHandle) error {
+	if err := w.validateFixDates(vulnHandle, row.Package, row.OperatingSystem, row.BlobValue); err != nil {
+		return err
+	}
+
 	// Add unaffected package to child batch - defer VulnerabilityID assignment until flush
 	pkgHandle := row
 	return w.addToChildBatch(func() error {
@@ -507,12 +521,12 @@ func isKnownSeverity(s db.Severity) bool {
 	}
 }
 
-func ensureFixDates(row *db.AffectedPackageHandle) error {
-	if row.BlobValue == nil {
+func ensureFixDates(blob *db.PackageBlob) error {
+	if blob == nil {
 		return nil
 	}
 
-	for _, r := range row.BlobValue.Ranges {
+	for _, r := range blob.Ranges {
 		if r.Fix == nil {
 			continue
 		}
