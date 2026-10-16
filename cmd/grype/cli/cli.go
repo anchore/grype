@@ -82,8 +82,9 @@ func SetupConfig(id clio.Identification) *clio.SetupConfig {
 		}).
 		WithMapExitCode(func(err error) int {
 			// return exit code 2 to indicate when a vulnerability severity is discovered
-			// that is equal or above the given --fail-on severity value.
-			if errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
+			// that is equal or above the given --fail-on severity value, or when a
+			// vulnerability has no VEX statement and --fail-on no-vex-statement was given.
+			if errors.Is(err, grypeerr.ErrAboveSeverityThreshold) || errors.Is(err, grypeerr.ErrMissingVexStatement) {
 				return 2
 			}
 			// return exit code 100 to indicate a DB upgrade is available (cmd: db check).
