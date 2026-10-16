@@ -94,7 +94,10 @@ func (r *Matches) Add(matches ...Match) {
 }
 
 func (r *Matches) Enumerate() <-chan Match {
-	channel := make(chan Match)
+	// Buffer the channel to the full match count so the producer goroutine
+	// never blocks, even when the consumer exits early (e.g. --fail-on
+	// short-circuits after finding a match at/above the threshold).
+	channel := make(chan Match, len(r.byFingerprint))
 	go func() {
 		defer close(channel)
 		for _, match := range r.byFingerprint {
