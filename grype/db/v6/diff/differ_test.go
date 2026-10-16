@@ -1146,6 +1146,45 @@ func Test_hydrationPermutations(t *testing.T) {
 	}
 }
 
+func Test_reversedDBOrder(t *testing.T) {
+	inputDir, err := filepath.Abs(filepath.Join("testdata", "inputs"))
+	require.NoError(t, err)
+
+	tmpdir := t.TempDir()
+
+	oldDir := filepath.Join(tmpdir, "oldDB")
+	testdb.BuildFromFlatFileDir(t, time.Time{}, oldDir, inputDir, "cve-2025-59800")
+
+	newDir := filepath.Join(tmpdir, "newDB")
+	testdb.BuildFromFlatFileDir(t, time.Time{}, newDir, inputDir, "cve-2025-59800", "cve-2025-59801")
+
+	oldDB, err := ResolveDB(oldDir, "")
+	require.NoError(t, err)
+	oldDB.Info.BuildTimestamp = "2022-08-11T18:01:05Z"
+
+	newDB, err := ResolveDB(newDir, "")
+	require.NoError(t, err)
+	newDB.Info.BuildTimestamp = "2022-08-12T01:55:19Z"
+
+	// provide the newer database first; the diff should be from the newer to the older database, labeled accordingly
+	differ, err := newDBDifferDirs(newDB, oldDB, Config{})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = differ.Close() })
+
+	result, err := differ.Diff()
+	require.NoError(t, err)
+
+	require.Equal(t, newDB.Info, result.Databases.Before)
+	require.Equal(t, oldDB.Info, result.Databases.After)
+
+	pkgs := findPackageDiff(result, "ghostscript")
+	require.NotEmpty(t, pkgs)
+	for _, p := range pkgs {
+		requireVulns(t, "removed", p.Vulnerabilities.Removed, "CVE-2025-59801")
+		require.Empty(t, p.Vulnerabilities.Added)
+	}
+}
+
 // Test_handlesWithoutBlobs verifies that package / CPE handles without a blob are excluded from the diff, rather than
 // being reported as modified (missing blobs can't be compared, so they would never be considered equivalent)
 func Test_handlesWithoutBlobs(t *testing.T) {

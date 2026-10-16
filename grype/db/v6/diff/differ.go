@@ -52,6 +52,25 @@ func NewDBDiffer(cfg Config) (*DBDiffer, error) {
 }
 
 func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) {
+	beforeTime, err := time.Parse(time.RFC3339, oldDB.Info.BuildTimestamp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse build timestamp: %w", err)
+	}
+	afterTime, err := time.Parse(time.RFC3339, newDB.Info.BuildTimestamp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse build timestamp: %w", err)
+	}
+
+	if beforeTime.Equal(afterTime) {
+		log.Warn("the provided databases have the same built times")
+	}
+
+	// diffing a newer database to an older one is supported; the diff is always from the first database (main)
+	// to the second database (new_db), and the result is labeled the same way
+	if beforeTime.After(afterTime) {
+		log.Info("the first database was built after the second database; the diff will be from newer to older")
+	}
+
 	oldDBPath := filepath.Join(oldDB.Dir, v6.VulnerabilityDBFileName)
 	newDBPath := filepath.Join(newDB.Dir, v6.VulnerabilityDBFileName)
 
@@ -78,26 +97,6 @@ func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) 
 	if err := db.Exec("ATTACH DATABASE ? AS new_db", newDBPath).Error; err != nil {
 		closeLowLevelDB(db)
 		return nil, fmt.Errorf("failed to attach new database: %w", err)
-	}
-
-	beforeTime, err := time.Parse(time.RFC3339, oldDB.Info.BuildTimestamp)
-	if err != nil {
-		closeLowLevelDB(db)
-		return nil, fmt.Errorf("failed to parse build timestamp: %w", err)
-	}
-	afterTime, err := time.Parse(time.RFC3339, newDB.Info.BuildTimestamp)
-	if err != nil {
-		closeLowLevelDB(db)
-		return nil, fmt.Errorf("failed to parse build timestamp: %w", err)
-	}
-
-	if beforeTime.Equal(afterTime) {
-		log.Warn("the provided databases have the same built times")
-	}
-
-	// make sure we're always comparing old to new
-	if beforeTime.After(afterTime) {
-		newDB, oldDB = oldDB, newDB
 	}
 
 	return &DBDiffer{
