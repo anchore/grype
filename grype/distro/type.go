@@ -38,6 +38,7 @@ const (
 	SecureOS     Type = "secureos"
 	PostmarketOS Type = "postmarketos"
 	Hummingbird  Type = "hummingbird"
+	DHI          Type = "dhi"
 )
 
 // All contains all Linux distribution options
@@ -70,6 +71,7 @@ var All = []Type{
 	SecureOS,
 	PostmarketOS,
 	Hummingbird,
+	DHI,
 }
 
 // IDMapping maps a distro ID from the /etc/os-release (e.g. like "ubuntu") to a Distro type.
@@ -101,6 +103,7 @@ var IDMapping = map[string]Type{
 	"secureos":      SecureOS,
 	"postmarketos":  PostmarketOS,
 	"hummingbird":   Hummingbird,
+	"dhi":           DHI,
 }
 
 // aliasTypes maps common aliases to their corresponding Type.
