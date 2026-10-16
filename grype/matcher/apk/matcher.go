@@ -42,6 +42,20 @@ func (m *Matcher) Type() match.MatcherType {
 // records naming the same vulnerability under different IDs (a CGA and its CVE, say) are deduplicated
 // correctly.
 //
+// When the feed has more than one entry for the same vulnerability on this package, the package is
+// affected if any one of them is open. Chainguard's OSV feed publishes one entry per advisory, and an APK
+// can carry several advisories for one vulnerability, one per file, each with its own status. So a fixed
+// entry or a false positive ("< 0") entry must not clear the vulnerability while an open entry shares its
+// identifier or an alias. Two places apply this:
+//   - FindResultsByDistro does this for fixed entries, among the entries for one package name.
+//   - nakIgnores does this for false positives, against the open entries for the package and its upstreams.
+//
+// Two open entries are never ranked against each other. Neither vunnel nor the Chainguard OSV transformer
+// reads the per-advisory status (latest_event_status), so an advisory marked fix not planned is stored the
+// same way as a detection, and both are reported as not fixed. A change that starts reporting fix not
+// planned as won't fix must keep the same rule: report won't fix only when every open entry for the
+// package and vulnerability is fix not planned. One detection keeps the vulnerability not fixed.
+//
 // A nil distro is not an error: the distro-feed and NAK paths simply contribute nothing, and the
 // package is still matched against NVD.
 func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
