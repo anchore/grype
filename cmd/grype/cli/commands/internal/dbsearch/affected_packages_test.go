@@ -453,6 +453,40 @@ func TestAffectedPackages(t *testing.T) {
 		},
 	}, nil)
 
+	mockReader.On("GetUnaffectedPackages", mock.Anything, mock.Anything).Return([]v6.UnaffectedPackageHandle{
+		{
+			Package: &v6.Package{Name: "pkg1", Ecosystem: "ecosystem1"},
+			OperatingSystem: &v6.OperatingSystem{
+				Name:         "Linux",
+				MajorVersion: "5",
+				MinorVersion: "10",
+			},
+			Vulnerability: &v6.VulnerabilityHandle{
+				Name:          "CVE-1234-5679",
+				Provider:      &v6.Provider{ID: "provider2"},
+				Status:        "not affected",
+				PublishedDate: ptr(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)),
+				ModifiedDate:  ptr(time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC)),
+				BlobValue:     &v6.VulnerabilityBlob{Description: "Test vulnerability"},
+			},
+			BlobValue: &v6.PackageBlob{
+				CVEs: []string{"CVE-1234-5679"},
+				Ranges: []v6.Range{
+					{
+						Version: v6.Version{
+							Type:       "semver",
+							Constraint: ">=2.3.0",
+						},
+						Fix: &v6.Fix{
+							Version: "2.2.0",
+							State:   "fixed",
+						},
+					},
+				},
+			},
+		},
+	}, nil)
+
 	mockReader.On("GetAffectedCPEs", mock.Anything, mock.Anything).Return([]v6.AffectedCPEHandle{
 		{
 			CPE: &v6.Cpe{Part: "a", Vendor: "vendor1", Product: "product1"},
@@ -479,11 +513,55 @@ func TestAffectedPackages(t *testing.T) {
 		},
 	}, nil)
 
+	mockReader.On("GetUnaffectedCPEs", mock.Anything, mock.Anything).Return([]v6.UnaffectedCPEHandle{
+		{
+			CPE: &v6.Cpe{Part: "a", Vendor: "vendor1", Product: "product1"},
+			Vulnerability: &v6.VulnerabilityHandle{
+				Name:      "CVE-9876-5433",
+				Provider:  &v6.Provider{ID: "provider2"},
+				BlobValue: &v6.VulnerabilityBlob{Description: "CPE vulnerability description"},
+			},
+			BlobValue: &v6.PackageBlob{
+				CVEs: []string{"CVE-9876-54311"},
+				Ranges: []v6.Range{
+					{
+						Version: v6.Version{
+							Type:       "rpm",
+							Constraint: ">=7.5.0",
+						},
+						Fix: &v6.Fix{
+							Version: "7.5.0",
+							State:   "fixed",
+						},
+					},
+				},
+			},
+		},
+	}, nil)
+
 	mockReader.On("GetKnownExploitedVulnerabilities", "CVE-1234-5678").Return([]v6.KnownExploitedVulnerabilityHandle{
 		{
 			Cve: "CVE-1234-5678",
 			BlobValue: &v6.KnownExploitedVulnerabilityBlob{
 				Cve:                        "CVE-1234-5678",
+				VendorProject:              "LinuxFoundation",
+				Product:                    "Linux",
+				DateAdded:                  ptr(time.Date(2025, 2, 2, 0, 0, 0, 0, time.UTC)),
+				RequiredAction:             "Yes",
+				DueDate:                    ptr(time.Date(2025, 2, 2, 0, 0, 0, 0, time.UTC)),
+				KnownRansomwareCampaignUse: "Known",
+				Notes:                      "note!",
+				URLs:                       []string{"https://example.com"},
+				CWEs:                       []string{"CWE-1234"},
+			},
+		},
+	}, nil)
+
+	mockReader.On("GetKnownExploitedVulnerabilities", "CVE-1234-5679").Return([]v6.KnownExploitedVulnerabilityHandle{
+		{
+			Cve: "CVE-1234-5679",
+			BlobValue: &v6.KnownExploitedVulnerabilityBlob{
+				Cve:                        "CVE-1234-5679",
 				VendorProject:              "LinuxFoundation",
 				Product:                    "Linux",
 				DateAdded:                  ptr(time.Date(2025, 2, 2, 0, 0, 0, 0, time.UTC)),
@@ -515,6 +593,24 @@ func TestAffectedPackages(t *testing.T) {
 		},
 	}, nil)
 
+	mockReader.On("GetKnownExploitedVulnerabilities", "CVE-9876-5433").Return([]v6.KnownExploitedVulnerabilityHandle{
+		{
+			Cve: "CVE-9876-5433",
+			BlobValue: &v6.KnownExploitedVulnerabilityBlob{
+				Cve:                        "CVE-9876-5433",
+				VendorProject:              "vendor1",
+				Product:                    "product1",
+				DateAdded:                  ptr(time.Date(2025, 2, 3, 0, 0, 0, 0, time.UTC)),
+				RequiredAction:             "Yes",
+				DueDate:                    ptr(time.Date(2025, 2, 3, 0, 0, 0, 0, time.UTC)),
+				KnownRansomwareCampaignUse: "Known",
+				Notes:                      "note!",
+				URLs:                       []string{"https://example.com"},
+				CWEs:                       []string{"CWE-5678"},
+			},
+		},
+	}, nil)
+
 	mockReader.On("GetEpss", "CVE-1234-5678").Return([]v6.EpssHandle{
 		{
 			Cve:        "CVE-1234-5678",
@@ -524,9 +620,27 @@ func TestAffectedPackages(t *testing.T) {
 		},
 	}, nil)
 
+	mockReader.On("GetEpss", "CVE-1234-5679").Return([]v6.EpssHandle{
+		{
+			Cve:        "CVE-1234-5679",
+			Epss:       0.893,
+			Percentile: 0.99,
+			Date:       time.Date(2025, 2, 24, 0, 0, 0, 0, time.UTC),
+		},
+	}, nil)
+
 	mockReader.On("GetEpss", "CVE-9876-5432").Return([]v6.EpssHandle{
 		{
 			Cve:        "CVE-9876-5432",
+			Epss:       0.938,
+			Percentile: 0.9222,
+			Date:       time.Date(2025, 2, 25, 0, 0, 0, 0, time.UTC),
+		},
+	}, nil)
+
+	mockReader.On("GetEpss", "CVE-9876-5433").Return([]v6.EpssHandle{
+		{
+			Cve:        "CVE-9876-5433",
 			Epss:       0.938,
 			Percentile: 0.9222,
 			Date:       time.Date(2025, 2, 25, 0, 0, 0, 0, time.UTC),
@@ -597,6 +711,58 @@ func TestAffectedPackages(t *testing.T) {
 		},
 		{
 			Vulnerability: VulnerabilityInfo{
+				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "Test vulnerability"},
+				Severity:          "unknown",
+				Provider:          "provider2",
+				Status:            "not affected",
+				PublishedDate:     ptr(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)),
+				ModifiedDate:      ptr(time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC)),
+				KnownExploited: []KnownExploited{
+					{
+						CVE:                        "CVE-1234-5679",
+						VendorProject:              "LinuxFoundation",
+						Product:                    "Linux",
+						DateAdded:                  "2025-02-02",
+						RequiredAction:             "Yes",
+						DueDate:                    "2025-02-02",
+						KnownRansomwareCampaignUse: "Known",
+						Notes:                      "note!",
+						URLs:                       []string{"https://example.com"},
+						CWEs:                       []string{"CWE-1234"},
+					},
+				},
+				EPSS: []EPSS{
+					{
+						CVE:        "CVE-1234-5679",
+						EPSS:       0.893,
+						Percentile: 0.99,
+						Date:       "2025-02-24",
+					},
+				},
+			},
+			AffectedPackageInfo: AffectedPackageInfo{
+				OS:        &OperatingSystem{Name: "Linux", Version: "5.10"},
+				Package:   &Package{Name: "pkg1", Ecosystem: "ecosystem1"},
+				Namespace: "provider2:distro:Linux:5.10",
+				Detail: v6.PackageBlob{
+					CVEs: []string{"CVE-1234-5679"},
+					Ranges: []v6.Range{
+						{
+							Version: v6.Version{
+								Type:       "semver",
+								Constraint: ">=2.3.0 (unaffected)",
+							},
+							Fix: &v6.Fix{
+								Version: "2.2.0",
+								State:   "fixed",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			Vulnerability: VulnerabilityInfo{
 				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "CPE vulnerability description"},
 				Severity:          "unknown",
 				Provider:          "provider2",
@@ -636,6 +802,54 @@ func TestAffectedPackages(t *testing.T) {
 							},
 							Fix: &v6.Fix{
 								Version: "2.5.0",
+								State:   "fixed",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			Vulnerability: VulnerabilityInfo{
+				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "CPE vulnerability description"},
+				Severity:          "unknown",
+				Provider:          "provider2",
+				KnownExploited: []KnownExploited{
+					{
+						CVE:                        "CVE-9876-5433",
+						VendorProject:              "vendor1",
+						Product:                    "product1",
+						DateAdded:                  "2025-02-03",
+						RequiredAction:             "Yes",
+						DueDate:                    "2025-02-03",
+						KnownRansomwareCampaignUse: "Known",
+						Notes:                      "note!",
+						URLs:                       []string{"https://example.com"},
+						CWEs:                       []string{"CWE-5678"},
+					},
+				},
+				EPSS: []EPSS{
+					{
+						CVE:        "CVE-9876-5433",
+						EPSS:       0.938,
+						Percentile: 0.9222,
+						Date:       "2025-02-25",
+					},
+				},
+			},
+			AffectedPackageInfo: AffectedPackageInfo{
+				CPE:       &CPE{Part: "a", Vendor: "vendor1", Product: "product1"},
+				Namespace: "provider2:cpe",
+				Detail: v6.PackageBlob{
+					CVEs: []string{"CVE-9876-54311"},
+					Ranges: []v6.Range{
+						{
+							Version: v6.Version{
+								Type:       "rpm",
+								Constraint: ">=7.5.0",
+							},
+							Fix: &v6.Fix{
+								Version: "7.5.0 (unaffected)",
 								State:   "fixed",
 							},
 						},
@@ -852,12 +1066,20 @@ func TestFindAffectedPackages(t *testing.T) {
 				m.On("GetAffectedPackages", expected.pkg, mock.MatchedBy(func(actual *v6.GetPackageOptions) bool {
 					return cmp.Equal(actual, expected.options)
 				})).Return([]v6.AffectedPackageHandle{}, nil).Once()
+
+				m.On("GetUnaffectedPackages", expected.pkg, mock.MatchedBy(func(actual *v6.GetPackageOptions) bool {
+					return cmp.Equal(actual, expected.options)
+				})).Return([]v6.UnaffectedPackageHandle{}, nil).Once()
 			}
 
 			for _, expected := range tc.expectedCPECalls {
 				m.On("GetAffectedCPEs", expected.cpe, mock.MatchedBy(func(actual *v6.GetCPEOptions) bool {
 					return cmp.Equal(actual, expected.options)
 				})).Return([]v6.AffectedCPEHandle{}, nil).Once()
+
+				m.On("GetUnaffectedCPEs", expected.cpe, mock.MatchedBy(func(actual *v6.GetCPEOptions) bool {
+					return cmp.Equal(actual, expected.options)
+				})).Return([]v6.UnaffectedCPEHandle{}, nil).Once()
 			}
 
 			_, _, err := findAffectedPackages(m, tc.config)
@@ -880,9 +1102,19 @@ func (m *affectedMockReader) GetAffectedPackages(pkgSpec *v6.PackageSpecifier, o
 	return args.Get(0).([]v6.AffectedPackageHandle), args.Error(1)
 }
 
+func (m *affectedMockReader) GetUnaffectedPackages(pkgSpec *v6.PackageSpecifier, options *v6.GetPackageOptions) ([]v6.UnaffectedPackageHandle, error) {
+	args := m.Called(pkgSpec, options)
+	return args.Get(0).([]v6.UnaffectedPackageHandle), args.Error(1)
+}
+
 func (m *affectedMockReader) GetAffectedCPEs(cpeSpec *cpe.Attributes, options *v6.GetCPEOptions) ([]v6.AffectedCPEHandle, error) {
 	args := m.Called(cpeSpec, options)
 	return args.Get(0).([]v6.AffectedCPEHandle), args.Error(1)
+}
+
+func (m *affectedMockReader) GetUnaffectedCPEs(cpeSpec *cpe.Attributes, options *v6.GetCPEOptions) ([]v6.UnaffectedCPEHandle, error) {
+	args := m.Called(cpeSpec, options)
+	return args.Get(0).([]v6.UnaffectedCPEHandle), args.Error(1)
 }
 
 func (m *affectedMockReader) GetKnownExploitedVulnerabilities(cve string) ([]v6.KnownExploitedVulnerabilityHandle, error) {
