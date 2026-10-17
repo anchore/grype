@@ -1,10 +1,10 @@
-github.com/anchore/go-make v0.9.3 h1:D+MkpvEJsOGwkOqKN0rd2zYi9jEzwKtZreNysH0DenI=
-github.com/anchore/go-make v0.9.3/go.mod h1:4HuELygGhxex2SaCEgfCbZ0geJ3xFkqtWpmt1NrYwPg=
+github.com/anchore/go-make v0.9.4-0.20261016012650-440c74841d26 h1:FTuFK5i3K/Q2r7wPpR9p5Tmvca8ErFPUW43/Hq1pNqU=
+github.com/anchore/go-make v0.9.4-0.20261016012650-440c74841d26/go.mod h1:6jFdlcUwLNyS2m1Gi/bcM4XodSi7qIsf0jrOMOX9+no=
 github.com/bmatcuk/doublestar/v4 v4.10.2 h1:eF7W7HWKg3z9NrWV9pTLnNeoXaqq3Tq9DNKXVMfoCnw=
 github.com/bmatcuk/doublestar/v4 v4.10.2/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
 github.com/goccy/go-yaml v1.19.2 h1:PmFC1S6h8ljIz6gMRBopkjP1TVT7xuwrButHID66PoM=
 github.com/goccy/go-yaml v1.19.2/go.mod h1:XBurs7gK8ATbW4ZPGKgcbrY1Br56PdM69F7LkFRi1kA=
 golang.org/x/mod v0.41.0 h1:qJmnOUb4YB+FsEuM3HcWucdZASCPGhsX6uljO6pog0c=
 golang.org/x/mod v0.41.0/go.mod h1:Ek9pY8RKWXwsWvd3rQiHYtMqkjSUV+s1Rj7j4H5Ur6o=
-golang.org/x/sys v0.48.0 h1:bbX/i/6MgT9BVLM9RT1thmxL04yeTAhbEz4SyadbXoo=
-golang.org/x/sys v0.48.0/go.mod h1:hNLxWAXmnKAxqDtdwIYC4bM9oQPEecfsnNMuSxOs3og=
+golang.org/x/sys v0.49.0 h1:XbzkgYJHdqh/8m2Uu0W/dQv8nktxx4BFHp1M0gROTXA=
+golang.org/x/sys v0.49.0/go.mod h1:hNLxWAXmnKAxqDtdwIYC4bM9oQPEecfsnNMuSxOs3og=
