@@ -91,6 +91,10 @@ func (m *Matcher) distroResults(vp vulnerability.Provider, p pkg.Package) (vulne
 // nakIgnores collects explicit NAK ("< 0") entries for the package and its upstreams and returns them
 // as ignore filters. NAK entries never produce matches; they only allow later rules to suppress the
 // same vulnerability on packages that overlap this one by location.
+//
+// Qualifiers are checked like FindResultsByDistro checks them, so a NAK filed for one
+// architecture does not clear the same package built for another. Rows without qualifiers (the
+// secdb feeds) are unaffected.
 func (m *Matcher) nakIgnores(vp vulnerability.Provider, p pkg.Package) ([]match.IgnoreFilter, error) {
 	if p.Distro == nil {
 		return nil, nil
@@ -102,6 +106,7 @@ func (m *Matcher) nakIgnores(vp vulnerability.Provider, p pkg.Package) ([]match.
 		search.ByDistro(*p.Distro),
 		search.ByPackageName(p.Name),
 		nakConstraint,
+		internal.OnlyQualifiedPackages(p),
 	)
 	if err != nil {
 		return nil, err
@@ -117,6 +122,7 @@ func (m *Matcher) nakIgnores(vp vulnerability.Provider, p pkg.Package) ([]match.
 			search.BySourcePackage(),
 			nakConstraint,
 			search.WithPackage(upstreamPkg),
+			internal.OnlyQualifiedPackages(upstreamPkg),
 		)
 		if err != nil {
 			return nil, err
