@@ -63,14 +63,10 @@ func TestNameMerger_FoldsRecordsSharingAName(t *testing.T) {
 	require.Equal(t, []string{"GHSA-x", "GO-2026-1"}, got.VulnerabilityHandle.BlobValue.Aliases,
 		"aliases are unioned, in first-seen order, without duplicates")
 
-	require.Len(t, got.Related, 3, "every record's package rows survive the merge")
-	var cgas []string
-	for _, rel := range got.Related {
-		aph := rel.(db.AffectedPackageHandle)
-		cgas = append(cgas, aph.BlobValue.CVEs[len(aph.BlobValue.CVEs)-1])
-	}
-	require.Equal(t, []string{"CGA-aaa", "CGA-bbb", "CGA-ccc"}, cgas,
-		"each package row keeps its own originating CGA rather than the union")
+	require.Len(t, got.Related, 1, "the three records' rows for one package roll up to one row")
+	require.Equal(t, []string{"CVE-2026-1", "CGA-aaa", "CGA-bbb", "CGA-ccc"},
+		got.Related[0].(db.AffectedPackageHandle).BlobValue.CVEs,
+		"the rolled-up row keeps every originating CGA")
 }
 
 // The store's identity is name+provider+blob, so two providers publishing the same CVE are
@@ -196,7 +192,7 @@ func TestNameMerger_AdoptsBlobWhenFirstHasNone(t *testing.T) {
 	blob := out[0].VulnerabilityHandle.BlobValue
 	require.NotNil(t, blob, "the second entry's blob was discarded")
 	require.Equal(t, []db.Severity{sev}, blob.Severities, "the adopted blob seeds the seen-sets, so later folds do not duplicate")
-	require.Len(t, out[0].Related, 3, "every record's package rows survive")
+	require.Len(t, out[0].Related, 1, "the records' rows for one package roll up to one row")
 }
 
 // The merger stays inert for providers that have not opted in.

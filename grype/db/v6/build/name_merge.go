@@ -108,8 +108,7 @@ func (h *heldEntry) seed(blob *db.VulnerabilityBlob) {
 	}
 }
 
-// Related rows are appended, never deduplicated: each carries its own originating CGA, and the
-// duplicate findings they used to produce collapse at match time now that the name is shared.
+// Related rows are appended here and rolled up per package in reconcile (see name_rollup.go).
 func (h *heldEntry) fold(src transformers.RelatedEntries) {
 	dst, s := h.entry.VulnerabilityHandle, src.VulnerabilityHandle
 
@@ -183,6 +182,7 @@ func (m *nameMerger) reconcile() []transformers.RelatedEntries {
 	out := make([]transformers.RelatedEntries, 0, len(m.order))
 	for _, key := range m.order {
 		entry := m.held[key].entry
+		entry.Related = rollupPackageRows(entry.Related)
 		sortSeverities(entry.VulnerabilityHandle.BlobValue)
 		out = append(out, entry)
 	}
