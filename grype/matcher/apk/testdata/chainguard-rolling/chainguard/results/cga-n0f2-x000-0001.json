@@ -1,0 +1,36 @@
+{
+  "identifier": "CGA-n0f2-x000-0001",
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.0.json",
+  "item": {
+    "schema_version": "1.7.0",
+    "id": "CGA-n0f2-x000-0001",
+    "published": "2026-03-02T00:00:00Z",
+    "modified": "2026-03-02T00:00:00Z",
+    "summary": "leakfoo: lists one CVE, which a sibling CGA for another package lists alongside a second",
+    "upstream": [
+      "CVE-2026-31001"
+    ],
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "Chainguard",
+          "name": "leakfoo",
+          "purl": "pkg:apk/chainguard/leakfoo?arch=x86_64"
+        },
+        "ranges": [
+          {
+            "type": "ECOSYSTEM",
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1.0.0-r1"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

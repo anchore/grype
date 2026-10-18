@@ -3,6 +3,7 @@ package osv
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
@@ -30,12 +31,15 @@ func (chainguardStrategy) Matches(id string) bool {
 // must fall through to a later tier rather than become a wrong CVE name.
 var cveIDPattern = regexp.MustCompile(`^CVE-\d{4}-\d{4,}$`)
 
-// cgNames picks the name(s): every strict CVE, else first GHSA, else first GO, else the CGA.
+// cgNames picks the name(s): every strict CVE, else the smallest GHSA, else the smallest GO,
+// else the CGA. Only `upstream` is read.
 //
 // Chainguard mints one CGA per (package x arch x bundled component), so one CVE spreads over
 // up to ~14k records identical in every rendered field. match.Fingerprint keys on the
 // vulnerability id, so CGA names both hide the searchable id and multiply findings. Only the
-// CVE tier fans out: two-CVE records were checked and are genuinely distinct issues.
+// CVE tier fans out: two-CVE records were checked and are genuinely distinct issues. The
+// GHSA and GO tiers take the smallest id rather than the first, so two CGAs listing the same
+// ids in a different order still share one handle.
 func cgNames(vuln unmarshal.OSVVulnerability) []string {
 	var cves, ghsas, gos []string
 	for _, id := range vuln.Upstream {
@@ -53,9 +57,9 @@ func cgNames(vuln unmarshal.OSVVulnerability) []string {
 	case len(cves) > 0:
 		return cves
 	case len(ghsas) > 0:
-		return ghsas[:1]
+		return []string{slices.Min(ghsas)}
 	case len(gos) > 0:
-		return gos[:1]
+		return []string{slices.Min(gos)}
 	}
 
 	log.WithFields("id", vuln.ID, "upstream", vuln.Upstream).
@@ -72,12 +76,13 @@ func (chainguardStrategy) Transform(vuln unmarshal.OSVVulnerability, state provi
 		return nil, fmt.Errorf("unable to obtain severities: %w", err)
 	}
 
-	// cg puts CVEs in `upstream`, not `aliases`.
-	upstreamIDs := dedupeIDs(append(append([]string{}, vuln.Aliases...), vuln.Upstream...))
-
-	// The CGA names a component instance, so it belongs on the package row. In vulnerability
-	// aliases it would attach every CGA minted for a CVE (~14k) to every finding for it.
-	packageCVEs := dedupeIDs(append(append([]string{}, upstreamIDs...), vuln.ID))
+	// Every id this CGA carries lives on its own package rows, never in the shared handle's
+	// Aliases. `upstream` says what the CGA derives from, not that those ids are one
+	// vulnerability: a record listing [CVE-A, CVE-B] put into the merged CVE-A handle would make
+	// every other package's CVE-A finding claim CVE-B too (suppressing its NVD match and pulling
+	// in its KEV/EPSS). Row CVEs feed RelatedVulnerabilities, so the link stays scoped to this
+	// CGA's packages. `related` is ignored: it means "different", and row CVEs are identity.
+	packageCVEs := dedupeIDs(slices.Concat(vuln.Aliases, vuln.Upstream, []string{vuln.ID}))
 
 	var entries []data.Entry
 	for _, vulnName := range cgNames(vuln) {
@@ -97,7 +102,6 @@ func (chainguardStrategy) Transform(vuln unmarshal.OSVVulnerability, state provi
 					Assigners:   nil,
 					Description: vuln.Details,
 					References:  cgReferences(vuln),
-					Aliases:     withoutID(upstreamIDs, vulnName),
 					Severities:  append([]db.Severity{}, severities...),
 				},
 			},
@@ -124,17 +128,6 @@ func dedupeIDs(ids []string) []string {
 		}
 		seen[id] = struct{}{}
 		out = append(out, id)
-	}
-	return out
-}
-
-// withoutID stops a record aliasing itself, which would render as its own related vulnerability.
-func withoutID(ids []string, id string) []string {
-	var out []string
-	for _, candidate := range ids {
-		if candidate != id {
-			out = append(out, candidate)
-		}
 	}
 	return out
 }
@@ -199,24 +192,19 @@ const (
 
 // cgLatestEventStatus requires unanimity rather than taking components[0]: zero affected
 // entries in the feed disagree, so insisting costs nothing and refuses to invent an answer
-// if that ever changes.
+// if that ever changes. A component with no status is not agreement: one component saying
+// fix_not_planned beside a silent sibling leaves the state unknown.
 func cgLatestEventStatus(affected osvmodel.Affected) string {
 	components, ok := affected.EcosystemSpecific["components"].([]any)
 	if !ok {
 		return ""
 	}
 	var status string
-	for _, component := range components {
-		fields, ok := component.(map[string]any)
-		if !ok {
-			continue
-		}
-		value, ok := fields["latest_event_status"].(string)
-		if !ok || value == "" {
-			continue
-		}
+	for i, component := range components {
+		fields, _ := component.(map[string]any)
+		value, _ := fields["latest_event_status"].(string)
 		switch {
-		case status == "":
+		case i == 0:
 			status = value
 		case status != value:
 			log.WithFields("package", affected.Package.Name, "statuses", []string{status, value}).

@@ -1,6 +1,7 @@
 package v6
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -120,7 +121,82 @@ func TestNameMerger_UnionsReferencesAndSeverities(t *testing.T) {
 	require.Len(t, out, 1)
 	blob := out[0].VulnerabilityHandle.BlobValue
 	require.Equal(t, []db.Reference{shared, other}, blob.References, "the shared reference is not duplicated")
-	require.Equal(t, []db.Severity{sevA, sevB}, blob.Severities, "disagreeing severities are unioned, not resolved arbitrarily")
+	require.Equal(t, []db.Severity{sevB, sevA}, blob.Severities,
+		"disagreeing severities are unioned, not resolved arbitrarily, and sorted so Severities[0] is stable")
+}
+
+// grype shows Severities[0] and nothing downstream sorts them, so the merged order must not
+// depend on which record the feed delivered first.
+func TestNameMerger_SeverityOrderIsArrivalOrderIndependent(t *testing.T) {
+	now := time.Now().UTC()
+	critical := []db.Severity{{Scheme: db.SeveritySchemeCHML, Value: "critical"}}
+	low := []db.Severity{{Scheme: db.SeveritySchemeCHML, Value: "low"}}
+
+	merge := func(first, second []db.Severity) []db.Severity {
+		m := newNameMerger()
+		m.hold(mergeableEntry("CVE-2026-1", "chainguard", "CGA-aaa", now, now, nil, nil, first))
+		m.hold(mergeableEntry("CVE-2026-1", "chainguard", "CGA-bbb", now, now, nil, nil, second))
+		out := m.reconcile()
+		require.Len(t, out, 1)
+		return out[0].VulnerabilityHandle.BlobValue.Severities
+	}
+
+	require.Equal(t, merge(critical, low), merge(low, critical))
+}
+
+// Mirrors CVE-2026-40217 in the feed: some CGAs carry a CVSS 3.1 vector only, others the same
+// 3.1 vector plus a 4.0 one. The 3.1 vector must stay first, as it was before sorting.
+func TestNameMerger_SeveritySortKeepsOlderCVSSVersionFirst(t *testing.T) {
+	now := time.Now().UTC()
+	v31 := db.Severity{Scheme: db.SeveritySchemeCVSS, Value: db.CVSSSeverity{Vector: "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H", Version: "3.1"}}
+	v40 := db.Severity{Scheme: db.SeveritySchemeCVSS, Value: db.CVSSSeverity{Vector: "CVSS:4.0/AV:N/AC:H/AT:N/PR:H/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N", Version: "4.0"}}
+
+	for _, records := range [][][]db.Severity{
+		{{v31}, {v31, v40}},
+		{{v40, v31}, {v31}},
+	} {
+		m := newNameMerger()
+		m.hold(mergeableEntry("CVE-2026-40217", "chainguard", "CGA-aaa", now, now, nil, nil, records[0]))
+		m.hold(mergeableEntry("CVE-2026-40217", "chainguard", "CGA-bbb", now, now, nil, nil, records[1]))
+		require.Equal(t, []db.Severity{v31, v40}, m.reconcile()[0].VulnerabilityHandle.BlobValue.Severities)
+	}
+}
+
+func TestNameMerger_DescriptionIsArrivalOrderIndependent(t *testing.T) {
+	now := time.Now().UTC()
+
+	merge := func(descriptions ...string) string {
+		m := newNameMerger()
+		for i, d := range descriptions {
+			e := mergeableEntry("CVE-2026-1", "chainguard", fmt.Sprintf("CGA-%d", i), now, now, nil, nil, nil)
+			e.VulnerabilityHandle.BlobValue.Description = d
+			m.hold(e)
+		}
+		return m.reconcile()[0].VulnerabilityHandle.BlobValue.Description
+	}
+
+	require.Equal(t, merge("one", "two"), merge("two", "one"))
+	require.Equal(t, "two", merge("", "two"), "an empty description never wins")
+}
+
+// A held entry with no blob must not discard the blob of a record folded into it.
+func TestNameMerger_AdoptsBlobWhenFirstHasNone(t *testing.T) {
+	m := newNameMerger()
+	now := time.Now().UTC()
+
+	first := mergeableEntry("CVE-2026-0004", "chainguard", "CGA-aaa", now, now, nil, nil, nil)
+	first.VulnerabilityHandle.BlobValue = nil
+	require.True(t, m.hold(first))
+	sev := db.Severity{Scheme: db.SeveritySchemeCHML, Value: "high"}
+	require.True(t, m.hold(mergeableEntry("CVE-2026-0004", "chainguard", "CGA-bbb", now, now, nil, nil, []db.Severity{sev})))
+	require.True(t, m.hold(mergeableEntry("CVE-2026-0004", "chainguard", "CGA-ccc", now, now, nil, nil, []db.Severity{sev})))
+
+	out := m.reconcile()
+	require.Len(t, out, 1)
+	blob := out[0].VulnerabilityHandle.BlobValue
+	require.NotNil(t, blob, "the second entry's blob was discarded")
+	require.Equal(t, []db.Severity{sev}, blob.Severities, "the adopted blob seeds the seen-sets, so later folds do not duplicate")
+	require.Len(t, out[0].Related, 3, "every record's package rows survive")
 }
 
 // The merger stays inert for providers that have not opted in.

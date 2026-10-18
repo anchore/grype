@@ -2,6 +2,7 @@ package v6
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/scylladb/go-set/strset"
@@ -18,7 +19,15 @@ import (
 // name + provider + blobID, so it only collapses already byte-identical blobs and resolves
 // collisions by keeping the first writer. Measured on the chainguard feed that loses the dates
 // of 10,677 of 11,784 handles (spreads reaching 321 days), and still re-splits 22 handles whose
-// blobs differ. Merging unions the facts instead, so the result is arrival-order independent.
+// blobs differ. Merging unions the facts instead, so every rendered fact is arrival-order
+// independent: dates take the min/max, the description the smallest, and reconcile sorts the
+// severities. Only the order of references (and so the blob digest) follows arrival.
+//
+// Folding treats each handle-level fact as true of the NAME, because once merged every
+// package row of every folded record points at the one handle. Anything a transformer puts
+// in a MergeByName handle's Aliases must therefore hold for that name across every record it
+// will be folded with. A per-record fact ("this CGA derives from CVE-A and CVE-B") belongs on
+// that record's package rows, where it stays scoped to the packages the record covers.
 
 // Provider is in the key because two providers may legitimately publish the same CVE. Both
 // parts are lowercased to match cacheKey, so the merger and the store agree on identity.
@@ -81,16 +90,22 @@ func newHeldEntry(entry transformers.RelatedEntries) *heldEntry {
 		refs:     strset.New(),
 		severity: strset.New(),
 	}
-	if blob := entry.VulnerabilityHandle.BlobValue; blob != nil {
-		h.aliases.Add(blob.Aliases...)
-		for _, ref := range blob.References {
-			h.refs.Add(referenceKey(ref))
-		}
-		for _, sev := range blob.Severities {
-			h.severity.Add(severityKey(sev))
-		}
-	}
+	h.seed(entry.VulnerabilityHandle.BlobValue)
 	return h
+}
+
+// seed records what blob already holds, so fold only appends facts it has not seen.
+func (h *heldEntry) seed(blob *db.VulnerabilityBlob) {
+	if blob == nil {
+		return
+	}
+	h.aliases.Add(blob.Aliases...)
+	for _, ref := range blob.References {
+		h.refs.Add(referenceKey(ref))
+	}
+	for _, sev := range blob.Severities {
+		h.severity.Add(severityKey(sev))
+	}
 }
 
 // Related rows are appended, never deduplicated: each carries its own originating CGA, and the
@@ -108,36 +123,44 @@ func (h *heldEntry) fold(src transformers.RelatedEntries) {
 		dst.WithdrawnDate = s.WithdrawnDate
 	}
 
-	if dst.BlobValue != nil && s.BlobValue != nil {
-		if dst.BlobValue.Description == "" {
-			dst.BlobValue.Description = s.BlobValue.Description
-		}
-		for _, alias := range s.BlobValue.Aliases {
-			if h.aliases.Has(alias) {
-				continue
-			}
-			h.aliases.Add(alias)
-			dst.BlobValue.Aliases = append(dst.BlobValue.Aliases, alias)
-		}
-		for _, ref := range s.BlobValue.References {
-			key := referenceKey(ref)
-			if h.refs.Has(key) {
-				continue
-			}
-			h.refs.Add(key)
-			dst.BlobValue.References = append(dst.BlobValue.References, ref)
-		}
-		for _, sev := range s.BlobValue.Severities {
-			key := severityKey(sev)
-			if h.severity.Has(key) {
-				continue
-			}
-			h.severity.Add(key)
-			dst.BlobValue.Severities = append(dst.BlobValue.Severities, sev)
-		}
+	h.entry.Related = append(h.entry.Related, src.Related...)
+
+	switch {
+	case s.BlobValue == nil:
+		return
+	case dst.BlobValue == nil:
+		dst.BlobValue = s.BlobValue
+		h.seed(dst.BlobValue)
+		return
 	}
 
-	h.entry.Related = append(h.entry.Related, src.Related...)
+	// the smallest non-empty description, so the choice does not depend on which record came first
+	if d := s.BlobValue.Description; d != "" && (dst.BlobValue.Description == "" || d < dst.BlobValue.Description) {
+		dst.BlobValue.Description = d
+	}
+	for _, alias := range s.BlobValue.Aliases {
+		if h.aliases.Has(alias) {
+			continue
+		}
+		h.aliases.Add(alias)
+		dst.BlobValue.Aliases = append(dst.BlobValue.Aliases, alias)
+	}
+	for _, ref := range s.BlobValue.References {
+		key := referenceKey(ref)
+		if h.refs.Has(key) {
+			continue
+		}
+		h.refs.Add(key)
+		dst.BlobValue.References = append(dst.BlobValue.References, ref)
+	}
+	for _, sev := range s.BlobValue.Severities {
+		key := severityKey(sev)
+		if h.severity.Has(key) {
+			continue
+		}
+		h.severity.Add(key)
+		dst.BlobValue.Severities = append(dst.BlobValue.Severities, sev)
+	}
 }
 
 // Neither db.Reference (Tags is a slice) nor db.Severity (Value is an interface) is safe to use
@@ -159,7 +182,9 @@ func (m *nameMerger) reconcile() []transformers.RelatedEntries {
 
 	out := make([]transformers.RelatedEntries, 0, len(m.order))
 	for _, key := range m.order {
-		out = append(out, m.held[key].entry)
+		entry := m.held[key].entry
+		sortSeverities(entry.VulnerabilityHandle.BlobValue)
+		out = append(out, entry)
 	}
 
 	log.WithFields(
@@ -172,4 +197,19 @@ func (m *nameMerger) reconcile() []transformers.RelatedEntries {
 	m.folded = 0
 
 	return out
+}
+
+// sortSeverities makes the shown severity (grype reads Severities[0]) independent of which
+// record arrived first. The key renders a CVSS value through CVSSSeverity.String, so within a
+// scheme the older version sorts first ("CVSS:3.1/..." < "CVSS:4.0/...").
+//
+// References are deliberately left in arrival order: the first one is shown as the data source,
+// and a lexical sort would put e.g. Red Hat errata ahead of the NVD page.
+func sortSeverities(blob *db.VulnerabilityBlob) {
+	if blob == nil {
+		return
+	}
+	sort.SliceStable(blob.Severities, func(i, j int) bool {
+		return severityKey(blob.Severities[i]) < severityKey(blob.Severities[j])
+	})
 }

@@ -114,9 +114,6 @@ func TestChainguardTransform(t *testing.T) {
 								Tags: []string{"FIX"},
 							},
 						},
-						// Aliases are populated solely from the `upstream` field
-						// (this fixture has no top-level `aliases`).
-						Aliases: []string{"GHSA-qgxr-kfqx-v5q9"},
 						Severities: []db.Severity{{
 							Scheme: db.SeveritySchemeCVSS,
 							Value: db.CVSSSeverity{
@@ -243,7 +240,6 @@ func TestChainguardTransform(t *testing.T) {
 								Tags: []string{"ADVISORY"},
 							},
 						},
-						Aliases: []string{"GHSA-r354-f388-2fhh"},
 						Severities: []db.Severity{{
 							Scheme: db.SeveritySchemeCVSS,
 							Value: db.CVSSSeverity{
@@ -351,7 +347,6 @@ func TestChainguardTransform(t *testing.T) {
 								Tags: []string{"ADVISORY"},
 							},
 						},
-						Aliases: []string{"GHSA-frg5-h47x-75j9"},
 						Severities: []db.Severity{{
 							Scheme: db.SeveritySchemeCVSS,
 							Value: db.CVSSSeverity{
@@ -473,6 +468,7 @@ func TestChainguardTransform_Identifiers(t *testing.T) {
 	}
 	vuln.ID = "CGA-abcd-efgh-ijkl"
 	vuln.Aliases = []string{"ALEX-1"} // pre-existing aliases must be preserved
+	vuln.Related = []string{"CVE-2026-77777"}
 	vuln.Affected = []osvmodel.Affected{
 		{
 			Package: osvmodel.Package{
@@ -508,10 +504,8 @@ func TestChainguardTransform_Identifiers(t *testing.T) {
 	require.Equal(t, "CVE-2026-99999", rel.VulnerabilityHandle.BlobValue.ID,
 		"BlobValue.ID must track Name or blob digests stay per-record and nothing dedupes")
 
-	require.Equal(t,
-		[]string{"ALEX-1", "GHSA-aaaa-bbbb-cccc"},
-		rel.VulnerabilityHandle.BlobValue.Aliases,
-		"Aliases is aliases + upstream in that order, minus the chosen name, and without the CGA")
+	require.Nil(t, rel.VulnerabilityHandle.BlobValue.Aliases,
+		"the handle is shared by every CGA for the CVE, so a per-CGA id in its aliases would leak to other packages")
 
 	require.Len(t, rel.Related, 1)
 	aph, ok := rel.Related[0].(db.AffectedPackageHandle)
@@ -519,7 +513,7 @@ func TestChainguardTransform_Identifiers(t *testing.T) {
 	require.Equal(t,
 		[]string{"ALEX-1", "CVE-2026-99999", "GHSA-aaaa-bbbb-cccc", "CGA-abcd-efgh-ijkl"},
 		aph.BlobValue.CVEs,
-		"PackageBlob.CVEs keeps the whole identifier set including the originating CGA")
+		"PackageBlob.CVEs is aliases + upstream + the CGA in feed order; `related` means a different vulnerability, so it stays out")
 }
 
 // The tier order decides whether ~1M records collapse onto ~11.7k names, so each tier gets a
@@ -528,6 +522,7 @@ func TestCgNames(t *testing.T) {
 	tests := []struct {
 		name     string
 		id       string
+		aliases  []string
 		upstream []string
 		want     []string
 	}{
@@ -544,16 +539,25 @@ func TestCgNames(t *testing.T) {
 			want:     []string{"CVE-2026-99999", "CVE-2026-11111"},
 		},
 		{
-			name:     "no CVE falls to the first GHSA only",
+			// smallest rather than first, so CGAs listing the same GHSAs in another order share a handle
+			name:     "no CVE falls to the smallest GHSA only",
 			id:       "CGA-abcd-efgh-ijkl",
-			upstream: []string{"GHSA-aaaa-bbbb-cccc", "GHSA-dddd-eeee-ffff", "GO-2026-1234"},
+			upstream: []string{"GHSA-dddd-eeee-ffff", "GHSA-aaaa-bbbb-cccc", "GO-2026-1234"},
 			want:     []string{"GHSA-aaaa-bbbb-cccc"},
 		},
 		{
-			name:     "no CVE or GHSA falls to the first GO only",
+			name:     "no CVE or GHSA falls to the smallest GO only",
 			id:       "CGA-abcd-efgh-ijkl",
-			upstream: []string{"GO-2026-1234", "GO-2026-5678"},
+			upstream: []string{"GO-2026-5678", "GO-2026-1234"},
 			want:     []string{"GO-2026-1234"},
+		},
+		{
+			// naming reads upstream only
+			name:     "a CVE only in aliases does not become the name",
+			id:       "CGA-abcd-efgh-ijkl",
+			aliases:  []string{"CVE-2026-99999"},
+			upstream: nil,
+			want:     []string{"CGA-abcd-efgh-ijkl"},
 		},
 		{
 			name:     "empty upstream keeps the CGA",
@@ -594,6 +598,7 @@ func TestCgNames(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			vuln := unmarshal.OSVVulnerability{Upstream: tt.upstream}
 			vuln.ID = tt.id
+			vuln.Aliases = tt.aliases
 			require.Equal(t, tt.want, cgNames(vuln))
 		})
 	}
@@ -629,10 +634,14 @@ func TestChainguardTransform_FansOutOnMultipleCVEs(t *testing.T) {
 	}
 	require.Equal(t, []string{"CVE-2026-99999", "CVE-2026-11111"}, names)
 
-	first := entries[0].Data.(transformers.RelatedEntries)
-	second := entries[1].Data.(transformers.RelatedEntries)
-	require.Equal(t, []string{"CVE-2026-11111"}, first.VulnerabilityHandle.BlobValue.Aliases)
-	require.Equal(t, []string{"CVE-2026-99999"}, second.VulnerabilityHandle.BlobValue.Aliases)
+	// the sibling CVE is a fact about this CGA, so it rides on the package rows rather than in
+	// handles other CGAs will share
+	for _, e := range entries {
+		rel := e.Data.(transformers.RelatedEntries)
+		require.Nil(t, rel.VulnerabilityHandle.BlobValue.Aliases)
+		aph := rel.Related[0].(db.AffectedPackageHandle)
+		require.Equal(t, []string{"CVE-2026-99999", "CVE-2026-11111", "CGA-abcd-efgh-ijkl"}, aph.BlobValue.CVEs)
+	}
 }
 
 // Reference IDs stay empty: stamping the CGA mislabeled third-party URLs (mostly Red Hat
@@ -841,12 +850,27 @@ func TestCgUnfixedFixStatus(t *testing.T) {
 			// zero entries in the feed disagree; refuse rather than guess if that changes
 			name: "disagreeing components refuse to resolve", statuses: []string{"fix_not_planned", "pending_upstream_fix"}, want: db.UnknownFixStatus,
 		},
+		{
+			// silence is not agreement, whichever side it is on
+			name: "an empty verdict beside a real one refuses to resolve", statuses: []string{"fix_not_planned", ""}, want: db.UnknownFixStatus,
+		},
+		{"a real verdict after an empty one refuses to resolve", []string{"", "fix_not_planned"}, db.UnknownFixStatus},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			require.Equal(t, tt.want, cgUnfixedFixStatus(cgAffectedWithStatus("", tt.statuses...)))
 		})
 	}
+}
+
+// A component with no latest_event_status key at all is silent too, so wont-fix (the state users
+// most often filter out) must not be inferred from its sibling.
+func TestCgUnfixedFixStatus_ComponentWithoutStatusIsNotAgreement(t *testing.T) {
+	affected := cgAffectedWithStatus("", "fix_not_planned")
+	components := affected.EcosystemSpecific["components"].([]any)
+	affected.EcosystemSpecific["components"] = append(components, map[string]any{})
+
+	require.Equal(t, db.UnknownFixStatus, cgUnfixedFixStatus(affected))
 }
 
 // The digging walks an untyped map, so it must not panic on anything the feed might hold.

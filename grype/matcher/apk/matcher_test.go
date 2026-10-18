@@ -560,6 +560,84 @@ func TestMatcherApk_UpstreamCveDedupedByIntroducedZeroAlias(t *testing.T) {
 	})
 }
 
+// The leak fixtures pair two chainguard records with one NVD record:
+//   - CGA-n0f2-x000-0001 (leakfoo) lists CVE-2026-31001 only.
+//   - CGA-n0f2-x000-0002 (leakbar) lists CVE-2026-31001 and CVE-2026-31002.
+//   - NVD flags CVE-2026-31002 for both packages' CPEs.
+//
+// Both CGAs merge into one CVE-2026-31001 handle. If that shared handle carried leakbar's sibling
+// CVE as an alias, leakfoo's CVE-2026-31001 result would claim to be CVE-2026-31002 too, and the
+// identity-based reconciliation would drop leakfoo's real NVD finding. Chainguard said nothing
+// about CVE-2026-31002 for leakfoo, so NVD must still count there.
+
+// TestMatcherApk_SiblingCveDoesNotSuppressNvdWhenFixed: leakfoo is past its CGA fix, so its
+// CVE-2026-31001 lands in the fixed set the NVD results are reconciled against.
+func TestMatcherApk_SiblingCveDoesNotSuppressNvdWhenFixed(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		pkgID := pkg.ID("leakfoo-fixed")
+		p := dbtest.NewPackage("leakfoo", "1.0.0-r2", syftPkg.ApkPkg).
+			WithID(pkgID).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("x86_64").
+			WithCPE("cpe:2.3:a:leakfoo:leakfoo:1.0.0-r2:*:*:*:*:*:*:*").
+			Build()
+
+		findings := db.Match(t, &matcher, p)
+
+		findings.SelectMatch("CVE-2026-31002").
+			SelectDetailByType(match.CPEMatch).
+			AsCPESearch()
+
+		// completeness makes this exhaustive: a CVE-2026-31002 ignore would fail the test
+		findings.Ignores().
+			SelectRelatedPackageIgnores(ignorereasons.DistroFixed, "CVE-2026-31001").
+			ForPackage(pkgID)
+	})
+}
+
+// TestMatcherApk_SiblingCveDoesNotSuppressNvdWhenVulnerable: leakfoo is below its CGA fix, so the
+// distro match is reported and NVD results sharing its identity are folded into it.
+func TestMatcherApk_SiblingCveDoesNotSuppressNvdWhenVulnerable(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		p := dbtest.NewPackage("leakfoo", "0.9.0-r0", syftPkg.ApkPkg).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("x86_64").
+			WithCPE("cpe:2.3:a:leakfoo:leakfoo:0.9.0-r0:*:*:*:*:*:*:*").
+			Build()
+
+		findings := db.Match(t, &matcher, p)
+
+		findings.SelectMatch("CVE-2026-31001").
+			SelectDetailByType(match.ExactDirectMatch).
+			AsDistroSearch()
+		findings.SelectMatch("CVE-2026-31002").
+			SelectDetailByType(match.CPEMatch).
+			AsCPESearch()
+	})
+}
+
+// TestMatcherApk_RecordCveSuppressesNvdOnItsOwnPackage is the control: leakbar's own CGA lists
+// CVE-2026-31002 and is fixed, so the NVD finding is settled for leakbar.
+func TestMatcherApk_RecordCveSuppressesNvdOnItsOwnPackage(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		p := dbtest.NewPackage("leakbar", "1.0.0-r2", syftPkg.ApkPkg).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("x86_64").
+			WithCPE("cpe:2.3:a:leakbar:leakbar:1.0.0-r2:*:*:*:*:*:*:*").
+			Build()
+
+		findings := db.Match(t, &matcher, p)
+
+		findings.DoesNotHaveAnyVulnerabilities("CVE-2026-31002")
+		// both fixed results relate both CVEs, so each id is ignored twice; that duplication
+		// predates the merge and is not what this test is about
+		findings.Ignores().SkipCompleteness()
+	})
+}
+
 // TestMatcherApk_SelfUpstreamIsRecordedAsIndirect covers an apk whose origin package is itself, which
 // is common (an apk that is its own origin still lists one). The distro feed is searched twice for
 // it, once directly and once as its own upstream, and the upstream pass must record what it finds as

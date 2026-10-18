@@ -1,0 +1,19 @@
+{
+  "identifier": "CGA-s9l1-x000-0001",
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.0.json",
+  "item": {
+    "schema_version": "1.7.0",
+    "id": "CGA-s9l1-x000-0001",
+    "published": "2026-05-27T00:00:00Z",
+    "modified": "2026-05-27T00:00:00Z",
+    "summary": "splitpkg: one CVE in a bundled module, reported per binary (mirrors prometheus-3.7 CVE-2026-39828)",
+    "upstream": ["CVE-2026-39901"],
+    "affected": [
+      {
+        "package": {"ecosystem": "Chainguard", "name": "splitpkg", "purl": "pkg:apk/chainguard/splitpkg?arch=x86_64"},
+        "ranges": [{"type": "ECOSYSTEM", "events": [{"introduced": "0"}]}],
+        "ecosystem_specific": {"components": [{"component_name": "golang.org/x/crypto", "component_version": "v0.45.0", "component_type": "go-module", "component_location": "/usr/bin/splittool", "latest_event_status": "detection"}]}
+      }
+    ]
+  }
+}

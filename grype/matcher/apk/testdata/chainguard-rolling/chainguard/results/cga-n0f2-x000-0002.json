@@ -1,0 +1,37 @@
+{
+  "identifier": "CGA-n0f2-x000-0002",
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.0.json",
+  "item": {
+    "schema_version": "1.7.0",
+    "id": "CGA-n0f2-x000-0002",
+    "published": "2026-03-02T00:00:00Z",
+    "modified": "2026-03-02T00:00:00Z",
+    "summary": "leakbar: one record covering two distinct CVEs",
+    "upstream": [
+      "CVE-2026-31001",
+      "CVE-2026-31002"
+    ],
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "Chainguard",
+          "name": "leakbar",
+          "purl": "pkg:apk/chainguard/leakbar?arch=x86_64"
+        },
+        "ranges": [
+          {
+            "type": "ECOSYSTEM",
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1.0.0-r1"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
