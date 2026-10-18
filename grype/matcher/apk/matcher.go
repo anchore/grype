@@ -60,7 +60,12 @@ func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to find nvd matches for apk pkg=%q: %w", p.Name, err)
 	}
-	vulnerable = vulnerable.Merge(cpeVulnerable.Remove(vulnerable).Remove(allFixed))
+	unsettled := cpeVulnerable.Remove(vulnerable).Remove(allFixed)
+	unsettled, err = m.settleByOrigin(vp, p, unsettled)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to find origin fixes for apk pkg=%q: %w", p.Name, err)
+	}
+	vulnerable = vulnerable.Merge(unsettled)
 
 	// NAK entries never produce matches of their own, only ignores
 	nakIgnores, err := m.nakIgnores(vp, p)
@@ -86,6 +91,26 @@ func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match
 func (m *Matcher) distroResults(vp vulnerability.Provider, p pkg.Package) (vulnerable, allFixed result.Set, err error) {
 	// APK has no epochs, so no comparison config
 	return internal.FindResultsByDistroAcrossUpstreams(vp, p, nil, m.Type(), nil)
+}
+
+// settleByOrigin drops NVD results that the origin package's own entries have fixed or NAK'd.
+// NVD discloses against the origin's name, so a subpackage reaches those CVEs through its origin,
+// but the origin copy is marked arch "src" and so no longer sees per-binary (arch-qualified)
+// rows. Searching again as the origin with the subpackage's real arch lets those rows settle the
+// NVD result. They only settle it: they never become matches or ignores for the subpackage.
+func (m *Matcher) settleByOrigin(vp vulnerability.Provider, p pkg.Package, unsettled result.Set) (result.Set, error) {
+	if len(unsettled) == 0 {
+		return unsettled, nil
+	}
+	for _, up := range pkg.UpstreamPackages(p) {
+		up.Metadata = p.Metadata
+		_, upFixed, err := internal.FindResultsByDistro(vp, up, m.Type(), nil)
+		if err != nil {
+			return nil, err
+		}
+		unsettled = unsettled.Remove(upFixed)
+	}
+	return unsettled, nil
 }
 
 // nakIgnores collects explicit NAK ("< 0") entries for the package and its upstreams and returns them

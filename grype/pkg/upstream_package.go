@@ -66,4 +66,11 @@ func setSrcArchOnUpstream(upstream *Package) {
 		r.Arch = "src"
 		upstream.Metadata = r
 	}
+	// An apk origin copy stands for the origin package's role, not for a binary apk. Chainguard
+	// OSV rows carry an arch because each describes one binary apk, so marking the copy "src"
+	// keeps them from fanning out to subpackages, while the arch-less secdb rows still do.
+	if a, ok := upstream.Metadata.(ApkMetadata); ok {
+		a.Arch = "src"
+		upstream.Metadata = a
+	}
 }

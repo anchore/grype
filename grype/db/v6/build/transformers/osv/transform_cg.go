@@ -265,6 +265,11 @@ func cgRangeType(t osvmodel.RangeType) string {
 // may specify an "arch" qualifier in the PURL, which we extract and store in the grype
 // DB PackageQualifiers. If the PURL is malformed, empty, or carries no "arch" qualifier,
 // returns nil.
+//
+// The apk matcher relies on the arch: it marks an origin copy arch "src", so an arch-qualified
+// row applies to the one binary apk it names and never fans out to subpackages through their
+// origin. Every record in the feed carries one; dropping it would make the row reach every
+// subpackage again.
 func cgGetQualifiers(affected osvmodel.Affected) *db.PackageQualifiers {
 	if affected.Package.Purl == "" {
 		return nil
