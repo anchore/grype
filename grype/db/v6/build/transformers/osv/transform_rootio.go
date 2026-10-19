@@ -1,7 +1,6 @@
 package osv
 
 import (
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -45,10 +44,7 @@ func (rootioStrategy) Matches(id string) bool {
 }
 
 func (rootioStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
-	severities, err := getSeverities(vuln)
-	if err != nil {
-		return nil, fmt.Errorf("unable to obtain severities: %w", err)
-	}
+	severities := getSeverities(vuln)
 
 	// Rootio NAK records may carry the upstream CVE in either `aliases` or
 	// `related`; merge both so the full CVE set rides on the vulnerability blob.

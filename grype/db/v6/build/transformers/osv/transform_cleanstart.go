@@ -1,7 +1,6 @@
 package osv
 
 import (
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -58,10 +57,7 @@ func (cleanstartStrategy) Matches(id string) bool {
 }
 
 func (cleanstartStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
-	severities, err := getSeverities(vuln)
-	if err != nil {
-		return nil, fmt.Errorf("unable to obtain severities: %w", err)
-	}
+	severities := getSeverities(vuln)
 
 	// CleanStart carries its CVE/GHSA identifiers in `upstream` (added in OSV
 	// 1.7) and leaves `aliases` and `related` empty. Without this merge every
