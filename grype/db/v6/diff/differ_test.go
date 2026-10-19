@@ -45,6 +45,18 @@ func Test_basicPackageDiff(t *testing.T) {
 			},
 		},
 		{
+			// a record added beside an existing record under the same key (another module stream)
+			name:  "record-added-beside-existing",
+			oldDB: []string{"**/rhel-9/cve-2025-13012.json"},
+			newDB: []string{"**/rhel-9/cve-2025-13012-sibling.json"},
+			expected: map[string]changes{
+				"firefox": {
+					modified{"CVE-2025-13012"},
+				},
+				"thunderbird": {},
+			},
+		},
+		{
 			name: "os-echo-modify",
 			oldDB: []string{
 				"cve-2025-59800",
