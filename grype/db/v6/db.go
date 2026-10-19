@@ -120,6 +120,10 @@ type Curator interface {
 type Config struct {
 	DBDirPath string
 	Debug     bool
+
+	// CacheSizeKiB is the SQLite page cache size (in KiB) used while writing a new DB (only applies to NewWriter).
+	// Zero means use the built-in default (1 GiB).
+	CacheSizeKiB int
 }
 
 func (c Config) DBFilePath() string {
@@ -150,8 +154,13 @@ func Hydrater() func(string) error {
 // NewLowLevelDB creates a new empty DB for writing or opens an existing one for reading from the given path. This is
 // not recommended for typical interactions with the vulnerability DB, use NewReader and NewWriter instead.
 func NewLowLevelDB(dbFilePath string, empty, writable, debug bool) (*gorm.DB, error) {
+	return newLowLevelDB(dbFilePath, empty, writable, debug, 0)
+}
+
+func newLowLevelDB(dbFilePath string, empty, writable, debug bool, cacheSizeKiB int) (*gorm.DB, error) {
 	opts := []gormadapter.Option{
 		gormadapter.WithDebug(debug),
+		gormadapter.WithCacheSizeKiB(cacheSizeKiB),
 	}
 
 	if empty && !writable {

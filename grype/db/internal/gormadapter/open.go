@@ -23,10 +23,23 @@ var writerStatements = []string{
 	`PRAGMA journal_mode = MEMORY`, // do not write the journal to disk (maximizing write performance); OFF is faster but less safe in terms of DB consistency
 }
 
-var heavyWriteStatements = []string{
-	`PRAGMA cache_size = -1073741824`, // ~1 GB (negative means treat as bytes not page count); one caveat is to not pick a value that risks swapping behavior, negating performance gains
-	`PRAGMA mmap_size = 1073741824`,   // ~1 GB; the maximum size of the memory-mapped I/O buffer (to access the database file as if it were a part of the process’s virtual memory)
-	`PRAGMA defer_foreign_keys = ON`,  // defer enforcement of foreign key constraints until the end of the transaction (to avoid the overhead of checking constraints for each row)
+const (
+	// DefaultCacheSizeKiB is the SQLite page cache size (in KiB) used when building a new DB (~1 GiB).
+	DefaultCacheSizeKiB = 1024 * 1024
+	// MaxCacheSizeKiB is the largest SQLite page cache size (in KiB) that may be configured (64 GiB). This is a
+	// sanity bound to catch unit mistakes (e.g. passing bytes instead of KiB), not a recommendation.
+	MaxCacheSizeKiB = 64 * 1024 * 1024
+)
+
+// heavyWriteStatements returns the statements applied when building a new DB (truncate + large memory footprint).
+func heavyWriteStatements(cacheSizeKiB int) []string {
+	return []string{
+		// negative means treat as KiB, not page count; one caveat is to not pick a value that risks swapping
+		// behavior, negating performance gains
+		fmt.Sprintf(`PRAGMA cache_size = -%d`, cacheSizeKiB),
+		`PRAGMA mmap_size = 1073741824`,  // ~1 GB; the maximum size of the memory-mapped I/O buffer (to access the database file as if it were a part of the process’s virtual memory)
+		`PRAGMA defer_foreign_keys = ON`, // defer enforcement of foreign key constraints until the end of the transaction (to avoid the overhead of checking constraints for each row)
+	}
 }
 
 var readConnectionOptions = []string{
@@ -45,6 +58,7 @@ type config struct {
 	initialData               []any
 	memory                    bool
 	statements                []string
+	cacheSizeKiB              int
 }
 
 type Option func(*config)
@@ -92,6 +106,15 @@ func WithLargeMemoryFootprint(largeFootprint bool) Option {
 	}
 }
 
+// WithCacheSizeKiB sets the SQLite page cache size (in KiB) used when building a new DB (that is, when opened with
+// WithTruncate and a large memory footprint is allowed). Zero means use DefaultCacheSizeKiB. Negative values or values
+// above MaxCacheSizeKiB cause Open to return an error.
+func WithCacheSizeKiB(kib int) Option {
+	return func(c *config) {
+		c.cacheSizeKiB = kib
+	}
+}
+
 func newConfig(path string, opts []Option) config {
 	c := config{}
 	c.apply(path, opts)
@@ -104,6 +127,23 @@ func (c *config) apply(path string, opts []Option) {
 	}
 	c.memory = len(path) == 0
 	c.path = path
+}
+
+func (c config) validate() error {
+	if c.cacheSizeKiB < 0 {
+		return fmt.Errorf("invalid sqlite cache size: %d KiB (must not be negative)", c.cacheSizeKiB)
+	}
+	if c.cacheSizeKiB > MaxCacheSizeKiB {
+		return fmt.Errorf("invalid sqlite cache size: %d KiB (must be at most %d KiB; note the value is in KiB, not bytes)", c.cacheSizeKiB, MaxCacheSizeKiB)
+	}
+	return nil
+}
+
+func (c config) effectiveCacheSizeKiB() int {
+	if c.cacheSizeKiB == 0 {
+		return DefaultCacheSizeKiB
+	}
+	return c.cacheSizeKiB
 }
 
 func (c config) connectionString() string {
@@ -128,6 +168,10 @@ func (c config) connectionString() string {
 // Open a new connection to a sqlite3 database file
 func Open(path string, options ...Option) (*gorm.DB, error) {
 	cfg := newConfig(path, options)
+
+	if err := cfg.validate(); err != nil {
+		return nil, err
+	}
 
 	if cfg.truncate && !cfg.writable {
 		return nil, fmt.Errorf("cannot truncate a read-only DB")
@@ -167,8 +211,8 @@ func (c config) prepareDB(dbObj *gorm.DB) (*gorm.DB, error) {
 	}
 
 	if c.truncate && c.allowLargeMemoryFootprint {
-		log.WithFields("path", c.path).Debug("using large memory footprint DB statements")
-		if err := c.applyStatements(dbObj, heavyWriteStatements); err != nil {
+		log.WithFields("path", c.path, "cache-size-kib", c.effectiveCacheSizeKiB()).Debug("using large memory footprint DB statements")
+		if err := c.applyStatements(dbObj, heavyWriteStatements(c.effectiveCacheSizeKiB())); err != nil {
 			return nil, fmt.Errorf("unable to apply DB heavy writer statements: %w", err)
 		}
 	}
