@@ -301,11 +301,10 @@ func normalizeSeverity(severity osvmodel.Severity) (db.Severity, error) {
 // malformed score used to make getSeverities return an error, which every
 // caller's Transform() treated as fatal for the whole record -- and upstream
 // of that, grype-db's build loop treats a Transform() error as fatal for the
-// whole build (confirmed: one such record among 9,901 real CleanStart
-// advisories aborted the entire database build). The CVSS_V2 bare-vector
-// case above recovers the common, legitimate cause of that; this is the
-// floor for whatever that doesn't catch.
-func getSeverities(vuln unmarshal.OSVVulnerability) ([]db.Severity, error) {
+// whole build, so one such record aborted the entire database build. The
+// CVSS_V2 bare-vector case above recovers the common, legitimate cause of
+// that; this is the floor for whatever that doesn't catch.
+func getSeverities(vuln unmarshal.OSVVulnerability) []db.Severity {
 	var severities []db.Severity
 	collect := func(sev osvmodel.Severity) {
 		severity, err := normalizeSeverity(sev)
@@ -324,5 +323,5 @@ func getSeverities(vuln unmarshal.OSVVulnerability) ([]db.Severity, error) {
 			collect(sev)
 		}
 	}
-	return severities, nil
+	return severities
 }

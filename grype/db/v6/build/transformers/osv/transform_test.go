@@ -225,8 +225,8 @@ func Test_getSeverities_SkipsMalformedWithoutAborting(t *testing.T) {
 		{Type: osvmodel.SeverityCVSSV2, Score: "not a cvss vector at all"},
 	}
 
-	got, err := getSeverities(vuln)
-	require.NoError(t, err, "one malformed entry must not fail the whole record")
+	// one malformed entry must not fail the whole record
+	got := getSeverities(vuln)
 	require.Len(t, got, 1, "the malformed entry must be skipped, not counted")
 	require.Equal(t, db.SeveritySchemeCVSS, got[0].Scheme)
 	cvss, ok := got[0].Value.(db.CVSSSeverity)
