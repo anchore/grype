@@ -22,6 +22,7 @@ const (
 	dhiEcosystemPrefix = "Docker Hardened Images:"
 	dhiLineageAlpine   = "alpine"
 	dhiLineageDebian   = "debian"
+	dhiNamespace       = "dhi"
 )
 
 type dhiStrategy struct{}
@@ -203,7 +204,7 @@ func parseDHIIdentity(osvPackage osvmodel.Package) (dhiIdentity, error) {
 	if err != nil {
 		return dhiIdentity{}, fmt.Errorf("invalid PURL %q: %w", osvPackage.Purl, err)
 	}
-	if purl.Namespace != "dhi" || purl.Name != osvPackage.Name || purl.Version != "" {
+	if purl.Namespace != dhiNamespace || purl.Name != osvPackage.Name || purl.Version != "" {
 		return dhiIdentity{}, fmt.Errorf("PURL %q must be a versionless DHI PURL for package %q", osvPackage.Purl, osvPackage.Name)
 	}
 
@@ -221,7 +222,7 @@ func parseDHIIdentity(osvPackage osvmodel.Package) (dhiIdentity, error) {
 	for _, qualifier := range purl.Qualifiers {
 		qualifiers[qualifier.Key] = qualifier.Value
 	}
-	if qualifiers["os_name"] != "dhi" || qualifiers["os_distro"] != lineage || qualifiers["os_version"] != release {
+	if qualifiers["os_name"] != dhiNamespace || qualifiers["os_distro"] != lineage || qualifiers["os_version"] != release {
 		return dhiIdentity{}, fmt.Errorf("PURL qualifiers must identify dhi/%s/%s", lineage, release)
 	}
 
@@ -250,7 +251,7 @@ func validDHIRelease(release string) bool {
 // dhiOperatingSystem maps a DHI release into Grype's operating-system representation.
 func dhiOperatingSystem(release string) *db.OperatingSystem {
 	parts := strings.SplitN(release, ".", 2)
-	os := &db.OperatingSystem{Name: "dhi", ReleaseID: "dhi", MajorVersion: parts[0]}
+	os := &db.OperatingSystem{Name: dhiNamespace, ReleaseID: dhiNamespace, MajorVersion: parts[0]}
 	if len(parts) == 2 {
 		os.MinorVersion = parts[1]
 	}
