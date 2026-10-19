@@ -144,3 +144,20 @@ func TestTypeFromRelease(t *testing.T) {
 		})
 	}
 }
+
+func TestType_IsReleaseScoped(t *testing.T) {
+	tests := []struct {
+		typ  Type
+		want bool
+	}{
+		{typ: DHI, want: true},
+		{typ: Alpine, want: false},
+		{typ: Debian, want: false},
+		{typ: Hummingbird, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(string(tt.typ), func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.typ.IsReleaseScoped())
+		})
+	}
+}
