@@ -10,6 +10,12 @@ package match
 //
 // Each rule's conditions are built once, when the index is built, rather than once per match, and rules that
 // can never apply (VEX rules and rules without criteria) are left out.
+//
+// TODO: ignoreRulesByIndex in grype/vulnerability_matcher.go is a second group-by index over ignore filters,
+// used for the filters that matchers return. The two should eventually be one implementation. Note that they
+// differ today: this index returns every applicable rule in the original order, while ignoreRulesByIndex
+// returns only the first hit, and it groups rules by literal package name and location, which is not safe
+// for regex names or glob locations.
 type ignoreRuleIndex struct {
 	byVulnerabilityID map[string][]indexedIgnoreRule
 	unindexed         []indexedIgnoreRule
