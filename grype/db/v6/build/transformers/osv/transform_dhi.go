@@ -34,7 +34,8 @@ func (dhiStrategy) Matches(id string) bool {
 
 // Transform converts a DHI OSV record into vulnerability and affected-package entries.
 func (dhiStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
-	affected, err := dhiAffectedPackages(vuln, dhiAliases(vuln))
+	aliases := dhiAliases(vuln)
+	affected, err := dhiAffectedPackages(vuln, aliases)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +48,6 @@ func (dhiStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.Sta
 		return nil, fmt.Errorf("unable to obtain severities: %w", err)
 	}
 
-	aliases := dhiAliases(vuln)
 	status := db.VulnerabilityActive
 	var withdrawnDate *time.Time
 	if !vuln.Withdrawn.IsZero() {
@@ -127,6 +127,9 @@ func dhiAffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string) ([]d
 				Ecosystem: identity.packageType.String(),
 				Name:      name.Normalize(affected.Package.Name, identity.packageType),
 			},
+			// PackageBlob.CVEs carries the augmented alias list (aliases plus upstream) rather than the
+			// bare vuln.Aliases that alma preserves: DHI records name their CVE only in `upstream`, and
+			// the distro-fixed ignore reasons must surface that CVE alongside the DHI advisory ID.
 			BlobValue: &db.PackageBlob{
 				CVEs:       aliases,
 				Ranges:     ranges,
