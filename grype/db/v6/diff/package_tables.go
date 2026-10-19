@@ -16,8 +16,8 @@ func (d *DBDiffer) createDiffTablesPackages(db, schema string) error {
 		`CREATE TEMP TABLE diff_pkg_{suffix} AS
 		 SELECT p.ecosystem,
 			p.name AS pkg_name,
-			-- get blob with information removed that does not affect matching
-			json_set(pb.value,'$.ranges',(SELECT json_group_array(json_remove(value, '$.fix.detail.available')) FROM json_each(pb.value, '$.ranges')))
+			-- the full blob, so fix availability (date and kind) changes are reported too
+			pb.value
 				AS pkg_blob,
 			vh.provider_id,
 			CASE WHEN LOWER(vh.status) IN ('withdrawn', 'rejected') THEN 0 ELSE 1 END AS status, -- 0: not vulnerable
@@ -36,8 +36,8 @@ func (d *DBDiffer) createDiffTablesPackages(db, schema string) error {
 		 UNION
 		 SELECT p.ecosystem,
 			p.name AS pkg_name,
-			-- get blob with information removed that does not affect matching
-			json_set(pb.value,'$.ranges',(SELECT json_group_array(json_remove(value, '$.fix.detail.available')) FROM json_each(pb.value, '$.ranges')))
+			-- the full blob, so fix availability (date and kind) changes are reported too
+			pb.value
 				AS pkg_blob,
 			vh.provider_id,
 			0 AS status, -- unaffected records are always a not-vulnerable status
@@ -71,8 +71,8 @@ func (d *DBDiffer) createDiffTablesPackages(db, schema string) error {
 			c.target_hardware AS target_hw,
 			c.target_software AS target_sw,
 			c.other,
-			-- get CPE blob with information removed that does not affect matching
-		    json_set(cb.value,'$.ranges',(SELECT json_group_array(json_remove(value, '$.fix.detail.available')) FROM json_each(cb.value, '$.ranges')))
+			-- the full CPE blob, so fix availability (date and kind) changes are reported too
+		    cb.value
 				AS cpe_blob
 		 FROM {db}affected_cpe_handles ach
 		 JOIN {db}vulnerability_handles vh ON ach.vulnerability_id = vh.id
@@ -92,8 +92,8 @@ func (d *DBDiffer) createDiffTablesPackages(db, schema string) error {
 			c.target_hardware AS target_hw,
 			c.target_software AS target_sw,
 			c.other,
-			-- get CPE blob with information removed that does not affect matching
-		    json_set(cb.value,'$.ranges',(SELECT json_group_array(json_remove(value, '$.fix.detail.available')) FROM json_each(cb.value, '$.ranges')))
+			-- the full CPE blob, so fix availability (date and kind) changes are reported too
+		    cb.value
 				AS cpe_blob
 		 FROM {db}unaffected_cpe_handles ach
 		 JOIN {db}vulnerability_handles vh ON ach.vulnerability_id = vh.id
