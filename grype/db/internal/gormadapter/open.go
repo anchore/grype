@@ -24,9 +24,9 @@ var writerStatements = []string{
 }
 
 var heavyWriteStatements = []string{
-	`PRAGMA cache_size = -1073741824`, // ~1 GB (negative means treat as bytes not page count); one caveat is to not pick a value that risks swapping behavior, negating performance gains
-	`PRAGMA mmap_size = 1073741824`,   // ~1 GB; the maximum size of the memory-mapped I/O buffer (to access the database file as if it were a part of the process’s virtual memory)
-	`PRAGMA defer_foreign_keys = ON`,  // defer enforcement of foreign key constraints until the end of the transaction (to avoid the overhead of checking constraints for each row)
+	`PRAGMA cache_size = -1048576`,   // ~1 GiB (negative means treat as KiB, not page count); one caveat is to not pick a value that risks swapping behavior, negating performance gains
+	`PRAGMA mmap_size = 1073741824`,  // ~1 GB; the maximum size of the memory-mapped I/O buffer (to access the database file as if it were a part of the process’s virtual memory)
+	`PRAGMA defer_foreign_keys = ON`, // defer enforcement of foreign key constraints until the end of the transaction (to avoid the overhead of checking constraints for each row)
 }
 
 var readConnectionOptions = []string{
