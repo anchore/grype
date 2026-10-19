@@ -231,7 +231,13 @@ func (m *Matcher) eusMatches(provider result.Provider, target, searchPkg pkg.Pac
 // problems since an epoch delimits potentially non-comparable version lineages.
 func (m *Matcher) matchDistro(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	searchPkg := p
-	if !isUnknownVersion(searchPkg.Version) {
+	switch {
+	case searchPkg.Version == "":
+		// the distro search skips only "unknown" but not empty versions.
+		// the RPM matcher behavior is atypical and skips BOTH "unknown" and empty versions
+		// this results in skipping the direct package as well as the upstream package in the case the upstream does not specify a version
+		searchPkg.Version = "unknown"
+	case !isUnknownVersion(searchPkg.Version):
 		// "0:unknown" would defeat the search's own unknown-version check
 		addEpochIfApplicable(&searchPkg)
 	}

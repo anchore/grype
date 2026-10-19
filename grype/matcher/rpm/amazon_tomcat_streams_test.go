@@ -64,3 +64,26 @@ func TestAmazonTomcatStreams_UpstreamHitDoesNotDenyDirectFix(t *testing.T) {
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
 		})
 }
+
+// A versionless rpm is skipped -- this is a behavior quirk as only the RPM matcher has
+func TestAmazonTomcatStreams_VersionlessPackage(t *testing.T) {
+	dbtest.DBs(t, "amazon-tomcat-streams").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+
+			versionless := dbtest.NewPackage("tomcat", "", syftPkg.RpmPkg).
+				WithDistro(distro.New(distro.AmazonLinux, "2", "")).
+				Build()
+			db.Match(t, &matcher, versionless).IsEmpty()
+
+			versionedUpstream := dbtest.NewPackage("tomcat-servlet-3.0-api", "", syftPkg.RpmPkg).
+				WithArchitecture("noarch").
+				WithDistro(distro.New(distro.AmazonLinux, "2", "")).
+				WithUpstream("tomcat", "7.0.76-10.amzn2.0.2").
+				Build()
+			findings := db.Match(t, &matcher, versionedUpstream).
+				SkipCompleteness().
+				ContainsVulnerabilities("ALAS2TOMCAT8.5-2023-012")
+			findings.Ignores().SkipCompleteness()
+		})
+}
