@@ -55,9 +55,32 @@ type Provider struct {
 	LastSuccessfulRun time.Time `json:"lastSuccessfulRun"`
 }
 
-func NewWriter(directory string, states provider.States, failOnMissingFixDate bool, batchSize int) (data.Writer, error) {
+// WriterOption configures optional behavior of NewWriter.
+type WriterOption func(*writerOptions)
+
+type writerOptions struct {
+	sqliteCacheSizeKiB int
+}
+
+// WithSQLiteCacheSizeKiB sets the SQLite page cache size (in KiB) used while building the DB. Zero means use the
+// built-in default (1 GiB).
+func WithSQLiteCacheSizeKiB(kib int) WriterOption {
+	return func(o *writerOptions) {
+		o.sqliteCacheSizeKiB = kib
+	}
+}
+
+func NewWriter(directory string, states provider.States, failOnMissingFixDate bool, batchSize int, opts ...WriterOption) (data.Writer, error) {
+	var o writerOptions
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&o)
+		}
+	}
+
 	cfg := db.Config{
-		DBDirPath: directory,
+		DBDirPath:    directory,
+		CacheSizeKiB: o.sqliteCacheSizeKiB,
 	}
 	s, err := db.NewWriter(cfg)
 	if err != nil {

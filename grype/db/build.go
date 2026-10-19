@@ -34,6 +34,7 @@ type BuildConfig struct {
 	Hydrate              bool
 	FailOnMissingFixDate bool // any fixes found without at least one available date will cause a build failure
 	BatchSize            int  // number of operations to batch before committing
+	SQLiteCacheSizeKiB   int  // SQLite page cache size (in KiB) used while writing the DB; zero means the built-in default (1 GiB)
 }
 
 func Build(cfg BuildConfig) error {
@@ -109,9 +110,9 @@ func getWriter(cfg BuildConfig) (data.Writer, error) {
 
 	switch cfg.SchemaVersion {
 	case grypeDBv5.SchemaVersion:
-		return v5.NewWriter(cfg.Directory, cfg.Timestamp, cfg.States, batchSize)
+		return v5.NewWriter(cfg.Directory, cfg.Timestamp, cfg.States, batchSize, v5.WithSQLiteCacheSizeKiB(cfg.SQLiteCacheSizeKiB))
 	case grypeDBv6.ModelVersion:
-		return v6.NewWriter(cfg.Directory, cfg.States, cfg.FailOnMissingFixDate, batchSize)
+		return v6.NewWriter(cfg.Directory, cfg.States, cfg.FailOnMissingFixDate, batchSize, v6.WithSQLiteCacheSizeKiB(cfg.SQLiteCacheSizeKiB))
 	default:
 		return nil, fmt.Errorf("unable to create writer: unsupported schema version: %+v", cfg.SchemaVersion)
 	}
