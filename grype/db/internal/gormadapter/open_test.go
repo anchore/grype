@@ -227,3 +227,86 @@ func TestPragmaNameValue(t *testing.T) {
 		})
 	}
 }
+
+func TestOpen_CacheSizeKiB(t *testing.T) {
+	readCacheSize := func(t *testing.T, path string, opts ...Option) int {
+		t.Helper()
+		opts = append([]Option{WithTruncate(true, nil, nil)}, opts...)
+		db, err := Open(path, opts...)
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			if d, err := db.DB(); err == nil {
+				_ = d.Close()
+			}
+		})
+		var result int
+		require.NoError(t, db.Raw("PRAGMA cache_size;").Scan(&result).Error)
+		return result
+	}
+
+	tests := []struct {
+		name    string
+		opts    []Option
+		wantKiB int
+	}{
+		{
+			name:    "default is 1 GiB",
+			wantKiB: 1024 * 1024,
+		},
+		{
+			name:    "zero falls back to the default",
+			opts:    []Option{WithCacheSizeKiB(0)},
+			wantKiB: DefaultCacheSizeKiB,
+		},
+		{
+			name:    "override is applied",
+			opts:    []Option{WithCacheSizeKiB(64 * 1024)},
+			wantKiB: 64 * 1024,
+		},
+		{
+			name:    "maximum is allowed",
+			opts:    []Option{WithCacheSizeKiB(MaxCacheSizeKiB)},
+			wantKiB: MaxCacheSizeKiB,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "test.db")
+			// a negative cache_size means KiB (a positive value would be a page count)
+			require.Equal(t, -tt.wantKiB, readCacheSize(t, path, tt.opts...))
+		})
+	}
+}
+
+func TestOpen_CacheSizeKiB_Invalid(t *testing.T) {
+	tests := []struct {
+		name    string
+		kib     int
+		wantErr string
+	}{
+		{
+			name:    "negative",
+			kib:     -1,
+			wantErr: "must not be negative",
+		},
+		{
+			name:    "too large (likely bytes instead of KiB)",
+			kib:     MaxCacheSizeKiB + 1,
+			wantErr: "not bytes",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "test.db")
+			require.NoError(t, os.WriteFile(path, []byte("keep me"), 0600))
+
+			_, err := Open(path, WithTruncate(true, nil, nil), WithCacheSizeKiB(tt.kib))
+			require.ErrorContains(t, err, tt.wantErr)
+
+			// validation happens before the existing DB is removed
+			contents, err := os.ReadFile(path)
+			require.NoError(t, err)
+			require.Equal(t, "keep me", string(contents))
+		})
+	}
+}

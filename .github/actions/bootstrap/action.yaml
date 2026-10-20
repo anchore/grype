@@ -29,7 +29,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: anchore/go-make/.github/actions/setup@fa5421b3bf24c9d18f11a736c5eb4172f2b7d683 # v0.8.1
+    - uses: anchore/go-make/.github/actions/setup@abf41688f36f2cbec13105747abbe8e60f5c56ca # v0.9.3
       with:
         go-version: ${{ inputs.go-version }}
         cache-key-prefix: ${{ inputs.cache-key-prefix }}
