@@ -146,8 +146,11 @@ func mergeFix(base, other vulnerability.Fix, format version.Format) vulnerabilit
 	return out
 }
 
-// dedupeFixVersions collapses equal versions spelled differently (e.g. "0:1.2-3" and "1.2-3"),
-// keeping the first spelling.
+// two fix versions for the same package for the same vulnerability,
+// referring to the same version where one omits an epoch are extremely likely to be referring to the same epoch
+var dedupeFixVersionConfig = version.ComparisonConfig{MissingEpochStrategy: version.MissingEpochStrategyAuto}
+
+// dedupeFixVersions collapses equal versions, regardless of epoch spelling.
 func dedupeFixVersions(versions []string, format version.Format) []string {
 	if len(versions) < 2 || format == version.UnknownFormat {
 		return versions
@@ -156,21 +159,33 @@ func dedupeFixVersions(versions []string, format version.Format) []string {
 	out := make([]string, 0, len(versions))
 	kept := make([]*version.Version, 0, len(versions))
 	for _, raw := range versions {
-		v := version.New(raw, format)
-		duplicate := false
-		for _, seen := range kept {
-			if cmp, err := v.Compare(seen); err == nil && cmp == 0 {
-				duplicate = true
-				break
-			}
-		}
-		if duplicate {
+		v := version.NewWithConfig(raw, format, dedupeFixVersionConfig)
+		idx := slices.IndexFunc(kept, func(seen *version.Version) bool { return equalVersions(v, seen) })
+		if idx < 0 {
+			kept = append(kept, v)
+			out = append(out, raw)
 			continue
 		}
-		kept = append(kept, v)
-		out = append(out, raw)
+		// prefer the more precise spelling
+		if hasEpoch(raw, format) && !hasEpoch(out[idx], format) {
+			kept[idx], out[idx] = v, raw
+		}
 	}
 	return out
+}
+
+// equalVersions accepts either direction, since the missing-epoch strategy only applies to the receiver.
+func equalVersions(a, b *version.Version) bool {
+	if c, err := a.Compare(b); err == nil && c == 0 {
+		return true
+	}
+	c, err := b.Compare(a)
+	return err == nil && c == 0
+}
+
+// hasEpoch reports whether an rpm or deb version spells out its epoch ("epoch:version").
+func hasEpoch(raw string, format version.Format) bool {
+	return (format == version.RpmFormat || format == version.DebFormat) && strings.Contains(raw, ":")
 }
 
 // constraintFormat prefers a's format.

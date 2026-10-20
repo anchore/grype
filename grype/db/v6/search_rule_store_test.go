@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"gorm.io/gorm"
 )
 
 func TestSearchRuleStore_SeededDefaults(t *testing.T) {
@@ -38,6 +39,22 @@ func TestNewVulnerabilityProvider_SearchRuleDefaults(t *testing.T) {
 			setup: func(t *testing.T, dir string) {
 				s := setupTestStore(t, dir)
 				require.NoError(t, s.db.Where("1 = 1").Delete(&SearchRule{}).Error)
+			},
+			want: KnownSearchRules(),
+		},
+		{
+			// e.g. rows written before the action column existed, or with an action a newer DB
+			// introduced: every row is skipped, so no rule would apply at all
+			name: "a table whose every rule is unusable falls back to defaults",
+			setup: func(t *testing.T, dir string) {
+				s := setupTestStore(t, dir)
+				require.NoError(t, s.db.Where("1 = 1").Delete(&SearchRule{}).Error)
+				noAction := KnownSearchRules()[0]
+				noAction.Action = ""
+				futureAction := KnownSearchRules()[0]
+				futureAction.Action = "some-future-action"
+				// skip BeforeCreate's validation to write rows this client cannot use
+				require.NoError(t, s.db.Session(&gorm.Session{SkipHooks: true}).Create([]SearchRule{noAction, futureAction}).Error)
 			},
 			want: KnownSearchRules(),
 		},

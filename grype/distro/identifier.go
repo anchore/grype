@@ -66,10 +66,10 @@ func DefaultIdentifiers() Identifiers {
 				string(Ubuntu): string(RapidFortUbuntu),
 				"alpine":       string(RapidFortAlpine),
 				"debian":       string(RapidFortDebian),
-				// RapidFort publishes all EL-family data under rapidfort-redhat
+				// RapidFort publishes all EL-family data under rapidfort-redhat; fedora is not
+				// remapped since the feed has no Fedora releases (only fc* events in EL releases)
 				rhelOSReleaseID: string(RapidFortRedHat),
 				"centos":        string(RapidFortRedHat),
-				"fedora":        string(RapidFortRedHat),
 			},
 			Apply: IdentifierAuto,
 		},

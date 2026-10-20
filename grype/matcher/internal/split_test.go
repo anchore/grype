@@ -421,6 +421,17 @@ func TestSet_SplitVulnerable_ExactFixDoesNotEraseBroaderSharedAliasAdvisory(t *t
 	})
 }
 
+// CVE IDs are matched ignoring case elsewhere (see isCVE in grype/vulnerability_matcher.go), so a
+// lowercase alias must resolve exactly like the uppercase one in the case above.
+func TestSet_SplitVulnerable_ExactFixMatchesCVEIgnoringCase(t *testing.T) {
+	installed := debVersion("1.0-1")
+	exactlyFixed := withAliases(record("ELSA-A", nativeNS, "< 1.0-1", "1.0-1"), "cve-shared")
+	higherStream := withAliases(record("ELSA-C", streamNS, "< 1.0-2", "1.0-2"), "cve-shared")
+	s := result.Set{"ELSA-A": {resultOf(exactlyFixed)}, "ELSA-C": {resultOf(higherStream)}}
+	vulnerable, _ := SplitVulnerable(s, installed)
+	require.NotContains(t, vulnerable, "ELSA-C", "cve-shared is already fixed at this build, as CVE-SHARED would be")
+}
+
 // An exact fix is found by comparing versions with the searched version's config, not by string equality:
 // with the auto epoch strategy an installed rpm version without an epoch equals a fix that names one.
 func TestSet_SplitVulnerable_ExactFixHonorsEpochConfig(t *testing.T) {

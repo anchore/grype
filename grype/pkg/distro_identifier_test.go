@@ -162,6 +162,16 @@ func TestApplyDistroIdentifiers(t *testing.T) {
 			},
 		},
 		{
+			// RapidFort's feed has no Fedora release, only fc* events inside EL releases
+			// (OS/redhat), so rapidfort-redhat:40 would search rows that do not exist
+			name:   "fedora is not remapped",
+			distro: distro.New(distro.Fedora, "40", ""),
+			sbom:   imageSBOM(map[string]string{"maintainer": "rapidfort"}),
+			want: func(t *testing.T, got *distro.Distro) {
+				assert.Equal(t, distro.Fedora, got.Type)
+			},
+		},
+		{
 			name:   "apply never disables the rule",
 			distro: distro.New(distro.Ubuntu, "20.04", ""),
 			sbom:   imageSBOM(map[string]string{"maintainer": "rapidfort"}),

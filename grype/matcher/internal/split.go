@@ -110,7 +110,7 @@ func removeExactlyFixed(candidates, exactlyFixed result.Set) result.Set {
 func cveIDsOf(s *strset.Set) *strset.Set {
 	out := strset.New()
 	s.Each(func(id string) bool {
-		if strings.HasPrefix(id, "CVE-") {
+		if len(id) >= 4 && strings.EqualFold(id[:4], "cve-") {
 			out.Add(id)
 		}
 		return true

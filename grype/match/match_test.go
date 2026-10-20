@@ -481,22 +481,36 @@ func TestMatch_Merge_isOrderIndependentForThreeRecords(t *testing.T) {
 	}
 }
 
-// Advisory data spells the same rpm fix both with and without its zero epoch; the merged fix must
-// list it once.
+// Advisory data spells the same fix both with and without its epoch; the merged fix must list it
+// once, with the epoch.
 func TestMergeFix_DedupesEpochSpellings(t *testing.T) {
 	fixed := func(versions ...string) vulnerability.Fix {
 		return vulnerability.Fix{State: vulnerability.FixStateFixed, Versions: versions}
 	}
 
-	t.Run("rpm zero epoch collapses", func(t *testing.T) {
+	t.Run("rpm zero epoch collapses, keeping the explicit epoch", func(t *testing.T) {
 		got := mergeFix(fixed("0:0.26.4-1.fc43"), fixed("0.26.4-1.fc43"), version.RpmFormat)
-		assert.Len(t, got.Versions, 1)
+		assert.Equal(t, []string{"0:0.26.4-1.fc43"}, got.Versions)
 	})
 
 	t.Run("genuinely different builds both survive", func(t *testing.T) {
 		got := mergeFix(fixed("0:0.26.4-1.fc43"), fixed("0:0.26.5-1.fc43"), version.RpmFormat)
 		assert.Equal(t, []string{"0:0.26.4-1.fc43", "0:0.26.5-1.fc43"}, got.Versions)
 	})
+
+	for _, format := range []version.Format{version.RpmFormat, version.DebFormat} {
+		t.Run(format.String()+" omitted epoch matches an explicit one, keeping the explicit epoch", func(t *testing.T) {
+			forward := mergeFix(fixed("1:1.2-3"), fixed("1.2-3"), format)
+			assert.Equal(t, []string{"1:1.2-3"}, forward.Versions)
+			reverse := mergeFix(fixed("1.2-3"), fixed("1:1.2-3"), format)
+			assert.Equal(t, []string{"1:1.2-3"}, reverse.Versions)
+		})
+
+		t.Run(format.String()+" different explicit epochs are different builds", func(t *testing.T) {
+			got := mergeFix(fixed("1:1.2-3"), fixed("2:1.2-3"), format)
+			assert.Equal(t, []string{"1:1.2-3", "2:1.2-3"}, got.Versions)
+		})
+	}
 
 	t.Run("an unknown format leaves the versions exactly as they arrived", func(t *testing.T) {
 		got := mergeFix(fixed("0:0.26.4-1.fc43"), fixed("0.26.4-1.fc43"), version.UnknownFormat)
