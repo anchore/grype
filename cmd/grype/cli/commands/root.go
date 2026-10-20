@@ -234,6 +234,7 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 		Alerts: grype.AlertsConfig{
 			EnableEOLDistroWarnings: opts.Alerts.EnableEOLDistroWarnings,
 		},
+		IncludeMatcherSuppressions: opts.IncludeMatcherSuppressions,
 	}
 
 	remainingMatches, ignoredMatches, err := vulnMatcher.FindMatchesContext(ctx, packages, pkgContext)
@@ -389,10 +390,12 @@ func getMatcherConfig(opts *options.Grype) matcher.Config {
 		Dpkg: dpkg.MatcherConfig{
 			MissingEpochStrategy: opts.Match.Dpkg.MissingEpochStrategy,
 			UseCPEsForEOL:        opts.Match.Dpkg.UseCPEsForEOL,
+			UseCPEs:              opts.Match.Dpkg.UseCPEs,
 		},
 		Rpm: rpm.MatcherConfig{
 			MissingEpochStrategy: opts.Match.Rpm.MissingEpochStrategy,
 			UseCPEsForEOL:        opts.Match.Rpm.UseCPEsForEOL,
+			UseCPEs:              opts.Match.Rpm.UseCPEs,
 		},
 	}
 }

@@ -311,6 +311,7 @@ var comprehensiveDistros = []distro.Type{
 	distro.Debian,
 	distro.Mariner,
 	distro.RedHat,
+	distro.SLES,
 	distro.Ubuntu,
 }
 

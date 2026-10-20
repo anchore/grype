@@ -2,12 +2,14 @@ package store
 
 import (
 	"encoding/json"
+	"path/filepath"
 	"sort"
 	"testing"
 	"time"
 
 	"github.com/go-test/deep"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/store/model"
@@ -27,6 +29,15 @@ func assertIDReader(t *testing.T, reader v5.IDReader, expected v5.ID) {
 	}
 }
 
+// closeOnCleanup closes the underlying sqlite handle so the temp dir can be removed (open files can't be deleted on windows)
+func closeOnCleanup(t *testing.T, s v5.Store) {
+	t.Cleanup(func() {
+		if d, err := s.(*store).db.DB(); err == nil {
+			_ = d.Close()
+		}
+	})
+}
+
 func TestStore_GetID_SetID(t *testing.T) {
 	dbTempFile := t.TempDir()
 
@@ -34,6 +45,7 @@ func TestStore_GetID_SetID(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
+	closeOnCleanup(t, s)
 
 	expected := v5.ID{
 		BuildTimestamp: time.Now().UTC(),
@@ -72,6 +84,7 @@ func TestStore_GetVulnerability_SetVulnerability(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
+	closeOnCleanup(t, s)
 
 	extra := []v5.Vulnerability{
 		{
@@ -275,6 +288,7 @@ func TestStore_GetVulnerabilityMetadata_SetVulnerabilityMetadata(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
+	closeOnCleanup(t, s)
 
 	total := []v5.VulnerabilityMetadata{
 		{
@@ -745,6 +759,7 @@ func TestStore_MergeVulnerabilityMetadata(t *testing.T) {
 			if err != nil {
 				t.Fatalf("could not create store: %+v", err)
 			}
+			closeOnCleanup(t, s)
 
 			// add each metadata in order
 			var theErr error
@@ -1014,6 +1029,7 @@ func TestCvssScoresInMetadata(t *testing.T) {
 			if err != nil {
 				t.Fatalf("could not create s: %+v", err)
 			}
+			closeOnCleanup(t, s)
 
 			// add each metadata in order
 			for _, metadata := range test.add {
@@ -1061,6 +1077,7 @@ func TestStore_GetVulnerabilityMatchExclusion_SetVulnerabilityMatchExclusion(t *
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
+	closeOnCleanup(t, s)
 
 	extra := []v5.VulnerabilityMatchExclusion{
 		{
@@ -1217,11 +1234,13 @@ func Test_DiffStore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
+	closeOnCleanup(t, s1)
 	dbTempFile = t.TempDir()
 	s2, err := New(dbTempFile, true)
 	if err != nil {
 		t.Fatalf("could not create store: %+v", err)
 	}
+	closeOnCleanup(t, s2)
 
 	baseVulns := []v5.Vulnerability{
 		{
@@ -1372,4 +1391,30 @@ func Test_DiffStore(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedDiffs, *result)
+}
+
+func TestNew_CacheSizeKiB(t *testing.T) {
+	tests := []struct {
+		name    string
+		opts    []Option
+		wantKiB int
+	}{
+		{name: "default", wantKiB: 1024 * 1024},
+		{name: "override", opts: []Option{WithCacheSizeKiB(32 * 1024)}, wantKiB: 32 * 1024},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s, err := New(filepath.Join(t.TempDir(), "vulnerability.db"), true, tt.opts...)
+			require.NoError(t, err)
+			st := s.(*store)
+			t.Cleanup(func() {
+				if d, err := st.db.DB(); err == nil {
+					_ = d.Close()
+				}
+			})
+			var result int
+			require.NoError(t, st.db.Raw("PRAGMA cache_size;").Scan(&result).Error)
+			assert.Equal(t, -tt.wantKiB, result)
+		})
+	}
 }

@@ -76,3 +76,29 @@ func Test_oldDbWithMetadata(t *testing.T) {
 	require.NotErrorIs(t, err, gorm.ErrRecordNotFound)
 	require.ErrorContains(t, err, fmt.Sprintf("not a v%d database", ModelVersion))
 }
+
+func TestNewWriter_CacheSizeKiB(t *testing.T) {
+	tests := []struct {
+		name    string
+		kib     int
+		wantKiB int
+	}{
+		{name: "default", wantKiB: 1024 * 1024},
+		{name: "override", kib: 32 * 1024, wantKiB: 32 * 1024},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rw, err := NewWriter(Config{DBDirPath: t.TempDir(), CacheSizeKiB: tt.kib})
+			require.NoError(t, err)
+			s := rw.(*store)
+			t.Cleanup(func() {
+				if d, err := s.db.DB(); err == nil {
+					_ = d.Close()
+				}
+			})
+			var result int
+			require.NoError(t, s.db.Raw("PRAGMA cache_size;").Scan(&result).Error)
+			assert.Equal(t, -tt.wantKiB, result)
+		})
+	}
+}

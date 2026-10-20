@@ -46,7 +46,7 @@ jobs:
       # these are checks that should be run on pull-request and merges to main.
       # we do NOT want to kick off a release if these have not been verified on main.
       # Please see the validations.yaml workflow for the names that should be used here.
-      checks: '["Acceptance tests (Linux)", "Acceptance tests (Mac)", "Build snapshot artifacts", "CLI tests (Linux)", "Integration tests", "Quality tests", "Static analysis", "Unit tests"]'
+      checks: '["Acceptance tests (Linux)", "Acceptance tests (Mac)", "Build snapshot artifacts", "CLI tests (Linux)", "Containers-storage tests (Buildah)", "Containers-storage tests (Podman)", "Integration tests", "Quality tests", "Static analysis", "Unit tests"]'
 
   # only release core assets within the "release" job. Any other assets not already under the purview of the
   # goreleaser configuration should be added as separate jobs to allow for debugging separately from the release workflow
@@ -110,7 +110,7 @@ jobs:
           # for updating brew formula in anchore/homebrew-syft
           GITHUB_BREW_TOKEN: ${{ secrets.ANCHOREOPS_GITHUB_OSS_WRITE_TOKEN }}
 
-      - uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+      - uses: anchore/sbom-action@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
         continue-on-error: true
         with:
           artifact-name: sbom.spdx.json

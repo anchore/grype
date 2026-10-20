@@ -156,6 +156,7 @@ func mergeESMAdvisoryIntoSingleDisclosure(v *version.Version, disclosure vulnera
 	var constraints []version.Constraint
 	var state vulnerability.FixState
 	var allAdvisoryDetails match.Details
+	var fixAvailability []vulnerability.FixAvailable
 
 	// check if we're vulnerable to the original disclosure
 	if isVulnerableVersion(v, disclosure.Constraint, disclosure.ID) {
@@ -164,7 +165,7 @@ func mergeESMAdvisoryIntoSingleDisclosure(v *version.Version, disclosure vulnera
 
 	// process advisory overlays, incorporating new fix versions and updating the version constraints
 	for _, advisoryOverlay := range advisoryOverlays {
-		collectMatchingConstraintsDetailsAndFixState(v, advisoryOverlay, fixVersions, &constraints, &state, &allAdvisoryDetails)
+		collectMatchingConstraintsDetailsAndFixState(v, advisoryOverlay, fixVersions, &constraints, &state, &allAdvisoryDetails, &fixAvailability)
 	}
 
 	if len(constraints) == 0 {
@@ -172,13 +173,13 @@ func mergeESMAdvisoryIntoSingleDisclosure(v *version.Version, disclosure vulnera
 		return nil, nil
 	}
 
-	patchedRecord := buildPatchedVulnerabilityRecord(v, disclosure, fixVersions, constraints, state)
+	patchedRecord := buildPatchedVulnerabilityRecord(v, disclosure, fixVersions, constraints, state, fixAvailability)
 	return &patchedRecord, allAdvisoryDetails
 }
 
 // collectMatchingConstraintsDetailsAndFixState processes vulnerabilities from advisory overlays, applying any new fix
-// versions and updating the given fix state / constraints.
-func collectMatchingConstraintsDetailsAndFixState(v *version.Version, advisoryResult result.Result, fixVersions *version.Set, constraints *[]version.Constraint, state *vulnerability.FixState, allAdvisoryDetails *match.Details) {
+// versions and updating the given fix state / constraints / fix availability.
+func collectMatchingConstraintsDetailsAndFixState(v *version.Version, advisoryResult result.Result, fixVersions *version.Set, constraints *[]version.Constraint, state *vulnerability.FixState, allAdvisoryDetails *match.Details, fixAvailability *[]vulnerability.FixAvailable) {
 	advisories := advisoryResult.Vulnerabilities
 	var keepDetails bool
 	for _, advisory := range advisories {
@@ -199,6 +200,7 @@ func collectMatchingConstraintsDetailsAndFixState(v *version.Version, advisoryRe
 		// we're vulnerable! keep any fix versions that could have been applied
 		*constraints = append(*constraints, advisory.Constraint)
 		fixVersions.Add(applicableFixes...)
+		*fixAvailability = append(*fixAvailability, advisory.Fix.Available...)
 		if *state != vulnerability.FixStateFixed {
 			*state = advisory.Fix.State
 		}
@@ -213,7 +215,7 @@ func collectMatchingConstraintsDetailsAndFixState(v *version.Version, advisoryRe
 
 // buildPatchedVulnerabilityRecord creates the final patched vulnerability record from the original disclosure and
 // fix/constraint information from applicable advisories.
-func buildPatchedVulnerabilityRecord(v *version.Version, disclosure vulnerability.Vulnerability, fixVersions *version.Set, constraints []version.Constraint, state vulnerability.FixState) vulnerability.Vulnerability {
+func buildPatchedVulnerabilityRecord(v *version.Version, disclosure vulnerability.Vulnerability, fixVersions *version.Set, constraints []version.Constraint, state vulnerability.FixState, fixAvailability []vulnerability.FixAvailable) vulnerability.Vulnerability {
 	patchedRecord := disclosure
 
 	if state == vulnerability.FixStateFixed {
@@ -227,6 +229,8 @@ func buildPatchedVulnerabilityRecord(v *version.Version, disclosure vulnerabilit
 			}
 			constraints = append(constraints, fixConstraint)
 		}
+		// the fix versions were replaced, so the availability must describe the new versions (not the disclosure's)
+		patchedRecord.Fix.Available = internal.FixAvailabilityForVersions(patchedRecord.Fix.Versions, fixAvailability)
 	}
 
 	patchedRecord.Fix.State = finalizeFixState(disclosure, state)

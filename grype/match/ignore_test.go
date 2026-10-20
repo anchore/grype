@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/anchore/grype/grype/internal/ignorereasons"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/artifact"
@@ -1181,7 +1182,7 @@ func TestIgnoreRelatedPackage(t *testing.T) {
 	}
 
 	filter := IgnoreRelatedPackage{
-		Reason:           "Explicit APK NAK by Ownership",
+		Reason:           ignorereasons.DistroNAK,
 		RelationshipType: artifact.OwnershipByFileOverlapRelationship,
 		VulnerabilityID:  "GHSA-xjjg-vmw6-c2p9",
 		RelatedPackageID: ownerPkgID,
@@ -1241,6 +1242,7 @@ func TestIgnoreRelatedPackage(t *testing.T) {
 				assert.NotEmpty(t, rules, "expected match to be ignored")
 				assert.Equal(t, filter.VulnerabilityID, rules[0].Vulnerability)
 				assert.Equal(t, filter.Reason, rules[0].Reason)
+				assert.True(t, rules[0].IncludeAliases, "emitted rule should include aliases")
 			} else {
 				assert.Empty(t, rules, "expected match to NOT be ignored")
 			}

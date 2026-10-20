@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "anchore.io/schema/grype/db/blob/json/6.1.9",
+  "$id": "anchore.io/schema/grype/db/blob/json/6.1.10",
   "$defs": {
     "Fix": {
       "$defs": {

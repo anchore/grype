@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/grype/internal/ignorereasons"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
@@ -13,16 +14,6 @@ import (
 	"github.com/anchore/syft/syft/artifact"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
-
-// reasonDistroPackageFixed is the IgnoreRelatedPackage reason emitted by the
-// shared internal/MatchPackageByDistro path for vulns the secdb considers
-// fixed (or unaffected/NAK) for the package.
-const reasonDistroPackageFixed = "DistroPackageFixed"
-
-// reasonExplicitApkNak is the IgnoreRelatedPackage reason emitted by the
-// apk-specific findNaksForPackage path for secdb entries with the apk
-// "< 0" sentinel constraint.
-const reasonExplicitApkNak = "Explicit APK NAK"
 
 // reasonCPENotVulnerable is the IgnoreRelatedPackage reason emitted by
 // MatchPackageByCPEs for CPE matches that resolved a vulnerability record
@@ -107,7 +98,7 @@ func TestMatcherApk_SecdbMatchesWithoutCpe(t *testing.T) {
 		})
 }
 
-// === fixed-version → DistroPackageFixed ignore (no match) ===
+// === fixed-version → distro-fixed ignore (no match) ===
 
 func TestMatcherApk_FixedVersionProducesIgnore_Alpine(t *testing.T) {
 	dbtest.DBs(t, "alpine318").
@@ -121,7 +112,7 @@ func TestMatcherApk_FixedVersionProducesIgnore_Alpine(t *testing.T) {
 				Build()
 
 			db.Match(t, &matcher, p).Ignores().
-				SelectRelatedPackageIgnore(reasonDistroPackageFixed, "CVE-2024-0727").
+				SelectRelatedPackageIgnore(ignorereasons.DistroFixed, "CVE-2024-0727").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
 		})
@@ -139,7 +130,7 @@ func TestMatcherApk_FixedVersionProducesIgnore_Wolfi(t *testing.T) {
 				Build()
 
 			db.Match(t, &matcher, p).Ignores().
-				SelectRelatedPackageIgnore(reasonDistroPackageFixed, "CVE-2024-0727").
+				SelectRelatedPackageIgnore(ignorereasons.DistroFixed, "CVE-2024-0727").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
 		})
@@ -147,7 +138,7 @@ func TestMatcherApk_FixedVersionProducesIgnore_Wolfi(t *testing.T) {
 
 // TestMatcherApk_FixedVersionInUpstreamProducesIgnore verifies that when a
 // binary apk package's upstream is at or past the secdb fix, the
-// DistroPackageFixed ignore is emitted against the binary package's ID
+// distro-fixed ignore is emitted against the binary package's ID
 // (catalogPkg) - not the synthetic upstream - so consumers can suppress
 // language-ecosystem matches that overlap the binary by file ownership.
 func TestMatcherApk_FixedVersionInUpstreamProducesIgnore(t *testing.T) {
@@ -163,19 +154,19 @@ func TestMatcherApk_FixedVersionInUpstreamProducesIgnore(t *testing.T) {
 				Build()
 
 			db.Match(t, &matcher, p).Ignores().
-				SelectRelatedPackageIgnore(reasonDistroPackageFixed, "CVE-2024-0727").
+				SelectRelatedPackageIgnore(ignorereasons.DistroFixed, "CVE-2024-0727").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
 		})
 }
 
-// === NAK → Explicit APK NAK + DistroPackageFixed ignores ===
+// === NAK → distro-nak + distro-fixed ignores ===
 
 // TestMatcherApk_NakProducesIgnore_Alpine verifies the NAK path: alpine
 // CVE-2019-6470 lists bind with Version="0", which the v6 OS transformer
 // turns into a "< 0" ApkFormat constraint. The matcher emits two ignores
-// per NAK - one DistroPackageFixed via the shared MatchPackageByDistro
-// fixed/unaffected ownership path, and one apk-specific Explicit APK NAK
+// per NAK - one distro-fixed via the shared MatchPackageByDistro
+// fixed/unaffected ownership path, and one apk-specific distro-nak
 // via findNaksForPackage. Both point at the same package + CVE.
 func TestMatcherApk_NakProducesIgnore_Alpine(t *testing.T) {
 	dbtest.DBs(t, "alpine318").
@@ -189,10 +180,10 @@ func TestMatcherApk_NakProducesIgnore_Alpine(t *testing.T) {
 				Build()
 
 			ignores := db.Match(t, &matcher, p).Ignores()
-			ignores.SelectRelatedPackageIgnore(reasonExplicitApkNak, "CVE-2019-6470").
+			ignores.SelectRelatedPackageIgnore(ignorereasons.DistroNAK, "CVE-2019-6470").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
-			ignores.SelectRelatedPackageIgnore(reasonDistroPackageFixed, "CVE-2019-6470").
+			ignores.SelectRelatedPackageIgnore(ignorereasons.DistroFixed, "CVE-2019-6470").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
 		})
@@ -211,10 +202,10 @@ func TestMatcherApk_NakProducesIgnore_Wolfi(t *testing.T) {
 				Build()
 
 			ignores := db.Match(t, &matcher, p).Ignores()
-			ignores.SelectRelatedPackageIgnore(reasonExplicitApkNak, "CVE-2024-47535").
+			ignores.SelectRelatedPackageIgnore(ignorereasons.DistroNAK, "CVE-2024-47535").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
-			ignores.SelectRelatedPackageIgnore(reasonDistroPackageFixed, "CVE-2024-47535").
+			ignores.SelectRelatedPackageIgnore(ignorereasons.DistroFixed, "CVE-2024-47535").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
 		})
@@ -237,10 +228,10 @@ func TestMatcherApk_NakInUpstreamProducesIgnore(t *testing.T) {
 				Build()
 
 			ignores := db.Match(t, &matcher, p).Ignores()
-			ignores.SelectRelatedPackageIgnore(reasonExplicitApkNak, "CVE-2019-6470").
+			ignores.SelectRelatedPackageIgnore(ignorereasons.DistroNAK, "CVE-2019-6470").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
-			ignores.SelectRelatedPackageIgnore(reasonDistroPackageFixed, "CVE-2019-6470").
+			ignores.SelectRelatedPackageIgnore(ignorereasons.DistroFixed, "CVE-2019-6470").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
 		})
@@ -290,7 +281,7 @@ func TestMatcherApk_NvdDedupedBySecdb(t *testing.T) {
 // TestMatcherApk_NvdDroppedWhenSecdbHasFix verifies that when secdb knows
 // about a CVE and considers the package fixed, the NVD CPE record is
 // dropped even if NVD still considers the upstream version vulnerable. The
-// only output is a DistroPackageFixed ignore from the secdb path.
+// only output is a distro-fixed ignore from the secdb path.
 func TestMatcherApk_NvdDroppedWhenSecdbHasFix(t *testing.T) {
 	// alpine fix: openssl 3.1.4-r5. NVD CVE-2024-0727 lists openssl in
 	// [3.1.0, 3.1.5), so 3.1.4 still matches the NVD CPE range - this is
@@ -307,7 +298,7 @@ func TestMatcherApk_NvdDroppedWhenSecdbHasFix(t *testing.T) {
 				Build()
 
 			db.Match(t, &matcher, p).Ignores().
-				SelectRelatedPackageIgnore(reasonDistroPackageFixed, "CVE-2024-0727").
+				SelectRelatedPackageIgnore(ignorereasons.DistroFixed, "CVE-2024-0727").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
 		})
@@ -459,12 +450,12 @@ func TestMatcherApk_NvdCanceledByUpstreamSecdbNak(t *testing.T) {
 			findings.DoesNotHaveAnyVulnerabilities("CVE-2024-47535")
 
 			// the upstream NAK still produces both apk-NAK and
-			// DistroPackageFixed ignores keyed to the catalog package.
+			// distro-fixed ignores keyed to the catalog package.
 			ignores := findings.Ignores()
-			ignores.SelectRelatedPackageIgnore(reasonExplicitApkNak, "CVE-2024-47535").
+			ignores.SelectRelatedPackageIgnore(ignorereasons.DistroNAK, "CVE-2024-47535").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
-			ignores.SelectRelatedPackageIgnore(reasonDistroPackageFixed, "CVE-2024-47535").
+			ignores.SelectRelatedPackageIgnore(ignorereasons.DistroFixed, "CVE-2024-47535").
 				ForPackage(pkgID).
 				WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
 		})
@@ -506,10 +497,10 @@ func TestMatcherApk_UpstreamCveSuppressedByFixedAlias(t *testing.T) {
 		// must not surface as its own match.
 		findings.DoesNotHaveAnyVulnerabilities("CVE-2026-24398")
 
-		// the distro fixed path still emits one DistroPackageFixed ignore per
+		// the distro fixed path still emits one distro-fixed ignore per
 		// identifier (the CGA id plus its CVE/GHSA aliases).
 		findings.Ignores().
-			SelectRelatedPackageIgnores(reasonDistroPackageFixed,
+			SelectRelatedPackageIgnores(ignorereasons.DistroFixed,
 				"CGA-22hv-wp9q-4779",
 				"CVE-2026-24398",
 				"GHSA-r354-f388-2fhh").
@@ -573,7 +564,7 @@ func TestMatcherApk_UpstreamCveDedupedByIntroducedZeroAlias(t *testing.T) {
 
 		// the ranges-less advisory must NOT be treated as an apk NAK: it is affected at every
 		// version, not "not affected". The "< 0" NAK filter no longer matches a record that
-		// carries no "< 0" constraint, so no Explicit APK NAK ignores are emitted.
+		// carries no "< 0" constraint, so no distro-nak ignores are emitted.
 		findings.Ignores().IsEmpty()
 	})
 }
@@ -669,14 +660,14 @@ func TestMatcherApk_ArchFilter_MatchWhenArchAgrees(t *testing.T) {
 // TestMatcherApk_ArchFilter_IgnoreWhenArchAgrees is the pair of
 // MatchWhenArchAgrees: same package, same arch, but a version past the
 // fix. The arch qualifier still passes so the fix path runs and emits
-// one DistroPackageFixed ignore per identifier (CGA id + aliases).
+// one distro-fixed ignore per identifier (CGA id + aliases).
 // Cross-checks that arch filtering doesn't short-circuit the
 // fixed-version ignore emission.
 func TestMatcherApk_ArchFilter_IgnoreWhenArchAgrees(t *testing.T) {
 	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
 		matcher := Matcher{}
 		// fix is 3.153.0-r0; 3.153.1-r0 is over the fix, so the matcher emits
-		// no match but does emit one DistroPackageFixed ignore per identifier
+		// no match but does emit one distro-fixed ignore per identifier
 		// (the CGA id plus its CVE/GHSA aliases) so consumers can suppress
 		// language-ecosystem findings that overlap by file ownership.
 		pkgID := pkg.ID("langfuse-past-fix")
@@ -688,7 +679,7 @@ func TestMatcherApk_ArchFilter_IgnoreWhenArchAgrees(t *testing.T) {
 
 		// vulnerability fixed this pkg-version for this architecture
 		db.Match(t, &matcher, p).Ignores().
-			SelectRelatedPackageIgnores(reasonDistroPackageFixed,
+			SelectRelatedPackageIgnores(ignorereasons.DistroFixed,
 				"CGA-22hv-wp9q-4779",
 				"CVE-2026-24398",
 				"GHSA-r354-f388-2fhh").
@@ -701,7 +692,7 @@ func TestMatcherApk_ArchFilter_IgnoreWhenArchAgrees(t *testing.T) {
 // the package's arch is aarch64 but the only Chainguard APH for this name has
 // arch=x86_64, so OnlyQualifiedPackages drops it before the version check ever
 // runs. No match, no ignore (the vuln is filtered before reaching the fix
-// path that would emit a DistroPackageFixed ignore).
+// path that would emit a distro-fixed ignore).
 func TestMatcherApk_ArchFilter_NoMatchWhenArchDisagrees(t *testing.T) {
 	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
 		matcher := Matcher{}
