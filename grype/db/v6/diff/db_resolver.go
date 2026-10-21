@@ -26,7 +26,7 @@ type ResolvedDB struct {
 // ResolveDB takes a user-provided value (URL, file path, or directory path) and returns
 // a directory path containing a vulnerability.db file, suitable for passing to NewProviderDiffer.
 // If defaultDir is non-empty and value is empty, defaultDir is used.
-// The returned cleanup function should be called to remove any temporary directories created.
+// The returned Cleanup function is never nil and should be called to remove any temporary directories created.
 //
 // Supported inputs:
 //   - empty string: falls back to defaultDir
@@ -94,6 +94,11 @@ func newResolvedDB(dir string, cleanup func()) (ResolvedDB, error) {
 	info, err := newDatabaseInfo(dir)
 	if err != nil {
 		return ResolvedDB{}, fmt.Errorf("failed to get old database info: %w", err)
+	}
+
+	// callers defer Cleanup unconditionally, so it must never be nil
+	if cleanup == nil {
+		cleanup = func() {}
 	}
 
 	return ResolvedDB{

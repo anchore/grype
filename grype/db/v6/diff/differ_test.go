@@ -1302,6 +1302,23 @@ func nilIfEmpty[T any](s []T) []T {
 	return s
 }
 
+// Test_resolvedDBCleanupNeverNil verifies local databases resolve with a callable Cleanup, since NewDBDiffer defers it
+// whenever the differ can't be created
+func Test_resolvedDBCleanupNeverNil(t *testing.T) {
+	inputDir, err := filepath.Abs(filepath.Join("testdata", "inputs"))
+	require.NoError(t, err)
+
+	dbDir := filepath.Join(t.TempDir(), "db")
+	testdb.BuildFromFlatFileDir(t, time.Time{}, dbDir, inputDir, "cve-2025-59800")
+
+	for _, value := range []string{dbDir, filepath.Join(dbDir, v6.VulnerabilityDBFileName)} {
+		resolved, err := ResolveDB(value, "")
+		require.NoError(t, err)
+		require.NotNil(t, resolved.Cleanup, value)
+		require.NotPanics(t, resolved.Cleanup)
+	}
+}
+
 func requireVulns(t *testing.T, testType string, vulns []VulnerabilityID, vulnNames ...string) {
 	t.Helper()
 	if len(vulns) != len(vulnNames) {
