@@ -25,9 +25,12 @@ import (
 // the end-to-end inputs are unmodified vunnel results for the nvd, cve5, github and govulndb providers, extracted
 // from real workspaces with grype/db/v6/diff/testdata/result-extractor. The merge's unit tests read the same files.
 //
-// The `nvd` and `cve5` workspaces are complete, so NVD already has a record for every CVE 5 record. CVE-2026-108714
+// The `cve5` results come from the enriched dataset published on 2026-10-21, and four of them carry an
+// `anchoreadp` entry (zlib, both BouncyCastle CVEs and the Go CVE). The other providers' results come from runs on
+// 2026-10-12 with complete `nvd` and `cve5` workspaces, so NVD has a record for every CVE 5 record. CVE-2026-108714
 // and CVE-2026-98165 stand in for CVEs NVD has not received yet by leaving their NVD records out of the inputs, and
-// the `github` workspace holds the advisories updated since 2026-09-18.
+// the `github` workspace holds the advisories updated since 2026-09-18. CVE-2026-98165 has been rejected since
+// 2026-10-19.
 const endToEndInputs = "v6/build/testdata/cna"
 
 const (
@@ -38,7 +41,7 @@ const (
 	cveGo        = "CVE-2026-73605"
 	ghsaGo       = "GHSA-hf8h-97gm-4x2p"
 	cveOnlyCVE5  = "CVE-2026-108714"
-	cveLinux     = "CVE-2026-98165"
+	cveRejected  = "CVE-2026-98165"
 
 	jdk18on = "org.bouncycastle:bcprov-jdk18on"
 )
@@ -204,8 +207,8 @@ func TestBuild_reconcileCNAEndToEnd(t *testing.T) {
 		assert.Equal(t, []string{"<= 0.15.0"}, constraints(rows[0]))
 	})
 
-	t.Run("a Linux CVE with only cpeApplicability is not written", func(t *testing.T) {
-		assert.Empty(t, vulnerabilities(t, r, cveLinux))
+	t.Run("a rejected CVE 5 record is not written", func(t *testing.T) {
+		assert.Empty(t, vulnerabilities(t, r, cveRejected))
 	})
 
 	t.Run("a jar in range is reported once for each vulnerability that applies", func(t *testing.T) {
