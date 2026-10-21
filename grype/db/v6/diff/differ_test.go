@@ -911,13 +911,13 @@ func Test_packageDiff(t *testing.T) {
 					switch expected := expected.(type) {
 					case added:
 						hasAdded = true
-						requireVulnIDs(t, "added", vulnChanges.Added, expected...)
+						requireExactVulnIDs(t, "added", vulnChanges.Added, expected...)
 					case modified:
 						hasModified = true
-						requireVulnIDs(t, "modified", vulnChanges.Modified, expected...)
+						requireExactVulnIDs(t, "modified", vulnChanges.Modified, expected...)
 					case removed:
 						hasRemoved = true
-						requireVulnIDs(t, "removed", vulnChanges.Removed, expected...)
+						requireExactVulnIDs(t, "removed", vulnChanges.Removed, expected...)
 					}
 				}
 				if !hasAdded {
@@ -1121,10 +1121,10 @@ func Test_hydrationPermutations(t *testing.T) {
 					switch expected := expected.(type) {
 					case added:
 						hasAdded = true
-						requireVulnIDs(t, "added", vulnChanges.Added, expected...)
+						requireExactVulnIDs(t, "added", vulnChanges.Added, expected...)
 					case removed:
 						hasRemoved = true
-						requireVulnIDs(t, "removed", vulnChanges.Removed, expected...)
+						requireExactVulnIDs(t, "removed", vulnChanges.Removed, expected...)
 					}
 				}
 				if !hasAdded {
@@ -1251,6 +1251,10 @@ func nilIfEmpty[T any](s []T) []T {
 }
 
 func requireVulns(t *testing.T, testType string, vulns []VulnerabilityID, vulnNames ...string) {
+	t.Helper()
+	if len(vulns) != len(vulnNames) {
+		t.Errorf("expected %d %s vulnerabilities %v, got %d: %v", len(vulnNames), testType, vulnNames, len(vulns), vulns)
+	}
 nextVuln:
 	for _, required := range vulnNames {
 		for _, vuln := range vulns {
@@ -1260,6 +1264,15 @@ nextVuln:
 		}
 		t.Errorf("expected %s vulnerability %q not found", testType, required)
 	}
+}
+
+// requireExactVulnIDs requires that vulns holds exactly the expected entries, with no duplicates
+func requireExactVulnIDs(t *testing.T, testType string, vulns []VulnerabilityID, expected ...VulnerabilityID) {
+	t.Helper()
+	if len(vulns) != len(expected) {
+		t.Errorf("expected %d %s vulnerabilities %v, got %d: %v", len(expected), testType, expected, len(vulns), vulns)
+	}
+	requireVulnIDs(t, testType, vulns, expected...)
 }
 
 func requireVulnIDs(t *testing.T, testType string, vulns []VulnerabilityID, expected ...VulnerabilityID) {
