@@ -29,9 +29,34 @@ func models() []any {
 	}
 }
 
+// Option configures optional behavior of New.
+type Option func(*options)
+
+type options struct {
+	cacheSizeKiB int
+}
+
+// WithCacheSizeKiB sets the SQLite page cache size (in KiB) used while writing a new DB (only applies when
+// overwrite is true). Zero means use the built-in default (1 GiB).
+func WithCacheSizeKiB(kib int) Option {
+	return func(o *options) {
+		o.cacheSizeKiB = kib
+	}
+}
+
 // New creates a new instance of the store.
-func New(dbFilePath string, overwrite bool) (v5.Store, error) {
-	db, err := gormadapter.Open(dbFilePath, gormadapter.WithTruncate(overwrite, models(), nil))
+func New(dbFilePath string, overwrite bool, opts ...Option) (v5.Store, error) {
+	var o options
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&o)
+		}
+	}
+
+	db, err := gormadapter.Open(dbFilePath,
+		gormadapter.WithTruncate(overwrite, models(), nil),
+		gormadapter.WithCacheSizeKiB(o.cacheSizeKiB),
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -116,9 +116,9 @@ func (w *WorkspaceWriter) WriteResult(filename string, content []byte) (*File, e
 	_, _ = hasher.Write(formattedContent)
 
 	return &File{
-		Path:      filepath.Join("results", filename),
+		Path:      filepath.ToSlash(filepath.Join("results", filename)),
 		Digest:    hex.EncodeToString(hasher.Sum(nil)),
-		Algorithm: "xxh64",
+		Algorithm: xxh64Algorithm,
 	}, nil
 }
 

@@ -144,3 +144,65 @@ func TestIsDistroEOL(t *testing.T) {
 func ptrTime(t time.Time) *time.Time {
 	return &t
 }
+
+func TestCheckDistroEOL_SupportEndFallback(t *testing.T) {
+	past := time.Now().AddDate(-1, 0, 0)
+	future := time.Now().AddDate(1, 0, 0)
+	providerDate := time.Now().AddDate(-2, 0, 0)
+
+	tests := []struct {
+		name          string
+		provider      vulnerability.Provider
+		supportEnd    *time.Time
+		expectEOL     bool
+		expectEOLDate *time.Time
+	}{
+		{
+			name:          "past SUPPORT_END is used when the provider has no data",
+			provider:      newMockEOLProvider(nil, nil),
+			supportEnd:    &past,
+			expectEOL:     true,
+			expectEOLDate: &past,
+		},
+		{
+			name:          "future SUPPORT_END is reported but not EOL",
+			provider:      newMockEOLProvider(nil, nil),
+			supportEnd:    &future,
+			expectEOL:     false,
+			expectEOLDate: &future,
+		},
+		{
+			name:          "SUPPORT_END is used when the provider cannot check EOL",
+			provider:      mock.VulnerabilityProvider(),
+			supportEnd:    &past,
+			expectEOL:     true,
+			expectEOLDate: &past,
+		},
+		{
+			name:          "provider data takes precedence over SUPPORT_END",
+			provider:      newMockEOLProvider(&providerDate, nil),
+			supportEnd:    &future,
+			expectEOL:     true,
+			expectEOLDate: &providerDate,
+		},
+		{
+			name:          "no provider data and no SUPPORT_END",
+			provider:      newMockEOLProvider(nil, nil),
+			supportEnd:    nil,
+			expectEOL:     false,
+			expectEOLDate: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := distro.New(distro.Fedora, "38", "")
+			d.SupportEnd = tt.supportEnd
+
+			status := CheckDistroEOL(tt.provider, d)
+
+			assert.Equal(t, tt.expectEOL, status.IsEOL)
+			assert.Equal(t, tt.expectEOLDate, status.EOLDate)
+		})
+	}
+}

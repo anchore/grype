@@ -121,7 +121,7 @@ func GenerateListingFile(resultsDir, listingPath string) error {
 
 		// format: <hash>  results/<relative-path>
 		// the path is relative to the provider directory
-		listingPath := filepath.Join("results", relPath)
+		listingPath := filepath.ToSlash(filepath.Join("results", relPath))
 		if _, err := fmt.Fprintf(writer, "%s  %s\n", hash, listingPath); err != nil {
 			return err
 		}

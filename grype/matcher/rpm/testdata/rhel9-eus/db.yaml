@@ -16,3 +16,5 @@ extractions:
         - rhel:8/cve-2016-9840
         - rhel:8/cve-2020-7788
         - rhel:8.4+eus/cve-2020-7788
+        - rhel:9/cve-2024-7347
+        - rhel:9.4+eus/cve-2024-7347

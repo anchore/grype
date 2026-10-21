@@ -26,10 +26,24 @@ type VulnerabilityBlob struct {
 
 	// Severities is a list of severity indications (quantitative or qualitative) for the vulnerability
 	Severities []Severity `json:"severities,omitempty"`
+
+	// Modifications is an audit trail of build-time amendments made to this record from other data
+	// sources (e.g. a GHSA record patched with Go symbol information from the aliased govulndb record).
+	Modifications []Modification `json:"modifications,omitempty"`
 }
 
 func (v VulnerabilityBlob) String() string {
 	return v.ID
+}
+
+// Modification records a single build-time amendment to a vulnerability record: the URL of the
+// data source the amendment was derived from and a description of each change made.
+type Modification struct {
+	// URL points to the source data the record was modified with (e.g. "https://vuln.go.dev/ID/GO-2024-2687.json").
+	URL string `json:"url"`
+
+	// Changes describes each amendment made to the record (e.g. "added go symbols to affected package golang.org/x/net").
+	Changes []string `json:"changes,omitempty"`
 }
 
 // Reference represents a single external URL and string tags to use for organizational purposes
@@ -160,6 +174,21 @@ type PackageQualifiers struct {
 	// RootIO indicates that the vulnerability applies only to Root IO packages (packages with Root IO fixes).
 	// When true, standard packages will not match this vulnerability (NAK pattern).
 	RootIO *bool `json:"rootio,omitempty"`
+
+	// GoImports lists the packages and symbols within an affected Go module that contain the vulnerability
+	// (from govulndb's ecosystem_specific.imports). When set, packages carrying binary symbol evidence only
+	// match if at least one of the listed symbols is present in the binary.
+	GoImports []GoImport `json:"go_imports,omitempty"`
+}
+
+// GoImport describes a single package within an affected Go module and the vulnerable symbols it contains.
+type GoImport struct {
+	// Path is the import path of the package within the affected module (e.g. "golang.org/x/net/html").
+	Path string `json:"path"`
+
+	// Symbols lists the vulnerable function/method names within the package (e.g. "Parse" or "Decoder.Decode").
+	// An empty list means the entire package is considered vulnerable.
+	Symbols []string `json:"symbols,omitempty"`
 }
 
 // Range defines a specific range of package versions pertaining to a vulnerability.

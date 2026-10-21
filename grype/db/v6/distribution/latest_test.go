@@ -271,6 +271,7 @@ func TestNewArchive(t *testing.T) {
 			require.NoError(t, err)
 			_, err = tempFile.WriteString(tt.contents)
 			require.NoError(t, err)
+			require.NoError(t, tempFile.Close())
 
 			archive, err := NewArchive(tempFile.Name(), tt.time, tt.model, tt.revision, tt.addition)
 			tt.expectErr(t, err)

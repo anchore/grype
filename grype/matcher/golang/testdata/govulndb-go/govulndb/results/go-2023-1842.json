@@ -1,0 +1,75 @@
+{
+  "identifier": "go-2023-1842",
+  "item": {
+    "schema_version": "1.3.1",
+    "id": "GO-2023-1842",
+    "modified": "2024-05-20T16:03:47Z",
+    "published": "2023-06-08T20:15:53Z",
+    "aliases": [
+      "CVE-2023-29405"
+    ],
+    "summary": "Improper sanitization of LDFLAGS with embedded spaces in go command with cgo in cmd/go",
+    "details": "The go command may execute arbitrary code at build time when using cgo. This may occur when running \"go get\" on a malicious module, or when running any other command which builds untrusted code. This is can by triggered by linker flags, specified via a \"#cgo LDFLAGS\" directive.\n\nFlags containing embedded spaces are mishandled, allowing disallowed flags to be smuggled through the LDFLAGS sanitization by including them in the argument of another flag. This only affects usage of the gccgo compiler.",
+    "affected": [
+      {
+        "package": {
+          "name": "toolchain",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1.19.10"
+              },
+              {
+                "introduced": "1.20.0-0"
+              },
+              {
+                "fixed": "1.20.5"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "imports": [
+            {
+              "path": "cmd/go"
+            },
+            {
+              "path": "cmd/cgo"
+            }
+          ]
+        }
+      }
+    ],
+    "references": [
+      {
+        "type": "REPORT",
+        "url": "https://go.dev/issue/60306"
+      },
+      {
+        "type": "FIX",
+        "url": "https://go.dev/cl/501224"
+      },
+      {
+        "type": "WEB",
+        "url": "https://groups.google.com/g/golang-announce/c/q5135a9d924/m/j0ZoAJOHAwAJ"
+      }
+    ],
+    "credits": [
+      {
+        "name": "Juho Nurminen of Mattermost"
+      }
+    ],
+    "database_specific": {
+      "url": "https://pkg.go.dev/vuln/GO-2023-1842",
+      "review_status": "REVIEWED"
+    }
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.3.1.json"
+}

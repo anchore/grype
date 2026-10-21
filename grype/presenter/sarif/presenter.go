@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
-	"path/filepath"
+	"path"
 	"regexp"
 	"strings"
 
@@ -194,20 +194,20 @@ func (p Presenter) inputPath() string {
 
 // locationPath returns a path for the location, relative to the cwd
 func (p Presenter) locationPath(l file.Location) string {
-	path := l.Path()
+	loc := strings.TrimPrefix(l.Path(), "./")
 	in := p.inputPath()
-	path = strings.TrimPrefix(path, "./")
 	// trimmed off any ./ and accounted for dir:. for both path and input path
 	_, ok := p.src.Metadata.(source.DirectoryMetadata)
 	if ok {
-		if filepath.IsAbs(path) || in == "" {
-			return path
+		// location paths are always posix (regardless of host OS), so use path over filepath here
+		if path.IsAbs(loc) || in == "" {
+			return loc
 		}
 		// return a path relative to the cwd, if it's not absolute
-		return fmt.Sprintf("%s/%s", in, path)
+		return fmt.Sprintf("%s/%s", in, loc)
 	}
 
-	return path
+	return loc
 }
 
 // locations the locations array is a single "physical" location with potentially multiple logical locations

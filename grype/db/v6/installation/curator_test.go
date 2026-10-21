@@ -138,6 +138,11 @@ func writeTestDescriptionToDB(t *testing.T, dir string, desc db.Description) str
 
 	require.NoError(t, d.Exec("VACUUM").Error)
 
+	// release the file before hashing it (and so the temp dir can be removed on windows)
+	sqlDB, err := d.DB()
+	require.NoError(t, err)
+	require.NoError(t, sqlDB.Close())
+
 	digest, err := db.CalculateDBDigest(afero.NewOsFs(), c.DBFilePath())
 	require.NoError(t, err)
 
@@ -523,6 +528,7 @@ func TestCurator_validateIntegrity(t *testing.T) {
 
 		m, err := s.GetDBMetadata()
 		require.NoError(t, err)
+		require.NoError(t, s.Close())
 
 		return ci.(curator), db.DescriptionFromMetadata(m)
 	}
@@ -937,6 +943,7 @@ func Test_unarchive(t *testing.T) {
 	}
 	err = format.Archive(t.Context(), out, files)
 	require.NoError(t, err)
+	require.NoError(t, out.Close())
 
 	destination := t.TempDir()
 	err = unarchive(source, destination)

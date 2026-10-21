@@ -1,4 +1,9 @@
 version: "2"
+run:
+  # keep in sync with buildTags in .make/main.go
+  build-tags:
+    - containers_image_openpgp
+    - exclude_graphdriver_btrfs
 linters:
     # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
   default: none

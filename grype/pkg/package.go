@@ -311,6 +311,7 @@ var comprehensiveDistros = []distro.Type{
 	distro.Debian,
 	distro.Mariner,
 	distro.RedHat,
+	distro.SLES,
 	distro.Ubuntu,
 }
 
@@ -411,6 +412,9 @@ func golangMetadataFromPkg(p syftPkg.Package) any {
 		metadata.Architecture = value.Architecture
 		metadata.H1Digest = value.H1Digest
 		metadata.MainModule = value.MainModule
+		// normalize once here, on the provider path, so the gosymbols qualifier never re-normalizes
+		// per candidate vulnerability during matching.
+		metadata.Symbols = normalizeGoSymbols(value.Symbols)
 		return metadata
 	case syftPkg.GolangModuleEntry:
 		metadata := GolangModMetadata{}

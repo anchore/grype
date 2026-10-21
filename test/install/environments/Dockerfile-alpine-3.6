@@ -1,5 +1,9 @@
 FROM alpine:3.6
 RUN apk update && apk add python3 wget curl unzip make ca-certificates
-RUN curl -O -L "https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64" && \
-    mv cosign-linux-amd64 /usr/local/bin/cosign && \
+# cosign is pinned (and checksum verified) so the install tests always run with a cosign that can verify
+# sigstore bundles (releases >= v0.120.0 need v2.5.0 or newer)
+ARG COSIGN_VERSION=v3.1.3
+ARG COSIGN_SHA256=4629c757b7618056f8ddd7e2625ae9fdd94c0372a65049520bc7d9df9efc7f71
+RUN curl -sSfL -o /usr/local/bin/cosign "https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-amd64" && \
+    echo "${COSIGN_SHA256}  /usr/local/bin/cosign" | sha256sum -c - && \
     chmod +x /usr/local/bin/cosign

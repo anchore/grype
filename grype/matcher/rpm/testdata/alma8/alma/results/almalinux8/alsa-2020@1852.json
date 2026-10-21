@@ -9,6 +9,17 @@
         },
         "ranges": [
           {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2020-04-28",
+                    "kind": "advisory",
+                    "version": "2.7.6-11.el8"
+                  }
+                ]
+              }
+            },
             "events": [
               {
                 "introduced": "0"

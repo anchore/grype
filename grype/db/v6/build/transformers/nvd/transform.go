@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/scylladb/go-set/strset"
 
@@ -95,6 +96,10 @@ func transform(cfg Config, vulnerability unmarshal.NVDVulnerability, state provi
 
 	for _, cwe := range getCWEs(vulnerability) {
 		in = append(in, cwe)
+	}
+
+	for _, ssvc := range getSSVC(vulnerability) {
+		in = append(in, ssvc)
 	}
 
 	return transformers.NewEntries(in...), nil
@@ -205,6 +210,66 @@ func getCWEs(vulnerability unmarshal.NVDVulnerability) []db.CWEHandle {
 		}
 	}
 	return cwes
+}
+
+// getSSVC folds NVD's metrics.ssvcV203 array into one SsvcHandle per source entry.
+// vulnerability.Metrics is a pointer and, unlike Weaknesses, can be nil.
+func getSSVC(vulnerability unmarshal.NVDVulnerability) []db.SsvcHandle {
+	if vulnerability.Metrics == nil {
+		return nil
+	}
+	var handles []db.SsvcHandle
+	// NVD repeats byte-identical ssvcV203 entries on some records (CVE-2023-43000 carries the
+	// same assessment twice, CVE-2025-31277 eight times). An exact repeat carries nothing, so
+	// it is dropped; two entries from one source that differ, a re-assessment, are both kept.
+	seen := make(map[string]struct{})
+	for _, s := range vulnerability.Metrics.SsvcV203 {
+		h := db.SsvcHandle{
+			Cve:     vulnerability.ID,
+			Source:  s.Source,
+			Role:    s.SsvcData.Role,
+			Version: s.SsvcData.Version,
+		}
+		h.Timestamp = internal.ParseTime(s.SsvcData.Timestamp)
+		for _, opt := range s.SsvcData.Options {
+			if opt.Exploitation != nil {
+				h.Exploitation = *opt.Exploitation
+			}
+			if opt.Automatable != nil {
+				h.Automatable = *opt.Automatable
+			}
+			if opt.TechnicalImpact != nil {
+				h.TechnicalImpact = *opt.TechnicalImpact
+			}
+			for _, key := range opt.Unrecognized {
+				// the columns cover only the three decision points NVD emits today; a new one
+				// would otherwise vanish, which is the silent drop this table exists to end
+				log.WithFields("cve", vulnerability.ID, "source", s.Source, "decisionPoint", key).
+					Warn("unrecognized NVD SSVC decision point (dropping)")
+			}
+		}
+		k := ssvcDedupKey(h)
+		if _, dup := seen[k]; dup {
+			continue
+		}
+		seen[k] = struct{}{}
+		handles = append(handles, h)
+	}
+	return handles
+}
+
+// ssvcDedupKey renders an SsvcHandle's data as a comparable string. SsvcHandle holds a
+// *time.Time, so it cannot be a map key directly: two equal times at different addresses
+// would not compare equal.
+func ssvcDedupKey(h db.SsvcHandle) string {
+	var ts string
+	if h.Timestamp != nil {
+		ts = h.Timestamp.UTC().Format(time.RFC3339Nano)
+	}
+	return strings.Join([]string{
+		h.Cve, h.Source, h.Role, h.Version, ts,
+		h.Exploitation, h.Automatable, h.TechnicalImpact,
+	}, "\x00")
 }
 
 func isValidCWE(cwe string) bool {

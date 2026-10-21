@@ -315,7 +315,6 @@ func (p *Presenter) formatFix(m models.Match) string {
 			m,
 			getRecommendedVersions(m),
 		),
-		m.Vulnerability.Fix.Versions,
 	)
 }
 
@@ -334,7 +333,7 @@ func getRecommendedVersions(m models.Match) *strset.Set {
 
 const maxVersionFieldLength = 30
 
-func (p *Presenter) formatVersionsToDisplay(m models.Match, recommendedVersions *strset.Set) []string {
+func (p *Presenter) formatVersionsToDisplay(m models.Match, recommendedVersions *strset.Set) (versions []string, omittedAny bool) {
 	hasMultipleVersions := len(m.Vulnerability.Fix.Versions) > 1
 	shouldHighlightRecommended := hasMultipleVersions && recommendedVersions.Size() > 0
 
@@ -358,6 +357,7 @@ func (p *Presenter) formatVersionsToDisplay(m models.Match, recommendedVersions 
 
 			// skip not-necessarily-recommended versions if we're running out of space
 			if currentCharacterCount+len(v) > maxVersionFieldLength {
+				omittedAny = true
 				continue
 			}
 
@@ -372,18 +372,14 @@ func (p *Presenter) formatVersionsToDisplay(m models.Match, recommendedVersions 
 		}
 	}
 
-	return vers
+	return vers, omittedAny
 }
 
-func (p *Presenter) applyTruncation(formattedVersions []string, allVersions []string) string {
+func (p *Presenter) applyTruncation(formattedVersions []string, omittedAny bool) string {
 	finalVersions := strings.Join(formattedVersions, p.auxiliaryStyle.Render(", "))
 
-	var characterCount int
-	for _, v := range allVersions {
-		characterCount += len(v)
-	}
-
-	if characterCount > maxVersionFieldLength && len(allVersions) > 1 {
+	// only hint at more versions when one was actually left out
+	if omittedAny {
 		finalVersions += p.auxiliaryStyle.Render(", ...")
 	}
 

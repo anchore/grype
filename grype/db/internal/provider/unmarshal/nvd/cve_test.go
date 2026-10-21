@@ -1,6 +1,7 @@
 package nvd
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -196,4 +197,61 @@ func TestCvssSummaryVersion(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSsvcOptionV203_UnmarshalJSON(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected SsvcOptionV203
+		wantErr  bool
+	}{
+		{
+			name:     "known decision point",
+			input:    `{"exploitation": "active"}`,
+			expected: SsvcOptionV203{Exploitation: strRef("active")},
+		},
+		{
+			name:     "unrecognized decision point is kept, not dropped",
+			input:    `{"missionPrevalence": "support"}`,
+			expected: SsvcOptionV203{Unrecognized: []string{"missionPrevalence"}},
+		},
+		{
+			name:  "known and unrecognized decision points together",
+			input: `{"automatable": "yes", "publicSafetyImpact": "significant", "missionPrevalence": "support"}`,
+			expected: SsvcOptionV203{
+				Automatable: strRef("yes"),
+				// sorted, so a multi-key option reports deterministically
+				Unrecognized: []string{"missionPrevalence", "publicSafetyImpact"},
+			},
+		},
+		{
+			name:    "non-string value for a known decision point is an error, not a silent zero",
+			input:   `{"exploitation": 3}`,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var actual SsvcOptionV203
+			err := json.Unmarshal([]byte(tt.input), &actual)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected an error, got none")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if d := cmp.Diff(tt.expected, actual); d != "" {
+				t.Errorf("unexpected option (-expected +actual):\n%s", d)
+			}
+		})
+	}
+}
+
+func strRef(s string) *string {
+	return &s
 }

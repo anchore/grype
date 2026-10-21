@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:802d9c0b-716e-4050-a832-9a697dc0d796",
+  "serialNumber": "urn:uuid:1a47c243-8435-4e85-9e38-4cf505792d43",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-03-19T11:34:26-04:00",
+    "timestamp": "2026-07-07T16:57:37+09:00",
     "tools": {
       "components": [
         {
@@ -19,7 +19,7 @@
     "component": {
       "bom-ref": "163686ac6e30c752",
       "type": "file",
-      "name": "/var/folders/09/zjmdnk0n4496cmzrdkxbw1tr0000gn/T/TestCycloneDxPresenterDir688002288/001"
+      "name": "/var/folders/tp/5p77wf0n4m35dw400_lxxmph0000gn/T/TestCycloneDxPresenterDir2862837514/001"
     }
   },
   "components": [
@@ -89,7 +89,7 @@
   ],
   "vulnerabilities": [
     {
-      "bom-ref": "urn:uuid:a73ee074-a643-466a-82ba-1669a7fa5c1d",
+      "bom-ref": "urn:uuid:5bd5ef96-ee87-4ee1-a5d3-752ff944802b",
       "id": "CVE-1999-0001",
       "source": {},
       "references": [
@@ -116,12 +116,30 @@
       ],
       "affects": [
         {
-          "ref": "a246fd2054833c93"
+          "ref": "a246fd2054833c93",
+          "versions": [
+            {
+              "version": "1.1.1",
+              "status": "affected"
+            },
+            {
+              "range": "vers:generic/>=1.2.1",
+              "status": "unaffected"
+            },
+            {
+              "range": "vers:generic/>=2.1.3",
+              "status": "unaffected"
+            },
+            {
+              "range": "vers:generic/>=3.4.0",
+              "status": "unaffected"
+            }
+          ]
         }
       ]
     },
     {
-      "bom-ref": "urn:uuid:7324150f-e4ab-4d68-8dd8-b9721b4a0eed",
+      "bom-ref": "urn:uuid:b961c261-a5da-4f5a-9829-d385b44b5123",
       "id": "CVE-1999-0002",
       "source": {},
       "references": [
@@ -157,7 +175,13 @@
       ],
       "affects": [
         {
-          "ref": "pkg:deb/package-2@2.2.2?package-id=74378afe15713625"
+          "ref": "pkg:deb/package-2@2.2.2?package-id=74378afe15713625",
+          "versions": [
+            {
+              "version": "2.2.2",
+              "status": "affected"
+            }
+          ]
         }
       ]
     }

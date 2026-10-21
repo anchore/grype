@@ -14,6 +14,7 @@ import (
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/grype/vulnerability/mock"
+	"github.com/anchore/grype/internal/dbtest"
 	"github.com/anchore/syft/syft/artifact"
 	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -1019,348 +1020,82 @@ func TestFindMatchesByPackageCPE(t *testing.T) {
 	}
 }
 
-func TestFilterCPEsByVersion(t *testing.T) {
-	tests := []struct {
-		name              string
-		version           string
-		vulnerabilityCPEs []string
-		expected          []string
-	}{
-		{
-			name:    "filter out by simple version",
-			version: "1.0",
-			vulnerabilityCPEs: []string{
-				"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-				"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
-				"cpe:2.3:*:multiple:multiple:2.0:*:*:*:*:*:*:*",
-			},
-			expected: []string{
-				"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-				"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
-			},
-		},
-		{
-			name:    "do not filter on empty version",
-			version: "", // important!
-			vulnerabilityCPEs: []string{
-				"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-				"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
-				"cpe:2.3:*:multiple:multiple:2.0:*:*:*:*:*:*:*",
-			},
-			expected: []string{
-				"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-				"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
-				"cpe:2.3:*:multiple:multiple:2.0:*:*:*:*:*:*:*",
-			},
-		},
-	}
+// TestMatchPackageByCPEs_multipleRecordsPerCVE covers folding the several database records NVD stores
+// for one CVE -- one per vulnerable CPE -- into a single finding.
+//
+// This exercises the CPE path every CPE-enabled matcher shares (java, javascript, python, ruby,
+// dotnet, rust, hex, golang and stock all reach it), so it is tested here rather than through any one
+// of them. The nvd-cpe-details fixture holds synthetic NVD records:
+//
+//   - CVE-2026-40001 lists two distinct vulnerable CPEs, acme:widget (>= 1.0.0 < 2.0.0, fixed in
+//     2.0.0) and acme:widget-core (>= 1.0.0 < 3.0.0, fixed in 3.0.0).
+//
+//   - CVE-2026-40003 lists acme:gizmo twice: unqualified (>= 1.0.0 < 2.0.0, fixed in 2.0.0) and for
+//     target software "embedded-mod" (<= 1.5.0, no fix). Modeled on CVE-2017-9229, which lists
+//     cpe:2.3:a:php:php both unqualified and for "oniguruma-mod", and which grype once reported twice
+//     for one php package. To see that shape against a real DB:
+//
+//     grype 'pkg:generic/php@7.1.5' --add-cpes-if-none -o json
+func TestMatchPackageByCPEs_multipleRecordsPerCVE(t *testing.T) {
+	dbtest.DBs(t, "nvd-cpe-details").Run(func(t *testing.T, db *dbtest.DB) {
+		// One CVE reached through two of the package's CPEs, where each CPE resolves to a separate DB
+		// record with its own constraint and fix.
+		//
+		// One CVE on one package is one finding, however many records produced it: a match.Fingerprint
+		// is exactly (vulnerability, package), so Set.ToMatches groups the records under one
+		// fingerprint and folds them together with match.Match.Merge -- fix versions unioned, both
+		// records' details kept. Keying the fingerprint on the fix version as well (as it once did)
+		// would report this CVE twice for one package.
+		t.Run("one CVE via two CPEs with differing fixes", func(t *testing.T) {
+			p := dbtest.NewPackage("widget-core", "1.5.0", syftPkg.BinaryPkg).
+				WithCPE("cpe:2.3:a:acme:widget:1.5.0:*:*:*:*:*:*:*").
+				WithCPE("cpe:2.3:a:acme:widget-core:1.5.0:*:*:*:*:*:*:*").
+				Build()
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			// format strings to CPE objects...
-			vulnerabilityCPEs := make([]cpe.CPE, len(test.vulnerabilityCPEs))
-			for idx, c := range test.vulnerabilityCPEs {
-				vulnerabilityCPEs[idx] = cpe.Must(c, "")
+			matches, ignores, err := MatchPackageByCPEs(db, p, match.StockMatcher)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
 			}
 
-			var versionObj *version.Version
-			if test.version != "" {
-				versionObj = version.New(test.version, version.UnknownFormat)
-			}
+			// a single finding, fixed by either record's version...
+			finding := dbtest.AssertFindingsAndIgnores(t, matches, ignores, p).
+				SelectMatch("CVE-2026-40001")
+			finding.HasFix(vulnerability.FixStateFixed, "2.0.0", "3.0.0").
+				HasDetailCount(2)
 
-			// run the test subject...
-			actual := filterCPEsByVersion(versionObj, vulnerabilityCPEs)
-
-			// format CPE objects to string...
-			actualStrs := make([]string, len(actual))
-			for idx, a := range actual {
-				// use .String() for proper escaping
-				actualStrs[idx] = a.Attributes.String()
-			}
-
-			assert.ElementsMatch(t, test.expected, actualStrs)
+			// ...carrying a detail per record, each describing its own record
+			finding.SelectDetailByCPE("cpe:2.3:a:acme:widget:1.5.0:*:*:*:*:*:*:*", ">= 1.0.0, < 2.0.0 (unknown)").
+				FoundCPEs("cpe:2.3:a:acme:widget:*:*:*:*:*:*:*:*")
+			finding.SelectDetailByCPE("cpe:2.3:a:acme:widget-core:1.5.0:*:*:*:*:*:*:*", ">= 1.0.0, < 3.0.0 (unknown)").
+				FoundCPEs("cpe:2.3:a:acme:widget-core:*:*:*:*:*:*:*:*")
 		})
-	}
-}
 
-func TestAddMatchDetails(t *testing.T) {
-	tests := []struct {
-		name     string
-		existing []match.Detail
-		new      match.Detail
-		expected []match.Detail
-	}{
-		{
-			name: "append new entry -- found not equal",
-			existing: []match.Detail{
-				{
-					SearchedBy: match.CPEParameters{
-						Namespace: "nvd:cpe",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
-						},
-					},
-					Found: match.CPEResult{
-						VersionConstraint: "< 2.0 (unknown)",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-						},
-					},
-				},
-			},
-			new: match.Detail{
-				SearchedBy: match.CPEParameters{
-					Namespace: "nvd:cpe",
-					CPEs: []string{
-						"totally-different-search",
-					},
-				},
-				Found: match.CPEResult{
-					VersionConstraint: "< 2.0 (unknown)",
-					CPEs: []string{
-						"totally-different-match",
-					},
-				},
-			},
-			expected: []match.Detail{
-				{
-					SearchedBy: match.CPEParameters{
-						Namespace: "nvd:cpe",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
-						},
-					},
-					Found: match.CPEResult{
-						VersionConstraint: "< 2.0 (unknown)",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-						},
-					},
-				},
-				{
-					SearchedBy: match.CPEParameters{
-						Namespace: "nvd:cpe",
-						CPEs: []string{
-							"totally-different-search",
-						},
-					},
-					Found: match.CPEResult{
-						VersionConstraint: "< 2.0 (unknown)",
-						CPEs: []string{
-							"totally-different-match",
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "append new entry -- searchedBy merge fails",
-			existing: []match.Detail{
-				{
-					SearchedBy: match.CPEParameters{
-						Namespace: "nvd:cpe",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
-						},
-					},
-					Found: match.CPEResult{
-						VersionConstraint: "< 2.0 (unknown)",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-						},
-					},
-				},
-			},
-			new: match.Detail{
-				SearchedBy: match.CPEParameters{
-					Namespace: "totally-different",
-					CPEs: []string{
-						"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
-					},
-				},
-				Found: match.CPEResult{
-					VersionConstraint: "< 2.0 (unknown)",
-					CPEs: []string{
-						"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-					},
-				},
-			},
-			expected: []match.Detail{
-				{
-					SearchedBy: match.CPEParameters{
-						Namespace: "nvd:cpe",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
-						},
-					},
-					Found: match.CPEResult{
-						VersionConstraint: "< 2.0 (unknown)",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-						},
-					},
-				},
-				{
-					SearchedBy: match.CPEParameters{
-						Namespace: "totally-different",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
-						},
-					},
-					Found: match.CPEResult{
-						VersionConstraint: "< 2.0 (unknown)",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "merge with exiting entry",
-			existing: []match.Detail{
-				{
-					SearchedBy: match.CPEParameters{
-						Namespace: "nvd:cpe",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
-						},
-					},
-					Found: match.CPEResult{
-						VersionConstraint: "< 2.0 (unknown)",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-						},
-					},
-				},
-			},
-			new: match.Detail{
-				SearchedBy: match.CPEParameters{
-					Namespace: "nvd:cpe",
-					CPEs: []string{
-						"totally-different-search",
-					},
-				},
-				Found: match.CPEResult{
-					VersionConstraint: "< 2.0 (unknown)",
-					CPEs: []string{
-						"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-					},
-				},
-			},
-			expected: []match.Detail{
-				{
-					SearchedBy: match.CPEParameters{
-						Namespace: "nvd:cpe",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
-							"totally-different-search",
-						},
-					},
-					Found: match.CPEResult{
-						VersionConstraint: "< 2.0 (unknown)",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "no addition - bad new searchedBy type",
-			existing: []match.Detail{
-				{
-					SearchedBy: match.CPEParameters{
-						Namespace: "nvd:cpe",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
-						},
-					},
-					Found: match.CPEResult{
-						VersionConstraint: "< 2.0 (unknown)",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-						},
-					},
-				},
-			},
-			new: match.Detail{
-				SearchedBy: "something else!",
-				Found: match.CPEResult{
-					VersionConstraint: "< 2.0 (unknown)",
-					CPEs: []string{
-						"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-					},
-				},
-			},
-			expected: []match.Detail{
-				{
-					SearchedBy: match.CPEParameters{
-						Namespace: "nvd:cpe",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
-						},
-					},
-					Found: match.CPEResult{
-						VersionConstraint: "< 2.0 (unknown)",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "no addition - bad new found type",
-			existing: []match.Detail{
-				{
-					SearchedBy: match.CPEParameters{
-						Namespace: "nvd:cpe",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
-						},
-					},
-					Found: match.CPEResult{
-						VersionConstraint: "< 2.0 (unknown)",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-						},
-					},
-				},
-			},
-			new: match.Detail{
-				SearchedBy: match.CPEParameters{
-					Namespace: "nvd:cpe",
-					CPEs: []string{
-						"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
-					},
-				},
-				Found: "something-else!",
-			},
-			expected: []match.Detail{
-				{
-					SearchedBy: match.CPEParameters{
-						Namespace: "nvd:cpe",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:1.0:*:*:*:*:*:*:*",
-						},
-					},
-					Found: match.CPEResult{
-						VersionConstraint: "< 2.0 (unknown)",
-						CPEs: []string{
-							"cpe:2.3:*:multiple:multiple:*:*:*:*:*:*:*:*",
-						},
-					},
-				},
-			},
-		},
-	}
+		// The same shape reached through a single package CPE, with one of the two records unfixed:
+		// the fix state has to survive the merge, so a record reporting no fix must not mask the fix
+		// the other record does report.
+		t.Run("one CPE matching a fixed and an unfixed record", func(t *testing.T) {
+			p := dbtest.NewPackage("gizmo", "1.5.0", syftPkg.BinaryPkg).
+				WithCPE("cpe:2.3:a:acme:gizmo:1.5.0:*:*:*:*:*:*:*").
+				Build()
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			assert.Equal(t, test.expected, addMatchDetails(test.existing, test.new))
+			matches, ignores, err := MatchPackageByCPEs(db, p, match.StockMatcher)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			// one finding, still reporting the fix the unqualified record provides
+			finding := dbtest.AssertFindingsAndIgnores(t, matches, ignores, p).
+				SelectMatch("CVE-2026-40003")
+			finding.HasFix(vulnerability.FixStateFixed, "2.0.0").
+				HasDetailCount(2)
+
+			// both records searched by the same package CPE, each detail describing its own record
+			finding.SelectDetailByCPE("cpe:2.3:a:acme:gizmo:1.5.0:*:*:*:*:*:*:*", ">= 1.0.0, < 2.0.0 (unknown)").
+				FoundCPEs("cpe:2.3:a:acme:gizmo:*:*:*:*:*:*:*:*")
+			finding.SelectDetailByCPE("cpe:2.3:a:acme:gizmo:1.5.0:*:*:*:*:*:*:*", "<= 1.5.0 (unknown)").
+				FoundCPEs("cpe:2.3:a:acme:gizmo:*:*:*:*:*:embedded-mod:*:*")
 		})
-	}
+	})
 }
 
 func TestCPESearchHit_Equals(t *testing.T) {

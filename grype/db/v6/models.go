@@ -64,6 +64,7 @@ func Models() []any {
 		&EpssHandle{},
 		&EpssMetadata{},
 		&CWEHandle{},
+		&SsvcHandle{},
 	}
 }
 
@@ -981,6 +982,30 @@ type CWEHandle struct {
 
 func (c CWEHandle) String() string {
 	return fmt.Sprintf("CWE(%s: %s, source=%s, type=%s)", c.CVE, c.CWE, c.Source, c.Type)
+}
+
+// SsvcHandle carries one SSVC (Stakeholder-Specific Vulnerability Categorization)
+// decision-point assessment for a CVE, one row per entry in NVD's metrics.ssvcV203 array.
+// NVD emits several entries for the same CVE and source, so a row is not unique by either.
+// Byte-identical repeats are dropped at build time; entries differing in any field, including
+// a later re-assessment from the same source, are all kept, and rows come back unordered.
+// A reader wanting the current assessment picks by Timestamp. See CWEHandle for the precedent
+// this follows.
+type SsvcHandle struct {
+	ID int64 `gorm:"primaryKey"`
+
+	Cve             string     `gorm:"column:cve;not null;index:ssvc_cve_idx,collate:NOCASE"`
+	Source          string     `gorm:"column:source"`
+	Role            string     `gorm:"column:role"`
+	Version         string     `gorm:"column:version"`
+	Timestamp       *time.Time `gorm:"column:timestamp"`
+	Exploitation    string     `gorm:"column:exploitation"`
+	Automatable     string     `gorm:"column:automatable"`
+	TechnicalImpact string     `gorm:"column:technical_impact"`
+}
+
+func (s SsvcHandle) String() string {
+	return fmt.Sprintf("SSVC(%s: source=%s, role=%s, exploitation=%s, automatable=%s, technicalImpact=%s)", s.Cve, s.Source, s.Role, s.Exploitation, s.Automatable, s.TechnicalImpact)
 }
 
 // OperatingSystemEOLHandle carries end-of-life data for an operating system.

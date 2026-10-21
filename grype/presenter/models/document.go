@@ -106,12 +106,15 @@ func createTimestamp(outputTimestamp bool) (string, error) {
 	return string(timestamp), nil
 }
 
+// unknownValue is the placeholder emitted when a distro or source cannot be determined.
+const unknownValue = "unknown"
+
 // distroString returns the distro string representation, or "unknown" if nil.
 func distroString(p pkg.Package) string {
 	if p.Distro != nil {
 		return p.Distro.String()
 	}
-	return "unknown"
+	return unknownValue
 }
 
 // buildPackageAlerts creates PackageAlerts from distro tracking data.
@@ -149,7 +152,7 @@ func buildPackageAlerts(data *DistroAlertData) []PackageAlerts {
 				Version: p.Distro.VersionString(),
 			}
 		}
-		return DistroAlertMetadata{Name: "unknown"}
+		return DistroAlertMetadata{Name: unknownValue}
 	}
 
 	// add alerts for EOL distro packages

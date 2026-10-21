@@ -60,7 +60,7 @@ func newStore(cfg Config, empty, writable bool) (*store, error) {
 		path = cfg.DBFilePath()
 	}
 
-	db, err := NewLowLevelDB(path, empty, writable, cfg.Debug)
+	db, err := newLowLevelDB(path, empty, writable, cfg.Debug, cfg.CacheSizeKiB)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open db: %w", err)
 	}

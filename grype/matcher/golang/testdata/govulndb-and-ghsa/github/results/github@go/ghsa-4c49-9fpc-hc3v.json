@@ -1,0 +1,64 @@
+{
+  "identifier": "github:go/ghsa-4c49-9fpc-hc3v",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2024-6156"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 3.8,
+          "base_severity": "Low",
+          "exploitability_score": 2.0,
+          "impact_score": 1.4
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:C/C:L/I:N/A:N",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2024-12-09",
+            "kind": "first-observed"
+          },
+          "ecosystem": "go",
+          "identifier": "0.0.0-20240708073652-5a492a3f0036",
+          "name": "github.com/canonical/lxd",
+          "namespace": "github:go",
+          "range": "< 0.0.0-20240708073652-5a492a3f0036"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2024-6156"
+        ]
+      },
+      "Severity": "Low",
+      "Summary": "lxd CA certificate sign check bypass",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:C/C:L/I:N/A:N",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-4c49-9fpc-hc3v",
+      "namespace": "github:go",
+      "published": "2024-12-09T23:26:16Z",
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-6156"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-4c49-9fpc-hc3v"
+        }
+      ],
+      "updated": "2024-12-11T21:16:18Z",
+      "url": "https://github.com/advisories/GHSA-4c49-9fpc-hc3v",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

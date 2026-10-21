@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "anchore.io/schema/grype/db-search/json/1.1.6/matches",
+  "$id": "anchore.io/schema/grype/db-search/json/1.1.7/matches",
   "$ref": "#/$defs/Matches",
   "$defs": {
     "AffectedPackageInfo": {
@@ -211,6 +211,31 @@
       },
       "type": "object"
     },
+    "GoImport": {
+      "$defs": {
+        "path": {
+          "description": "is the import path of the package within the affected module (e.g. 'golang.org/x/net/html')."
+        },
+        "symbols": {
+          "description": "lists the vulnerable function/method names within the package (e.g. 'Parse' or 'Decoder.Decode').\nAn empty list means the entire package is considered vulnerable."
+        }
+      },
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "symbols": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "path"
+      ]
+    },
     "KnownExploited": {
       "properties": {
         "cve": {
@@ -288,6 +313,31 @@
       },
       "type": "array"
     },
+    "Modification": {
+      "$defs": {
+        "changes": {
+          "description": "describes each amendment made to the record (e.g. 'added go symbols to affected package golang.org/x/net')."
+        },
+        "url": {
+          "description": "points to the source data the record was modified with (e.g. 'https://vuln.go.dev/ID/GO-2024-2687.json')."
+        }
+      },
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "changes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "url"
+      ]
+    },
     "OperatingSystem": {
       "properties": {
         "name": {
@@ -351,14 +401,17 @@
     },
     "PackageQualifiers": {
       "$defs": {
+        "architecture": {
+          "description": "is the architecture of the affected RPM, copied from the source PURL's\n`arch` qualifier when present (e.g. 'src', 'x86_64') or set to a synthesized sentinel\nlike 'binary-no-arch-specified' when a binary RPM was disclosed without an explicit\narch. Upstream-indirected RPM matches drop entries tagged with any arch other than\n'src', so providers that disclose at binary granularity (e.g. hummingbird CSAF VEX)\navoid FP-matching unrelated sibling binaries built from the same source. See\npkg/qualifier/architecture for the constants."
+        },
+        "go_imports": {
+          "description": "lists the packages and symbols within an affected Go module that contain the vulnerability\n(from govulndb's ecosystem_specific.imports). When set, packages carrying binary symbol evidence only\nmatch if at least one of the listed symbols is present in the binary."
+        },
         "platform_cpes": {
           "description": "lists Common Platform Enumeration (CPE) identifiers for affected platforms."
         },
         "rootio": {
           "description": "indicates that the vulnerability applies only to Root IO packages (packages with Root IO fixes).\nWhen true, standard packages will not match this vulnerability (NAK pattern)."
-        },
-        "architecture": {
-          "description": "is the architecture of the affected RPM, copied from the source PURL's `arch`\nqualifier when present (e.g. 'src', 'x86_64') or set to a synthesized sentinel like\n'binary-no-arch-specified' when a binary RPM was disclosed without an explicit arch.\nUpstream-indirected RPM matches drop entries tagged with any arch other than 'src',\nso providers that disclose at binary granularity (e.g. hummingbird CSAF VEX) avoid\nFP-matching unrelated sibling binaries built from the same source. See\npkg/qualifier/architecture for the constants."
         },
         "rpm_modularity": {
           "description": "indicates if the package follows RPM modularity for versioning."
@@ -379,6 +432,12 @@
         },
         "rootio": {
           "type": "boolean"
+        },
+        "go_imports": {
+          "items": {
+            "$ref": "#/$defs/GoImport"
+          },
+          "type": "array"
         }
       },
       "type": "object"
@@ -544,6 +603,12 @@
         "severities": {
           "items": {
             "$ref": "#/$defs/Severity"
+          },
+          "type": "array"
+        },
+        "modifications": {
+          "items": {
+            "$ref": "#/$defs/Modification"
           },
           "type": "array"
         },

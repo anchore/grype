@@ -1,5 +1,14 @@
+# Pure-govulndb fixture for the gosymbols matcher tests, including the
+# build-time vs runtime distinction from anchore/grype#1782: GO-2023-1839/1841/1842
+# (CVE-2023-29402/29404/29405) are "toolchain" records — cmd/go and cgo flaws
+# that live on the build machine and are never part of a compiled artifact —
+# while GO-2023-1840 (CVE-2023-29403) is the "stdlib" runtime record from the
+# same Go release train.
 auto-generate: true
 extractions:
     govulndb:
         - go-2022-0969
         - GO-2023-1840
+        - go-2023-1839
+        - go-2023-1841
+        - go-2023-1842

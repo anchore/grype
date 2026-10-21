@@ -1,0 +1,14 @@
+{
+  "content_hash": "27b89952be536347",
+  "created_at": "2026-10-07T15:32:10.655263Z",
+  "providers": {
+    "alma": {
+      "vunnel_version": "vunnel@0.63.1.post49+15c107c",
+      "timestamp": "2026-10-07T00:34:46.553067Z"
+    },
+    "rhel": {
+      "vunnel_version": "vunnel@0.56.0.post6+8bb089e",
+      "timestamp": "2026-04-30T21:41:56.058538Z"
+    }
+  }
+}

@@ -24,7 +24,7 @@ const (
 	Revision = 1
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 8
+	Addition = 10
 
 	// v6 model changelog:
 	// 6.0.0: Initial version 🎉
@@ -52,6 +52,16 @@ const (
 	//        reads it at match time to fold dialect arch spellings (e.g. "x86_64" <-> "amd64")
 	//        onto a canonical token. Older clients ignore the table; clients reading a DB built
 	//        before it existed fall back to the built-in default aliases.
+	// 6.1.9: Add GoImports field to PackageQualifiers (used by the govulndb OSV strategy to
+	//        carry per-symbol matching from ecosystem_specific.imports; the gosymbols
+	//        runtime qualifier in pkg/qualifier/gosymbols matches captured Go binary symbols
+	//        so stdlib and golang.org/x/* advisories don't FP-match binaries that don't use
+	//        vulnerable symbols)
+	// 6.1.10: Add SsvcHandle to VulnerabilityDecorator store (table: ssvc_handles). Carries
+	//         NVD's metrics.ssvcV203 decision-point assessments (source, role, version,
+	//         timestamp, exploitation, automatable, technicalImpact), one row per CVE and
+	//         source. Not surfaced in vulnerability.Metadata or scan output; readable only via
+	//         Reader.GetSsvcs.
 )
 
 const (
@@ -110,6 +120,10 @@ type Curator interface {
 type Config struct {
 	DBDirPath string
 	Debug     bool
+
+	// CacheSizeKiB is the SQLite page cache size (in KiB) used while writing a new DB (only applies to NewWriter).
+	// Zero means use the built-in default (1 GiB).
+	CacheSizeKiB int
 }
 
 func (c Config) DBFilePath() string {
@@ -140,8 +154,13 @@ func Hydrater() func(string) error {
 // NewLowLevelDB creates a new empty DB for writing or opens an existing one for reading from the given path. This is
 // not recommended for typical interactions with the vulnerability DB, use NewReader and NewWriter instead.
 func NewLowLevelDB(dbFilePath string, empty, writable, debug bool) (*gorm.DB, error) {
+	return newLowLevelDB(dbFilePath, empty, writable, debug, 0)
+}
+
+func newLowLevelDB(dbFilePath string, empty, writable, debug bool, cacheSizeKiB int) (*gorm.DB, error) {
 	opts := []gormadapter.Option{
 		gormadapter.WithDebug(debug),
+		gormadapter.WithCacheSizeKiB(cacheSizeKiB),
 	}
 
 	if empty && !writable {

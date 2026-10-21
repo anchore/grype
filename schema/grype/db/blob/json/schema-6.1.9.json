@@ -1,0 +1,425 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "anchore.io/schema/grype/db/blob/json/6.1.9",
+  "$defs": {
+    "Fix": {
+      "$defs": {
+        "detail": {
+          "description": "provides additional fix information, such as commit details."
+        },
+        "state": {
+          "description": "represents the status of the fix (e.g., 'fixed', 'unaffected')."
+        },
+        "version": {
+          "description": "is the version number of the fix."
+        }
+      },
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "detail": {
+          "$ref": "#/$defs/FixDetail"
+        }
+      },
+      "type": "object"
+    },
+    "FixAvailability": {
+      "$defs": {
+        "date": {
+          "description": "is the date and time when fix information became available. Note: this might not be when the fix was created, committed or merged."
+        },
+        "kind": {
+          "description": "describes how this date was obtained (e.g. advisory, release, commit, PR, issue, first-observed-record)"
+        }
+      },
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "kind": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "FixDetail": {
+      "$defs": {
+        "available": {
+          "description": "indicates when the fix information became available and how it was obtained."
+        },
+        "references": {
+          "description": "contains URLs or identifiers for additional resources on the fix."
+        }
+      },
+      "properties": {
+        "available": {
+          "$ref": "#/$defs/FixAvailability"
+        },
+        "references": {
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "GoImport": {
+      "$defs": {
+        "path": {
+          "description": "is the import path of the package within the affected module (e.g. 'golang.org/x/net/html')."
+        },
+        "symbols": {
+          "description": "lists the vulnerable function/method names within the package (e.g. 'Parse' or 'Decoder.Decode').\nAn empty list means the entire package is considered vulnerable."
+        }
+      },
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "symbols": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "path"
+      ]
+    },
+    "KnownExploitedVulnerabilityBlob": {
+      "properties": {
+        "cve": {
+          "type": "string"
+        },
+        "vendor_project": {
+          "type": "string"
+        },
+        "product": {
+          "type": "string"
+        },
+        "date_added": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "required_action": {
+          "type": "string"
+        },
+        "due_date": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "known_ransomware_campaign_use": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        },
+        "urls": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "cwes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "cve"
+      ]
+    },
+    "Modification": {
+      "$defs": {
+        "changes": {
+          "description": "describes each amendment made to the record (e.g. 'added go symbols to affected package golang.org/x/net')."
+        },
+        "url": {
+          "description": "points to the source data the record was modified with (e.g. 'https://vuln.go.dev/ID/GO-2024-2687.json')."
+        }
+      },
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "changes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "url"
+      ]
+    },
+    "PackageBlob": {
+      "$defs": {
+        "cves": {
+          "description": "is a list of Common Vulnerabilities and Exposures (CVE) identifiers related to this vulnerability."
+        },
+        "qualifiers": {
+          "description": "are package attributes that confirm the package is affected by the vulnerability."
+        },
+        "ranges": {
+          "description": "specifies the affected version ranges and fixes if available."
+        }
+      },
+      "properties": {
+        "cves": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "qualifiers": {
+          "$ref": "#/$defs/PackageQualifiers"
+        },
+        "ranges": {
+          "items": {
+            "$ref": "#/$defs/Range"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "PackageQualifiers": {
+      "$defs": {
+        "architecture": {
+          "description": "is the architecture of the affected RPM, copied from the source PURL's\n`arch` qualifier when present (e.g. 'src', 'x86_64') or set to a synthesized sentinel\nlike 'binary-no-arch-specified' when a binary RPM was disclosed without an explicit\narch. At match time the architecture qualifier compares this value against the scanned\npackage's arch (see pkg/qualifier/architecture, Satisfied): a 'binary-no-arch-specified'\nentry matches any binary package but rejects the rpm matcher's synthesized 'src' upstream,\nso providers that disclose at binary granularity (e.g. hummingbird CSAF VEX) avoid\nFP-matching unrelated sibling binaries built from the same source."
+        },
+        "go_imports": {
+          "description": "lists the packages and symbols within an affected Go module that contain the vulnerability\n(from govulndb's ecosystem_specific.imports). When set, packages carrying binary symbol evidence only\nmatch if at least one of the listed symbols is present in the binary."
+        },
+        "platform_cpes": {
+          "description": "lists Common Platform Enumeration (CPE) identifiers for affected platforms."
+        },
+        "rootio": {
+          "description": "indicates that the vulnerability applies only to Root IO packages (packages with Root IO fixes).\nWhen true, standard packages will not match this vulnerability (NAK pattern)."
+        },
+        "rpm_modularity": {
+          "description": "indicates if the package follows RPM modularity for versioning."
+        }
+      },
+      "properties": {
+        "rpm_modularity": {
+          "type": "string"
+        },
+        "platform_cpes": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "architecture": {
+          "type": "string"
+        },
+        "rootio": {
+          "type": "boolean"
+        },
+        "go_imports": {
+          "items": {
+            "$ref": "#/$defs/GoImport"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "Range": {
+      "$defs": {
+        "fix": {
+          "description": "provides details on the fix version and its state if available."
+        },
+        "version": {
+          "description": "defines the version constraints for affected software."
+        }
+      },
+      "properties": {
+        "version": {
+          "$ref": "#/$defs/Version"
+        },
+        "fix": {
+          "$ref": "#/$defs/Fix"
+        }
+      },
+      "type": "object"
+    },
+    "Reference": {
+      "$defs": {
+        "id": {
+          "description": "is an optional identifier for the reference (e.g., advisory ID like 'RHSA-2023:5455')"
+        },
+        "tags": {
+          "description": "is a free-form organizational field to convey additional information about the reference"
+        },
+        "url": {
+          "description": "is the external resource"
+        }
+      },
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "url"
+      ]
+    },
+    "Severity": {
+      "$defs": {
+        "rank": {
+          "description": "is a free-form organizational field to convey priority over other severities"
+        },
+        "scheme": {
+          "description": "describes the quantitative method used to determine the Score, such as 'CVSS_V3'. Alternatively this makes\nclaim that Value is qualitative, for example 'HML' (High, Medium, Low), CHMLN (critical-high-medium-low-negligible)"
+        },
+        "source": {
+          "description": "is the name of the source of the severity score (e.g. 'nvd@nist.gov' or 'security-advisories@github.com')"
+        },
+        "value": {
+          "description": "is the severity score (e.g. '7.5', 'CVSS:4.0/AV:N/AC:L/AT:N/PR:H/UI:N/VC:L/VI:L/VA:N/SC:N/SI:N/SA:N',  or 'high' )"
+        }
+      },
+      "properties": {
+        "scheme": {
+          "type": "string"
+        },
+        "value": true,
+        "source": {
+          "type": "string"
+        },
+        "rank": {
+          "type": "integer"
+        }
+      },
+      "type": "object",
+      "required": [
+        "scheme",
+        "value",
+        "rank"
+      ]
+    },
+    "Version": {
+      "$defs": {
+        "constraint": {
+          "description": "defines the version range constraint for affected versions."
+        },
+        "type": {
+          "description": "specifies the versioning system used (e.g., 'semver', 'rpm')."
+        }
+      },
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "constraint": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "VulnerabilityBlob": {
+      "$defs": {
+        "aliases": {
+          "description": "is a list of IDs of the same vulnerability in other databases, in the form of the ID field. This allows one database to claim that its own entry describes the same vulnerability as one or more entries in other databases."
+        },
+        "assigner": {
+          "description": "is a list of names, email, or organizations who submitted the vulnerability"
+        },
+        "description": {
+          "description": "of the vulnerability as provided by the source"
+        },
+        "id": {
+          "description": "is the lowercase unique string identifier for the vulnerability relative to the provider"
+        },
+        "modifications": {
+          "description": "is an audit trail of build-time amendments made to this record from other data\nsources (e.g. a GHSA record patched with Go symbol information from the aliased govulndb record)."
+        },
+        "refs": {
+          "description": "are URLs to external resources that provide more information about the vulnerability"
+        },
+        "severities": {
+          "description": "is a list of severity indications (quantitative or qualitative) for the vulnerability"
+        }
+      },
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "assigner": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "description": {
+          "type": "string"
+        },
+        "refs": {
+          "items": {
+            "$ref": "#/$defs/Reference"
+          },
+          "type": "array"
+        },
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "severities": {
+          "items": {
+            "$ref": "#/$defs/Severity"
+          },
+          "type": "array"
+        },
+        "modifications": {
+          "items": {
+            "$ref": "#/$defs/Modification"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object",
+      "required": [
+        "id"
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/VulnerabilityBlob"
+    },
+    {
+      "$ref": "#/$defs/PackageBlob"
+    },
+    {
+      "$ref": "#/$defs/KnownExploitedVulnerabilityBlob"
+    }
+  ],
+  "description": "Unified schema for all blob types stored in the Grype v6 database"
+}

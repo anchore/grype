@@ -19,6 +19,8 @@ func TestOperatingSystemStore_ResolveOperatingSystem(t *testing.T) {
 
 	ubuntu2004 := &OperatingSystem{Name: "ubuntu", ReleaseID: "ubuntu", MajorVersion: "20", MinorVersion: "04", LabelVersion: "focal"}
 	ubuntu2010 := &OperatingSystem{Name: "ubuntu", MajorVersion: "20", MinorVersion: "10", LabelVersion: "groovy"}
+	ubuntu1604 := &OperatingSystem{Name: "ubuntu", ReleaseID: "ubuntu", MajorVersion: "16", MinorVersion: "04", LabelVersion: "xenial"}
+	ubuntu1604esm := &OperatingSystem{Name: "ubuntu", ReleaseID: "ubuntu", MajorVersion: "16", MinorVersion: "04", LabelVersion: "xenial", Channel: "esm"}
 	rhel8 := &OperatingSystem{Name: "rhel", ReleaseID: "rhel", MajorVersion: "8"}
 	rhel81 := &OperatingSystem{Name: "rhel", ReleaseID: "rhel", MajorVersion: "8", MinorVersion: "1"}
 	debian10 := &OperatingSystem{Name: "debian", ReleaseID: "debian", MajorVersion: "10"}
@@ -40,6 +42,8 @@ func TestOperatingSystemStore_ResolveOperatingSystem(t *testing.T) {
 	operatingSystems := []*OperatingSystem{
 		ubuntu2004,
 		ubuntu2010,
+		ubuntu1604,
+		ubuntu1604esm,
 		rhel8,
 		rhel81,
 		debian10,
@@ -74,6 +78,25 @@ func TestOperatingSystemStore_ResolveOperatingSystem(t *testing.T) {
 				MinorVersion: "04",
 			},
 			expected: []OperatingSystem{*ubuntu2004},
+		},
+		{
+			name: "base ubuntu query returns only the vanilla (non-esm) channel row",
+			os: OSSpecifier{
+				Name:         "ubuntu",
+				MajorVersion: "16",
+				MinorVersion: "04",
+			},
+			expected: []OperatingSystem{*ubuntu1604}, // important! the +esm row is NOT returned
+		},
+		{
+			name: "ubuntu esm channel query returns only the esm row",
+			os: OSSpecifier{
+				Name:         "ubuntu",
+				MajorVersion: "16",
+				MinorVersion: "04",
+				Channel:      "esm",
+			},
+			expected: []OperatingSystem{*ubuntu1604esm}, // important! the base row is NOT returned
 		},
 		{
 			name: "specific distro with major and minor version (missing left padding)",

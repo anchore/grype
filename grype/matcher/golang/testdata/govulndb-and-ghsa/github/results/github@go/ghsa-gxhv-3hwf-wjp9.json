@@ -1,0 +1,75 @@
+{
+  "identifier": "github:go/ghsa-gxhv-3hwf-wjp9",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2018-14632"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 7.7,
+          "base_severity": "High",
+          "exploitability_score": 3.1,
+          "impact_score": 4.0
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.0/AV:N/AC:L/PR:L/UI:N/S:C/C:N/I:N/A:H",
+        "version": "3.0"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2018-05-25",
+            "kind": "first-observed"
+          },
+          "ecosystem": "go",
+          "identifier": "0.5.2",
+          "name": "github.com/evanphx/json-patch",
+          "namespace": "github:go",
+          "range": "< 0.5.2"
+        },
+        {
+          "available": {
+            "date": "2018-05-25",
+            "kind": "first-observed"
+          },
+          "ecosystem": "go",
+          "identifier": "3.0.1-0.20180525145409-4c9aadca8f89",
+          "name": "github.com/evanphx/json-patch",
+          "namespace": "github:go",
+          "range": ">= 3.0.0, < 3.0.1-0.20180525145409-4c9aadca8f89"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2018-14632"
+        ]
+      },
+      "Severity": "High",
+      "Summary": "JSON-Patch Out-of-bounds Write vulnerability",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.0/AV:N/AC:L/PR:L/UI:N/S:C/C:N/I:N/A:H",
+          "version": "3.0"
+        }
+      ],
+      "ghsaId": "GHSA-gxhv-3hwf-wjp9",
+      "namespace": "github:go",
+      "published": "2022-05-13T01:34:31Z",
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2018-14632"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-gxhv-3hwf-wjp9"
+        }
+      ],
+      "updated": "2023-02-08T00:27:36Z",
+      "url": "https://github.com/advisories/GHSA-gxhv-3hwf-wjp9",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

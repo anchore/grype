@@ -8,6 +8,14 @@ import (
 	"github.com/anchore/syft/syft/pkg"
 )
 
+// Distro identifiers that appear repeatedly below as operating system aliases and,
+// in vulnerability.go, as provider IDs when reconstructing legacy namespaces.
+const (
+	rhelDistro         = "rhel"
+	oracleDistro       = "oracle"
+	postmarketOSDistro = "postmarketos"
+)
+
 // TODO: in a future iteration these should be raised up more explicitly by the vunnel providers
 func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride {
 	strRef := func(s string) *string {
@@ -15,14 +23,14 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 	}
 	return []OperatingSystemSpecifierOverride{
 		// redhat clones or otherwise shared vulnerability data
-		{Alias: "centos", ReplacementName: strRef("rhel")},
-		{Alias: "rocky", ReplacementName: strRef("rhel")},
-		{Alias: "rockylinux", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "rockylinux")
-		{Alias: "alma", ReplacementName: strRef("rhel")},
-		{Alias: "almalinux", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "almalinux")
-		{Alias: "scientific", ReplacementName: strRef("rhel")},
-		{Alias: "sl", ReplacementName: strRef("rhel")}, // non-standard, but common (dockerhub uses "sl")
-		{Alias: "gentoo", ReplacementName: strRef("rhel")},
+		{Alias: "centos", ReplacementName: strRef(rhelDistro)},
+		{Alias: "rocky", ReplacementName: strRef(rhelDistro)},
+		{Alias: "rockylinux", ReplacementName: strRef(rhelDistro)}, // non-standard, but common (dockerhub uses "rockylinux")
+		{Alias: "alma", ReplacementName: strRef(rhelDistro)},
+		{Alias: "almalinux", ReplacementName: strRef(rhelDistro)}, // non-standard, but common (dockerhub uses "almalinux")
+		{Alias: "scientific", ReplacementName: strRef(rhelDistro)},
+		{Alias: "sl", ReplacementName: strRef(rhelDistro)}, // non-standard, but common (dockerhub uses "sl")
+		{Alias: "gentoo", ReplacementName: strRef(rhelDistro)},
 
 		// Alternaitve distros that should match against the debian vulnerability data
 		{Alias: "raspbian", ReplacementName: strRef("debian")},
@@ -34,9 +42,9 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		// rhel rows to the DB, all which have major.minor versions. This means that any old client (which wont
 		// see the new channel column) will assume during OS resolution that there is major.minor vuln data
 		// that should be used (which is incorrect).
-		{Alias: "rhel", VersionPattern: `^\d+\.\d+`, ReplacementMinorVersion: strRef(""), ApplicableClientDBSchemas: "< 6.0.3"},
+		{Alias: rhelDistro, VersionPattern: `^\d+\.\d+`, ReplacementMinorVersion: strRef(""), ApplicableClientDBSchemas: "< 6.0.3"},
 		// we pass in the distro.Type into the search specifier, not a raw release-id
-		{Alias: "redhat", VersionPattern: `^\d+\.\d+`, ReplacementMinorVersion: strRef(""), ReplacementName: strRef("rhel"), ApplicableClientDBSchemas: "< 6.0.3"},
+		{Alias: "redhat", VersionPattern: `^\d+\.\d+`, ReplacementMinorVersion: strRef(""), ReplacementName: strRef(rhelDistro), ApplicableClientDBSchemas: "< 6.0.3"},
 		// hummingbird is a rolling distro
 		{Alias: "hummingbird", Rolling: true},
 
@@ -50,7 +58,7 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 		{Alias: "archlinux", Rolling: true},
 		{Alias: "minimos", Rolling: true},
 		{Alias: "arch", ReplacementName: strRef("archlinux"), Rolling: true}, // os-release ID=arch, but namespace uses archlinux
-		{Alias: "oracle", ReplacementName: strRef("ol")},                     // non-standard, but common
+		{Alias: oracleDistro, ReplacementName: strRef("ol")},                 // non-standard, but common
 		{Alias: "oraclelinux", ReplacementName: strRef("ol")},                // non-standard, but common (dockerhub uses "oraclelinux")
 		{Alias: "amazon", ReplacementName: strRef("amzn")},                   // non-standard, but common
 		{Alias: "amazonlinux", ReplacementName: strRef("amzn")},              // non-standard, but common (dockerhub uses "amazonlinux")
@@ -79,27 +87,27 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 
 		// edge is specified in the VERSION_ID field pf the /etc/os-release file for postmarketos, and there is no codename; however,
 		// to be resilient handle both cases where edge may be parsed as the raw version or as the codename
-		{Alias: "postmarketos", Version: "edge", ReplacementName: strRef("alpine"), ReplacementLabelVersion: strRef("edge"), Rolling: true},
-		{Alias: "postmarketos", Codename: "edge", ReplacementName: strRef("alpine"), ReplacementLabelVersion: strRef("edge"), Rolling: true},
+		{Alias: postmarketOSDistro, Version: "edge", ReplacementName: strRef("alpine"), ReplacementLabelVersion: strRef("edge"), Rolling: true},
+		{Alias: postmarketOSDistro, Codename: "edge", ReplacementName: strRef("alpine"), ReplacementLabelVersion: strRef("edge"), Rolling: true},
 
-		{Alias: "postmarketos", Version: "25.12", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("23")},
-		{Alias: "postmarketos", Version: "25.06", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("22")},
-		{Alias: "postmarketos", Version: "24.12", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("21")},
-		{Alias: "postmarketos", Version: "24.06", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("20")},
-		{Alias: "postmarketos", Version: "23.12", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("19")},
-		{Alias: "postmarketos", Version: "23.06", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("18")},
-		{Alias: "postmarketos", Version: "22.12", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("17")},
-		{Alias: "postmarketos", Version: "22.06", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("16")},
-		{Alias: "postmarketos", Version: "21.12", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("15")},
-		{Alias: "postmarketos", Version: "21.06", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("14")},
-		{Alias: "postmarketos", Version: "21.03", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("13")},
-		{Alias: "postmarketos", Version: "20.05", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("12")},
+		{Alias: postmarketOSDistro, Version: "25.12", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("23")},
+		{Alias: postmarketOSDistro, Version: "25.06", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("22")},
+		{Alias: postmarketOSDistro, Version: "24.12", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("21")},
+		{Alias: postmarketOSDistro, Version: "24.06", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("20")},
+		{Alias: postmarketOSDistro, Version: "23.12", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("19")},
+		{Alias: postmarketOSDistro, Version: "23.06", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("18")},
+		{Alias: postmarketOSDistro, Version: "22.12", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("17")},
+		{Alias: postmarketOSDistro, Version: "22.06", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("16")},
+		{Alias: postmarketOSDistro, Version: "21.12", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("15")},
+		{Alias: postmarketOSDistro, Version: "21.06", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("14")},
+		{Alias: postmarketOSDistro, Version: "21.03", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("13")},
+		{Alias: postmarketOSDistro, Version: "20.05", ReplacementName: strRef("alpine"), ReplacementMajorVersion: strRef("3"), ReplacementMinorVersion: strRef("12")},
 
 		// If no version is specified, map generally to alpine which has same behaviour as today where it matches against all possible
 		// alpine releases, otherwise we will get no matches.
 		// NOTE: We have to use a hack here with VersionPattern matching empty string because setting Version to "" with no other
 		// primary key properties set breaks matching against the above release mappings
-		{Alias: "postmarketos", VersionPattern: "^$", ReplacementName: strRef("alpine")},
+		{Alias: postmarketOSDistro, VersionPattern: "^$", ReplacementName: strRef("alpine")},
 	}
 }
 

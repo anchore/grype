@@ -53,6 +53,19 @@ grype alpine:latest
 grype ./my-project
 ```
 
+### Local containers-storage images
+
+On Linux, grype can scan images from a local containers-storage store (e.g. built with Buildah or Podman) when asked explicitly; plain image references never look there:
+
+```bash
+grype --from containers-storage localhost/myimage:latest
+
+# rootless stores must be read from inside the builder's user namespace
+podman unshare grype --from containers-storage localhost/myimage:latest
+```
+
+This is included in the Linux release binaries. When building from source, add `-tags containers_image_openpgp,exclude_graphdriver_btrfs`.
+
 Scan an SBOM for even faster vulnerability detection:
 
 ```bash

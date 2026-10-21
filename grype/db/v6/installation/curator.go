@@ -102,6 +102,7 @@ func (c curator) Reader() (db.Reader, error) {
 
 	m, err := s.GetDBMetadata()
 	if err != nil {
+		log.CloseAndLogError(s, c.config.DBDirectoryPath())
 		return nil, fmt.Errorf("unable to get vulnerability store metadata: %w", err)
 	}
 
@@ -113,6 +114,7 @@ func (c curator) Reader() (db.Reader, error) {
 
 	doRehydrate, err := isRehydrationNeeded(c.fs, c.config.DBDirectoryPath(), currentDBSchemaVersion, schemaver.New(db.ModelVersion, db.Revision, db.Addition))
 	if err != nil {
+		log.CloseAndLogError(s, c.config.DBDirectoryPath())
 		return nil, err
 	}
 	if doRehydrate {
@@ -643,6 +645,7 @@ func unarchive(source, destination string) error {
 	if err != nil {
 		return err
 	}
+	defer root.Close()
 
 	visitor := func(_ context.Context, file archives.FileInfo) error {
 		if file.IsDir() || file.LinkTarget != "" {

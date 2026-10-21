@@ -1,0 +1,64 @@
+{
+  "identifier": "github:go/ghsa-46q7-xr5m-cr77",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2026-46597"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 7.5,
+          "base_severity": "High",
+          "exploitability_score": 3.9,
+          "impact_score": 3.6
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2026-06-01",
+            "kind": "first-observed"
+          },
+          "ecosystem": "go",
+          "identifier": "0.35.0",
+          "name": "golang.org/x/crypto",
+          "namespace": "github:go",
+          "range": "< 0.35.0"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2026-46597"
+        ]
+      },
+      "Severity": "High",
+      "Summary": "golang.org/x/crypto/ssh panic via crafted value",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-46q7-xr5m-cr77",
+      "namespace": "github:go",
+      "published": "2026-06-01T00:00:00Z",
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-46597"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-46q7-xr5m-cr77"
+        }
+      ],
+      "updated": "2026-06-01T00:00:00Z",
+      "url": "https://github.com/advisories/GHSA-46q7-xr5m-cr77",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

@@ -685,10 +685,10 @@ func TestGetRanges(t *testing.T) {
 		},
 		{
 			Version: db.Version{
-				// important: this emits an unknown constraint type,
-				// triggering fuzzy matching when the input is not
-				// valid semver
-				Type:       "Unknown",
+				// glued-on prerelease bounds ("9.6.0b1") are normalized by the go
+				// comparator, so this stays a go constraint instead of falling back
+				// to fuzzy matching
+				Type:       "go",
 				Constraint: ">=9.6.0b1,<9.6.3",
 			},
 			Fix: &db.Fix{
@@ -716,7 +716,7 @@ func TestGetRanges(t *testing.T) {
 		ranges = append(ranges, rng...)
 	}
 
-	require.Equal(t, 1, len(errors))
+	require.Empty(t, errors)
 	if diff := cmp.Diff(expectedRanges, ranges); diff != "" {
 		t.Errorf("getRanges() mismatch (-want +got):\n%s", diff)
 	}

@@ -1,0 +1,10 @@
+{
+  "content_hash": "manual",
+  "created_at": "2026-07-02T00:00:00Z",
+  "providers": {
+    "ubuntu": {
+      "vunnel_version": "vunnel@0.56.0",
+      "timestamp": "2026-05-13T09:08:13Z"
+    }
+  }
+}

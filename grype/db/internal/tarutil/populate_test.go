@@ -44,6 +44,7 @@ func TestPopulateWithPaths(t *testing.T) {
 			require.NoError(t, err)
 			_, err = f.Write([]byte("hello world\n"))
 			require.NoError(t, err)
+			require.NoError(t, f.Close())
 			archivePath := filepath.Join(dir, tt.tarPath)
 			err = PopulateWithPaths(archivePath, tempPath)
 			require.NoError(t, err)

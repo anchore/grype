@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:491fc8dc-9384-4f3d-a729-d2c5a83791d8",
+  "serialNumber": "urn:uuid:553dd7b9-6d15-4824-bfa6-816d02a29b67",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-03-19T11:34:26-04:00",
+    "timestamp": "2026-07-07T16:57:37+09:00",
     "tools": {
       "components": [
         {
@@ -90,7 +90,7 @@
   ],
   "vulnerabilities": [
     {
-      "bom-ref": "urn:uuid:8f52aaa6-907a-43e7-8b48-836453a51bbf",
+      "bom-ref": "urn:uuid:1ab17948-c716-4578-8576-7321790968ca",
       "id": "CVE-1999-0001",
       "source": {},
       "references": [
@@ -117,12 +117,30 @@
       ],
       "affects": [
         {
-          "ref": "a246fd2054833c93"
+          "ref": "a246fd2054833c93",
+          "versions": [
+            {
+              "version": "1.1.1",
+              "status": "affected"
+            },
+            {
+              "range": "vers:generic/>=1.2.1",
+              "status": "unaffected"
+            },
+            {
+              "range": "vers:generic/>=2.1.3",
+              "status": "unaffected"
+            },
+            {
+              "range": "vers:generic/>=3.4.0",
+              "status": "unaffected"
+            }
+          ]
         }
       ]
     },
     {
-      "bom-ref": "urn:uuid:166daf49-c343-460e-b66a-c22247147678",
+      "bom-ref": "urn:uuid:6d45f9fc-91ad-48ff-905a-0df90643f49f",
       "id": "CVE-1999-0002",
       "source": {},
       "references": [
@@ -158,7 +176,13 @@
       ],
       "affects": [
         {
-          "ref": "pkg:deb/package-2@2.2.2?package-id=74378afe15713625"
+          "ref": "pkg:deb/package-2@2.2.2?package-id=74378afe15713625",
+          "versions": [
+            {
+              "version": "2.2.2",
+              "status": "affected"
+            }
+          ]
         }
       ]
     }
