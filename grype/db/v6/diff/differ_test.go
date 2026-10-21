@@ -1180,6 +1180,76 @@ func Test_handlesWithoutBlobs(t *testing.T) {
 	require.Empty(t, result.Packages)
 }
 
+// Test_packageDiffExact asserts the exact package results for edge cases that can't be expressed with the flat file
+// fixtures alone, so the databases are altered with SQL after they are built
+func Test_packageDiffExact(t *testing.T) {
+	tests := []struct {
+		name      string
+		oldDB     []string
+		newDB     []string
+		mutateOld []string
+		mutateNew []string
+		expected  []PackageDiff
+	}{
+		{
+			// NULL and '' are reported identically, so they must be treated as the same package / CPE
+			name:      "null and empty values are equivalent",
+			oldDB:     []string{"cve-2025-59800", "cve-2025-21916"},
+			newDB:     []string{"cve-2025-59800", "cve-2025-21916"},
+			mutateOld: []string{"UPDATE packages SET ecosystem = NULL", "UPDATE cpes SET edition = NULL"},
+			mutateNew: []string{"UPDATE packages SET ecosystem = ''"},
+		},
+	}
+
+	inputDir, err := filepath.Abs(filepath.Join("testdata", "inputs"))
+	require.NoError(t, err)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			oldDB := filepath.Join(t.TempDir(), "oldDB")
+			testdb.BuildFromFlatFileDir(t, time.Date(2022, 8, 11, 18, 1, 5, 0, time.UTC), oldDB, inputDir, tt.oldDB...)
+			execSQL(t, oldDB, tt.mutateOld...)
+
+			newDB := filepath.Join(t.TempDir(), "newDB")
+			testdb.BuildFromFlatFileDir(t, time.Date(2022, 8, 12, 1, 55, 19, 0, time.UTC), newDB, inputDir, tt.newDB...)
+			execSQL(t, newDB, tt.mutateNew...)
+
+			differ, err := NewDBDiffer(Config{Config: installation.Config{}, OldDB: oldDB, NewDB: newDB})
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = differ.Close() })
+
+			result, err := differ.Diff()
+			require.NoError(t, err)
+			require.Equal(t, tt.expected, nilIfEmpty(result.Packages))
+		})
+	}
+}
+
+// execSQL runs each statement against the database in dbDir, requiring that each one changes at least one row (so a
+// mutation can't silently become a no-op if the fixtures change)
+func execSQL(t *testing.T, dbDir string, statements ...string) {
+	t.Helper()
+	if len(statements) == 0 {
+		return
+	}
+	db, err := v6.NewLowLevelDB(filepath.Join(dbDir, v6.VulnerabilityDBFileName), false, true, false)
+	require.NoError(t, err)
+	defer closeLowLevelDB(db)
+	require.NoError(t, db.Exec("PRAGMA foreign_keys = OFF").Error)
+	for _, stmt := range statements {
+		res := db.Exec(stmt)
+		require.NoError(t, res.Error, stmt)
+		require.NotZero(t, res.RowsAffected, "statement changed no rows: %s", stmt)
+	}
+}
+
+func nilIfEmpty[T any](s []T) []T {
+	if len(s) == 0 {
+		return nil
+	}
+	return s
+}
+
 func requireVulns(t *testing.T, testType string, vulns []VulnerabilityID, vulnNames ...string) {
 nextVuln:
 	for _, required := range vulnNames {

@@ -17,9 +17,9 @@ func (d *DBDiffer) createDiffKeyTablesPackages() error {
 		`CREATE INDEX idx_diff_vuln_keys ON diff_vuln_keys (name, provider_id)`,
 
 		`CREATE TEMP TABLE diff_pkg_keys AS
-		 SELECT ecosystem, name FROM main.packages
+		 SELECT COALESCE(ecosystem, '') AS ecosystem, COALESCE(name, '') AS name FROM main.packages
 		 UNION
-		 SELECT ecosystem, name FROM new_db.packages`,
+		 SELECT COALESCE(ecosystem, ''), COALESCE(name, '') FROM new_db.packages`,
 		`CREATE INDEX idx_diff_pkg_keys ON diff_pkg_keys (ecosystem, name)`,
 
 		`CREATE TEMP TABLE diff_os_keys AS
@@ -31,9 +31,15 @@ func (d *DBDiffer) createDiffKeyTablesPackages() error {
 		`CREATE INDEX idx_diff_os_keys ON diff_os_keys (name, major, minor, codename, channel)`,
 
 		`CREATE TEMP TABLE diff_cpe_keys AS
-		 SELECT part, vendor, product, edition, language, software_edition, target_hardware, target_software, other FROM main.cpes
+		 SELECT COALESCE(part, '') AS part, COALESCE(vendor, '') AS vendor, COALESCE(product, '') AS product,
+			COALESCE(edition, '') AS edition, COALESCE(language, '') AS language,
+			COALESCE(software_edition, '') AS software_edition, COALESCE(target_hardware, '') AS target_hardware,
+			COALESCE(target_software, '') AS target_software, COALESCE(other, '') AS other
+		 FROM main.cpes
 		 UNION
-		 SELECT part, vendor, product, edition, language, software_edition, target_hardware, target_software, other FROM new_db.cpes`,
+		 SELECT COALESCE(part, ''), COALESCE(vendor, ''), COALESCE(product, ''), COALESCE(edition, ''), COALESCE(language, ''),
+			COALESCE(software_edition, ''), COALESCE(target_hardware, ''), COALESCE(target_software, ''), COALESCE(other, '')
+		 FROM new_db.cpes`,
 		`CREATE INDEX idx_diff_cpe_keys ON diff_cpe_keys (part, vendor, product, edition, language, software_edition, target_hardware, target_software, other)`,
 	}
 
@@ -60,7 +66,8 @@ func (d *DBDiffer) createDiffTablesPackages(db, schema string) error {
 	r := strings.NewReplacer("{suffix}", db, "{db}", schema+".")
 
 	templates := []string{
-		// maps from database IDs to shared keys; IS is used rather than = so nulls map to the same key
+		// maps from database IDs to shared keys. Nullable columns are compared as '' (matching the key tables and how
+		// the results are reported), so NULL and '' are the same identity; vulnerability name and provider are NOT NULL
 		`CREATE TEMP TABLE diff_vuln_map_{suffix} AS
 		 SELECT vh.id AS vulnerability_id,
 			k.rowid AS vuln_key,
@@ -72,7 +79,7 @@ func (d *DBDiffer) createDiffTablesPackages(db, schema string) error {
 		`CREATE TEMP TABLE diff_pkg_map_{suffix} AS
 		 SELECT p.id AS package_id, k.rowid AS pkg_key
 		 FROM {db}packages p
-		 CROSS JOIN diff_pkg_keys k ON k.ecosystem IS p.ecosystem AND k.name IS p.name`,
+		 CROSS JOIN diff_pkg_keys k ON k.ecosystem = COALESCE(p.ecosystem, '') AND k.name = COALESCE(p.name, '')`,
 		`CREATE INDEX idx_diff_pkg_map_{suffix} ON diff_pkg_map_{suffix} (package_id, pkg_key)`,
 
 		`CREATE TEMP TABLE diff_os_map_{suffix} AS
@@ -90,15 +97,15 @@ func (d *DBDiffer) createDiffTablesPackages(db, schema string) error {
 		 SELECT c.id AS cpe_id, k.rowid AS cpe_key
 		 FROM {db}cpes c
 		 CROSS JOIN diff_cpe_keys k
-			ON k.part IS c.part
-			AND k.vendor IS c.vendor
-			AND k.product IS c.product
-			AND k.edition IS c.edition
-			AND k.language IS c.language
-			AND k.software_edition IS c.software_edition
-			AND k.target_hardware IS c.target_hardware
-			AND k.target_software IS c.target_software
-			AND k.other IS c.other`,
+			ON k.part = COALESCE(c.part, '')
+			AND k.vendor = COALESCE(c.vendor, '')
+			AND k.product = COALESCE(c.product, '')
+			AND k.edition = COALESCE(c.edition, '')
+			AND k.language = COALESCE(c.language, '')
+			AND k.software_edition = COALESCE(c.software_edition, '')
+			AND k.target_hardware = COALESCE(c.target_hardware, '')
+			AND k.target_software = COALESCE(c.target_software, '')
+			AND k.other = COALESCE(c.other, '')`,
 		`CREATE INDEX idx_diff_cpe_map_{suffix} ON diff_cpe_map_{suffix} (cpe_id, cpe_key)`,
 
 		// package + language/os + vulnerability
