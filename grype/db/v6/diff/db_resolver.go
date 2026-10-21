@@ -87,7 +87,10 @@ func newResolvedDB(dir string, cleanup func()) (ResolvedDB, error) {
 
 	hydrate := db.Hydrater()
 	if err := hydrate(dir); err != nil {
-		_ = os.RemoveAll(dir)
+		// dir may be a directory the user passed in, so only remove what this tool created (via cleanup)
+		if cleanup != nil {
+			cleanup()
+		}
 		return ResolvedDB{}, fmt.Errorf("failed to hydrate database: %w", err)
 	}
 
@@ -121,14 +124,26 @@ func extractArchive(archivePath string) (ResolvedDB, error) {
 	} else {
 		log.Infof("extracting database archive: %s", archivePath)
 
+		// only remove the extraction directory on failure if it was created here
+		removeOnFailure := func() {}
+		if _, err := os.Stat(destDir); os.IsNotExist(err) {
+			removeOnFailure = func() { _ = os.RemoveAll(destDir) }
+		}
+
 		if err := os.MkdirAll(destDir, 0o700); err != nil {
 			return ResolvedDB{}, fmt.Errorf("failed to create extraction directory: %w", err)
 		}
 
 		if err := unarchiveDB(archivePath, destDir); err != nil {
-			_ = os.RemoveAll(destDir)
+			removeOnFailure()
 			return ResolvedDB{}, fmt.Errorf("failed to extract archive %q: %w", archivePath, err)
 		}
+
+		resolved, err := newResolvedDB(destDir, nil)
+		if err != nil {
+			removeOnFailure()
+		}
+		return resolved, err
 	}
 
 	return newResolvedDB(destDir, nil)
