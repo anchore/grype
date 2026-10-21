@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -162,8 +163,48 @@ func outputText(writer io.Writer, result *diff.Result) error {
 	return t.Render()
 }
 
+// outputJSON writes the result as indented JSON. This is equivalent to encoding the result with a json.Encoder, but
+// encodes one package at a time: a diff can contain millions of changes, and encoding the whole result at once
+// requires holding several copies of the full document in memory.
 func outputJSON(writer io.Writer, result *diff.Result) error {
-	enc := json.NewEncoder(writer)
-	enc.SetIndent("", "  ")
-	return enc.Encode(result)
+	// bufio.Writer errors are sticky (later writes are no-ops and Flush returns the error), so only the first
+	// marshal error needs tracking
+	w := bufio.NewWriter(writer)
+	var err error
+	write := func(s string) { _, _ = w.WriteString(s) }
+	writeValue := func(value any, prefix string) {
+		if err != nil {
+			return
+		}
+		var data []byte
+		data, err = json.MarshalIndent(value, prefix, "  ")
+		_, _ = w.Write(data)
+	}
+
+	// fields are written in the order they are defined on diff.Result, honoring their omitempty options
+	write("{\n  \"schema\": ")
+	writeValue(result.Schema, "  ")
+	write(",\n  \"databases\": ")
+	writeValue(result.Databases, "  ")
+	if len(result.Packages) > 0 {
+		write(",\n  \"packages\": [")
+		for i, p := range result.Packages {
+			if i > 0 {
+				write(",")
+			}
+			write("\n    ")
+			writeValue(p, "    ")
+		}
+		write("\n  ]")
+	}
+	if result.Vulnerabilities != nil {
+		write(",\n  \"vulnerabilities\": ")
+		writeValue(result.Vulnerabilities, "  ")
+	}
+	write("\n}\n")
+
+	if err != nil {
+		return err
+	}
+	return w.Flush()
 }

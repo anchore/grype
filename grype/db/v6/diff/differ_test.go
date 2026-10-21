@@ -1146,6 +1146,40 @@ func Test_hydrationPermutations(t *testing.T) {
 	}
 }
 
+// Test_handlesWithoutBlobs verifies that package / CPE handles without a blob are excluded from the diff, rather than
+// being reported as modified (missing blobs can't be compared, so they would never be considered equivalent)
+func Test_handlesWithoutBlobs(t *testing.T) {
+	inputDir, err := filepath.Abs(filepath.Join("testdata", "inputs"))
+	require.NoError(t, err)
+
+	removeBlobs := func(dbDir string) {
+		db, err := v6.NewLowLevelDB(filepath.Join(dbDir, v6.VulnerabilityDBFileName), false, true, false)
+		require.NoError(t, err)
+		defer closeLowLevelDB(db)
+		require.NoError(t, db.Exec("PRAGMA foreign_keys = OFF").Error)
+		for _, table := range []string{"affected_package_handles", "unaffected_package_handles", "affected_cpe_handles", "unaffected_cpe_handles"} {
+			require.NoError(t, db.Exec("UPDATE "+table+" SET blob_id = 0").Error)
+		}
+	}
+
+	tmpdir := t.TempDir()
+	var dirs []string
+	for _, name := range []string{"oldDB", "newDB"} {
+		dir := filepath.Join(tmpdir, name)
+		testdb.BuildFromFlatFileDir(t, time.Time{}, dir, inputDir, "cve-2025-59800", "cve-2020-15415")
+		removeBlobs(dir)
+		dirs = append(dirs, dir)
+	}
+
+	differ, err := NewDBDiffer(Config{Config: installation.Config{}, OldDB: dirs[0], NewDB: dirs[1]})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = differ.Close() })
+
+	result, err := differ.Diff()
+	require.NoError(t, err)
+	require.Empty(t, result.Packages)
+}
+
 func requireVulns(t *testing.T, testType string, vulns []VulnerabilityID, vulnNames ...string) {
 nextVuln:
 	for _, required := range vulnNames {
