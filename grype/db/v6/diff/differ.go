@@ -62,9 +62,12 @@ func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) 
 	}
 
 	// the attached database, temp tables, and pragmas are all per-connection, so every statement must run on the same one
-	if sqlDB, err := db.DB(); err == nil {
-		sqlDB.SetMaxOpenConns(1)
+	sqlDB, err := db.DB()
+	if err != nil {
+		closeLowLevelDB(db)
+		return nil, fmt.Errorf("failed to configure database: %w", err)
 	}
+	sqlDB.SetMaxOpenConns(1)
 
 	// allow sqlite to use worker threads when sorting (e.g. to build indexes)
 	if err := db.Exec("PRAGMA threads = 4").Error; err != nil {
@@ -271,7 +274,8 @@ func (d *DBDiffer) findCPEChanges(view string, change changeType, diffs *package
 }
 
 // forEachRow scans each row of the query into dest and calls fn, without holding all rows in memory at once (a diff
-// can contain millions of rows)
+// can contain millions of rows). fn must not query the database: the open rows hold the only connection, so a nested
+// query would block forever.
 func (d *DBDiffer) forEachRow(query string, dest []any, fn func()) (int, error) {
 	rows, err := d.db.Raw(query).Rows()
 	if err != nil {
