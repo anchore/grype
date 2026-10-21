@@ -1199,6 +1199,52 @@ func Test_packageDiffExact(t *testing.T) {
 			mutateOld: []string{"UPDATE packages SET ecosystem = NULL", "UPDATE cpes SET edition = NULL"},
 			mutateNew: []string{"UPDATE packages SET ecosystem = ''"},
 		},
+		{
+			// fix availability doesn't affect matching, so blobs that only differ there are not modified
+			name:  "fix availability only change",
+			oldDB: []string{"echo-rolling/CVE-2025-13012", "cve-2025-21916"},
+			newDB: []string{"echo-rolling/CVE-2025-13012", "cve-2025-21916"},
+			mutateNew: []string{
+				`UPDATE blobs SET value = replace(value, '"first-observed"', '"advisory"')
+				 WHERE id IN (SELECT blob_id FROM affected_package_handles) AND value LIKE '%"first-observed"%'`,
+				`UPDATE blobs SET value = replace(value, '"first-observed"', '"advisory"')
+				 WHERE id IN (SELECT blob_id FROM affected_cpe_handles) AND value LIKE '%"first-observed"%'`,
+			},
+		},
+		{
+			// a vulnerable record is removed when the other side has a matching not-vulnerable record, even if it also
+			// has a matching vulnerable record
+			name:      "mixed statuses for the same package",
+			oldDB:     []string{"cve-2025-59800"},
+			newDB:     []string{"cve-2025-59800"},
+			mutateNew: []string{copyHandles("affected_package_handles", "unaffected_package_handles")},
+			expected: []PackageDiff{
+				{Ecosystem: "deb", Name: "ghostscript", Vulnerabilities: VulnerabilityChanges{Removed: []VulnerabilityID{{Provider: "echo", ID: "CVE-2025-59800"}}}},
+			},
+		},
+		{
+			// cpes that only differ by '' vs '*' render to the same CPE string, so must be reported once
+			name:  "cpes with the same cpe string",
+			oldDB: []string{"cve-2025-24456"},
+			newDB: []string{"cve-2025-24456", "cve-2025-21916"},
+			mutateNew: []string{
+				`INSERT INTO cpes (part, vendor, product, edition, language, software_edition, target_hardware, target_software, other)
+				 SELECT part, vendor, product, '*', language, software_edition, target_hardware, target_software, other
+				 FROM cpes WHERE product = 'linux_kernel'`,
+				`INSERT INTO affected_cpe_handles (vulnerability_id, cpe_id, blob_id)
+				 SELECT h.vulnerability_id, (SELECT id FROM cpes WHERE product = 'linux_kernel' AND edition = '*'), h.blob_id
+				 FROM affected_cpe_handles h JOIN cpes c ON c.id = h.cpe_id
+				 WHERE c.product = 'linux_kernel' AND c.edition = ''`,
+			},
+			expected: []PackageDiff{
+				{
+					Ecosystem:       "cpe",
+					Name:            "linux_kernel",
+					CPE:             "cpe:2.3:o:linux:linux_kernel:*:*:*:*:*:*:*:*",
+					Vulnerabilities: VulnerabilityChanges{Added: []VulnerabilityID{{Provider: "nvd", ID: "CVE-2025-21916"}}},
+				},
+			},
+		},
 	}
 
 	inputDir, err := filepath.Abs(filepath.Join("testdata", "inputs"))
@@ -1241,6 +1287,12 @@ func execSQL(t *testing.T, dbDir string, statements ...string) {
 		require.NoError(t, res.Error, stmt)
 		require.NotZero(t, res.RowsAffected, "statement changed no rows: %s", stmt)
 	}
+}
+
+// copyHandles returns a statement that copies every handle in the from table into the to table
+func copyHandles(from, to string) string {
+	return `INSERT INTO ` + to + ` (vulnerability_id, operating_system_id, package_id, blob_id)
+		SELECT vulnerability_id, operating_system_id, package_id, blob_id FROM ` + from
 }
 
 func nilIfEmpty[T any](s []T) []T {
