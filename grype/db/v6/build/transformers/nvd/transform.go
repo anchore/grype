@@ -68,10 +68,10 @@ func Transformer(cfg Config) data.NVDTransformerV2 {
 }
 
 func transform(cfg Config, vulnerability unmarshal.NVDVulnerability, state provider.State) ([]data.Entry, error) {
-	var cna *unmarshal.CVE5Record
+	var cna *Projection
 	if cfg.CNA != nil {
-		if r, ok := cfg.CNA.Take(vulnerability.ID); ok {
-			cna = &r
+		if p, ok := cfg.CNA.Take(vulnerability.ID); ok {
+			cna = &p
 		}
 	}
 
@@ -119,21 +119,21 @@ func transform(cfg Config, vulnerability unmarshal.NVDVulnerability, state provi
 // NVD processor was built with, so both pick the same CPE parts and fix inference. The vulnerability is written
 // under the `nvd` provider, never `cve5`, with the status of an NVD record that has only been received and
 // without severities. It returns nothing when the record yields no CPE row and no package row.
-func TransformCVE5Only(cfg Config, r unmarshal.CVE5Record, nvdState provider.State) []data.Entry {
+func TransformCVE5Only(cfg Config, p Projection, nvdState provider.State) []data.Entry {
 	if cfg == (Config{}) {
 		cfg = defaultConfig()
 	}
 
-	id := r.CVEMetadata.CVEID
-	cpeHandles, packageHandles := affectedFromConfigurations(cfg, id, cnaConfigurations(r))
-	packageHandles = append(packageHandles, cnaPackageHandles(r)...)
+	id := p.ID
+	cpeHandles, packageHandles := affectedFromConfigurations(cfg, id, p.CPESource())
+	packageHandles = append(packageHandles, cnaPackageHandles(p)...)
 	if len(cpeHandles) == 0 && len(packageHandles) == 0 {
 		return nil
 	}
 	sort.Sort(internal.ByAffectedPackage(packageHandles))
 
 	var assigners []string
-	if a := r.CVEMetadata.AssignerShortName; a != "" {
+	if a := p.Assigner; a != "" {
 		assigners = []string{a}
 	}
 
@@ -142,14 +142,14 @@ func TransformCVE5Only(cfg Config, r unmarshal.CVE5Record, nvdState provider.Sta
 			Name:          id,
 			ProviderID:    "nvd",
 			Provider:      provider.Model(nvdState),
-			ModifiedDate:  internal.ParseTime(r.CVEMetadata.DateUpdated),
-			PublishedDate: internal.ParseTime(r.CVEMetadata.DatePublished),
+			ModifiedDate:  internal.ParseTime(p.DateUpdated),
+			PublishedDate: internal.ParseTime(p.DatePublished),
 			Status:        db.UnknownVulnerabilityStatus,
 			BlobValue: &db.VulnerabilityBlob{
 				ID:          id,
 				Assigners:   assigners,
-				Description: strings.TrimSpace(cnaDescription(r)),
-				References:  cnaReferences(r),
+				Description: strings.TrimSpace(cnaDescription(p)),
+				References:  cnaReferences(p),
 			},
 		},
 	}
@@ -164,8 +164,8 @@ func TransformCVE5Only(cfg Config, r unmarshal.CVE5Record, nvdState provider.Sta
 	return transformers.NewEntries(in...)
 }
 
-func cnaDescription(r unmarshal.CVE5Record) string {
-	for _, d := range r.Containers.CNA.Descriptions {
+func cnaDescription(p Projection) string {
+	for _, d := range p.Descriptions {
 		if d.Lang == "en" {
 			return d.Value
 		}
@@ -173,9 +173,9 @@ func cnaDescription(r unmarshal.CVE5Record) string {
 	return ""
 }
 
-func cnaReferences(r unmarshal.CVE5Record) []db.Reference {
+func cnaReferences(p Projection) []db.Reference {
 	var references []db.Reference
-	for _, ref := range r.Containers.CNA.References {
+	for _, ref := range p.References {
 		if ref.URL == "" {
 			continue
 		}
@@ -256,12 +256,11 @@ func getVulnStatus(vuln unmarshal.NVDVulnerability) db.VulnerabilityStatus {
 }
 
 // getAffected builds CPE and package rows. CPE rows come from the NVD configurations when the key is present,
-// and otherwise from the CNA's cpeApplicability unless its assigner is excluded. CNA package rows are added in
-// either case.
-func getAffected(cfg Config, vulnerability unmarshal.NVDVulnerability, cna *unmarshal.CVE5Record) ([]db.AffectedCPEHandle, []db.AffectedPackageHandle) {
+// and otherwise from the CVE 5 record's CPESource. CVE 5 package rows are added in either case.
+func getAffected(cfg Config, vulnerability unmarshal.NVDVulnerability, cna *Projection) ([]db.AffectedCPEHandle, []db.AffectedPackageHandle) {
 	configurations := vulnerability.Configurations
 	if configurations == nil && cna != nil {
-		configurations = cnaConfigurations(*cna)
+		configurations = cna.CPESource()
 	}
 
 	cpeHandles, packageHandles := affectedFromConfigurations(cfg, vulnerability.ID, configurations)
@@ -269,13 +268,6 @@ func getAffected(cfg Config, vulnerability unmarshal.NVDVulnerability, cna *unma
 		packageHandles = append(packageHandles, cnaPackageHandles(*cna)...)
 	}
 	return cpeHandles, packageHandles
-}
-
-func cnaConfigurations(r unmarshal.CVE5Record) []nvd.Configuration {
-	if !cpeApplicabilityUsable(r.CVEMetadata.AssignerShortName) {
-		return nil
-	}
-	return r.Containers.CNA.CPEApplicability
 }
 
 func affectedFromConfigurations(cfg Config, id string, configurations []nvd.Configuration) ([]db.AffectedCPEHandle, []db.AffectedPackageHandle) {

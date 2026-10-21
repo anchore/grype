@@ -10,6 +10,7 @@ import (
 	"unicode"
 
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/nvd"
 	"github.com/anchore/grype/grype/db/provider/entry"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
@@ -28,19 +29,72 @@ func cpeApplicabilityUsable(assigner string) bool {
 	return !slices.Contains(excludedCPEAssigners, assigner)
 }
 
+// Projection is the part of a CVE 5 record that reconciliation reads. Affected is the `anchoreadp` container's
+// list when the record has one and the CNA's otherwise, and the two lists are never merged. Both
+// cpeApplicability values are kept because their precedence depends on the NVD record (see CPESource).
+type Projection struct {
+	ID            string
+	State         string
+	Assigner      string
+	DatePublished string
+	DateUpdated   string
+	Descriptions  []unmarshal.CVE5Description
+	References    []unmarshal.CVE5Reference
+
+	Affected []unmarshal.CVE5Affected
+
+	CNACPE []nvd.Configuration
+	ADPCPE []nvd.Configuration
+}
+
+func project(r unmarshal.CVE5Record) Projection {
+	cna := r.Containers.CNA
+	p := Projection{
+		ID:            r.CVEMetadata.CVEID,
+		State:         r.CVEMetadata.State,
+		Assigner:      r.CVEMetadata.AssignerShortName,
+		DatePublished: r.CVEMetadata.DatePublished,
+		DateUpdated:   r.CVEMetadata.DateUpdated,
+		Descriptions:  cna.Descriptions,
+		References:    cna.References,
+		Affected:      cna.Affected,
+		CNACPE:        cna.CPEApplicability,
+	}
+	if adp := r.AnchoreADP(); adp != nil {
+		p.ADPCPE = adp.CPEApplicability
+		if len(adp.Affected) > 0 {
+			p.Affected = adp.Affected
+		}
+	}
+	return p
+}
+
+// CPESource returns the cpeApplicability that supplies CPE rows when the NVD record has no configurations: the
+// `anchoreadp` container's when it has one, else the CNA's unless its assigner is excluded.
+func (p Projection) CPESource() []nvd.Configuration {
+	if len(p.ADPCPE) > 0 {
+		return p.ADPCPE
+	}
+	if !cpeApplicabilityUsable(p.Assigner) {
+		return nil
+	}
+	return p.CNACPE
+}
+
 // Index holds the CNA data of CVE 5 records, keyed by lowercased CVE ID, for the NVD transformer to look up.
 type Index struct {
-	records  map[string]unmarshal.CVE5Record
+	records  map[string]Projection
 	consumed map[string]struct{}
 	count    int
 }
 
-// NewIndex reads every record from the `cve5` provider's openers. It keeps a record when it has
-// cpeApplicability or an affected entry with a packageURL or collectionURL, since nothing else is read later.
+// NewIndex reads every record from the `cve5` provider's openers. It keeps a record when either container has
+// cpeApplicability or the selected affected list has an entry with a packageURL or collectionURL, since nothing
+// else is read later.
 // A record that fails to decode is skipped with a warning and still counts as read.
 func NewIndex(openers <-chan entry.Opener) (*Index, error) {
 	idx := &Index{
-		records:  make(map[string]unmarshal.CVE5Record),
+		records:  make(map[string]Projection),
 		consumed: make(map[string]struct{}),
 	}
 
@@ -83,16 +137,16 @@ func (i *Index) add(r unmarshal.CVE5Record) {
 		delete(i.records, key)
 	}
 
-	if hasCNAData(r) {
-		i.records[key] = r
+	if p := project(r); p.hasData() {
+		i.records[key] = p
 	}
 }
 
-func hasCNAData(r unmarshal.CVE5Record) bool {
-	if len(r.Containers.CNA.CPEApplicability) > 0 {
+func (p Projection) hasData() bool {
+	if len(p.CNACPE) > 0 || len(p.ADPCPE) > 0 {
 		return true
 	}
-	for _, a := range r.Containers.CNA.Affected {
+	for _, a := range p.Affected {
 		if a.PackageURL != "" || a.CollectionURL != "" {
 			return true
 		}
@@ -106,7 +160,7 @@ func (i *Index) Count() int {
 }
 
 // Take returns the record for a CVE ID and marks it consumed, so Leftovers no longer returns it.
-func (i *Index) Take(id string) (unmarshal.CVE5Record, bool) {
+func (i *Index) Take(id string) (Projection, bool) {
 	key := strings.ToLower(id)
 	r, ok := i.records[key]
 	if ok {
@@ -115,18 +169,18 @@ func (i *Index) Take(id string) (unmarshal.CVE5Record, bool) {
 	return r, ok
 }
 
-// Leftovers returns the published records that Take has not returned, sorted by CVE ID.
-func (i *Index) Leftovers() []unmarshal.CVE5Record {
+// Leftovers returns the projections of published records that Take has not returned, sorted by CVE ID.
+func (i *Index) Leftovers() []Projection {
 	var keys []string
 	for key, r := range i.records {
-		if _, taken := i.consumed[key]; taken || r.CVEMetadata.State != "PUBLISHED" {
+		if _, taken := i.consumed[key]; taken || r.State != "PUBLISHED" {
 			continue
 		}
 		keys = append(keys, key)
 	}
 	sort.Strings(keys)
 
-	out := make([]unmarshal.CVE5Record, 0, len(keys))
+	out := make([]Projection, 0, len(keys))
 	for _, key := range keys {
 		out = append(out, i.records[key])
 	}
@@ -154,11 +208,11 @@ var cnaRegistryHosts = map[string][]string{
 // cnaPackageHandles returns one affected package handle for each affected[] entry that names a package in a
 // supported ecosystem and has at least one range that is no broader than the entry states. An entry that cannot be
 // used is skipped with a debug log, never an error.
-func cnaPackageHandles(r unmarshal.CVE5Record) []db.AffectedPackageHandle {
-	cve := r.CVEMetadata.CVEID
+func cnaPackageHandles(p Projection) []db.AffectedPackageHandle {
+	cve := p.ID
 
 	var handles []db.AffectedPackageHandle
-	for _, a := range r.Containers.CNA.Affected {
+	for _, a := range p.Affected {
 		purl, ok := cnaPackageIdentity(a)
 		if !ok {
 			continue

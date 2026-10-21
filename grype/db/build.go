@@ -200,7 +200,7 @@ func writeCVE5Only(idx *nvd.Index, nvdConfig nvd.Config, states provider.States,
 			continue
 		}
 		if err := writer.Write(entries...); err != nil {
-			return fmt.Errorf("failed to write CVE 5 record %q to the DB: %w", record.CVEMetadata.CVEID, err)
+			return fmt.Errorf("failed to write CVE 5 record %q to the DB: %w", record.ID, err)
 		}
 	}
 	return nil

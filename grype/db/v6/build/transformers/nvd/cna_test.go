@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/nvd"
 	"github.com/anchore/grype/grype/db/provider/entry"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/version"
@@ -74,6 +75,14 @@ func loadCVE5Fixture(t *testing.T, cve string) unmarshal.CVE5Record {
 	return records[0]
 }
 
+// cnaOnly projects a record with the CNA's affected list even when it has an `anchoreadp` container, for the
+// table cases that exercise the rules on the CNA's entries. The build selects the `anchoreadp` list instead.
+func cnaOnly(r unmarshal.CVE5Record) Projection {
+	p := project(r)
+	p.Affected = r.Containers.CNA.Affected
+	return p
+}
+
 func newTestIndex(t *testing.T, cves ...string) *Index {
 	t.Helper()
 	var ops []entry.Opener
@@ -96,6 +105,7 @@ func TestNewIndex_keepAndSkipRules(t *testing.T) {
 		{cve: "CVE-2026-41608", kept: true, why: "collectionURL without a purl"},
 		{cve: "CVE-2026-31391", kept: true, why: "cpeApplicability only"},
 		{cve: "CVE-2026-13500", kept: false, why: "vendor and product only"},
+		{cve: "CVE-2026-92789", kept: true, why: "anchoreadp cpeApplicability and purl, with nothing usable in the CNA container"},
 	}
 
 	var cves []string
@@ -110,7 +120,7 @@ func TestNewIndex_keepAndSkipRules(t *testing.T) {
 			r, ok := idx.Take(tt.cve)
 			require.Equal(t, tt.kept, ok, tt.why)
 			if ok {
-				require.Equal(t, tt.cve, r.CVEMetadata.CVEID)
+				require.Equal(t, tt.cve, r.ID)
 			}
 		})
 	}
@@ -121,14 +131,14 @@ func TestIndex_TakeIsCaseInsensitiveAndConsumes(t *testing.T) {
 
 	r, ok := idx.Take("cve-2026-85091")
 	require.True(t, ok)
-	require.Equal(t, "CVE-2026-85091", r.CVEMetadata.CVEID)
+	require.Equal(t, "CVE-2026-85091", r.ID)
 
 	_, ok = idx.Take("CVE-2026-00000")
 	require.False(t, ok)
 
 	left := idx.Leftovers()
 	require.Len(t, left, 1)
-	require.Equal(t, "CVE-2026-59650", left[0].CVEMetadata.CVEID)
+	require.Equal(t, "CVE-2026-59650", left[0].ID)
 
 	// taking again still returns the record, and it stays consumed
 	_, ok = idx.Take("CVE-2026-85091")
@@ -152,7 +162,7 @@ func TestIndex_LeftoversSortedAndPublishedOnly(t *testing.T) {
 
 	var ids []string
 	for _, r := range idx.Leftovers() {
-		ids = append(ids, r.CVEMetadata.CVEID)
+		ids = append(ids, r.ID)
 	}
 	require.Equal(t, []string{"CVE-2026-41608", "CVE-2026-59650", "CVE-2026-85091"}, ids)
 }
@@ -182,6 +192,126 @@ func TestNewIndex_laterDuplicateReplacesEarlier(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 2, idx.Count())
 	require.Len(t, idx.Leftovers(), 1)
+}
+
+func TestProjection_hasData(t *testing.T) {
+	purl := []unmarshal.CVE5Affected{{PackageURL: "pkg:pypi/thrift"}}
+	productOnly := []unmarshal.CVE5Affected{{Vendor: "Apache", Product: "Thrift"}}
+	cpe := []nvd.Configuration{{}}
+
+	require.False(t, Projection{Affected: productOnly}.hasData())
+	require.True(t, Projection{Affected: purl}.hasData())
+	require.True(t, Projection{Affected: []unmarshal.CVE5Affected{{CollectionURL: "https://pypi.org/"}}}.hasData())
+	require.True(t, Projection{CNACPE: cpe}.hasData())
+	require.True(t, Projection{ADPCPE: cpe, Affected: productOnly}.hasData(), "anchoreadp cpeApplicability alone is enough")
+}
+
+// the records are unmodified from the published dataset
+func TestIndex_selectsAffectedList(t *testing.T) {
+	tests := []struct {
+		name string
+		cve  string
+		want []wantPackage
+	}{
+		{
+			name: "anchoreadp list replaces a CNA list with the same package",
+			cve:  "CVE-2026-41608",
+			want: []wantPackage{{"python", "thrift", []wantRange{{"pypi", "< 0.24.0", "0.24.0"}}}},
+		},
+		{
+			name: "anchoreadp list names purls where the CNA names products",
+			cve:  "CVE-2026-47392",
+			want: []wantPackage{
+				{"python", "praisonai", []wantRange{{"pypi", "< 4.6.40", "4.6.40"}}},
+				{"python", "praisonaiagents", []wantRange{{"pypi", "< 1.6.40", "1.6.40"}}},
+			},
+		},
+		{
+			name: "anchoreadp ranges replace free text versions",
+			cve:  "CVE-2025-7783",
+			want: []wantPackage{{"npm", "form-data", []wantRange{
+				{"npm", "< 2.5.4", "2.5.4"},
+				{"npm", ">= 3.0.0, < 3.0.4", "3.0.4"},
+				{"npm", ">= 4.0.0, < 4.0.4", "4.0.4"},
+			}}},
+		},
+		{
+			name: "the lists are not merged, so the CNA's seata-server gets no row",
+			cve:  "CVE-2025-32897",
+			want: []wantPackage{{"java-archive", "org.apache.seata:seata-config-core", []wantRange{{"maven", ">= 2.0.0, < 2.3.0", "2.3.0"}}}},
+		},
+		{
+			name: "crate entries come from the anchoreadp list",
+			cve:  "CVE-2026-40034",
+			want: []wantPackage{
+				{"rust-crate", "gitoxide", []wantRange{{"cargo", "< 0.5.21", "0.5.21"}}},
+				{"rust-crate", "gix-submodule", []wantRange{{"cargo", "< 0.29.0", "0.29.0"}}},
+				{"rust-crate", "gix", []wantRange{{"cargo", "< 0.84.0", "0.84.0"}}},
+			},
+		},
+		{
+			name: "a record with no anchoreadp container keeps the CNA's list",
+			cve:  "CVE-2026-53424",
+			want: []wantPackage{{"hex", "samly", []wantRange{{"hex", ">= 0.3.0", ""}}}},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.cve+" "+tt.name, func(t *testing.T) {
+			p, ok := newTestIndex(t, tt.cve).Take(tt.cve)
+			require.True(t, ok)
+			require.Equal(t, tt.want, summarizeCNAPackages(cnaPackageHandles(p)))
+		})
+	}
+}
+
+func TestProjection_CPESource(t *testing.T) {
+	published := func(t *testing.T, cve string) Projection {
+		t.Helper()
+		p, ok := newTestIndex(t, cve).Take(cve)
+		require.True(t, ok)
+		return p
+	}
+	criteria := func(cfgs []nvd.Configuration) (out []string) {
+		for _, c := range cfgs {
+			for _, n := range c.Nodes {
+				for _, m := range n.CpeMatch {
+					out = append(out, m.Criteria)
+				}
+			}
+		}
+		return out
+	}
+
+	t.Run("anchoreadp when the CNA has none", func(t *testing.T) {
+		p := published(t, "CVE-2026-92789")
+		require.Empty(t, p.CNACPE)
+		require.Equal(t, []string{
+			"cpe:2.3:a:graylog:graylog:*:*:*:*:*:maven:*:*",
+			"cpe:2.3:a:org.graylog2:graylog2-server:*:*:*:*:*:maven:*:*",
+		}, criteria(p.CPESource()))
+	})
+
+	t.Run("anchoreadp over a different CNA list", func(t *testing.T) {
+		p := published(t, "CVE-2026-0229")
+		require.NotEmpty(t, p.CNACPE)
+		require.NotEmpty(t, p.ADPCPE)
+		require.NotEqual(t, p.CNACPE, p.ADPCPE)
+		require.Equal(t, p.ADPCPE, p.CPESource())
+	})
+
+	t.Run("the CNA's when there is no anchoreadp one", func(t *testing.T) {
+		p := published(t, "CVE-2026-85091")
+		require.Empty(t, p.ADPCPE)
+		require.Equal(t, p.CNACPE, p.CPESource())
+		require.NotEmpty(t, p.CPESource())
+	})
+
+	t.Run("an excluded assigner's CNA list is dropped but anchoreadp's is used", func(t *testing.T) {
+		cna, adp := []nvd.Configuration{{}}, []nvd.Configuration{{Nodes: []nvd.Node{{}}}}
+		require.Nil(t, Projection{Assigner: "Linux", CNACPE: cna}.CPESource())
+		require.Equal(t, adp, Projection{Assigner: "Linux", CNACPE: cna, ADPCPE: adp}.CPESource())
+	})
 }
 
 func TestCPEApplicabilityUsable(t *testing.T) {
@@ -364,7 +494,7 @@ func TestCNAPackageHandles_fixtures(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.cve+" "+tt.name, func(t *testing.T) {
-			got := summarizeCNAPackages(cnaPackageHandles(loadCVE5Fixture(t, tt.cve)))
+			got := summarizeCNAPackages(cnaPackageHandles(cnaOnly(loadCVE5Fixture(t, tt.cve))))
 			require.Equal(t, tt.want, got)
 		})
 	}
@@ -372,7 +502,7 @@ func TestCNAPackageHandles_fixtures(t *testing.T) {
 
 func TestCNAPackageHandles_noUpperBoundIsNotAFix(t *testing.T) {
 	// CVE-2026-53424's hex entry is {version "0.3.0", lessThan "*"}
-	handles := cnaPackageHandles(loadCVE5Fixture(t, "CVE-2026-53424"))
+	handles := cnaPackageHandles(cnaOnly(loadCVE5Fixture(t, "CVE-2026-53424")))
 	require.Len(t, handles, 1)
 	require.Len(t, handles[0].BlobValue.Ranges, 1)
 	require.Nil(t, handles[0].BlobValue.Ranges[0].Fix)
@@ -384,7 +514,7 @@ func TestCNAPackageHandles_unknownFormatTypesCompareFuzzily(t *testing.T) {
 		{"CVE-2026-40034", "cargo"},
 		{"CVE-2025-63041", "wordpress-plugin"},
 	} {
-		handles := cnaPackageHandles(loadCVE5Fixture(t, tc.cve))
+		handles := cnaPackageHandles(cnaOnly(loadCVE5Fixture(t, tc.cve)))
 		require.NotEmpty(t, handles)
 		for _, h := range handles {
 			for _, r := range h.BlobValue.Ranges {
@@ -396,10 +526,10 @@ func TestCNAPackageHandles_unknownFormatTypesCompareFuzzily(t *testing.T) {
 }
 
 func TestCNAPackageHandles_locator(t *testing.T) {
-	affected := func(purl, collectionURL, packageName string) unmarshal.CVE5Record {
-		var r unmarshal.CVE5Record
-		r.CVEMetadata.CVEID = "CVE-2026-00001"
-		r.Containers.CNA.Affected = []unmarshal.CVE5Affected{{
+	affected := func(purl, collectionURL, packageName string) Projection {
+		var r Projection
+		r.ID = "CVE-2026-00001"
+		r.Affected = []unmarshal.CVE5Affected{{
 			PackageURL:    purl,
 			CollectionURL: collectionURL,
 			PackageName:   packageName,
@@ -410,7 +540,7 @@ func TestCNAPackageHandles_locator(t *testing.T) {
 
 	tests := []struct {
 		name string
-		rec  unmarshal.CVE5Record
+		rec  Projection
 		want []wantPackage
 	}{
 		{
