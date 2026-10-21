@@ -288,6 +288,14 @@ func TestCNAPackageHandles_fixtures(t *testing.T) {
 			},
 		},
 		{
+			name: "composer purl keeps the vendor, as the github transformer names the package",
+			cve:  "CVE-2026-72778",
+			want: []wantPackage{
+				{"php-composer", "craftcms/cms", []wantRange{{"composer", ">= 5.0.0-RC1, < 5.10.6", "5.10.6"}}},
+				{"php-composer", "craftcms/cms", []wantRange{{"composer", ">= 4.0.0-RC1, < 4.18.2", "4.18.2"}}},
+			},
+		},
+		{
 			name: "several ranges for one package",
 			cve:  "CVE-2026-8763",
 			want: []wantPackage{

@@ -203,6 +203,71 @@ func TestOpenVEXTransform(t *testing.T) {
 			},
 		},
 		{
+			// the vendor is the purl namespace and part of the package name the github transformer stores
+			name:  "OpenVEX composer product keeps its vendor",
+			state: inputProviderState(),
+			vuln: govex.Statement{
+				ID: "test-transform-composer",
+				Products: []govex.Product{
+					{
+						Component: govex.Component{
+							Identifiers: map[govex.IdentifierType]string{
+								govex.PURL: "pkg:composer/craftcms/cms@5.10.5",
+							},
+						},
+					},
+				},
+				Status: govex.StatusAffected,
+				Vulnerability: govex.Vulnerability{
+					Name:        "cve-2026-72778",
+					Description: "Test composer vulnerability",
+				},
+			},
+			want: transformers.RelatedEntries{
+				VulnerabilityHandle: &db.VulnerabilityHandle{
+					Name:       "cve-2026-72778",
+					Status:     db.VulnerabilityActive,
+					ProviderID: "openvex",
+					Provider: &db.Provider{
+						ID:           "openvex",
+						Version:      "1",
+						Processor:    "vunnel@1.2.3",
+						DateCaptured: &timeVal,
+						InputDigest:  "sha256:123456",
+					},
+					BlobValue: &db.VulnerabilityBlob{
+						ID:          "cve-2026-72778",
+						Description: "Test composer vulnerability",
+						References: []db.Reference{
+							{
+								URL: "cve-2026-72778",
+							},
+						},
+						Aliases: []string{},
+					},
+				},
+				Related: []any{
+					db.AffectedPackageHandle{
+						Package: &db.Package{
+							Ecosystem: "php-composer",
+							Name:      "craftcms/cms",
+						},
+						BlobValue: &db.PackageBlob{
+							CVEs: []string{"cve-2026-72778"},
+							Ranges: []db.Range{
+								{
+									Version: db.Version{
+										Type:       "semantic",
+										Constraint: "= 5.10.5",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			name:  "OpenVEX vulnerability with no products",
 			state: inputProviderState(),
 			vuln: govex.Statement{

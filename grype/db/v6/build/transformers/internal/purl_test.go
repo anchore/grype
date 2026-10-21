@@ -39,6 +39,11 @@ func TestPackageNameFromPURL(t *testing.T) {
 			want: "stdlib",
 		},
 		{
+			name: "composer keeps the vendor",
+			purl: "pkg:composer/craftcms/cms@5.10.6",
+			want: "craftcms/cms",
+		},
+		{
 			name: "maven keeps the groupId separator",
 			purl: "pkg:maven/org.apache.commons/commons-lang3@3.12.0",
 			want: "org.apache.commons:commons-lang3",
