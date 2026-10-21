@@ -265,6 +265,19 @@ func TestIndex_selectsAffectedList(t *testing.T) {
 	}
 }
 
+// the CNA entry of this record has a collectionURL and no purl, so a purl on the selected entry shows the row came
+// from the anchoreadp list
+func TestIndex_selectedListIsAnchoreADPForCVE202666053(t *testing.T) {
+	p, ok := newTestIndex(t, "CVE-2026-66053").Take("CVE-2026-66053")
+	require.True(t, ok)
+
+	require.Len(t, p.Affected, 1)
+	require.Equal(t, "pkg:pypi/thrift", p.Affected[0].PackageURL)
+	require.Equal(t, []wantPackage{
+		{"python", "thrift", []wantRange{{"pypi", "< 0.24.0", "0.24.0"}}},
+	}, summarizeCNAPackages(cnaPackageHandles(p)))
+}
+
 func TestProjection_CPESource(t *testing.T) {
 	published := func(t *testing.T, cve string) Projection {
 		t.Helper()
