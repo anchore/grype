@@ -195,6 +195,8 @@ func (d *DBDiffer) diffPackages() ([]PackageDiff, error) {
 
 	packages := make([]PackageDiff, 0, len(diffs.byKey))
 	for _, pd := range diffs.byKey {
+		// rows arrive in query plan order, so sort to keep the output stable
+		sortVulnerabilityIDs(&pd.Vulnerabilities.Added, &pd.Vulnerabilities.Removed, &pd.Vulnerabilities.Modified)
 		packages = append(packages, *pd)
 	}
 	slices.SortFunc(packages, func(a, b PackageDiff) int {
