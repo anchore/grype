@@ -20,7 +20,7 @@ import (
 const cpeEcosystem = "cpe"
 
 // DBDiffer compares two vulnerability databases using direct SQL comparison.
-// The old database is opened as the main connection and the new database is
+// The first database is opened as the main connection and the second database is
 // attached as "new_db", allowing cross-database SQL queries.
 type DBDiffer struct {
 	config Config
@@ -57,11 +57,11 @@ func NewDBDiffer(cfg Config) (*DBDiffer, error) {
 func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) {
 	beforeTime, err := time.Parse(time.RFC3339, oldDB.Info.BuildTimestamp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse build timestamp: %w", err)
+		return nil, fmt.Errorf("failed to parse first database build timestamp: %w", err)
 	}
 	afterTime, err := time.Parse(time.RFC3339, newDB.Info.BuildTimestamp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse build timestamp: %w", err)
+		return nil, fmt.Errorf("failed to parse second database build timestamp: %w", err)
 	}
 
 	if beforeTime.Equal(afterTime) {
@@ -80,7 +80,7 @@ func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) 
 	writable := config.Debug
 	db, err := v6.NewLowLevelDB(oldDBPath, false, writable, config.Debug)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open old database: %w", err)
+		return nil, fmt.Errorf("failed to open first database: %w", err)
 	}
 
 	// the attached database, temp tables, and pragmas are all per-connection, so every statement must run on the same one
@@ -99,7 +99,7 @@ func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) 
 
 	if err := db.Exec("ATTACH DATABASE ? AS new_db", newDBPath).Error; err != nil {
 		closeLowLevelDB(db)
-		return nil, fmt.Errorf("failed to attach new database: %w", err)
+		return nil, fmt.Errorf("failed to attach second database: %w", err)
 	}
 
 	return &DBDiffer{
@@ -110,7 +110,7 @@ func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) 
 	}, nil
 }
 
-// Close detaches the new database, closes the connection, and removes any temporary directories.
+// Close detaches the second database, closes the connection, and removes any temporary directories.
 func (d *DBDiffer) Close() error {
 	// defers run in reverse, so the connection is always closed before the directories are removed (an open
 	// handle keeps the db files locked on windows), even if the detach fails
@@ -118,7 +118,7 @@ func (d *DBDiffer) Close() error {
 	defer d.oldDB.Cleanup()
 	defer closeLowLevelDB(d.db)
 	if err := d.db.Exec("DETACH DATABASE new_db").Error; err != nil {
-		return fmt.Errorf("failed to detach new database: %w", err)
+		return fmt.Errorf("failed to detach second database: %w", err)
 	}
 	return nil
 }
