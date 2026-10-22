@@ -18,7 +18,7 @@ package match
 // for regex names or glob locations.
 type ignoreRuleIndex struct {
 	byVulnerabilityID map[string][]indexedIgnoreRule
-	unindexed         []indexedIgnoreRule
+	ungrouped         []indexedIgnoreRule
 }
 
 type indexedIgnoreRule struct {
@@ -44,7 +44,7 @@ func newIgnoreRuleIndex(rules []IgnoreRule) ignoreRuleIndex {
 			index.byVulnerabilityID[rule.Vulnerability] = append(index.byVulnerabilityID[rule.Vulnerability], r)
 			continue
 		}
-		index.unindexed = append(index.unindexed, r)
+		index.ungrouped = append(index.ungrouped, r)
 	}
 	return index
 }
@@ -52,16 +52,16 @@ func newIgnoreRuleIndex(rules []IgnoreRule) ignoreRuleIndex {
 // IgnoreMatch returns every rule that applies to the match, in the order the rules were given.
 func (i ignoreRuleIndex) IgnoreMatch(match Match) []IgnoreRule {
 	byID := i.byVulnerabilityID[match.Vulnerability.ID]
-	unindexed := i.unindexed
+	ungrouped := i.ungrouped
 
 	var applied []IgnoreRule
 	// both candidate lists are in original order, so merging them by position keeps that order
-	for len(byID) > 0 || len(unindexed) > 0 {
+	for len(byID) > 0 || len(ungrouped) > 0 {
 		var next indexedIgnoreRule
-		if len(unindexed) == 0 || (len(byID) > 0 && byID[0].position < unindexed[0].position) {
+		if len(ungrouped) == 0 || (len(byID) > 0 && byID[0].position < ungrouped[0].position) {
 			next, byID = byID[0], byID[1:]
 		} else {
-			next, unindexed = unindexed[0], unindexed[1:]
+			next, ungrouped = ungrouped[0], ungrouped[1:]
 		}
 		applied = append(applied, next.rule.ignoreMatchWithConditions(match, next.conditions)...)
 	}

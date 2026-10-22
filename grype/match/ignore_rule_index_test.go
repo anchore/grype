@@ -47,16 +47,16 @@ func TestIgnoreRuleIndex_PreservesRuleOrder(t *testing.T) {
 		Package: pkg.Package{ID: "p1", Name: "linux-libc-dev", Type: syftPkg.DebPkg},
 	}
 
-	// indexed (vulnerability, no aliases) and unindexed rules interleaved, with a duplicate, the way
+	// grouped (vulnerability, no aliases) and ungrouped rules interleaved, with a duplicate, the way
 	// ApplyExplicitIgnoreRules builds its list when several matches share a vulnerability ID
 	rules := []IgnoreRule{
 		{Vulnerability: "CVE-1", Reason: "indexed 0"},
-		{Package: IgnoreRulePackage{Name: "linux-.*"}, Reason: "unindexed 1"},
+		{Package: IgnoreRulePackage{Name: "linux-.*"}, Reason: "ungrouped 1"},
 		{Vulnerability: "CVE-2", Reason: "other vulnerability 2"},
 		{Vulnerability: "CVE-ALIAS", IncludeAliases: true, Reason: "alias 3"},
 		{Vulnerability: "CVE-1", Namespace: "debian:distro:debian:12", Reason: "indexed 4"},
 		{Vulnerability: "CVE-ALIAS", Reason: "alias without include-aliases 5"},
-		{Namespace: "debian:distro:debian:12", Reason: "unindexed 6"},
+		{Namespace: "debian:distro:debian:12", Reason: "ungrouped 6"},
 		{Vulnerability: "CVE-1", Reason: "indexed 0"},
 		{Vulnerability: "CVE-1", VexStatus: "not_affected", Reason: "vex 8"},
 		{Reason: "no criteria 9"},
@@ -68,7 +68,7 @@ func TestIgnoreRuleIndex_PreservesRuleOrder(t *testing.T) {
 	for _, r := range got {
 		reasons = append(reasons, r.Reason)
 	}
-	assert.Equal(t, []string{"indexed 0", "unindexed 1", "alias 3", "indexed 4", "unindexed 6", "indexed 0"}, reasons)
+	assert.Equal(t, []string{"indexed 0", "ungrouped 1", "alias 3", "indexed 4", "ungrouped 6", "indexed 0"}, reasons)
 }
 
 func TestIgnoreRuleIndex_LeavesOutRulesThatNeverApply(t *testing.T) {
@@ -82,8 +82,8 @@ func TestIgnoreRuleIndex_LeavesOutRulesThatNeverApply(t *testing.T) {
 
 	require.Len(t, index.byVulnerabilityID["CVE-1"], 1)
 	assert.Equal(t, 3, index.byVulnerabilityID["CVE-1"][0].position)
-	require.Len(t, index.unindexed, 1)
-	assert.Equal(t, 4, index.unindexed[0].position)
+	require.Len(t, index.ungrouped, 1)
+	assert.Equal(t, 4, index.ungrouped[0].position)
 }
 
 func TestIgnoreRuleIndex_NoRules(t *testing.T) {
