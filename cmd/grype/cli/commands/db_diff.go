@@ -38,25 +38,31 @@ var _ clio.FlagAdder = (*dbDiffOptions)(nil)
 
 func (d *dbDiffOptions) AddFlags(flags clio.FlagSet) {
 	flags.StringVarP(&d.Output, "output", "o", "format to display results (available=[text, json])")
-	flags.BoolPtrVarP(&d.Include.Packages, "packages", "", "only include packages")
-	flags.BoolPtrVarP(&d.Include.Vulns, "vulns", "", "only include vulnerabilities")
+	flags.BoolPtrVarP(&d.Include.Packages, "packages", "", "only include the package diff (--packages=false excludes it)")
+	flags.BoolPtrVarP(&d.Include.Vulns, "vulns", "", "only include the vulnerability diff (--vulns=false excludes it)")
 }
 
-func (d *dbDiffOptions) ToIncludes() diff.Includes {
-	def := diff.DefaultConfig()
-	if d.Include.Packages != nil {
-		def.Include.Packages = *d.Include.Packages
+func (d *dbDiffOptions) ToIncludes() (diff.Includes, error) {
+	def := diff.DefaultConfig().Include
+	// --packages and --vulns mean "only include ...", so an unset one is enabled unless the other was requested
+	include := diff.Includes{
+		Packages: boolOr(d.Include.Packages, !boolOr(d.Include.Vulns, false)),
+		Vulns:    boolOr(d.Include.Vulns, !boolOr(d.Include.Packages, false)),
+		EPSS:     boolOr(d.Include.EPSS, def.EPSS),
+		KEV:      boolOr(d.Include.KEV, def.KEV),
 	}
-	if d.Include.Vulns != nil {
-		def.Include.Vulns = *d.Include.Vulns
+	// the differ treats neither packages nor vulns as "diff everything", so don't let that be reached by disabling both
+	if !include.Packages && !include.Vulns {
+		return include, fmt.Errorf("nothing to diff: --packages and --vulns are both disabled")
 	}
-	if d.Include.EPSS != nil {
-		def.Include.EPSS = *d.Include.EPSS
+	return include, nil
+}
+
+func boolOr(b *bool, def bool) bool {
+	if b == nil {
+		return def
 	}
-	if d.Include.KEV != nil {
-		def.Include.KEV = *d.Include.KEV
-	}
-	return def.Include
+	return *b
 }
 
 func DBDiff(app clio.Application) *cobra.Command {
@@ -65,12 +71,12 @@ func DBDiff(app clio.Application) *cobra.Command {
 		Output:          textOutputFormat,
 		DatabaseCommand: *options.DefaultDatabaseCommand(app.ID()),
 		EPSSThreshold:   cfg.EPSSThreshold,
-		Include:         diffInclude{}, // this defaults to packages, vulns, and kev where flags will override
+		Include:         diffInclude{}, // unset flags are resolved in ToIncludes
 	}
 
 	cmd := &cobra.Command{
 		Use:   "diff [flags] old_db_url_or_path [new_db_url_or_path]",
-		Short: "Diff two databases, showing packages with added, removed, and modified vulnerability matches",
+		Short: "Diff two databases, showing packages with changed vulnerability matches and changed vulnerability records",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			opts.DB.MaxUpdateCheckFrequency = 0
 			return disableUI(app)(cmd, args)
@@ -95,10 +101,14 @@ func DBDiff(app clio.Application) *cobra.Command {
 
 func runDBDiff(opts dbDiffOptions) error {
 	startTime := time.Now()
+	includes, err := opts.ToIncludes()
+	if err != nil {
+		return err
+	}
 
 	d, err := diff.NewDBDiffer(diff.Config{
 		Config:        opts.ToCuratorConfig(),
-		Include:       opts.ToIncludes(),
+		Include:       includes,
 		Debug:         opts.Developer.DB.Debug,
 		EPSSThreshold: opts.EPSSThreshold,
 		OldDB:         opts.Old,
@@ -117,15 +127,22 @@ func runDBDiff(opts dbDiffOptions) error {
 
 	log.Infof("diff complete in %s", time.Since(startTime))
 
-	totalAdded, totalRemoved, totalModified := 0, 0, 0
-	for _, pkg := range result.Packages {
-		totalAdded += len(pkg.Vulnerabilities.Added)
-		totalRemoved += len(pkg.Vulnerabilities.Removed)
-		totalModified += len(pkg.Vulnerabilities.Modified)
+	if includes.Packages {
+		totalAdded, totalRemoved, totalModified := 0, 0, 0
+		for _, pkg := range result.Packages {
+			totalAdded += len(pkg.Vulnerabilities.Added)
+			totalRemoved += len(pkg.Vulnerabilities.Removed)
+			totalModified += len(pkg.Vulnerabilities.Modified)
+		}
+
+		log.Infof("package diff: %d added, %d removed, %d modified",
+			totalAdded, totalRemoved, totalModified)
 	}
 
-	log.Infof("diff complete: %d added, %d removed, %d modified",
-		totalAdded, totalRemoved, totalModified)
+	if v := result.Vulnerabilities; v != nil {
+		log.Infof("vulnerability diff: %d added, %d removed, %d modified",
+			len(v.Added), len(v.Removed), len(v.Modified))
+	}
 
 	slices.SortFunc(result.Packages, func(a, b diff.PackageDiff) int {
 		c := strings.Compare(a.Ecosystem, b.Ecosystem)
@@ -144,22 +161,56 @@ func runDBDiff(opts dbDiffOptions) error {
 }
 
 func outputText(writer io.Writer, result *diff.Result) error {
-	columns := []string{"Ecosystem", "Package"}
+	if len(result.Packages) > 0 {
+		if err := outputPackagesText(writer, result.Packages); err != nil {
+			return err
+		}
+	}
+	if result.Vulnerabilities != nil {
+		if len(result.Packages) > 0 {
+			if _, err := io.WriteString(writer, "\n"); err != nil {
+				return err
+			}
+		}
+		return outputVulnerabilitiesText(writer, result.Vulnerabilities)
+	}
+	return nil
+}
 
-	t := newTable(writer, columns)
+func outputPackagesText(writer io.Writer, packages []diff.PackageDiff) error {
+	t := newTable(writer, []string{"Ecosystem", "Package"})
+	defer log.CloseAndLogError(t, "tablewriter")
 
-	for _, pkg := range result.Packages {
+	for _, pkg := range packages {
 		name := pkg.Name
 		if pkg.CPE != "" {
 			name = pkg.CPE
 		}
-		err := t.Append(pkg.Ecosystem, name)
-		if err != nil {
+		if err := t.Append(pkg.Ecosystem, name); err != nil {
 			return err
 		}
 	}
+	return t.Render()
+}
+
+func outputVulnerabilitiesText(writer io.Writer, vulns *diff.VulnerabilityDiff) error {
+	t := newTable(writer, []string{"Vulnerability", "Provider", "Change"})
 	defer log.CloseAndLogError(t, "tablewriter")
 
+	for _, c := range []struct {
+		change string
+		ids    []diff.VulnerabilityID
+	}{
+		{"added", vulns.Added},
+		{"modified", vulns.Modified},
+		{"removed", vulns.Removed},
+	} {
+		for _, v := range c.ids {
+			if err := t.Append(v.ID, v.Provider, c.change); err != nil {
+				return err
+			}
+		}
+	}
 	return t.Render()
 }
 
