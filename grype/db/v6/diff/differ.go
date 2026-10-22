@@ -71,7 +71,7 @@ func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) 
 	// diffing a newer database to an older one is supported; the diff is always from the first database (main)
 	// to the second database (new_db), and the result is labeled the same way
 	if beforeTime.After(afterTime) {
-		log.Info("the first database was built after the second database; the diff will be from newer to older")
+		log.Warnf("the first database (built %s) is newer than the second (built %s); changes are reported from newer to older, swap the arguments to diff from older to newer", oldDB.Info.BuildTimestamp, newDB.Info.BuildTimestamp)
 	}
 
 	oldDBPath := filepath.Join(oldDB.Dir, v6.VulnerabilityDBFileName)
