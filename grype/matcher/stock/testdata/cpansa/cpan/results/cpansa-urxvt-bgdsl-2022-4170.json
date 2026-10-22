@@ -1,0 +1,37 @@
+{
+  "identifier": "cpansa-urxvt-bgdsl-2022-4170",
+  "item": {
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "CPAN",
+          "name": "urxvt-bgdsl"
+        },
+        "ranges": []
+      }
+    ],
+    "aliases": [
+      "CVE-2022-4170"
+    ],
+    "database_specific": {
+      "cpansa_commit": "2089ff7201b44e5e462742a5baaa080ba003d257",
+      "cpansa_generated": "Sun Jul 26 06:23:50 2026"
+    },
+    "details": "The rxvt-unicode package is vulnerable to a remote code execution, in the Perl background extension, when an attacker can control the data written to the user's terminal and certain options are set.",
+    "id": "CPANSA-urxvt-bgdsl-2022-4170",
+    "modified": "2026-07-26T06:23:50Z",
+    "published": "2022-12-09T00:00:00Z",
+    "references": [
+      {
+        "type": "WEB",
+        "url": "https://bugzilla.redhat.com/show_bug.cgi?id=2151597"
+      },
+      {
+        "type": "WEB",
+        "url": "https://www.openwall.com/lists/oss-security/2022/12/05/1"
+      }
+    ],
+    "schema_version": "1.6.1"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.1.json"
+}
