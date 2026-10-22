@@ -33,22 +33,22 @@ type DBDiffer struct {
 // DBDiffer owns any temporary directories created while resolving, and removes them on Close.
 func NewDBDiffer(cfg Config) (*DBDiffer, error) {
 	resolvedOld, resolvedNew, err := parallel[ResolvedDB](func() (ResolvedDB, error) {
-		return ResolveDB(cfg.OldDB, cfg.DBRootDir)
+		return ResolveDB(cfg.OldDB, cfg.DBDirectoryPath())
 	}, func() (ResolvedDB, error) {
-		return ResolveDB(cfg.NewDB, cfg.DBRootDir)
+		return ResolveDB(cfg.NewDB, cfg.DBDirectoryPath())
 	})
 
 	if err != nil {
 		// one side may have resolved (and downloaded) before the other failed
-		resolvedOld.release()
-		resolvedNew.release()
+		resolvedOld.Cleanup()
+		resolvedNew.Cleanup()
 		return nil, err
 	}
 
 	differ, err := newDBDifferDirs(resolvedOld, resolvedNew, cfg)
 	if err != nil {
-		resolvedOld.release()
-		resolvedNew.release()
+		resolvedOld.Cleanup()
+		resolvedNew.Cleanup()
 		return nil, err
 	}
 	return differ, nil
@@ -115,8 +115,8 @@ func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) 
 func (d *DBDiffer) Close() error {
 	// defers run in reverse, so the connection is always closed before the directories are removed (an open
 	// handle keeps the db files locked on windows), even if the detach fails
-	defer d.newDB.release()
-	defer d.oldDB.release()
+	defer d.newDB.Cleanup()
+	defer d.oldDB.Cleanup()
 	defer closeLowLevelDB(d.db)
 	if err := d.db.Exec("DETACH DATABASE new_db").Error; err != nil {
 		return fmt.Errorf("failed to detach new database: %w", err)

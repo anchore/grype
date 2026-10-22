@@ -22,14 +22,22 @@ import (
 type ResolvedDB struct {
 	Dir     string
 	Info    DatabaseInfo
-	Cleanup func()
+	cleanup func()
+}
+
+// Cleanup removes any temporary directories created while resolving. It is safe to call on any ResolvedDB,
+// including the zero value returned alongside an error.
+func (r ResolvedDB) Cleanup() {
+	if r.cleanup != nil {
+		r.cleanup()
+	}
 }
 
 // ResolveDB takes a user-provided value (URL, file path, or directory path) and returns
 // a directory path containing a vulnerability.db file, suitable for passing to NewProviderDiffer.
 // If defaultDir is non-empty and value is empty, defaultDir is used.
-// When err is nil, the returned Cleanup function is never nil and should be called to remove any temporary
-// directories created. User-provided directories are never removed.
+// Cleanup should be called on the result to remove any temporary directories created. User-provided directories
+// are never removed.
 //
 // Supported inputs:
 //   - empty string: falls back to defaultDir
@@ -88,36 +96,24 @@ func ResolveDB(value, defaultDir string) (ResolvedDB, error) {
 // newResolvedDB hydrates dir and describes it. The given cleanup is the only thing allowed to delete dir, since
 // a nil cleanup means dir belongs to the user.
 func newResolvedDB(dir string, cleanup func()) (ResolvedDB, error) {
-	if cleanup == nil {
-		cleanup = func() {}
-	}
+	resolved := ResolvedDB{Dir: dir, cleanup: cleanup}
 
 	log.Infof("hydrating database: %s", dir)
 
 	hydrate := db.Hydrater()
 	if err := hydrate(dir); err != nil {
-		cleanup()
+		resolved.Cleanup()
 		return ResolvedDB{}, fmt.Errorf("failed to hydrate database: %w", err)
 	}
 
 	info, err := newDatabaseInfo(dir)
 	if err != nil {
-		cleanup()
+		resolved.Cleanup()
 		return ResolvedDB{}, fmt.Errorf("failed to get database info: %w", err)
 	}
 
-	return ResolvedDB{
-		Dir:     dir,
-		Info:    *info,
-		Cleanup: cleanup,
-	}, nil
-}
-
-// release runs Cleanup if set, so it is safe to call on the zero value returned alongside an error
-func (r ResolvedDB) release() {
-	if r.Cleanup != nil {
-		r.Cleanup()
-	}
+	resolved.Info = *info
+	return resolved, nil
 }
 
 var tarExtPattern = regexp.MustCompile(`\.tar(\.\w+)?$`)

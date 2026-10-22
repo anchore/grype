@@ -1304,9 +1304,11 @@ func nilIfEmpty[T any](s []T) []T {
 	return s
 }
 
-// Test_resolvedDBCleanupNeverNil verifies local databases resolve with a callable Cleanup, since NewDBDiffer defers it
-// whenever the differ can't be created
-func Test_resolvedDBCleanupNeverNil(t *testing.T) {
+// Test_ResolvedDB_cleanupNeverPanics verifies Cleanup is safe for local databases and for the zero value returned
+// alongside an error, since NewDBDiffer calls it whenever setup fails
+func Test_ResolvedDB_cleanupNeverPanics(t *testing.T) {
+	require.NotPanics(t, ResolvedDB{}.Cleanup)
+
 	inputDir, err := filepath.Abs(filepath.Join("testdata", "inputs"))
 	require.NoError(t, err)
 
@@ -1316,51 +1318,59 @@ func Test_resolvedDBCleanupNeverNil(t *testing.T) {
 	for _, value := range []string{dbDir, filepath.Join(dbDir, v6.VulnerabilityDBFileName)} {
 		resolved, err := ResolveDB(value, "")
 		require.NoError(t, err)
-		require.NotNil(t, resolved.Cleanup, value)
-		require.NotPanics(t, resolved.Cleanup)
+		require.NotPanics(t, resolved.Cleanup, value)
 	}
 }
 
 // Test_ResolveDB_keepsUserDataOnFailure verifies a failed resolve only removes directories it created itself
 func Test_ResolveDB_keepsUserDataOnFailure(t *testing.T) {
+	const keep = "keep.txt"
+
 	tests := []struct {
 		name  string
-		setup func(t *testing.T, dir string) (value string)
+		setup func(t *testing.T, dir string) (value, defaultDir string)
 		kept  string
 		gone  string
 	}{
 		{
 			name: "directory without a db",
-			setup: func(_ *testing.T, dir string) string {
-				return dir
+			setup: func(_ *testing.T, dir string) (string, string) {
+				return dir, ""
 			},
-			kept: "keep.txt",
+			kept: keep,
+		},
+		{
+			name: "default directory without a db",
+			setup: func(_ *testing.T, dir string) (string, string) {
+				return "", dir
+			},
+			kept: keep,
 		},
 		{
 			name: "db file in a user directory",
-			setup: func(t *testing.T, dir string) string {
+			setup: func(t *testing.T, dir string) (string, string) {
 				require.NoError(t, os.WriteFile(filepath.Join(dir, "other.db"), []byte("not a db"), 0o600))
-				return filepath.Join(dir, "other.db")
+				return filepath.Join(dir, "other.db"), ""
 			},
-			kept: "keep.txt",
+			kept: keep,
 		},
 		{
 			name: "corrupt archive next to an existing directory",
-			setup: func(t *testing.T, dir string) string {
+			setup: func(t *testing.T, dir string) (string, string) {
 				require.NoError(t, os.WriteFile(filepath.Join(dir, "db.tar.gz"), []byte("not an archive"), 0o600))
 				require.NoError(t, os.Mkdir(filepath.Join(dir, "db"), 0o700))
-				require.NoError(t, os.WriteFile(filepath.Join(dir, "db", "keep.txt"), []byte("x"), 0o600))
-				return filepath.Join(dir, "db.tar.gz")
+				require.NoError(t, os.WriteFile(filepath.Join(dir, "db", keep), []byte("x"), 0o600))
+				return filepath.Join(dir, "db.tar.gz"), ""
 			},
-			kept: filepath.Join("db", "keep.txt"),
+			kept: filepath.Join("db", keep),
 		},
 		{
 			name: "corrupt archive extraction is cleaned up",
-			setup: func(t *testing.T, dir string) string {
+			setup: func(t *testing.T, dir string) (string, string) {
 				require.NoError(t, os.WriteFile(filepath.Join(dir, "db.tar.gz"), []byte("not an archive"), 0o600))
-				return filepath.Join(dir, "db.tar.gz")
+				return filepath.Join(dir, "db.tar.gz"), ""
 			},
-			kept: "keep.txt",
+			kept: keep,
 			gone: "db",
 		},
 	}
@@ -1368,9 +1378,9 @@ func Test_ResolveDB_keepsUserDataOnFailure(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dir := t.TempDir()
-			require.NoError(t, os.WriteFile(filepath.Join(dir, "keep.txt"), []byte("x"), 0o600))
+			require.NoError(t, os.WriteFile(filepath.Join(dir, keep), []byte("x"), 0o600))
 
-			_, err := ResolveDB(tt.setup(t, dir), "")
+			_, err := ResolveDB(tt.setup(t, dir))
 			require.Error(t, err)
 
 			assert.FileExists(t, filepath.Join(dir, tt.kept))
@@ -1379,6 +1389,23 @@ func Test_ResolveDB_keepsUserDataOnFailure(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Test_NewDBDiffer_defaultsToInstalledDB verifies a single db argument is diffed against the installed db, which
+// lives in a schema versioned directory under the db root
+func Test_NewDBDiffer_defaultsToInstalledDB(t *testing.T) {
+	inputDir, err := filepath.Abs(filepath.Join("testdata", "inputs"))
+	require.NoError(t, err)
+
+	cfg := installation.Config{DBRootDir: t.TempDir()}
+	testdb.BuildFromFlatFileDir(t, time.Date(2022, 8, 12, 0, 0, 0, 0, time.UTC), cfg.DBDirectoryPath(), inputDir, "cve-2025-59800")
+	oldDir := filepath.Join(t.TempDir(), "old")
+	testdb.BuildFromFlatFileDir(t, time.Date(2022, 8, 11, 0, 0, 0, 0, time.UTC), oldDir, inputDir, "cve-2025-59800")
+
+	differ, err := NewDBDiffer(Config{Config: cfg, OldDB: oldDir})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = differ.Close() })
+	assert.Equal(t, cfg.DBDirectoryPath(), differ.newDB.Dir)
 }
 
 // Test_DBDiffer_removesDownloads verifies downloaded databases are removed when the other side fails to resolve,
