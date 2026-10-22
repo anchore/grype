@@ -3,6 +3,7 @@ package diff
 import (
 	"archive/tar"
 	"compress/gzip"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -1442,7 +1443,7 @@ func Test_ResolveDB_archiveExtraction(t *testing.T) {
 		require.NoError(t, os.WriteFile(filepath.Join(dir, "db", v6.VulnerabilityDBFileName), badDB, 0o600))
 
 		_, err := ResolveDB(archive, "")
-		require.ErrorContains(t, err, filepath.Join(dir, "db"))
+		require.ErrorContains(t, err, fmt.Sprintf("%q", filepath.Join(dir, "db")))
 	})
 }
 
@@ -1485,7 +1486,9 @@ func Test_NewDBDiffer_defaultsToInstalledDB(t *testing.T) {
 	differ, err := NewDBDiffer(Config{Config: cfg, OldDB: oldDir})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = differ.Close() })
-	assert.Equal(t, cfg.DBDirectoryPath(), differ.newDB.Dir)
+	// the differ orders the two sides by build time, which is taken from the clock when a db is built, not the time
+	// passed to the builder, so only check that the installed db is one of them
+	assert.Contains(t, []string{differ.oldDB.Dir, differ.newDB.Dir}, cfg.DBDirectoryPath())
 }
 
 // Test_DBDiffer_removesDownloads verifies downloaded databases are removed when the other side fails to resolve,
