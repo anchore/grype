@@ -11,6 +11,11 @@ var _ FileOwner = (*ApkMetadata)(nil)
 type ApkMetadata struct {
 	Files []ApkFileRecord `json:"files"`
 	Arch  string          // the architecture of the package (e.g. "amd64", "arm64", etc)
+
+	// UpstreamSearch marks the copy of a package that UpstreamPackages builds to search the entries of the
+	// package's upstream (APK origin). It is a role marker, like the "src" arch set on rpm upstream copies,
+	// and is never set on a cataloged package.
+	UpstreamSearch bool `json:"-"`
 }
 
 // ApkFileRecord represents a single file listing and metadata from a APK DB entry (which may have many of these file records).
