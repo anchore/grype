@@ -561,10 +561,28 @@ func versionTypeFromPURL(purl *packageurl.PackageURL) string {
 }
 
 func getDescription(vuln *unmarshal.CSAFVulnerability) string {
+	// A document may carry several of these notes in any order, so pick the
+	// most specific category instead of the first one that appears.
+	var summary, details string
 	for _, note := range vuln.Notes {
-		if note.Category == "description" {
+		switch note.Category {
+		case "description":
 			return note.Text
+		case "summary":
+			if summary == "" {
+				summary = note.Text
+			}
+		case "details":
+			if details == "" {
+				details = note.Text
+			}
 		}
+	}
+	if summary != "" {
+		return summary
+	}
+	if details != "" {
+		return details
 	}
 	return vuln.Title
 }

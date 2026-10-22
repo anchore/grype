@@ -628,3 +628,23 @@ func TestTransform_ArchitectureTaggingForFixedAndUnaffected(t *testing.T) {
 	require.NotNil(t, uph.BlobValue.Qualifiers.Architecture)
 	require.Equal(t, architecture.ArchBinaryNoArchSpecified, *uph.BlobValue.Qualifiers.Architecture, "binary rpm without an arch qualifier should carry the synthesized sentinel")
 }
+
+func TestGetDescriptionPrefersTheMostSpecificNote(t *testing.T) {
+	vuln := &unmarshal.CSAFVulnerability{
+		Title: "fallback title",
+		Notes: []unmarshal.CSAFNote{
+			{Category: "details", Text: "details text"},
+			{Category: "summary", Text: "summary text"},
+		},
+	}
+	require.Equal(t, "summary text", getDescription(vuln))
+
+	vuln.Notes = append(vuln.Notes, unmarshal.CSAFNote{Category: "description", Text: "description text"})
+	require.Equal(t, "description text", getDescription(vuln))
+
+	vuln.Notes = []unmarshal.CSAFNote{{Category: "details", Text: "details text"}}
+	require.Equal(t, "details text", getDescription(vuln))
+
+	vuln.Notes = []unmarshal.CSAFNote{{Category: "general", Text: "unrelated text"}}
+	require.Equal(t, "fallback title", getDescription(vuln))
+}
