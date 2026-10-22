@@ -38,36 +38,31 @@ var _ clio.FlagAdder = (*dbDiffOptions)(nil)
 
 func (d *dbDiffOptions) AddFlags(flags clio.FlagSet) {
 	flags.StringVarP(&d.Output, "output", "o", "format to display results (available=[text, json])")
-	flags.BoolPtrVarP(&d.Include.Packages, "packages", "", "only include packages")
-	flags.BoolPtrVarP(&d.Include.Vulns, "vulns", "", "only include vulnerabilities")
+	flags.BoolPtrVarP(&d.Include.Packages, "packages", "", "only include the package diff (--packages=false excludes it)")
+	flags.BoolPtrVarP(&d.Include.Vulns, "vulns", "", "only include the vulnerability diff (--vulns=false excludes it)")
 }
 
-func (d *dbDiffOptions) ToIncludes() diff.Includes {
-	def := diff.DefaultConfig()
-	if d.Include.Packages != nil {
-		def.Include.Packages = *d.Include.Packages
+func (d *dbDiffOptions) ToIncludes() (diff.Includes, error) {
+	def := diff.DefaultConfig().Include
+	// --packages and --vulns mean "only include ...", so an unset one is enabled unless the other was requested
+	include := diff.Includes{
+		Packages: boolOr(d.Include.Packages, !boolOr(d.Include.Vulns, false)),
+		Vulns:    boolOr(d.Include.Vulns, !boolOr(d.Include.Packages, false)),
+		EPSS:     boolOr(d.Include.EPSS, def.EPSS),
+		KEV:      boolOr(d.Include.KEV, def.KEV),
 	}
-	if d.Include.Vulns != nil {
-		def.Include.Vulns = *d.Include.Vulns
+	// the differ treats neither packages nor vulns as "diff everything", so don't let that be reached by disabling both
+	if !include.Packages && !include.Vulns {
+		return include, fmt.Errorf("nothing to diff: --packages and --vulns are both disabled")
 	}
-	// --packages and --vulns mean "only include ...", so requesting one excludes the other unless both are requested
-	if isTrue(d.Include.Packages) && d.Include.Vulns == nil {
-		def.Include.Vulns = false
-	}
-	if isTrue(d.Include.Vulns) && d.Include.Packages == nil {
-		def.Include.Packages = false
-	}
-	if d.Include.EPSS != nil {
-		def.Include.EPSS = *d.Include.EPSS
-	}
-	if d.Include.KEV != nil {
-		def.Include.KEV = *d.Include.KEV
-	}
-	return def.Include
+	return include, nil
 }
 
-func isTrue(b *bool) bool {
-	return b != nil && *b
+func boolOr(b *bool, def bool) bool {
+	if b == nil {
+		return def
+	}
+	return *b
 }
 
 func DBDiff(app clio.Application) *cobra.Command {
@@ -76,7 +71,7 @@ func DBDiff(app clio.Application) *cobra.Command {
 		Output:          textOutputFormat,
 		DatabaseCommand: *options.DefaultDatabaseCommand(app.ID()),
 		EPSSThreshold:   cfg.EPSSThreshold,
-		Include:         diffInclude{}, // this defaults to packages, vulns, and kev where flags will override
+		Include:         diffInclude{}, // unset flags are resolved in ToIncludes
 	}
 
 	cmd := &cobra.Command{
@@ -106,7 +101,10 @@ func DBDiff(app clio.Application) *cobra.Command {
 
 func runDBDiff(opts dbDiffOptions) error {
 	startTime := time.Now()
-	includes := opts.ToIncludes()
+	includes, err := opts.ToIncludes()
+	if err != nil {
+		return err
+	}
 
 	d, err := diff.NewDBDiffer(diff.Config{
 		Config:        opts.ToCuratorConfig(),

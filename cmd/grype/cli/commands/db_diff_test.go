@@ -14,52 +14,87 @@ import (
 func TestDBDiffOptionsToIncludes(t *testing.T) {
 	yes, no := true, false
 
+	// what the differ will actually run, after diff.Config applies its own defaults
+	type effective struct {
+		Packages, Vulns, EPSS, KEV bool
+	}
+
 	tests := []struct {
 		name     string
 		include  diffInclude
-		expected diff.Includes
+		expected effective
+		wantErr  require.ErrorAssertionFunc
 	}{
 		{
 			name:     "defaults",
 			include:  diffInclude{},
-			expected: diff.Includes{Packages: true, Vulns: true, KEV: true},
+			expected: effective{Packages: true, Vulns: true, KEV: true},
 		},
 		{
 			name:     "only packages",
 			include:  diffInclude{Packages: &yes},
-			expected: diff.Includes{Packages: true, KEV: true},
+			expected: effective{Packages: true, KEV: true},
 		},
 		{
 			name:     "only vulns",
 			include:  diffInclude{Vulns: &yes},
-			expected: diff.Includes{Vulns: true, KEV: true},
+			expected: effective{Vulns: true, KEV: true},
 		},
 		{
 			name:     "packages and vulns",
 			include:  diffInclude{Packages: &yes, Vulns: &yes},
-			expected: diff.Includes{Packages: true, Vulns: true, KEV: true},
+			expected: effective{Packages: true, Vulns: true, KEV: true},
 		},
 		{
 			name:     "exclude packages",
 			include:  diffInclude{Packages: &no},
-			expected: diff.Includes{Vulns: true, KEV: true},
+			expected: effective{Vulns: true, KEV: true},
 		},
 		{
 			name:     "exclude vulns",
 			include:  diffInclude{Vulns: &no},
-			expected: diff.Includes{Packages: true, KEV: true},
+			expected: effective{Packages: true, KEV: true},
+		},
+		{
+			name:     "packages and exclude vulns",
+			include:  diffInclude{Packages: &yes, Vulns: &no},
+			expected: effective{Packages: true, KEV: true},
+		},
+		{
+			name:     "vulns and exclude packages",
+			include:  diffInclude{Packages: &no, Vulns: &yes},
+			expected: effective{Vulns: true, KEV: true},
+		},
+		{
+			name:    "exclude both",
+			include: diffInclude{Packages: &no, Vulns: &no},
+			wantErr: require.Error,
 		},
 		{
 			name:     "epss and kev overrides",
 			include:  diffInclude{Vulns: &yes, EPSS: &yes, KEV: &no},
-			expected: diff.Includes{Vulns: true, EPSS: true},
+			expected: effective{Vulns: true, EPSS: true},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.wantErr == nil {
+				tt.wantErr = require.NoError
+			}
 			opts := dbDiffOptions{Include: tt.include}
-			require.Equal(t, tt.expected, opts.ToIncludes())
+			include, err := opts.ToIncludes()
+			tt.wantErr(t, err)
+			if err != nil {
+				return
+			}
+			cfg := diff.Config{Include: include}
+			require.Equal(t, tt.expected, effective{
+				Packages: cfg.IncludePackages(),
+				Vulns:    cfg.IncludeVulns(),
+				EPSS:     cfg.IncludeEPSS(),
+				KEV:      cfg.IncludeKEV(),
+			})
 		})
 	}
 }
