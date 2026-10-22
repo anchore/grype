@@ -2,8 +2,10 @@ package diff
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -26,7 +28,8 @@ type ResolvedDB struct {
 // ResolveDB takes a user-provided value (URL, file path, or directory path) and returns
 // a directory path containing a vulnerability.db file, suitable for passing to NewProviderDiffer.
 // If defaultDir is non-empty and value is empty, defaultDir is used.
-// The returned Cleanup function is never nil and should be called to remove any temporary directories created.
+// When err is nil, the returned Cleanup function is never nil and should be called to remove any temporary
+// directories created. User-provided directories are never removed.
 //
 // Supported inputs:
 //   - empty string: falls back to defaultDir
@@ -82,23 +85,25 @@ func ResolveDB(value, defaultDir string) (ResolvedDB, error) {
 	return extractArchive(expanded)
 }
 
+// newResolvedDB hydrates dir and describes it. The given cleanup is the only thing allowed to delete dir, since
+// a nil cleanup means dir belongs to the user.
 func newResolvedDB(dir string, cleanup func()) (ResolvedDB, error) {
+	if cleanup == nil {
+		cleanup = func() {}
+	}
+
 	log.Infof("hydrating database: %s", dir)
 
 	hydrate := db.Hydrater()
 	if err := hydrate(dir); err != nil {
-		_ = os.RemoveAll(dir)
+		cleanup()
 		return ResolvedDB{}, fmt.Errorf("failed to hydrate database: %w", err)
 	}
 
 	info, err := newDatabaseInfo(dir)
 	if err != nil {
-		return ResolvedDB{}, fmt.Errorf("failed to get old database info: %w", err)
-	}
-
-	// callers defer Cleanup unconditionally, so it must never be nil
-	if cleanup == nil {
-		cleanup = func() {}
+		cleanup()
+		return ResolvedDB{}, fmt.Errorf("failed to get database info: %w", err)
 	}
 
 	return ResolvedDB{
@@ -106,6 +111,13 @@ func newResolvedDB(dir string, cleanup func()) (ResolvedDB, error) {
 		Info:    *info,
 		Cleanup: cleanup,
 	}, nil
+}
+
+// release runs Cleanup if set, so it is safe to call on the zero value returned alongside an error
+func (r ResolvedDB) release() {
+	if r.Cleanup != nil {
+		r.Cleanup()
+	}
 }
 
 var tarExtPattern = regexp.MustCompile(`\.tar(\.\w+)?$`)
@@ -119,6 +131,9 @@ func extractArchive(archivePath string) (ResolvedDB, error) {
 		return ResolvedDB{}, fmt.Errorf("unrecognized file type (not a .db file or supported archive): %s", archivePath)
 	}
 
+	// only a directory created here is ours to remove on failure, an existing one may hold user data
+	var created bool
+
 	// check if already extracted
 	dbFilePath := filepath.Join(destDir, db.VulnerabilityDBFileName)
 	if _, err := os.Stat(dbFilePath); err == nil {
@@ -126,17 +141,27 @@ func extractArchive(archivePath string) (ResolvedDB, error) {
 	} else {
 		log.Infof("extracting database archive: %s", archivePath)
 
-		if err := os.MkdirAll(destDir, 0o700); err != nil {
+		switch err := os.Mkdir(destDir, 0o700); {
+		case err == nil:
+			created = true
+		case !errors.Is(err, fs.ErrExist):
 			return ResolvedDB{}, fmt.Errorf("failed to create extraction directory: %w", err)
 		}
 
 		if err := unarchiveDB(archivePath, destDir); err != nil {
-			_ = os.RemoveAll(destDir)
+			if created {
+				_ = os.RemoveAll(destDir)
+			}
 			return ResolvedDB{}, fmt.Errorf("failed to extract archive %q: %w", archivePath, err)
 		}
 	}
 
-	return newResolvedDB(destDir, nil)
+	// the extracted directory is kept on success so later runs can reuse it
+	resolved, err := newResolvedDB(destDir, nil)
+	if err != nil && created {
+		_ = os.RemoveAll(destDir)
+	}
+	return resolved, err
 }
 
 // unarchiveDB extracts a DB archive to the given destination directory.

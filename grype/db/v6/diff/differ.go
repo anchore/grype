@@ -29,8 +29,8 @@ type DBDiffer struct {
 	newDB  ResolvedDB
 }
 
-// NewDBDiffer resolves the databases from the config and returns a new DBDiffer for database comparison
-// containing a vulnerability.db file.
+// NewDBDiffer resolves the old and new databases from the config and returns a DBDiffer comparing them. The
+// DBDiffer owns any temporary directories created while resolving, and removes them on Close.
 func NewDBDiffer(cfg Config) (*DBDiffer, error) {
 	resolvedOld, resolvedNew, err := parallel[ResolvedDB](func() (ResolvedDB, error) {
 		return ResolveDB(cfg.OldDB, cfg.DBRootDir)
@@ -39,16 +39,19 @@ func NewDBDiffer(cfg Config) (*DBDiffer, error) {
 	})
 
 	if err != nil {
+		// one side may have resolved (and downloaded) before the other failed
+		resolvedOld.release()
+		resolvedNew.release()
 		return nil, err
 	}
 
 	differ, err := newDBDifferDirs(resolvedOld, resolvedNew, cfg)
-	if differ == nil {
-		defer resolvedOld.Cleanup()
-		defer resolvedNew.Cleanup()
+	if err != nil {
+		resolvedOld.release()
+		resolvedNew.release()
 		return nil, err
 	}
-	return differ, err
+	return differ, nil
 }
 
 func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) {
@@ -108,9 +111,12 @@ func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) 
 	}, nil
 }
 
-// Close detaches the new database and closes the connection.
+// Close detaches the new database, closes the connection, and removes any temporary directories.
 func (d *DBDiffer) Close() error {
-	// always release the connection, even if the detach fails (an open handle keeps the db files locked on windows)
+	// defers run in reverse, so the connection is always closed before the directories are removed (an open
+	// handle keeps the db files locked on windows), even if the detach fails
+	defer d.newDB.release()
+	defer d.oldDB.release()
 	defer closeLowLevelDB(d.db)
 	if err := d.db.Exec("DETACH DATABASE new_db").Error; err != nil {
 		return fmt.Errorf("failed to detach new database: %w", err)

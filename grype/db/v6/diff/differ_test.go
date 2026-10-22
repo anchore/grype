@@ -1,6 +1,8 @@
 package diff
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -1317,6 +1319,103 @@ func Test_resolvedDBCleanupNeverNil(t *testing.T) {
 		require.NotNil(t, resolved.Cleanup, value)
 		require.NotPanics(t, resolved.Cleanup)
 	}
+}
+
+// Test_ResolveDB_keepsUserDataOnFailure verifies a failed resolve only removes directories it created itself
+func Test_ResolveDB_keepsUserDataOnFailure(t *testing.T) {
+	tests := []struct {
+		name  string
+		setup func(t *testing.T, dir string) (value string)
+		kept  string
+		gone  string
+	}{
+		{
+			name: "directory without a db",
+			setup: func(_ *testing.T, dir string) string {
+				return dir
+			},
+			kept: "keep.txt",
+		},
+		{
+			name: "db file in a user directory",
+			setup: func(t *testing.T, dir string) string {
+				require.NoError(t, os.WriteFile(filepath.Join(dir, "other.db"), []byte("not a db"), 0o600))
+				return filepath.Join(dir, "other.db")
+			},
+			kept: "keep.txt",
+		},
+		{
+			name: "corrupt archive next to an existing directory",
+			setup: func(t *testing.T, dir string) string {
+				require.NoError(t, os.WriteFile(filepath.Join(dir, "db.tar.gz"), []byte("not an archive"), 0o600))
+				require.NoError(t, os.Mkdir(filepath.Join(dir, "db"), 0o700))
+				require.NoError(t, os.WriteFile(filepath.Join(dir, "db", "keep.txt"), []byte("x"), 0o600))
+				return filepath.Join(dir, "db.tar.gz")
+			},
+			kept: filepath.Join("db", "keep.txt"),
+		},
+		{
+			name: "corrupt archive extraction is cleaned up",
+			setup: func(t *testing.T, dir string) string {
+				require.NoError(t, os.WriteFile(filepath.Join(dir, "db.tar.gz"), []byte("not an archive"), 0o600))
+				return filepath.Join(dir, "db.tar.gz")
+			},
+			kept: "keep.txt",
+			gone: "db",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			require.NoError(t, os.WriteFile(filepath.Join(dir, "keep.txt"), []byte("x"), 0o600))
+
+			_, err := ResolveDB(tt.setup(t, dir), "")
+			require.Error(t, err)
+
+			assert.FileExists(t, filepath.Join(dir, tt.kept))
+			if tt.gone != "" {
+				assert.NoDirExists(t, filepath.Join(dir, tt.gone))
+			}
+		})
+	}
+}
+
+// Test_DBDiffer_removesDownloads verifies downloaded databases are removed when the other side fails to resolve,
+// and on Close otherwise
+func Test_DBDiffer_removesDownloads(t *testing.T) {
+	inputDir, err := filepath.Abs(filepath.Join("testdata", "inputs"))
+	require.NoError(t, err)
+
+	// separate dbs, since the local one is hydrated in place while the served one is being downloaded
+	servedDir := filepath.Join(t.TempDir(), "served")
+	testdb.BuildFromFlatFileDir(t, time.Date(2022, 8, 11, 0, 0, 0, 0, time.UTC), servedDir, inputDir, "cve-2025-59800")
+	localDir := filepath.Join(t.TempDir(), "local")
+	testdb.BuildFromFlatFileDir(t, time.Date(2022, 8, 12, 0, 0, 0, 0, time.UTC), localDir, inputDir, "cve-2025-59800")
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, filepath.Join(servedDir, v6.VulnerabilityDBFileName))
+	}))
+	t.Cleanup(srv.Close)
+
+	tmp := t.TempDir()
+	t.Setenv("TMPDIR", tmp)
+	t.Setenv("TMP", tmp)
+	downloads := func() []string {
+		matches, err := filepath.Glob(filepath.Join(tmp, "grype-db-diff-*"))
+		require.NoError(t, err)
+		return matches
+	}
+
+	_, err = NewDBDiffer(Config{OldDB: srv.URL, NewDB: filepath.Join(t.TempDir(), "missing")})
+	require.Error(t, err)
+	assert.Empty(t, downloads(), "download kept after the other side failed")
+
+	differ, err := NewDBDiffer(Config{OldDB: srv.URL, NewDB: localDir})
+	require.NoError(t, err)
+	require.Len(t, downloads(), 1)
+	require.NoError(t, differ.Close())
+	assert.Empty(t, downloads(), "download kept after Close")
 }
 
 func requireVulns(t *testing.T, testType string, vulns []VulnerabilityID, vulnNames ...string) {
