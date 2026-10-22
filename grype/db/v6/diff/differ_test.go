@@ -911,13 +911,13 @@ func Test_packageDiff(t *testing.T) {
 					switch expected := expected.(type) {
 					case added:
 						hasAdded = true
-						requireVulnIDs(t, "added", vulnChanges.Added, expected...)
+						requireExactVulnIDs(t, "added", vulnChanges.Added, expected...)
 					case modified:
 						hasModified = true
-						requireVulnIDs(t, "modified", vulnChanges.Modified, expected...)
+						requireExactVulnIDs(t, "modified", vulnChanges.Modified, expected...)
 					case removed:
 						hasRemoved = true
-						requireVulnIDs(t, "removed", vulnChanges.Removed, expected...)
+						requireExactVulnIDs(t, "removed", vulnChanges.Removed, expected...)
 					}
 				}
 				if !hasAdded {
@@ -1121,10 +1121,10 @@ func Test_hydrationPermutations(t *testing.T) {
 					switch expected := expected.(type) {
 					case added:
 						hasAdded = true
-						requireVulnIDs(t, "added", vulnChanges.Added, expected...)
+						requireExactVulnIDs(t, "added", vulnChanges.Added, expected...)
 					case removed:
 						hasRemoved = true
-						requireVulnIDs(t, "removed", vulnChanges.Removed, expected...)
+						requireExactVulnIDs(t, "removed", vulnChanges.Removed, expected...)
 					}
 				}
 				if !hasAdded {
@@ -1146,7 +1146,167 @@ func Test_hydrationPermutations(t *testing.T) {
 	}
 }
 
+// Test_handlesWithoutBlobs verifies that package / CPE handles without a blob are excluded from the diff, rather than
+// being reported as modified (missing blobs can't be compared, so they would never be considered equivalent)
+func Test_handlesWithoutBlobs(t *testing.T) {
+	inputDir, err := filepath.Abs(filepath.Join("testdata", "inputs"))
+	require.NoError(t, err)
+
+	removeBlobs := func(dbDir string) {
+		db, err := v6.NewLowLevelDB(filepath.Join(dbDir, v6.VulnerabilityDBFileName), false, true, false)
+		require.NoError(t, err)
+		defer closeLowLevelDB(db)
+		require.NoError(t, db.Exec("PRAGMA foreign_keys = OFF").Error)
+		for _, table := range []string{"affected_package_handles", "unaffected_package_handles", "affected_cpe_handles", "unaffected_cpe_handles"} {
+			require.NoError(t, db.Exec("UPDATE "+table+" SET blob_id = 0").Error)
+		}
+	}
+
+	tmpdir := t.TempDir()
+	var dirs []string
+	for _, name := range []string{"oldDB", "newDB"} {
+		dir := filepath.Join(tmpdir, name)
+		testdb.BuildFromFlatFileDir(t, time.Time{}, dir, inputDir, "cve-2025-59800", "cve-2020-15415")
+		removeBlobs(dir)
+		dirs = append(dirs, dir)
+	}
+
+	differ, err := NewDBDiffer(Config{Config: installation.Config{}, OldDB: dirs[0], NewDB: dirs[1]})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = differ.Close() })
+
+	result, err := differ.Diff()
+	require.NoError(t, err)
+	require.Empty(t, result.Packages)
+}
+
+// Test_packageDiffExact asserts the exact package results for edge cases that can't be expressed with the flat file
+// fixtures alone, so the databases are altered with SQL after they are built
+func Test_packageDiffExact(t *testing.T) {
+	tests := []struct {
+		name      string
+		oldDB     []string
+		newDB     []string
+		mutateOld []string
+		mutateNew []string
+		expected  []PackageDiff
+	}{
+		{
+			// NULL and '' are reported identically, so they must be treated as the same package / CPE
+			name:      "null and empty values are equivalent",
+			oldDB:     []string{"cve-2025-59800", "cve-2025-21916"},
+			newDB:     []string{"cve-2025-59800", "cve-2025-21916"},
+			mutateOld: []string{"UPDATE packages SET ecosystem = NULL", "UPDATE cpes SET edition = NULL"},
+			mutateNew: []string{"UPDATE packages SET ecosystem = ''"},
+		},
+		{
+			// fix availability doesn't affect matching, so blobs that only differ there are not modified
+			name:  "fix availability only change",
+			oldDB: []string{"echo-rolling/CVE-2025-13012", "cve-2025-21916"},
+			newDB: []string{"echo-rolling/CVE-2025-13012", "cve-2025-21916"},
+			mutateNew: []string{
+				`UPDATE blobs SET value = replace(value, '"first-observed"', '"advisory"')
+				 WHERE id IN (SELECT blob_id FROM affected_package_handles) AND value LIKE '%"first-observed"%'`,
+				`UPDATE blobs SET value = replace(value, '"first-observed"', '"advisory"')
+				 WHERE id IN (SELECT blob_id FROM affected_cpe_handles) AND value LIKE '%"first-observed"%'`,
+			},
+		},
+		{
+			// a vulnerable record is removed when the other side has a matching not-vulnerable record, even if it also
+			// has a matching vulnerable record
+			name:      "mixed statuses for the same package",
+			oldDB:     []string{"cve-2025-59800"},
+			newDB:     []string{"cve-2025-59800"},
+			mutateNew: []string{copyHandles("affected_package_handles", "unaffected_package_handles")},
+			expected: []PackageDiff{
+				{Ecosystem: "deb", Name: "ghostscript", Vulnerabilities: VulnerabilityChanges{Removed: []VulnerabilityID{{Provider: "echo", ID: "CVE-2025-59800"}}}},
+			},
+		},
+		{
+			// cpes that only differ by '' vs '*' render to the same CPE string, so must be reported once
+			name:  "cpes with the same cpe string",
+			oldDB: []string{"cve-2025-24456"},
+			newDB: []string{"cve-2025-24456", "cve-2025-21916"},
+			mutateNew: []string{
+				`INSERT INTO cpes (part, vendor, product, edition, language, software_edition, target_hardware, target_software, other)
+				 SELECT part, vendor, product, '*', language, software_edition, target_hardware, target_software, other
+				 FROM cpes WHERE product = 'linux_kernel'`,
+				`INSERT INTO affected_cpe_handles (vulnerability_id, cpe_id, blob_id)
+				 SELECT h.vulnerability_id, (SELECT id FROM cpes WHERE product = 'linux_kernel' AND edition = '*'), h.blob_id
+				 FROM affected_cpe_handles h JOIN cpes c ON c.id = h.cpe_id
+				 WHERE c.product = 'linux_kernel' AND c.edition = ''`,
+			},
+			expected: []PackageDiff{
+				{
+					Ecosystem:       "cpe",
+					Name:            "linux_kernel",
+					CPE:             "cpe:2.3:o:linux:linux_kernel:*:*:*:*:*:*:*:*",
+					Vulnerabilities: VulnerabilityChanges{Added: []VulnerabilityID{{Provider: "nvd", ID: "CVE-2025-21916"}}},
+				},
+			},
+		},
+	}
+
+	inputDir, err := filepath.Abs(filepath.Join("testdata", "inputs"))
+	require.NoError(t, err)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			oldDB := filepath.Join(t.TempDir(), "oldDB")
+			testdb.BuildFromFlatFileDir(t, time.Date(2022, 8, 11, 18, 1, 5, 0, time.UTC), oldDB, inputDir, tt.oldDB...)
+			execSQL(t, oldDB, tt.mutateOld...)
+
+			newDB := filepath.Join(t.TempDir(), "newDB")
+			testdb.BuildFromFlatFileDir(t, time.Date(2022, 8, 12, 1, 55, 19, 0, time.UTC), newDB, inputDir, tt.newDB...)
+			execSQL(t, newDB, tt.mutateNew...)
+
+			differ, err := NewDBDiffer(Config{Config: installation.Config{}, OldDB: oldDB, NewDB: newDB})
+			require.NoError(t, err)
+			t.Cleanup(func() { _ = differ.Close() })
+
+			result, err := differ.Diff()
+			require.NoError(t, err)
+			require.Equal(t, tt.expected, nilIfEmpty(result.Packages))
+		})
+	}
+}
+
+// execSQL runs each statement against the database in dbDir, requiring that each one changes at least one row (so a
+// mutation can't silently become a no-op if the fixtures change)
+func execSQL(t *testing.T, dbDir string, statements ...string) {
+	t.Helper()
+	if len(statements) == 0 {
+		return
+	}
+	db, err := v6.NewLowLevelDB(filepath.Join(dbDir, v6.VulnerabilityDBFileName), false, true, false)
+	require.NoError(t, err)
+	defer closeLowLevelDB(db)
+	require.NoError(t, db.Exec("PRAGMA foreign_keys = OFF").Error)
+	for _, stmt := range statements {
+		res := db.Exec(stmt)
+		require.NoError(t, res.Error, stmt)
+		require.NotZero(t, res.RowsAffected, "statement changed no rows: %s", stmt)
+	}
+}
+
+// copyHandles returns a statement that copies every handle in the from table into the to table
+func copyHandles(from, to string) string {
+	return `INSERT INTO ` + to + ` (vulnerability_id, operating_system_id, package_id, blob_id)
+		SELECT vulnerability_id, operating_system_id, package_id, blob_id FROM ` + from
+}
+
+func nilIfEmpty[T any](s []T) []T {
+	if len(s) == 0 {
+		return nil
+	}
+	return s
+}
+
 func requireVulns(t *testing.T, testType string, vulns []VulnerabilityID, vulnNames ...string) {
+	t.Helper()
+	if len(vulns) != len(vulnNames) {
+		t.Errorf("expected %d %s vulnerabilities %v, got %d: %v", len(vulnNames), testType, vulnNames, len(vulns), vulns)
+	}
 nextVuln:
 	for _, required := range vulnNames {
 		for _, vuln := range vulns {
@@ -1156,6 +1316,15 @@ nextVuln:
 		}
 		t.Errorf("expected %s vulnerability %q not found", testType, required)
 	}
+}
+
+// requireExactVulnIDs requires that vulns holds exactly the expected entries, with no duplicates
+func requireExactVulnIDs(t *testing.T, testType string, vulns []VulnerabilityID, expected ...VulnerabilityID) {
+	t.Helper()
+	if len(vulns) != len(expected) {
+		t.Errorf("expected %d %s vulnerabilities %v, got %d: %v", len(expected), testType, expected, len(vulns), vulns)
+	}
+	requireVulnIDs(t, testType, vulns, expected...)
 }
 
 func requireVulnIDs(t *testing.T, testType string, vulns []VulnerabilityID, expected ...VulnerabilityID) {

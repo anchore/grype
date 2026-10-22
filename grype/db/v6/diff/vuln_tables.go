@@ -10,7 +10,8 @@ func (d *DBDiffer) createDiffTablesVulns(suffix, schema string) error {
 	r := strings.NewReplacer("{suffix}", suffix, "{db}", schema+".")
 
 	templates := []string{
-		// vulnerability lookup: resolved name + provider + status + dates + blob content
+		// vulnerability lookup: resolved name + provider + status + dates + blob reference (blob content is only
+		// fetched when comparing for modifications)
 		`CREATE TEMP TABLE diff_vuln_{suffix} AS
 		SELECT
 			vh.provider_id,
@@ -19,11 +20,11 @@ func (d *DBDiffer) createDiffTablesVulns(suffix, schema string) error {
 			COALESCE(vh.published_date, '') as published_date,
 			COALESCE(vh.modified_date, '') as modified_date,
 			COALESCE(vh.withdrawn_date, '') as withdrawn_date,
-			COALESCE(b.value, '') AS vuln_blob
+			vh.blob_id
 		FROM {db}vulnerability_handles vh
-		JOIN {db}blobs b ON vh.blob_id = b.id
+		WHERE EXISTS (SELECT 1 FROM {db}blobs b WHERE b.id = vh.blob_id)
 		`,
-		`CREATE INDEX idx_diff_vuln_{suffix}_name_provider ON diff_vuln_{suffix} (name, provider_id)`,
+		`CREATE INDEX idx_diff_vuln_{suffix}_name_provider ON diff_vuln_{suffix} (name, provider_id, status, modified_date, withdrawn_date, published_date, blob_id)`,
 
 		//// KEV entries
 		`CREATE TEMP TABLE diff_kev_{suffix} AS
@@ -47,18 +48,20 @@ func (d *DBDiffer) createDiffViewsVulns() error {
 
 		`CREATE TEMP VIEW diff_vuln_modified AS
 		SELECT n.provider_id, n.name FROM diff_vuln_new n
-		JOIN diff_vuln_old o
-			ON o.provider_id = n.provider_id
+		WHERE EXISTS (
+			SELECT 1 FROM diff_vuln_old o
+			WHERE o.provider_id = n.provider_id
 			AND o.name = n.name
-		WHERE NOT EXISTS (
+		)
+		AND NOT EXISTS (
 			SELECT 1 FROM diff_vuln_old o
 			WHERE o.provider_id = n.provider_id
 			AND o.name = n.name
 			AND o.status = n.status
-			AND o.vuln_blob = n.vuln_blob
 			AND o.modified_date = n.modified_date
 			AND o.withdrawn_date = n.withdrawn_date
 			AND o.published_date = n.published_date
+			AND COALESCE((SELECT ob.value FROM main.blobs ob WHERE ob.id = o.blob_id), '') = COALESCE((SELECT nb.value FROM new_db.blobs nb WHERE nb.id = n.blob_id), '')
 		)`,
 
 		`CREATE TEMP VIEW diff_vuln_removed AS

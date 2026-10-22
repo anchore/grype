@@ -68,7 +68,12 @@ func (d *DBDiffer) diffVulns() (*VulnerabilityDiff, error) {
 
 	log.Infof("vulnerability diff completed in %s", time.Since(startTime))
 
-	for _, vulns := range []*[]VulnerabilityID{&diffs.Added, &diffs.Modified, &diffs.Removed} {
+	sortVulnerabilityIDs(&diffs.Added, &diffs.Modified, &diffs.Removed)
+	return diffs, nil
+}
+
+func sortVulnerabilityIDs(lists ...*[]VulnerabilityID) {
+	for _, vulns := range lists {
 		slices.SortFunc(*vulns, func(a, b VulnerabilityID) int {
 			if a.Provider != b.Provider {
 				return strings.Compare(a.Provider, b.Provider)
@@ -76,7 +81,6 @@ func (d *DBDiffer) diffVulns() (*VulnerabilityDiff, error) {
 			return strings.Compare(a.ID, b.ID)
 		})
 	}
-	return diffs, nil
 }
 
 // findVulnsAdded gets added vulnerabilities in the new database
