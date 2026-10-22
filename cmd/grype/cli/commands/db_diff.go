@@ -81,7 +81,7 @@ func DBDiff(app clio.Application) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "diff [flags] old_db_url_or_path [new_db_url_or_path]",
-		Short: "Diff two databases, showing packages with added, removed, and modified vulnerability matches",
+		Short: "Diff two databases, showing packages with changed vulnerability matches and changed vulnerability records",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			opts.DB.MaxUpdateCheckFrequency = 0
 			return disableUI(app)(cmd, args)
@@ -106,10 +106,11 @@ func DBDiff(app clio.Application) *cobra.Command {
 
 func runDBDiff(opts dbDiffOptions) error {
 	startTime := time.Now()
+	includes := opts.ToIncludes()
 
 	d, err := diff.NewDBDiffer(diff.Config{
 		Config:        opts.ToCuratorConfig(),
-		Include:       opts.ToIncludes(),
+		Include:       includes,
 		Debug:         opts.Developer.DB.Debug,
 		EPSSThreshold: opts.EPSSThreshold,
 		OldDB:         opts.Old,
@@ -128,15 +129,22 @@ func runDBDiff(opts dbDiffOptions) error {
 
 	log.Infof("diff complete in %s", time.Since(startTime))
 
-	totalAdded, totalRemoved, totalModified := 0, 0, 0
-	for _, pkg := range result.Packages {
-		totalAdded += len(pkg.Vulnerabilities.Added)
-		totalRemoved += len(pkg.Vulnerabilities.Removed)
-		totalModified += len(pkg.Vulnerabilities.Modified)
+	if includes.Packages {
+		totalAdded, totalRemoved, totalModified := 0, 0, 0
+		for _, pkg := range result.Packages {
+			totalAdded += len(pkg.Vulnerabilities.Added)
+			totalRemoved += len(pkg.Vulnerabilities.Removed)
+			totalModified += len(pkg.Vulnerabilities.Modified)
+		}
+
+		log.Infof("package diff: %d added, %d removed, %d modified",
+			totalAdded, totalRemoved, totalModified)
 	}
 
-	log.Infof("diff complete: %d added, %d removed, %d modified",
-		totalAdded, totalRemoved, totalModified)
+	if v := result.Vulnerabilities; v != nil {
+		log.Infof("vulnerability diff: %d added, %d removed, %d modified",
+			len(v.Added), len(v.Removed), len(v.Modified))
+	}
 
 	slices.SortFunc(result.Packages, func(a, b diff.PackageDiff) int {
 		c := strings.Compare(a.Ecosystem, b.Ecosystem)
@@ -155,22 +163,56 @@ func runDBDiff(opts dbDiffOptions) error {
 }
 
 func outputText(writer io.Writer, result *diff.Result) error {
-	columns := []string{"Ecosystem", "Package"}
+	if len(result.Packages) > 0 {
+		if err := outputPackagesText(writer, result.Packages); err != nil {
+			return err
+		}
+	}
+	if result.Vulnerabilities != nil {
+		if len(result.Packages) > 0 {
+			if _, err := io.WriteString(writer, "\n"); err != nil {
+				return err
+			}
+		}
+		return outputVulnerabilitiesText(writer, result.Vulnerabilities)
+	}
+	return nil
+}
 
-	t := newTable(writer, columns)
+func outputPackagesText(writer io.Writer, packages []diff.PackageDiff) error {
+	t := newTable(writer, []string{"Ecosystem", "Package"})
+	defer log.CloseAndLogError(t, "tablewriter")
 
-	for _, pkg := range result.Packages {
+	for _, pkg := range packages {
 		name := pkg.Name
 		if pkg.CPE != "" {
 			name = pkg.CPE
 		}
-		err := t.Append(pkg.Ecosystem, name)
-		if err != nil {
+		if err := t.Append(pkg.Ecosystem, name); err != nil {
 			return err
 		}
 	}
+	return t.Render()
+}
+
+func outputVulnerabilitiesText(writer io.Writer, vulns *diff.VulnerabilityDiff) error {
+	t := newTable(writer, []string{"Vulnerability", "Provider", "Change"})
 	defer log.CloseAndLogError(t, "tablewriter")
 
+	for _, c := range []struct {
+		change string
+		ids    []diff.VulnerabilityID
+	}{
+		{"added", vulns.Added},
+		{"modified", vulns.Modified},
+		{"removed", vulns.Removed},
+	} {
+		for _, v := range c.ids {
+			if err := t.Append(v.ID, v.Provider, c.change); err != nil {
+				return err
+			}
+		}
+	}
 	return t.Render()
 }
 

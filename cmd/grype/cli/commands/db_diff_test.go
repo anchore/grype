@@ -135,3 +135,50 @@ func fieldNames(t reflect.Type) []string {
 	}
 	return names
 }
+
+func TestDBDiffOutputText(t *testing.T) {
+	vulns := &diff.VulnerabilityDiff{
+		Added:    []diff.VulnerabilityID{{Provider: "nvd", ID: "CVE-2026-0001"}},
+		Modified: []diff.VulnerabilityID{{Provider: "github", ID: "GHSA-xxxx-yyyy-zzzz"}},
+		Removed:  []diff.VulnerabilityID{{Provider: "debian", ID: "CVE-2020-0001"}},
+	}
+	packages := []diff.PackageDiff{{Ecosystem: "deb", Name: "openssl"}}
+
+	tests := []struct {
+		name     string
+		result   *diff.Result
+		contains []string
+		excludes []string
+	}{
+		{
+			name:     "vulnerabilities only",
+			result:   &diff.Result{Vulnerabilities: vulns},
+			contains: []string{"CVE-2026-0001", "nvd", "added", "GHSA-xxxx-yyyy-zzzz", "modified", "CVE-2020-0001", "removed"},
+			excludes: []string{"Ecosystem"},
+		},
+		{
+			name:     "packages only",
+			result:   &diff.Result{Packages: packages},
+			contains: []string{"deb", "openssl"},
+			excludes: []string{"Vulnerability"},
+		},
+		{
+			name:     "both",
+			result:   &diff.Result{Packages: packages, Vulnerabilities: vulns},
+			contains: []string{"openssl", "CVE-2026-0001"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var out bytes.Buffer
+			require.NoError(t, outputText(&out, tt.result))
+			for _, s := range tt.contains {
+				require.Contains(t, out.String(), s)
+			}
+			for _, s := range tt.excludes {
+				require.NotContains(t, out.String(), s)
+			}
+		})
+	}
+}
