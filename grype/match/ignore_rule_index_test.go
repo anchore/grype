@@ -14,10 +14,43 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
+// legacyIgnoreRule carries IgnoreRule.IgnoreMatch as it was before conditions were built once per rule, so the
+// reference below does not share the refactored matchConditions / ignoreMatchWithConditions path.
+type legacyIgnoreRule IgnoreRule
+
+func (l legacyIgnoreRule) IgnoreMatch(match Match) []IgnoreRule {
+	r := IgnoreRule(l)
+	// VEX rules are handled by the vex processor
+	if r.VexStatus != "" {
+		return nil
+	}
+
+	ignoreConditions := getIgnoreConditionsForRule(r)
+	if len(ignoreConditions) == 0 {
+		// this rule specifies no criteria, so it doesn't apply to the Match
+		return nil
+	}
+
+	for _, condition := range ignoreConditions {
+		if !condition(match) {
+			// as soon as one rule criterion doesn't apply, we know this rule doesn't apply to the Match
+			return nil
+		}
+	}
+
+	// all criteria specified in the rule apply to this Match
+	return []IgnoreRule{r}
+}
+
 // applyIgnoreRulesUnindexed is the implementation of ApplyIgnoreRules before the rules were indexed: every
-// rule is evaluated against every match. It is the reference the indexed implementation must agree with.
+// rule is evaluated against every match, using the legacy per-rule evaluation. It is the reference the indexed
+// implementation must agree with.
 func applyIgnoreRulesUnindexed(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMatch) {
-	matched, ignored := ApplyIgnoreFilters(matches.Sorted(), rules...)
+	legacy := make([]legacyIgnoreRule, len(rules))
+	for i, r := range rules {
+		legacy[i] = legacyIgnoreRule(r)
+	}
+	matched, ignored := ApplyIgnoreFilters(matches.Sorted(), legacy...)
 	return NewMatches(matched...), ignored
 }
 
