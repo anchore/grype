@@ -77,6 +77,7 @@ func DBDiff(app clio.Application) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "diff [flags] old_db_url_or_path [new_db_url_or_path]",
 		Short: "Diff two databases, showing packages with changed vulnerability matches and changed vulnerability records",
+		Long:  "Diff two databases, showing packages with changed vulnerability matches and changed vulnerability records.\nChanges are reported from the first database to the second, in the order provided (regardless of build time).",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			opts.DB.MaxUpdateCheckFrequency = 0
 			return disableUI(app)(cmd, args)
