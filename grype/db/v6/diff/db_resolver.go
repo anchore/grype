@@ -2,10 +2,8 @@ package diff
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -127,37 +125,46 @@ func extractArchive(archivePath string) (ResolvedDB, error) {
 		return ResolvedDB{}, fmt.Errorf("unrecognized file type (not a .db file or supported archive): %s", archivePath)
 	}
 
-	// only a directory created here is ours to remove on failure, an existing one may hold user data
-	var created bool
-
-	// check if already extracted
+	// destDir is only ever created by renaming a fully extracted and hydrated directory into place, so one that
+	// holds a db is complete and can be reused
 	dbFilePath := filepath.Join(destDir, db.VulnerabilityDBFileName)
 	if _, err := os.Stat(dbFilePath); err == nil {
 		log.Infof("using previously extracted database: %s", destDir)
-	} else {
-		log.Infof("extracting database archive: %s", archivePath)
-
-		switch err := os.Mkdir(destDir, 0o700); {
-		case err == nil:
-			created = true
-		case !errors.Is(err, fs.ErrExist):
-			return ResolvedDB{}, fmt.Errorf("failed to create extraction directory: %w", err)
+		resolved, err := newResolvedDB(destDir, nil)
+		if err != nil {
+			return ResolvedDB{}, fmt.Errorf("previously extracted database %q is unusable, remove it to extract again: %w", destDir, err)
 		}
-
-		if err := unarchiveDB(archivePath, destDir); err != nil {
-			if created {
-				_ = os.RemoveAll(destDir)
-			}
-			return ResolvedDB{}, fmt.Errorf("failed to extract archive %q: %w", archivePath, err)
-		}
+		return resolved, nil
 	}
 
-	// the extracted directory is kept on success so later runs can reuse it
-	resolved, err := newResolvedDB(destDir, nil)
-	if err != nil && created {
-		_ = os.RemoveAll(destDir)
+	log.Infof("extracting database archive: %s", archivePath)
+
+	// extract beside destDir so the final rename stays on one filesystem. An interrupted run leaves only this temp
+	// directory behind, never a partial destDir
+	tmpDir, err := os.MkdirTemp(filepath.Dir(destDir), filepath.Base(destDir)+"-extract-*")
+	if err != nil {
+		return ResolvedDB{}, fmt.Errorf("failed to create extraction directory: %w", err)
 	}
-	return resolved, err
+	removeTmp := func() { _ = os.RemoveAll(tmpDir) }
+
+	if err := unarchiveDB(archivePath, tmpDir); err != nil {
+		removeTmp()
+		return ResolvedDB{}, fmt.Errorf("failed to extract archive %q: %w", archivePath, err)
+	}
+
+	resolved, err := newResolvedDB(tmpDir, removeTmp)
+	if err != nil {
+		return ResolvedDB{}, err
+	}
+
+	// rename won't replace a non-empty directory, so an existing destDir without a db (possibly user data) is left alone
+	if err := os.Rename(tmpDir, destDir); err != nil {
+		removeTmp()
+		return ResolvedDB{}, fmt.Errorf("failed to move extracted database into %q: %w", destDir, err)
+	}
+
+	// the extracted directory is kept so later runs can reuse it
+	return ResolvedDB{Dir: destDir, Info: resolved.Info}, nil
 }
 
 // unarchiveDB extracts a DB archive to the given destination directory.

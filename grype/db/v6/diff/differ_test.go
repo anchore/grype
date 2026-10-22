@@ -1,6 +1,8 @@
 package diff
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -1387,8 +1389,86 @@ func Test_ResolveDB_keepsUserDataOnFailure(t *testing.T) {
 			if tt.gone != "" {
 				assert.NoDirExists(t, filepath.Join(dir, tt.gone))
 			}
+			requireNoExtractLeftovers(t, dir)
 		})
 	}
+}
+
+// Test_ResolveDB_archiveExtraction verifies an archive is only ever extracted into place once it is complete and
+// loads, so a failed or interrupted run never leaves a directory that breaks the next one
+func Test_ResolveDB_archiveExtraction(t *testing.T) {
+	inputDir, err := filepath.Abs(filepath.Join("testdata", "inputs"))
+	require.NoError(t, err)
+
+	srcDir := filepath.Join(t.TempDir(), "src")
+	testdb.BuildFromFlatFileDir(t, time.Time{}, srcDir, inputDir, "cve-2025-59800")
+	goodDB, err := os.ReadFile(filepath.Join(srcDir, v6.VulnerabilityDBFileName))
+	require.NoError(t, err)
+	badDB := []byte("not a db")
+
+	t.Run("extracts once and reuses", func(t *testing.T) {
+		dir := t.TempDir()
+		archive := writeDBArchive(t, dir, goodDB)
+
+		for range 2 {
+			resolved, err := ResolveDB(archive, "")
+			require.NoError(t, err)
+			assert.Equal(t, filepath.Join(dir, "db"), resolved.Dir)
+			assert.NotEmpty(t, resolved.Info.BuildTimestamp)
+			assert.FileExists(t, filepath.Join(resolved.Dir, v6.VulnerabilityDBFileName))
+			requireNoExtractLeftovers(t, dir)
+		}
+	})
+
+	t.Run("an archive that fails to load leaves nothing behind", func(t *testing.T) {
+		dir := t.TempDir()
+		archive := writeDBArchive(t, dir, badDB)
+
+		_, err := ResolveDB(archive, "")
+		require.Error(t, err)
+		assert.NoDirExists(t, filepath.Join(dir, "db"))
+		requireNoExtractLeftovers(t, dir)
+
+		// replacing the archive is enough to recover, there is nothing stale to remove by hand
+		writeDBArchive(t, dir, goodDB)
+		_, err = ResolveDB(archive, "")
+		require.NoError(t, err)
+	})
+
+	t.Run("an unusable previous extraction is named in the error", func(t *testing.T) {
+		dir := t.TempDir()
+		archive := writeDBArchive(t, dir, goodDB)
+		require.NoError(t, os.Mkdir(filepath.Join(dir, "db"), 0o700))
+		require.NoError(t, os.WriteFile(filepath.Join(dir, "db", v6.VulnerabilityDBFileName), badDB, 0o600))
+
+		_, err := ResolveDB(archive, "")
+		require.ErrorContains(t, err, filepath.Join(dir, "db"))
+	})
+}
+
+// writeDBArchive writes a db.tar.gz into dir holding the given vulnerability.db content, and returns its path
+func writeDBArchive(t *testing.T, dir string, dbContent []byte) string {
+	t.Helper()
+	path := filepath.Join(dir, "db.tar.gz")
+	f, err := os.Create(path)
+	require.NoError(t, err)
+	defer f.Close()
+
+	gz := gzip.NewWriter(f)
+	tw := tar.NewWriter(gz)
+	require.NoError(t, tw.WriteHeader(&tar.Header{Name: v6.VulnerabilityDBFileName, Mode: 0o600, Size: int64(len(dbContent))}))
+	_, err = tw.Write(dbContent)
+	require.NoError(t, err)
+	require.NoError(t, tw.Close())
+	require.NoError(t, gz.Close())
+	return path
+}
+
+func requireNoExtractLeftovers(t *testing.T, dir string) {
+	t.Helper()
+	leftovers, err := filepath.Glob(filepath.Join(dir, "*-extract-*"))
+	require.NoError(t, err)
+	require.Empty(t, leftovers, "temporary extraction directories left behind")
 }
 
 // Test_NewDBDiffer_defaultsToInstalledDB verifies a single db argument is diffed against the installed db, which
