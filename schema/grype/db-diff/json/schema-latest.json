@@ -1,15 +1,15 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "anchore.io/schema/grype/db-diff/json/0.5.0/results",
+  "$id": "anchore.io/schema/grype/db-diff/json/0.5.1/results",
   "$ref": "#/$defs/Result",
   "$defs": {
     "DatabaseDiff": {
       "$defs": {
         "after": {
-          "description": "is the next database, chronologically after the first"
+          "description": "is the ending database (the second database provided), which the diff is to"
         },
         "before": {
-          "description": "is the starting database, generated chronologically first"
+          "description": "is the starting database (the first database provided), which the diff is from"
         }
       },
       "properties": {
