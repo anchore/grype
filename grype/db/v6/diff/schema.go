@@ -9,4 +9,5 @@ var Schema = fmt.Sprintf("anchore.io/schema/grype/db-diff/json/%s/results", Sche
 
 // Changelog:
 // 0.5.0 - Initial schema
-// 0.5.1 - Clarify that before/after are the databases in the order provided, not chronological order
+// 0.5.1 - before/after follow the order the databases were provided (previously they were sorted chronologically,
+//         which disagreed with the diff direction when the newer database was given first)
