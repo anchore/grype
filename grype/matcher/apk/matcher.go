@@ -74,7 +74,7 @@ func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match
 		internal.OwnershipIgnores(p, ignorereasons.DistroFixed, allFixed.Vulnerabilities()...),
 	)
 
-	return vulnerable.ToMatches(), ignores, nil
+	return vulnerable.ToMatches(p), ignores, nil
 }
 
 // distroResults searches the authoritative distro feed for the package and each of its upstream/origin
@@ -84,23 +84,8 @@ func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match
 // the feed calls unaffected, and apk "< 0" NAKs, which are vulnerable at no version and so land here
 // too. That is what makes it the right thing to reconcile other sources against.
 func (m *Matcher) distroResults(vp vulnerability.Provider, p pkg.Package) (vulnerable, allFixed result.Set, err error) {
-	// APK doesn't use epochs, so pass a nil comparison config.
-	vulnerable, allFixed, err = internal.FindResultsByDistro(vp, p, nil, m.Type(), nil)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
-		upstreamVulnerable, upstreamFixed, err := internal.FindResultsByDistro(vp, upstreamPkg, &p, m.Type(), nil)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		vulnerable = vulnerable.Merge(markIndirect(upstreamVulnerable, p))
-		allFixed = allFixed.Merge(upstreamFixed)
-	}
-
-	return vulnerable, allFixed, nil
+	// APK has no epochs, so no comparison config
+	return internal.FindResultsByDistroAcrossUpstreams(vp, p, nil, m.Type(), nil)
 }
 
 // nakIgnores collects explicit NAK ("< 0") entries for the package and its upstreams and returns them
@@ -123,10 +108,15 @@ func (m *Matcher) nakIgnores(vp vulnerability.Provider, p pkg.Package) ([]match.
 	}
 
 	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
+		if upstreamPkg.Distro == nil {
+			continue
+		}
 		upstreamNaks, err := provider.FindResults(
 			search.ByDistro(*upstreamPkg.Distro),
 			search.ByPackageName(upstreamPkg.Name),
+			search.BySourcePackage(),
 			nakConstraint,
+			search.WithPackage(upstreamPkg),
 		)
 		if err != nil {
 			return nil, err
@@ -141,13 +131,13 @@ func (m *Matcher) nakIgnores(vp vulnerability.Provider, p pkg.Package) ([]match.
 // upstream/origin packages, the latter recorded against the SBOM package. Searching the origin is what
 // surfaces, for example, an openssl CVE for a libssl3 APK whose origin is openssl.
 func (m *Matcher) cpeResults(provider vulnerability.Provider, p pkg.Package) (result.Set, []match.IgnoreFilter, error) {
-	disclosures, ignores, err := m.cpeDisclosures(provider, p, p)
+	disclosures, ignores, err := m.cpeDisclosures(provider, p)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
-		upstreamDisclosures, upstreamIgnores, err := m.cpeDisclosures(provider, upstreamPkg, p)
+		upstreamDisclosures, upstreamIgnores, err := m.cpeDisclosures(provider, upstreamPkg)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -158,7 +148,7 @@ func (m *Matcher) cpeResults(provider vulnerability.Provider, p pkg.Package) (re
 	return disclosures, ignores, nil
 }
 
-func (m *Matcher) cpeDisclosures(provider vulnerability.Provider, searchPkg, catalogPkg pkg.Package) (result.Set, []match.IgnoreFilter, error) {
+func (m *Matcher) cpeDisclosures(provider vulnerability.Provider, searchPkg pkg.Package) (result.Set, []match.IgnoreFilter, error) {
 	cpeSet, ignores, err := internal.FindResultsByCPEs(provider, searchPkg, m.Type())
 	if err != nil {
 		if !errors.Is(err, internal.ErrEmptyCPEMatch) {
@@ -171,10 +161,6 @@ func (m *Matcher) cpeDisclosures(provider vulnerability.Provider, searchPkg, cat
 		return cpeSet, ignores, nil
 	}
 
-	if searchPkg.Name != catalogPkg.Name {
-		cpeSet = markIndirect(cpeSet, catalogPkg)
-	}
-
 	if searchPkg.Distro == nil {
 		// no distro feed, so no authority to defer to: NVD's fix is the only information there is
 		return cpeSet, ignores, nil
@@ -183,30 +169,6 @@ func (m *Matcher) cpeDisclosures(provider vulnerability.Provider, searchPkg, cat
 	// NVD cannot know when the distro will ship a fix, and an inferred NVD fix is an upstream release
 	// number rather than an apk version, so no record leaves here carrying one (see #2162)
 	return stripFixState(cpeSet), ignores, nil
-}
-
-// markIndirect records results against the SBOM (catalog) package rather than the upstream package
-// they were searched with, and marks their evidence indirect -- the result.Set equivalent of
-// match.ConvertToIndirectMatches.
-//
-// Both halves are needed. The match type is otherwise derived by comparing the searched package name
-// against the cataloged one, which cannot tell the two apart when a package is its own origin, so the
-// upstream pass says so explicitly.
-func markIndirect(s result.Set, catalogPkg pkg.Package) result.Set {
-	return s.Map(func(r *result.Result) {
-		r.Package = &catalogPkg
-
-		// replace the slice rather than mutate in place: Map shallow-copies results, so the Details
-		// backing array is shared with the source set
-		details := make([]match.Detail, len(r.Details))
-		for i, d := range r.Details {
-			if d.Type == match.ExactDirectMatch {
-				d.Type = match.ExactIndirectMatch
-			}
-			details[i] = d
-		}
-		r.Details = details
-	})
 }
 
 func stripFixState(s result.Set) result.Set {

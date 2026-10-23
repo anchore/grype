@@ -316,23 +316,7 @@ func applyOverride(d *OSSpecifier, override OperatingSystemSpecifierOverride) bo
 }
 
 func canUseOverride(override OperatingSystemSpecifierOverride, clientVersion *version.Version) (bool, error) {
-	if override.ApplicableClientDBSchemas == "" || clientVersion == nil {
-		return true, nil
-	}
-	c, err := version.GetConstraint(override.ApplicableClientDBSchemas, version.SemanticFormat)
-	if err != nil {
-		return true, fmt.Errorf("unable to parse version constraint: %w", err)
-	}
-	ok, err := c.Satisfied(clientVersion)
-	if err != nil {
-		return true, fmt.Errorf("unable to check if client constraint: %w", err)
-	}
-	if !ok {
-		// explicitly told that this override does not apply to this client version
-		return false, nil
-	}
-
-	return true, nil
+	return clientSchemaAllows(override.ApplicableClientDBSchemas, clientVersion)
 }
 
 func (s *operatingSystemStore) prepareQuery(d OSSpecifier) *gorm.DB {

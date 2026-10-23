@@ -3,6 +3,7 @@ package javascript
 import (
 	"testing"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/internal/dbtest"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -66,6 +67,25 @@ func TestMatcher_ScopedAndUnscopedNames(t *testing.T) {
 				})
 		})
 	}
+}
+
+// Language packages in an image carry the image's distro, but language ecosystem data (GHSA, OSV) is
+// stored with no OS. Constraining the query by distro would filter out every record.
+func TestMatcher_DistroBearingPackageStillMatches(t *testing.T) {
+	dbtest.DBs(t, "npm-scope-handling").
+		SelectOnly("github:npm/GHSA-67hx-6x53-jw92").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := NewJavascriptMatcher(MatcherConfig{})
+			p := dbtest.NewPackage("@babel/traverse", "7.20.0", syftPkg.NpmPkg).
+				WithLanguage(syftPkg.JavaScript).
+				WithDistro(distro.New(distro.Debian, "12", "bookworm")).
+				Build()
+
+			db.Match(t, matcher, p).
+				SelectMatch("GHSA-67hx-6x53-jw92").
+				SelectDetailByType(match.ExactDirectMatch).
+				AsEcosystemSearch()
+		})
 }
 
 // TestMatcher_ScopeStreamsDoNotCross is the sharp version of the
