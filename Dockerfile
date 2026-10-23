@@ -1,4 +1,4 @@
-FROM gcr.io/distroless/static-debian12:latest AS build
+FROM gcr.io/distroless/static-debian13:latest AS build
 
 FROM scratch
 # needed for version check HTTPS request
