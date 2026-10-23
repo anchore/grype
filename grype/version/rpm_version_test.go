@@ -103,6 +103,18 @@ func TestRpmVersion_Compare(t *testing.T) {
 		{"0:4.19.1-1.el7_5", "2:4.19.1-1.el7_5", -1},
 		{"4:1.2.3-3-el7_5", "1.2.3-el7_5~snapshot1", 1},
 
+		// a caret sorts above the version it follows and below the next release
+		// from https://github.com/rpm-software-management/rpm/blob/rpm-4.19.1-release/tests/rpmvercmp.at
+		{"1.0^git1", "1.0", 1},
+		{"1.0^20160101", "1.0.1", -1},
+		{"1.0.1", "1.0^20160101", 1},
+		{"1.0^20160102", "1.0^20160101^git1", 1},
+		{"1.0~rc1", "1.0^git1", -1},
+		// the same rule against an alpha segment and with a release
+		{"1.0^20160101", "1.0.GA", -1},
+		{"1.0.GA", "1.0^20160101", 1},
+		{"1.0^20230101-1.el10", "1.0.1-1.el10", -1},
+
 		// non-standard comparisons that ignore epochs due to only one being available
 		{"1:0", "1", -1},
 		{"2:4.19.01-1.el7_5", "4.19.1-1.el7_5", 0},
