@@ -41,6 +41,8 @@ curl -sSfL https://get.anchore.io/grype | sudo sh -s -- -b /usr/local/bin
 > [!TIP]
 > See [Installation docs](https://oss.anchore.com/docs/installation/grype/) for more ways to get Grype, including Homebrew, Docker, Chocolatey, MacPorts, and more!
 
+Grype also ships inside [MegaLinter](https://megalinter.io), an open-source linters aggregator for CI, which runs it against your repository out of the box (see the [Grype descriptor](https://megalinter.io/latest/descriptors/repository_grype/)).
+
 ## The basics
 
 Scan a container image or directory for vulnerabilities:
