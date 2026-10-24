@@ -16,6 +16,14 @@ func TestTypeFromRelease(t *testing.T) {
 		want    Type
 	}{
 		{
+			name: "DHI ID takes precedence over Alpine lineage",
+			release: linux.Release{
+				ID:     "dhi",
+				IDLike: []string{"alpine"},
+			},
+			want: DHI,
+		},
+		{
 			name: "direct ID mapping",
 			release: linux.Release{
 				ID: "ubuntu",
@@ -133,6 +141,23 @@ func TestTypeFromRelease(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := TypeFromRelease(tt.release)
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestType_IsReleaseScoped(t *testing.T) {
+	tests := []struct {
+		typ  Type
+		want bool
+	}{
+		{typ: DHI, want: true},
+		{typ: Alpine, want: false},
+		{typ: Debian, want: false},
+		{typ: Hummingbird, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(string(tt.typ), func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.typ.IsReleaseScoped())
 		})
 	}
 }
