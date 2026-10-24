@@ -146,12 +146,15 @@ func TestApkVersion_Compare(t *testing.T) {
 			expectError:  false,
 		},
 		{
-			name:           "different format does not return error - deb",
+			// "1.2.3-1" is not a valid apk version: apk writes revisions as
+			// "-rN". Comparing across formats is handled by Version.Compare,
+			// which falls back to the other version's comparator.
+			name:           "different format errors when the other side is not a valid apk version",
 			thisVersion:    "1.2.3-r4",
 			otherVersion:   "1.2.3-1",
 			otherFormat:    DebFormat,
-			expectError:    false,
-			errorSubstring: "unsupported version comparison",
+			expectError:    true,
+			errorSubstring: "invalid Apk version from '1.2.3-1'",
 		},
 		{
 			name:         "unknown format attempts upgrade - valid apk format",
