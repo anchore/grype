@@ -2,12 +2,14 @@ package store
 
 import (
 	"encoding/json"
+	"path/filepath"
 	"sort"
 	"testing"
 	"time"
 
 	"github.com/go-test/deep"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	v5 "github.com/anchore/grype/grype/db/v5"
 	"github.com/anchore/grype/grype/db/v5/store/model"
@@ -1389,4 +1391,30 @@ func Test_DiffStore(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, expectedDiffs, *result)
+}
+
+func TestNew_CacheSizeKiB(t *testing.T) {
+	tests := []struct {
+		name    string
+		opts    []Option
+		wantKiB int
+	}{
+		{name: "default", wantKiB: 1024 * 1024},
+		{name: "override", opts: []Option{WithCacheSizeKiB(32 * 1024)}, wantKiB: 32 * 1024},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s, err := New(filepath.Join(t.TempDir(), "vulnerability.db"), true, tt.opts...)
+			require.NoError(t, err)
+			st := s.(*store)
+			t.Cleanup(func() {
+				if d, err := st.db.DB(); err == nil {
+					_ = d.Close()
+				}
+			})
+			var result int
+			require.NoError(t, st.db.Raw("PRAGMA cache_size;").Scan(&result).Error)
+			assert.Equal(t, -tt.wantKiB, result)
+		})
+	}
 }

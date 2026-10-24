@@ -2,6 +2,7 @@ package rpm
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -739,6 +740,70 @@ func TestResolveEUSDisclosures(t *testing.T) {
 							Fix: vulnerability.Fix{
 								State:    vulnerability.FixStateWontFix, // wont-fix state is preserved
 								Versions: []string{},
+							},
+						},
+					},
+					Details: []match.Detail{{Type: match.ExactDirectMatch}, {Type: match.ExactDirectMatch}},
+				},
+			},
+		},
+		{
+			name:           "EUS fix replaces the mainline fix availability with that of the EUS advisory",
+			packageVersion: "1.0.0",
+			disclosures: []result.Result{
+				{
+					ID: "CVE-2021-1",
+					Vulnerabilities: []vulnerability.Vulnerability{
+						{
+							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+							Constraint: version.MustGetConstraint("< 1.6.0", version.RpmFormat),
+							Fix: vulnerability.Fix{
+								State:    vulnerability.FixStateFixed,
+								Versions: []string{"1.6.0"}, // mainline fix
+								Available: []vulnerability.FixAvailable{
+									{Version: "1.6.0", Date: time.Date(2025, 2, 13, 0, 0, 0, 0, time.UTC), Kind: "first-observed"}, // important! must not survive
+								},
+							},
+						},
+					},
+					Details: []match.Detail{{Type: match.ExactDirectMatch}},
+				},
+			},
+			advisoryOverlay: []result.Result{
+				{
+					ID: "CVE-2021-1",
+					Vulnerabilities: []vulnerability.Vulnerability{
+						{
+							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+							Constraint: version.MustGetConstraint("< 1.5.0", version.RpmFormat),
+							Fix: vulnerability.Fix{
+								State:    vulnerability.FixStateFixed,
+								Versions: []string{"1.5.0"}, // EUS fix
+								Available: []vulnerability.FixAvailable{
+									{Version: "1.5.0", Date: time.Date(2026, 4, 22, 0, 0, 0, 0, time.UTC), Kind: "first-observed"}, // important!
+								},
+							},
+						},
+					},
+					Details: []match.Detail{{Type: match.ExactDirectMatch}},
+				},
+			},
+			want: []result.Result{
+				{
+					ID: "CVE-2021-1",
+					Vulnerabilities: []vulnerability.Vulnerability{
+						{
+							Reference: vulnerability.Reference{ID: "CVE-2021-1"},
+							Constraint: version.CombineConstraints(
+								version.MustGetConstraint("< 1.6.0", version.RpmFormat), // from disclosure
+								version.MustGetConstraint("< 1.5.0", version.RpmFormat), // from advisory
+							),
+							Fix: vulnerability.Fix{
+								State:    vulnerability.FixStateFixed,
+								Versions: []string{"1.5.0"},
+								Available: []vulnerability.FixAvailable{
+									{Version: "1.5.0", Date: time.Date(2026, 4, 22, 0, 0, 0, 0, time.UTC), Kind: "first-observed"}, // important! from advisory, not the disclosure
+								},
 							},
 						},
 					},

@@ -53,9 +53,31 @@ type Provider struct {
 	LastSuccessfulRun time.Time `json:"lastSuccessfulRun"`
 }
 
-func NewWriter(directory string, dataAge time.Time, states provider.States, batchSize int) (data.Writer, error) {
+// WriterOption configures optional behavior of NewWriter.
+type WriterOption func(*writerOptions)
+
+type writerOptions struct {
+	sqliteCacheSizeKiB int
+}
+
+// WithSQLiteCacheSizeKiB sets the SQLite page cache size (in KiB) used while building the DB. Zero means use the
+// built-in default (1 GiB).
+func WithSQLiteCacheSizeKiB(kib int) WriterOption {
+	return func(o *writerOptions) {
+		o.sqliteCacheSizeKiB = kib
+	}
+}
+
+func NewWriter(directory string, dataAge time.Time, states provider.States, batchSize int, opts ...WriterOption) (data.Writer, error) {
+	var o writerOptions
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&o)
+		}
+	}
+
 	dbPath := path.Join(directory, db.VulnerabilityStoreFileName)
-	theStore, err := store.New(dbPath, true)
+	theStore, err := store.New(dbPath, true, store.WithCacheSizeKiB(o.sqliteCacheSizeKiB))
 	if err != nil {
 		return nil, fmt.Errorf("unable to create store: %w", err)
 	}

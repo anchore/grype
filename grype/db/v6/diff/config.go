@@ -54,6 +54,8 @@ func (c Config) IncludeKEV() bool {
 	return c.Include.KEV
 }
 
+// allUnset reports whether neither packages nor vulns were requested, which means "diff everything" (so a zero
+// Includes runs a full diff)
 func allUnset(include Includes) bool {
 	return !include.Packages && !include.Vulns
 }

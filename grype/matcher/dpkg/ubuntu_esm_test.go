@@ -2,6 +2,7 @@ package dpkg
 
 import (
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -540,6 +541,67 @@ func TestResolveESMDisclosures(t *testing.T) {
 							Fix: vulnerability.Fix{
 								State:    vulnerability.FixStateWontFix, // wont-fix state is preserved
 								Versions: []string{},
+							},
+						},
+					},
+					Details: []match.Detail{{Type: match.ExactDirectMatch}, {Type: match.ExactDirectMatch}},
+				},
+			},
+		},
+		{
+			name:           "ESM-only fix carries the fix availability from the ESM advisory",
+			packageVersion: "1.0.0",
+			disclosures: []result.Result{
+				{
+					ID: "CVE-2021-1",
+					Vulnerabilities: []vulnerability.Vulnerability{
+						{
+							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+							Constraint: version.MustGetConstraint("", version.DebFormat),
+							Fix: vulnerability.Fix{
+								State: vulnerability.FixStateWontFix, // important! the base distro will not fix this
+							},
+						},
+					},
+					Details: []match.Detail{{Type: match.ExactDirectMatch}},
+				},
+			},
+			advisoryOverlay: []result.Result{
+				{
+					ID: "CVE-2021-1",
+					Vulnerabilities: []vulnerability.Vulnerability{
+						{
+							Reference:  vulnerability.Reference{ID: "CVE-2021-1"},
+							Constraint: version.MustGetConstraint("< 1.0.0+esm1", version.DebFormat),
+							Fix: vulnerability.Fix{
+								State:    vulnerability.FixStateFixed,
+								Versions: []string{"1.0.0+esm1"},
+								Available: []vulnerability.FixAvailable{
+									{Version: "1.0.0+esm1", Date: time.Date(2025, 9, 9, 0, 0, 0, 0, time.UTC), Kind: "advisory"}, // important!
+								},
+							},
+						},
+					},
+					Details: []match.Detail{{Type: match.ExactDirectMatch}},
+				},
+			},
+			want: []result.Result{
+				{
+					ID: "CVE-2021-1",
+					Vulnerabilities: []vulnerability.Vulnerability{
+						{
+							Reference: vulnerability.Reference{ID: "CVE-2021-1"},
+							Constraint: version.CombineConstraints(
+								version.MustGetConstraint("", version.DebFormat),             // from disclosure
+								version.MustGetConstraint("< 1.0.0+esm1", version.DebFormat), // from advisory
+								version.MustGetConstraint("< 1.0.0+esm1", version.DebFormat), // from fix version
+							),
+							Fix: vulnerability.Fix{
+								State:    vulnerability.FixStateFixed,
+								Versions: []string{"1.0.0+esm1"},
+								Available: []vulnerability.FixAvailable{
+									{Version: "1.0.0+esm1", Date: time.Date(2025, 9, 9, 0, 0, 0, 0, time.UTC), Kind: "advisory"}, // important! from advisory
+								},
 							},
 						},
 					},
