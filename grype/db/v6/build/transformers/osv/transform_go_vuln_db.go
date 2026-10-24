@@ -1,7 +1,6 @@
 package osv
 
 import (
-	"fmt"
 	"maps"
 	"regexp"
 	"sort"
@@ -51,10 +50,7 @@ func (govulndbStrategy) Transform(vuln unmarshal.OSVVulnerability, state provide
 		return nil, nil
 	}
 
-	severities, err := getSeverities(vuln)
-	if err != nil {
-		return nil, fmt.Errorf("unable to obtain severities: %w", err)
-	}
+	severities := getSeverities(vuln)
 
 	// Withdrawn GO advisories keep their `affected` ranges but must not match.
 	// Like github: Status=Rejected plus WithdrawnDate, which the matcher's
