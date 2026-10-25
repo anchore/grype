@@ -235,7 +235,11 @@ func renderDBSearchPackagesTableRows(structuredRows []dbsearch.AffectedPackage) 
 			ranges = append(ranges, ra.Version.Constraint)
 		}
 		rangeStr := strings.Join(ranges, " || ")
-		rows = append(rows, []string{rr.Vulnerability.ID, pkgOrCPE, ecosystem, mimicV5Namespace(rr), rangeStr})
+		namespace := mimicV5Namespace(rr)
+		if rr.OS != nil {
+			namespace = rr.AffectedPackageInfo.Model.OperatingSystem.String()
+		}
+		rows = append(rows, []string{rr.Vulnerability.ID, pkgOrCPE, ecosystem, namespace, rangeStr})
 	}
 
 	// sort rows by each column
