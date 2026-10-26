@@ -1,0 +1,322 @@
+{
+  "matches": [
+  {{- range $i, $match := .Matches }}
+    {{ if $i }},{{ end }}
+    {
+      "vulnerability": {
+        "id": "{{ $match.Vulnerability.ID }}",
+        "dataSource": "{{ $match.Vulnerability.DataSource }}",
+        "namespace": "{{ $match.Vulnerability.Namespace }}",
+        "severity": "{{ $match.Vulnerability.Severity }}",
+        "urls": [{{ range $j, $url := $match.Vulnerability.URLs }}{{ if $j }}, {{ end }}"{{ $url }}"{{ end }}],
+        "description": "{{ $match.Vulnerability.Description }}",
+        "cvss": [
+        {{- range $k, $cvss := $match.Vulnerability.Cvss }}
+          {{ if $k }},{{ end }}
+          {
+            "source": "{{ $cvss.Source }}",
+            "type": "{{ $cvss.Type }}",
+            "version": "{{ $cvss.Version }}",
+            "vector": "{{ $cvss.Vector }}",
+            "metrics": {
+              "baseScore": {{ $cvss.Metrics.BaseScore }},
+              "exploitabilityScore": {{ $cvss.Metrics.ExploitabilityScore }},
+              "impactScore": {{ $cvss.Metrics.ImpactScore }}
+            },
+            "vendorMetadata": {{ $cvss.VendorMetadata }}
+          }
+        {{- end }}
+        ],
+        "fix": {
+          "versions": [{{ range $k, $v := $match.Vulnerability.Fix.Versions }}{{ if $k }}, {{ end }}"{{ $v }}"{{ end }}],
+          "state": "{{ $match.Vulnerability.Fix.State }}"
+        },
+        "advisories": [
+        {{- range $k, $adv := $match.Vulnerability.Advisories }}
+          {{ if $k }},{{ end }}
+          {
+            "id": "{{ $adv.ID }}",
+            "link": "{{ $adv.Link }}"
+          }
+        {{- end }}
+        ]
+      },
+      "relatedVulnerabilities": [
+      {{- range $k, $relVuln := $match.RelatedVulnerabilities }}
+        {{ if $k }},{{ end }}
+        {
+          "id": "{{ $relVuln.ID }}",
+          "dataSource": "{{ $relVuln.DataSource }}",
+          "namespace": "{{ $relVuln.Namespace }}",
+          "severity": "{{ $relVuln.Severity }}",
+          "urls": [{{ range $j, $url := $relVuln.URLs }}{{ if $j }}, {{ end }}"{{ $url }}"{{ end }}],
+          "description": "{{ $relVuln.Description }}",
+          "cvss": [
+          {{- range $j, $cvss := $relVuln.Cvss }}
+            {{ if $j }},{{ end }}
+            {
+              "source": "{{ $cvss.Source }}",
+              "type": "{{ $cvss.Type }}",
+              "version": "{{ $cvss.Version }}",
+              "vector": "{{ $cvss.Vector }}",
+              "metrics": {
+                "baseScore": {{ $cvss.Metrics.BaseScore }},
+                "exploitabilityScore": {{ $cvss.Metrics.ExploitabilityScore }},
+                "impactScore": {{ $cvss.Metrics.ImpactScore }}
+              },
+              "vendorMetadata": {{ $cvss.VendorMetadata }}
+            }
+          {{- end }}
+          ]
+        }
+      {{- end }}
+      ],
+      "matchDetails": [
+      {{- range $k, $detail := $match.MatchDetails }}
+        {{ if $k }},{{ end }}
+        {
+          "type": "{{ $detail.Type }}",
+          "matcher": "{{ $detail.Matcher }}",
+          "searchedBy": {{ $detail.SearchedBy }}, {{/* Output raw interface{} */}}
+          "found": {{ $detail.Found }}, {{/* Output raw interface{} */}}
+          "fix": {{ with $detail.Fix }} { {{/* Fix is a pointer, use 'with' */}}
+            "suggestedVersion": "{{ .SuggestedVersion }}"
+          }{{ else }}null{{ end }}
+        }
+      {{- end }}
+      ],
+      "artifact": {
+        "id": "{{ $match.Artifact.ID }}",
+        "name": "{{ $match.Artifact.Name }}",
+        "version": "{{ $match.Artifact.Version }}",
+        "type": "{{ $match.Artifact.Type }}",
+        "locations": [
+        {{- range $k, $loc := $match.Artifact.Locations }}
+          {{ if $k }},{{ end }}
+          {
+            "path": "{{ $loc.Path }}"
+            {{/* and other location fields like layerID */}}
+          }
+        {{- end }}
+        ],
+        "language": "{{ $match.Artifact.Language }}",
+        "licenses": [{{ range $k, $lic := $match.Artifact.Licenses }}{{ if $k }}, {{ end }}"{{ $lic }}"{{ end }}],
+        "cpes": [{{ range $k, $cpe := $match.Artifact.CPEs }}{{ if $k }}, {{ end }}"{{ $cpe }}"{{ end }}],
+        "purl": "{{ $match.Artifact.PURL }}",
+        "upstreams": [
+        {{- range $k, $up := $match.Artifact.Upstreams }}
+          {{ if $k }},{{ end }}
+          {
+            "name": "{{ $up.Name }}",
+            "version": "{{ $up.Version }}"
+          }
+        {{- end }}
+        ],
+        "metadataType": "{{ $match.Artifact.MetadataType }}",
+        "metadata": {{ $match.Artifact.Metadata }} {{/* Output raw interface{} */}}
+      }
+    }
+  {{- end }}
+  ],
+  "ignoredMatches": [
+  {{- range $i, $ignored := .IgnoredMatches }}
+    {{ if $i }},{{ end }}
+    {
+      "vulnerability": {
+        "id": "{{ $ignored.Match.Vulnerability.ID }}",
+        "dataSource": "{{ $ignored.Match.Vulnerability.DataSource }}",
+        "namespace": "{{ $ignored.Match.Vulnerability.Namespace }}",
+        "severity": "{{ $ignored.Match.Vulnerability.Severity }}",
+        "urls": [{{ range $j, $url := $ignored.Match.Vulnerability.URLs }}{{ if $j }}, {{ end }}"{{ $url }}"{{ end }}],
+        "description": "{{ $ignored.Match.Vulnerability.Description }}",
+        "cvss": [
+        {{- range $k, $cvss := $ignored.Match.Vulnerability.Cvss }}
+          {{ if $k }},{{ end }}{ "source": "{{ $cvss.Source }}", "type": "{{ $cvss.Type }}", "version": "{{ $cvss.Version }}", "vector": "{{ $cvss.Vector }}", "metrics": { "baseScore": {{ $cvss.Metrics.BaseScore }}, "exploitabilityScore": {{ $cvss.Metrics.ExploitabilityScore }}, "impactScore": {{ $cvss.Metrics.ImpactScore }} }, "vendorMetadata": {{ $cvss.VendorMetadata }} }{{- end }}
+        ],
+        "fix": {
+          "versions": [{{ range $k, $v := $ignored.Match.Vulnerability.Fix.Versions }}{{ if $k }}, {{ end }}"{{ $v }}"{{ end }}],
+          "state": "{{ $ignored.Match.Vulnerability.Fix.State }}"
+        },
+        "advisories": [
+        {{- range $k, $adv := $ignored.Match.Vulnerability.Advisories }}{{ if $k }},{{ end }}{ "id": "{{ $adv.ID }}", "link": "{{ $adv.Link }}" }{{- end }}
+        ]
+      },
+      "relatedVulnerabilities": [
+      {{- range $k, $relVuln := $ignored.Match.RelatedVulnerabilities }}{{ if $k }},{{ end }}{ "id": "{{ $relVuln.ID }}", "dataSource": "{{ $relVuln.DataSource }}", "namespace": "{{ $relVuln.Namespace }}", "severity": "{{ $relVuln.Severity }}", "urls": [{{ range $j, $url := $relVuln.URLs }}{{ if $j }}, {{ end }}"{{ $url }}"{{ end }}], "description": "{{ $relVuln.Description }}", "cvss": [{{ range $j, $cvss := $relVuln.Cvss }}{{ if $j }},{{ end }}{ "source": "{{ $cvss.Source }}", "type": "{{ $cvss.Type }}", "version": "{{ $cvss.Version }}", "vector": "{{ $cvss.Vector }}", "metrics": { "baseScore": {{ $cvss.Metrics.BaseScore }}, "exploitabilityScore": {{ $cvss.Metrics.ExploitabilityScore }}, "impactScore": {{ $cvss.Metrics.ImpactScore }} }, "vendorMetadata": {{ $cvss.VendorMetadata }} }{{- end }}] }{{- end }}
+      ],
+      "matchDetails": [
+      {{- range $k, $detail := $ignored.Match.MatchDetails }}{{ if $k }},{{ end }}{ "type": "{{ $detail.Type }}", "matcher": "{{ $detail.Matcher }}", "searchedBy": {{ $detail.SearchedBy }}, "found": {{ $detail.Found }}, "fix": {{ with $detail.Fix }}{ "suggestedVersion": "{{ .SuggestedVersion }}" }{{ else }}null{{ end }} }{{- end }}
+      ],
+      "artifact": {
+        "id": "{{ $ignored.Match.Artifact.ID }}",
+        "name": "{{ $ignored.Match.Artifact.Name }}",
+        "version": "{{ $ignored.Match.Artifact.Version }}",
+        "type": "{{ $ignored.Match.Artifact.Type }}",
+        "locations": [{{ range $k, $loc := $ignored.Match.Artifact.Locations }}{{ if $k }},{{ end }}{ "path": "{{ $loc.Path }}" }{{- end }}],
+        "language": "{{ $ignored.Match.Artifact.Language }}",
+        "licenses": [{{ range $k, $lic := $ignored.Match.Artifact.Licenses }}{{ if $k }}, {{ end }}"{{ $lic }}"{{ end }}],
+        "cpes": [{{ range $k, $cpe := $ignored.Match.Artifact.CPEs }}{{ if $k }}, {{ end }}"{{ $cpe }}"{{ end }}],
+        "purl": "{{ $ignored.Match.Artifact.PURL }}",
+        "upstreams": [{{ range $k, $up := $ignored.Match.Artifact.Upstreams }}{{ if $k }},{{ end }}{ "name": "{{ $up.Name }}", "version": "{{ $up.Version }}" }{{- end }}],
+        "metadataType": "{{ $ignored.Match.Artifact.MetadataType }}",
+        "metadata": {{ $ignored.Match.Artifact.Metadata }}
+      },
+      "appliedIgnoreRules": [
+      {{- range $k, $rule := $ignored.AppliedIgnoreRules }}
+        {{ if $k }},{{ end }}
+        {
+          "vulnerability": "{{ $rule.Vulnerability }}",
+          "fix-state": "{{ $rule.FixState }}",
+          "package": {{ with $rule.Package }}{ {{/* Package is a pointer */}}
+            "name": "{{ .Name }}",
+            "version": "{{ .Version }}",
+            "language": "{{ .Language }}",
+            "type": "{{ .Type }}",
+            "location": "{{ .Location }}",
+            "upstream-name": "{{ .UpstreamName }}"
+          }{{ else }}null{{ end }},
+          "namespace": "{{ $rule.Namespace }}",
+          "reason": "{{ $rule.Reason }}",
+          "vex-status": "{{ $rule.VexStatus }}",
+          "vex-justification": "{{ $rule.VexJustification }}",
+          "match-type": "{{ $rule.MatchType }}"
+        }
+      {{- end }}
+      ]
+    }
+  {{- end }}
+  ],
+
+  "source": {
+    "type": "{{ .Source.Type }}",
+    "target": {{ with .Source.Target }}
+      {{- if eq $.Source.Type "image" }}
+        {
+          "userInput": "{{ .UserInput }}",
+          "imageID": "{{ .ID }}",
+          "manifestDigest": "{{ .ManifestDigest }}",
+          "tags": [{{ range $i, $t := .Tags }}{{ if $i }}, {{ end }}"{{ $t }}"{{ end }}],
+          "architecture": "{{ .Architecture }}",
+          "os": "{{ .OS }}"
+        }
+      {{- else }}
+        "{{ . }}"
+      {{- end }}
+    {{- else }}
+      null
+    {{- end }}
+  },
+  "distro": {
+    "name": "{{ .Distro.Name }}",
+    "version": "{{ .Distro.Version }}",
+    "idLike": [{{ range $i, $id := .Distro.IDLike }}{{ if $i }}, {{ end }}"{{ $id }}"{{ end }}]
+  },
+  "descriptor": {
+    "name": "{{ .Descriptor.Name }}",
+    "version": "{{ .Descriptor.Version }}",
+    "configuration": {
+      "file": "{{ .Descriptor.Configuration.File }}",
+      "pretty": {{ .Descriptor.Configuration.Pretty }},
+      "distro": "{{ .Descriptor.Configuration.Distro }}",
+      "add-cpes-if-none": {{ .Descriptor.Configuration.GenerateMissingCPEs }},
+      "output-template-file": "{{ .Descriptor.Configuration.OutputTemplateFile }}",
+      "check-for-app-update": {{ .Descriptor.Configuration.CheckForAppUpdate }},
+      "only-fixed": {{ .Descriptor.Configuration.OnlyFixed }},
+      "only-notfixed": {{ .Descriptor.Configuration.OnlyNotFixed }},
+      "ignore-states": "{{ .Descriptor.Configuration.IgnoreStates }}",
+      "platform": "{{ .Descriptor.Configuration.Platform }}",
+      "fail-on-severity": "{{ .Descriptor.Configuration.FailOn }}",
+      "show-suppressed": {{ .Descriptor.Configuration.ShowSuppressed }},
+      "by-cve": {{ .Descriptor.Configuration.ByCVE }},
+      "name": "{{ .Descriptor.Configuration.Name }}",
+      "default-image-pull-source": "{{ .Descriptor.Configuration.DefaultImagePullSource }}",
+      "match-upstream-kernel-headers": {{ .Descriptor.Configuration.MatchUpstreamKernelHeaders }},
+
+      "search": {
+        "scope": "{{ .Descriptor.Configuration.Search.Scope }}",
+        "unindexed-archives": {{ .Descriptor.Configuration.Search.IncludeUnindexedArchives }},
+        "indexed-archives": {{ .Descriptor.Configuration.Search.IncludeIndexedArchives }}
+      },
+
+      "external-sources": {
+        "enable": {{ .Descriptor.Configuration.ExternalSources.Enable }},
+        "maven": {
+          "search-maven-upstream": {{ .Descriptor.Configuration.ExternalSources.Maven.SearchUpstreamBySha1 }},
+          "base-url": "{{ .Descriptor.Configuration.ExternalSources.Maven.BaseURL }}"
+        }
+      },
+
+      "match": {
+        "java": { "using-cpes": {{ .Descriptor.Configuration.Match.Java.UseCPEs }} },
+        "golang": {
+          "using-cpes": {{ .Descriptor.Configuration.Match.Golang.UseCPEs }},
+          "always-use-cpe-for-stdlib": {{ .Descriptor.Configuration.Match.Golang.AlwaysUseCPEForStdlib }}
+        }
+      },
+
+      "registry": {
+        "insecure-skip-tls-verify": {{ .Descriptor.Configuration.Registry.InsecureSkipTLSVerify }},
+        "insecure-use-http": {{ .Descriptor.Configuration.Registry.InsecureUseHTTP }},
+        "ca-cert": "{{ .Descriptor.Configuration.Registry.CACert }}",
+        "auth": []
+      },
+
+      "db": {
+        "cache-dir": "{{ .Descriptor.Configuration.DB.Dir }}",
+        "update-url": "{{ .Descriptor.Configuration.DB.UpdateURL }}",
+        "auto-update": {{ .Descriptor.Configuration.DB.AutoUpdate }},
+        "validate-age": {{ .Descriptor.Configuration.DB.ValidateAge }},
+        "max-allowed-built-age": {{ .Descriptor.Configuration.DB.MaxAllowedBuiltAge }}
+      },
+
+      "dev": {
+        "db": {
+          "debug": {{ .Descriptor.Configuration.Developer.DB.Debug }}
+        }
+      },
+
+      "output": [{{ range $i, $o := .Descriptor.Configuration.Outputs }}{{ if $i }}, {{ end }}"{{ $o }}"{{ end }}],
+      "ignore": [
+      {{- range $i, $rule := .Descriptor.Configuration.Ignore }}
+        {{ if $i }},{{ end }}
+        {
+          "vulnerability": "{{ $rule.Vulnerability }}",
+          "fix-state": "{{ $rule.FixState }}",
+          "package": {
+            "name": "{{ $rule.Package.Name }}",
+            "version": "{{ $rule.Package.Version }}",
+            "language": "{{ $rule.Package.Language }}",
+            "type": "{{ $rule.Package.Type }}",
+            "location": "{{ $rule.Package.Location }}",
+            "upstream-name": "{{ $rule.Package.UpstreamName }}"
+          },
+          "namespace": "{{ $rule.Namespace }}",
+          "reason": "{{ $rule.Reason }}",
+          "vex-status": "{{ $rule.VexStatus }}",
+          "vex-justification": "{{ $rule.VexJustification }}",
+          "match-type": "{{ $rule.MatchType }}"
+        }
+      {{- end }}
+      ],
+      "exclude": [{{ range $i, $e := .Descriptor.Configuration.Exclusions }}{{ if $i }}, {{ end }}"{{ $e }}"{{ end }}],
+      "vex-documents": [{{ range $i, $v := .Descriptor.Configuration.VexDocuments }}{{ if $i }}, {{ end }}"{{ $v }}"{{ end }}],
+      "vex-add": [{{ range $i, $v := .Descriptor.Configuration.VexAdd }}{{ if $i }}, {{ end }}"{{ $v }}"{{ end }}]
+    },
+    "db": {
+      "status": {
+        "built": "{{ .Descriptor.DB.Status.Built }}",
+        "path": "{{ .Descriptor.DB.Status.Path }}",
+        "schemaVersion": "{{ .Descriptor.DB.Status.SchemaVersion }}"
+      },
+      "providers": {
+      {{- range $name, $prov := .Descriptor.DB.Providers }}
+        "{{ $name }}": {
+          "InputDigest": "{{ $prov.InputDigest }}",
+          "DateCaptured": "{{ $prov.DateCaptured }}"
+        },
+      {{- end }}
+      }
+    },
+    "timestamp": "{{ .Descriptor.Timestamp }}"
+  }
+}
