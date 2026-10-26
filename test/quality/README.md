@@ -4,19 +4,18 @@ The quality gate checks that a grype change does not make matching worse. It sca
 
 - `gates/*.yaml` are the gates: the images, the two grype setups and the checks. Each gate keeps vulnerabilities up to one year (`vulnerabilities.maxYear`).
 - Labels and SBOMs come from [anchore/claims](https://github.com/anchore/claims), named in `.yardstick.yaml`.
-- `test-db` pins the DB both setups import; `make update-quality-gate-db` at the repo root moves it to the latest published DB.
+- Each gate pins the DB both setups import, by URL and checksum; yardstick downloads and caches it. `make update-quality-gate-db` moves every gate to the latest published DB.
 - `.grype.yaml` is the grype config both setups run with (CPE matching on for every ecosystem, `by-cve`).
-- yardstick is pinned in the repo's `.binny.yaml` and installed into `.tool/` by `make binny:install` at the repo root.
+- yardstick is pinned in the repo's `.binny.yaml` and installed into `.tool/` the first time a task runs it.
 
 ## Getting started
 
-```
-cd test/quality
-make capture     # build grype, download the DB, get SBOMs and scan with both setups
-make validate    # score the scans against the labels; exits 1 when a gate fails
-```
+From the repo root:
 
-`make quality` at the repo root does both. Set `YARDSTICK=<path>` to use a yardstick you built yourself.
+```
+make quality          # build grype, get SBOMs, scan with both setups and score; exits 1 when a gate fails
+make quality:score    # re-score the last scans against the current labels, without scanning
+```
 
 ## What is the quality gate criteria
 
@@ -43,13 +42,13 @@ False negatives represent matches that should have been made by grype but were m
 Vulnerability matching has two inputs, the packages found in the scanned artifact and the vulnerability data, and both move over time. To keep the comparison meaningful, as many of them as possible are fixed:
 
 - SBOMs are scanned instead of images, built once with a fixed syft version (see `catalog.yaml` in claims) and stored with the labels.
-- The DB is pinned (`test-db`).
+- The DB is pinned, by URL and checksum, in each gate.
 - Vulnerabilities after a gate's `maxYear` are ignored. Retroactive CVEs still appear, but this keeps results mostly stable. Only raise a ceiling once the matches it lets in are labeled.
 - Once an image is labeled at a digest, the digest never changes. Labels do not carry over between images, however similar.
 
 ## Workflow
 
-When the gate fails, `make validate` prints what changed between the two setups, grouped by cause, with the labels each change hits and what labeling the unlabeled ones would do to the verdict. Some failures are real regressions, and some only need labels.
+When the gate fails, `make quality` prints what changed between the two setups, grouped by cause, with the labels each change hits and what labeling the unlabeled ones would do to the verdict. Some failures are real regressions, and some only need labels.
 
 To label, use the yardstick label UI (it needs yardstick from the [installer](https://github.com/anchore/yardstick#installation), since a `go install` build has no UI):
 
@@ -63,7 +62,7 @@ A failed CI run uploads a `qg-capture-state` artifact holding the gate files, th
 
 ```
 unzip qg-capture-state.zip && tar -xzf qg-capture-state.tar.gz
-yardstick score gates/*.yaml -o table
+make -C ../.. quality:score
 ```
 
 New labels are written to `./claims`. To keep them, open a pull request adding them to [anchore/claims](https://github.com/anchore/claims); the gate reads its `main` branch.

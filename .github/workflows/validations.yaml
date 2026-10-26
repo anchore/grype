@@ -125,13 +125,12 @@ jobs:
 
           Download the artifact from this workflow run: \`$ARCHIVE_NAME\`
 
-          It holds the gate files and their scans, which re-score without the DB or new scans (\`yardstick\` is \`../../.tool/yardstick\` after \`make binny:install\` at the repo root):
+          It holds the gate files and their scans, which re-score without the DB or new scans:
           \`\`\`bash
           # copy the archive to the test/quality directory
           cd test/quality
           unzip $ARCHIVE_NAME && tar -xzf $ARCHIVE_BASENAME.tar.gz
-          yardstick score gates/*.yaml
-          yardstick score gates/*.yaml -o table   # every check on every image
+          make -C ../.. quality:score
           \`\`\`
 
           Now you can label what changed in the UI (it needs yardstick from the installer, since a \`go install\` build has no UI):

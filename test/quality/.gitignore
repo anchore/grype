@@ -1,4 +1,2 @@
-bin
+bin/
 .yardstick/
-*.tar.gz
-*.tar.zst
