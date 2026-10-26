@@ -1,2 +1,6 @@
-# the yardstick app config: every gate in gates/ reads its labels and SBOMs from here.
-claims: [github.com/anchore/claims@main]
+# the yardstick app config: every gate in gates/ reads its labels and SBOMs from these, and a label in a later
+# source wins over the same label in an earlier one. New labels are written to the last, ./additional-claims.
+claims:
+  - github.com/anchore/claims@main
+  - github.com/anchore/vunnel/tests/quality/additional-claims@main
+  - ./additional-claims

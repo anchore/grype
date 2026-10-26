@@ -3,7 +3,7 @@
 The quality gate checks that a grype change does not make matching worse. It scans a fixed set of SBOMs with grype built from this checkout and with the latest grype release, both on the same pinned DB, and scores both scans against labels with [yardstick](https://github.com/anchore/yardstick).
 
 - `gates/*.yaml` are the gates: the images, the two grype setups and the checks. Each gate keeps vulnerabilities up to one year (`vulnerabilities.maxYear`).
-- Labels and SBOMs come from [anchore/claims](https://github.com/anchore/claims), named in `.yardstick.yaml`.
+- Labels and SBOMs come from [anchore/claims](https://github.com/anchore/claims), plus the labels in vunnel's `tests/quality/additional-claims` and in `additional-claims/` here, all named in `.yardstick.yaml`.
 - Each gate pins the DB both setups import, by URL and checksum; yardstick downloads and caches it. `make update-quality-gate-db` moves every gate to the latest published DB.
 - `.grype.yaml` is the grype config both setups run with (CPE matching on for every ecosystem, `by-cve`).
 - yardstick is pinned in the repo's `.binny.yaml` and installed into `.tool/` the first time a task runs it.
@@ -53,9 +53,8 @@ When the gate fails, `make quality` prints what changed between the two setups, 
 To label, use the yardstick label UI (it needs yardstick from the [installer](https://github.com/anchore/yardstick#installation), since a `go install` build has no UI):
 
 ```
-mkdir -p claims
-yardstick claims serve gates/pr.yaml --claims ./claims --open
-yardstick score gates/*.yaml --claims ./claims   # re-score with the new labels, no new scans
+yardstick claims serve gates/pr.yaml --open
+make -C ../.. quality:score   # re-score with the new labels, no new scans
 ```
 
 A failed CI run uploads a `qg-capture-state` artifact holding the gate files, their scans and `.yardstick.yaml`, and the job summary says how to use it. Extracted into `test/quality`, it re-scores and labels as above with no DB, no grype and no new scans:
@@ -65,4 +64,4 @@ unzip qg-capture-state.zip && tar -xzf qg-capture-state.tar.gz
 make -C ../.. quality:score
 ```
 
-New labels are written to `./claims`. To keep them, open a pull request adding them to [anchore/claims](https://github.com/anchore/claims); the gate reads its `main` branch.
+New labels are written to `additional-claims/`, which the gate reads after anchore/claims and vunnel's `tests/quality/additional-claims`. Commit them there, or move labels that are generally useful to [anchore/claims](https://github.com/anchore/claims) with a pull request; the gate reads its `main` branch.

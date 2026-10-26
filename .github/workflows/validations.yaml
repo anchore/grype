@@ -135,8 +135,8 @@ jobs:
 
           Now you can label what changed in the UI (it needs yardstick from the installer, since a \`go install\` build has no UI):
           \`\`\`bash
-          yardstick claims serve gates/pr.yaml --claims ./claims --open
-          yardstick score gates/*.yaml --claims ./claims
+          yardstick claims serve gates/pr.yaml --open
+          make -C ../.. quality:score
           \`\`\`
           EOF
 
