@@ -2,7 +2,7 @@ module github.com/anchore/grype/.make
 
 go 1.26.0
 
-require github.com/anchore/go-make v0.9.5
+require github.com/anchore/go-make v0.9.6
 
 require (
 	github.com/bmatcuk/doublestar/v4 v4.10.3 // indirect
