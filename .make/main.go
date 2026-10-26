@@ -450,34 +450,23 @@ func cleanQualityTasks() Task {
 		Tasks: []Task{
 			{
 				Name:        "clean:quality-results",
-				Description: "remove quality gate yardstick results",
+				Description: "remove quality gate yardstick scans",
 				RunsOn:      lang.List("clean:quality"),
 				Run: func() {
-					file.Delete(dir + "/.yardstick/result")
+					file.Delete(dir + "/.yardstick")
 				},
 			},
 			{
 				Name:        "clean:quality-downloads",
-				Description: "remove quality gate downloaded DBs, SBOM cache, tools and python envs",
+				Description: "remove quality gate downloaded DB and candidate grype build",
 				RunsOn:      lang.List("clean:quality"),
 				Run: func() {
-					for _, p := range []string{
-						".yardstick/tools",
-						".oras-cache",
-						"venv",
-						"vulnerability-match-labels/venv",
-						"stage",
-						"pull",
-						"migrate.py",
-					} {
-						file.Delete(dir + "/" + p)
-					}
+					file.Delete(dir + "/bin")
 					for _, glob := range []string{"*.tar.gz", "*.tar.zst"} {
 						for _, f := range file.FindAll(dir + "/" + glob) {
 							file.Delete(f)
 						}
 					}
-					Run(`bash -c "find ` + dir + ` -name '*.pyc' -delete"`)
 				},
 			},
 			{

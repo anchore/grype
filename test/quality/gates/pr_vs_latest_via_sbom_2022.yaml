@@ -1,0 +1,18 @@
+# see pr_vs_latest_via_sbom.yaml for how the setups are chosen
+schema: v1
+description: same as pr_vs_latest_via_sbom, with vulnerabilities through 2022
+candidate: {grype: ../bin/grype, db: ../db.tar.zst, config: ../.grype.yaml}
+reference: {grype: grype@latest, db: ../db.tar.zst, config: ../.grype.yaml}
+undecided: pass
+vulnerabilities:
+  maxYear: 2022
+checks:
+  - name: f1NotWorse
+  - name: noNewFalseNegatives
+  - name: matchesAtLeast
+    params: {min: 0}
+subjects:
+  - oci:mcr.microsoft.com/cbl-mariner/base/core:2.0.20220731-arm64@sha256:51101e635f56032d5afd3fb56d66c7b93b34d5a39ddac01695d62b94473cc34e
+  - oci:ghcr.io/anchore/test-images/azurelinux3@sha256:2d761ba36575ddd4e07d446f4f2a05448298c20e5bdcd3dedfbbc00f9865240d
+  - oci:ghcr.io/anchore/test-images/appstreams-oraclelinux-8@sha256:c8d664b0e728d52f57eeb98ed1899c16d3b265f02ddfb41303d7a16c31e0b0f1
+  - oci:ghcr.io/anchore/test-images/appstreams-rhel-8@sha256:524ff8a75f21fd886ec7ed82387766df386671e8b77e898d05786118d5b7880b
