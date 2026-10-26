@@ -23,7 +23,7 @@ Each gate's checks are evaluated per image:
 
  - `f1NotWorse`: the candidate's F1 may not drop below the reference's
  - `noNewFalseNegatives`: true positives the reference found and the candidate misses
- - `matchesAtLeast`: the two setups together must match something on each image (off for the 2022 and 2024 gates)
+ - `matchesAtLeast`: the two setups together must match something on each image (off for every gate but `pr.yaml`)
 
 An image both setups report the same matches on passes without looking at labels. A check that unlabeled matches leave undecided does not fail the gate (`undecided: pass`), since the gate is diff-based and only a decided regression should fail it. Many images have well over 10% of their matches unlabeled on the pinned DB, so a matching change is worth labeling even when the gate passes.
 
@@ -54,7 +54,7 @@ To label, use the yardstick label UI (it needs yardstick from the [installer](ht
 
 ```
 mkdir -p claims
-yardstick claims serve gates/pr_vs_latest_via_sbom.yaml --claims ./claims --open
+yardstick claims serve gates/pr.yaml --claims ./claims --open
 yardstick score gates/*.yaml --claims ./claims   # re-score with the new labels, no new scans
 ```
 

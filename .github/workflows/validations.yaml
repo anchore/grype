@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
 
       - name: Run static analysis
         run: make static-analysis
@@ -58,7 +58,7 @@ jobs:
           persist-credentials: false
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           cache-test-fixtures: true
 
@@ -94,7 +94,7 @@ jobs:
           persist-credentials: false
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           cache-test-fixtures: true
 
@@ -135,7 +135,7 @@ jobs:
 
           Now you can label what changed in the UI (it needs yardstick from the installer, since a \`go install\` build has no UI):
           \`\`\`bash
-          yardstick claims serve gates/pr_vs_latest_via_sbom.yaml --claims ./claims --open
+          yardstick claims serve gates/pr.yaml --claims ./claims --open
           yardstick score gates/*.yaml --claims ./claims
           \`\`\`
           EOF
@@ -153,7 +153,7 @@ jobs:
           persist-credentials: false
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           cache-test-fixtures: true
 
@@ -177,7 +177,7 @@ jobs:
           persist-credentials: false
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           # why have another build cache key? We don't want unit/integration/etc test build caches to replace
           # the snapshot build cache, which includes builds for all OSs and architectures. As long as this key is
@@ -252,7 +252,7 @@ jobs:
 
       # only need go to drive the make-shim into go-make; skip tool install + apt
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           tools: "false"
           bootstrap-apt-packages: ""
@@ -301,7 +301,7 @@ jobs:
 
       # only need go to drive the make-shim into go-make; skip tool install + apt
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           tools: "false"
           bootstrap-apt-packages: ""
@@ -339,7 +339,7 @@ jobs:
           persist-credentials: false
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           cache-test-fixtures: true
 
