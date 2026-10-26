@@ -1,5 +1,5 @@
-github.com/anchore/go-make v0.9.5 h1:kI0ueVEJpDAoPTWOPEaL/uZ85xUY1z6fJMwyxYw5RAY=
-github.com/anchore/go-make v0.9.5/go.mod h1:zE6KeB+nY+sMSWHYx2uaiOznLAq3CD9JvFlzWDDpKw4=
+github.com/anchore/go-make v0.9.6 h1:HjO7H/M/WZ4v3B73/EuShuQHHblQJGwHDrl/MqCavWs=
+github.com/anchore/go-make v0.9.6/go.mod h1:zE6KeB+nY+sMSWHYx2uaiOznLAq3CD9JvFlzWDDpKw4=
 github.com/bmatcuk/doublestar/v4 v4.10.3 h1:1UIv1+fqH3++ViVkpnaPTB+Pi1UHycnPFAq14zgK+gI=
 github.com/bmatcuk/doublestar/v4 v4.10.3/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
 github.com/goccy/go-yaml v1.19.2 h1:PmFC1S6h8ljIz6gMRBopkjP1TVT7xuwrButHID66PoM=
