@@ -105,7 +105,8 @@ jobs:
 
       - name: Archive the gate state
         if: ${{ failure() }}
-        run: tar -czvf qg-capture-state.tar.gz -C test/quality .yardstick.yaml gates .yardstick/runs
+        # a run that fails before scanning leaves no .yardstick/runs; archive the gates anyway
+        run: tar -czvf qg-capture-state.tar.gz --ignore-failed-read -C test/quality .yardstick.yaml gates .yardstick/runs
 
       - name: Upload the gate state archive
         if: ${{ failure() }}

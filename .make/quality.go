@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"regexp"
+	"strings"
 
 	. "github.com/anchore/go-make"
 	"github.com/anchore/go-make/file"
@@ -66,10 +67,12 @@ func qualityTasks() Task {
 	}
 }
 
-// runQualityGates runs yardstick over every gate file, from test/quality so its .yardstick.yaml applies. The
-// verdict is on stdout, which Run would otherwise only capture.
+// runQualityGates runs yardstick over every gate file, in test/quality so its .yardstick.yaml applies. Only
+// yardstick runs there: Run installs it with binny first, which must run from the repo root to find .binny.yaml.
+// The verdict is on stdout, which Run would otherwise only capture.
 func runQualityGates(args ...string) {
-	file.InDir(qualityDir, func() {
-		Run("yardstick", run.Args(append(args, file.FindAll("gates/*.yaml")...)...), run.Stdout(os.Stdout))
-	})
+	for _, gate := range file.FindAll(qualityDir + "/gates/*.yaml") {
+		args = append(args, strings.TrimPrefix(gate, qualityDir+"/"))
+	}
+	Run("yardstick", run.Args(args...), run.InDir(qualityDir), run.Stdout(os.Stdout))
 }
