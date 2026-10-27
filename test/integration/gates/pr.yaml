@@ -1,4 +1,4 @@
-# the candidate is grype built from this checkout (make integration builds it), the reference is the latest release.
+# the candidate is grype built from this checkout (make integration:quality builds it), the reference is the latest release.
 # both import the same pinned DB (make integration:update-db moves it), so grype's matching code is the only thing that differs.
 schema: v1
 description: grype from this checkout vs the latest grype release, on the pinned DB

@@ -85,9 +85,32 @@ jobs:
   Integration-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
     name: "Integration tests"
+    runs-on: ubuntu-latest
+    needs: [Integration-Test-Suite]
+    # a skipped job satisfies a required check, so this job must always run and fail explicitly
+    # unless every dependency succeeded (otherwise a failing PR can still be auto-merged)
+    if: ${{ always() }}
+    permissions: {}
+    steps:
+      - name: Require every integration suite to succeed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -e 'length > 0 and all(.[]; .result == "success")' > /dev/null || {
+            echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+            exit 1
+          }
+          echo All integration suites passed!
+
+  Integration-Test-Suite:
+    name: "Integration tests (${{ matrix.suite }})"
     runs-on: ubuntu-22.04-4core-16gb
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [quality, api]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -96,25 +119,26 @@ jobs:
       - name: Bootstrap environment
         uses: $/.github/actions/bootstrap
 
-      - name: Run integration tests
-        run: make integration
+      - name: Run the ${{ matrix.suite }} suite
+        run: make "integration:$SUITE"
         env:
+          SUITE: ${{ matrix.suite }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Archive the gate state
-        if: ${{ failure() }}
+        if: ${{ failure() && matrix.suite == 'quality' }}
         # a run that fails before scanning leaves no .yardstick/runs; archive the gates anyway
         run: tar -czvf qg-capture-state.tar.gz --ignore-failed-read -C test/integration .yardstick.yaml gates .yardstick/runs
 
       - name: Upload the gate state archive
-        if: ${{ failure() }}
+        if: ${{ failure() && matrix.suite == 'quality' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: qg-capture-state
           path: qg-capture-state.tar.gz
 
       - name: Show instructions to debug
-        if: ${{ failure() }}
+        if: ${{ failure() && matrix.suite == 'quality' }}
         run: |
           ARCHIVE_BASENAME=qg-capture-state
           ARCHIVE_NAME=$ARCHIVE_BASENAME.zip
@@ -129,32 +153,15 @@ jobs:
           # copy the archive to the test/integration directory
           cd test/integration
           unzip $ARCHIVE_NAME && tar -xzf $ARCHIVE_BASENAME.tar.gz
-          make -C ../.. integration:score
+          make -C ../.. integration:quality:score
           \`\`\`
 
           Now you can label what changed in the UI (it needs yardstick from the installer, since a \`go install\` build has no UI):
           \`\`\`bash
           yardstick claims serve gates/pr.yaml --open
-          make -C ../.. integration:score
+          make -C ../.. integration:quality:score
           \`\`\`
           EOF
-
-  Integration-Test-SBOM-Formats:
-    # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
-    name: "Integration tests (SBOM formats)"
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Bootstrap environment
-        uses: $/.github/actions/bootstrap
-
-      - name: Run SBOM format tests
-        run: make integration:sbom-formats
 
   Smoke-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline

@@ -1,6 +1,6 @@
 # Integration tests
 
-The integration tests are a quality gate that checks a grype change does not make matching worse. It scans a fixed set of SBOMs with grype built from this checkout and with the latest grype release, both on the same pinned DB, and scores both scans against labels with [yardstick](https://github.com/anchore/yardstick).
+The integration tests are two suites, both on the DB pinned in `gates/pr.yaml`: the quality suite and the API suite (see below). The quality suite is a gate that checks a grype change does not make matching worse. It scans a fixed set of SBOMs with grype built from this checkout and with the latest grype release, both on the same pinned DB, and scores both scans against labels with [yardstick](https://github.com/anchore/yardstick).
 
 - `gates/*.yaml` are the gates: the images, the two grype setups and the checks. Each gate keeps vulnerabilities up to one year (`vulnerabilities.maxYear`).
 - Labels and SBOMs come from [anchore/claims](https://github.com/anchore/claims), plus the labels in vunnel's `tests/integration/additional-claims` and in `additional-claims/` here, all named in `.yardstick.yaml`.
@@ -13,14 +13,15 @@ The integration tests are a quality gate that checks a grype change does not mak
 From the repo root:
 
 ```
-make integration            # build grype, get SBOMs, scan with both setups and score; exits 1 when a gate fails
-make integration:score      # re-score the last scans against the current labels, without scanning
-make integration:sbom-formats   # check scanning an image and scanning its SBOM in each format match the same vulnerabilities
+make integration                  # run both suites
+make integration:quality          # build grype, get SBOMs, scan with both setups and score; exits 1 when a gate fails
+make integration:quality:score    # re-score the last scans against the current labels, without scanning
+make integration:api              # run the Go tests against grype's library
 ```
 
-## SBOM format test
+## API suite
 
-`sbom_formats_test.go` is separate from the gate: on grype from this checkout only, it scans a few of the gate's images, then scans an SBOM of each image in every format grype reads, and fails when the matches differ. It uses the DB pinned in `gates/pr.yaml`, imported into `.cache/` on first run. A format that cannot carry something the image scan used (file ownership, say) changes matches for a known reason; list those matches in the image's `knownFormatLoss` for that format. A failure logs how the packages behind the differing matches differ, which is usually that reason.
+The Go tests here run against grype's library from this checkout, separate from the gate. `sbom_formats_test.go` scans a few of the gate's images, then scans an SBOM of each image in every format grype reads, and fails when the matches differ. It uses the DB pinned in `gates/pr.yaml`, imported into `.cache/` on first run. A format that cannot carry something the image scan used (file ownership, say) changes matches for a known reason; list those matches in the image's `knownFormatLoss` for that format. A failure logs how the packages behind the differing matches differ, which is usually that reason.
 
 ## What is the quality gate criteria
 
@@ -53,20 +54,20 @@ Vulnerability matching has two inputs, the packages found in the scanned artifac
 
 ## Workflow
 
-When the gate fails, `make integration` prints what changed between the two setups, grouped by cause, with the labels each change hits and what labeling the unlabeled ones would do to the verdict. Some failures are real regressions, and some only need labels.
+When the gate fails, `make integration:quality` prints what changed between the two setups, grouped by cause, with the labels each change hits and what labeling the unlabeled ones would do to the verdict. Some failures are real regressions, and some only need labels.
 
-To label, use the yardstick label UI (`make integration` installs yardstick in `.tool/`):
+To label, use the yardstick label UI (`make integration:quality` installs yardstick in `.tool/`):
 
 ```
 ../../.tool/yardstick claims serve gates/pr.yaml --open
-make -C ../.. integration:score   # re-score with the new labels, no new scans
+make -C ../.. integration:quality:score   # re-score with the new labels, no new scans
 ```
 
 A failed CI run uploads a `qg-capture-state` artifact holding the gate files, their scans and `.yardstick.yaml`, and the job summary says how to use it. Extracted into `test/integration`, it re-scores and labels as above with no DB, no grype and no new scans:
 
 ```
 unzip qg-capture-state.zip && tar -xzf qg-capture-state.tar.gz
-make -C ../.. integration:score
+make -C ../.. integration:quality:score
 ```
 
 New labels are written to `additional-claims/`, which the gate reads after anchore/claims and vunnel's `tests/integration/additional-claims`. Commit them there, or move labels that are generally useful to [anchore/claims](https://github.com/anchore/claims) with a pull request; the gate reads its `main` branch.

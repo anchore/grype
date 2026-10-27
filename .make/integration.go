@@ -17,14 +17,20 @@ const integrationDir = "test/integration"
 // integrationDBRef matches the pinned DB in a gate file's setups: the archive URL and its checksum
 var integrationDBRef = regexp.MustCompile(`https://grype\.anchore\.io/databases/v6/[^"@]+@sha256:[0-9a-f]{64}`)
 
-// integrationTasks run the quality gate: grype built from this checkout against the latest grype release, both on
-// the DB pinned in test/integration/gates, scored against the labels in anchore/claims. yardstick is installed from
-// .binny.yaml on first use, and downloads and caches the DB itself.
+// integrationTasks run the two integration suites, both on the DB pinned in test/integration/gates:
+//   - quality: grype built from this checkout against the latest grype release, scored against the labels in
+//     anchore/claims. yardstick is installed from .binny.yaml on first use, and downloads and caches the DB itself.
+//   - api: the Go tests in test/integration, run against grype's library from this checkout.
 func integrationTasks() Task {
 	return Task{
 		Tasks: []Task{
 			{
-				Name:        "integration",
+				Name:         "integration",
+				Description:  "run every integration suite",
+				Dependencies: Deps("integration:quality", "integration:api"),
+			},
+			{
+				Name:        "integration:quality",
 				Description: "run the quality gate (build grype, scan with it and the latest release, score against labels)",
 				Run: func() {
 					// built like the release (see .goreleaser.yaml), so the candidate differs from the reference only in code
@@ -33,14 +39,14 @@ func integrationTasks() Task {
 				},
 			},
 			{
-				Name:        "integration:sbom-formats",
-				Description: "check that scanning an image and scanning SBOMs of it in each format match the same vulnerabilities",
+				Name:        "integration:api",
+				Description: "run the Go integration tests against grype's library",
 				Run: func() {
 					Run(`go test -v -tags=` + buildTags + ` ./` + integrationDir)
 				},
 			},
 			{
-				Name:        "integration:score",
+				Name:        "integration:quality:score",
 				Description: "re-score the last quality gate scans against the current labels, without scanning",
 				Run: func() {
 					runIntegrationGates("score")
@@ -48,7 +54,7 @@ func integrationTasks() Task {
 			},
 			{
 				Name:        "integration:update-db",
-				Description: "pin the quality gate to the latest published DB",
+				Description: "pin both integration suites to the latest published DB",
 				Run: func() {
 					var listing []struct {
 						Path     string `json:"path"`
@@ -63,7 +69,7 @@ func integrationTasks() Task {
 			},
 			{
 				Name:        "integration:clean",
-				Description: "remove the quality gate's grype build and scans, and the SBOM format test's DB",
+				Description: "remove the integration suites' grype build, scans and DB",
 				RunsOn:      lang.List("clean"),
 				Run: func() {
 					file.Delete(integrationDir + "/bin")
