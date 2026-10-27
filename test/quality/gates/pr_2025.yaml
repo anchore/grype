@@ -1,0 +1,16 @@
+# see pr.yaml for how the setups are chosen
+schema: v1
+description: same as pr, with vulnerabilities through 2025
+candidate: {grype: ../bin/grype, db: "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.9_2026-10-01T00:39:44Z_1790836428.tar.zst@sha256:c0d0263192d91df04b242e9a91e34cb289118fb08f1ed56eb0239eb57d7a517f", config: ../.grype.yaml}
+reference: {grype: grype@latest, db: "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.9_2026-10-01T00:39:44Z_1790836428.tar.zst@sha256:c0d0263192d91df04b242e9a91e34cb289118fb08f1ed56eb0239eb57d7a517f", config: ../.grype.yaml}
+undecided: pass
+vulnerabilities:
+  maxYear: 2025
+checks:
+  - name: f1NotWorse
+  - name: noNewFalseNegatives
+  - name: matchesAtLeast
+    params: {min: 0}
+subjects:
+  - oci:ghcr.io/chainguard-images/scanner-test:python-library-aiohttp-chainguard@sha256:046b2c1b2df1e496eb3abf9e21224ffd879d92abc2bd57401456764d9aa8ddf1
+  - oci:registry.replicated.com/library/grype-test:20250106@sha256:3339bcd874d21fa3ca5bd20636e793c0c33bd71ace3a18a9a3b3d147b91dd000

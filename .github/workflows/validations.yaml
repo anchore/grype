@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
 
       - name: Run static analysis
         run: make static-analysis
@@ -58,7 +58,7 @@ jobs:
           persist-credentials: false
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           cache-test-fixtures: true
 
@@ -91,25 +91,24 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: true
           persist-credentials: false
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           cache-test-fixtures: true
-          python-version: "3.11"
 
       - name: Run quality tests
         run: make quality
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Archive the provider state
+      - name: Archive the gate state
         if: ${{ failure() }}
-        run: tar -czvf qg-capture-state.tar.gz -C test/quality --exclude tools --exclude labels .yardstick.yaml .yardstick
+        # a run that fails before scanning leaves no .yardstick/runs; archive the gates anyway
+        run: tar -czvf qg-capture-state.tar.gz --ignore-failed-read -C test/quality .yardstick.yaml gates .yardstick/runs
 
-      - name: Upload the provider state archive
+      - name: Upload the gate state archive
         if: ${{ failure() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -127,18 +126,18 @@ jobs:
 
           Download the artifact from this workflow run: \`$ARCHIVE_NAME\`
 
-          Then run the following commands to debug:
+          It holds the gate files and their scans, which re-score without the DB or new scans:
           \`\`\`bash
-          # copy the archive to the tests/quality directory
+          # copy the archive to the test/quality directory
           cd test/quality
           unzip $ARCHIVE_NAME && tar -xzf $ARCHIVE_BASENAME.tar.gz
+          make -C ../.. quality:score
           \`\`\`
 
-          Now you can debug the with yardstick:
+          Now you can label what changed in the UI (it needs yardstick from the installer, since a \`go install\` build has no UI):
           \`\`\`bash
-          poetry shell
-          yardstick result list
-          yardstick label explore
+          yardstick claims serve gates/pr.yaml --open
+          make -C ../.. quality:score
           \`\`\`
           EOF
 
@@ -155,7 +154,7 @@ jobs:
           persist-credentials: false
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           cache-test-fixtures: true
 
@@ -179,7 +178,7 @@ jobs:
           persist-credentials: false
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           # why have another build cache key? We don't want unit/integration/etc test build caches to replace
           # the snapshot build cache, which includes builds for all OSs and architectures. As long as this key is
@@ -254,7 +253,7 @@ jobs:
 
       # only need go to drive the make-shim into go-make; skip tool install + apt
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           tools: "false"
           bootstrap-apt-packages: ""
@@ -303,7 +302,7 @@ jobs:
 
       # only need go to drive the make-shim into go-make; skip tool install + apt
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           tools: "false"
           bootstrap-apt-packages: ""
@@ -341,7 +340,7 @@ jobs:
           persist-credentials: false
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           cache-test-fixtures: true
 

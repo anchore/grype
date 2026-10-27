@@ -18,3 +18,11 @@ tools:
       env:
         - CGO_ENABLED=0
         - GO_DYN_FLAGS=""
+
+  # used in the quality gate to compare grype from this checkout with the latest release
+  - name: yardstick
+    version:
+      want: v0.17.0
+    method: github-release
+    with:
+      repo: anchore/yardstick
