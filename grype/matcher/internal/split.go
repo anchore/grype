@@ -2,9 +2,6 @@ package internal
 
 import (
 	"slices"
-	"strings"
-
-	"github.com/scylladb/go-set/strset"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal/result"
@@ -31,9 +28,6 @@ func SplitVulnerable(s result.Set, v *version.Version) (vulnerable, notVulnerabl
 
 	unaffected = filterByVersion(unaffected, v, matchesVersionConstraints)
 
-	// a fix exactly at the installed version proves the build carries that advisory's patch
-	exactlyFixed := keepByExactFixVersion(affected, v)
-
 	candidates := filterByVersion(affected, v, matchesVersionConstraints)
 
 	// matching one range of a vulnerability sets aside its other ranges in that namespace
@@ -50,72 +44,8 @@ func SplitVulnerable(s result.Set, v *version.Version) (vulnerable, notVulnerabl
 
 	vulnerable = candidates.Remove(unaffected)
 
-	vulnerable = removeExactlyFixed(vulnerable, exactlyFixed)
-
 	// an unaffected record whose ranges miss this version is in neither result
-	return vulnerable, removeByIDAndAlias(affected, vulnerable).Merge(unaffected).Merge(exactlyFixed)
-}
-
-func keepByExactFixVersion(affected result.Set, v *version.Version) result.Set {
-	if v == nil || v.Raw == "" {
-		return result.Set{}
-	}
-	return filterByVersion(affected, v, hasExactFixVersion)
-}
-
-// hasExactFixVersion tests that a record names a fix equal to v, compared with v's format and comparison
-// config (e.g. a missing epoch is handled the same as in constraint checks).
-func hasExactFixVersion(v *version.Version) vulnerability.Criteria {
-	return search.ByFunc(func(vuln vulnerability.Vulnerability) (bool, string, error) {
-		if v == nil || v.Raw == "" {
-			return false, "no version to compare", nil
-		}
-		for _, fix := range vuln.Fix.Versions {
-			if fix == "" {
-				continue
-			}
-			cmp, err := v.Compare(version.New(fix, v.Format))
-			if err == nil && cmp == 0 {
-				return true, "", nil
-			}
-		}
-		return false, "does not have exact fix version", nil
-	})
-}
-
-// removeExactlyFixed drops candidates whose CVEs are all patched by an advisory fixed exactly at the
-// installed version. A candidate with an additional CVE is kept (e.g. OL8 ELSA-2022-7647 shares
-// CVE-2022-31813 with the exactly-fixed ELSA-2022-9682 but covers more).
-func removeExactlyFixed(candidates, exactlyFixed result.Set) result.Set {
-	if len(exactlyFixed) == 0 {
-		return candidates
-	}
-	patchedCVEs := strset.New()
-	for id, results := range exactlyFixed {
-		patchedCVEs.Add(cveIDsOf(result.Identity(id, results)).List()...)
-	}
-	out := result.Set{}
-	for id, results := range candidates {
-		cves := cveIDsOf(result.Identity(id, results))
-		// strset's receiver is the superset
-		if cves.Size() > 0 && patchedCVEs.IsSubset(cves) {
-			continue
-		}
-		out[id] = results
-	}
-	return out
-}
-
-// cveIDsOf drops advisory IDs (ELSA-..., RHSA-...), which label CVEs rather than being patched.
-func cveIDsOf(s *strset.Set) *strset.Set {
-	out := strset.New()
-	s.Each(func(id string) bool {
-		if len(id) >= 4 && strings.EqualFold(id[:4], "cve-") {
-			out.Add(id)
-		}
-		return true
-	})
-	return out
+	return vulnerable, removeByIDAndAlias(affected, vulnerable).Merge(unaffected)
 }
 
 func removeExactVulnerabilitiesByNamespace(candidates result.Set) vulnerability.Criteria {

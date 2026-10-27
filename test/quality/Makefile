@@ -4,7 +4,7 @@ ACTIVATE_VENV = . venv/bin/activate &&
 YARDSTICK = $(ACTIVATE_VENV) yardstick -v
 YARDSTICK_RESULT_DIR = .yardstick/result
 YARDSTICK_LABELS_DIR = .yardstick/labels
-VULNERABILITY_LABELS = ./vulnerability-labels
+VULNERABILITY_LABELS = ./vulnerability-match-labels
 RESULT_SET = pr_vs_latest_via_sbom
 
 # update periodically with values from "grype db list"
