@@ -4,22 +4,7 @@ cooldown: 7d
 # need to specify tools here that are not already defined there (or that we want to override
 # with different versions).
 tools:
-  # used for integration tests
-  - name: skopeo
-    version:
-      want: v1.24.1
-    method: go-install
-    with:
-      module: github.com/containers/skopeo
-      entrypoint: cmd/skopeo
-      args:
-        - "-tags"
-        - containers_image_openpgp
-      env:
-        - CGO_ENABLED=0
-        - GO_DYN_FLAGS=""
-
-  # used in the quality gate to compare grype from this checkout with the latest release
+  # used in the integration tests (quality gate) to compare grype from this checkout with the latest release
   - name: yardstick
     version:
       want: v0.17.0

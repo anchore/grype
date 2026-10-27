@@ -1,10 +1,10 @@
-# Match quality testing
+# Integration tests
 
-The quality gate checks that a grype change does not make matching worse. It scans a fixed set of SBOMs with grype built from this checkout and with the latest grype release, both on the same pinned DB, and scores both scans against labels with [yardstick](https://github.com/anchore/yardstick).
+The integration tests are a quality gate that checks a grype change does not make matching worse. It scans a fixed set of SBOMs with grype built from this checkout and with the latest grype release, both on the same pinned DB, and scores both scans against labels with [yardstick](https://github.com/anchore/yardstick).
 
 - `gates/*.yaml` are the gates: the images, the two grype setups and the checks. Each gate keeps vulnerabilities up to one year (`vulnerabilities.maxYear`).
-- Labels and SBOMs come from [anchore/claims](https://github.com/anchore/claims), plus the labels in vunnel's `tests/quality/additional-claims` and in `additional-claims/` here, all named in `.yardstick.yaml`.
-- Each gate pins the DB both setups import, by URL and checksum; yardstick downloads and caches it. `make update-quality-gate-db` moves every gate to the latest published DB.
+- Labels and SBOMs come from [anchore/claims](https://github.com/anchore/claims), plus the labels in vunnel's `tests/integration/additional-claims` and in `additional-claims/` here, all named in `.yardstick.yaml`.
+- Each gate pins the DB both setups import, by URL and checksum; yardstick downloads and caches it. `make integration:update-db` moves every gate to the latest published DB.
 - `.grype.yaml` is the grype config both setups run with (CPE matching on for every ecosystem, `by-cve`).
 - yardstick is pinned in the repo's `.binny.yaml` and installed into `.tool/` the first time a task runs it.
 
@@ -13,8 +13,8 @@ The quality gate checks that a grype change does not make matching worse. It sca
 From the repo root:
 
 ```
-make quality          # build grype, get SBOMs, scan with both setups and score; exits 1 when a gate fails
-make quality:score    # re-score the last scans against the current labels, without scanning
+make integration            # build grype, get SBOMs, scan with both setups and score; exits 1 when a gate fails
+make integration:score      # re-score the last scans against the current labels, without scanning
 ```
 
 ## What is the quality gate criteria
@@ -48,20 +48,20 @@ Vulnerability matching has two inputs, the packages found in the scanned artifac
 
 ## Workflow
 
-When the gate fails, `make quality` prints what changed between the two setups, grouped by cause, with the labels each change hits and what labeling the unlabeled ones would do to the verdict. Some failures are real regressions, and some only need labels.
+When the gate fails, `make integration` prints what changed between the two setups, grouped by cause, with the labels each change hits and what labeling the unlabeled ones would do to the verdict. Some failures are real regressions, and some only need labels.
 
-To label, use the yardstick label UI (`make quality` installs yardstick in `.tool/`):
+To label, use the yardstick label UI (`make integration` installs yardstick in `.tool/`):
 
 ```
 ../../.tool/yardstick claims serve gates/pr.yaml --open
-make -C ../.. quality:score   # re-score with the new labels, no new scans
+make -C ../.. integration:score   # re-score with the new labels, no new scans
 ```
 
-A failed CI run uploads a `qg-capture-state` artifact holding the gate files, their scans and `.yardstick.yaml`, and the job summary says how to use it. Extracted into `test/quality`, it re-scores and labels as above with no DB, no grype and no new scans:
+A failed CI run uploads a `qg-capture-state` artifact holding the gate files, their scans and `.yardstick.yaml`, and the job summary says how to use it. Extracted into `test/integration`, it re-scores and labels as above with no DB, no grype and no new scans:
 
 ```
 unzip qg-capture-state.zip && tar -xzf qg-capture-state.tar.gz
-make -C ../.. quality:score
+make -C ../.. integration:score
 ```
 
-New labels are written to `additional-claims/`, which the gate reads after anchore/claims and vunnel's `tests/quality/additional-claims`. Commit them there, or move labels that are generally useful to [anchore/claims](https://github.com/anchore/claims) with a pull request; the gate reads its `main` branch.
+New labels are written to `additional-claims/`, which the gate reads after anchore/claims and vunnel's `tests/integration/additional-claims`. Commit them there, or move labels that are generally useful to [anchore/claims](https://github.com/anchore/claims) with a pull request; the gate reads its `main` branch.

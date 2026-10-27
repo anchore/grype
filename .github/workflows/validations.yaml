@@ -82,9 +82,9 @@ jobs:
       - name: Run unit tests
         run: make unit
 
-  Quality-Test:
+  Integration-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
-    name: "Quality tests"
+    name: "Integration tests"
     runs-on: ubuntu-22.04-4core-16gb
     permissions:
       contents: read
@@ -95,18 +95,16 @@ jobs:
 
       - name: Bootstrap environment
         uses: $/.github/actions/bootstrap
-        with:
-          cache-test-fixtures: true
 
-      - name: Run quality tests
-        run: make quality
+      - name: Run integration tests
+        run: make integration
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Archive the gate state
         if: ${{ failure() }}
         # a run that fails before scanning leaves no .yardstick/runs; archive the gates anyway
-        run: tar -czvf qg-capture-state.tar.gz --ignore-failed-read -C test/quality .yardstick.yaml gates .yardstick/runs
+        run: tar -czvf qg-capture-state.tar.gz --ignore-failed-read -C test/integration .yardstick.yaml gates .yardstick/runs
 
       - name: Upload the gate state archive
         if: ${{ failure() }}
@@ -128,23 +126,22 @@ jobs:
 
           It holds the gate files and their scans, which re-score without the DB or new scans:
           \`\`\`bash
-          # copy the archive to the test/quality directory
-          cd test/quality
+          # copy the archive to the test/integration directory
+          cd test/integration
           unzip $ARCHIVE_NAME && tar -xzf $ARCHIVE_BASENAME.tar.gz
-          make -C ../.. quality:score
+          make -C ../.. integration:score
           \`\`\`
 
           Now you can label what changed in the UI (it needs yardstick from the installer, since a \`go install\` build has no UI):
           \`\`\`bash
           yardstick claims serve gates/pr.yaml --open
-          make -C ../.. quality:score
+          make -C ../.. integration:score
           \`\`\`
           EOF
 
-
-  Integration-Test:
+  Smoke-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
-    name: "Integration tests"
+    name: "Smoke tests"
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -155,17 +152,9 @@ jobs:
 
       - name: Bootstrap environment
         uses: $/.github/actions/bootstrap
-        with:
-          cache-test-fixtures: true
 
-      - name: Restore integration test cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
-        with:
-          path: ${{ github.workspace }}/test/integration/testdata/cache
-          key: ${{ runner.os }}-integration-test-cache-${{ hashFiles('test/integration/testdata/cache.fingerprint') }}
-
-      - name: Run integration tests
-        run: make integration
+      - name: Run smoke tests
+        run: make smoke-test
 
   Build-Snapshot-Artifacts:
     name: "Build snapshot artifacts"

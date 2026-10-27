@@ -1,5 +1,5 @@
-# the candidate is grype built from this checkout (make quality builds it), the reference is the latest release.
-# both import the same pinned DB (make update-quality-gate-db moves it), so grype's matching code is the only thing that differs.
+# the candidate is grype built from this checkout (make integration builds it), the reference is the latest release.
+# both import the same pinned DB (make integration:update-db moves it), so grype's matching code is the only thing that differs.
 schema: v1
 description: grype from this checkout vs the latest grype release, on the pinned DB
 candidate: {grype: ../bin/grype, db: "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.9_2026-10-01T00:39:44Z_1790836428.tar.zst@sha256:c0d0263192d91df04b242e9a91e34cb289118fb08f1ed56eb0239eb57d7a517f", config: ../.grype.yaml}
