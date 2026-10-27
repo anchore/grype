@@ -50,10 +50,10 @@ Vulnerability matching has two inputs, the packages found in the scanned artifac
 
 When the gate fails, `make quality` prints what changed between the two setups, grouped by cause, with the labels each change hits and what labeling the unlabeled ones would do to the verdict. Some failures are real regressions, and some only need labels.
 
-To label, use the yardstick label UI (it needs yardstick from the [installer](https://github.com/anchore/yardstick#installation), since a `go install` build has no UI):
+To label, use the yardstick label UI (`make quality` installs yardstick in `.tool/`):
 
 ```
-yardstick claims serve gates/pr.yaml --open
+../../.tool/yardstick claims serve gates/pr.yaml --open
 make -C ../.. quality:score   # re-score with the new labels, no new scans
 ```
 

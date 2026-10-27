@@ -22,14 +22,7 @@ tools:
   # used in the quality gate to compare grype from this checkout with the latest release
   - name: yardstick
     version:
-      # a main commit until the Go yardstick is released
-      want: b17b35f534ccb72c1fa89fd5579d022a4d140bae
-    method: go-install
+      want: v0.17.0
+    method: github-release
     with:
-      module: github.com/anchore/yardstick
-      entrypoint: cmd/yardstick
-      env:
-        # the python-era tags (latest v0.16.2) cannot be zipped by the go proxy, so the sumdb has no
-        # entry for them and go install fails its deprecation lookup. GOPRIVATE skips the sumdb and
-        # fetches straight from github at the pinned SHA instead. Drop this once v0.17.0 is tagged.
-        - GOPRIVATE=github.com/anchore/yardstick
+      repo: anchore/yardstick
