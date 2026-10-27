@@ -15,7 +15,12 @@ From the repo root:
 ```
 make integration            # build grype, get SBOMs, scan with both setups and score; exits 1 when a gate fails
 make integration:score      # re-score the last scans against the current labels, without scanning
+make integration:sbom-formats   # check scanning an image and scanning its SBOM in each format match the same vulnerabilities
 ```
+
+## SBOM format test
+
+`sbom_formats_test.go` is separate from the gate: on grype from this checkout only, it scans a few of the gate's images, then scans an SBOM of each image in every format grype reads, and fails when the matches differ. It uses the DB pinned in `gates/pr.yaml`, imported into `.cache/` on first run. A format that cannot carry something the image scan used (file ownership, say) changes matches for a known reason; list those matches in the image's `knownFormatLoss` for that format. A failure logs how the packages behind the differing matches differ, which is usually that reason.
 
 ## What is the quality gate criteria
 

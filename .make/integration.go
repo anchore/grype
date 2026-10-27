@@ -33,6 +33,13 @@ func integrationTasks() Task {
 				},
 			},
 			{
+				Name:        "integration:sbom-formats",
+				Description: "check that scanning an image and scanning SBOMs of it in each format match the same vulnerabilities",
+				Run: func() {
+					Run(`go test -v -tags=` + buildTags + ` ./` + integrationDir)
+				},
+			},
+			{
 				Name:        "integration:score",
 				Description: "re-score the last quality gate scans against the current labels, without scanning",
 				Run: func() {
@@ -56,11 +63,12 @@ func integrationTasks() Task {
 			},
 			{
 				Name:        "integration:clean",
-				Description: "remove the quality gate's grype build and scans",
+				Description: "remove the quality gate's grype build and scans, and the SBOM format test's DB",
 				RunsOn:      lang.List("clean"),
 				Run: func() {
 					file.Delete(integrationDir + "/bin")
 					file.Delete(integrationDir + "/.yardstick")
+					file.Delete(integrationDir + "/.cache")
 				},
 			},
 		},
