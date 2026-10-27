@@ -41,10 +41,10 @@ func main() {
 		goreleaser.Tasks(),
 
 		buildTask(),
-		integrationTask(),
+		smokeTestTask(),
 		cliTask(),
 		containersStorageTestTask(),
-		qualityTasks(),
+		integrationTasks(),
 
 		generateTask(),
 		updateOSVModelTask(),
@@ -87,19 +87,14 @@ func buildTask() Task {
 	}
 }
 
-// integrationTask runs the integration test suite plus a quick race-detector
-// smoke test of the CLI against alpine:latest.
-func integrationTask() Task {
+// smokeTestTask scans alpine:latest with the data race detector on, exercising most of the CLI end to end.
+func smokeTestTask() Task {
 	return Task{
-		Name:        "integration",
-		Description: "run integration tests",
-		RunsOn:      lang.List("test"),
+		Name:        "smoke-test",
+		Description: "scan an image with the race detector enabled",
 		Run: func() {
-			Run(`go test -v -tags=` + buildTags + ` ./test/integration`)
-			// update database outside race detector, since doing so with
-			// race detector on is very slow
+			// update the DB outside the race detector, which makes it very slow
 			Run(fmt.Sprintf(`go run ./cmd/%s db update`, project))
-			// exercise most of the CLI with the data race detector enabled
 			Run(fmt.Sprintf(`go run -race -tags=%s ./cmd/%s alpine:latest`, buildTags, project))
 		},
 	}
@@ -336,7 +331,7 @@ func installTestTasks() Task {
 	}
 }
 
-// fingerprintsTask regenerates cache.fingerprint files for the three test
+// fingerprintsTask regenerates cache.fingerprint files for the test
 // suites that participate in CI caching. Not auto-discovered by
 // gotest.FixtureTasks because test/install/Makefile lives outside the
 // testdata/test-fixtures convention.
@@ -346,7 +341,6 @@ func fingerprintsTask() Task {
 		Description: "generate test fixture cache fingerprints",
 		Run: func() {
 			for _, dir := range []string{
-				"test/integration/testdata",
 				"test/install",
 				"test/cli/testdata",
 			} {
