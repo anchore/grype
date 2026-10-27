@@ -185,8 +185,9 @@ func TestZarfProvider_GranularAllEntriesInvalidReturnsError(t *testing.T) {
 	}
 
 	targetPath := createTestGranularZarfArchive(t, sbomFiles)
-	_, _, _, err := zarfProvider("zarf:"+targetPath, ProviderConfig{}, getDistroChannelApplier(nil))
+	packages, _, _, err := zarfProvider("zarf:"+targetPath, ProviderConfig{}, getDistroChannelApplier(nil))
 	require.Error(t, err)
+	assert.Nil(t, packages)
 	assert.Contains(t, err.Error(), "no SBOMs could be parsed from Zarf package")
 }
 
