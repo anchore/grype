@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	. "github.com/anchore/go-make"
+	"github.com/anchore/go-make/config"
 	"github.com/anchore/go-make/file"
 	"github.com/anchore/go-make/lang"
 	"github.com/anchore/go-make/run"
@@ -85,6 +86,10 @@ func integrationTasks() Task {
 // yardstick runs there: Run installs it with binny first, which must run from the repo root to find .binny.yaml.
 // The verdict is on stdout, which Run would otherwise only capture.
 func runIntegrationGates(args ...string) {
+	// yardstick shows progress only on a terminal, so without logs a CI run is silent until the verdict
+	if config.CI {
+		args = append(args, "-v")
+	}
 	for _, gate := range file.FindAll(integrationDir + "/gates/*.yaml") {
 		args = append(args, strings.TrimPrefix(gate, integrationDir+"/"))
 	}
