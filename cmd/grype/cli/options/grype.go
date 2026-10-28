@@ -2,6 +2,8 @@ package options
 
 import (
 	"fmt"
+	"math"
+	"strconv"
 	"strings"
 
 	"github.com/anchore/clio"
@@ -117,7 +119,7 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 
 	flags.StringVarP(&o.FailOn,
 		"fail-on", "f",
-		fmt.Sprintf("set the return code to 2 if a vulnerability is found with a severity >= the given severity, options=%v", vulnerability.AllSeverities()),
+		fmt.Sprintf("set the return code to 2 if a vulnerability is found with a severity >= the given severity (options=%v) or with a risk score >= the given value (e.g. risk=8)", vulnerability.AllSeverities()),
 	)
 
 	flags.BoolVarP(&o.OnlyFixed,
@@ -170,9 +172,12 @@ func (o *Grype) PostLoad() error {
 	o.From = flatten(o.From)
 
 	if o.FailOn != "" {
-		failOnSeverity := *o.FailOnSeverity()
-		if failOnSeverity == vulnerability.UnknownSeverity {
-			return fmt.Errorf("bad --fail-on severity value '%s'", o.FailOn)
+		_, isRisk, err := parseFailOnRisk(o.FailOn)
+		if err != nil {
+			return err
+		}
+		if !isRisk && *o.FailOnSeverity() == vulnerability.UnknownSeverity {
+			return fmt.Errorf("bad --fail-on value '%s': expected a severity (%v) or risk=<score>", o.FailOn, vulnerability.AllSeverities())
 		}
 	}
 	return nil
@@ -197,7 +202,8 @@ write output report to a file (default is to write to stdout)`)
 when using template as the output type, you must also provide a value for 'output-template-file'`)
 	descriptions.Add(&o.Pretty, `pretty-print output`)
 	descriptions.Add(&o.FailOn, `upon scanning, if a severity is found at or above the given severity then the return code will be 1
-default is unset which will skip this validation (options: negligible, low, medium, high, critical)`)
+default is unset which will skip this validation (options: negligible, low, medium, high, critical)
+a risk score threshold can be given instead of a severity, e.g. risk=8 fails on any match with a risk score at or above 8`)
 	descriptions.Add(&o.Ignore, `a list of vulnerability ignore rules; a match must meet ALL criteria specified in a rule to be ignored.
 This is the full set of supported rule fields:
   - vulnerability: CVE-2008-4318        # match by vulnerability ID (required if no other criteria are given)
@@ -226,6 +232,39 @@ VEX fields apply when Grype reads VEX data:
 func (o Grype) FailOnSeverity() *vulnerability.Severity {
 	severity := vulnerability.ParseSeverity(o.FailOn)
 	return &severity
+}
+
+// FailOnRisk returns the risk score threshold given to --fail-on (e.g. "risk=8"), or nil when --fail-on is unset or
+// names a severity.
+func (o Grype) FailOnRisk() *float64 {
+	risk, isRisk, err := parseFailOnRisk(o.FailOn)
+	if err != nil || !isRisk {
+		return nil
+	}
+	return &risk
+}
+
+// failOnRiskPrefix introduces a risk score threshold in --fail-on, e.g. "risk=8" or "risk-8"
+const failOnRiskPrefix = "risk"
+
+// parseFailOnRisk reads a --fail-on value of the form "risk=N" or "risk-N", where N is a non-negative number
+// (decimals allowed) meaning "fail on a risk score >= N". isRisk is false when the value does not start with "risk",
+// in which case the value is expected to be a severity.
+func parseFailOnRisk(value string) (risk float64, isRisk bool, err error) {
+	v := strings.ToLower(strings.TrimSpace(value))
+	if !strings.HasPrefix(v, failOnRiskPrefix) {
+		return 0, false, nil
+	}
+	badValue := fmt.Errorf("bad --fail-on risk value '%s': expected risk=<score>, e.g. risk=8", value)
+	threshold := strings.TrimPrefix(v, failOnRiskPrefix)
+	if len(threshold) < 2 || (threshold[0] != '=' && threshold[0] != '-') {
+		return 0, true, badValue
+	}
+	risk, err = strconv.ParseFloat(threshold[1:], 64)
+	if err != nil || math.IsNaN(risk) || math.IsInf(risk, 0) || risk < 0 {
+		return 0, true, badValue
+	}
+	return risk, true, nil
 }
 
 // flatten takes a list of comma-separated entries and returns a flattened list of trimmed values (preserving order)
