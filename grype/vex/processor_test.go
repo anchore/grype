@@ -359,3 +359,92 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 		})
 	}
 }
+
+func TestProcessor_MatchesWithoutStatement(t *testing.T) {
+	pkgContext := &pkg.Context{
+		Source: &source.Description{
+			Name:    "alpine",
+			Version: "3.17",
+			Metadata: source.ImageMetadata{
+				RepoDigests: []string{
+					"alpine@sha256:124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
+				},
+			},
+		},
+	}
+
+	libCryptoPackage := pkg.Package{
+		ID:      "cc8f90662d91481d",
+		Name:    "libcrypto3",
+		Version: "3.0.8-r3",
+		Type:    "apk",
+		PURL:    "pkg:apk/alpine/libcrypto3@3.0.8-r3?arch=x86_64&upstream=openssl&distro=alpine-3.17.3",
+	}
+
+	libCryptoMatch := func(id string) match.Match {
+		return match.Match{
+			Vulnerability: vulnerability.Vulnerability{
+				Reference: vulnerability.Reference{
+					ID:        id,
+					Namespace: "alpine:distro:alpine:3.17",
+				},
+			},
+			Package: libCryptoPackage,
+		}
+	}
+
+	// CVE-2023-3817 and CVE-2023-2975 are only covered by openvex-demo2, CVE-2023-1255 by every document,
+	// and CVE-2023-9999 by none
+	subject := match.NewMatches(
+		libCryptoMatch("CVE-2023-3817"),
+		libCryptoMatch("CVE-2023-1255"),
+		libCryptoMatch("CVE-2023-2975"),
+		libCryptoMatch("CVE-2023-9999"),
+	)
+
+	vulnIDs := func(matches []match.Match) []string {
+		var ids []string
+		for _, m := range matches {
+			ids = append(ids, m.Vulnerability.ID)
+		}
+		return ids
+	}
+
+	tests := []struct {
+		name      string
+		documents []string
+		want      []string
+	}{
+		{
+			name:      "no documents means every match lacks a statement",
+			documents: nil,
+			want:      []string{"CVE-2023-1255", "CVE-2023-2975", "CVE-2023-3817", "CVE-2023-9999"},
+		},
+		{
+			name:      "openvex-demo1 states one vulnerability",
+			documents: []string{"testdata/vex-docs/openvex-demo1.json"},
+			want:      []string{"CVE-2023-2975", "CVE-2023-3817", "CVE-2023-9999"},
+		},
+		{
+			name:      "openvex-demo2 states fixed and not_affected vulnerabilities alike",
+			documents: []string{"testdata/vex-docs/openvex-demo2.json"},
+			want:      []string{"CVE-2023-9999"},
+		},
+		{
+			name:      "csaf-demo1 states one vulnerability",
+			documents: []string{"testdata/vex-docs/csaf-demo1.json"},
+			want:      []string{"CVE-2023-2975", "CVE-2023-3817", "CVE-2023-9999"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p, err := NewProcessor(ProcessorOptions{Documents: tt.documents})
+			require.NoError(t, err)
+
+			got, err := p.MatchesWithoutStatement(pkgContext, &subject)
+			require.NoError(t, err)
+			assert.ElementsMatch(t, tt.want, vulnIDs(got))
+		})
+	}
+}
