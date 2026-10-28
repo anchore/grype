@@ -1,0 +1,90 @@
+{
+  "identifier": "cpansa-libwww-perl-2010-01",
+  "item": {
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "CPAN",
+          "name": "libwww-perl"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2010-07-06",
+                    "kind": "advisory",
+                    "version": "5.835"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "5.835"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "package": {
+          "ecosystem": "CPAN",
+          "name": "LWP"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2010-07-06",
+                    "kind": "advisory",
+                    "version": "5.835"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "5.835"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      }
+    ],
+    "aliases": [
+      "CVE-2010-2253"
+    ],
+    "database_specific": {
+      "cpansa_commit": "2089ff7201b44e5e462742a5baaa080ba003d257",
+      "cpansa_generated": "Sun Jul 26 06:23:50 2026"
+    },
+    "details": "lwp-download in libwww-perl before 5.835 does not reject downloads to filenames that begin with a . (dot) character, which allows remote servers to create or overwrite files via (1) a 3xx redirect to a URL with a crafted filename or (2) a Content-Disposition header that suggests a crafted filename, and possibly execute arbitrary code as a consequence of writing to a dotfile in a home directory.",
+    "id": "CPANSA-libwww-perl-2010-01",
+    "modified": "2026-07-26T06:23:50Z",
+    "published": "2010-07-06T00:00:00Z",
+    "references": [
+      {
+        "type": "WEB",
+        "url": "http://vttynotes.blogspot.com/2010/12/man-in-middle-fun-with-perl-lwp.html"
+      },
+      {
+        "type": "WEB",
+        "url": "http://vttynotes.blogspot.com/2011/03/quick-note-on-lwp-and-perl-security-cve.html"
+      }
+    ],
+    "schema_version": "1.6.1"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.1.json"
+}

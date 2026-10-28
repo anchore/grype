@@ -1,0 +1,127 @@
+{
+  "identifier": "cpansa-dbd-sqlite-2018-8740-sqlite",
+  "item": {
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "CPAN",
+          "name": "DBD-SQLite"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2018-03-17",
+                    "kind": "advisory",
+                    "version": "1.35"
+                  },
+                  {
+                    "date": "2018-03-17",
+                    "kind": "advisory",
+                    "version": "1.47_04"
+                  },
+                  {
+                    "date": "2018-03-17",
+                    "kind": "advisory",
+                    "version": "1.59_01"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "1.00"
+              },
+              {
+                "fixed": "1.35"
+              },
+              {
+                "introduced": "1.36_01"
+              },
+              {
+                "fixed": "1.47_04"
+              },
+              {
+                "introduced": "1.47_05"
+              },
+              {
+                "fixed": "1.59_01"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      }
+    ],
+    "aliases": [
+      "CVE-2018-8740"
+    ],
+    "database_specific": {
+      "cpansa_commit": "2089ff7201b44e5e462742a5baaa080ba003d257",
+      "cpansa_generated": "Sun Jul 26 06:23:50 2026",
+      "severity": "high"
+    },
+    "details": "In SQLite through 3.22.0, databases whose schema is corrupted using a CREATE TABLE AS statement could cause a NULL pointer dereference, related to build.c and prepare.c.",
+    "id": "CPANSA-DBD-SQLite-2018-8740-sqlite",
+    "modified": "2026-07-26T06:23:50Z",
+    "published": "2018-03-17T00:00:00Z",
+    "references": [
+      {
+        "type": "WEB",
+        "url": "https://www.sqlite.org/cgi/src/timeline?r=corrupt-schema"
+      },
+      {
+        "type": "WEB",
+        "url": "https://bugs.launchpad.net/ubuntu/+source/sqlite3/+bug/1756349"
+      },
+      {
+        "type": "WEB",
+        "url": "https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=6964"
+      },
+      {
+        "type": "WEB",
+        "url": "https://www.sqlite.org/cgi/src/vdiff?from=1774f1c3baf0bc3d&to=d75e67654aa9620b"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.securityfocus.com/bid/103466"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.debian.org/debian-lts-announce/2019/01/msg00009.html"
+      },
+      {
+        "type": "WEB",
+        "url": "http://lists.opensuse.org/opensuse-security-announce/2019-05/msg00050.html"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/PU4NZ6DDU4BEM3ACM3FM6GLEPX56ZQXK/"
+      },
+      {
+        "type": "WEB",
+        "url": "https://usn.ubuntu.com/4205-1/"
+      },
+      {
+        "type": "WEB",
+        "url": "https://usn.ubuntu.com/4394-1/"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.debian.org/debian-lts-announce/2020/08/msg00037.html"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/rf4c02775860db415b4955778a131c2795223f61cb8c6a450893651e4@%3Cissues.bookkeeper.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/r58af02e294bd07f487e2c64ffc0a29b837db5600e33b6e698b9d696b@%3Cissues.bookkeeper.apache.org%3E"
+      }
+    ],
+    "schema_version": "1.6.1"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.1.json"
+}
