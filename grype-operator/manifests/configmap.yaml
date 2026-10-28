@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grype-operator-config
+  namespace: grype-operator-system
+data:
+  # Operator behavior
+  scan-on-create: "true"
+  scan-on-update: "true"
+  
+  # Scanner configuration
+  scanner-image: "anchore/grype:latest"
+  scanner-cpu-request: "100m"
+  scanner-memory-request: "256Mi"
+  scanner-cpu-limit: "500m"
+  scanner-memory-limit: "512Mi"
+  
+  # Job settings
+  job-ttl-seconds: "3600"
+  job-backoff-limit: "2"
+  
+  # Excluded namespaces (comma-separated)
+  excluded-namespaces: "kube-system,kube-public,kube-node-lease,grype-operator-system"
