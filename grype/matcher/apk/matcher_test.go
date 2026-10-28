@@ -136,6 +136,47 @@ func TestMatcherApk_FixedVersionProducesIgnore_Wolfi(t *testing.T) {
 		})
 }
 
+// TestMatcherApk_MissingRelease verifies the missing-release strategy: an SBOM
+// that records the first fixed build "3.2.1-r0" as a bare "3.2.1" is
+// vulnerable under apk-tools ordering, and fixed when the matcher fills in
+// "-r0".
+func TestMatcherApk_MissingRelease(t *testing.T) {
+	dbtest.DBs(t, "wolfi-rolling").
+		SelectOnly("wolfi:rolling/CVE-2024-0727").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			// wolfi fix: openssl 3.2.1-r0
+			pkgID := pkg.ID("openssl-wolfi-bare")
+			p := dbtest.NewPackage("openssl", "3.2.1", syftPkg.ApkPkg).
+				WithID(pkgID).
+				WithDistro(dbtest.WolfiRolling).
+				Build()
+
+			t.Run("strict matches", func(t *testing.T) {
+				matcher := NewApkMatcher(MatcherConfig{MissingReleaseStrategy: version.MissingApkReleaseStrategyStrict})
+				db.Match(t, matcher, p).
+					SelectMatch("CVE-2024-0727").
+					SelectDetailByType(match.ExactDirectMatch).
+					AsDistroSearch()
+			})
+
+			t.Run("unset matches", func(t *testing.T) {
+				matcher := Matcher{}
+				db.Match(t, &matcher, p).
+					SelectMatch("CVE-2024-0727").
+					SelectDetailByType(match.ExactDirectMatch).
+					AsDistroSearch()
+			})
+
+			t.Run("zero is fixed", func(t *testing.T) {
+				matcher := NewApkMatcher(MatcherConfig{MissingReleaseStrategy: version.MissingApkReleaseStrategyZero})
+				db.Match(t, matcher, p).Ignores().
+					SelectRelatedPackageIgnore(ignorereasons.DistroFixed, "CVE-2024-0727").
+					ForPackage(pkgID).
+					WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
+			})
+		})
+}
+
 // TestMatcherApk_FixedVersionInUpstreamProducesIgnore verifies that when a
 // binary apk package's upstream is at or past the secdb fix, the
 // distro-fixed ignore is emitted against the binary package's ID
