@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "anchore.io/schema/grype/db-diff/json/0.5.1/results",
+  "$id": "anchore.io/schema/grype/db-diff/json/0.6.0/results",
   "$ref": "#/$defs/Result",
   "$defs": {
     "DatabaseDiff": {
