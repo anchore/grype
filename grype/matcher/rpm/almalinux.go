@@ -255,6 +255,10 @@ func replaceWithAlmaLinuxFixInfo(existing *result.Result, fixVersion string, alm
 		advisories = constructAdvisory(almaVuln, existing.Package)
 	}
 
+	// copy before writing so the caller's backing arrays are left untouched
+	existing.Vulnerabilities = slices.Clone(existing.Vulnerabilities)
+	existing.Details = slices.Clone(existing.Details)
+
 	for i := range existing.Vulnerabilities {
 		existing.Vulnerabilities[i].Constraint = newConstraint
 		existing.Vulnerabilities[i].Fix = vulnerability.Fix{
