@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
 
       - name: Run static analysis
         run: make static-analysis
@@ -58,7 +58,7 @@ jobs:
           persist-credentials: false
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           cache-test-fixtures: true
 
@@ -77,47 +77,68 @@ jobs:
 
       # go-make's setup only (not ./.github/actions/bootstrap): no apt, binny tools, or fixture cache are needed
       - name: Setup go + go-make tooling
-        uses: anchore/go-make/.github/actions/setup@abf41688f36f2cbec13105747abbe8e60f5c56ca # v0.9.3
+        uses: anchore/go-make/.github/actions/setup@cf465259f4c9f0b0b0bcb35164ede11f7dc6d9f6 # v0.9.6
 
       - name: Run unit tests
         run: make unit
 
-  Quality-Test:
+  Integration-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
-    name: "Quality tests"
+    name: "Integration tests"
+    runs-on: ubuntu-latest
+    needs: [Integration-Test-Suite]
+    # a skipped job satisfies a required check, so this job must always run and fail explicitly
+    # unless every dependency succeeded (otherwise a failing PR can still be auto-merged)
+    if: ${{ always() }}
+    permissions: {}
+    steps:
+      - name: Require every integration suite to succeed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -e 'length > 0 and all(.[]; .result == "success")' > /dev/null || {
+            echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+            exit 1
+          }
+          echo All integration suites passed!
+
+  Integration-Test-Suite:
+    name: "Integration tests (${{ matrix.suite }})"
     runs-on: ubuntu-22.04-4core-16gb
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [quality, api]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          submodules: true
           persist-credentials: false
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
-        with:
-          cache-test-fixtures: true
-          python-version: "3.11"
+        uses: $/.github/actions/bootstrap
 
-      - name: Run quality tests
-        run: make quality
+      - name: Run the ${{ matrix.suite }} suite
+        run: make "integration:$SUITE"
         env:
+          SUITE: ${{ matrix.suite }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Archive the provider state
-        if: ${{ failure() }}
-        run: tar -czvf qg-capture-state.tar.gz -C test/quality --exclude tools --exclude labels .yardstick.yaml .yardstick
+      - name: Archive the gate state
+        if: ${{ failure() && matrix.suite == 'quality' }}
+        # a run that fails before scanning leaves no .yardstick/runs; archive the gates anyway
+        run: tar -czvf qg-capture-state.tar.gz --ignore-failed-read -C test/integration .yardstick.yaml gates .yardstick/runs
 
-      - name: Upload the provider state archive
-        if: ${{ failure() }}
+      - name: Upload the gate state archive
+        if: ${{ failure() && matrix.suite == 'quality' }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: qg-capture-state
           path: qg-capture-state.tar.gz
 
       - name: Show instructions to debug
-        if: ${{ failure() }}
+        if: ${{ failure() && matrix.suite == 'quality' }}
         run: |
           ARCHIVE_BASENAME=qg-capture-state
           ARCHIVE_NAME=$ARCHIVE_BASENAME.zip
@@ -127,25 +148,24 @@ jobs:
 
           Download the artifact from this workflow run: \`$ARCHIVE_NAME\`
 
-          Then run the following commands to debug:
+          It holds the gate files and their scans, which re-score without the DB or new scans:
           \`\`\`bash
-          # copy the archive to the tests/quality directory
-          cd test/quality
+          # copy the archive to the test/integration directory
+          cd test/integration
           unzip $ARCHIVE_NAME && tar -xzf $ARCHIVE_BASENAME.tar.gz
+          make -C ../.. integration:quality:score
           \`\`\`
 
-          Now you can debug the with yardstick:
+          Now you can label what changed in the UI (it needs yardstick from the installer, since a \`go install\` build has no UI):
           \`\`\`bash
-          poetry shell
-          yardstick result list
-          yardstick label explore
+          yardstick claims serve gates/pr.yaml --open
+          make -C ../.. integration:quality:score
           \`\`\`
           EOF
 
-
-  Integration-Test:
+  Smoke-Test:
     # Note: changing this job name requires making the same update in the .github/workflows/release.yaml pipeline
-    name: "Integration tests"
+    name: "Smoke tests"
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -155,18 +175,10 @@ jobs:
           persist-credentials: false
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
-        with:
-          cache-test-fixtures: true
+        uses: $/.github/actions/bootstrap
 
-      - name: Restore integration test cache
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 #v6.1.0
-        with:
-          path: ${{ github.workspace }}/test/integration/testdata/cache
-          key: ${{ runner.os }}-integration-test-cache-${{ hashFiles('test/integration/testdata/cache.fingerprint') }}
-
-      - name: Run integration tests
-        run: make integration
+      - name: Run smoke tests
+        run: make smoke-test
 
   Build-Snapshot-Artifacts:
     name: "Build snapshot artifacts"
@@ -179,7 +191,7 @@ jobs:
           persist-credentials: false
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           # why have another build cache key? We don't want unit/integration/etc test build caches to replace
           # the snapshot build cache, which includes builds for all OSs and architectures. As long as this key is
@@ -226,7 +238,7 @@ jobs:
 
       # go-make's setup only (not ./.github/actions/bootstrap): the test only needs make + the snapshot binary
       - name: Setup go + go-make tooling
-        uses: anchore/go-make/.github/actions/setup@abf41688f36f2cbec13105747abbe8e60f5c56ca # v0.9.3
+        uses: anchore/go-make/.github/actions/setup@cf465259f4c9f0b0b0bcb35164ede11f7dc6d9f6 # v0.9.6
 
       - name: Install image builder
         run: |
@@ -254,7 +266,7 @@ jobs:
 
       # only need go to drive the make-shim into go-make; skip tool install + apt
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           tools: "false"
           bootstrap-apt-packages: ""
@@ -303,7 +315,7 @@ jobs:
 
       # only need go to drive the make-shim into go-make; skip tool install + apt
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           tools: "false"
           bootstrap-apt-packages: ""
@@ -341,7 +353,7 @@ jobs:
           persist-credentials: false
 
       - name: Bootstrap environment
-        uses: ./.github/actions/bootstrap
+        uses: $/.github/actions/bootstrap
         with:
           cache-test-fixtures: true
 

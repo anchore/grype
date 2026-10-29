@@ -94,8 +94,11 @@ var normalizedOSCodenames = map[string]map[string]map[string]string{
 			"10": "questing",
 			"4":  "plucky",
 		},
-		"26": {"4": "resolute"},
-		"4":  {"10": "warty"},
+		"26": {
+			"10": "stonking",
+			"4":  "resolute",
+		},
+		"4": {"10": "warty"},
 		"5": {
 			"10": "breezy",
 			"4":  "hoary",
