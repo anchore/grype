@@ -3,6 +3,7 @@ package pkg
 import (
 	"archive/tar"
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -48,6 +49,33 @@ func createTestZarfPackage(t *testing.T, sbomFiles map[string]string) string {
 	}))
 	_, err = tw.Write(sbomBytes)
 	require.NoError(t, err)
+	require.NoError(t, tw.Close())
+	require.NoError(t, zw.Close())
+
+	return outPath
+}
+
+func createTestGranularZarfArchive(t *testing.T, sbomFiles map[string]string) string {
+	t.Helper()
+
+	outPath := filepath.Join(t.TempDir(), "test-package.tar.zst")
+	f, err := os.Create(outPath)
+	require.NoError(t, err)
+	defer f.Close()
+
+	zw, err := zstd.NewWriter(f)
+	require.NoError(t, err)
+	tw := tar.NewWriter(zw)
+	for name, content := range sbomFiles {
+		require.NoError(t, tw.WriteHeader(&tar.Header{
+			Name:     name,
+			Size:     int64(len(content)),
+			Mode:     0o600,
+			Typeflag: tar.TypeReg,
+		}))
+		_, err := tw.Write([]byte(content))
+		require.NoError(t, err)
+	}
 	require.NoError(t, tw.Close())
 	require.NoError(t, zw.Close())
 
@@ -117,6 +145,50 @@ func TestZarfProvider(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestZarfProvider_GranularResources(t *testing.T) {
+	sbomContent, err := os.ReadFile("testdata/syft-multiple-ecosystems.json")
+	require.NoError(t, err)
+
+	imageResource := "sboms/images/" + base64.RawURLEncoding.EncodeToString([]byte("registry.example.test/team/app:1.2.3")) + ".json"
+	resourcePaths := []string{
+		"sboms/files/nested/manifest.json",
+		imageResource,
+	}
+	sbomFiles := map[string]string{
+		resourcePaths[0]: string(sbomContent),
+		resourcePaths[1]: string(sbomContent),
+	}
+
+	singlePath := createTestGranularZarfArchive(t, map[string]string{
+		resourcePaths[0]: string(sbomContent),
+	})
+	expectedPackages, _, _, err := zarfProvider("zarf:"+singlePath, ProviderConfig{}, getDistroChannelApplier(nil))
+	require.NoError(t, err)
+	require.NotEmpty(t, expectedPackages)
+
+	targetPath := createTestGranularZarfArchive(t, sbomFiles)
+	packages, _, _, err := zarfProvider("zarf:"+targetPath, ProviderConfig{}, getDistroChannelApplier(nil))
+	require.NoError(t, err)
+	assert.Len(t, packages, len(expectedPackages), "identical SBOMs should deduplicate package IDs")
+
+	for _, pkg := range packages {
+		assert.ElementsMatch(t, resourcePaths, pkg.Annotations[zarfSBOMSourceAnnotation], "package %q should record both granular SBOM resources", pkg.Name)
+	}
+}
+
+func TestZarfProvider_GranularAllEntriesInvalidReturnsError(t *testing.T) {
+	sbomFiles := map[string]string{
+		"sboms/files/not-an-sbom.txt": "<html><body>not an sbom</body></html>",
+		"sboms/images/" + base64.RawURLEncoding.EncodeToString([]byte("registry.example.test/team/app:1.2.3")) + ".json": "random junk that isn't an SBOM",
+	}
+
+	targetPath := createTestGranularZarfArchive(t, sbomFiles)
+	packages, _, _, err := zarfProvider("zarf:"+targetPath, ProviderConfig{}, getDistroChannelApplier(nil))
+	require.Error(t, err)
+	assert.Nil(t, packages)
+	assert.Contains(t, err.Error(), "no SBOMs could be parsed from Zarf package")
 }
 
 // TestZarfProvider_MultiSBOM_DedupesByID verifies that two copies of the same
