@@ -104,6 +104,28 @@ func TestIgnoreRuleIndex_PreservesRuleOrder(t *testing.T) {
 	assert.Equal(t, []string{"indexed 0", "ungrouped 1", "alias 3", "indexed 4", "ungrouped 6", "indexed 0"}, reasons)
 }
 
+func TestIgnoreRuleIndex_AliasRuleAppliesOnce(t *testing.T) {
+	m := Match{
+		Vulnerability: vulnerability.Vulnerability{
+			Reference: vulnerability.Reference{ID: "CVE-1"},
+			// the match's own ID and a repeated alias both reach the same alias rules more than once
+			RelatedVulnerabilities: []vulnerability.Reference{{ID: "CVE-1"}, {ID: "GHSA-1"}, {ID: "GHSA-1"}},
+		},
+	}
+	rules := []IgnoreRule{
+		{Vulnerability: "GHSA-1", IncludeAliases: true, Reason: "alias 0"},
+		{Vulnerability: "GHSA-1", Reason: "without include-aliases 1"},
+		{Vulnerability: "CVE-1", IncludeAliases: true, Reason: "alias 2"},
+		{Vulnerability: "CVE-1", Reason: "exact 3"},
+	}
+
+	var reasons []string
+	for _, r := range newIgnoreRuleIndex(rules).IgnoreMatch(m) {
+		reasons = append(reasons, r.Reason)
+	}
+	assert.Equal(t, []string{"alias 0", "alias 2", "exact 3"}, reasons)
+}
+
 func TestIgnoreRuleIndex_LeavesOutRulesThatNeverApply(t *testing.T) {
 	index := newIgnoreRuleIndex([]IgnoreRule{
 		{Vulnerability: "CVE-1", VexStatus: "not_affected"},
