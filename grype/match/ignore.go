@@ -142,7 +142,10 @@ func ApplyIgnoreFilters[T IgnoreFilter](matches []Match, filters ...T) ([]Match,
 }
 
 func (r IgnoreRule) IgnoreMatch(match Match) []IgnoreRule {
-	return r.ignoreMatchWithConditions(match, r.matchConditions())
+	if conditionsApply(match, r.matchConditions()) {
+		return []IgnoreRule{r}
+	}
+	return nil
 }
 
 // matchConditions returns the conditions a match must meet for the rule to apply, or nil if the rule never
@@ -156,22 +159,22 @@ func (r IgnoreRule) matchConditions() []ignoreCondition {
 	return getIgnoreConditionsForRule(r)
 }
 
-// ignoreMatchWithConditions is IgnoreMatch with the rule's conditions, from matchConditions, already built.
-func (r IgnoreRule) ignoreMatchWithConditions(match Match, ignoreConditions []ignoreCondition) []IgnoreRule {
+// conditionsApply reports whether a rule with the given conditions, from matchConditions, applies to the match.
+func conditionsApply(match Match, ignoreConditions []ignoreCondition) bool {
 	if len(ignoreConditions) == 0 {
 		// this rule specifies no criteria (or is a VEX rule), so it doesn't apply to the Match
-		return nil
+		return false
 	}
 
 	for _, condition := range ignoreConditions {
 		if !condition(match) {
 			// as soon as one rule criterion doesn't apply, we know this rule doesn't apply to the Match
-			return nil
+			return false
 		}
 	}
 
 	// all criteria specified in the rule apply to this Match
-	return []IgnoreRule{r}
+	return true
 }
 
 // HasConditions returns true if the ignore rule has conditions

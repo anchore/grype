@@ -57,13 +57,15 @@ func (i ignoreRuleIndex) IgnoreMatch(match Match) []IgnoreRule {
 	var applied []IgnoreRule
 	// both candidate lists are in original order, so merging them by position keeps that order
 	for len(byID) > 0 || len(ungrouped) > 0 {
-		var next indexedIgnoreRule
+		var next *indexedIgnoreRule
 		if len(ungrouped) == 0 || (len(byID) > 0 && byID[0].position < ungrouped[0].position) {
-			next, byID = byID[0], byID[1:]
+			next, byID = &byID[0], byID[1:]
 		} else {
-			next, ungrouped = ungrouped[0], ungrouped[1:]
+			next, ungrouped = &ungrouped[0], ungrouped[1:]
 		}
-		applied = append(applied, next.rule.ignoreMatchWithConditions(match, next.conditions)...)
+		if conditionsApply(match, next.conditions) {
+			applied = append(applied, next.rule)
+		}
 	}
 	return applied
 }

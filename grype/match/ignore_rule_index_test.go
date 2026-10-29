@@ -15,7 +15,7 @@ import (
 )
 
 // legacyIgnoreRule carries IgnoreRule.IgnoreMatch as it was before conditions were built once per rule, so the
-// reference below does not share the refactored matchConditions / ignoreMatchWithConditions path.
+// reference below does not share the refactored matchConditions / conditionsApply path.
 type legacyIgnoreRule IgnoreRule
 
 func (l legacyIgnoreRule) IgnoreMatch(match Match) []IgnoreRule {
