@@ -111,6 +111,46 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 	}
 }
 
+const (
+	rapidfortAlpineDistro = "rapidfort-alpine"
+	rapidfortDebianDistro = "rapidfort-debian"
+	rapidfortRedhatDistro = "rapidfort-redhat"
+	rapidfortUbuntuDistro = "rapidfort-ubuntu"
+
+	apkEcosystem = string(pkg.ApkPkg)
+	debEcosystem = string(pkg.DebPkg)
+	rpmEcosystem = string(pkg.RpmPkg)
+
+	highPriority    = 10
+	higherPriority  = 20
+	highestPriority = 30
+
+	// `rfubu` appears on debian rebuilds too; `~` is dpkg's pre-release marker (e.g. `1.2-4rfdebian~rf.1`)
+	rapidfortDpkgRebuildMarker = `.*(?:rfubu|rfdeb).*|.*[.+~-]rf(?:[._].*)?`
+)
+
+// KnownSearchRules are the built-in search rules, used when the DB has no search_rules table.
+// Patterns are anchored, so partial matches need an explicit `.*`.
+func KnownSearchRules() []SearchRule {
+	return []SearchRule{
+		// rapidfort-redhat: .rf versions search the rf channel; native elN versions are channel-less
+		{Action: SearchRuleReplace, MatchDistroName: rapidfortRedhatDistro, MatchEcosystem: rpmEcosystem, MatchPackageVersion: `.*\.rf(?:[._~-].*)?`, ReplacementChannel: ptr("rf"), Priority: highestPriority},
+
+		// no rf- name rule for dpkg: rf- names appear in both streams
+		{Action: SearchRuleReplace, MatchDistroName: rapidfortUbuntuDistro, MatchEcosystem: debEcosystem, MatchPackageVersion: rapidfortDpkgRebuildMarker, ReplacementChannel: ptr("rf"), Priority: highestPriority},
+		{Action: SearchRuleReplace, MatchDistroName: rapidfortDebianDistro, MatchEcosystem: debEcosystem, MatchPackageVersion: rapidfortDpkgRebuildMarker, ReplacementChannel: ptr("rf"), Priority: highestPriority},
+
+		// lazy wildcard so the group binds the first dist tag (`1.2-3.fc31.fc43` -> fc31)
+		{Action: SearchRuleReplace, MatchDistroName: rapidfortRedhatDistro, MatchEcosystem: rpmEcosystem, MatchPackageVersion: `.*?\.fc(?P<fedora>\d+)(?:[._~-].*)?`, ReplacementChannel: ptr("fc${fedora}"), Priority: higherPriority},
+
+		// rf- name fallback; elN versions are channel-less, so they are excluded here
+		{Action: SearchRuleReplace, MatchDistroName: rapidfortRedhatDistro, MatchEcosystem: rpmEcosystem, MatchPackageName: `rf-.*`, ExcludePackageVersion: `.*\.el\d+(?:[._~-].*)?`, ReplacementChannel: ptr("rf"), Priority: highPriority},
+
+		// rapidfort-alpine data is complete, so its packages are not searched by CPE
+		{Action: SearchRuleDrop, MatchDistroName: rapidfortAlpineDistro, MatchEcosystem: apkEcosystem, MatchCPEProduct: `.*`},
+	}
+}
+
 func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {
 	// when matching packages, grype will always attempt to do so based off of the package type which means
 	// that any request must be in terms of the package type (relative to syft).

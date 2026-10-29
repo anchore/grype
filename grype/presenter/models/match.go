@@ -46,6 +46,14 @@ func newMatch(m match.Match, p pkg.Package, metadataProvider vulnerability.Metad
 		}
 	}
 
+	// unmerged matches are in DB order
+	sort.SliceStable(relatedVulnerabilities, func(i, j int) bool {
+		if relatedVulnerabilities[i].Namespace != relatedVulnerabilities[j].Namespace {
+			return relatedVulnerabilities[i].Namespace < relatedVulnerabilities[j].Namespace
+		}
+		return relatedVulnerabilities[i].ID < relatedVulnerabilities[j].ID
+	})
+
 	// vulnerability.Vulnerability should always have vulnerability.Metadata populated, however, in the case of test mocks
 	// and other edge cases, it may not be populated. In these cases, we should fetch the metadata from the provider.
 	metadata := m.Vulnerability.Metadata

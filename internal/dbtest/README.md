@@ -180,7 +180,7 @@ findings.SelectMatch("CVE-2024-1234").
 | `OnlyHasVulnerabilities(ids...)` | Assert exactly these CVEs and no others |
 | `DoesNotHaveAnyVulnerabilities(ids...)` | Assert these CVEs are not present |
 | `SelectMatch(id)` | Select a specific match for detail assertions; fails if multiple matches share the ID |
-| `SelectMatches(id)` | Select the subset of matches with a vulnerability ID; chain `WithDetailType` to disambiguate |
+| `SelectMatches(id)` | Select the subset of matches with a vulnerability ID; chain `WithDetailType` or `WithNamespace` to disambiguate, `HasCount(n)` to pin how many there are |
 | `HasMatchType(type)` | Assert at least one detail has this match type |
 | `HasOnlyMatchTypes(types...)` | Assert all details have one of these types |
 | `SkipCompleteness()` | Assert this chain is intentionally partial; fails if the chain is actually exhaustive |
@@ -196,7 +196,7 @@ For ignore filters, `Ignores().SelectRelatedPackageIgnore(reason, vulnID)` selec
 The assertion API is a **façade** over `match.Match` and `vulnerability.Vulnerability`. The whole point is to let grype refactor those internal types without touching tests. Two consequences:
 
 - **There is no `Match()` accessor on `SingleFindingAssertion` and there should never be one.** `FindingsAssertion.Matches()` exists as a deprecated escape hatch and is not used anywhere — leave it that way.
-- **When a test needs a new assertion, add a focused helper.** That is the documented extension story. `HasFix`, `HasAdvisories`, `InNamespace`, `SelectMatches.WithDetailType`, `SelectDetailBy{Distro,CPE,Ecosystem}`, `SelectRelatedPackageIgnores` were all added this way. Hypothetical future helpers: `HasSeverity`, `HasCVSSScore`, `HasRelatedVulnerabilities`, `HasFixAvailableDate`.
+- **When a test needs a new assertion, add a focused helper.** That is the documented extension story. `HasFix`, `HasAdvisories`, `InNamespace`, `SelectMatches.{WithDetailType,WithNamespace,HasCount}`, `SelectDetailBy{Distro,CPE,Ecosystem}`, `SelectRelatedPackageIgnores` were all added this way. Hypothetical future helpers: `HasSeverity`, `HasCVSSScore`, `HasRelatedVulnerabilities`, `HasFixAvailableDate`.
 
 If you find yourself reaching for raw struct fields, stop and add the helper. A 5-line addition to `assertions.go` is cheaper than a 50-test sweep next time the underlying struct moves.
 
