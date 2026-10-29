@@ -100,34 +100,29 @@ func smokeTestTask() Task {
 	}
 }
 
-// cliTask runs the CLI test suite against the snapshot binary. When
-// GRYPE_SNAPSHOT_PREBUILT is set and the binary exists (as in CI after the
-// snapshot artifact is restored), it skips rebuilding.
+// cliTask runs the CLI test suite against the snapshot binary for the host. In CI the binary is downloaded from
+// the snapshot job, so it is never rebuilt there.
 func cliTask() Task {
 	return Task{
 		Name:        "cli",
 		Description: "run CLI tests",
 		RunsOn:      lang.List("test"),
 		Run: func() {
-			ensureSnapshotBinary()
-			Run(`go test -count=1 -timeout=15m -v ./test/cli`)
+			bin := snapshotBinPath(runtime.GOOS)
+			ensureSnapshotBinary(bin)
+			log.Info("testing binary: %s", bin)
+			Run(`go test -count=1 -timeout=15m -v ./test/cli`, run.Env("GRYPE_BINARY_LOCATION", bin))
 		},
 	}
 }
 
-// ensureSnapshotBinary builds a snapshot if one isn't already present. In CI we
-// set GRYPE_SNAPSHOT_PREBUILT=true so a snapshot artifact restored from cache
-// isn't rebuilt; locally we always rebuild so code changes take effect.
-func ensureSnapshotBinary() {
-	if os.Getenv("GRYPE_SNAPSHOT_PREBUILT") != "" {
-		// CI path: trust the restored artifact, just verify it exists.
-		matches := file.FindAll(fmt.Sprintf("%s/*/%s", snapshotBn, project))
-		if len(matches) > 0 {
-			log.Info("using prebuilt snapshot binary: %s", matches[0])
-			return
-		}
-		log.Info("GRYPE_SNAPSHOT_PREBUILT set but no binary found; rebuilding")
+// ensureSnapshotBinary builds a single-target snapshot only when bin is missing. An existing binary is never
+// rebuilt or overwritten, so run `make snapshots:clean` to pick up code changes.
+func ensureSnapshotBinary(bin string) {
+	if file.Exists(bin) {
+		return
 	}
+	log.Info("snapshot binary not found at %s; building single-target snapshot", bin)
 	Run(`go run -C .make . snapshot:single-target`)
 }
 
@@ -138,11 +133,8 @@ func containersStorageTestTask() Task {
 		Name:        "containers-storage-test",
 		Description: "run containers-storage tests (BUILDER=podman|buildah)",
 		Run: func() {
-			bin := linuxSnapshotBinPath()
-			if !file.Exists(bin) {
-				log.Info("snapshot binary not found at %s; building single-target snapshot", bin)
-				Run(`go run -C .make . build`)
-			}
+			bin := snapshotBinPath("linux")
+			ensureSnapshotBinary(bin)
 			Run(
 				"bash test/containers-storage/source-test.sh "+config.Env("BUILDER", "podman"),
 				run.Env("GRYPE_BINARY_LOCATION", bin),
@@ -151,9 +143,9 @@ func containersStorageTestTask() Task {
 	}
 }
 
-// linuxSnapshotBinPath returns the absolute path to the linux snapshot binary for the host arch, mirroring
+// snapshotBinPath returns the absolute path to the goos snapshot binary for the host arch, mirroring
 // goreleaser's <build id>_<goos>_<goarch><microarch level> dist dir naming (see test/cli/utils_test.go).
-func linuxSnapshotBinPath() string {
+func snapshotBinPath(goos string) string {
 	arch := runtime.GOARCH
 	switch arch {
 	case "amd64":
@@ -161,7 +153,7 @@ func linuxSnapshotBinPath() string {
 	case "arm64":
 		arch += "_v8.0"
 	}
-	return filepath.Join(RootDir(), snapshotBn, "linux-build_linux_"+arch, project)
+	return filepath.Join(RootDir(), snapshotBn, goos+"-build_"+goos+"_"+arch, project)
 }
 
 // generateTask groups all code-generation entry points. Each sub-task can be
