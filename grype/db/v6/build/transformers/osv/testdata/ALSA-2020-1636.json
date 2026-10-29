@@ -1,4 +1,5 @@
 {
+  "schema_version": "1.7.0",
   "id": "ALSA-2020:1636",
   "summary": "Moderate: libsndfile security update",
   "affected": [
@@ -21,6 +22,10 @@
         }
       ]
     }
+  ],
+  "upstream": [
+    "CVE-2018-13139",
+    "CVE-2018-19662"
   ],
   "related": [
     "CVE-2018-13139",
