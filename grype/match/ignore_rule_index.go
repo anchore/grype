@@ -16,7 +16,7 @@ package match
 // used for the filters that matchers return. The two should eventually be one implementation. Note that they
 // differ today: this index returns every applicable rule in the original order, while ignoreRulesByIndex
 // returns only the first hit, and it groups rules by literal package name and location, which is not safe
-// for regex names or glob locations.
+// for regex names, and for glob locations it only guards against `*` (not `?`, `[...]` or `{a,b}`).
 type ignoreRuleIndex struct {
 	// byVulnerabilityID holds rules that apply only to a match with exactly this vulnerability ID
 	byVulnerabilityID map[string][]indexedIgnoreRule
