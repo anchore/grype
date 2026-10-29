@@ -113,6 +113,8 @@ func runDBDiff(opts dbDiffOptions) error {
 		EPSSThreshold: opts.EPSSThreshold,
 		OldDB:         opts.Old,
 		NewDB:         opts.New,
+		// same bound used when installing a db
+		DownloadTimeout: opts.DB.UpdateDownloadTimeout,
 	})
 
 	if err != nil {

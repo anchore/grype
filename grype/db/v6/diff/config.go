@@ -1,6 +1,10 @@
 package diff
 
-import "github.com/anchore/grype/grype/db/v6/installation"
+import (
+	"time"
+
+	"github.com/anchore/grype/grype/db/v6/installation"
+)
 
 func DefaultConfig() Config {
 	return Config{
@@ -27,6 +31,8 @@ type Config struct {
 	EPSSThreshold float64
 	OldDB         string
 	NewDB         string
+	// DownloadTimeout bounds downloading a database given as a URL (zero means no timeout)
+	DownloadTimeout time.Duration
 }
 
 func (c Config) IncludePackages() bool {

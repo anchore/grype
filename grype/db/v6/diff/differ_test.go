@@ -1319,7 +1319,7 @@ func Test_ResolvedDB_cleanupNeverPanics(t *testing.T) {
 	testdb.BuildFromFlatFileDir(t, time.Time{}, dbDir, inputDir, "cve-2025-59800")
 
 	for _, value := range []string{dbDir, filepath.Join(dbDir, v6.VulnerabilityDBFileName)} {
-		resolved, err := ResolveDB(value, "")
+		resolved, err := ResolveDB(value, "", 0)
 		require.NoError(t, err)
 		require.NotPanics(t, resolved.Cleanup, value)
 	}
@@ -1383,7 +1383,8 @@ func Test_ResolveDB_keepsUserDataOnFailure(t *testing.T) {
 			dir := t.TempDir()
 			require.NoError(t, os.WriteFile(filepath.Join(dir, keep), []byte("x"), 0o600))
 
-			_, err := ResolveDB(tt.setup(t, dir))
+			value, defaultDir := tt.setup(t, dir)
+			_, err := ResolveDB(value, defaultDir, 0)
 			require.Error(t, err)
 
 			assert.FileExists(t, filepath.Join(dir, tt.kept))
@@ -1412,7 +1413,7 @@ func Test_ResolveDB_archiveExtraction(t *testing.T) {
 		archive := writeDBArchive(t, dir, goodDB)
 
 		for range 2 {
-			resolved, err := ResolveDB(archive, "")
+			resolved, err := ResolveDB(archive, "", 0)
 			require.NoError(t, err)
 			assert.Equal(t, filepath.Join(dir, "db"), resolved.Dir)
 			assert.NotEmpty(t, resolved.Info.BuildTimestamp)
@@ -1425,14 +1426,14 @@ func Test_ResolveDB_archiveExtraction(t *testing.T) {
 		dir := t.TempDir()
 		archive := writeDBArchive(t, dir, badDB)
 
-		_, err := ResolveDB(archive, "")
+		_, err := ResolveDB(archive, "", 0)
 		require.Error(t, err)
 		assert.NoDirExists(t, filepath.Join(dir, "db"))
 		requireNoExtractLeftovers(t, dir)
 
 		// replacing the archive is enough to recover, there is nothing stale to remove by hand
 		writeDBArchive(t, dir, goodDB)
-		_, err = ResolveDB(archive, "")
+		_, err = ResolveDB(archive, "", 0)
 		require.NoError(t, err)
 	})
 
@@ -1442,7 +1443,7 @@ func Test_ResolveDB_archiveExtraction(t *testing.T) {
 		require.NoError(t, os.Mkdir(filepath.Join(dir, "db"), 0o700))
 		require.NoError(t, os.WriteFile(filepath.Join(dir, "db", v6.VulnerabilityDBFileName), badDB, 0o600))
 
-		_, err := ResolveDB(archive, "")
+		_, err := ResolveDB(archive, "", 0)
 		require.ErrorContains(t, err, fmt.Sprintf("%q", filepath.Join(dir, "db")))
 	})
 }
@@ -1526,6 +1527,17 @@ func Test_DBDiffer_removesDownloads(t *testing.T) {
 	require.Len(t, downloads(), 1)
 	require.NoError(t, differ.Close())
 	assert.Empty(t, downloads(), "download kept after Close")
+}
+
+// Test_downloadDB_timesOut verifies a server that never responds can't hang the download
+func Test_downloadDB_timesOut(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+	}))
+	t.Cleanup(srv.Close)
+
+	_, err := downloadDB(srv.URL, 100*time.Millisecond)
+	require.ErrorContains(t, err, "Client.Timeout")
 }
 
 func requireVulns(t *testing.T, testType string, vulns []VulnerabilityID, vulnNames ...string) {
