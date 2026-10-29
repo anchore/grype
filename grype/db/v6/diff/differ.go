@@ -20,86 +20,110 @@ import (
 const cpeEcosystem = "cpe"
 
 // DBDiffer compares two vulnerability databases using direct SQL comparison.
-// The old database is opened as the main connection and the new database is
+// The first database is opened as the main connection and the second database is
 // attached as "new_db", allowing cross-database SQL queries.
 type DBDiffer struct {
-	config Config
-	db     *gorm.DB
-	oldDB  ResolvedDB
-	newDB  ResolvedDB
+	config   Config
+	db       *gorm.DB
+	firstDB  ResolvedDB
+	secondDB ResolvedDB
 }
 
-// NewDBDiffer resolves the databases from the config and returns a new DBDiffer for database comparison
-// containing a vulnerability.db file.
+// NewDBDiffer resolves the first and second databases from the config and returns a DBDiffer comparing them. The
+// DBDiffer owns any temporary directories created while resolving, and removes them on Close.
 func NewDBDiffer(cfg Config) (*DBDiffer, error) {
-	resolvedOld, resolvedNew, err := parallel[ResolvedDB](func() (ResolvedDB, error) {
-		return ResolveDB(cfg.OldDB, cfg.DBRootDir)
+	resolvedFirst, resolvedSecond, err := parallel[ResolvedDB](func() (ResolvedDB, error) {
+		return ResolveDB(cfg.OldDB, cfg.DBDirectoryPath(), cfg.DownloadTimeout)
 	}, func() (ResolvedDB, error) {
-		return ResolveDB(cfg.NewDB, cfg.DBRootDir)
+		return ResolveDB(cfg.NewDB, cfg.DBDirectoryPath(), cfg.DownloadTimeout)
 	})
 
 	if err != nil {
+		// one side may have resolved (and downloaded) before the other failed
+		resolvedFirst.Cleanup()
+		resolvedSecond.Cleanup()
 		return nil, err
 	}
 
-	differ, err := newDBDifferDirs(resolvedOld, resolvedNew, cfg)
-	if differ == nil {
-		defer resolvedOld.Cleanup()
-		defer resolvedNew.Cleanup()
+	differ, err := newDBDifferDirs(resolvedFirst, resolvedSecond, cfg)
+	if err != nil {
+		resolvedFirst.Cleanup()
+		resolvedSecond.Cleanup()
 		return nil, err
 	}
-	return differ, err
+	return differ, nil
 }
 
-func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) {
-	oldDBPath := filepath.Join(oldDB.Dir, v6.VulnerabilityDBFileName)
-	newDBPath := filepath.Join(newDB.Dir, v6.VulnerabilityDBFileName)
-
-	writable := config.Debug
-	db, err := v6.NewLowLevelDB(oldDBPath, false, writable, config.Debug)
+func newDBDifferDirs(firstDB, secondDB ResolvedDB, config Config) (*DBDiffer, error) {
+	beforeTime, err := time.Parse(time.RFC3339, firstDB.Info.BuildTimestamp)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open old database: %w", err)
+		return nil, fmt.Errorf("failed to parse first database build timestamp: %w", err)
 	}
-
-	if err := db.Exec("ATTACH DATABASE ? AS new_db", newDBPath).Error; err != nil {
-		closeLowLevelDB(db)
-		return nil, fmt.Errorf("failed to attach new database: %w", err)
-	}
-
-	beforeTime, err := time.Parse(time.RFC3339, oldDB.Info.BuildTimestamp)
+	afterTime, err := time.Parse(time.RFC3339, secondDB.Info.BuildTimestamp)
 	if err != nil {
-		closeLowLevelDB(db)
-		return nil, fmt.Errorf("failed to parse build timestamp: %w", err)
-	}
-	afterTime, err := time.Parse(time.RFC3339, newDB.Info.BuildTimestamp)
-	if err != nil {
-		closeLowLevelDB(db)
-		return nil, fmt.Errorf("failed to parse build timestamp: %w", err)
+		return nil, fmt.Errorf("failed to parse second database build timestamp: %w", err)
 	}
 
 	if beforeTime.Equal(afterTime) {
 		log.Warn("the provided databases have the same built times")
 	}
 
-	// make sure we're always comparing old to new
+	// diffing a newer database to an older one is supported; the diff is always from the first database (main)
+	// to the second database (new_db), and the result is labeled the same way
 	if beforeTime.After(afterTime) {
-		newDB, oldDB = oldDB, newDB
+		// the second database defaults to the installed one, in which case there is no second argument to swap with
+		fix := "swap the arguments"
+		if config.NewDB == "" {
+			fix = fmt.Sprintf("pass the installed database (%s) as the first argument", secondDB.Dir)
+		}
+		log.Warnf("the first database (built %s) is newer than the second (built %s); changes are reported from newer to older, %s to diff from older to newer", firstDB.Info.BuildTimestamp, secondDB.Info.BuildTimestamp, fix)
+	}
+
+	firstDBPath := filepath.Join(firstDB.Dir, v6.VulnerabilityDBFileName)
+	secondDBPath := filepath.Join(secondDB.Dir, v6.VulnerabilityDBFileName)
+
+	writable := config.Debug
+	db, err := v6.NewLowLevelDB(firstDBPath, false, writable, config.Debug)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open first database: %w", err)
+	}
+
+	// the attached database, temp tables, and pragmas are all per-connection, so every statement must run on the same one
+	sqlDB, err := db.DB()
+	if err != nil {
+		closeLowLevelDB(db)
+		return nil, fmt.Errorf("failed to configure database: %w", err)
+	}
+	sqlDB.SetMaxOpenConns(1)
+
+	// allow sqlite to use worker threads when sorting (e.g. to build indexes)
+	if err := db.Exec("PRAGMA threads = 4").Error; err != nil {
+		closeLowLevelDB(db)
+		return nil, fmt.Errorf("failed to configure database: %w", err)
+	}
+
+	if err := db.Exec("ATTACH DATABASE ? AS new_db", secondDBPath).Error; err != nil {
+		closeLowLevelDB(db)
+		return nil, fmt.Errorf("failed to attach second database: %w", err)
 	}
 
 	return &DBDiffer{
-		db:     db,
-		oldDB:  oldDB,
-		newDB:  newDB,
-		config: config,
+		db:       db,
+		firstDB:  firstDB,
+		secondDB: secondDB,
+		config:   config,
 	}, nil
 }
 
-// Close detaches the new database and closes the connection.
+// Close detaches the second database, closes the connection, and removes any temporary directories.
 func (d *DBDiffer) Close() error {
-	// always release the connection, even if the detach fails (an open handle keeps the db files locked on windows)
+	// defers run in reverse, so the connection is always closed before the directories are removed (an open
+	// handle keeps the db files locked on windows), even if the detach fails
+	defer d.secondDB.Cleanup()
+	defer d.firstDB.Cleanup()
 	defer closeLowLevelDB(d.db)
 	if err := d.db.Exec("DETACH DATABASE new_db").Error; err != nil {
-		return fmt.Errorf("failed to detach new database: %w", err)
+		return fmt.Errorf("failed to detach second database: %w", err)
 	}
 	return nil
 }
@@ -137,8 +161,8 @@ func (d *DBDiffer) Diff() (*Result, error) {
 	return &Result{
 		Schema: Schema,
 		Databases: DatabaseDiff{
-			Before: d.oldDB.Info,
-			After:  d.newDB.Info,
+			Before: d.firstDB.Info,
+			After:  d.secondDB.Info,
 		},
 		Packages:        packages,
 		Vulnerabilities: vulns,
@@ -154,18 +178,18 @@ func (d *DBDiffer) diffPackages() ([]PackageDiff, error) {
 	}
 
 	// collect all per-package/CPE diff entries
-	diffs := map[pkgKey]*PackageDiff{}
+	diffs := newPackageDiffs()
 
 	changeTypes := []struct {
 		name string
-		fn   func(map[pkgKey]*PackageDiff) (int, error)
+		fn   func(*packageDiffs) (int, error)
 	}{
-		{"added package vulnerabilities", d.findLanguageAndOSVulnsAdded},
-		{"removed package vulnerabilities", d.findLanguageAndOSVulnsRemoved},
-		{"modified package vulnerabilities", d.findLanguageAndOSVulnsModified},
-		{"added CPE vulnerabilities", d.findCPEVulnsAdded},
-		{"removed CPE vulnerabilities", d.findCPEVulnsRemoved},
-		{"modified CPE vulnerabilities", d.findCPEVulnsModified},
+		{"added package vulnerabilities", d.packageChanges("diff_pkg_added", changeAdded)},
+		{"removed package vulnerabilities", d.packageChanges("diff_pkg_removed", changeRemoved)},
+		{"modified package vulnerabilities", d.packageChanges("diff_pkg_modified", changeModified)},
+		{"added CPE vulnerabilities", d.cpeChanges("diff_cpe_added", changeAdded)},
+		{"removed CPE vulnerabilities", d.cpeChanges("diff_cpe_removed", changeRemoved)},
+		{"modified CPE vulnerabilities", d.cpeChanges("diff_cpe_modified", changeModified)},
 	}
 
 	for _, v := range changeTypes {
@@ -179,8 +203,10 @@ func (d *DBDiffer) diffPackages() ([]PackageDiff, error) {
 
 	log.Infof("package diff completed in %s", time.Since(startTime))
 
-	packages := make([]PackageDiff, 0, len(diffs))
-	for _, pd := range diffs {
+	packages := make([]PackageDiff, 0, len(diffs.byKey))
+	for _, pd := range diffs.byKey {
+		// rows arrive in query plan order, so sort to keep the output stable
+		sortVulnerabilityIDs(&pd.Vulnerabilities.Added, &pd.Vulnerabilities.Removed, &pd.Vulnerabilities.Modified)
 		packages = append(packages, *pd)
 	}
 	slices.SortFunc(packages, func(a, b PackageDiff) int {
@@ -197,11 +223,14 @@ func (d *DBDiffer) diffPackages() ([]PackageDiff, error) {
 
 func (d *DBDiffer) createPackagesTables() error {
 	startTime := time.Now()
+	if err := d.createDiffKeyTablesPackages(); err != nil {
+		return fmt.Errorf("failed to create package key tables: %w", err)
+	}
 	if err := d.createDiffTablesPackages("old", "main"); err != nil {
-		return fmt.Errorf("failed to create old package tables: %w", err)
+		return fmt.Errorf("failed to create first database package tables: %w", err)
 	}
 	if err := d.createDiffTablesPackages("new", "new_db"); err != nil {
-		return fmt.Errorf("failed to create new package tables: %w", err)
+		return fmt.Errorf("failed to create second database package tables: %w", err)
 	}
 	if err := d.createDiffViewsPackages(); err != nil {
 		return fmt.Errorf("failed to create package views: %w", err)
@@ -221,94 +250,60 @@ func (d *DBDiffer) executeTemplates(templates []string, r *strings.Replacer) err
 	return nil
 }
 
-// findLanguageAndOSVulnsAdded gets added vulnerabilities in the new database
-func (d *DBDiffer) findLanguageAndOSVulnsAdded(diffs map[pkgKey]*PackageDiff) (int, error) {
-	var rows []pkgRow
-	err := d.db.Raw(`
-		SELECT * FROM diff_pkg_added
-	`).Scan(&rows).Error
-	if err != nil {
-		return 0, err
+func (d *DBDiffer) packageChanges(view string, change changeType) func(*packageDiffs) (int, error) {
+	return func(diffs *packageDiffs) (int, error) {
+		return d.findPackageChanges(view, change, diffs)
 	}
-	for _, r := range rows {
-		vulnerabilityAdded(diffs, r.Ecosystem, r.PkgName, "", r.ProviderID, r.VulnName)
-	}
-	return len(rows), nil
 }
 
-// findLanguageAndOSVulnsRemoved gets removed vulnerabilities in the new database
-func (d *DBDiffer) findLanguageAndOSVulnsRemoved(diffs map[pkgKey]*PackageDiff) (int, error) {
-	var rows []pkgRow
-	err := d.db.Raw(`
-		SELECT * FROM diff_pkg_removed
-	`).Scan(&rows).Error
-	if err != nil {
-		return 0, err
+func (d *DBDiffer) cpeChanges(view string, change changeType) func(*packageDiffs) (int, error) {
+	return func(diffs *packageDiffs) (int, error) {
+		return d.findCPEChanges(view, change, diffs)
 	}
-	for _, r := range rows {
-		vulnerabilityRemoved(diffs, r.Ecosystem, r.PkgName, "", r.ProviderID, r.VulnName)
-	}
-	return len(rows), nil
 }
 
-// findLanguageAndOSVulnsModified gets modified packages / vulnerabilities in the new database
-func (d *DBDiffer) findLanguageAndOSVulnsModified(diffs map[pkgKey]*PackageDiff) (int, error) {
-	var rows []pkgRow
-	err := d.db.Raw(`
-		SELECT * FROM diff_pkg_modified
-	`).Scan(&rows).Error
-	if err != nil {
-		return 0, err
-	}
-	for _, r := range rows {
-		vulnerabilityModified(diffs, r.Ecosystem, r.PkgName, "", r.ProviderID, r.VulnName)
-	}
-	return len(rows), nil
+// findPackageChanges adds the changes in the given package view (diff_pkg_added, diff_pkg_removed, or diff_pkg_modified)
+func (d *DBDiffer) findPackageChanges(view string, change changeType, diffs *packageDiffs) (int, error) {
+	var r pkgRow
+	return d.forEachRow(`SELECT COALESCE(ecosystem, ''), COALESCE(pkg_name, ''), provider_id, vuln_name FROM `+view,
+		[]any{&r.Ecosystem, &r.PkgName, &r.ProviderID, &r.VulnName},
+		func() {
+			diffs.add(change, r.Ecosystem, r.PkgName, "", r.ProviderID, r.VulnName)
+		})
 }
 
-// findCPEVulnsAdded finds added CPE-based vulnerabilities
-func (d *DBDiffer) findCPEVulnsAdded(diffs map[pkgKey]*PackageDiff) (int, error) {
-	var rows []cpeRow
-	err := d.db.Raw(`
-		SELECT * FROM diff_cpe_added
-	`).Scan(&rows).Error
-	if err != nil {
-		return 0, err
-	}
-	for _, r := range rows {
-		vulnerabilityAdded(diffs, cpeEcosystem, r.Product, r.cpeString(), r.ProviderID, r.VulnName)
-	}
-	return len(rows), nil
+// findCPEChanges adds the changes in the given CPE view (diff_cpe_added, diff_cpe_removed, or diff_cpe_modified)
+func (d *DBDiffer) findCPEChanges(view string, change changeType, diffs *packageDiffs) (int, error) {
+	var r cpeRow
+	return d.forEachRow(`SELECT COALESCE(part, ''), COALESCE(vendor, ''), COALESCE(product, ''), COALESCE(edition, ''),
+			COALESCE(language, ''), COALESCE(sw_edition, ''), COALESCE(target_hw, ''), COALESCE(target_sw, ''),
+			COALESCE(other, ''), provider_id, vuln_name
+		FROM `+view,
+		[]any{&r.Part, &r.Vendor, &r.Product, &r.Edition, &r.Language, &r.SWEdition, &r.TargetHW, &r.TargetSW, &r.Other, &r.ProviderID, &r.VulnName},
+		func() {
+			diffs.add(change, cpeEcosystem, r.Product, r.cpeString(), r.ProviderID, r.VulnName)
+		})
 }
 
-// findCPEVulnsRemoved finds removed CPE-based vulnerabilities
-func (d *DBDiffer) findCPEVulnsRemoved(diffs map[pkgKey]*PackageDiff) (int, error) {
-	var rows []cpeRow
-	err := d.db.Raw(`
-		SELECT * FROM diff_cpe_removed
-	`).Scan(&rows).Error
+// forEachRow scans each row of the query into dest and calls fn, without holding all rows in memory at once (a diff
+// can contain millions of rows). fn must not query the database: the open rows hold the only connection, so a nested
+// query would block forever.
+func (d *DBDiffer) forEachRow(query string, dest []any, fn func()) (int, error) {
+	rows, err := d.db.Raw(query).Rows()
 	if err != nil {
 		return 0, err
 	}
-	for _, r := range rows {
-		vulnerabilityRemoved(diffs, cpeEcosystem, r.Product, r.cpeString(), r.ProviderID, r.VulnName)
-	}
-	return len(rows), nil
-}
+	defer log.CloseAndLogError(rows, query)
 
-// findCPEVulnsModified finds removed CPE-based vulnerabilities
-func (d *DBDiffer) findCPEVulnsModified(diffs map[pkgKey]*PackageDiff) (int, error) {
-	var rows []cpeRow
-	err := d.db.Raw(`
-		SELECT * FROM diff_cpe_modified
-	`).Scan(&rows).Error
-	if err != nil {
-		return 0, err
+	count := 0
+	for rows.Next() {
+		if err := rows.Scan(dest...); err != nil {
+			return count, err
+		}
+		fn()
+		count++
 	}
-	for _, r := range rows {
-		vulnerabilityModified(diffs, cpeEcosystem, r.Product, r.cpeString(), r.ProviderID, r.VulnName)
-	}
-	return len(rows), nil
+	return count, rows.Err()
 }
 
 func (d *DBDiffer) prepareTemplates(templates []string, r *strings.Replacer) []string {
@@ -339,15 +334,8 @@ func (d *DBDiffer) prepareTemplates(templates []string, r *strings.Replacer) []s
 				out = append(out, stmt)
 			}
 			if viewCreate.MatchString(stmt) {
-				view := viewCreate.FindStringSubmatch(stmt)[1]
-				if d.db.Exec(fmt.Sprintf("SELECT 1 from %s", view)).Error == nil {
-					log.Debugf("skipping view creation for existing view %s", view)
-					return nil
-				}
-				out = append(out,
-					"DROP VIEW IF EXISTS "+view,
-					strings.Replace(stmt, "TEMP", "", 1),
-				)
+				// views are cheap to create, and must remain temporary since they reference the attached new_db
+				out = append(out, stmt)
 			}
 		} else {
 			out = append(out, stmt)
@@ -359,10 +347,10 @@ func (d *DBDiffer) prepareTemplates(templates []string, r *strings.Replacer) []s
 func (d *DBDiffer) createVulnsTables() error {
 	startTime := time.Now()
 	if err := d.createDiffTablesVulns("old", "main"); err != nil {
-		return fmt.Errorf("failed to create old vuln diff tables: %w", err)
+		return fmt.Errorf("failed to create first database vuln diff tables: %w", err)
 	}
 	if err := d.createDiffTablesVulns("new", "new_db"); err != nil {
-		return fmt.Errorf("failed to create new vuln diff tables: %w", err)
+		return fmt.Errorf("failed to create second database vuln diff tables: %w", err)
 	}
 	if err := d.createDiffViewsVulns(); err != nil {
 		return fmt.Errorf("failed to create vuln diff views: %w", err)
@@ -442,49 +430,80 @@ func (d *DBDiffer) findEpssDiffs() (map[string]struct{}, error) {
 	return out, nil
 }
 
-func applyChange(diffs map[pkgKey]*PackageDiff, pkgEcosystem, pkgName, pkgCPE, providerID, vulnName string, applyChangeFn func(*PackageDiff, VulnerabilityID)) {
+type changeType int
+
+const (
+	changeAdded changeType = iota
+	changeRemoved
+	changeModified
+)
+
+type pkgChange struct {
+	pkg    pkgKey
+	change changeType
+	vuln   VulnerabilityID
+}
+
+// packageDiffs collects the per-package/CPE diff entries
+type packageDiffs struct {
+	byKey map[pkgKey]*PackageDiff
+	// seen holds the CPE changes that have been added: rows from the package views are unique (each is a distinct
+	// vulnerability + package), but different CPEs may be represented by the same CPE string
+	seen map[pkgChange]struct{}
+	// strings interns the provider and vulnerability names, which repeat across many packages
+	strings map[string]string
+}
+
+func newPackageDiffs() *packageDiffs {
+	return &packageDiffs{
+		byKey:   map[pkgKey]*PackageDiff{},
+		seen:    map[pkgChange]struct{}{},
+		strings: map[string]string{},
+	}
+}
+
+func (p *packageDiffs) intern(s string) string {
+	if v, ok := p.strings[s]; ok {
+		return v
+	}
+	p.strings[s] = s
+	return s
+}
+
+func (p *packageDiffs) add(change changeType, pkgEcosystem, pkgName, pkgCPE, providerID, vulnName string) {
 	key := pkgKey{
 		Ecosystem: pkgEcosystem,
 		Name:      pkgName,
 		CPE:       pkgCPE,
 	}
-	pd := diffs[key]
+	entry := VulnerabilityID{ID: p.intern(vulnName), Provider: p.intern(providerID)}
+
+	if pkgCPE != "" {
+		c := pkgChange{pkg: key, change: change, vuln: entry}
+		if _, ok := p.seen[c]; ok {
+			return
+		}
+		p.seen[c] = struct{}{}
+	}
+
+	pd := p.byKey[key]
 	if pd == nil {
 		pd = &PackageDiff{
 			Ecosystem: pkgEcosystem,
 			Name:      pkgName,
 			CPE:       pkgCPE,
 		}
-		diffs[key] = pd
+		p.byKey[key] = pd
 	}
-	applyChangeFn(pd, VulnerabilityID{ID: vulnName, Provider: providerID})
-}
 
-func vulnerabilityAdded(diffs map[pkgKey]*PackageDiff, pkgEcosystem, pkgName, pkgCPE, providerID, vulnName string) {
-	applyChange(diffs, pkgEcosystem, pkgName, pkgCPE, providerID, vulnName, func(pd *PackageDiff, entry VulnerabilityID) {
-		pd.Vulnerabilities.Added = appendUniqueEntry(pd.Vulnerabilities.Added, entry)
-	})
-}
-
-func vulnerabilityModified(diffs map[pkgKey]*PackageDiff, pkgEcosystem, pkgName, pkgCPE, providerID, vulnName string) {
-	applyChange(diffs, pkgEcosystem, pkgName, pkgCPE, providerID, vulnName, func(pd *PackageDiff, entry VulnerabilityID) {
-		pd.Vulnerabilities.Modified = appendUniqueEntry(pd.Vulnerabilities.Modified, entry)
-	})
-}
-
-func vulnerabilityRemoved(diffs map[pkgKey]*PackageDiff, pkgEcosystem, pkgName, pkgCPE, providerID, vulnName string) {
-	applyChange(diffs, pkgEcosystem, pkgName, pkgCPE, providerID, vulnName, func(pd *PackageDiff, entry VulnerabilityID) {
-		pd.Vulnerabilities.Removed = appendUniqueEntry(pd.Vulnerabilities.Removed, entry)
-	})
-}
-
-func appendUniqueEntry(entries []VulnerabilityID, entry VulnerabilityID) []VulnerabilityID {
-	for _, e := range entries {
-		if e.ID == entry.ID && e.Provider == entry.Provider {
-			return entries
-		}
+	switch change {
+	case changeAdded:
+		pd.Vulnerabilities.Added = append(pd.Vulnerabilities.Added, entry)
+	case changeRemoved:
+		pd.Vulnerabilities.Removed = append(pd.Vulnerabilities.Removed, entry)
+	case changeModified:
+		pd.Vulnerabilities.Modified = append(pd.Vulnerabilities.Modified, entry)
 	}
-	return append(entries, entry)
 }
 
 func parallel[T any](f1 func() (T, error), f2 func() (T, error)) (T, T, error) {
@@ -515,10 +534,10 @@ func trim(stmt string, maxLen int) string {
 }
 
 type pkgRow struct {
-	Ecosystem  string `gorm:"column:ecosystem"`
-	PkgName    string `gorm:"column:pkg_name"`
-	ProviderID string `gorm:"column:provider_id"`
-	VulnName   string `gorm:"column:vuln_name"`
+	Ecosystem  string
+	PkgName    string
+	ProviderID string
+	VulnName   string
 }
 
 type vulnRow struct {
@@ -527,18 +546,18 @@ type vulnRow struct {
 }
 
 type cpeRow struct {
-	Part      string `gorm:"column:part"`
-	Vendor    string `gorm:"column:vendor"`
-	Product   string `gorm:"column:product"`
-	Edition   string `gorm:"column:edition"`
-	Language  string `gorm:"column:language"`
-	SWEdition string `gorm:"column:sw_edition"`
-	TargetHW  string `gorm:"column:target_hw"`
-	TargetSW  string `gorm:"column:target_sw"`
-	Other     string `gorm:"column:other"`
+	Part      string
+	Vendor    string
+	Product   string
+	Edition   string
+	Language  string
+	SWEdition string
+	TargetHW  string
+	TargetSW  string
+	Other     string
 
-	VulnName   string `gorm:"column:vuln_name"`
-	ProviderID string `gorm:"column:provider_id"`
+	VulnName   string
+	ProviderID string
 }
 
 func (r cpeRow) cpeString() string {

@@ -1,6 +1,10 @@
 package diff
 
-import "github.com/anchore/grype/grype/db/v6/installation"
+import (
+	"time"
+
+	"github.com/anchore/grype/grype/db/v6/installation"
+)
 
 func DefaultConfig() Config {
 	return Config{
@@ -25,8 +29,12 @@ type Config struct {
 	Include       Includes
 	Debug         bool
 	EPSSThreshold float64
-	OldDB         string
-	NewDB         string
+	// OldDB is the database the diff is from (the first provided), regardless of build time
+	OldDB string
+	// NewDB is the database the diff is to (the second provided). When empty, the installed database is used
+	NewDB string
+	// DownloadTimeout bounds downloading a database given as a URL (zero means no timeout)
+	DownloadTimeout time.Duration
 }
 
 func (c Config) IncludePackages() bool {
@@ -54,6 +62,8 @@ func (c Config) IncludeKEV() bool {
 	return c.Include.KEV
 }
 
+// allUnset reports whether neither packages nor vulns were requested, which means "diff everything" (so a zero
+// Includes runs a full diff)
 func allUnset(include Includes) bool {
 	return !include.Packages && !include.Vulns
 }

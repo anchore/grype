@@ -1,0 +1,22 @@
+# see pr.yaml for how the setups are chosen
+schema: v1
+description: same as pr, with vulnerabilities through 2024
+candidate: {grype: ../bin/grype, db: "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.9_2026-10-01T00:39:44Z_1790836428.tar.zst@sha256:c0d0263192d91df04b242e9a91e34cb289118fb08f1ed56eb0239eb57d7a517f", config: ../.grype.yaml}
+reference: {grype: grype@latest, db: "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.9_2026-10-01T00:39:44Z_1790836428.tar.zst@sha256:c0d0263192d91df04b242e9a91e34cb289118fb08f1ed56eb0239eb57d7a517f", config: ../.grype.yaml}
+undecided: pass
+vulnerabilities:
+  maxYear: 2024
+checks:
+  - name: f1NotWorse
+  - name: noNewFalseNegatives
+  - name: matchesAtLeast
+    params: {min: 0}
+subjects:
+  - oci:ghcr.io/anchore/test-images/bitnami/redis:7.4.0@sha256:4bad45268adfdbb0b456d6bf74ded449ef79f3706cb4e473516a0a5b393968c0
+  - oci:ghcr.io/buildecho/scanner-test:latest@sha256:60557350ad6976dad3b88d891de8f090b20b3271c660272d30d44b5d07b23edc
+  - oci:docker.io/dimastopelmini/forgrype:3.1.6@sha256:ebe0c6ca122deef072c29be2f915130e5c8b4c277ad5ef551385f6496dae4dfa
+  - oci:docker.io/dimastopelmini/forgrype:3.1.7@sha256:653c8980c63a9ac403a3b9f56a08f43f929432ece69894423c165b4d61d3dcdb
+  - oci:ghcr.io/anchore/test-images/postmarketos:edge@sha256:2bdab220693cecfe3474055076bcbfe9ec8faf466867a5db3e0b76afaa9f4b89
+  - oci:ghcr.io/anchore/test-images/postmarketos:24.06@sha256:05b42fdb332f8a5794c9d1e6ab83cd32030bf0cd3ef797ada5546419e9ad293d
+  - oci:ghcr.io/anchore/test-images/appstreams-nodejs-18-rhel-9@sha256:08dbfad2d6af9afe47f7647b0b8f38fd29fc9e89306cfc39c9509981f9388b7f
+  - oci:ghcr.io/anchore/test-images/appstreams-nodejs-base-rhel-9@sha256:fc6f7a37d7e320f6ff3643d4ec9a208adb1462cd16027f045b56563e12bb0461

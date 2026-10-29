@@ -1,10 +1,6 @@
 name: "Bootstrap"
 description: "Bootstrap all tools and dependencies"
 inputs:
-  go-version:
-    description: "Go version to install (empty lets setup read from go.mod)"
-    required: false
-    default: ""
   cache-key-prefix:
     description: "Prefix all cache keys with this value"
     required: false
@@ -29,9 +25,8 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: anchore/go-make/.github/actions/setup@abf41688f36f2cbec13105747abbe8e60f5c56ca # v0.9.3
+    - uses: anchore/go-make/.github/actions/setup@cf465259f4c9f0b0b0bcb35164ede11f7dc6d9f6 # v0.9.6
       with:
-        go-version: ${{ inputs.go-version }}
         cache-key-prefix: ${{ inputs.cache-key-prefix }}
 
     - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0

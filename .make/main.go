@@ -41,10 +41,10 @@ func main() {
 		goreleaser.Tasks(),
 
 		buildTask(),
-		integrationTask(),
+		smokeTestTask(),
 		cliTask(),
 		containersStorageTestTask(),
-		qualityTask(),
+		integrationTasks(),
 
 		generateTask(),
 		updateOSVModelTask(),
@@ -56,11 +56,9 @@ func main() {
 		fingerprintsTask(),
 
 		fixturesTasks(),
-		updateQualityGateDBTask(),
 
 		showTestImageCacheTask(),
 		cleanCacheTask(),
-		cleanQualityTasks(),
 	)
 }
 
@@ -89,19 +87,14 @@ func buildTask() Task {
 	}
 }
 
-// integrationTask runs the integration test suite plus a quick race-detector
-// smoke test of the CLI against alpine:latest.
-func integrationTask() Task {
+// smokeTestTask scans alpine:latest with the data race detector on, exercising most of the CLI end to end.
+func smokeTestTask() Task {
 	return Task{
-		Name:        "integration",
-		Description: "run integration tests",
-		RunsOn:      lang.List("test"),
+		Name:        "smoke-test",
+		Description: "scan an image with the race detector enabled",
 		Run: func() {
-			Run(`go test -v -tags=` + buildTags + ` ./test/integration`)
-			// update database outside race detector, since doing so with
-			// race detector on is very slow
+			// update the DB outside the race detector, which makes it very slow
 			Run(fmt.Sprintf(`go run ./cmd/%s db update`, project))
-			// exercise most of the CLI with the data race detector enabled
 			Run(fmt.Sprintf(`go run -race -tags=%s ./cmd/%s alpine:latest`, buildTags, project))
 		},
 	}
@@ -169,16 +162,6 @@ func linuxSnapshotBinPath() string {
 		arch += "_v8.0"
 	}
 	return filepath.Join(RootDir(), snapshotBn, "linux-build_linux_"+arch, project)
-}
-
-func qualityTask() Task {
-	return Task{
-		Name:        "quality",
-		Description: "run quality tests",
-		Run: func() {
-			file.InDir("test/quality", func() { Run("make") })
-		},
-	}
 }
 
 // generateTask groups all code-generation entry points. Each sub-task can be
@@ -348,7 +331,7 @@ func installTestTasks() Task {
 	}
 }
 
-// fingerprintsTask regenerates cache.fingerprint files for the three test
+// fingerprintsTask regenerates cache.fingerprint files for the test
 // suites that participate in CI caching. Not auto-discovered by
 // gotest.FixtureTasks because test/install/Makefile lives outside the
 // testdata/test-fixtures convention.
@@ -358,7 +341,6 @@ func fingerprintsTask() Task {
 		Description: "generate test fixture cache fingerprints",
 		Run: func() {
 			for _, dir := range []string{
-				"test/integration/testdata",
 				"test/install",
 				"test/cli/testdata",
 			} {
@@ -404,20 +386,6 @@ func vunnelDataFlag() string {
 	return "--vunnel-data " + data
 }
 
-// updateQualityGateDBTask pins the test DB used by the quality test suite to
-// whatever is currently latest in the v6 distribution. Output goes to
-// test/quality/test-db; we use bash -c for the pipe.
-func updateQualityGateDBTask() Task {
-	return Task{
-		Name:        "update-quality-gate-db",
-		Description: "update pinned version of quality gate database",
-		Run: func() {
-			Run(`bash -c 'go run cmd/grype/main.go db list -o json | jq -r ` +
-				`"\"https://grype.anchore.io/databases/v6/\" + .[0].path" > test/quality/test-db'`)
-		},
-	}
-}
-
 func showTestImageCacheTask() Task {
 	return Task{
 		Name: "show-test-image-cache",
@@ -438,53 +406,6 @@ func cleanCacheTask() Task {
 		Run: func() {
 			Run(`bash -c "find . -type f -wholename '**/testdata/cache/stereoscope-fixture-*.tar' -delete"`)
 			Run(`bash -c "docker images --format '{{.ID}} {{.Repository}}' | grep stereoscope-fixture- | awk '{print \$1}' | uniq | xargs -r docker rmi --force"`)
-		},
-	}
-}
-
-// cleanQualityTasks removes what the quality gate downloads or produces under test/quality
-// (mirrors test/quality/.gitignore); tracked content is left intact.
-func cleanQualityTasks() Task {
-	const dir = "test/quality"
-	return Task{
-		Tasks: []Task{
-			{
-				Name:        "clean:quality-results",
-				Description: "remove quality gate yardstick results",
-				RunsOn:      lang.List("clean:quality"),
-				Run: func() {
-					file.Delete(dir + "/.yardstick/result")
-				},
-			},
-			{
-				Name:        "clean:quality-downloads",
-				Description: "remove quality gate downloaded DBs, SBOM cache, tools and python envs",
-				RunsOn:      lang.List("clean:quality"),
-				Run: func() {
-					for _, p := range []string{
-						".yardstick/tools",
-						".oras-cache",
-						"venv",
-						"vulnerability-match-labels/venv",
-						"stage",
-						"pull",
-						"migrate.py",
-					} {
-						file.Delete(dir + "/" + p)
-					}
-					for _, glob := range []string{"*.tar.gz", "*.tar.zst"} {
-						for _, f := range file.FindAll(dir + "/" + glob) {
-							file.Delete(f)
-						}
-					}
-					Run(`bash -c "find ` + dir + ` -name '*.pyc' -delete"`)
-				},
-			},
-			{
-				Name:        "clean:quality",
-				Description: "remove all quality gate downloads and results",
-				RunsOn:      lang.List("clean"),
-			},
 		},
 	}
 }
