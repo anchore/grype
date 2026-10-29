@@ -40,7 +40,6 @@ func main() {
 		),
 		goreleaser.Tasks(),
 
-		buildTask(),
 		smokeTestTask(),
 		cliTask(),
 		containersStorageTestTask(),
@@ -60,31 +59,6 @@ func main() {
 		showTestImageCacheTask(),
 		cleanCacheTask(),
 	)
-}
-
-// buildTask runs `goreleaser build --single-target` to produce a local binary
-// fast. go-make v0.4.0's snapshot:single-target task is broken (it invokes
-// `goreleaser release --single-target`, which is rejected by goreleaser), so
-// we re-implement single-target builds here mirroring goreleaser.SnapshotTasks'
-// config-injection pattern.
-func buildTask() Task {
-	return Task{
-		Name:         "build",
-		Description:  "build a single-target snapshot binary",
-		Dependencies: Deps("release:dependencies"),
-		Run: func() {
-			file.Require(".goreleaser.yaml")
-			file.WithTempDir(func(tempDir string) {
-				cfg := tempDir + "/.goreleaser.yaml"
-				content := file.Read(".goreleaser.yaml")
-				if !file.Contains(".goreleaser.yaml", "dist:") {
-					content += "\ndist: " + snapshotBn + "\n"
-				}
-				file.Write(cfg, content)
-				Run(fmt.Sprintf("goreleaser build --clean --snapshot --single-target --config=%s", cfg))
-			})
-		},
-	}
 }
 
 // smokeTestTask scans alpine:latest with the data race detector on, exercising most of the CLI end to end.
