@@ -161,7 +161,7 @@ func TestApplyExplicitIgnoreRules_EquivalentToUnindexed(t *testing.T) {
 }
 
 var (
-	randomVulnerabilityIDs = []string{"CVE-2021-44228", "CVE-2023-45853", "CVE-1", "CVE-2", "GHSA-xxxx-yyyy-zzzz"}
+	randomVulnerabilityIDs = []string{"CVE-2021-44228", "CVE-2023-45853", "CVE-1", "cve-1", "CVE-2", "GHSA-xxxx-yyyy-zzzz"}
 	randomNamespaces       = []string{"debian:distro:debian:12", "nvd:cpe", "github:language:java"}
 	randomPackageNames     = []string{"linux-libc-dev", "log4j-api", "zlib1g", "libc6", "linux-headers-6.1"}
 	randomRuleNames        = []string{"linux-libc-dev", "log4j-api", "zlib1g", "linux.*", "lib(c6|z)", "linux(-.*)?-headers-.*", "[invalid"}
