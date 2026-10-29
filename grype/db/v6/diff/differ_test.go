@@ -256,6 +256,74 @@ func Test_basicPackageDiff(t *testing.T) {
 			},
 		},
 		{
+			name: "affected-and-unaffected-same-os-unchanged",
+			oldDB: []string{
+				"rhel-8/cve-2026-19843",
+			},
+			newDB: []string{
+				"rhel-8/cve-2026-19843",
+			},
+			expected: map[string]changes{
+				"389-ds-base": {},
+			},
+		},
+		{
+			name: "module-stream-becomes-affected",
+			oldDB: []string{
+				"rhel-8/cve-2026-19843-not-affected",
+			},
+			newDB: []string{
+				"rhel-8/cve-2026-19843",
+			},
+			expected: map[string]changes{
+				"389-ds-base": {
+					added{"CVE-2026-19843"},
+				},
+			},
+		},
+		{
+			name: "module-stream-becomes-not-affected",
+			oldDB: []string{
+				"rhel-8/cve-2026-19843",
+			},
+			newDB: []string{
+				"rhel-8/cve-2026-19843-not-affected",
+			},
+			expected: map[string]changes{
+				"389-ds-base": {
+					removed{"CVE-2026-19843"},
+				},
+			},
+		},
+		{
+			name: "affected-module-stream-added",
+			oldDB: []string{
+				"rhel-8/cve-2026-19843-module-only",
+			},
+			newDB: []string{
+				"rhel-8/cve-2026-19843-two-streams",
+			},
+			expected: map[string]changes{
+				"389-ds-base": {
+					modified{"CVE-2026-19843"},
+				},
+			},
+		},
+		{
+			name: "affected-module-stream-dropped",
+			oldDB: []string{
+				"rhel-8/cve-2026-19843-two-streams",
+			},
+			newDB: []string{
+				"rhel-8/cve-2026-19843-module-only",
+			},
+			expected: map[string]changes{
+				"389-ds-base": {
+					modified{"CVE-2026-19843"},
+				},
+			},
+		},
+		{
 			name: "status-change-removal",
 			oldDB: []string{
 				"2020/cve-2020-15415",

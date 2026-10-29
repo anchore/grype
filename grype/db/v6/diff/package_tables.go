@@ -199,9 +199,13 @@ func (d *DBDiffer) createDiffViewsPackages() error {
 
 	// presence summarizes, for each key, whether the old and new databases have records with a vulnerable (1) or
 	// not-vulnerable (0) status, keeping only the keys that were added or removed. Both tables have an index ordered
-	// by key, so sqlite merges the two indexes in a single pass rather than probing one table for each row of the other
+	// by key, so sqlite merges the two indexes in a single pass rather than probing one table for each row of the other.
+	// A key whose statuses are the same on both sides is unchanged, so it is dropped before the added and removed
+	// views see it: a package with both a vulnerable and a not-vulnerable record for one vulnerability and OS release
+	// (an affected module stream beside a not-affected non-module package, say) otherwise matched the vulnerable record
+	// on one side against the not-vulnerable record on the other, and was reported as both added and removed
 	presence := `CREATE TEMP TABLE diff_{type}_presence AS
-		SELECT vuln_key, {key},
+		SELECT {cols},
 			MAX(side = 0 AND status = 0) AS o0, MAX(side = 0 AND status = 1) AS o1,
 			MAX(side = 1 AND status = 0) AS n0, MAX(side = 1 AND status = 1) AS n1
 		FROM (
@@ -211,20 +215,34 @@ func (d *DBDiffer) createDiffViewsPackages() error {
 			ORDER BY {cols}
 		)
 		GROUP BY {cols}
-		HAVING NOT ((o0 OR o1) AND (n0 OR n1)) OR (n1 AND o0) OR (o1 AND n0)`
+		HAVING (NOT ((o0 OR o1) AND (n0 OR n1)) OR (n1 AND o0) OR (o1 AND n0))
+		AND (o0 <> n0 OR o1 <> n1)`
+	presenceIndex := `CREATE INDEX idx_diff_{type}_presence ON diff_{type}_presence ({cols})`
 
 	// "added" / "removed" rows are records with no matching record on the other side, or which are vulnerable
 	// where a matching record on the other side is not
 	added := `SELECT DISTINCT vuln_key, {key} FROM diff_{type}_presence WHERE (n0 OR n1) AND (NOT (o0 OR o1) OR (n1 AND o0))`
 	removed := `SELECT DISTINCT vuln_key, {key} FROM diff_{type}_presence WHERE (o0 OR o1) AND (NOT (n0 OR n1) OR (o1 AND n0))`
 
-	// "modified" rows are records where a record with the same key and status exists on the other side, but none of
-	// these have equivalent blob content
-	modified := `SELECT DISTINCT a.vuln_key, a.{key}
+	// "modified" rows are records whose key has the same statuses on both sides (so it is not in presence, and was not
+	// added or removed), but with no record of the same status and equivalent blob content on the other side. Both
+	// sides are checked, so a record that only exists in the new database (a second affected module stream, say) is
+	// found too. The old (a) and new (b) aliases are kept on each side since blobsEquivalent depends on them
+	modified := `SELECT a.vuln_key, a.{key}
 		FROM diff_{type}_old a
-		WHERE EXISTS (SELECT 1 FROM diff_{type}_new b WHERE {keyMatch} AND a.status = b.status)
+		WHERE NOT EXISTS (SELECT 1 FROM diff_{type}_presence b WHERE {keyMatch})
 		AND NOT EXISTS (
 			SELECT 1 FROM diff_{type}_new b
+			WHERE {keyMatch}
+			AND a.status = b.status
+			AND {blobsEquivalent}
+		)
+		UNION
+		SELECT b.vuln_key, b.{key}
+		FROM diff_{type}_new b
+		WHERE NOT EXISTS (SELECT 1 FROM diff_{type}_presence a WHERE {keyMatch})
+		AND NOT EXISTS (
+			SELECT 1 FROM diff_{type}_old a
 			WHERE {keyMatch}
 			AND a.status = b.status
 			AND {blobsEquivalent}
@@ -235,7 +253,9 @@ func (d *DBDiffer) createDiffViewsPackages() error {
 
 	templates := []string{
 		pkg.Replace(presence),
+		pkg.Replace(presenceIndex),
 		cpe.Replace(presence),
+		cpe.Replace(presenceIndex),
 		`CREATE TEMP VIEW diff_pkg_added AS ` + fmt.Sprintf(pkgResult, pkg.Replace(added)),
 		`CREATE TEMP VIEW diff_pkg_removed AS ` + fmt.Sprintf(pkgResult, pkg.Replace(removed)),
 		`CREATE TEMP VIEW diff_pkg_modified AS ` + fmt.Sprintf(pkgResult, pkg.Replace(modified)),
