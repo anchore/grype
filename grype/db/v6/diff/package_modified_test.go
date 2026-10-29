@@ -16,8 +16,8 @@ import (
 // what decides a modification is whether that set of records changed, not whether any single record
 // changed. Walking only the old side answers that question for records dropped from the old database but
 // not for records added to the new one beside those already there, so each combination is pinned here.
-// Only modifications are asserted: whether the same key is also added or removed depends on the statuses
-// its records carry, which the added and removed views decide.
+// Only modifications are asserted. A key whose set of statuses changed is reported as added or removed
+// instead, never as modified, so those cases expect no modification.
 func Test_packageModifiedRecordSets(t *testing.T) {
 	const (
 		blobX = `{"ranges":[{"version":{"type":"dpkg"},"fix":{"state":"not-fixed"}}]}`
@@ -55,7 +55,7 @@ func Test_packageModifiedRecordSets(t *testing.T) {
 		{name: "a record added with content already present", mutateNew: addRecord(blobX), modified: false},
 		{name: "a record removed with content still present", mutateOld: addRecord(blobX), modified: false},
 		{name: "a not-vulnerable record added, vulnerable records unchanged", mutateNew: addNotVulnerable, modified: false},
-		{name: "a not-vulnerable record added and a vulnerable record beside it", mutateNew: append(addRecord(blobY), addNotVulnerable...), modified: true},
+		{name: "a not-vulnerable record added and a vulnerable record beside it", mutateNew: append(addRecord(blobY), addNotVulnerable...), modified: false},
 	}
 
 	inputDir, err := filepath.Abs(filepath.Join("testdata", "inputs"))
