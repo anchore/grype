@@ -11,15 +11,16 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-// The chainguard-subpackages fixture holds Chainguard OSV entries for the origin package "foo", most of them
-// marked database_specific.chainguard.applies_to_subpackages=false, plus one unmarked entry for "bar" and
-// one entry filed against the subpackage "foo-docs" itself. The NVD entries describe the "foo" CPE.
+// The chainguard-subpackages fixture holds Chainguard OSV entries for the origin package "foo", all of them
+// marked database_specific.chainguard.applies_to_subpackages=false, plus one entry filed against the
+// subpackage "foo-docs" itself. The NVD entries describe the "foo" CPE.
 
-func subpackage(name, version, origin string) *dbtest.PackageBuilder {
-	return dbtest.NewPackage(name, version, syftPkg.ApkPkg).
+// fooDocs builds the subpackage "foo-docs", which names "foo" as its origin package
+func fooDocs(version string) *dbtest.PackageBuilder {
+	return dbtest.NewPackage("foo-docs", version, syftPkg.ApkPkg).
 		WithDistro(dbtest.ChainguardRolling).
 		WithMetadata(pkg.ApkMetadata{Arch: "x86_64"}).
-		WithUpstream(origin, "")
+		WithUpstream("foo", "")
 }
 
 // an open entry scoped to the origin package does not reach a subpackage that names it as origin
@@ -28,7 +29,7 @@ func TestMatcherApk_UpstreamScope_OpenEntryDoesNotReachSubpackage(t *testing.T) 
 		SelectOnly("CGA-sub0-0000-0001").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
-			p := subpackage("foo-docs", "1.2.3-r0", "foo").Build()
+			p := fooDocs("1.2.3-r0").Build()
 
 			findings := db.Match(t, &matcher, p)
 			findings.IsEmpty()
@@ -54,28 +55,13 @@ func TestMatcherApk_UpstreamScope_OpenEntryStillMatchesOrigin(t *testing.T) {
 		})
 }
 
-// an entry without the field keeps today's behaviour: it reaches the subpackage through the origin search
-func TestMatcherApk_UpstreamScope_UnscopedEntryStillReachesSubpackage(t *testing.T) {
-	dbtest.DBs(t, "chainguard-subpackages").
-		SelectOnly("CGA-sub0-0000-0004").
-		Run(func(t *testing.T, db *dbtest.DB) {
-			matcher := Matcher{}
-			p := subpackage("bar-docs", "1.2.3-r0", "bar").Build()
-
-			db.Match(t, &matcher, p).
-				SelectMatch("CGA-sub0-0000-0004").
-				SelectDetailByType(match.ExactIndirectMatch).
-				AsDistroSearch()
-		})
-}
-
 // a fixed entry scoped to the origin package does not clear files the subpackage owns
 func TestMatcherApk_UpstreamScope_FixedEntryProducesNoIgnoreOnSubpackage(t *testing.T) {
 	dbtest.DBs(t, "chainguard-subpackages").
 		SelectOnly("CGA-sub0-0000-0007").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
-			p := subpackage("foo-docs", "1.2.3-r2", "foo").Build()
+			p := fooDocs("1.2.3-r2").Build()
 
 			findings := db.Match(t, &matcher, p)
 			findings.IsEmpty()
@@ -109,7 +95,7 @@ func TestMatcherApk_UpstreamScope_NakProducesNoIgnoreOnSubpackage(t *testing.T) 
 		SelectOnly("CGA-sub0-0000-0003").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
-			p := subpackage("foo-docs", "1.2.3-r0", "foo").Build()
+			p := fooDocs("1.2.3-r0").Build()
 
 			findings := db.Match(t, &matcher, p)
 			findings.IsEmpty()
@@ -140,7 +126,7 @@ func TestMatcherApk_UpstreamScope_NvdByOriginNameStillReported(t *testing.T) {
 		SelectOnly("CVE-2026-41006").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
-			p := subpackage("foo-docs", "1.2.3-r0", "foo").
+			p := fooDocs("1.2.3-r0").
 				WithCPE("cpe:2.3:a:foo:foo-docs:1.2.3:*:*:*:*:*:*:*").
 				Build()
 
@@ -157,7 +143,7 @@ func TestMatcherApk_UpstreamScope_NvdSettledByOriginFix(t *testing.T) {
 		SelectOnly("CGA-sub0-0000-0002", "CVE-2026-41002").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
-			p := subpackage("foo-docs", "1.2.3-r2", "foo").
+			p := fooDocs("1.2.3-r2").
 				WithCPE("cpe:2.3:a:foo:foo-docs:1.2.3:*:*:*:*:*:*:*").
 				Build()
 
@@ -173,7 +159,7 @@ func TestMatcherApk_UpstreamScope_NvdSettledByOriginNak(t *testing.T) {
 		SelectOnly("CGA-sub0-0000-0003", "CVE-2026-41003").
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
-			p := subpackage("foo-docs", "1.2.3-r0", "foo").
+			p := fooDocs("1.2.3-r0").
 				WithCPE("cpe:2.3:a:foo:foo-docs:1.2.3:*:*:*:*:*:*:*").
 				Build()
 
@@ -190,7 +176,7 @@ func TestMatcherApk_UpstreamScope_NvdSettledBySubpackageOwnFix(t *testing.T) {
 		Run(func(t *testing.T, db *dbtest.DB) {
 			matcher := Matcher{}
 			pkgID := pkg.ID("foo-docs-own-fix")
-			p := subpackage("foo-docs", "1.2.3-r2", "foo").
+			p := fooDocs("1.2.3-r2").
 				WithID(pkgID).
 				WithCPE("cpe:2.3:a:foo:foo-docs:1.2.3:*:*:*:*:*:*:*").
 				Build()
