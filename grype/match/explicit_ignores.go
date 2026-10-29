@@ -81,11 +81,20 @@ func ApplyExplicitIgnoreRules(provider ExclusionProvider, matches Matches) (Matc
 	ignoreRules = append(ignoreRules, explicitIgnoreRules...)
 
 	if provider != nil {
+		// several matches can share a vulnerability ID, so look each ID up once; repeating its rules would attach
+		// the same rule to an ignored match once per sharing match
+		seen := make(map[string]struct{})
 		for _, m := range matches.Sorted() {
-			r, err := provider.IgnoreRules(m.Vulnerability.ID)
+			id := m.Vulnerability.ID
+			if _, ok := seen[id]; ok {
+				continue
+			}
+			seen[id] = struct{}{}
+
+			r, err := provider.IgnoreRules(id)
 
 			if err != nil {
-				log.Warnf("unable to get ignore rules for vuln id=%s", m.Vulnerability.ID)
+				log.Warnf("unable to get ignore rules for vuln id=%s", id)
 				continue
 			}
 

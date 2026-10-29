@@ -55,11 +55,15 @@ func applyIgnoreRulesUnindexed(matches Matches, rules []IgnoreRule) (Matches, []
 }
 
 // applyExplicitIgnoreRulesUnindexed mirrors ApplyExplicitIgnoreRules, including the rule list built from the
-// provider (one lookup per match, so a vulnerability ID shared by several matches contributes its rules more
-// than once), but applies the rules with the unindexed reference implementation.
+// provider (one lookup per vulnerability ID), but applies the rules with the unindexed reference implementation.
 func applyExplicitIgnoreRulesUnindexed(provider ExclusionProvider, matches Matches) (Matches, []IgnoredMatch) {
 	rules := append([]IgnoreRule{}, explicitIgnoreRules...)
+	seen := map[string]bool{}
 	for _, m := range matches.Sorted() {
+		if seen[m.Vulnerability.ID] {
+			continue
+		}
+		seen[m.Vulnerability.ID] = true
 		r, err := provider.IgnoreRules(m.Vulnerability.ID)
 		if err != nil {
 			continue
@@ -80,8 +84,8 @@ func TestIgnoreRuleIndex_PreservesRuleOrder(t *testing.T) {
 		Package: pkg.Package{ID: "p1", Name: "linux-libc-dev", Type: syftPkg.DebPkg},
 	}
 
-	// grouped (vulnerability, no aliases) and ungrouped rules interleaved, with a duplicate, the way
-	// ApplyExplicitIgnoreRules builds its list when several matches share a vulnerability ID
+	// grouped (vulnerability, no aliases) and ungrouped rules interleaved, with a duplicate, which a rule list
+	// from config can contain
 	rules := []IgnoreRule{
 		{Vulnerability: "CVE-1", Reason: "indexed 0"},
 		{Package: IgnoreRulePackage{Name: "linux-.*"}, Reason: "ungrouped 1"},
@@ -258,7 +262,7 @@ func randomMatches(rng *rand.Rand, n int) Matches {
 func randomIgnoreRules(rng *rand.Rand, n int) []IgnoreRule {
 	var out []IgnoreRule
 	for i := 0; i < n; i++ {
-		// repeat an earlier rule now and then, as ApplyExplicitIgnoreRules does for a shared vulnerability ID
+		// repeat an earlier rule now and then, as a rule list from config can
 		if len(out) > 0 && rng.IntN(8) == 0 {
 			out = append(out, pick(rng, out))
 			continue

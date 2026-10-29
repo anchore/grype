@@ -143,3 +143,22 @@ func Test_ApplyExplicitIgnoreRules(t *testing.T) {
 		})
 	}
 }
+
+func Test_ApplyExplicitIgnoreRules_SharedVulnerabilityAppliesRulesOnce(t *testing.T) {
+	p := &mockExclusionProvider{data: map[string][]IgnoreRule{
+		"CVE-1": {{Vulnerability: "CVE-1", Package: IgnoreRulePackage{Name: "linux"}}},
+	}}
+	pkgLinux := pkg.Package{ID: "linux", Name: "linux", Type: syftPkg.DebPkg}
+	matches := NewMatches(
+		Match{Package: pkgLinux, Vulnerability: vulnerability.Vulnerability{Reference: vulnerability.Reference{ID: "CVE-1", Namespace: "debian:distro:debian:12"}}},
+		Match{Package: pkgLinux, Vulnerability: vulnerability.Vulnerability{Reference: vulnerability.Reference{ID: "CVE-1", Namespace: "nvd:cpe"}}},
+	)
+
+	filtered, ignores := ApplyExplicitIgnoreRules(p, matches)
+
+	assert.Empty(t, filtered.Sorted())
+	assert.Len(t, ignores, 2)
+	for _, i := range ignores {
+		assert.Len(t, i.AppliedIgnoreRules, 1)
+	}
+}
