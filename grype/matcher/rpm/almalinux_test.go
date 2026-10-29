@@ -1,6 +1,8 @@
 package rpm
 
 import (
+	"fmt"
+	"slices"
 	"testing"
 	"time"
 
@@ -554,18 +556,54 @@ func almaResult(id, alias, constraint string) result.Result {
 
 // Two ALSAs cover CVE-2024-8176 for expat on almalinux 9; the package stops being affected at the
 // lower bound (ALSA-2025:3531), so that must be the reported fix regardless of visit order.
-// Both records sit under one key so they are visited in a fixed order (lowest first); overwriting
-// with each visited record would report the last one, ALSA-2025:7444.
+// Records sit under one key so each order below is visited deterministically; overwriting with
+// each visited record would report whichever came last.
 func TestApplyAlmaLinuxUnaffectedFiltering_LowestOverlappingFixWins(t *testing.T) {
-	disclosures := result.Set{"CVE-2024-8176": {almaResult("CVE-2024-8176", "", "< 2.5.0-3.el9_5.3")}}
-	unaffected := result.Set{"ALSA": {
-		almaResult("ALSA-2025:3531", "CVE-2024-8176", ">= 2.5.0-3.el9_5.3"),
-		almaResult("ALSA-2025:7444", "CVE-2024-8176", ">= 2.5.0-5.el9_6"),
-	}}
-	got := applyAlmaLinuxUnaffectedFiltering(disclosures, unaffected, version.New("2.5.0-2.el9_4.1", version.RpmFormat))
-	v := got["CVE-2024-8176"][0].Vulnerabilities[0]
-	assert.Equal(t, []string{"2.5.0-3.el9_5.3"}, v.Fix.Versions)
-	assert.Equal(t, "< 2.5.0-3.el9_5.3", v.Constraint.Value())
+	tests := []struct {
+		name       string
+		unaffected []result.Result
+		wantFix    string
+		wantALSA   string
+	}{
+		{
+			name: "lowest overlapping fix wins",
+			unaffected: []result.Result{
+				almaResult("ALSA-2025:3531", "CVE-2024-8176", ">= 2.5.0-3.el9_5.3"),
+				almaResult("ALSA-2025:7444", "CVE-2024-8176", ">= 2.5.0-5.el9_6"),
+			},
+			wantFix:  "2.5.0-3.el9_5.3",
+			wantALSA: "ALSA-2025:3531",
+		},
+		{
+			name: "lower fix on a record for another CVE is ignored",
+			unaffected: []result.Result{
+				almaResult("ALSA-2025:7444", "CVE-2024-8176", ">= 2.5.0-5.el9_6"),
+				almaResult("ALSA-2025:1111", "CVE-2024-0001", ">= 2.5.0-3.el9_5.1"),
+			},
+			wantFix:  "2.5.0-5.el9_6",
+			wantALSA: "ALSA-2025:7444",
+		},
+	}
+	for _, tt := range tests {
+		for _, reversed := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/reversed=%v", tt.name, reversed), func(t *testing.T) {
+				records := slices.Clone(tt.unaffected)
+				if reversed {
+					slices.Reverse(records)
+				}
+				// tag each record's advisory with its ID so the chosen record is visible on the match
+				for i := range records {
+					records[i].Vulnerabilities[0].Advisories = []vulnerability.Advisory{{ID: records[i].ID}}
+				}
+				disclosures := result.Set{"CVE-2024-8176": {almaResult("CVE-2024-8176", "", "< 2.5.0-3.el9_5.3")}}
+				got := applyAlmaLinuxUnaffectedFiltering(disclosures, result.Set{"ALSA": records}, version.New("2.5.0-2.el9_4.1", version.RpmFormat))
+				v := got["CVE-2024-8176"][0].Vulnerabilities[0]
+				assert.Equal(t, []string{tt.wantFix}, v.Fix.Versions)
+				assert.Equal(t, "< "+tt.wantFix, v.Constraint.Value())
+				assert.Equal(t, []vulnerability.Advisory{{ID: tt.wantALSA}}, v.Advisories)
+			})
+		}
+	}
 }
 
 // almaResultWithAdvisory is almaResult with an advisory, so which record was applied is observable.
