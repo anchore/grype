@@ -29,8 +29,10 @@ type Config struct {
 	Include       Includes
 	Debug         bool
 	EPSSThreshold float64
-	OldDB         string
-	NewDB         string
+	// OldDB is the database the diff is from (the first provided), regardless of build time
+	OldDB string
+	// NewDB is the database the diff is to (the second provided). When empty, the installed database is used
+	NewDB string
 	// DownloadTimeout bounds downloading a database given as a URL (zero means no timeout)
 	DownloadTimeout time.Duration
 }

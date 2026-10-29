@@ -23,16 +23,16 @@ const cpeEcosystem = "cpe"
 // The first database is opened as the main connection and the second database is
 // attached as "new_db", allowing cross-database SQL queries.
 type DBDiffer struct {
-	config Config
-	db     *gorm.DB
-	oldDB  ResolvedDB
-	newDB  ResolvedDB
+	config   Config
+	db       *gorm.DB
+	firstDB  ResolvedDB
+	secondDB ResolvedDB
 }
 
-// NewDBDiffer resolves the old and new databases from the config and returns a DBDiffer comparing them. The
+// NewDBDiffer resolves the first and second databases from the config and returns a DBDiffer comparing them. The
 // DBDiffer owns any temporary directories created while resolving, and removes them on Close.
 func NewDBDiffer(cfg Config) (*DBDiffer, error) {
-	resolvedOld, resolvedNew, err := parallel[ResolvedDB](func() (ResolvedDB, error) {
+	resolvedFirst, resolvedSecond, err := parallel[ResolvedDB](func() (ResolvedDB, error) {
 		return ResolveDB(cfg.OldDB, cfg.DBDirectoryPath(), cfg.DownloadTimeout)
 	}, func() (ResolvedDB, error) {
 		return ResolveDB(cfg.NewDB, cfg.DBDirectoryPath(), cfg.DownloadTimeout)
@@ -40,26 +40,26 @@ func NewDBDiffer(cfg Config) (*DBDiffer, error) {
 
 	if err != nil {
 		// one side may have resolved (and downloaded) before the other failed
-		resolvedOld.Cleanup()
-		resolvedNew.Cleanup()
+		resolvedFirst.Cleanup()
+		resolvedSecond.Cleanup()
 		return nil, err
 	}
 
-	differ, err := newDBDifferDirs(resolvedOld, resolvedNew, cfg)
+	differ, err := newDBDifferDirs(resolvedFirst, resolvedSecond, cfg)
 	if err != nil {
-		resolvedOld.Cleanup()
-		resolvedNew.Cleanup()
+		resolvedFirst.Cleanup()
+		resolvedSecond.Cleanup()
 		return nil, err
 	}
 	return differ, nil
 }
 
-func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) {
-	beforeTime, err := time.Parse(time.RFC3339, oldDB.Info.BuildTimestamp)
+func newDBDifferDirs(firstDB, secondDB ResolvedDB, config Config) (*DBDiffer, error) {
+	beforeTime, err := time.Parse(time.RFC3339, firstDB.Info.BuildTimestamp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse first database build timestamp: %w", err)
 	}
-	afterTime, err := time.Parse(time.RFC3339, newDB.Info.BuildTimestamp)
+	afterTime, err := time.Parse(time.RFC3339, secondDB.Info.BuildTimestamp)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse second database build timestamp: %w", err)
 	}
@@ -71,14 +71,19 @@ func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) 
 	// diffing a newer database to an older one is supported; the diff is always from the first database (main)
 	// to the second database (new_db), and the result is labeled the same way
 	if beforeTime.After(afterTime) {
-		log.Warnf("the first database (built %s) is newer than the second (built %s); changes are reported from newer to older, swap the arguments to diff from older to newer", oldDB.Info.BuildTimestamp, newDB.Info.BuildTimestamp)
+		// the second database defaults to the installed one, in which case there is no second argument to swap with
+		fix := "swap the arguments"
+		if config.NewDB == "" {
+			fix = fmt.Sprintf("pass the installed database (%s) as the first argument", secondDB.Dir)
+		}
+		log.Warnf("the first database (built %s) is newer than the second (built %s); changes are reported from newer to older, %s to diff from older to newer", firstDB.Info.BuildTimestamp, secondDB.Info.BuildTimestamp, fix)
 	}
 
-	oldDBPath := filepath.Join(oldDB.Dir, v6.VulnerabilityDBFileName)
-	newDBPath := filepath.Join(newDB.Dir, v6.VulnerabilityDBFileName)
+	firstDBPath := filepath.Join(firstDB.Dir, v6.VulnerabilityDBFileName)
+	secondDBPath := filepath.Join(secondDB.Dir, v6.VulnerabilityDBFileName)
 
 	writable := config.Debug
-	db, err := v6.NewLowLevelDB(oldDBPath, false, writable, config.Debug)
+	db, err := v6.NewLowLevelDB(firstDBPath, false, writable, config.Debug)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open first database: %w", err)
 	}
@@ -97,16 +102,16 @@ func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) 
 		return nil, fmt.Errorf("failed to configure database: %w", err)
 	}
 
-	if err := db.Exec("ATTACH DATABASE ? AS new_db", newDBPath).Error; err != nil {
+	if err := db.Exec("ATTACH DATABASE ? AS new_db", secondDBPath).Error; err != nil {
 		closeLowLevelDB(db)
 		return nil, fmt.Errorf("failed to attach second database: %w", err)
 	}
 
 	return &DBDiffer{
-		db:     db,
-		oldDB:  oldDB,
-		newDB:  newDB,
-		config: config,
+		db:       db,
+		firstDB:  firstDB,
+		secondDB: secondDB,
+		config:   config,
 	}, nil
 }
 
@@ -114,8 +119,8 @@ func newDBDifferDirs(oldDB, newDB ResolvedDB, config Config) (*DBDiffer, error) 
 func (d *DBDiffer) Close() error {
 	// defers run in reverse, so the connection is always closed before the directories are removed (an open
 	// handle keeps the db files locked on windows), even if the detach fails
-	defer d.newDB.Cleanup()
-	defer d.oldDB.Cleanup()
+	defer d.secondDB.Cleanup()
+	defer d.firstDB.Cleanup()
 	defer closeLowLevelDB(d.db)
 	if err := d.db.Exec("DETACH DATABASE new_db").Error; err != nil {
 		return fmt.Errorf("failed to detach second database: %w", err)
@@ -156,8 +161,8 @@ func (d *DBDiffer) Diff() (*Result, error) {
 	return &Result{
 		Schema: Schema,
 		Databases: DatabaseDiff{
-			Before: d.oldDB.Info,
-			After:  d.newDB.Info,
+			Before: d.firstDB.Info,
+			After:  d.secondDB.Info,
 		},
 		Packages:        packages,
 		Vulnerabilities: vulns,
@@ -222,10 +227,10 @@ func (d *DBDiffer) createPackagesTables() error {
 		return fmt.Errorf("failed to create package key tables: %w", err)
 	}
 	if err := d.createDiffTablesPackages("old", "main"); err != nil {
-		return fmt.Errorf("failed to create old package tables: %w", err)
+		return fmt.Errorf("failed to create first database package tables: %w", err)
 	}
 	if err := d.createDiffTablesPackages("new", "new_db"); err != nil {
-		return fmt.Errorf("failed to create new package tables: %w", err)
+		return fmt.Errorf("failed to create second database package tables: %w", err)
 	}
 	if err := d.createDiffViewsPackages(); err != nil {
 		return fmt.Errorf("failed to create package views: %w", err)
@@ -342,10 +347,10 @@ func (d *DBDiffer) prepareTemplates(templates []string, r *strings.Replacer) []s
 func (d *DBDiffer) createVulnsTables() error {
 	startTime := time.Now()
 	if err := d.createDiffTablesVulns("old", "main"); err != nil {
-		return fmt.Errorf("failed to create old vuln diff tables: %w", err)
+		return fmt.Errorf("failed to create first database vuln diff tables: %w", err)
 	}
 	if err := d.createDiffTablesVulns("new", "new_db"); err != nil {
-		return fmt.Errorf("failed to create new vuln diff tables: %w", err)
+		return fmt.Errorf("failed to create second database vuln diff tables: %w", err)
 	}
 	if err := d.createDiffViewsVulns(); err != nil {
 		return fmt.Errorf("failed to create vuln diff views: %w", err)

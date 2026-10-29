@@ -23,8 +23,8 @@ type dbDiffOptions struct {
 	options.DatabaseCommand `yaml:",inline" mapstructure:",squash"`
 	EPSSThreshold           float64     `yaml:"epss-threshold" json:"epss-threshold" mapstructure:"epss-threshold"`
 	Include                 diffInclude `json:"include" yaml:"include" mapstructure:"include"`
-	Old                     string
-	New                     string
+	First                   string
+	Second                  string
 }
 
 type diffInclude struct {
@@ -75,18 +75,18 @@ func DBDiff(app clio.Application) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "diff [flags] old_db_url_or_path [new_db_url_or_path]",
+		Use:   "diff [flags] first_db_url_or_path [second_db_url_or_path]",
 		Short: "Diff two databases, showing packages with changed vulnerability matches and changed vulnerability records",
-		Long:  "Diff two databases, showing packages with changed vulnerability matches and changed vulnerability records.\nChanges are reported from the first database to the second, in the order provided (regardless of build time).",
+		Long:  "Diff two databases, showing packages with changed vulnerability matches and changed vulnerability records.\nChanges are reported from the first database to the second, in the order provided (regardless of build time).\nWhen the second database is omitted, the installed database is used as the second.",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			opts.DB.MaxUpdateCheckFrequency = 0
 			return disableUI(app)(cmd, args)
 		},
 		Args: cobra.RangeArgs(1, 2),
 		RunE: func(_ *cobra.Command, args []string) error {
-			opts.Old = args[0]
+			opts.First = args[0]
 			if len(args) > 1 {
-				opts.New = args[1]
+				opts.Second = args[1]
 			}
 			return runDBDiff(*opts)
 		},
@@ -112,8 +112,8 @@ func runDBDiff(opts dbDiffOptions) error {
 		Include:       includes,
 		Debug:         opts.Developer.DB.Debug,
 		EPSSThreshold: opts.EPSSThreshold,
-		OldDB:         opts.Old,
-		NewDB:         opts.New,
+		OldDB:         opts.First,
+		NewDB:         opts.Second,
 		// same bound used when installing a db
 		DownloadTimeout: opts.DB.UpdateDownloadTimeout,
 	})

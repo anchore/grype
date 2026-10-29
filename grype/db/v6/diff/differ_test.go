@@ -1526,9 +1526,9 @@ func Test_NewDBDiffer_defaultsToInstalledDB(t *testing.T) {
 	differ, err := NewDBDiffer(Config{Config: cfg, OldDB: oldDir})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = differ.Close() })
-	// the differ orders the two sides by build time, which is taken from the clock when a db is built, not the time
-	// passed to the builder, so only check that the installed db is one of them
-	assert.Contains(t, []string{differ.oldDB.Dir, differ.newDB.Dir}, cfg.DBDirectoryPath())
+	// the provided db is always the first, regardless of build time
+	assert.Equal(t, oldDir, differ.firstDB.Dir)
+	assert.Equal(t, cfg.DBDirectoryPath(), differ.secondDB.Dir)
 }
 
 // Test_DBDiffer_removesDownloads verifies downloaded databases are removed when the other side fails to resolve,
