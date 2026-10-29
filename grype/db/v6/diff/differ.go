@@ -33,9 +33,9 @@ type DBDiffer struct {
 // DBDiffer owns any temporary directories created while resolving, and removes them on Close.
 func NewDBDiffer(cfg Config) (*DBDiffer, error) {
 	resolvedOld, resolvedNew, err := parallel[ResolvedDB](func() (ResolvedDB, error) {
-		return ResolveDB(cfg.OldDB, cfg.DBDirectoryPath())
+		return ResolveDB(cfg.OldDB, cfg.DBDirectoryPath(), cfg.DownloadTimeout)
 	}, func() (ResolvedDB, error) {
-		return ResolveDB(cfg.NewDB, cfg.DBDirectoryPath())
+		return ResolveDB(cfg.NewDB, cfg.DBDirectoryPath(), cfg.DownloadTimeout)
 	})
 
 	if err != nil {

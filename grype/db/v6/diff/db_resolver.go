@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/mholt/archives"
 
@@ -44,7 +45,7 @@ func (r ResolvedDB) Cleanup() {
 //   - path to a .db file: uses the file's parent directory
 //   - path to a DB archive (.tar.zst, .tar.gz, etc.): extracts and hydrates into a sibling
 //     directory derived from the archive name (with .tar.* extension stripped)
-func ResolveDB(value, defaultDir string) (ResolvedDB, error) {
+func ResolveDB(value, defaultDir string, downloadTimeout time.Duration) (ResolvedDB, error) {
 	if value == "" {
 		if defaultDir == "" {
 			return ResolvedDB{}, fmt.Errorf("no database path or URL provided")
@@ -55,7 +56,7 @@ func ResolveDB(value, defaultDir string) (ResolvedDB, error) {
 
 	if isURL(value) {
 		log.Infof("downloading database from: %s", value)
-		dir, err := downloadDB(value)
+		dir, err := downloadDB(value, downloadTimeout)
 		if err != nil {
 			return ResolvedDB{}, err
 		}
@@ -223,7 +224,8 @@ func isURL(value string) bool {
 
 // downloadDB downloads a vulnerability database from a URL to a temporary directory
 // and returns the directory path. The caller is responsible for cleaning up the directory.
-func downloadDB(url string) (string, error) {
+// A zero timeout means no timeout.
+func downloadDB(url string, timeout time.Duration) (string, error) {
 	tmpDir, err := os.MkdirTemp("", "grype-db-diff-*")
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp directory: %w", err)
@@ -231,7 +233,9 @@ func downloadDB(url string) (string, error) {
 
 	dbPath := filepath.Join(tmpDir, db.VulnerabilityDBFileName)
 
-	resp, err := http.Get(url) //nolint:gosec,bodyclose
+	// the timeout covers reading the body too, so a server that stalls mid-download can't hang the diff
+	client := &http.Client{Timeout: timeout}
+	resp, err := client.Get(url) //nolint:gosec,bodyclose
 	if err != nil {
 		_ = os.RemoveAll(tmpDir)
 		return "", fmt.Errorf("failed to download from %s: %w", url, err)
@@ -251,6 +255,7 @@ func downloadDB(url string) (string, error) {
 	defer log.CloseAndLogError(out, dbPath)
 
 	if _, err := io.Copy(out, resp.Body); err != nil {
+		_ = out.Close() // an open handle blocks removal on windows
 		_ = os.RemoveAll(tmpDir)
 		return "", fmt.Errorf("failed to write database file: %w", err)
 	}
