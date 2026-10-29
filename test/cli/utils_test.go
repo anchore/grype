@@ -54,13 +54,12 @@ func grypeCommandHasConfigArg(args ...string) bool {
 }
 
 func getGrypeSnapshotLocation(t testing.TB, goOS, goArch string) string {
-	loc := getGrypeBinaryLocationByOS(t, goOS, goArch)
-	// GRYPE_BINARY_LOCATION is the absolute path to the snapshot binary
-	const envKey = "GRYPE_BINARY_LOCATION"
-	if os.Getenv(envKey) != "" {
-		// we were run from a snapshot test, so we already have a snapshot binary
-		return loc
+	// GRYPE_BINARY_LOCATION is the absolute path to the snapshot binary for the host OS/arch, so it
+	// only applies when the caller asks for the host target (e.g. not the linux binary mounted into docker)
+	if env := os.Getenv("GRYPE_BINARY_LOCATION"); env != "" && goOS == runtime.GOOS && goArch == runtime.GOARCH {
+		return env
 	}
+	loc := getGrypeBinaryLocationByOS(t, goOS, goArch)
 	// if this was built locally
 	if os.Getenv(loc) != "" {
 		return loc
