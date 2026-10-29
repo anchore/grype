@@ -104,9 +104,12 @@ func (i IgnoreRelatedPackage) IgnoreMatch(m Match) []IgnoreRule {
 // provided IgnoreRules apply to the match. If any rules apply to the match, all
 // applicable rules are attached to the Match to form an IgnoredMatch.
 // ApplyIgnoreRules returns two collections: the matches that are not being
-// ignored, and the matches that are being ignored.
+// ignored, and the matches that are being ignored. The applicable rules attached
+// to an IgnoredMatch keep the order in which they were provided.
 func ApplyIgnoreRules(matches Matches, rules []IgnoreRule) (Matches, []IgnoredMatch) {
-	matched, ignored := ApplyIgnoreFilters(matches.Sorted(), rules...)
+	// index the rules so each match is only tested against the rules that could apply to it; testing every
+	// match against every rule is quadratic when a large exclusion set is in play
+	matched, ignored := ApplyIgnoreFilters(matches.Sorted(), newIgnoreRuleIndex(rules))
 	return NewMatches(matched...), ignored
 }
 
@@ -139,26 +142,39 @@ func ApplyIgnoreFilters[T IgnoreFilter](matches []Match, filters ...T) ([]Match,
 }
 
 func (r IgnoreRule) IgnoreMatch(match Match) []IgnoreRule {
+	if conditionsApply(match, r.matchConditions()) {
+		return []IgnoreRule{r}
+	}
+	return nil
+}
+
+// matchConditions returns the conditions a match must meet for the rule to apply, or nil if the rule never
+// applies to a match. The conditions depend only on the rule, so callers that test one rule against many
+// matches can build them once.
+func (r IgnoreRule) matchConditions() []ignoreCondition {
 	// VEX rules are handled by the vex processor
 	if r.VexStatus != "" {
 		return nil
 	}
+	return getIgnoreConditionsForRule(r)
+}
 
-	ignoreConditions := getIgnoreConditionsForRule(r)
+// conditionsApply reports whether a rule with the given conditions, from matchConditions, applies to the match.
+func conditionsApply(match Match, ignoreConditions []ignoreCondition) bool {
 	if len(ignoreConditions) == 0 {
-		// this rule specifies no criteria, so it doesn't apply to the Match
-		return nil
+		// this rule specifies no criteria (or is a VEX rule), so it doesn't apply to the Match
+		return false
 	}
 
 	for _, condition := range ignoreConditions {
 		if !condition(match) {
 			// as soon as one rule criterion doesn't apply, we know this rule doesn't apply to the Match
-			return nil
+			return false
 		}
 	}
 
 	// all criteria specified in the rule apply to this Match
-	return []IgnoreRule{r}
+	return true
 }
 
 // HasConditions returns true if the ignore rule has conditions
@@ -243,17 +259,27 @@ func ifFixStateApplies(fs string) ignoreCondition {
 
 func ifVulnerabilityApplies(vulnerability string, includeAliases bool) ignoreCondition {
 	return func(match Match) bool {
-		if vulnerability == match.Vulnerability.ID {
-			return true
+		found := false
+		eachMatchVulnerabilityID(&match, includeAliases, func(id string) bool {
+			found = id == vulnerability
+			return !found
+		})
+		return found
+	}
+}
+
+// eachMatchVulnerabilityID calls fn with each ID a rule's vulnerability is compared against: the match's own ID
+// and, with includeAliases, the IDs of its related vulnerabilities. It stops when fn returns false. The
+// comparison is exact, and ignoreRuleIndex relies on that to look rules up by these IDs, so any change to how
+// IDs are compared has to go through here.
+func eachMatchVulnerabilityID(match *Match, includeAliases bool, fn func(id string) bool) {
+	if !fn(match.Vulnerability.ID) || !includeAliases {
+		return
+	}
+	for _, related := range match.Vulnerability.RelatedVulnerabilities {
+		if !fn(related.ID) {
+			return
 		}
-		if includeAliases {
-			for _, related := range match.Vulnerability.RelatedVulnerabilities {
-				if vulnerability == related.ID {
-					return true
-				}
-			}
-		}
-		return false
 	}
 }
 
