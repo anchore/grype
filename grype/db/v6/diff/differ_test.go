@@ -151,6 +151,17 @@ func Test_basicPackageDiff(t *testing.T) {
 			},
 		},
 		{
+			// a fix-date-only change on a CPE record is reported as a modification
+			name:  "cpe-fix-date-only-modified",
+			oldDB: []string{"cve-2025-21916"},
+			newDB: []string{"cve-2025-21916-fixdate"},
+			expected: map[string]changes{
+				"linux_kernel": {
+					modified{"CVE-2025-21916"},
+				},
+			},
+		},
+		{
 			name: "channel-added",
 			oldDB: []string{
 				"rhel-8/cve-2025-13012",
@@ -227,6 +238,17 @@ func Test_basicPackageDiff(t *testing.T) {
 				"pypi/CGA-r79g-x2wf-m9qj.json",
 				"pypi/CGA-v587-68x3-qwqr-modified.json",
 			},
+			expected: map[string]changes{
+				"pillow": {
+					modified{"CGA-v587-68x3-qwqr"},
+				},
+			},
+		},
+		{
+			// a fix-date-only change on an unaffected record is reported as a modification
+			name:  "unaffected-fix-date-only-modified",
+			oldDB: []string{"pypi/CGA-v587-68x3-qwqr.json"},
+			newDB: []string{"pypi/CGA-v587-68x3-qwqr-fixdate.json"},
 			expected: map[string]changes{
 				"pillow": {
 					modified{"CGA-v587-68x3-qwqr"},
