@@ -225,12 +225,24 @@ func (d *DBDiffer) createDiffViewsPackages() error {
 	removed := `SELECT DISTINCT vuln_key, {key} FROM diff_{type}_presence WHERE (o0 OR o1) AND (NOT (n0 OR n1) OR (o1 AND n0))`
 
 	// "modified" rows are records whose key has the same statuses on both sides (so it is not in presence, and was not
-	// added or removed), but with no record of the same status and equivalent blob content on the other side
-	modified := `SELECT DISTINCT a.vuln_key, a.{key}
+	// added or removed), but with no record of the same status and equivalent blob content on the other side. Both
+	// sides are checked, so a record that only exists in the new database (a second affected module stream, say) is
+	// found too. The old (a) and new (b) aliases are kept on each side since blobsEquivalent depends on them
+	modified := `SELECT a.vuln_key, a.{key}
 		FROM diff_{type}_old a
 		WHERE NOT EXISTS (SELECT 1 FROM diff_{type}_presence b WHERE {keyMatch})
 		AND NOT EXISTS (
 			SELECT 1 FROM diff_{type}_new b
+			WHERE {keyMatch}
+			AND a.status = b.status
+			AND {blobsEquivalent}
+		)
+		UNION
+		SELECT b.vuln_key, b.{key}
+		FROM diff_{type}_new b
+		WHERE NOT EXISTS (SELECT 1 FROM diff_{type}_presence a WHERE {keyMatch})
+		AND NOT EXISTS (
+			SELECT 1 FROM diff_{type}_old a
 			WHERE {keyMatch}
 			AND a.status = b.status
 			AND {blobsEquivalent}
