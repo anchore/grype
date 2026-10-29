@@ -177,19 +177,21 @@ const (
 		CROSS JOIN diff_cpe_keys ck ON ck.rowid = d.cpe_key`
 )
 
-// blobsEquivalent compares the old (a) and new (b) blobs, ignoring information that does not affect matching.
-// most blobs are unchanged between databases, so the raw values are compared first to avoid the comparatively
-// expensive JSON normalization
+// blobsEquivalent compares the old (a) and new (b) blobs, ignoring only how the JSON is serialized.
+// Most blobs are unchanged between databases, so the raw values are compared first to avoid the
+// comparatively expensive JSON round-trip. Fix availability is part of the comparison, so a change
+// to only a fix's date or kind is reported.
 func blobsEquivalent() string {
 	return fmt.Sprintf(`(
 				(SELECT ob.value FROM main.blobs ob WHERE ob.id = a.blob_id) = (SELECT nb.value FROM new_db.blobs nb WHERE nb.id = b.blob_id)
 				OR (SELECT %s FROM main.blobs ob WHERE ob.id = a.blob_id) = (SELECT %s FROM new_db.blobs nb WHERE nb.id = b.blob_id)
-			)`, normalizedBlob("ob"), normalizedBlob("nb"))
+			)`, reserializedBlob("ob"), reserializedBlob("nb"))
 }
 
-// normalizedBlob returns the value of the blob with the given alias with information removed that does not affect matching
-func normalizedBlob(alias string) string {
-	return fmt.Sprintf(`json_set(%[1]s.value,'$.ranges',(SELECT json_group_array(json_remove(value, '$.fix.detail.available')) FROM json_each(%[1]s.value, '$.ranges')))`, alias)
+// reserializedBlob returns the blob with the given alias with its ranges round-tripped through JSON,
+// so two blobs that differ only in serialization compare equal
+func reserializedBlob(alias string) string {
+	return fmt.Sprintf(`json_set(%[1]s.value,'$.ranges',(SELECT json_group_array(value) FROM json_each(%[1]s.value, '$.ranges')))`, alias)
 }
 
 func (d *DBDiffer) createDiffViewsPackages() error {
