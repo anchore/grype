@@ -259,17 +259,27 @@ func ifFixStateApplies(fs string) ignoreCondition {
 
 func ifVulnerabilityApplies(vulnerability string, includeAliases bool) ignoreCondition {
 	return func(match Match) bool {
-		if vulnerability == match.Vulnerability.ID {
-			return true
+		found := false
+		eachMatchVulnerabilityID(&match, includeAliases, func(id string) bool {
+			found = id == vulnerability
+			return !found
+		})
+		return found
+	}
+}
+
+// eachMatchVulnerabilityID calls fn with each ID a rule's vulnerability is compared against: the match's own ID
+// and, with includeAliases, the IDs of its related vulnerabilities. It stops when fn returns false. The
+// comparison is exact, and ignoreRuleIndex relies on that to look rules up by these IDs, so any change to how
+// IDs are compared has to go through here.
+func eachMatchVulnerabilityID(match *Match, includeAliases bool, fn func(id string) bool) {
+	if !fn(match.Vulnerability.ID) || !includeAliases {
+		return
+	}
+	for _, related := range match.Vulnerability.RelatedVulnerabilities {
+		if !fn(related.ID) {
+			return
 		}
-		if includeAliases {
-			for _, related := range match.Vulnerability.RelatedVulnerabilities {
-				if vulnerability == related.ID {
-					return true
-				}
-			}
-		}
-		return false
 	}
 }
 
