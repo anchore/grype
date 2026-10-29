@@ -34,8 +34,10 @@ func integrationTasks() Task {
 				Name:        "integration:quality",
 				Description: "run the quality gate (build grype, scan with it and the latest release, score against labels)",
 				Run: func() {
-					// built like the release (see .goreleaser.yaml), so the candidate differs from the reference only in code
-					Run("go build -tags "+buildTags+" -o "+integrationDir+"/bin/grype ./cmd/grype", run.Env("CGO_ENABLED", "0"))
+					// built like the release (see .goreleaser.yaml), so the candidate differs from the reference only in code.
+					// No VCS stamp: yardstick keys its scan cache by the binary's digest, so a change that
+					// leaves the code alone (docs, CI, labels) reuses the last scans.
+					Run("go build -buildvcs=false -tags "+buildTags+" -o "+integrationDir+"/bin/grype ./cmd/grype", run.Env("CGO_ENABLED", "0"))
 					runIntegrationGates()
 				},
 			},

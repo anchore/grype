@@ -110,7 +110,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [quality, api]
+        include:
+          # yardstick's cache: the imported DB, grype@latest, claims and every scan (keyed by grype binary, DB,
+          # config and SBOM, so the reference scans are reused until the next grype release or DB bump)
+          - suite: quality
+            cache: ~/.cache/yardstick
+          # the DB the api tests import
+          - suite: api
+            cache: test/integration/.cache
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -119,11 +126,46 @@ jobs:
       - name: Bootstrap environment
         uses: $/.github/actions/bootstrap
 
+      - name: Compute the integration cache key
+        id: integration-cache-key
+        # the api cache only holds the pinned DB, so the DB alone keys it. The quality cache also holds scans that
+        # change every run, so each save gets a new key and a restore takes the newest under the prefix.
+        run: |
+          prefix="integration-$SUITE-$(grep -o -m1 'sha256:[0-9a-f]\{64\}' test/integration/gates/pr.yaml)"
+          key="$prefix"
+          if [ "$SUITE" = quality ]; then key="$prefix-$GITHUB_RUN_ID"; fi
+          echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+        env:
+          SUITE: ${{ matrix.suite }}
+
+      - name: Restore the integration cache
+        id: integration-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ matrix.cache }}
+          key: ${{ steps.integration-cache-key.outputs.key }}
+          restore-keys: ${{ steps.integration-cache-key.outputs.prefix }}-
+
       - name: Run the ${{ matrix.suite }} suite
         run: make "integration:$SUITE"
         env:
           SUITE: ${{ matrix.suite }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # every reuse touches an entry, so what this run did not use (old grype releases, old DBs, scans of an older
+      # main) goes before saving
+      - name: Prune the yardstick cache
+        if: ${{ !cancelled() && matrix.suite == 'quality' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+        run: .tool/yardstick cache delete --older-than 6h
+
+      # saved only on the default branch, so untrusted runs cannot pollute the cache (same as the test fixture cache)
+      - name: Save the integration cache
+        if: ${{ !cancelled() && steps.integration-cache.outputs.cache-hit != 'true' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ matrix.cache }}
+          key: ${{ steps.integration-cache-key.outputs.key }}
 
       - name: Archive the gate state
         if: ${{ failure() && matrix.suite == 'quality' }}
