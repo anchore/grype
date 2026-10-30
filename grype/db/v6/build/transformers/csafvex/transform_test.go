@@ -234,6 +234,100 @@ func TestTransform_NotAffectedVersionedPURL(t *testing.T) {
 	require.Equal(t, "rpm", uph.BlobValue.Ranges[0].Version.Type)
 }
 
+func TestTransform_KnownAffectedVersionlessPURLWithVendorFix(t *testing.T) {
+	tree := hummingbirdProductTree()
+	advisory := makeAdvisory([]unmarshal.CSAFVulnerability{
+		{
+			CVE: "CVE-2026-88889",
+			ProductStatus: &unmarshal.CSAFProductStatus{
+				KnownAffected: []string{"hummingbird-1:otherpkg"},
+			},
+			Remediations: []unmarshal.CSAFRemediation{
+				{
+					Category:   "vendor_fix",
+					ProductIDs: []string{"hummingbird-1:otherpkg"},
+					URL:        "https://access.redhat.com/errata/RHSA-2026:5678",
+				},
+			},
+		},
+	}, tree)
+
+	got, err := Transform(advisory, inputProviderState())
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	e := got[0].Data.(transformers.RelatedEntries)
+	require.Len(t, e.Related, 1)
+
+	aph, ok := e.Related[0].(db.AffectedPackageHandle)
+	require.True(t, ok)
+	require.Len(t, aph.BlobValue.Ranges, 1)
+	require.Empty(t, aph.BlobValue.Ranges[0].Version.Constraint, "versionless purl should apply to all versions, not emit \"< \"")
+	require.Equal(t, db.NotFixedStatus, aph.BlobValue.Ranges[0].Fix.State)
+}
+
+func TestTransform_FixedVersionlessPURLSkipped(t *testing.T) {
+	tree := hummingbirdProductTree()
+	advisory := makeAdvisory([]unmarshal.CSAFVulnerability{
+		{
+			CVE: "CVE-2026-88890",
+			ProductStatus: &unmarshal.CSAFProductStatus{
+				Fixed: []string{"hummingbird-1:otherpkg", "hummingbird-1:testpkg-0:1.2.3-1.hum1.src"},
+			},
+		},
+	}, tree)
+
+	got, err := Transform(advisory, inputProviderState())
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	// otherpkg has no fixed version, so only testpkg can be expressed
+	e := got[0].Data.(transformers.RelatedEntries)
+	require.Len(t, e.Related, 1)
+
+	aph, ok := e.Related[0].(db.AffectedPackageHandle)
+	require.True(t, ok)
+	require.Equal(t, "testpkg", aph.Package.Name)
+	require.Equal(t, "< 1.2.3-1.hum1", aph.BlobValue.Ranges[0].Version.Constraint)
+}
+
+func TestMakeUnaffectedHandle_FixedStatus(t *testing.T) {
+	tree := hummingbirdProductTree()
+	idx := newProductIndex(&tree)
+	vuln := &unmarshal.CSAFVulnerability{CVE: "CVE-2026-88891"}
+
+	tests := []struct {
+		name           string
+		productID      string
+		wantConstraint string
+		wantFixVersion string
+	}{
+		{
+			name:           "versioned purl is unaffected from the fix version onward",
+			productID:      "hummingbird-1:testpkg-0:1.2.3-1.hum1.src",
+			wantConstraint: ">= 1.2.3-1.hum1",
+			wantFixVersion: "1.2.3-1.hum1",
+		},
+		{
+			name:           "versionless purl applies to all versions",
+			productID:      "hummingbird-1:otherpkg",
+			wantConstraint: "",
+			wantFixVersion: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			uph, err := makeUnaffectedHandle(tt.productID, vuln, idx, db.FixedStatus, nil)
+			require.NoError(t, err)
+			require.Len(t, uph.BlobValue.Ranges, 1)
+			require.Equal(t, tt.wantConstraint, uph.BlobValue.Ranges[0].Version.Constraint)
+			require.Equal(t, db.FixedStatus, uph.BlobValue.Ranges[0].Fix.State)
+			require.Equal(t, tt.wantFixVersion, uph.BlobValue.Ranges[0].Fix.Version)
+		})
+	}
+}
+
 func TestTransform_KnownAffected(t *testing.T) {
 	tree := hummingbirdProductTree()
 	advisory := makeAdvisory([]unmarshal.CSAFVulnerability{

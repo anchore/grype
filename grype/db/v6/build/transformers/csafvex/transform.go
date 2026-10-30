@@ -220,11 +220,17 @@ func makeAffectedHandle(productID string, vuln *unmarshal.CSAFVulnerability, idx
 
 	rem := remediations[productID]
 	if rem != nil && rem.URL != "" {
+		// a versionless purl makes the statement about every version of the
+		// package, which is an empty constraint; "< " would not parse
+		var constraint string
+		if purl.Version != "" {
+			constraint = fmt.Sprintf("< %s", purl.Version)
+		}
 		blob.Ranges = []db.Range{
 			{
 				Version: db.Version{
 					Type:       versionTypeFromPURL(purl),
-					Constraint: fmt.Sprintf("< %s", purl.Version),
+					Constraint: constraint,
 				},
 				Fix: &db.Fix{
 					State: db.NotFixedStatus,
@@ -249,6 +255,11 @@ func makeFixedHandle(productID string, vuln *unmarshal.CSAFVulnerability, idx *p
 	purl, ok := idx.productIDToPURL[productID]
 	if !ok {
 		return nil, fmt.Errorf("no PURL for product ID %s", productID)
+	}
+	if purl.Version == "" {
+		// without a fixed version there is no vulnerable range to express, and an
+		// empty constraint would report every version, including fixed ones
+		return nil, fmt.Errorf("no fixed version in PURL for product ID %s", productID)
 	}
 
 	pkgType := syftPkg.TypeFromPURL(purl.String())
@@ -341,7 +352,8 @@ func makeUnaffectedHandle(productID string, vuln *unmarshal.CSAFVulnerability, i
 	case fixState == db.NotAffectedFixStatus:
 		constraint = fmt.Sprintf("= %s", purl.Version)
 	default:
-		constraint = fmt.Sprintf("< %s", purl.Version)
+		// the fix version and everything after it are unaffected
+		constraint = fmt.Sprintf(">= %s", purl.Version)
 	}
 
 	return &db.UnaffectedPackageHandle{
