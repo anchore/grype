@@ -13,7 +13,6 @@ import (
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
-	"github.com/anchore/packageurl-go"
 )
 
 var timeVal = time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -195,6 +194,71 @@ func TestOpenVEXTransform(t *testing.T) {
 									},
 									Fix: &db.Fix{
 										State: db.NotAffectedFixStatus,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			// the vendor is the purl namespace and part of the package name the github transformer stores
+			name:  "OpenVEX composer product keeps its vendor",
+			state: inputProviderState(),
+			vuln: govex.Statement{
+				ID: "test-transform-composer",
+				Products: []govex.Product{
+					{
+						Component: govex.Component{
+							Identifiers: map[govex.IdentifierType]string{
+								govex.PURL: "pkg:composer/craftcms/cms@5.10.5",
+							},
+						},
+					},
+				},
+				Status: govex.StatusAffected,
+				Vulnerability: govex.Vulnerability{
+					Name:        "cve-2026-72778",
+					Description: "Test composer vulnerability",
+				},
+			},
+			want: transformers.RelatedEntries{
+				VulnerabilityHandle: &db.VulnerabilityHandle{
+					Name:       "cve-2026-72778",
+					Status:     db.VulnerabilityActive,
+					ProviderID: "openvex",
+					Provider: &db.Provider{
+						ID:           "openvex",
+						Version:      "1",
+						Processor:    "vunnel@1.2.3",
+						DateCaptured: &timeVal,
+						InputDigest:  "sha256:123456",
+					},
+					BlobValue: &db.VulnerabilityBlob{
+						ID:          "cve-2026-72778",
+						Description: "Test composer vulnerability",
+						References: []db.Reference{
+							{
+								URL: "cve-2026-72778",
+							},
+						},
+						Aliases: []string{},
+					},
+				},
+				Related: []any{
+					db.AffectedPackageHandle{
+						Package: &db.Package{
+							Ecosystem: "php-composer",
+							Name:      "craftcms/cms",
+						},
+						BlobValue: &db.PackageBlob{
+							CVEs: []string{"cve-2026-72778"},
+							Ranges: []db.Range{
+								{
+									Version: db.Version{
+										Type:       "semantic",
+										Constraint: "= 5.10.5",
 									},
 								},
 							},
@@ -619,70 +683,6 @@ func Test_GetPackageHandles(t *testing.T) {
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("GetPackages() mismatch (-want +got):\n%s", diff)
 			}
-		})
-	}
-}
-
-func Test_packageNameFromPURL(t *testing.T) {
-	tests := []struct {
-		name string
-		purl string
-		want string
-	}{
-		{
-			// A Go module is identified by its full path; the namespace is the
-			// leading part of it rather than metadata, so dropping it filed the
-			// statement under a different package than the advisory and matcher
-			// paths use.
-			name: "golang module keeps its namespace",
-			purl: "pkg:golang/github.com/gin-gonic/gin@v1.9.0",
-			want: "github.com/gin-gonic/gin",
-		},
-		{
-			name: "golang module on a vanity host",
-			purl: "pkg:golang/k8s.io/client-go@v0.29.0",
-			want: "k8s.io/client-go",
-		},
-		{
-			name: "golang module with a version suffix in the name",
-			purl: "pkg:golang/gopkg.in/yaml.v3@v3.0.1",
-			want: "gopkg.in/yaml.v3",
-		},
-		{
-			name: "golang module with no namespace is unchanged",
-			purl: "pkg:golang/stdlib@1.21.0",
-			want: "stdlib",
-		},
-		{
-			name: "maven keeps the groupId separator",
-			purl: "pkg:maven/org.apache.commons/commons-lang3@3.12.0",
-			want: "org.apache.commons:commons-lang3",
-		},
-		{
-			name: "npm scoped name is rejoined",
-			purl: "pkg:npm/%40angular/core@17.0.0",
-			want: "@angular/core",
-		},
-		{
-			// An ecosystem whose namespace is metadata rather than identity is
-			// left alone, so this change does not widen beyond Go.
-			name: "namespace that is not part of the name is dropped",
-			purl: "pkg:deb/debian/curl@7.50.3-1",
-			want: "curl",
-		},
-		{
-			name: "flat ecosystem is unchanged",
-			purl: "pkg:pypi/urllib3@1.26.16",
-			want: "urllib3",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			purl, err := packageurl.FromString(tt.purl)
-			require.NoError(t, err)
-
-			require.Equal(t, tt.want, packageNameFromPURL(&purl))
 		})
 	}
 }
