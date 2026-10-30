@@ -333,9 +333,15 @@ func makeUnaffectedHandle(productID string, vuln *unmarshal.CSAFVulnerability, i
 		}
 	}
 
-	constraint := fmt.Sprintf("< %s", purl.Version)
-	if fixState == db.NotAffectedFixStatus {
+	var constraint string
+	switch {
+	case purl.Version == "":
+		// a versionless purl makes the statement about every version of the
+		// package, which is an empty constraint; "= " would match nothing
+	case fixState == db.NotAffectedFixStatus:
 		constraint = fmt.Sprintf("= %s", purl.Version)
+	default:
+		constraint = fmt.Sprintf("< %s", purl.Version)
 	}
 
 	return &db.UnaffectedPackageHandle{

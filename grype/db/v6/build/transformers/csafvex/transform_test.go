@@ -203,8 +203,35 @@ func TestTransform_FixedAndNotAffected(t *testing.T) {
 	require.Equal(t, "rpm", uph.Package.Ecosystem)
 	require.NotNil(t, uph.OperatingSystem)
 	require.Equal(t, "hummingbird", uph.OperatingSystem.Name)
+	require.Len(t, uph.BlobValue.Ranges, 1)
+	require.Empty(t, uph.BlobValue.Ranges[0].Version.Constraint, "versionless purl should apply to all versions, not emit \"= \"")
 	require.NotNil(t, uph.BlobValue.Ranges[0].Fix)
 	require.Equal(t, db.NotAffectedFixStatus, uph.BlobValue.Ranges[0].Fix.State)
+}
+
+func TestTransform_NotAffectedVersionedPURL(t *testing.T) {
+	tree := hummingbirdProductTree()
+	advisory := makeAdvisory([]unmarshal.CSAFVulnerability{
+		{
+			CVE: "CVE-2026-88888",
+			ProductStatus: &unmarshal.CSAFProductStatus{
+				KnownNotAffected: []string{"hummingbird-1:testpkg-0:1.2.3-1.hum1.src"},
+			},
+		},
+	}, tree)
+
+	got, err := Transform(advisory, inputProviderState())
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	e := got[0].Data.(transformers.RelatedEntries)
+	require.Len(t, e.Related, 1)
+
+	uph, ok := e.Related[0].(db.UnaffectedPackageHandle)
+	require.True(t, ok)
+	require.Len(t, uph.BlobValue.Ranges, 1)
+	require.Equal(t, "= 1.2.3-1.hum1", uph.BlobValue.Ranges[0].Version.Constraint)
+	require.Equal(t, "rpm", uph.BlobValue.Ranges[0].Version.Type)
 }
 
 func TestTransform_KnownAffected(t *testing.T) {
