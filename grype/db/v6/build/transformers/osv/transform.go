@@ -50,4 +50,5 @@ var strategies = []Strategy{
 	govulndbStrategy{},
 	rootioStrategy{},
 	chainguardStrategy{},
+	dhiStrategy{},
 }
