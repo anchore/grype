@@ -1,0 +1,82 @@
+{
+  "identifier": "github:python/ghsa-xqr8-7jwr-rhp7",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2023-37920"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 7.5,
+          "base_severity": "High",
+          "exploitability_score": 3.9,
+          "impact_score": 3.6
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2023-08-17",
+            "kind": "first-observed"
+          },
+          "ecosystem": "python",
+          "identifier": "2023.7.22",
+          "name": "certifi",
+          "namespace": "github:python",
+          "range": "\u003e= 2015.4.28 \u003c 2023.7.22"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2023-37920"
+        ]
+      },
+      "Severity": "High",
+      "Summary": "Removal of e-Tugra root certificate",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-xqr8-7jwr-rhp7",
+      "namespace": "github:python",
+      "published": "2023-07-25T14:43:53Z",
+      "references": [
+        {
+          "url": "https://github.com/certifi/python-certifi/security/advisories/GHSA-xqr8-7jwr-rhp7"
+        },
+        {
+          "url": "https://github.com/certifi/python-certifi/commit/8fb96ed81f71e7097ed11bc4d9b19afd7ea5c909"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-37920"
+        },
+        {
+          "url": "https://groups.google.com/a/mozilla.org/g/dev-security-policy/c/C-HrP1SEq1A"
+        },
+        {
+          "url": "https://github.com/pypa/advisory-database/tree/main/vulns/certifi/PYSEC-2023-135.yaml"
+        },
+        {
+          "url": "https://lists.fedoraproject.org/archives/list/package-announce@lists.fedoraproject.org/message/5EX6NG7WUFNUKGFHLM35KHHU3GAKXRTG"
+        },
+        {
+          "url": "https://security.netapp.com/advisory/ntap-20240912-0002"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-xqr8-7jwr-rhp7"
+        }
+      ],
+      "updated": "2025-02-12T21:33:44Z",
+      "url": "https://github.com/advisories/GHSA-xqr8-7jwr-rhp7",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

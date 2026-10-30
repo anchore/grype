@@ -1,0 +1,17 @@
+# Hand-authored openvex statements with versionless purls, paired with the
+# upstream certifi GHSA (>= 2015.4.28, < 2023.7.22, CVE-2023-37920).
+#
+# The chainguard-libraries records are not real advisories (auto-generate is
+# off), they model a provider publishing a statement without a version:
+#   - TEST-versionless-not-affected: not_affected for pkg:pypi/certifi, which
+#     applies to every version and suppresses the upstream GHSA.
+#   - TEST-versionless-fixed: fixed for pkg:pypi/certifi, which is skipped at
+#     build time since a fix without a version can't be placed, so the upstream
+#     GHSA still matches.
+auto-generate: false
+extractions:
+  github:
+    - github:python/GHSA-xqr8-7jwr-rhp7
+  chainguard-libraries:
+    - chainguard-libraries:pypi/TEST-versionless-not-affected
+    - chainguard-libraries:pypi/TEST-versionless-fixed

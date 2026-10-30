@@ -1,0 +1,25 @@
+{
+  "identifier": "chainguard-libraries:pypi/TEST-versionless-fixed",
+  "item": {
+    "document": {
+      "last_updated": "2025-10-23T06:01:32.326Z",
+      "products": [
+        {
+          "identifiers": {
+            "purl": "pkg:pypi/certifi"
+          }
+        }
+      ],
+      "status": "fixed",
+      "timestamp": "2025-10-23T06:01:32.326Z",
+      "vulnerability": {
+        "aliases": [
+          "CVE-2023-37920",
+          "GHSA-xqr8-7jwr-rhp7"
+        ],
+        "name": "TEST-versionless-fixed"
+      }
+    }
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/annotated-openvex/schema-1.0.0.json"
+}
