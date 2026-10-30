@@ -16,6 +16,14 @@
         },
         "level": {
           "type": "string",
+          "enum": [
+            "",
+            "error",
+            "warn",
+            "info",
+            "debug",
+            "trace"
+          ],
           "description": "explicitly set the logging level (available: [error warn info debug trace])",
           "default": "warn"
         },
@@ -60,12 +68,30 @@
       "oneOf": [
         {
           "items": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^(?:\\s*(?:json|table|cyclonedx|cyclonedx-json|sarif|template)(?:=[^,]+)?\\s*)$",
+            "examples": [
+              "json",
+              "table",
+              "cyclonedx",
+              "cyclonedx-json",
+              "sarif",
+              "template"
+            ]
           },
           "type": "array"
         },
         {
-          "type": "string"
+          "type": "string",
+          "pattern": "^(?:(?:\\s*(?:json|table|cyclonedx|cyclonedx-json|sarif|template)(?:=[^,]+)?\\s*)(?:,(?:\\s*(?:json|table|cyclonedx|cyclonedx-json|sarif|template)(?:=[^,]+)?\\s*))*)?$",
+          "examples": [
+            "json",
+            "table",
+            "cyclonedx",
+            "cyclonedx-json",
+            "sarif",
+            "template"
+          ]
         }
       ],
       "description": "the output format of the vulnerability report (options: table, template, json, cyclonedx)\nwhen using template as the output type, you must also provide a value for 'output-template-file'"
@@ -109,6 +135,7 @@
     },
     "ignore-wontfix": {
       "type": "string",
+      "pattern": "^(?:(?:(?:fixed|not-fixed|unknown|wont-fix)?)(?:,(?:(?:fixed|not-fixed|unknown|wont-fix)?))*)?$",
       "description": "ignore matches for vulnerabilities with specified comma separated fix states, options=[fixed not-fixed unknown wont-fix]"
     },
     "platform": {
@@ -119,6 +146,11 @@
       "properties": {
         "scope": {
           "type": "string",
+          "enum": [
+            "squashed",
+            "all-layers",
+            "deep-squashed"
+          ],
           "description": "selection of layers to analyze, options=[squashed all-layers deep-squashed]",
           "default": "squashed"
         },
@@ -157,7 +189,14 @@
             "type": "string"
           },
           "fix-state": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "",
+              "fixed",
+              "not-fixed",
+              "unknown",
+              "wont-fix"
+            ]
           },
           "package": {
             "properties": {
@@ -187,13 +226,26 @@
             ]
           },
           "vex-status": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "",
+              "not_affected",
+              "affected",
+              "fixed",
+              "under_investigation"
+            ]
           },
           "vex-justification": {
             "type": "string"
           },
           "match-type": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "",
+              "exact-direct-match",
+              "exact-indirect-match",
+              "cpe-match"
+            ]
           }
         },
         "additionalProperties": false,
@@ -425,6 +477,10 @@
             },
             "missing-epoch-strategy": {
               "type": "string",
+              "enum": [
+                "zero",
+                "auto"
+              ],
               "description": "strategy for handling missing epochs in dpkg package versions during matching (options: zero, auto)",
               "default": "zero"
             },
@@ -450,6 +506,10 @@
             },
             "missing-epoch-strategy": {
               "type": "string",
+              "enum": [
+                "zero",
+                "auto"
+              ],
               "description": "strategy for handling missing epochs in RPM package versions during matching (options: zero, auto)",
               "default": "auto"
             },
@@ -572,6 +632,18 @@
     },
     "default-image-pull-source": {
       "type": "string",
+      "enum": [
+        "",
+        "docker",
+        "image",
+        "daemon",
+        "pull",
+        "podman",
+        "containerd",
+        "containers-storage",
+        "oci-registry",
+        "registry"
+      ],
       "description": "allows users to specify which image source should be used to generate the sbom\nvalid values are: registry, docker, podman, containers-storage"
     },
     "from": {
@@ -606,12 +678,22 @@
       "oneOf": [
         {
           "items": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^(?:(?:affected|under_investigation))$",
+            "examples": [
+              "affected",
+              "under_investigation"
+            ]
           },
           "type": "array"
         },
         {
-          "type": "string"
+          "type": "string",
+          "pattern": "^(?:(?:(?:affected|under_investigation))(?:,(?:(?:affected|under_investigation)))*)?$",
+          "examples": [
+            "affected",
+            "under_investigation"
+          ]
         }
       ],
       "description": "VEX statuses to consider as ignored rules"
@@ -627,6 +709,12 @@
           "properties": {
             "apply": {
               "type": "string",
+              "enum": [
+                "",
+                "never",
+                "always",
+                "auto"
+              ],
               "description": "whether fixes from this channel should be considered, options are \"never\", \"always\", or \"auto\" (conditionally applied based on SBOM data)",
               "default": "auto"
             },
@@ -646,6 +734,12 @@
           "properties": {
             "apply": {
               "type": "string",
+              "enum": [
+                "",
+                "never",
+                "always",
+                "auto"
+              ],
               "description": "whether fixes from this channel should be considered, options are \"never\", \"always\", or \"auto\" (conditionally applied based on SBOM data)",
               "default": "auto"
             },
