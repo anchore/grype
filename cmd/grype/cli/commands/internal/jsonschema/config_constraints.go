@@ -87,11 +87,11 @@ func lookupSchema(root *jsonschema.Schema, path string) *jsonschema.Schema {
 
 // arrayItems returns the item schema of an array, including the array form of a list-or-string value
 func arrayItems(s *jsonschema.Schema) *jsonschema.Schema {
-	if s.Type == "array" {
+	if s.Type == jsonTypeArray {
 		return s.Items
 	}
 	for _, alt := range s.OneOf {
-		if alt.Type == "array" {
+		if alt.Type == jsonTypeArray {
 			return alt.Items
 		}
 	}

@@ -23,6 +23,16 @@ const configTagName = "mapstructure"
 // durationPattern matches strings accepted by time.ParseDuration
 const durationPattern = `^[-+]?(0|([0-9]*(\.[0-9]*)?(ns|us|µs|μs|ms|s|m|h))+)$`
 
+const (
+	jsonTypeObject  = "object"
+	jsonTypeArray   = "array"
+	jsonTypeString  = "string"
+	jsonTypeBoolean = "boolean"
+	jsonTypeInteger = "integer"
+	jsonTypeNumber  = "number"
+	jsonTypeNull    = "null"
+)
+
 var durationType = reflect.TypeFor[time.Duration]()
 
 // defaults that depend on the machine generating the schema
@@ -65,7 +75,7 @@ func buildConfigSchema() *jsonschema.Schema {
 		panic("config key \"profiles\" collides with the fangs profile key")
 	}
 	root.Properties.Set("profiles", &jsonschema.Schema{
-		Type:                 "object",
+		Type:                 jsonTypeObject,
 		Description:          "named partial configurations applied over the top-level configuration with --profile <name>",
 		AdditionalProperties: &jsonschema.Schema{Ref: "#"},
 	})
@@ -119,9 +129,9 @@ func (w configWalker) walkField(obj *jsonschema.Schema, f reflect.StructField, v
 		sub, exists := obj.Properties.Get(key)
 		switch {
 		case !exists:
-			sub = newObjectSchema()
+			sub = newSectionSchema()
 			obj.Properties.Set(key, sub)
-		case sub.Type != "object":
+		case sub.Properties == nil:
 			panic(fmt.Sprintf("config key %q is defined as both a value and a section", dotted(path)))
 		}
 		if sub.Description == "" {
@@ -146,19 +156,19 @@ func (w configWalker) walkField(obj *jsonschema.Schema, f reflect.StructField, v
 func (w configWalker) valueSchema(v reflect.Value, path []string) *jsonschema.Schema {
 	t := v.Type()
 	if t == durationType {
-		return &jsonschema.Schema{Type: "string", Pattern: durationPattern}
+		return &jsonschema.Schema{Type: jsonTypeString, Pattern: durationPattern}
 	}
 
 	switch t.Kind() {
 	case reflect.Bool:
-		return &jsonschema.Schema{Type: "boolean"}
+		return &jsonschema.Schema{Type: jsonTypeBoolean}
 	case reflect.String:
-		return &jsonschema.Schema{Type: "string"}
+		return &jsonschema.Schema{Type: jsonTypeString}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return &jsonschema.Schema{Type: "integer"}
+		return &jsonschema.Schema{Type: jsonTypeInteger}
 	case reflect.Float32, reflect.Float64:
-		return &jsonschema.Schema{Type: "number"}
+		return &jsonschema.Schema{Type: jsonTypeNumber}
 	case reflect.Slice:
 		elem := t.Elem()
 		for elem.Kind() == reflect.Pointer {
@@ -168,15 +178,15 @@ func (w configWalker) valueSchema(v reflect.Value, path []string) *jsonschema.Sc
 		case reflect.String:
 			// viper also decodes a comma-separated string into a []string
 			return &jsonschema.Schema{OneOf: []*jsonschema.Schema{
-				{Type: "array", Items: &jsonschema.Schema{Type: "string"}},
-				{Type: "string"},
+				{Type: jsonTypeArray, Items: &jsonschema.Schema{Type: jsonTypeString}},
+				{Type: jsonTypeString},
 			}}
 		case reflect.Struct:
 			items := newObjectSchema()
 			itemPath := slices.Clone(path)
 			itemPath[len(itemPath)-1] += "[]"
 			w.walkStruct(items, reflect.New(elem), itemPath)
-			return &jsonschema.Schema{Type: "array", Items: items}
+			return &jsonschema.Schema{Type: jsonTypeArray, Items: items}
 		default:
 		}
 	default:
@@ -187,10 +197,18 @@ func (w configWalker) valueSchema(v reflect.Value, path []string) *jsonschema.Sc
 
 func newObjectSchema() *jsonschema.Schema {
 	return &jsonschema.Schema{
-		Type:                 "object",
+		Type:                 jsonTypeObject,
 		Properties:           jsonschema.NewProperties(),
 		AdditionalProperties: jsonschema.FalseSchema,
 	}
+}
+
+// newSectionSchema also accepts an empty section (e.g. "exp:" as printed by `grype config`), which YAML reads as null
+func newSectionSchema() *jsonschema.Schema {
+	s := newObjectSchema()
+	s.Type = ""
+	s.Extras = map[string]any{"type": []string{jsonTypeObject, jsonTypeNull}}
+	return s
 }
 
 // includeConfigField matches fangs' includeField

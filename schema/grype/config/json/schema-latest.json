@@ -1,0 +1,776 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "anchore.io/schema/grype/config/json/1.0.0",
+  "properties": {
+    "log": {
+      "properties": {
+        "quiet": {
+          "type": "boolean",
+          "description": "suppress all logging output",
+          "default": false
+        },
+        "verbosity": {
+          "type": "integer",
+          "description": "increase verbosity (-v = info, -vv = debug)",
+          "default": 0
+        },
+        "level": {
+          "type": "string",
+          "description": "explicitly set the logging level (available: [error warn info debug trace])",
+          "default": "warn"
+        },
+        "file": {
+          "type": "string",
+          "description": "file path to write logs to"
+        }
+      },
+      "additionalProperties": false,
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "dev": {
+      "properties": {
+        "profile": {
+          "type": "string",
+          "description": "capture resource profiling data (available: [cpu, mem, ...])"
+        },
+        "db": {
+          "properties": {
+            "debug": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          "additionalProperties": false,
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "output": {
+      "oneOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "the output format of the vulnerability report (options: table, template, json, cyclonedx)\nwhen using template as the output type, you must also provide a value for 'output-template-file'"
+    },
+    "file": {
+      "type": "string",
+      "description": "if using template output, you must provide a path to a Go template file\nsee https://github.com/anchore/grype#using-templates for more information on template output\nthe default path to the template file is the current working directory\noutput-template-file: .grype/html.tmpl\n\nwrite output report to a file (default is to write to stdout)"
+    },
+    "pretty": {
+      "type": "boolean",
+      "description": "pretty-print output",
+      "default": false
+    },
+    "distro": {
+      "type": "string",
+      "description": "distro to match against in the format: \u003cdistro\u003e[-:@]\u003cversion\u003e"
+    },
+    "add-cpes-if-none": {
+      "type": "boolean",
+      "description": "generate CPEs for packages with no CPE data",
+      "default": false
+    },
+    "output-template-file": {
+      "type": "string",
+      "description": "specify the path to a Go template file (requires 'template' output to be selected)"
+    },
+    "check-for-app-update": {
+      "type": "boolean",
+      "description": "enable/disable checking for application updates on startup",
+      "default": true
+    },
+    "only-fixed": {
+      "type": "boolean",
+      "description": "ignore matches for vulnerabilities that are not fixed",
+      "default": false
+    },
+    "only-notfixed": {
+      "type": "boolean",
+      "description": "ignore matches for vulnerabilities that are fixed",
+      "default": false
+    },
+    "ignore-wontfix": {
+      "type": "string",
+      "description": "ignore matches for vulnerabilities with specified comma separated fix states, options=[fixed not-fixed unknown wont-fix]"
+    },
+    "platform": {
+      "type": "string",
+      "description": "an optional platform specifier for container image sources (e.g. 'linux/arm64', 'linux/arm64/v8', 'arm64', 'linux')"
+    },
+    "search": {
+      "properties": {
+        "scope": {
+          "type": "string",
+          "description": "selection of layers to analyze, options=[squashed all-layers deep-squashed]",
+          "default": "squashed"
+        },
+        "unindexed-archives": {
+          "type": "boolean",
+          "description": "search within archives that do not contain a file index to search against (tar, tar.gz, tar.bz2, etc)\nnote: enabling this may result in a performance impact since all discovered compressed tars will be decompressed\nnote: for now this only applies to the java package cataloger",
+          "default": false
+        },
+        "indexed-archives": {
+          "type": "boolean",
+          "description": "search within archives that do contain a file index to search against (zip)\nnote: for now this only applies to the java package cataloger",
+          "default": true
+        }
+      },
+      "additionalProperties": false,
+      "description": "selection of layers to analyze, options=[squashed all-layers deep-squashed]",
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "ignore": {
+      "items": {
+        "properties": {
+          "vulnerability": {
+            "type": "string"
+          },
+          "include-aliases": {
+            "type": "boolean",
+            "default": false
+          },
+          "reason": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "fix-state": {
+            "type": "string"
+          },
+          "package": {
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "language": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "location": {
+                "type": "string"
+              },
+              "upstream-name": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false,
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "vex-status": {
+            "type": "string"
+          },
+          "vex-justification": {
+            "type": "string"
+          },
+          "match-type": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object"
+      },
+      "type": "array",
+      "description": "a list of vulnerability ignore rules; a match must meet ALL criteria specified in a rule to be ignored.\nThis is the full set of supported rule fields:\n  - vulnerability: CVE-2008-4318        # match by vulnerability ID (required if no other criteria are given)\n    namespace: nvd:cpe                   # match by vulnerability namespace (e.g. nvd:cpe, github:language:go)\n    fix-state: unknown                   # match by fix state; options: fixed, not-fixed, wont-fix, unknown\n    match-type: exact-direct-match       # match by how the vulnerability was found; options: exact-direct-match, exact-indirect-match, cpe-match\n    reason: \"tolerated by policy\"        # optional human-readable note recorded on the ignored match (does not affect matching)\n    include-aliases: true                # also apply the vulnerability ID match to aliases/related CVEs (default: false)\n    package:\n      name: libcurl                      # match by package name (supports regular expressions)\n      version: 1.5.1                     # match by package version\n      language: python                   # match by package language (e.g. python, javascript, java, go, …)\n      type: npm                          # match by package type (e.g. rpm, deb, apk, gem, npm, go-module, …)\n      location: \"/usr/local/lib/node_modules/**\"  # match by package location (supports glob patterns)\n      upstream-name: curl                # match by upstream package name (supports regular expressions)\n\nVEX fields apply when Grype reads VEX data:\n  - vex-status: not_affected\n    vex-justification: vulnerable_code_not_present\n"
+    },
+    "exclude": {
+      "oneOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "a list of globs to exclude from scanning, for example:\n  - '/etc/**'\n  - './out/**/*.json'\nsame as --exclude"
+    },
+    "external-sources": {
+      "properties": {
+        "enable": {
+          "type": "boolean",
+          "description": "enable Grype searching network source for additional information",
+          "default": false
+        },
+        "maven": {
+          "properties": {
+            "search-maven-upstream": {
+              "type": "boolean",
+              "description": "search for Maven artifacts by SHA1",
+              "default": true
+            },
+            "base-url": {
+              "type": "string",
+              "description": "base URL of the Maven repository to search",
+              "default": "https://search.maven.org/solrsearch/select"
+            },
+            "rate-limit": {
+              "type": "string",
+              "pattern": "^[-+]?(0|([0-9]*(\\.[0-9]*)?(ns|us|µs|μs|ms|s|m|h))+)$",
+              "default": "300ms"
+            }
+          },
+          "additionalProperties": false,
+          "description": "search for Maven artifacts by SHA1",
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "enable Grype searching network source for additional information",
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "match": {
+      "properties": {
+        "java": {
+          "properties": {
+            "using-cpes": {
+              "type": "boolean",
+              "description": "use CPE matching to find vulnerabilities",
+              "default": false
+            }
+          },
+          "additionalProperties": false,
+          "description": "use CPE matching to find vulnerabilities",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "jvm": {
+          "properties": {
+            "using-cpes": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "additionalProperties": false,
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "dotnet": {
+          "properties": {
+            "using-cpes": {
+              "type": "boolean",
+              "description": "use CPE matching to find vulnerabilities",
+              "default": false
+            }
+          },
+          "additionalProperties": false,
+          "description": "use CPE matching to find vulnerabilities",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "golang": {
+          "properties": {
+            "using-cpes": {
+              "type": "boolean",
+              "description": "use CPE matching to find vulnerabilities",
+              "default": false
+            },
+            "always-use-cpe-for-stdlib": {
+              "type": "boolean",
+              "description": "use CPE matching to find vulnerabilities for the Go standard library",
+              "default": false
+            },
+            "allow-main-module-pseudo-version-comparison": {
+              "type": "boolean",
+              "description": "allow comparison between main module pseudo-versions (e.g. v0.0.0-20240413-2b432cf643...)",
+              "default": false
+            }
+          },
+          "additionalProperties": false,
+          "description": "use CPE matching to find vulnerabilities",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "javascript": {
+          "properties": {
+            "using-cpes": {
+              "type": "boolean",
+              "description": "use CPE matching to find vulnerabilities",
+              "default": false
+            }
+          },
+          "additionalProperties": false,
+          "description": "use CPE matching to find vulnerabilities",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "python": {
+          "properties": {
+            "using-cpes": {
+              "type": "boolean",
+              "description": "use CPE matching to find vulnerabilities",
+              "default": false
+            }
+          },
+          "additionalProperties": false,
+          "description": "use CPE matching to find vulnerabilities",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "ruby": {
+          "properties": {
+            "using-cpes": {
+              "type": "boolean",
+              "description": "use CPE matching to find vulnerabilities",
+              "default": false
+            }
+          },
+          "additionalProperties": false,
+          "description": "use CPE matching to find vulnerabilities",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "rust": {
+          "properties": {
+            "using-cpes": {
+              "type": "boolean",
+              "description": "use CPE matching to find vulnerabilities",
+              "default": false
+            }
+          },
+          "additionalProperties": false,
+          "description": "use CPE matching to find vulnerabilities",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "hex": {
+          "properties": {
+            "using-cpes": {
+              "type": "boolean",
+              "description": "use CPE matching to find vulnerabilities",
+              "default": false
+            }
+          },
+          "additionalProperties": false,
+          "description": "use CPE matching to find vulnerabilities",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "stock": {
+          "properties": {
+            "using-cpes": {
+              "type": "boolean",
+              "description": "use CPE matching to find vulnerabilities",
+              "default": true
+            }
+          },
+          "additionalProperties": false,
+          "description": "use CPE matching to find vulnerabilities",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "dpkg": {
+          "properties": {
+            "using-cpes": {
+              "type": "boolean",
+              "description": "use CPE matching to find vulnerabilities",
+              "default": false
+            },
+            "missing-epoch-strategy": {
+              "type": "string",
+              "description": "strategy for handling missing epochs in dpkg package versions during matching (options: zero, auto)",
+              "default": "zero"
+            },
+            "use-cpes-for-eol": {
+              "type": "boolean",
+              "description": "use CPE matching for packages from end-of-life distributions",
+              "default": false
+            }
+          },
+          "additionalProperties": false,
+          "description": "use CPE matching to find vulnerabilities",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "rpm": {
+          "properties": {
+            "using-cpes": {
+              "type": "boolean",
+              "description": "use CPE matching to find vulnerabilities",
+              "default": false
+            },
+            "missing-epoch-strategy": {
+              "type": "string",
+              "description": "strategy for handling missing epochs in RPM package versions during matching (options: zero, auto)",
+              "default": "auto"
+            },
+            "use-cpes-for-eol": {
+              "type": "boolean",
+              "description": "use CPE matching for packages from end-of-life distributions",
+              "default": false
+            }
+          },
+          "additionalProperties": false,
+          "description": "use CPE matching to find vulnerabilities",
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "use CPE matching to find vulnerabilities",
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "fail-on-severity": {
+      "type": "string",
+      "enum": [
+        "",
+        "negligible",
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "description": "upon scanning, if a severity is found at or above the given severity then the return code will be 1\ndefault is unset which will skip this validation (options: negligible, low, medium, high, critical)"
+    },
+    "registry": {
+      "properties": {
+        "insecure-skip-tls-verify": {
+          "type": "boolean",
+          "description": "skip TLS verification when communicating with the registry",
+          "default": false
+        },
+        "insecure-use-http": {
+          "type": "boolean",
+          "description": "use http instead of https when connecting to the registry",
+          "default": false
+        },
+        "auth": {
+          "items": {
+            "properties": {
+              "authority": {
+                "type": "string"
+              },
+              "username": {
+                "type": "string"
+              },
+              "password": {
+                "type": "string"
+              },
+              "token": {
+                "type": "string"
+              },
+              "tls-cert": {
+                "type": "string"
+              },
+              "tls-key": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "type": "array",
+          "description": "Authentication credentials for specific registries. Each entry describes authentication for a specific authority:\n-\tauthority: the registry authority URL the URL to the registry (e.g. \"docker.io\", \"localhost:5000\", etc.) (env: SYFT_REGISTRY_AUTH_AUTHORITY)\n\tusername: a username if using basic credentials (env: SYFT_REGISTRY_AUTH_USERNAME)\n\tpassword: a corresponding password (env: SYFT_REGISTRY_AUTH_PASSWORD)\n\ttoken: a token if using token-based authentication, mutually exclusive with username/password (env: SYFT_REGISTRY_AUTH_TOKEN)\n\ttls-cert: filepath to the client certificate used for TLS authentication to the registry (env: SYFT_REGISTRY_AUTH_TLS_CERT)\n\ttls-key: filepath to the client key used for TLS authentication to the registry (env: SYFT_REGISTRY_AUTH_TLS_KEY)\n"
+        },
+        "ca-cert": {
+          "type": "string",
+          "description": "filepath to a CA certificate (or directory containing *.crt, *.cert, *.pem) used to generate the client certificate"
+        }
+      },
+      "additionalProperties": false,
+      "description": "skip TLS verification when communicating with the registry",
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "show-suppressed": {
+      "type": "boolean",
+      "description": "show suppressed/ignored vulnerabilities in the output (only supported with table output format)",
+      "default": false
+    },
+    "include-matcher-suppressions": {
+      "type": "boolean",
+      "description": "include matches suppressed internally by matchers (e.g. distro fixed/NAK records, the built-in false-positive list) in the ignored matches output",
+      "default": false
+    },
+    "by-cve": {
+      "type": "boolean",
+      "description": "orient results by CVE instead of the original vulnerability ID when possible",
+      "default": false
+    },
+    "sort-by": {
+      "type": "string",
+      "enum": [
+        "package",
+        "severity",
+        "epss",
+        "risk",
+        "kev",
+        "vulnerability"
+      ],
+      "description": "sort the match results with the given strategy, options=[package severity epss risk kev vulnerability]",
+      "default": "risk"
+    },
+    "name": {
+      "type": "string",
+      "description": "same as --name; set the name of the target being analyzed"
+    },
+    "default-image-pull-source": {
+      "type": "string",
+      "description": "allows users to specify which image source should be used to generate the sbom\nvalid values are: registry, docker, podman, containers-storage"
+    },
+    "from": {
+      "oneOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "specify the source behavior to use (e.g. docker, registry, podman, containers-storage, oci-dir, ...)"
+    },
+    "vex-documents": {
+      "oneOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "a list of VEX documents to consider when producing scanning results"
+    },
+    "vex-add": {
+      "oneOf": [
+        {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "description": "VEX statuses to consider as ignored rules"
+    },
+    "match-upstream-kernel-headers": {
+      "type": "boolean",
+      "description": "match kernel-header packages with upstream kernel as kernel vulnerabilities",
+      "default": false
+    },
+    "fix-channel": {
+      "properties": {
+        "redhat-eus": {
+          "properties": {
+            "apply": {
+              "type": "string",
+              "description": "whether fixes from this channel should be considered, options are \"never\", \"always\", or \"auto\" (conditionally applied based on SBOM data)",
+              "default": "auto"
+            },
+            "versions": {
+              "type": "string",
+              "default": "\u003e= 8.0"
+            }
+          },
+          "additionalProperties": false,
+          "description": "whether fixes from this channel should be considered, options are \"never\", \"always\", or \"auto\" (conditionally applied based on SBOM data)",
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "ubuntu-esm": {
+          "properties": {
+            "apply": {
+              "type": "string",
+              "description": "whether fixes from this channel should be considered, options are \"never\", \"always\", or \"auto\" (conditionally applied based on SBOM data)",
+              "default": "auto"
+            },
+            "versions": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "description": "whether fixes from this channel should be considered, options are \"never\", \"always\", or \"auto\" (conditionally applied based on SBOM data)",
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false,
+      "description": "whether fixes from this channel should be considered, options are \"never\", \"always\", or \"auto\" (conditionally applied based on SBOM data)",
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "timestamp": {
+      "type": "boolean",
+      "default": true
+    },
+    "alerts": {
+      "properties": {
+        "enable-eol-distro-warnings": {
+          "type": "boolean",
+          "description": "enable/disable warnings about packages from end-of-life (EOL) distros. When enabled, grype will track and report packages that come from distros that have reached their end-of-life date.",
+          "default": true
+        }
+      },
+      "additionalProperties": false,
+      "description": "enable/disable warnings about packages from end-of-life (EOL) distros. When enabled, grype will track and report packages that come from distros that have reached their end-of-life date.",
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "db": {
+      "properties": {
+        "cache-dir": {
+          "type": "string",
+          "description": "location to write the vulnerability database cache"
+        },
+        "update-url": {
+          "type": "string",
+          "description": "URL of the vulnerability database",
+          "default": "https://grype.anchore.io/databases"
+        },
+        "ca-cert": {
+          "type": "string",
+          "description": "certificate to trust download the database and listing file"
+        },
+        "auto-update": {
+          "type": "boolean",
+          "description": "check for database updates on execution",
+          "default": true
+        },
+        "validate-by-hash-on-start": {
+          "type": "boolean",
+          "description": "validate the database matches the known hash each execution",
+          "default": true
+        },
+        "validate-age": {
+          "type": "boolean",
+          "description": "ensure db build is no older than the max-allowed-built-age",
+          "default": true
+        },
+        "max-allowed-built-age": {
+          "type": "string",
+          "pattern": "^[-+]?(0|([0-9]*(\\.[0-9]*)?(ns|us|µs|μs|ms|s|m|h))+)$",
+          "description": "Max allowed age for vulnerability database,\nage being the time since it was built\nDefault max age is 120h (or five days)",
+          "default": "120h0m0s"
+        },
+        "require-update-check": {
+          "type": "boolean",
+          "description": "fail the scan if unable to check for database updates",
+          "default": false
+        },
+        "update-available-timeout": {
+          "type": "string",
+          "pattern": "^[-+]?(0|([0-9]*(\\.[0-9]*)?(ns|us|µs|μs|ms|s|m|h))+)$",
+          "description": "Timeout for downloading GRYPE_DB_UPDATE_URL to see if the database needs to be downloaded\nThis file is ~156KiB as of 2024-04-17 so the download should be quick; adjust as needed",
+          "default": "30s"
+        },
+        "update-download-timeout": {
+          "type": "string",
+          "pattern": "^[-+]?(0|([0-9]*(\\.[0-9]*)?(ns|us|µs|μs|ms|s|m|h))+)$",
+          "description": "Timeout for downloading actual vulnerability DB\nThe DB is ~156MB as of 2024-04-17 so slower connections may exceed the default timeout; adjust as needed",
+          "default": "5m0s"
+        },
+        "max-update-check-frequency": {
+          "type": "string",
+          "pattern": "^[-+]?(0|([0-9]*(\\.[0-9]*)?(ns|us|µs|μs|ms|s|m|h))+)$",
+          "description": "Maximum frequency to check for vulnerability database updates",
+          "default": "2h0m0s"
+        }
+      },
+      "additionalProperties": false,
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "exp": {
+      "properties": {},
+      "additionalProperties": false,
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "profiles": {
+      "additionalProperties": {
+        "$ref": "#"
+      },
+      "type": "object",
+      "description": "named partial configurations applied over the top-level configuration with --profile \u003cname\u003e"
+    }
+  },
+  "additionalProperties": false,
+  "type": "object",
+  "title": "Grype configuration",
+  "description": "configuration file for grype (e.g. .grype.yaml, .grype/config.yaml)"
+}

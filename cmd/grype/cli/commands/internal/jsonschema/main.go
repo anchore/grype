@@ -25,10 +25,11 @@ func main() {
 	comments := parseCommentsFromPackages(pkgPatterns)
 	fmt.Printf("Extracted field comments from %d structs\n", len(comments))
 
+	// written first so it does not depend on the db-search schemas being up to date
+	write(encode(buildConfigSchema()), "config", options.ConfigSchemaVersion)
+
 	compose(dbsearch.Matches{}, "db-search", dbsearch.MatchesSchemaVersion, comments)
 	compose(dbsearch.Vulnerabilities{}, "db-search-vuln", dbsearch.VulnerabilitiesSchemaVersion, comments)
-
-	write(encode(buildConfigSchema()), "config", options.ConfigSchemaVersion)
 }
 
 func compose(document any, component, version string, comments map[string]map[string]string) {
