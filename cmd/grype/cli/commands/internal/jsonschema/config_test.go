@@ -119,6 +119,26 @@ func TestConfigSchemaValidation(t *testing.T) {
 			config: "match:\n",
 		},
 		{
+			name:   "comma-separated outputs with a destination file",
+			config: "output: json=report.json, table\n",
+		},
+		{
+			name:   "list of allowed values",
+			config: "vex-add:\n  - affected\n  - under_investigation\n",
+		},
+		{
+			name:   "comma-separated fix states",
+			config: "ignore-wontfix: wont-fix,not-fixed\n",
+		},
+		{
+			name:   "ignore rule with allowed values",
+			config: "ignore:\n  - fix-state: wont-fix\n    match-type: cpe-match\n    vex-status: not_affected\n",
+		},
+		{
+			name:   "image pull source",
+			config: "default-image-pull-source: registry\n",
+		},
+		{
 			name:    "unknown top-level key",
 			config:  "fail-on-serverity: high\n",
 			wantErr: true,
@@ -141,6 +161,36 @@ func TestConfigSchemaValidation(t *testing.T) {
 		{
 			name:    "value not in the allowed set",
 			config:  "fail-on-severity: severe\n",
+			wantErr: true,
+		},
+		{
+			name:    "unknown output format",
+			config:  "output: jsno\n",
+			wantErr: true,
+		},
+		{
+			name:    "unknown output format in an array",
+			config:  "output:\n  - jsno=report.json\n",
+			wantErr: true,
+		},
+		{
+			name:    "status not supported by vex-add",
+			config:  "vex-add: [fixed]\n",
+			wantErr: true,
+		},
+		{
+			name:    "unknown fix state in a comma-separated list",
+			config:  "ignore-wontfix: wont-fix,wontfix\n",
+			wantErr: true,
+		},
+		{
+			name:    "unknown fix state in an ignore rule",
+			config:  "ignore:\n  - fix-state: wontfix\n",
+			wantErr: true,
+		},
+		{
+			name:    "unknown scope",
+			config:  "search:\n  scope: everything\n",
 			wantErr: true,
 		},
 		{
