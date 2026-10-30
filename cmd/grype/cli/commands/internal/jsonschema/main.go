@@ -15,6 +15,7 @@ import (
 	"golang.org/x/tools/go/packages"
 
 	"github.com/anchore/grype/cmd/grype/cli/commands/internal/dbsearch"
+	"github.com/anchore/grype/cmd/grype/cli/options"
 	"github.com/anchore/grype/internal/repoutil"
 )
 
@@ -26,6 +27,8 @@ func main() {
 
 	compose(dbsearch.Matches{}, "db-search", dbsearch.MatchesSchemaVersion, comments)
 	compose(dbsearch.Vulnerabilities{}, "db-search-vuln", dbsearch.VulnerabilitiesSchemaVersion, comments)
+
+	write(encode(buildConfigSchema()), "config", options.ConfigSchemaVersion)
 }
 
 func compose(document any, component, version string, comments map[string]map[string]string) {
