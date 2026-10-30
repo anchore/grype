@@ -158,6 +158,33 @@ func TestParseDHIIdentity(t *testing.T) {
 			},
 			want: dhiIdentity{packageType: pkg.ApkPkg, lineage: "alpine", release: "3.24", architecture: "aarch64"},
 		},
+		{
+			name: "Alpine without os qualifiers",
+			pkg: osvmodel.Package{
+				Ecosystem: "Docker Hardened Images:Alpine:3.24",
+				Name:      "coreutils",
+				Purl:      "pkg:apk/dhi/coreutils",
+			},
+			want: dhiIdentity{packageType: pkg.ApkPkg, lineage: "alpine", release: "3.24"},
+		},
+		{
+			name: "Debian without os qualifiers",
+			pkg: osvmodel.Package{
+				Ecosystem: "Docker Hardened Images:Debian:13",
+				Name:      "coreutils",
+				Purl:      "pkg:deb/dhi/coreutils",
+			},
+			want: dhiIdentity{packageType: pkg.DebPkg, lineage: "debian", release: "13"},
+		},
+		{
+			name: "architecture without os qualifiers",
+			pkg: osvmodel.Package{
+				Ecosystem: "Docker Hardened Images:Alpine:3.24",
+				Name:      "coreutils",
+				Purl:      "pkg:apk/dhi/coreutils?arch=aarch64",
+			},
+			want: dhiIdentity{packageType: pkg.ApkPkg, lineage: "alpine", release: "3.24", architecture: "aarch64"},
+		},
 	}
 
 	for _, test := range tests {
@@ -229,6 +256,24 @@ func TestParseDHIIdentityRejectsInvalidRelease(t *testing.T) {
 			name:      "release mismatch",
 			ecosystem: "Docker Hardened Images:Alpine:3.24",
 			purl:      "pkg:apk/dhi/coreutils?os_distro=alpine&os_name=dhi&os_version=3.25",
+			wantErr:   "must identify dhi/alpine/3.24",
+		},
+		{
+			name:      "partial qualifiers with release mismatch",
+			ecosystem: "Docker Hardened Images:Alpine:3.24",
+			purl:      "pkg:apk/dhi/coreutils?os_version=3.25",
+			wantErr:   "must identify dhi/alpine/3.24",
+		},
+		{
+			name:      "lineage qualifier mismatch",
+			ecosystem: "Docker Hardened Images:Alpine:3.24",
+			purl:      "pkg:apk/dhi/coreutils?os_distro=debian",
+			wantErr:   "must identify dhi/alpine/3.24",
+		},
+		{
+			name:      "upstream os_name",
+			ecosystem: "Docker Hardened Images:Alpine:3.24",
+			purl:      "pkg:apk/dhi/coreutils?os_distro=alpine&os_name=alpine&os_version=3.24",
 			wantErr:   "must identify dhi/alpine/3.24",
 		},
 		{

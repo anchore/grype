@@ -225,8 +225,12 @@ func parseDHIIdentity(osvPackage osvmodel.Package) (dhiIdentity, error) {
 	for _, qualifier := range purl.Qualifiers {
 		qualifiers[qualifier.Key] = qualifier.Value
 	}
-	if qualifiers["os_name"] != dhiNamespace || qualifiers["os_distro"] != lineage || qualifiers["os_version"] != release {
-		return dhiIdentity{}, fmt.Errorf("PURL qualifiers must identify dhi/%s/%s", lineage, release)
+	// The ecosystem is the source of truth for the lineage and release. The os_* qualifiers are optional,
+	// but when present they must agree with it.
+	for key, want := range map[string]string{"os_name": dhiNamespace, "os_distro": lineage, "os_version": release} {
+		if got, ok := qualifiers[key]; ok && got != want {
+			return dhiIdentity{}, fmt.Errorf("PURL qualifiers must identify dhi/%s/%s", lineage, release)
+		}
 	}
 
 	return dhiIdentity{packageType: packageType, lineage: lineage, release: release, architecture: qualifiers["arch"]}, nil
