@@ -14,6 +14,7 @@ import (
 	"github.com/anchore/grype/grype/db/v6/name"
 	"github.com/anchore/grype/grype/pkg/qualifier/architecture"
 	"github.com/anchore/grype/grype/version"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/packageurl-go"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -170,6 +171,7 @@ func getPackageHandles(vuln *unmarshal.CSAFVulnerability, idx *productIndex) []a
 		}
 		aph, err := makeFixedHandle(pid, vuln, idx, remediationsByProduct)
 		if err != nil {
+			log.WithFields("cve", vuln.CVE, "product", pid, "error", err).Debug("skipping fixed csaf product")
 			continue
 		}
 		aphs = append(aphs, *aph)
@@ -435,6 +437,10 @@ func redundantSrcProductIDs(vuln *unmarshal.CSAFVulnerability, idx *productIndex
 		consider(pid)
 	}
 	for _, pid := range vuln.ProductStatus.Fixed {
+		// a versionless fixed product is skipped by makeFixedHandle, so it can't stand in for the src
+		if purl, ok := idx.productIDToPURL[pid]; ok && purl.Version == "" {
+			continue
+		}
 		consider(pid)
 	}
 

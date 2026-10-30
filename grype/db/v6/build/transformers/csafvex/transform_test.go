@@ -678,6 +678,50 @@ func TestTransform_DropsSrcWhenSameNameBinaryPresent(t *testing.T) {
 	require.ElementsMatch(t, want, seen, "hummingbird-1:glibc.src should be dropped (sibling binary present); hummingbird-2:glibc.src should survive (no sibling binary on that platform)")
 }
 
+func TestTransform_FixedVersionlessBinaryDoesNotDropSrc(t *testing.T) {
+	// a versionless binary can't carry a fix version and is skipped, so it must not count as
+	// the same-name binary that makes the versioned src redundant (otherwise neither survives)
+	tree := hummingbirdProductTree()
+	tree.Branches[0].Branches = append(tree.Branches[0].Branches, unmarshal.CSAFBranch{
+		Category: "product_version",
+		Name:     "testpkg",
+		Product: &unmarshal.CSAFProduct{
+			Name:      "testpkg",
+			ProductID: "testpkg",
+			ProductIdentificationHelper: &unmarshal.CSAFProductIdentificationHelper{
+				PURL: "pkg:rpm/redhat/testpkg",
+			},
+		},
+	})
+	tree.Relationships = append(tree.Relationships, unmarshal.CSAFRelationship{
+		Category:                  "default_component_of",
+		FullProductName:           unmarshal.CSAFProduct{Name: "testpkg as component of hummingbird", ProductID: "hummingbird-1:testpkg"},
+		ProductReference:          "testpkg",
+		RelatesToProductReference: "hummingbird-1",
+	})
+	advisory := makeAdvisory([]unmarshal.CSAFVulnerability{
+		{
+			CVE: "CVE-2026-88892",
+			ProductStatus: &unmarshal.CSAFProductStatus{
+				Fixed: []string{"hummingbird-1:testpkg", "hummingbird-1:testpkg-0:1.2.3-1.hum1.src"},
+			},
+		},
+	}, tree)
+
+	got, err := Transform(advisory, inputProviderState())
+	require.NoError(t, err)
+	require.Len(t, got, 1)
+
+	e := got[0].Data.(transformers.RelatedEntries)
+	require.Len(t, e.Related, 1)
+
+	aph, ok := e.Related[0].(db.AffectedPackageHandle)
+	require.True(t, ok)
+	require.Equal(t, "testpkg", aph.Package.Name)
+	require.Equal(t, "< 1.2.3-1.hum1", aph.BlobValue.Ranges[0].Version.Constraint)
+	require.Equal(t, architecture.ArchSource, *aph.BlobValue.Qualifiers.Architecture)
+}
+
 func TestTransform_ArchitectureTaggingForFixedAndUnaffected(t *testing.T) {
 	// Verify the architecture tag is set for the fixed and known_not_affected paths too —
 	// not just known_affected — and that the value follows the same arch-from-PURL rule.
