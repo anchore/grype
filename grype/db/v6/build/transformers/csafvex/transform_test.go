@@ -291,43 +291,6 @@ func TestTransform_FixedVersionlessPURLSkipped(t *testing.T) {
 	require.Equal(t, "< 1.2.3-1.hum1", aph.BlobValue.Ranges[0].Version.Constraint)
 }
 
-func TestMakeUnaffectedHandle_FixedStatus(t *testing.T) {
-	tree := hummingbirdProductTree()
-	idx := newProductIndex(&tree)
-	vuln := &unmarshal.CSAFVulnerability{CVE: "CVE-2026-88891"}
-
-	tests := []struct {
-		name           string
-		productID      string
-		wantConstraint string
-		wantFixVersion string
-	}{
-		{
-			name:           "versioned purl is unaffected from the fix version onward",
-			productID:      "hummingbird-1:testpkg-0:1.2.3-1.hum1.src",
-			wantConstraint: ">= 1.2.3-1.hum1",
-			wantFixVersion: "1.2.3-1.hum1",
-		},
-		{
-			name:           "versionless purl applies to all versions",
-			productID:      "hummingbird-1:otherpkg",
-			wantConstraint: "",
-			wantFixVersion: "",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			uph, err := makeUnaffectedHandle(tt.productID, vuln, idx, db.FixedStatus, nil)
-			require.NoError(t, err)
-			require.Len(t, uph.BlobValue.Ranges, 1)
-			require.Equal(t, tt.wantConstraint, uph.BlobValue.Ranges[0].Version.Constraint)
-			require.Equal(t, db.FixedStatus, uph.BlobValue.Ranges[0].Fix.State)
-			require.Equal(t, tt.wantFixVersion, uph.BlobValue.Ranges[0].Fix.Version)
-		})
-	}
-}
-
 func TestTransform_KnownAffected(t *testing.T) {
 	tree := hummingbirdProductTree()
 	advisory := makeAdvisory([]unmarshal.CSAFVulnerability{

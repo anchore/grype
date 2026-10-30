@@ -177,7 +177,7 @@ func getPackageHandles(vuln *unmarshal.CSAFVulnerability, idx *productIndex) []a
 
 	// known_not_affected → UnaffectedPackageHandle
 	for _, pid := range vuln.ProductStatus.KnownNotAffected {
-		uph, err := makeUnaffectedHandle(pid, vuln, idx, db.NotAffectedFixStatus, remediationsByProduct)
+		uph, err := makeUnaffectedHandle(pid, vuln, idx)
 		if err != nil {
 			continue
 		}
@@ -308,7 +308,7 @@ func makeFixedHandle(productID string, vuln *unmarshal.CSAFVulnerability, idx *p
 	}, nil
 }
 
-func makeUnaffectedHandle(productID string, vuln *unmarshal.CSAFVulnerability, idx *productIndex, fixState db.FixStatus, remediations map[string]*unmarshal.CSAFRemediation) (*db.UnaffectedPackageHandle, error) {
+func makeUnaffectedHandle(productID string, vuln *unmarshal.CSAFVulnerability, idx *productIndex) (*db.UnaffectedPackageHandle, error) {
 	purl, ok := idx.productIDToPURL[productID]
 	if !ok {
 		return nil, fmt.Errorf("no PURL for product ID %s", productID)
@@ -323,37 +323,14 @@ func makeUnaffectedHandle(productID string, vuln *unmarshal.CSAFVulnerability, i
 	os := getOperatingSystem(productID, idx)
 
 	fix := &db.Fix{
-		State: fixState,
+		State: db.NotAffectedFixStatus,
 	}
 
-	if fixState == db.FixedStatus && purl.Version != "" {
-		fix.Version = purl.Version
-
-		// attach fix date from remediation if available
-		rem := remediations[productID]
-		if rem != nil && rem.Date != "" {
-			t := internal.ParseTime(rem.Date)
-			if t != nil {
-				fix.Detail = &db.FixDetail{
-					Available: &db.FixAvailability{
-						Date: t,
-						Kind: "advisory",
-					},
-				}
-			}
-		}
-	}
-
+	// a versionless purl makes the statement about every version of the
+	// package, which is an empty constraint; "= " would not parse
 	var constraint string
-	switch {
-	case purl.Version == "":
-		// a versionless purl makes the statement about every version of the
-		// package, which is an empty constraint; "= " would match nothing
-	case fixState == db.NotAffectedFixStatus:
+	if purl.Version != "" {
 		constraint = fmt.Sprintf("= %s", purl.Version)
-	default:
-		// the fix version and everything after it are unaffected
-		constraint = fmt.Sprintf(">= %s", purl.Version)
 	}
 
 	return &db.UnaffectedPackageHandle{
