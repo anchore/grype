@@ -1,0 +1,70 @@
+{
+  "identifier": "github:java/ghsa-3f7h-mf4q-vrm4",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2022-40152"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 6.5,
+          "base_severity": "Medium",
+          "exploitability_score": 2.8,
+          "impact_score": 3.6
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:H",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "ecosystem": "java",
+          "identifier": "5.4.0",
+          "name": "com.fasterxml.woodstox:woodstox-core",
+          "namespace": "github:java",
+          "range": "< 5.4.0"
+        },
+        {
+          "ecosystem": "java",
+          "identifier": "6.4.0",
+          "name": "com.fasterxml.woodstox:woodstox-core",
+          "namespace": "github:java",
+          "range": ">= 6.0.0 < 6.4.0"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2022-40152"
+        ]
+      },
+      "Severity": "Medium",
+      "Summary": "Stack Buffer Overflow in Woodstox",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:H",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-3f7h-mf4q-vrm4",
+      "namespace": "github:java",
+      "published": "2022-09-17T00:00:16Z",
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-40152"
+        },
+        {
+          "url": "https://github.com/FasterXML/woodstox/issues/157"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-3f7h-mf4q-vrm4"
+        }
+      ],
+      "updated": "2024-03-15T00:00:00Z",
+      "url": "https://github.com/advisories/GHSA-3f7h-mf4q-vrm4",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

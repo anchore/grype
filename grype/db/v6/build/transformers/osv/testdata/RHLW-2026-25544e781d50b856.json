@@ -1,0 +1,170 @@
+{
+  "schema_version": "1.9.0",
+  "id": "RHLW-2026-25544e781d50b856",
+  "published": "2026-07-14T12:50:26Z",
+  "modified": "2026-07-14T12:50:26Z",
+  "severity": [
+    {
+      "type": "CVSS_V3",
+      "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:N"
+    }
+  ],
+  "references": [
+    {
+      "url": "https://spring.io/security/cve-2023-20860",
+      "type": "WEB"
+    },
+    {
+      "url": "https://github.com/CVEProject/cvelistV5/tree/main/cves/2023/20xxx/CVE-2023-20860.json",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-20860",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://github.com/advisories/GHSA-7phw-cxx7-q9vq",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://spring.io/security/cve-2025-41249",
+      "type": "WEB"
+    },
+    {
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-41249",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://github.com/advisories/GHSA-jmp9-x22r-554x",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://spring.io/security/cve-2024-38816",
+      "type": "WEB"
+    },
+    {
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-38816",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://github.com/advisories/GHSA-cx7f-g6mp-7hqm",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://spring.io/security/cve-2024-22243",
+      "type": "WEB"
+    },
+    {
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-22243",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://github.com/advisories/GHSA-ccgv-vj62-xf9h",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://spring.io/security/cve-2024-38808",
+      "type": "WEB"
+    },
+    {
+      "url": "https://github.com/CVEProject/cvelistV5/tree/main/cves/2024/38xxx/CVE-2024-38808.json",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-38808",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://github.com/advisories/GHSA-9cmq-m9j5-mvww",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://spring.io/security/cve-2023-20863",
+      "type": "WEB"
+    },
+    {
+      "url": "https://github.com/CVEProject/cvelistV5/tree/main/cves/2023/20xxx/CVE-2023-20863.json",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-20863",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://github.com/advisories/GHSA-wxqc-pxw9-g2p8",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://spring.io/security/cve-2023-20861",
+      "type": "WEB"
+    },
+    {
+      "url": "https://github.com/CVEProject/cvelistV5/tree/main/cves/2023/20xxx/CVE-2023-20861.json",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-20861",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://github.com/advisories/GHSA-564r-hj7v-mcr5",
+      "type": "ADVISORY"
+    }
+  ],
+  "summary": "Lightwell Security Advisory: spring-expression 5.3.18.rhlw-00010",
+  "details": "Red Hat Lightwell has released org.springframework:spring-expression 5.3.18.rhlw-00010 with backported fixes for CVE-2023-20860, CVE-2025-41249, CVE-2024-38816, CVE-2024-22243, CVE-2024-38808, CVE-2023-20863, and CVE-2023-20861.\n\nCVE-2023-20860: Spring Framework running version 6.0.0 - 6.0.6 or 5.3.0 - 5.3.25 using \"**\" as a pattern in Spring Security configuration with the mvcRequestMatcher creates a mismatch in pattern matching between Spring Security and Spring MVC, and the potential for a security bypass.\n\nCVE-2025-41249: The Spring Framework annotation detection mechanism may not correctly resolve annotations on methods within type hierarchies with a parameterized super type with unbounded generics. This can be an issue if such annotations are used for authorization decisions.\n\nYour application may be affected by this if you are using Spring Security's @EnableMethodSecurity\u00a0feature.\n\nYou are not affected by this if you are not using @EnableMethodSecurity\u00a0or if you do not use security annotations on methods in generic superclasses or generic interfaces.\n\nThis CVE is published in conjunction with  CVE-2025-41248 https://spring.io/security/cve-2025-41248 .\n\nCVE-2024-38816: Applications serving static resources through the functional web frameworks WebMvc.fn or WebFlux.fn are vulnerable to path traversal attacks. An attacker can craft malicious HTTP requests and obtain any file on the file system that is also accessible to the process in which the Spring application is running.\n\nSpecifically, an application is vulnerable when both of the following are true:\n\n  *  the web application uses RouterFunctions\u00a0to serve static resources\n  *  resource handling is explicitly configured with a FileSystemResource\u00a0location\n\n\nHowever, malicious requests are blocked and rejected when any of the following is true:\n\n  *  the  Spring Security HTTP Firewall https://docs.spring.io/spring-security/reference/servlet/exploits/firewall.html \u00a0is in use\n  *  the application runs on Tomcat or Jetty\n\nCVE-2024-22243: Applications that use UriComponentsBuilder\u00a0to parse an externally provided URL (e.g. through a query parameter) AND\u00a0perform validation checks on the host of the parsed URL may be vulnerable to a  open redirect https://cwe.mitre.org/data/definitions/601.html \u00a0attack or to a SSRF attack if the URL is used after passing validation checks.\n\nCVE-2024-38808: CVE-2024-38808: Spring Expression DoS Vulnerability\n\nCVE-2023-20863: In spring framework versions prior to 5.2.24 release+ ,5.3.27+ and 6.0.8+ , it is possible for a user to provide a specially crafted SpEL expression that may cause a denial-of-service (DoS) condition.\n\nCVE-2023-20861: In Spring Framework versions 6.0.0 - 6.0.6, 5.3.0 - 5.3.25, 5.2.0.RELEASE - 5.2.22.RELEASE, and older unsupported versions, it is possible for a user to provide a specially crafted SpEL expression that may cause a denial-of-service (DoS) condition.\n\nThis patched artifact is a drop-in replacement for org.springframework:spring-expression 5.3.18 from Maven Central.",
+  "upstream": [
+    "CVE-2023-20860",
+    "CVE-2025-41249",
+    "CVE-2024-38816",
+    "CVE-2024-22243",
+    "CVE-2024-38808",
+    "CVE-2023-20863",
+    "CVE-2023-20861",
+    "GHSA-7phw-cxx7-q9vq",
+    "GHSA-jmp9-x22r-554x",
+    "GHSA-cx7f-g6mp-7hqm",
+    "GHSA-ccgv-vj62-xf9h",
+    "GHSA-9cmq-m9j5-mvww",
+    "GHSA-wxqc-pxw9-g2p8",
+    "GHSA-564r-hj7v-mcr5"
+  ],
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "Red Hat Lightwell:Maven",
+        "name": "org.springframework:spring-expression",
+        "purl": "pkg:maven/org.springframework/spring-expression"
+      },
+      "versions": [
+        "5.3.18"
+      ],
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "5.3.18.rhlw-00010"
+            }
+          ]
+        }
+      ],
+      "database_specific": {
+        "lightwell": {
+          "backport_base_version": "5.3.18",
+          "remediated_version": "5.3.18.rhlw-00010",
+          "repository_url": "https://packages.redhat.com/lightwell/java/remediated/"
+        }
+      }
+    }
+  ],
+  "credits": [
+    {
+      "name": "Red Hat Lightwell",
+      "type": "REMEDIATION_DEVELOPER"
+    }
+  ]
+}
