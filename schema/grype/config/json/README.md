@@ -19,7 +19,7 @@ Given a version number format `MODEL.REVISION.ADDITION`:
 
 - `MODEL`: increment when you make a breaking schema change which will prevent interaction with any historical data (e.g. removing or renaming a configuration key)
 - `REVISION`: increment when you make a schema change which may prevent interaction with some historical data (e.g. narrowing the allowed values of a key)
-- `ADDITION`: increment when you make a schema change that is compatible with all historical data (e.g. adding a configuration key or changing a description or default)
+- `ADDITION`: increment when you make a schema change that is compatible with all historical data (e.g. adding a configuration key, allowing a new value, or changing a description or default)
 
 ## Generating a New Schema
 
@@ -30,8 +30,10 @@ Create the new schema by running `make generate:json-schema` from the root of th
 - If there is an existing schema for the given version and the new schema **does not** match the existing schema, an error is shown indicating to increment the version appropriately (see the "Versioning" section)
 
 The `TestConfigSchemaUpToDate` unit test fails when the committed schema no longer matches the configuration code, so any change to the configuration options requires regenerating the schema.
+This includes dependency updates that change allowed values (e.g. new syft scopes or image pull sources).
 
-***Note: never delete a JSON schema and never change an existing JSON schema once it has been published in a release!*** Only add new schemas with a newly incremented version.
+***Note: never delete a JSON schema and never change an existing JSON schema once it has been published in a release!***
+Only add new schemas with a newly incremented version.
 
 ## Editor Integration
 
@@ -57,6 +59,6 @@ To match a specific grype release, replace `main` in the URL with the release ta
 
 ## Known Limitations
 
-- Allowed values are listed in their canonical lower-case form, while grype accepts some of them case-insensitively (e.g. `fail-on-severity: High`).
-- List values may also be given as a comma-separated string (e.g. `output: json,table`); in that form the individual items are not checked against the allowed values.
-- The fields of `ignore` rules and `registry.auth` entries have no descriptions yet; they are documented in the description of their parent key.
+- Only the documented lower-case spelling of a value is accepted, while grype also accepts other casings and some aliases (e.g. `fail-on-severity: High`, `search.scope: all`, `log.level: warning`).
+- Some values are only checked for their type: free-form values (e.g. `distro`, `platform`, package names), `from` and `ignore[].package.type` (defined by syft, which adds new values regularly), and `dev.profile` (not exported by clio).
+- The fields of `ignore` rules and `registry.auth` entries have no descriptions yet; they are documented in the description of their parent key (see [#3861](https://github.com/anchore/grype/issues/3861)).
