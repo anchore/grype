@@ -240,13 +240,18 @@ func getPackageBlob(aliases []string, ver string, ty string, fixState db.FixStat
 		fix.Detail = detail
 	}
 
+	constraint := ""
+	if ver != "" {
+		constraint = fmt.Sprintf("= %s", ver)
+	}
+
 	return &db.PackageBlob{
 		CVEs: aliases,
 		Ranges: []db.Range{
 			{
 				Version: db.Version{
 					Type:       strings.ToLower(version.ParseFormat(ty).String()),
-					Constraint: fmt.Sprintf("= %s", ver),
+					Constraint: constraint,
 				},
 				Fix: fix,
 			},
