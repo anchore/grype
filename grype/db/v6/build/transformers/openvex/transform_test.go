@@ -630,14 +630,21 @@ func Test_GetPackageHandles(t *testing.T) {
 			},
 		},
 		{
-			name: "versionless purl with fixed status has no fix version",
+			name: "versionless purl with fixed status is skipped",
 			vuln: govex.Statement{
 				ID: "test-vuln-7",
 				Products: []govex.Product{
 					{
 						Component: govex.Component{
 							Identifiers: map[govex.IdentifierType]string{
-								govex.PURL: "pkg:npm/%40scope/name",
+								govex.PURL: "pkg:pypi/certifi",
+							},
+						},
+					},
+					{
+						Component: govex.Component{
+							Identifiers: map[govex.IdentifierType]string{
+								govex.PURL: "pkg:pypi/urllib3@2.0.7",
 							},
 						},
 					},
@@ -648,21 +655,23 @@ func Test_GetPackageHandles(t *testing.T) {
 				},
 			},
 			want: []any{
+				// only the versioned product survives
 				db.UnaffectedPackageHandle{
 					Package: &db.Package{
-						Ecosystem: "npm",
-						Name:      "@scope/name",
+						Ecosystem: "python",
+						Name:      "urllib3",
 					},
 					BlobValue: &db.PackageBlob{
 						CVEs: []string{"cve-2023-43804"},
 						Ranges: []db.Range{
 							{
 								Version: db.Version{
-									Type:       "semantic",
-									Constraint: "",
+									Type:       "python",
+									Constraint: "= 2.0.7",
 								},
 								Fix: &db.Fix{
-									State: db.FixedStatus,
+									Version: "2.0.7",
+									State:   db.FixedStatus,
 								},
 							},
 						},

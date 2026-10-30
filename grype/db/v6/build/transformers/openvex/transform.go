@@ -14,6 +14,7 @@ import (
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
 	"github.com/anchore/grype/grype/version"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/packageurl-go"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -126,6 +127,13 @@ func getPackageHandle(product *govex.Product, vuln *unmarshal.OpenVEXVulnerabili
 			BlobValue: getPackageBlob(aliases, purl.Version, purl.Type, db.NotAffectedFixStatus, fixes),
 		})
 	case govex.StatusFixed:
+		if purl.Version == "" {
+			// a versionless purl would mark every version fixed, including vulnerable ones. A vendor
+			// meaning that would say not_affected, so treat this as underspecified and skip it.
+			log.WithFields("vulnerability", getName(vuln), "purl", purl.String()).
+				Debug("skipping fixed openvex statement without a version")
+			return nil, nil, nil
+		}
 		uphs = append(uphs, db.UnaffectedPackageHandle{
 			Package:   pkg,
 			BlobValue: getPackageBlob(aliases, purl.Version, purl.Type, db.FixedStatus, fixes),
