@@ -180,7 +180,7 @@ func conditionsApply(match Match, ignoreConditions []ignoreCondition) bool {
 // HasConditions returns true if the ignore rule has conditions
 // that can cause a match to be ignored
 func (r IgnoreRule) HasConditions() bool {
-	return len(getIgnoreConditionsForRule(r)) == 0
+	return len(getIgnoreConditionsForRule(r)) > 0
 }
 
 // ignoreFilters implements match.IgnoreFilter on a slice of objects that implement the same interface
