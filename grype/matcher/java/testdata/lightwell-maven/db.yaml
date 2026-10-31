@@ -1,0 +1,8 @@
+auto-generate: false
+extractions:
+    github:
+        - github:java/ghsa-3f7h-mf4q-vrm4
+    lightwell:
+        - rhlw-2026-36d9ed0bb47c794f
+        - rhlw-2026-403d1e66c95ef9bb
+        - rhlw-2026-dd8ed0b211be109b
