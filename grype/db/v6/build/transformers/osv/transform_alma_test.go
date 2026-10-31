@@ -15,19 +15,19 @@ import (
 //
 // Each fixture targets a distinct shape:
 //
-//   - ALSA-2020-1636: the dominant alma shape — aliases:null, related populated.
-//     Regression net for the related → aliases augmentation that the strategy
+//   - ALSA-2020-1636: the dominant alma shape — aliases:null, upstream populated.
+//     Regression net for the upstream → aliases augmentation that the strategy
 //     does on the vulnerability blob.
 //   - ALSA-2021-4156: carries ecosystem_specific.rpm_modularity (~63% of alma 8
 //     records are modular). Regression net for the modularity qualifier
 //     round-trip through the advisory path.
-//   - ALSA-2025-7467: the exceptional shape — aliases populated, related null,
+//   - ALSA-2025-7467: the exceptional shape — aliases populated, upstream null,
 //     multiple affected packages on the same advisory. Also covers the
 //     ADVISORY-typed reference with refID injection.
 func TestAlmaTransform(t *testing.T) {
 	tests := []transformCase{
 		{
-			name:        "AlmaLinux Advisory with related-only aliases",
+			name:        "AlmaLinux Advisory with upstream-only aliases",
 			fixturePath: "testdata/ALSA-2020-1636.json",
 			want: []transformers.RelatedEntries{{
 				VulnerabilityHandle: &db.VulnerabilityHandle{
