@@ -7,7 +7,7 @@ tools:
   # used in the integration tests (quality gate) to compare grype from this checkout with the latest release
   - name: yardstick
     version:
-      want: v0.17.0
+      want: v0.16.2
     method: github-release
     with:
       repo: anchore/yardstick
