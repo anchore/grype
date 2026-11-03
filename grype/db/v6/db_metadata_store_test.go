@@ -67,8 +67,6 @@ func setupTestStore(t testing.TB, d ...string) *store {
 
 	}
 
-	t.Logf("using temp dir: %s", dir)
-
 	s, err := newStore(Config{
 		DBDirPath: dir,
 	}, true, true)

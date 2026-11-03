@@ -105,6 +105,20 @@ func (a *affectedPackageWithDecorations) getCVEs() []string {
 	return getCVEs(a.Vulnerability)
 }
 
+func (a *affectedPackageWithDecorations) info() AffectedPackageInfo {
+	var detail v6.PackageBlob
+	if a.BlobValue != nil {
+		detail = *a.BlobValue
+	}
+	return AffectedPackageInfo{
+		Model:     &a.AffectedPackageHandle,
+		OS:        toOS(a.OperatingSystem),
+		Package:   toPackage(a.Package),
+		Namespace: v6.MimicV5Namespace(a.Vulnerability, &a.AffectedPackageHandle),
+		Detail:    detail,
+	}
+}
+
 type affectedCPEWithDecorations struct {
 	v6.AffectedCPEHandle
 	vulnerabilityDecorations
@@ -117,54 +131,49 @@ func (a *affectedCPEWithDecorations) getCVEs() []string {
 	return getCVEs(a.Vulnerability)
 }
 
+func (a *affectedCPEWithDecorations) info() AffectedPackageInfo {
+	var detail v6.PackageBlob
+	if a.BlobValue != nil {
+		detail = *a.BlobValue
+	}
+
+	var c *CPE
+	if a.CPE != nil {
+		cv := CPE(*a.CPE)
+		c = &cv
+	}
+
+	// tracking model information is not possible with CPE handles
+	return AffectedPackageInfo{
+		CPE:       c,
+		Namespace: v6.MimicV5Namespace(a.Vulnerability, nil), // no affected package will default to NVD
+		Detail:    detail,
+	}
+}
+
 func newAffectedPackageRows(affectedPkgs []affectedPackageWithDecorations, affectedCPEs []affectedCPEWithDecorations) (rows []AffectedPackage) {
 	for i := range affectedPkgs {
 		pkg := affectedPkgs[i]
-		var detail v6.PackageBlob
-		if pkg.BlobValue != nil {
-			detail = *pkg.BlobValue
-		}
 		if pkg.Vulnerability == nil {
 			log.Errorf("affected package record missing vulnerability: %+v", pkg)
 			continue
 		}
 
 		rows = append(rows, AffectedPackage{
-			Vulnerability: newVulnerabilityInfo(*pkg.Vulnerability, pkg.vulnerabilityDecorations),
-			AffectedPackageInfo: AffectedPackageInfo{
-				Model:     &pkg.AffectedPackageHandle,
-				OS:        toOS(pkg.OperatingSystem),
-				Package:   toPackage(pkg.Package),
-				Namespace: v6.MimicV5Namespace(pkg.Vulnerability, &pkg.AffectedPackageHandle),
-				Detail:    detail,
-			},
+			Vulnerability:       newVulnerabilityInfo(*pkg.Vulnerability, pkg.vulnerabilityDecorations),
+			AffectedPackageInfo: pkg.info(),
 		})
 	}
 
 	for _, ac := range affectedCPEs {
-		var detail v6.PackageBlob
-		if ac.BlobValue != nil {
-			detail = *ac.BlobValue
-		}
 		if ac.Vulnerability == nil {
 			log.Errorf("affected CPE record missing vulnerability: %+v", ac)
 			continue
 		}
 
-		var c *CPE
-		if ac.CPE != nil {
-			cv := CPE(*ac.CPE)
-			c = &cv
-		}
-
 		rows = append(rows, AffectedPackage{
-			// tracking model information is not possible with CPE handles
-			Vulnerability: newVulnerabilityInfo(*ac.Vulnerability, ac.vulnerabilityDecorations),
-			AffectedPackageInfo: AffectedPackageInfo{
-				CPE:       c,
-				Namespace: v6.MimicV5Namespace(ac.Vulnerability, nil), // no affected package will default to NVD
-				Detail:    detail,
-			},
+			Vulnerability:       newVulnerabilityInfo(*ac.Vulnerability, ac.vulnerabilityDecorations),
+			AffectedPackageInfo: ac.info(),
 		})
 	}
 
@@ -192,6 +201,15 @@ func toOS(os *v6.OperatingSystem) *OperatingSystem {
 	}
 }
 
+// packageRecords are the package and CPE records found by a search, unaffected records are converted to the
+// affected handle types but are kept separate from the affected records
+type packageRecords struct {
+	affectedPkgs   []affectedPackageWithDecorations
+	affectedCPEs   []affectedCPEWithDecorations
+	unaffectedPkgs []affectedPackageWithDecorations
+	unaffectedCPEs []affectedCPEWithDecorations
+}
+
 func FindAffectedPackages(reader interface {
 	v6.AffectedPackageStoreReader
 	v6.AffectedCPEStoreReader
@@ -200,17 +218,18 @@ func FindAffectedPackages(reader interface {
 	v6.VulnerabilityDecoratorStoreReader
 }, criteria AffectedPackagesOptions,
 ) ([]AffectedPackage, error) {
-	allAffectedPkgs, allAffectedCPEs, err := findAffectedPackages(reader, criteria)
+	records, err := findAffectedPackages(reader, criteria)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(criteria.FixedStates) > 0 {
-		allAffectedPkgs = filterByFixedStateForPackages(allAffectedPkgs, criteria.FixedStates)
-		allAffectedCPEs = filterByFixedStateForCPEs(allAffectedCPEs, criteria.FixedStates)
+		records.affectedPkgs = filterByFixedStateForPackages(records.affectedPkgs, criteria.FixedStates)
+		records.affectedCPEs = filterByFixedStateForCPEs(records.affectedCPEs, criteria.FixedStates)
 	}
 
-	return newAffectedPackageRows(allAffectedPkgs, allAffectedCPEs), nil
+	// unaffected records are only reported by matches, which keep them separate from the affected packages
+	return newAffectedPackageRows(records.affectedPkgs, records.affectedCPEs), nil
 }
 
 func findAffectedPackages(reader interface { //nolint:funlen,gocognit,gocyclo
@@ -220,9 +239,8 @@ func findAffectedPackages(reader interface { //nolint:funlen,gocognit,gocyclo
 	v6.UnaffectedCPEStoreReader
 	v6.VulnerabilityDecoratorStoreReader
 }, config AffectedPackagesOptions,
-) ([]affectedPackageWithDecorations, []affectedCPEWithDecorations, error) {
-	var allAffectedPkgs []affectedPackageWithDecorations
-	var allAffectedCPEs []affectedCPEWithDecorations
+) (packageRecords, error) {
+	var records packageRecords
 
 	pkgSpecs := config.Package
 	cpeSpecs := config.CPE
@@ -234,7 +252,7 @@ func findAffectedPackages(reader interface { //nolint:funlen,gocognit,gocyclo
 	}
 
 	if len(vulnSpecs) == 0 && len(pkgSpecs) == 0 && len(cpeSpecs) == 0 {
-		return nil, nil, ErrNoSearchCriteria
+		return packageRecords{}, ErrNoSearchCriteria
 	}
 
 	// don't allow for searching by any package AND any CPE AND any vulnerability AND any OS. Since these searches
@@ -252,12 +270,16 @@ func findAffectedPackages(reader interface { //nolint:funlen,gocognit,gocyclo
 	// we have multiple return points that return actual values, using a defer to decorate any given results
 	// ensures that all paths are handled the same way.
 	defer func() {
-		for i := range allAffectedPkgs {
-			decorateVulnerabilities(reader, &allAffectedPkgs[i])
+		for _, pkgs := range [][]affectedPackageWithDecorations{records.affectedPkgs, records.unaffectedPkgs} {
+			for i := range pkgs {
+				decorateVulnerabilities(reader, &pkgs[i])
+			}
 		}
 
-		for i := range allAffectedCPEs {
-			decorateVulnerabilities(reader, &allAffectedCPEs[i])
+		for _, cpes := range [][]affectedCPEWithDecorations{records.affectedCPEs, records.unaffectedCPEs} {
+			for i := range cpes {
+				decorateVulnerabilities(reader, &cpes[i])
+			}
 		}
 	}()
 
@@ -279,16 +301,16 @@ func findAffectedPackages(reader interface { //nolint:funlen,gocognit,gocyclo
 		})
 
 		for i := range affectedPkgs {
-			allAffectedPkgs = append(allAffectedPkgs, affectedPackageWithDecorations{
+			records.affectedPkgs = append(records.affectedPkgs, affectedPackageWithDecorations{
 				AffectedPackageHandle: affectedPkgs[i],
 			})
 		}
 
 		if err != nil {
 			if errors.Is(err, v6.ErrLimitReached) {
-				return allAffectedPkgs, allAffectedCPEs, err
+				return records, err
 			}
-			return nil, nil, fmt.Errorf("unable to get affected packages for %s: %w", vulnSpecs, err)
+			return packageRecords{}, fmt.Errorf("unable to get affected packages for %s: %w", vulnSpecs, err)
 		}
 
 		unaffectedPkgs, err := reader.GetUnaffectedPackages(pkgSpec, &v6.GetPackageOptions{
@@ -304,18 +326,16 @@ func findAffectedPackages(reader interface { //nolint:funlen,gocognit,gocyclo
 		})
 
 		for i := range unaffectedPkgs {
-			p := v6.AffectedPackageHandle(unaffectedPkgs[i])
-			markUnaffected(&p.BlobValue)
-			allAffectedPkgs = append(allAffectedPkgs, affectedPackageWithDecorations{
-				AffectedPackageHandle: p,
+			records.unaffectedPkgs = append(records.unaffectedPkgs, affectedPackageWithDecorations{
+				AffectedPackageHandle: v6.AffectedPackageHandle(unaffectedPkgs[i]),
 			})
 		}
 
 		if err != nil {
 			if errors.Is(err, v6.ErrLimitReached) {
-				return allAffectedPkgs, allAffectedCPEs, err
+				return records, err
 			}
-			return nil, nil, fmt.Errorf("unable to get unaffected packages for %s: %w", vulnSpecs, err)
+			return packageRecords{}, fmt.Errorf("unable to get unaffected packages for %s: %w", vulnSpecs, err)
 		}
 	}
 
@@ -339,16 +359,16 @@ func findAffectedPackages(reader interface { //nolint:funlen,gocognit,gocyclo
 			})
 
 			for i := range affectedCPEs {
-				allAffectedCPEs = append(allAffectedCPEs, affectedCPEWithDecorations{
+				records.affectedCPEs = append(records.affectedCPEs, affectedCPEWithDecorations{
 					AffectedCPEHandle: affectedCPEs[i],
 				})
 			}
 
 			if err != nil {
 				if errors.Is(err, v6.ErrLimitReached) {
-					return allAffectedPkgs, allAffectedCPEs, err
+					return records, err
 				}
-				return nil, nil, fmt.Errorf("unable to get affected cpes for %s: %w", vulnSpecs, err)
+				return packageRecords{}, fmt.Errorf("unable to get affected cpes for %s: %w", vulnSpecs, err)
 			}
 
 			unaffectedCPEs, err := reader.GetUnaffectedCPEs(searchCPE, &v6.GetCPEOptions{
@@ -361,52 +381,19 @@ func findAffectedPackages(reader interface { //nolint:funlen,gocognit,gocyclo
 			})
 
 			for i := range unaffectedCPEs {
-				p := v6.AffectedCPEHandle(unaffectedCPEs[i])
-				if p.BlobValue != nil && len(p.BlobValue.Ranges) > 0 {
-					for r := range p.BlobValue.Ranges {
-						p.BlobValue.Ranges[r].Fix.Version += " (unaffected)"
-					}
-				} else {
-					if p.BlobValue == nil {
-						p.BlobValue = &v6.PackageBlob{}
-					}
-					p.BlobValue.Ranges = append(p.BlobValue.Ranges, v6.Range{
-						Fix: &v6.Fix{
-							Version: "unaffected",
-						},
-					})
-				}
-				allAffectedCPEs = append(allAffectedCPEs, affectedCPEWithDecorations{
-					AffectedCPEHandle: p,
+				records.unaffectedCPEs = append(records.unaffectedCPEs, affectedCPEWithDecorations{
+					AffectedCPEHandle: v6.AffectedCPEHandle(unaffectedCPEs[i]),
 				})
 			}
 
 			if err != nil {
 				if errors.Is(err, v6.ErrLimitReached) {
-					return allAffectedPkgs, allAffectedCPEs, err
+					return records, err
 				}
-				return nil, nil, fmt.Errorf("unable to get affected cpes for %s: %w", vulnSpecs, err)
+				return packageRecords{}, fmt.Errorf("unable to get unaffected cpes for %s: %w", vulnSpecs, err)
 			}
 		}
 	}
 
-	return allAffectedPkgs, allAffectedCPEs, nil
-}
-
-func markUnaffected(i **v6.PackageBlob) {
-	if *i == nil {
-		*i = &v6.PackageBlob{}
-	}
-	b := *i
-	if len(b.Ranges) > 0 {
-		for r := range b.Ranges {
-			b.Ranges[r].Version.Constraint += " (unaffected)"
-		}
-	} else {
-		b.Ranges = append(b.Ranges, v6.Range{
-			Version: v6.Version{
-				Constraint: "(unaffected)",
-			},
-		})
-	}
+	return records, nil
 }

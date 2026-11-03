@@ -85,9 +85,8 @@ func runDBSearchVulnerabilities(opts dbSearchVulnerabilityOptions) error {
 	}
 
 	rows, err := dbsearch.FindVulnerabilities(reader, dbsearch.VulnerabilitiesOptions{
-		Vulnerability:  opts.Vulnerability.Specs,
-		RecordLimit:    opts.Bounds.RecordLimit,
-		IncludeAliases: opts.Vulnerability.IncludeAliases,
+		Vulnerability: opts.Vulnerability.Specs,
+		RecordLimit:   opts.Bounds.RecordLimit,
 	})
 	if err != nil {
 		return err
@@ -186,7 +185,7 @@ func renderDBSearchVulnerabilitiesTableRows(structuredRows []dbsearch.Vulnerabil
 	var rows [][]string
 	for r, versions := range versionsByRow {
 		prov := r.ProviderWithoutVersions
-		if len(versions) > 0 {
+		if versions := strset.New(versions...).List(); len(versions) > 0 {
 			sort.Strings(versions)
 			prov = fmt.Sprintf("%s (%s)", r.ProviderWithoutVersions, strings.Join(versions, ", "))
 		}

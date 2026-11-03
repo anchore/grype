@@ -20,6 +20,9 @@ type Match struct {
 
 	// AffectedPackages is the list of packages affected by the vulnerability.
 	AffectedPackages []AffectedPackageInfo `json:"packages"`
+
+	// Unaffected is the list of packages explicitly NOT affected by the vulnerability.
+	Unaffected []AffectedPackageInfo `json:"unaffected,omitempty"`
 }
 
 func (m Match) Flatten() []AffectedPackage {
@@ -41,72 +44,59 @@ func (m Matches) Flatten() []AffectedPackage {
 	return rows
 }
 
-func newMatchesRows(affectedPkgs []affectedPackageWithDecorations, affectedCPEs []affectedCPEWithDecorations) (rows []Match, retErr error) { // nolint:funlen
-	var affectedPkgsByVuln = make(map[v6.ID][]AffectedPackageInfo)
+func newMatchesRows(records packageRecords) (rows []Match, retErr error) {
 	var vulnsByID = make(map[v6.ID]v6.VulnerabilityHandle)
 	var decorationsByID = make(map[v6.ID]vulnerabilityDecorations)
 
-	for i := range affectedPkgs {
-		pkg := affectedPkgs[i]
-		var detail v6.PackageBlob
-		if pkg.BlobValue != nil {
-			detail = *pkg.BlobValue
-		}
-		if pkg.Vulnerability == nil {
-			retErr = multierror.Append(retErr, fmt.Errorf("affected package record missing vulnerability: %+v", pkg))
-			continue
-		}
-		if _, ok := vulnsByID[pkg.Vulnerability.ID]; !ok {
-			vulnsByID[pkg.Vulnerability.ID] = *pkg.Vulnerability
-			decorationsByID[pkg.Vulnerability.ID] = pkg.vulnerabilityDecorations
+	// infoByVuln returns the package and CPE record details grouped by vulnerability, tracking each vulnerability seen
+	infoByVuln := func(pkgs []affectedPackageWithDecorations, cpes []affectedCPEWithDecorations) map[v6.ID][]AffectedPackageInfo {
+		var byVuln = make(map[v6.ID][]AffectedPackageInfo)
+
+		for i := range pkgs {
+			pkg := pkgs[i]
+			if pkg.Vulnerability == nil {
+				retErr = multierror.Append(retErr, fmt.Errorf("affected package record missing vulnerability: %+v", pkg))
+				continue
+			}
+			if _, ok := vulnsByID[pkg.Vulnerability.ID]; !ok {
+				vulnsByID[pkg.Vulnerability.ID] = *pkg.Vulnerability
+				decorationsByID[pkg.Vulnerability.ID] = pkg.vulnerabilityDecorations
+			}
+
+			byVuln[pkg.Vulnerability.ID] = append(byVuln[pkg.Vulnerability.ID], pkg.info())
 		}
 
-		aff := AffectedPackageInfo{
-			Model:     &pkg.AffectedPackageHandle,
-			OS:        toOS(pkg.OperatingSystem),
-			Package:   toPackage(pkg.Package),
-			Namespace: v6.MimicV5Namespace(pkg.Vulnerability, &pkg.AffectedPackageHandle),
-			Detail:    detail,
+		for _, ac := range cpes {
+			if ac.Vulnerability == nil {
+				retErr = multierror.Append(retErr, fmt.Errorf("affected CPE record missing vulnerability: %+v", ac))
+				continue
+			}
+
+			if _, ok := vulnsByID[ac.Vulnerability.ID]; !ok {
+				vulnsByID[ac.Vulnerability.ID] = *ac.Vulnerability
+				decorationsByID[ac.Vulnerability.ID] = ac.vulnerabilityDecorations
+			}
+
+			byVuln[ac.Vulnerability.ID] = append(byVuln[ac.Vulnerability.ID], ac.info())
 		}
 
-		affectedPkgsByVuln[pkg.Vulnerability.ID] = append(affectedPkgsByVuln[pkg.Vulnerability.ID], aff)
+		return byVuln
 	}
 
-	for _, ac := range affectedCPEs {
-		var detail v6.PackageBlob
-		if ac.BlobValue != nil {
-			detail = *ac.BlobValue
-		}
-		if ac.Vulnerability == nil {
-			retErr = multierror.Append(retErr, fmt.Errorf("affected CPE record missing vulnerability: %+v", ac))
-			continue
-		}
-
-		var c *CPE
-		if ac.CPE != nil {
-			cv := CPE(*ac.CPE)
-			c = &cv
-		}
-
-		if _, ok := vulnsByID[ac.Vulnerability.ID]; !ok {
-			vulnsByID[ac.Vulnerability.ID] = *ac.Vulnerability
-			decorationsByID[ac.Vulnerability.ID] = ac.vulnerabilityDecorations
-		}
-
-		aff := AffectedPackageInfo{
-			// tracking model information is not possible with CPE handles
-			CPE:       c,
-			Namespace: v6.MimicV5Namespace(ac.Vulnerability, nil), // no affected package will default to NVD
-			Detail:    detail,
-		}
-
-		affectedPkgsByVuln[ac.Vulnerability.ID] = append(affectedPkgsByVuln[ac.Vulnerability.ID], aff)
-	}
+	affectedByVuln := infoByVuln(records.affectedPkgs, records.affectedCPEs)
+	unaffectedByVuln := infoByVuln(records.unaffectedPkgs, records.unaffectedCPEs)
 
 	for vulnID, vuln := range vulnsByID {
+		affected := affectedByVuln[vulnID]
+		if affected == nil {
+			// packages is always present in the output, even when there are only unaffected records
+			affected = []AffectedPackageInfo{}
+		}
+
 		rows = append(rows, Match{
 			Vulnerability:    newVulnerabilityInfo(vuln, decorationsByID[vulnID]),
-			AffectedPackages: affectedPkgsByVuln[vulnID],
+			AffectedPackages: affected,
+			Unaffected:       unaffectedByVuln[vulnID],
 		})
 	}
 
@@ -124,7 +114,7 @@ func FindMatches(reader interface {
 	v6.UnaffectedCPEStoreReader
 	v6.VulnerabilityDecoratorStoreReader
 }, criteria AffectedPackagesOptions) (Matches, error) {
-	allAffectedPkgs, allAffectedCPEs, fetchErr := findAffectedPackages(reader, criteria)
+	records, fetchErr := findAffectedPackages(reader, criteria)
 
 	if fetchErr != nil {
 		if !errors.Is(fetchErr, v6.ErrLimitReached) {
@@ -133,11 +123,13 @@ func FindMatches(reader interface {
 	}
 
 	if len(criteria.FixedStates) > 0 {
-		allAffectedPkgs = filterByFixedStateForPackages(allAffectedPkgs, criteria.FixedStates)
-		allAffectedCPEs = filterByFixedStateForCPEs(allAffectedCPEs, criteria.FixedStates)
+		records.affectedPkgs = filterByFixedStateForPackages(records.affectedPkgs, criteria.FixedStates)
+		records.affectedCPEs = filterByFixedStateForCPEs(records.affectedCPEs, criteria.FixedStates)
+		records.unaffectedPkgs = filterByFixedStateForPackages(records.unaffectedPkgs, criteria.FixedStates)
+		records.unaffectedCPEs = filterByFixedStateForCPEs(records.unaffectedCPEs, criteria.FixedStates)
 	}
 
-	rows, presErr := newMatchesRows(allAffectedPkgs, allAffectedCPEs)
+	rows, presErr := newMatchesRows(records)
 	if presErr != nil {
 		return nil, presErr
 	}

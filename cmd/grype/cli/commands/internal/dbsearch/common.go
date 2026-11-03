@@ -7,11 +7,14 @@ const (
 	fixStateNotFixed = "not-fixed"
 	fixStateWontFix  = "wont-fix"
 	fixStateUnknown  = "unknown"
+
+	// fixStateNotAffected is only found on unaffected records, indicating the package versions were never vulnerable
+	fixStateNotAffected = "not-affected"
 )
 
 // getFixStateFromPackageBlob determines the overall fix state for a package blob.
 // When multiple ranges exist with different fix states, precedence is applied:
-// fixed > wont-fix > not-fixed > unknown
+// fixed > wont-fix > not-fixed > not-affected > unknown
 // This ensures that if ANY range has a fix available, the package is considered fixable.
 func getFixStateFromPackageBlob(blob *v6.PackageBlob) string {
 	if blob == nil {
@@ -21,6 +24,7 @@ func getFixStateFromPackageBlob(blob *v6.PackageBlob) string {
 	hasFixed := false
 	hasNotFixed := false
 	hasWontFix := false
+	hasNotAffected := false
 
 	for _, r := range blob.Ranges {
 		if r.Fix == nil {
@@ -33,6 +37,8 @@ func getFixStateFromPackageBlob(blob *v6.PackageBlob) string {
 			hasWontFix = true
 		case v6.NotFixedStatus:
 			hasNotFixed = true
+		case v6.NotAffectedFixStatus:
+			hasNotAffected = true
 		}
 	}
 
@@ -44,6 +50,9 @@ func getFixStateFromPackageBlob(blob *v6.PackageBlob) string {
 	}
 	if hasNotFixed {
 		return fixStateNotFixed
+	}
+	if hasNotAffected {
+		return fixStateNotAffected
 	}
 
 	return fixStateUnknown

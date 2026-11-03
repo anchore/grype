@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/scylladb/go-set/strset"
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
@@ -158,12 +159,6 @@ func runDBSearchMatches(opts dbSearchMatchOptions) error {
 		return err
 	}
 
-	if opts.Vulnerability.IncludeAliases {
-		for i := range opts.Vulnerability.Specs {
-			opts.Vulnerability.Specs[i].IncludeAliases = true
-		}
-	}
-
 	rows, queryErr := dbsearch.FindMatches(reader, dbsearch.AffectedPackagesOptions{
 		Vulnerability:         opts.Vulnerability.Specs,
 		Package:               opts.Package.PkgSpecs,
@@ -199,7 +194,7 @@ func presentDBSearchMatches(outputFormat string, structuredRows dbsearch.Matches
 			bus.Notify("No results found")
 			return nil
 		}
-		rows := renderDBSearchPackagesTableRows(structuredRows.Flatten())
+		rows := renderDBSearchPackagesTableRows(structuredRows)
 
 		table := newTable(output, []string{"Vulnerability", "Package", "Ecosystem", "Namespace", "Version Constraint"})
 
@@ -224,9 +219,48 @@ func presentDBSearchMatches(outputFormat string, structuredRows dbsearch.Matches
 	return nil
 }
 
-func renderDBSearchPackagesTableRows(structuredRows []dbsearch.AffectedPackage) [][]string {
-	var rows [][]string
-	for _, rr := range structuredRows {
+// packageTableRowKey identifies a table row, all package records with the same key are displayed on a single row
+type packageTableRowKey struct {
+	vulnerability string
+	pkgOrCPE      string
+	ecosystem     string
+	namespace     string
+}
+
+// anyVersionConstraint is displayed for package records without a version constraint, which apply to all versions
+const anyVersionConstraint = "*"
+
+// packageTableRowConstraints is the set of version constraints from all package records displayed on a single table row
+type packageTableRowConstraints struct {
+	affected   []string
+	unaffected []string
+}
+
+// String renders the affected constraints followed by the unaffected constraints, e.g. "< 1.2.3; unaffected: = 1.2.0+patch.1"
+func (c packageTableRowConstraints) String() string {
+	var parts []string
+	if len(c.affected) > 0 {
+		parts = append(parts, joinConstraints(c.affected))
+	}
+	if len(c.unaffected) > 0 {
+		parts = append(parts, "unaffected: "+joinConstraints(c.unaffected))
+	}
+	return strings.Join(parts, "; ")
+}
+
+// joinConstraints returns the distinct constraints in sorted order, joined with "||" since "," is an AND within a single constraint
+func joinConstraints(constraints []string) string {
+	distinct := strset.New(constraints...).List()
+	sort.Strings(distinct)
+	return strings.Join(distinct, " || ")
+}
+
+func renderDBSearchPackagesTableRows(matches dbsearch.Matches) [][]string {
+	var keys []packageTableRowKey
+	constraintsByKey := make(map[packageTableRowKey]*packageTableRowConstraints)
+
+	// rowConstraints returns the constraints of the table row that the package record is displayed on
+	rowConstraints := func(rr dbsearch.AffectedPackage) *packageTableRowConstraints {
 		var pkgOrCPE, ecosystem string
 		if rr.Package != nil {
 			pkgOrCPE = rr.Package.Name
@@ -236,12 +270,35 @@ func renderDBSearchPackagesTableRows(structuredRows []dbsearch.AffectedPackage) 
 			ecosystem = rr.CPE.TargetSoftware
 		}
 
-		var ranges []string
-		for _, ra := range rr.Detail.Ranges {
-			ranges = append(ranges, ra.Version.Constraint)
+		key := packageTableRowKey{
+			vulnerability: rr.Vulnerability.ID,
+			pkgOrCPE:      pkgOrCPE,
+			ecosystem:     ecosystem,
+			namespace:     mimicV5Namespace(rr),
 		}
-		rangeStr := strings.Join(ranges, " || ")
-		rows = append(rows, []string{rr.Vulnerability.ID, pkgOrCPE, ecosystem, mimicV5Namespace(rr), rangeStr})
+		constraints, ok := constraintsByKey[key]
+		if !ok {
+			constraints = &packageTableRowConstraints{}
+			constraintsByKey[key] = constraints
+			keys = append(keys, key)
+		}
+		return constraints
+	}
+
+	for _, m := range matches {
+		for _, pkg := range m.AffectedPackages {
+			constraints := rowConstraints(dbsearch.AffectedPackage{Vulnerability: m.Vulnerability, AffectedPackageInfo: pkg})
+			constraints.affected = append(constraints.affected, versionConstraints(pkg)...)
+		}
+		for _, pkg := range m.Unaffected {
+			constraints := rowConstraints(dbsearch.AffectedPackage{Vulnerability: m.Vulnerability, AffectedPackageInfo: pkg})
+			constraints.unaffected = append(constraints.unaffected, versionConstraints(pkg)...)
+		}
+	}
+
+	var rows [][]string
+	for _, key := range keys {
+		rows = append(rows, []string{key.vulnerability, key.pkgOrCPE, key.ecosystem, key.namespace, constraintsByKey[key].String()})
 	}
 
 	// sort rows by each column
@@ -255,6 +312,23 @@ func renderDBSearchPackagesTableRows(structuredRows []dbsearch.AffectedPackage) 
 	})
 
 	return rows
+}
+
+// versionConstraints returns the version constraints of the package record ranges, using anyVersionConstraint for
+// ranges or records without a version constraint so they are not hidden by other records displayed on the same row
+func versionConstraints(pkg dbsearch.AffectedPackageInfo) []string {
+	var constraints []string
+	for _, ra := range pkg.Detail.Ranges {
+		constraint := ra.Version.Constraint
+		if constraint == "" {
+			constraint = anyVersionConstraint
+		}
+		constraints = append(constraints, constraint)
+	}
+	if len(constraints) == 0 {
+		return []string{anyVersionConstraint}
+	}
+	return constraints
 }
 
 func mimicV5Namespace(row dbsearch.AffectedPackage) string {

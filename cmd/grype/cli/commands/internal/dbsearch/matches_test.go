@@ -1,9 +1,11 @@
 package dbsearch
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	v6 "github.com/anchore/grype/grype/db/v6"
 )
@@ -111,6 +113,38 @@ func TestGetFixStateFromBlob(t *testing.T) {
 				},
 			},
 			expected: "wont-fix",
+		},
+		{
+			name: "blob with not-affected status",
+			blob: &v6.PackageBlob{
+				Ranges: []v6.Range{
+					{
+						Fix: &v6.Fix{
+							State: v6.NotAffectedFixStatus,
+						},
+					},
+				},
+			},
+			expected: "not-affected",
+		},
+		{
+			name: "blob with fixed and not-affected prefers fixed",
+			blob: &v6.PackageBlob{
+				Ranges: []v6.Range{
+					{
+						Fix: &v6.Fix{
+							State: v6.NotAffectedFixStatus,
+						},
+					},
+					{
+						Fix: &v6.Fix{
+							State:   v6.FixedStatus,
+							Version: "2.0.0",
+						},
+					},
+				},
+			},
+			expected: "fixed",
 		},
 	}
 
@@ -318,4 +352,80 @@ func makeCPEWithFixState(state v6.FixStatus) affectedCPEWithDecorations {
 			},
 		},
 	}
+}
+
+func TestNewMatchesRows_Unaffected(t *testing.T) {
+	vuln := &v6.VulnerabilityHandle{ID: 1, Name: "CVE-2024-0001", Provider: &v6.Provider{ID: "provider1"}, BlobValue: &v6.VulnerabilityBlob{ID: "CVE-2024-0001"}}
+	unaffectedOnlyVuln := &v6.VulnerabilityHandle{ID: 2, Name: "CVE-2024-0002", Provider: &v6.Provider{ID: "provider1"}, BlobValue: &v6.VulnerabilityBlob{ID: "CVE-2024-0002"}}
+
+	unaffectedBlob := &v6.PackageBlob{Ranges: []v6.Range{{Version: v6.Version{Constraint: ">= 1.0.0"}, Fix: &v6.Fix{State: v6.FixedStatus, Version: "1.0.0"}}}}
+
+	records := packageRecords{
+		affectedPkgs: []affectedPackageWithDecorations{
+			{
+				AffectedPackageHandle: v6.AffectedPackageHandle{
+					Vulnerability: vuln,
+					Package:       &v6.Package{Name: "affected-pkg", Ecosystem: "npm"},
+				},
+			},
+		},
+		unaffectedPkgs: []affectedPackageWithDecorations{
+			{
+				AffectedPackageHandle: v6.AffectedPackageHandle{
+					Vulnerability: vuln,
+					Package:       &v6.Package{Name: "unaffected-pkg", Ecosystem: "npm"},
+					BlobValue:     unaffectedBlob,
+				},
+			},
+			{
+				AffectedPackageHandle: v6.AffectedPackageHandle{
+					Vulnerability: unaffectedOnlyVuln,
+					Package:       &v6.Package{Name: "unaffected-pkg", Ecosystem: "npm"},
+				},
+			},
+		},
+		unaffectedCPEs: []affectedCPEWithDecorations{
+			{
+				AffectedCPEHandle: v6.AffectedCPEHandle{
+					Vulnerability: vuln,
+					CPE:           &v6.Cpe{Part: "a", Vendor: "vendor", Product: "unaffected-product"},
+				},
+			},
+		},
+	}
+
+	rows, err := newMatchesRows(records)
+	require.NoError(t, err)
+	require.Len(t, rows, 2)
+
+	// unaffected records are kept in a separate list, and stored details are not modified
+	row := rows[0]
+	assert.Equal(t, "CVE-2024-0001", row.Vulnerability.ID)
+	require.Len(t, row.AffectedPackages, 1)
+	assert.Equal(t, "affected-pkg", row.AffectedPackages[0].Package.Name)
+
+	require.Len(t, row.Unaffected, 2)
+	assert.Equal(t, "unaffected-pkg", row.Unaffected[0].Package.Name)
+	assert.Equal(t, *unaffectedBlob, row.Unaffected[0].Detail)
+	assert.Equal(t, "unaffected-product", row.Unaffected[1].CPE.Product)
+	assert.Empty(t, row.Unaffected[1].Detail.Ranges)
+
+	// packages is always present, even when there are only unaffected records
+	row = rows[1]
+	assert.Equal(t, "CVE-2024-0002", row.Vulnerability.ID)
+	assert.NotNil(t, row.AffectedPackages)
+	assert.Empty(t, row.AffectedPackages)
+	require.Len(t, row.Unaffected, 1)
+
+	by, err := json.Marshal(rows)
+	require.NoError(t, err)
+	var doc []struct {
+		Packages   *[]json.RawMessage `json:"packages"`
+		Unaffected []json.RawMessage  `json:"unaffected"`
+	}
+	require.NoError(t, json.Unmarshal(by, &doc))
+	require.Len(t, doc, 2)
+	require.NotNil(t, doc[1].Packages)
+	assert.Empty(t, *doc[1].Packages)
+	assert.Len(t, doc[1].Unaffected, 1)
 }

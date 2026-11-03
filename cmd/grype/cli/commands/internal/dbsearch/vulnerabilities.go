@@ -19,11 +19,14 @@ type Vulnerabilities []Vulnerability
 type Vulnerability struct {
 	VulnerabilityInfo `json:",inline"`
 
-	// OperatingSystems is a list of operating systems affected by the vulnerability
+	// OperatingSystems is a list of operating systems with package records for the vulnerability
 	OperatingSystems []OperatingSystem `json:"operating_systems"`
 
 	// AffectedPackages is the number of packages affected by the vulnerability
 	AffectedPackages int `json:"affected_packages"`
+
+	// UnaffectedPackages is the number of packages explicitly NOT affected by the vulnerability
+	UnaffectedPackages int `json:"unaffected_packages"`
 }
 
 type VulnerabilityInfo struct {
@@ -116,24 +119,25 @@ type CvssMetrics struct {
 }
 
 type vulnerabilityAffectedPackageJoin struct {
-	Vulnerability    v6.VulnerabilityHandle
-	OperatingSystems []v6.OperatingSystem
-	AffectedPackages int
+	Vulnerability      v6.VulnerabilityHandle
+	OperatingSystems   []v6.OperatingSystem
+	AffectedPackages   int
+	UnaffectedPackages int
 	vulnerabilityDecorations
 }
 
 type VulnerabilitiesOptions struct {
-	Vulnerability  v6.VulnerabilitySpecifiers
-	RecordLimit    int
-	IncludeAliases bool
+	Vulnerability v6.VulnerabilitySpecifiers
+	RecordLimit   int
 }
 
 func newVulnerabilityRows(vaps ...vulnerabilityAffectedPackageJoin) (rows []Vulnerability) {
 	for _, vap := range vaps {
 		rows = append(rows, Vulnerability{
-			VulnerabilityInfo: newVulnerabilityInfo(vap.Vulnerability, vap.vulnerabilityDecorations),
-			OperatingSystems:  newOperatingSystems(vap.OperatingSystems),
-			AffectedPackages:  vap.AffectedPackages,
+			VulnerabilityInfo:  newVulnerabilityInfo(vap.Vulnerability, vap.vulnerabilityDecorations),
+			OperatingSystems:   newOperatingSystems(vap.OperatingSystems),
+			AffectedPackages:   vap.AffectedPackages,
+			UnaffectedPackages: vap.UnaffectedPackages,
 		})
 	}
 	return rows
@@ -232,8 +236,7 @@ func FindVulnerabilities(reader interface { //nolint:funlen,gocognit
 			PreloadOS: true,
 			Vulnerabilities: []v6.VulnerabilitySpecifier{
 				{
-					ID:             vuln.ID,
-					IncludeAliases: config.IncludeAliases,
+					ID: vuln.ID,
 				},
 			},
 			Limit: config.RecordLimit,
@@ -256,47 +259,24 @@ func FindVulnerabilities(reader interface { //nolint:funlen,gocognit
 		})
 		if fetchErr != nil {
 			if !errors.Is(fetchErr, v6.ErrLimitReached) {
-				return nil, fmt.Errorf("unable to get affected packages: %w", fetchErr)
+				return nil, fmt.Errorf("unable to get unaffected packages: %w", fetchErr)
 			}
 			limitReached = true
 		}
 
-		distros := make(map[v6.ID]v6.OperatingSystem)
+		var oss []*v6.OperatingSystem
 		for _, a := range affected {
-			if a.OperatingSystem != nil {
-				if _, ok := distros[a.OperatingSystem.ID]; !ok {
-					distros[a.OperatingSystem.ID] = *a.OperatingSystem
-				}
-			}
+			oss = append(oss, a.OperatingSystem)
 		}
-
 		for _, a := range unaffected {
-			if a.OperatingSystem != nil {
-				if _, ok := distros[a.OperatingSystem.ID]; !ok {
-					distros[a.OperatingSystem.ID] = *a.OperatingSystem
-				}
-			}
+			oss = append(oss, a.OperatingSystem)
 		}
 
-		var distrosSlice []v6.OperatingSystem
-		for _, d := range distros {
-			distrosSlice = append(distrosSlice, d)
-		}
-
-		sort.Slice(distrosSlice, func(i, j int) bool {
-			return distrosSlice[i].ID < distrosSlice[j].ID
-		})
-
 		pairs = append(pairs, vulnerabilityAffectedPackageJoin{
-			Vulnerability:    vuln,
-			OperatingSystems: distrosSlice,
-			AffectedPackages: len(affected),
-		})
-
-		pairs = append(pairs, vulnerabilityAffectedPackageJoin{
-			Vulnerability:    vuln,
-			OperatingSystems: distrosSlice,
-			AffectedPackages: len(unaffected),
+			Vulnerability:      vuln,
+			OperatingSystems:   distinctOperatingSystems(oss),
+			AffectedPackages:   len(affected),
+			UnaffectedPackages: len(unaffected),
 		})
 
 		if limitReached {
@@ -329,4 +309,27 @@ func getSeverity(sevs []v6.Severity) string {
 	}
 
 	return fmt.Sprintf("%v", sevs[0].Value)
+}
+
+// distinctOperatingSystems returns the unique, non-nil operating systems sorted by ID
+func distinctOperatingSystems(oss []*v6.OperatingSystem) []v6.OperatingSystem {
+	distros := make(map[v6.ID]v6.OperatingSystem)
+	for _, o := range oss {
+		if o != nil {
+			if _, ok := distros[o.ID]; !ok {
+				distros[o.ID] = *o
+			}
+		}
+	}
+
+	var distrosSlice []v6.OperatingSystem
+	for _, d := range distros {
+		distrosSlice = append(distrosSlice, d)
+	}
+
+	sort.Slice(distrosSlice, func(i, j int) bool {
+		return distrosSlice[i].ID < distrosSlice[j].ID
+	})
+
+	return distrosSlice
 }

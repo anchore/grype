@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -348,62 +349,8 @@ func TestVulnerabilities(t *testing.T) {
 			OperatingSystems: []OperatingSystem{
 				{Name: "Linux", Version: "5.10"},
 			},
-			AffectedPackages: 1,
-		},
-		{
-			VulnerabilityInfo: VulnerabilityInfo{
-				VulnerabilityBlob: v6.VulnerabilityBlob{
-					Description: "Test description",
-					Severities: []v6.Severity{
-						{
-							Scheme: "CVSS",
-							Value: CVSSSeverity{
-								Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
-								Version: "3.1",
-								Metrics: CvssMetrics{
-									BaseScore:           7.5,
-									ExploitabilityScore: ptr(3.9),
-									ImpactScore:         ptr(3.6),
-								},
-							},
-							Source: "nvd",
-							Rank:   1,
-						},
-					},
-				},
-				Severity:      "high",
-				Provider:      "provider1",
-				Status:        "active",
-				PublishedDate: ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
-				ModifiedDate:  ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
-				WithdrawnDate: nil,
-				KnownExploited: []KnownExploited{
-					{
-						CVE:                        "CVE-1234-5678",
-						VendorProject:              "LinuxFoundation",
-						Product:                    "Linux",
-						DateAdded:                  "2025-02-02",
-						RequiredAction:             "Yes",
-						DueDate:                    "2025-02-02",
-						KnownRansomwareCampaignUse: "Known",
-						Notes:                      "note!",
-						URLs:                       []string{"https://example.com"},
-						CWEs:                       []string{"CWE-1234"},
-					},
-				},
-				EPSS: []EPSS{
-					{
-						CVE:        "CVE-1234-5678",
-						EPSS:       0.893,
-						Percentile: 0.99,
-						Date:       "2025-02-24",
-					},
-				},
-			},
-			OperatingSystems: []OperatingSystem{
-				{Name: "Linux", Version: "5.10"},
-			},
-			AffectedPackages: 1,
+			AffectedPackages:   1,
+			UnaffectedPackages: 1,
 		},
 	}
 
@@ -466,10 +413,76 @@ func TestFindVulnerabilities_DecorationErrors(t *testing.T) {
 			})
 
 			require.NoError(t, err, "decoration errors should not propagate as fatal errors")
-			require.Len(t, results, 2)
+			require.Len(t, results, 1)
 			require.Equal(t, "Test vuln", results[0].VulnerabilityBlob.Description)
 			require.Empty(t, results[0].KnownExploited)
 			require.Empty(t, results[0].EPSS)
+		})
+	}
+}
+
+func TestFindVulnerabilities_PackageCounts(t *testing.T) {
+	linux := &v6.OperatingSystem{ID: 1, Name: "linux", MajorVersion: "5"}
+	debian := &v6.OperatingSystem{ID: 2, Name: "debian", MajorVersion: "12"}
+
+	tests := []struct {
+		name       string
+		affected   []v6.AffectedPackageHandle
+		unaffected []v6.UnaffectedPackageHandle
+		want       Vulnerability
+	}{
+		{
+			name: "no records",
+			want: Vulnerability{},
+		},
+		{
+			name:     "affected only",
+			affected: []v6.AffectedPackageHandle{{OperatingSystem: linux}, {OperatingSystem: linux}},
+			want:     Vulnerability{OperatingSystems: []OperatingSystem{{Name: "linux", Version: "5"}}, AffectedPackages: 2},
+		},
+		{
+			name:       "unaffected only",
+			unaffected: []v6.UnaffectedPackageHandle{{OperatingSystem: debian}},
+			want:       Vulnerability{OperatingSystems: []OperatingSystem{{Name: "debian", Version: "12"}}, UnaffectedPackages: 1},
+		},
+		{
+			name:       "affected and unaffected are counted separately in a single row with all operating systems",
+			affected:   []v6.AffectedPackageHandle{{OperatingSystem: linux}},
+			unaffected: []v6.UnaffectedPackageHandle{{OperatingSystem: debian}, {OperatingSystem: nil}},
+			want: Vulnerability{
+				OperatingSystems:   []OperatingSystem{{Name: "linux", Version: "5"}, {Name: "debian", Version: "12"}},
+				AffectedPackages:   1,
+				UnaffectedPackages: 2,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockReader := new(mockVulnReader)
+			mockReader.On("GetVulnerabilities", mock.Anything, mock.Anything).Return([]v6.VulnerabilityHandle{
+				{ID: 1, Name: "CVE-2024-0001", Provider: &v6.Provider{ID: "provider1"}},
+			}, nil)
+
+			// packages are fetched for the specific vulnerability record found, not by name
+			byRecordID := mock.MatchedBy(func(opts *v6.GetPackageOptions) bool {
+				return len(opts.Vulnerabilities) == 1 && opts.Vulnerabilities[0].ID == 1
+			})
+			mockReader.On("GetAffectedPackages", mock.Anything, byRecordID).Return(tt.affected, nil).Once()
+			mockReader.On("GetUnaffectedPackages", mock.Anything, byRecordID).Return(tt.unaffected, nil).Once()
+			mockReader.On("GetKnownExploitedVulnerabilities", mock.Anything).Return([]v6.KnownExploitedVulnerabilityHandle{}, nil)
+			mockReader.On("GetEpss", mock.Anything).Return([]v6.EpssHandle{}, nil)
+
+			results, err := FindVulnerabilities(mockReader, VulnerabilitiesOptions{
+				Vulnerability: v6.VulnerabilitySpecifiers{{Name: "CVE-2024-0001"}},
+			})
+			require.NoError(t, err)
+			mockReader.AssertExpectations(t)
+
+			require.Len(t, results, 1)
+			assert.Equal(t, tt.want.AffectedPackages, results[0].AffectedPackages)
+			assert.Equal(t, tt.want.UnaffectedPackages, results[0].UnaffectedPackages)
+			assert.ElementsMatch(t, tt.want.OperatingSystems, results[0].OperatingSystems)
 		})
 	}
 }

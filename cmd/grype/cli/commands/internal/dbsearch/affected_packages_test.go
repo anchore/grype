@@ -3,6 +3,7 @@ package dbsearch
 import (
 	"bytes"
 	"encoding/json"
+	"sort"
 	"testing"
 	"time"
 
@@ -462,9 +463,10 @@ func TestAffectedPackages(t *testing.T) {
 				MinorVersion: "10",
 			},
 			Vulnerability: &v6.VulnerabilityHandle{
+				ID:            2,
 				Name:          "CVE-1234-5679",
 				Provider:      &v6.Provider{ID: "provider2"},
-				Status:        "not affected",
+				Status:        "active",
 				PublishedDate: ptr(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)),
 				ModifiedDate:  ptr(time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC)),
 				BlobValue:     &v6.VulnerabilityBlob{Description: "Test vulnerability"},
@@ -517,6 +519,7 @@ func TestAffectedPackages(t *testing.T) {
 		{
 			CPE: &v6.Cpe{Part: "a", Vendor: "vendor1", Product: "product1"},
 			Vulnerability: &v6.VulnerabilityHandle{
+				ID:        3,
 				Name:      "CVE-9876-5433",
 				Provider:  &v6.Provider{ID: "provider2"},
 				BlobValue: &v6.VulnerabilityBlob{Description: "CPE vulnerability description"},
@@ -527,11 +530,10 @@ func TestAffectedPackages(t *testing.T) {
 					{
 						Version: v6.Version{
 							Type:       "rpm",
-							Constraint: ">=7.5.0",
+							Constraint: "= 7.5.0",
 						},
 						Fix: &v6.Fix{
-							Version: "7.5.0",
-							State:   "fixed",
+							State: "not-affected",
 						},
 					},
 				},
@@ -711,58 +713,6 @@ func TestAffectedPackages(t *testing.T) {
 		},
 		{
 			Vulnerability: VulnerabilityInfo{
-				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "Test vulnerability"},
-				Severity:          "unknown",
-				Provider:          "provider2",
-				Status:            "not affected",
-				PublishedDate:     ptr(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)),
-				ModifiedDate:      ptr(time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC)),
-				KnownExploited: []KnownExploited{
-					{
-						CVE:                        "CVE-1234-5679",
-						VendorProject:              "LinuxFoundation",
-						Product:                    "Linux",
-						DateAdded:                  "2025-02-02",
-						RequiredAction:             "Yes",
-						DueDate:                    "2025-02-02",
-						KnownRansomwareCampaignUse: "Known",
-						Notes:                      "note!",
-						URLs:                       []string{"https://example.com"},
-						CWEs:                       []string{"CWE-1234"},
-					},
-				},
-				EPSS: []EPSS{
-					{
-						CVE:        "CVE-1234-5679",
-						EPSS:       0.893,
-						Percentile: 0.99,
-						Date:       "2025-02-24",
-					},
-				},
-			},
-			AffectedPackageInfo: AffectedPackageInfo{
-				OS:        &OperatingSystem{Name: "Linux", Version: "5.10"},
-				Package:   &Package{Name: "pkg1", Ecosystem: "ecosystem1"},
-				Namespace: "provider2:distro:Linux:5.10",
-				Detail: v6.PackageBlob{
-					CVEs: []string{"CVE-1234-5679"},
-					Ranges: []v6.Range{
-						{
-							Version: v6.Version{
-								Type:       "semver",
-								Constraint: ">=2.3.0 (unaffected)",
-							},
-							Fix: &v6.Fix{
-								Version: "2.2.0",
-								State:   "fixed",
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			Vulnerability: VulnerabilityInfo{
 				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "CPE vulnerability description"},
 				Severity:          "unknown",
 				Provider:          "provider2",
@@ -809,6 +759,14 @@ func TestAffectedPackages(t *testing.T) {
 				},
 			},
 		},
+	}
+
+	if diff := cmp.Diff(expected, results, cmpOpts()...); diff != "" {
+		t.Errorf("unexpected results (-want +got):\n%s", diff)
+	}
+
+	// unaffected records are only reported by matches, separate from the affected packages
+	expectedUnaffected := []AffectedPackage{
 		{
 			Vulnerability: VulnerabilityInfo{
 				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "CPE vulnerability description"},
@@ -846,10 +804,61 @@ func TestAffectedPackages(t *testing.T) {
 						{
 							Version: v6.Version{
 								Type:       "rpm",
-								Constraint: ">=7.5.0",
+								Constraint: "= 7.5.0",
 							},
 							Fix: &v6.Fix{
-								Version: "7.5.0 (unaffected)",
+								State: "not-affected",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			Vulnerability: VulnerabilityInfo{
+				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "Test vulnerability"},
+				Severity:          "unknown",
+				Provider:          "provider2",
+				Status:            "active",
+				PublishedDate:     ptr(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)),
+				ModifiedDate:      ptr(time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC)),
+				KnownExploited: []KnownExploited{
+					{
+						CVE:                        "CVE-1234-5679",
+						VendorProject:              "LinuxFoundation",
+						Product:                    "Linux",
+						DateAdded:                  "2025-02-02",
+						RequiredAction:             "Yes",
+						DueDate:                    "2025-02-02",
+						KnownRansomwareCampaignUse: "Known",
+						Notes:                      "note!",
+						URLs:                       []string{"https://example.com"},
+						CWEs:                       []string{"CWE-1234"},
+					},
+				},
+				EPSS: []EPSS{
+					{
+						CVE:        "CVE-1234-5679",
+						EPSS:       0.893,
+						Percentile: 0.99,
+						Date:       "2025-02-24",
+					},
+				},
+			},
+			AffectedPackageInfo: AffectedPackageInfo{
+				OS:        &OperatingSystem{Name: "Linux", Version: "5.10"},
+				Package:   &Package{Name: "pkg1", Ecosystem: "ecosystem1"},
+				Namespace: "provider2:distro:Linux:5.10",
+				Detail: v6.PackageBlob{
+					CVEs: []string{"CVE-1234-5679"},
+					Ranges: []v6.Range{
+						{
+							Version: v6.Version{
+								Type:       "semver",
+								Constraint: ">=2.3.0",
+							},
+							Fix: &v6.Fix{
+								Version: "2.2.0",
 								State:   "fixed",
 							},
 						},
@@ -859,9 +868,43 @@ func TestAffectedPackages(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(expected, results, cmpOpts()...); diff != "" {
-		t.Errorf("unexpected results (-want +got):\n%s", diff)
+	matches, err := FindMatches(mockReader, criteria)
+	require.NoError(t, err)
+	if diff := cmp.Diff(expectedUnaffected, flattenUnaffected(matches), cmpOpts()...); diff != "" {
+		t.Errorf("unexpected unaffected results (-want +got):\n%s", diff)
 	}
+
+	// fix states are applied to unaffected records as well as affected records
+	criteria.FixedStates = []string{"fixed"}
+	matches, err = FindMatches(mockReader, criteria)
+	require.NoError(t, err)
+	if diff := cmp.Diff(expectedUnaffected[1:], flattenUnaffected(matches), cmpOpts()...); diff != "" {
+		t.Errorf("unexpected fixed unaffected results (-want +got):\n%s", diff)
+	}
+
+	criteria.FixedStates = []string{"not-affected"}
+	matches, err = FindMatches(mockReader, criteria)
+	require.NoError(t, err)
+	if diff := cmp.Diff(expectedUnaffected[:1], flattenUnaffected(matches), cmpOpts()...); diff != "" {
+		t.Errorf("unexpected not-affected unaffected results (-want +got):\n%s", diff)
+	}
+	for _, m := range matches {
+		assert.Empty(t, m.AffectedPackages)
+	}
+}
+
+// flattenUnaffected returns the unaffected records of the matches, ordered by namespace
+func flattenUnaffected(matches Matches) []AffectedPackage {
+	var rows []AffectedPackage
+	for _, m := range matches {
+		for _, pkg := range m.Unaffected {
+			rows = append(rows, AffectedPackage{Vulnerability: m.Vulnerability, AffectedPackageInfo: pkg})
+		}
+	}
+	sort.Slice(rows, func(i, j int) bool {
+		return rows[i].Namespace < rows[j].Namespace
+	})
+	return rows
 }
 
 func TestFindAffectedPackages(t *testing.T) {
@@ -1082,7 +1125,7 @@ func TestFindAffectedPackages(t *testing.T) {
 				})).Return([]v6.UnaffectedCPEHandle{}, nil).Once()
 			}
 
-			_, _, err := findAffectedPackages(m, tc.config)
+			_, err := findAffectedPackages(m, tc.config)
 
 			if tc.expectedErr != nil {
 				require.ErrorIs(t, err, tc.expectedErr)

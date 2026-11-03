@@ -27,12 +27,12 @@ type DBSearchVulnerabilities struct {
 func (c *DBSearchVulnerabilities) AddFlags(flags clio.FlagSet) {
 	if c.UseVulnIDFlag {
 		flags.StringArrayVarP(&c.VulnerabilityIDs, "vuln", "", "only show results for the given vulnerability ID")
-		flags.BoolVarP(&c.IncludeAliases, "include-aliases", "", "include vulnerabilities that are aliases of the given vulnerability ID")
 	}
+	flags.BoolVarP(&c.IncludeAliases, "include-aliases", "", "include vulnerabilities that are aliases of the given vulnerability ID")
 	flags.StringVarP(&c.PublishedAfter, "published-after", "", "only show vulnerabilities originally published after the given date (format: YYYY-MM-DD)")
 	flags.StringVarP(&c.ModifiedAfter, "modified-after", "", "only show vulnerabilities originally published or modified since the given date (format: YYYY-MM-DD)")
 	flags.StringArrayVarP(&c.Providers, "provider", "", "only show vulnerabilities from the given provider")
-	flags.StringArrayVarP(&c.FixedState, "fixed-state", "", "only show vulnerabilities with the given fix state (fixed, not-fixed, unknown, wont-fix)")
+	flags.StringArrayVarP(&c.FixedState, "fixed-state", "", "only show vulnerabilities with the given fix state (fixed, not-affected, not-fixed, unknown, wont-fix)")
 }
 
 func (c *DBSearchVulnerabilities) PostLoad() error {
@@ -55,14 +55,15 @@ func (c *DBSearchVulnerabilities) PostLoad() error {
 	}
 
 	validFixStates := map[string]bool{
-		"fixed":     true,
-		"not-fixed": true,
-		"unknown":   true,
-		"wont-fix":  true,
+		"fixed":        true,
+		"not-affected": true,
+		"not-fixed":    true,
+		"unknown":      true,
+		"wont-fix":     true,
 	}
 	for _, fs := range c.FixedState {
 		if !validFixStates[fs] {
-			return fmt.Errorf("invalid fixed-state value: %q (valid values: fixed, not-fixed, unknown, wont-fix)", fs)
+			return fmt.Errorf("invalid fixed-state value: %q (valid values: fixed, not-affected, not-fixed, unknown, wont-fix)", fs)
 		}
 	}
 
@@ -81,6 +82,7 @@ func (c *DBSearchVulnerabilities) PostLoad() error {
 	for _, vulnID := range c.VulnerabilityIDs {
 		specs = append(specs, v6.VulnerabilitySpecifier{
 			Name:           vulnID,
+			IncludeAliases: c.IncludeAliases,
 			PublishedAfter: publishedAfter,
 			ModifiedAfter:  modifiedAfter,
 			Providers:      c.Providers,
