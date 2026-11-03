@@ -190,18 +190,21 @@ jobs:
 
           Download the artifact from this workflow run: \`$ARCHIVE_NAME\`
 
-          It holds the gate files and their scans, which re-score without the DB or new scans:
+          It holds the gate files and their scans, which re-score without the DB or new scans. Artifacts from fork PRs are untrusted, so extract it into a new, empty directory outside your checkout and run the yardstick from your own checkout (\`make integration:quality\` installs it in \`.tool/\`):
           \`\`\`bash
-          # copy the archive to the test/integration directory
-          cd test/integration
-          unzip $ARCHIVE_NAME && tar -xzf $ARCHIVE_BASENAME.tar.gz
-          make -C ../.. integration:quality:score
+          GRYPE=/path/to/your/grype/checkout
+          mkdir /tmp/$ARCHIVE_BASENAME && cd /tmp/$ARCHIVE_BASENAME
+          unzip ~/Downloads/$ARCHIVE_NAME
+          # expect only .yardstick.yaml, gates/ and .yardstick/runs/
+          tar -tzf $ARCHIVE_BASENAME.tar.gz
+          tar -xzf $ARCHIVE_BASENAME.tar.gz
+          "\$GRYPE/.tool/yardstick" score gates/*.yaml --claims "\$GRYPE/test/integration/additional-claims"
           \`\`\`
 
-          Now you can label what changed in the UI (it needs yardstick from the installer, since a \`go install\` build has no UI):
+          Now you can label what changed in the UI. New labels are written to \`test/integration/additional-claims\` in your checkout:
           \`\`\`bash
-          yardstick claims serve gates/pr.yaml --open
-          make -C ../.. integration:quality:score
+          "\$GRYPE/.tool/yardstick" claims serve gates/pr.yaml --open --claims "\$GRYPE/test/integration/additional-claims"
+          "\$GRYPE/.tool/yardstick" score gates/*.yaml --claims "\$GRYPE/test/integration/additional-claims"
           \`\`\`
           EOF
 

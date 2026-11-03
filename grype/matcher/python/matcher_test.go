@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/internal/dbtest"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -183,4 +184,53 @@ func TestMatcher_ChainguardLibrariesSuppressesUpstreamGhsa(t *testing.T) {
 				db.Match(t, matcher, p).IsEmpty()
 			})
 		})
+}
+
+// TestMatcher_VersionlessVEXStatements covers openvex statements whose purl
+// has no version. A versionless not_affected statement applies to every
+// version of the package and suppresses the upstream GHSA, while a
+// versionless fixed statement is skipped at build time (there is no version
+// to place the fix at), so the upstream GHSA keeps matching.
+func TestMatcher_VersionlessVEXStatements(t *testing.T) {
+	const (
+		upstreamCVE    = "CVE-2023-37920"
+		upstreamGHSA   = "GHSA-xqr8-7jwr-rhp7"
+		unaffectedRule = "UnaffectedPackageEntry"
+	)
+
+	certifi := func(version string) pkg.Package {
+		return dbtest.NewPackage("certifi", version, syftPkg.PythonPkg).
+			WithLanguage(syftPkg.Python).
+			Build()
+	}
+
+	t.Run("not_affected suppresses every version", func(t *testing.T) {
+		const notAffected = "TEST-versionless-not-affected"
+		dbtest.DBs(t, "versionless-vex").
+			SelectOnly("github:python/GHSA-xqr8-7jwr-rhp7", "chainguard-libraries:pypi/"+notAffected).
+			Run(func(t *testing.T, db *dbtest.DB) {
+				matcher := NewPythonMatcher(MatcherConfig{})
+				// both versions are inside the GHSA's vulnerable range
+				for _, v := range []string{"2015.4.28", "2020.12.5"} {
+					ignores := db.Match(t, matcher, certifi(v)).Ignores()
+					for _, id := range []string{notAffected, upstreamCVE, upstreamGHSA} {
+						ignores.SelectIgnoreRule(unaffectedRule, id).
+							ForPackage("certifi", v).
+							IncludesAliases()
+					}
+				}
+			})
+	})
+
+	t.Run("fixed is skipped and the GHSA still matches", func(t *testing.T) {
+		dbtest.DBs(t, "versionless-vex").
+			SelectOnly("github:python/GHSA-xqr8-7jwr-rhp7", "chainguard-libraries:pypi/TEST-versionless-fixed").
+			Run(func(t *testing.T, db *dbtest.DB) {
+				matcher := NewPythonMatcher(MatcherConfig{})
+				db.Match(t, matcher, certifi("2020.12.5")).
+					SelectMatch(upstreamGHSA).
+					SelectDetailByType(match.ExactDirectMatch).
+					AsEcosystemSearch()
+			})
+	})
 }
