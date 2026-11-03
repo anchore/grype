@@ -121,3 +121,89 @@ func TestMatcher(t *testing.T) {
 		})
 	}
 }
+
+func TestMatcher_PackageURLName(t *testing.T) {
+	tests := []struct {
+		name     string
+		pkgName  string
+		version  string
+		purl     string
+		expected []string
+	}{
+		{
+			name:     "SPDX display name differs from Bitnami component name",
+			pkgName:  "Spark (TM)",
+			version:  "3.2.4",
+			purl:     "pkg:bitnami/spark@3.2.4?arch=amd64&distro=debian-11",
+			expected: []string{"BIT-spark-2023-22946"},
+		},
+		{
+			name:     "another component with a descriptive package name",
+			pkgName:  "Apache HTTP Server",
+			version:  "2.4.40",
+			purl:     "pkg:bitnami/apache@2.4.40",
+			expected: []string{"BIT-apache-2020-11984"},
+		},
+		{
+			name:     "component name differs beyond trademark punctuation",
+			pkgName:  "Node.js",
+			version:  "12.18.0",
+			purl:     "pkg:bitnami/node@12.18.0",
+			expected: []string{"BIT-node-2020-8201"},
+		},
+		{
+			name:     "missing PURL falls back to package name",
+			pkgName:  "spark",
+			version:  "3.2.4",
+			expected: []string{"BIT-spark-2023-22946"},
+		},
+		{
+			name:     "malformed PURL falls back to package name",
+			pkgName:  "spark",
+			version:  "3.2.4",
+			purl:     "not-a-purl",
+			expected: []string{"BIT-spark-2023-22946"},
+		},
+		{
+			name:     "another ecosystem cannot override the Bitnami package name",
+			pkgName:  "spark",
+			version:  "3.2.4",
+			purl:     "pkg:npm/unrelated@3.2.4",
+			expected: []string{"BIT-spark-2023-22946"},
+		},
+		{
+			name:    "PURL name takes precedence over a misleading display name",
+			pkgName: "spark",
+			version: "3.2.4",
+			purl:    "pkg:bitnami/unrelated@3.2.4",
+		},
+		{
+			name:    "package version is not replaced with the PURL version",
+			pkgName: "Spark (TM)",
+			version: "3.4.1",
+			purl:    "pkg:bitnami/spark@3.2.4",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dbtest.DBs(t, "bitnami").Run(func(t *testing.T, db *dbtest.DB) {
+				p := dbtest.NewPackage(tt.pkgName, tt.version, syftPkg.BitnamiPkg).
+					WithPURL(tt.purl).
+					Build()
+
+				findings := db.Match(t, &Matcher{}, p)
+				if len(tt.expected) == 0 {
+					findings.IsEmpty()
+					return
+				}
+
+				for _, id := range tt.expected {
+					findings.SelectMatch(id).
+						SelectDetailByType(match.ExactDirectMatch).
+						AsEcosystemSearch()
+				}
+			})
+		})
+	}
+}
