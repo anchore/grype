@@ -3,6 +3,7 @@ package dbsearch
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 	"time"
 
@@ -19,13 +20,13 @@ type Vulnerabilities []Vulnerability
 type Vulnerability struct {
 	VulnerabilityInfo `json:",inline"`
 
-	// OperatingSystems is a list of operating systems with package records for the vulnerability
+	// OperatingSystems is a list of operating systems affected by the vulnerability
 	OperatingSystems []OperatingSystem `json:"operating_systems"`
 
-	// AffectedPackages is the number of packages affected by the vulnerability
+	// AffectedPackages is the number of package records affected by the vulnerability, up to the record limit (CPE records are not counted)
 	AffectedPackages int `json:"affected_packages"`
 
-	// UnaffectedPackages is the number of packages explicitly NOT affected by the vulnerability
+	// UnaffectedPackages is the number of package records explicitly NOT affected by the vulnerability (CPE records are not counted)
 	UnaffectedPackages int `json:"unaffected_packages"`
 }
 
@@ -129,6 +130,10 @@ type vulnerabilityAffectedPackageJoin struct {
 type VulnerabilitiesOptions struct {
 	Vulnerability v6.VulnerabilitySpecifiers
 	RecordLimit   int
+
+	// IncludeAliases expands each named vulnerability to the vulnerabilities related to it through aliases before
+	// searching (see relatedVulnerabilityNames)
+	IncludeAliases bool
 }
 
 func newVulnerabilityRows(vaps ...vulnerabilityAffectedPackageJoin) (rows []Vulnerability) {
@@ -196,13 +201,22 @@ func newOperatingSystems(oss []v6.OperatingSystem) (os []OperatingSystem) {
 	return os
 }
 
-func FindVulnerabilities(reader interface { //nolint:funlen,gocognit
+func FindVulnerabilities(reader interface { //nolint:funlen
 	v6.VulnerabilityStoreReader
+	v6.VulnerabilityAliasStoreReader
 	v6.AffectedPackageStoreReader
 	v6.UnaffectedPackageStoreReader
 	v6.VulnerabilityDecoratorStoreReader
 }, config VulnerabilitiesOptions,
 ) ([]Vulnerability, error) {
+	if config.IncludeAliases {
+		expanded, err := expandAliases(reader, config.Vulnerability)
+		if err != nil {
+			return nil, err
+		}
+		config.Vulnerability = expanded
+	}
+
 	log.WithFields("vulnSpecs", len(config.Vulnerability)).Debug("fetching vulnerabilities")
 
 	if config.RecordLimit == 0 {
@@ -212,10 +226,19 @@ func FindVulnerabilities(reader interface { //nolint:funlen,gocognit
 	var vulns []v6.VulnerabilityHandle
 	var limitReached bool
 	for _, vulnSpec := range config.Vulnerability {
+		// the record limit caps the vulnerabilities found across all specs, not per spec, since alias expansion lets
+		// the DB decide how many specs there are. This never reaches 0 (no limit), since the store reports the limit as
+		// soon as the results fill it, which ends the loop.
+		limit := config.RecordLimit
+		if limit > 0 {
+			limit -= len(vulns)
+		}
 		vs, err := reader.GetVulnerabilities(&vulnSpec, &v6.GetVulnerabilityOptions{
 			Preload: true,
-			Limit:   config.RecordLimit,
+			Limit:   limit,
 		})
+		// the records found before the limit was reached are still reported
+		vulns = append(vulns, vs...)
 		if err != nil {
 			if !errors.Is(err, v6.ErrLimitReached) {
 				return nil, fmt.Errorf("unable to get vulnerabilities: %w", err)
@@ -223,8 +246,6 @@ func FindVulnerabilities(reader interface { //nolint:funlen,gocognit
 			limitReached = true
 			break
 		}
-
-		vulns = append(vulns, vs...)
 	}
 
 	log.WithFields("vulns", len(vulns)).Debug("fetching affected packages")
@@ -248,47 +269,33 @@ func FindVulnerabilities(reader interface { //nolint:funlen,gocognit
 			limitReached = true
 		}
 
-		unaffected, fetchErr := reader.GetUnaffectedPackages(nil, &v6.GetPackageOptions{
-			PreloadOS: true,
-			Vulnerabilities: []v6.VulnerabilitySpecifier{
-				{
-					ID: vuln.ID,
-				},
-			},
-			Limit: config.RecordLimit,
-		})
-		if fetchErr != nil {
-			if !errors.Is(fetchErr, v6.ErrLimitReached) {
-				return nil, fmt.Errorf("unable to get unaffected packages: %w", fetchErr)
-			}
-			limitReached = true
-		}
-
+		// operating systems are only reported for affected records, an OS with only unaffected records is not affected
 		var oss []*v6.OperatingSystem
 		for _, a := range affected {
 			oss = append(oss, a.OperatingSystem)
 		}
-		for _, a := range unaffected {
-			oss = append(oss, a.OperatingSystem)
-		}
 
 		pairs = append(pairs, vulnerabilityAffectedPackageJoin{
-			Vulnerability:      vuln,
-			OperatingSystems:   distinctOperatingSystems(oss),
-			AffectedPackages:   len(affected),
-			UnaffectedPackages: len(unaffected),
+			Vulnerability:    vuln,
+			OperatingSystems: distinctOperatingSystems(oss),
+			AffectedPackages: len(affected),
 		})
 
-		if limitReached {
+		if errors.Is(fetchErr, v6.ErrLimitReached) {
 			break
 		}
 	}
 
+	unaffected, err := countUnaffectedPackages(reader, pairs)
+	if err != nil {
+		return nil, err
+	}
+
 	for i := range pairs {
+		pairs[i].UnaffectedPackages = unaffected[pairs[i].Vulnerability.ID]
 		decorateVulnerabilities(reader, &pairs[i])
 	}
 
-	var err error
 	if limitReached {
 		err = v6.ErrLimitReached
 	}
@@ -332,4 +339,41 @@ func distinctOperatingSystems(oss []*v6.OperatingSystem) []v6.OperatingSystem {
 	})
 
 	return distrosSlice
+}
+
+// unaffectedCountBatchSize is how many vulnerabilities countUnaffectedPackages looks up per query. Each one becomes its
+// own OR term, so this is bounded by the SQLite expression depth limit (1000) like maxExpandedVulnerabilities, not by
+// the bound variable limit.
+const unaffectedCountBatchSize = maxExpandedVulnerabilities
+
+// countUnaffectedPackages counts the unaffected package records of each vulnerability, a batch of vulnerabilities per
+// query instead of one query per vulnerability. Nothing is preloaded and no limit is applied, so the counts are exact.
+// ponytail: this loads the (small, unpreloaded) rows to count them, a grouped COUNT store query if that ever shows up.
+func countUnaffectedPackages(reader v6.UnaffectedPackageStoreReader, pairs []vulnerabilityAffectedPackageJoin) (map[v6.ID]int, error) {
+	// the same vulnerability can be found more than once, it must only be counted once
+	var ids []v6.ID
+	seen := make(map[v6.ID]bool)
+	for _, p := range pairs {
+		if !seen[p.Vulnerability.ID] {
+			seen[p.Vulnerability.ID] = true
+			ids = append(ids, p.Vulnerability.ID)
+		}
+	}
+
+	counts := make(map[v6.ID]int)
+	for batch := range slices.Chunk(ids, unaffectedCountBatchSize) {
+		specs := make([]v6.VulnerabilitySpecifier, len(batch))
+		for i, id := range batch {
+			specs[i] = v6.VulnerabilitySpecifier{ID: id}
+		}
+
+		found, err := reader.GetUnaffectedPackages(nil, &v6.GetPackageOptions{Vulnerabilities: specs})
+		if err != nil {
+			return nil, fmt.Errorf("unable to get unaffected packages: %w", err)
+		}
+		for _, u := range found {
+			counts[u.VulnerabilityID]++
+		}
+	}
+	return counts, nil
 }

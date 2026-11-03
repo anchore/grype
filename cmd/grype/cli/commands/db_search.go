@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
@@ -73,20 +74,7 @@ func hasAnyPrefix(s string, prefixes ...string) bool {
 	return false
 }
 
-func DBSearch(app clio.Application) *cobra.Command {
-	opts := &dbSearchMatchOptions{
-		Format: options.DefaultDBSearchFormat(),
-		Vulnerability: options.DBSearchVulnerabilities{
-			UseVulnIDFlag: true,
-		},
-		Bounds:          options.DefaultDBSearchBounds(),
-		DatabaseCommand: *options.DefaultDatabaseCommand(app.ID()),
-	}
-
-	cmd := &cobra.Command{
-		Use:   "search",
-		Short: "Search the DB for vulnerabilities or affected packages",
-		Example: `
+const dbSearchExample = `
   Search for affected packages by vulnerability ID:
 
     $ grype db search --vuln ELSA-2023-12205
@@ -106,7 +94,34 @@ func DBSearch(app clio.Application) *cobra.Command {
   Search for affected packages by CPE (note: version/update is not considered):
 
     $ grype db search --pkg 'cpe:2.3:a:jetty:jetty_http_server:*:*:*:*:*:*:*:*'
-    $ grype db search --pkg 'cpe:/a:jetty:jetty_http_server'`,
+    $ grype db search --pkg 'cpe:/a:jetty:jetty_http_server'
+
+  Search for affected packages by vulnerability ID, including records filed under related IDs (e.g. GHSA or GO records for a CVE):
+
+    $ grype db search --vuln CVE-2021-44228 --include-aliases
+
+  Search for affected packages along with records that explicitly say a package is NOT affected:
+
+    $ grype db search --vuln CVE-2021-44228 --include-unaffected
+
+  Search only for records that explicitly say a package is NOT affected:
+
+    $ grype db search --vuln CVE-2021-44228 --fixed-state not-affected`
+
+func DBSearch(app clio.Application) *cobra.Command {
+	opts := &dbSearchMatchOptions{
+		Format: options.DefaultDBSearchFormat(),
+		Vulnerability: options.DBSearchVulnerabilities{
+			UseVulnIDFlag: true,
+		},
+		Bounds:          options.DefaultDBSearchBounds(),
+		DatabaseCommand: *options.DefaultDatabaseCommand(app.ID()),
+	}
+
+	cmd := &cobra.Command{
+		Use:     "search",
+		Short:   "Search the DB for vulnerabilities or affected packages",
+		Example: dbSearchExample,
 		PreRunE: disableUI(app),
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			if len(args) > 0 {
@@ -140,6 +155,11 @@ func DBSearch(app clio.Application) *cobra.Command {
 }
 
 func runDBSearchMatches(opts dbSearchMatchOptions) error {
+	// checked here instead of in PostLoad, since vulnerability IDs given as args are only applied once the command runs
+	if opts.Vulnerability.IncludeAliases && len(opts.Vulnerability.VulnerabilityIDs) == 0 {
+		return fmt.Errorf("--include-aliases requires at least one vulnerability ID")
+	}
+
 	client, err := distribution.NewClient(opts.ToClientConfig())
 	if err != nil {
 		return fmt.Errorf("unable to create distribution client: %w", err)
@@ -167,6 +187,8 @@ func runDBSearchMatches(opts dbSearchMatchOptions) error {
 		AllowBroadCPEMatching: opts.Package.AllowBroadCPEMatching,
 		RecordLimit:           opts.Bounds.RecordLimit,
 		FixedStates:           opts.Vulnerability.FixedState,
+		IncludeUnaffected:     opts.Package.IncludeUnaffected,
+		IncludeAliases:        opts.Vulnerability.IncludeAliases,
 	})
 	if queryErr != nil {
 		if !errors.Is(queryErr, v6.ErrLimitReached) {
@@ -219,7 +241,7 @@ func presentDBSearchMatches(outputFormat string, structuredRows dbsearch.Matches
 	return nil
 }
 
-// packageTableRowKey identifies a table row, all package records with the same key are displayed on a single row
+// packageTableRowKey identifies the package records that may be displayed together on table rows
 type packageTableRowKey struct {
 	vulnerability string
 	pkgOrCPE      string
@@ -230,22 +252,35 @@ type packageTableRowKey struct {
 // anyVersionConstraint is displayed for package records without a version constraint, which apply to all versions
 const anyVersionConstraint = "*"
 
-// packageTableRowConstraints is the set of version constraints from all package records displayed on a single table row
+// packageTableRowConstraints are the version constraints of all package records with the same row key
 type packageTableRowConstraints struct {
-	affected   []string
+	// affected is the constraint of each affected record, records with the same constraint are only listed once.
+	// Each is displayed on its own row since "||" between records (e.g. for different RHEL minor releases) would
+	// read as a single constraint that applies everywhere.
+	affected []string
+	// affectedSeen holds the constraints already in affected
+	affectedSeen *strset.Set
+	// unaffected are the constraints of all unaffected records, any of which means the package is not affected
 	unaffected []string
 }
 
-// String renders the affected constraints followed by the unaffected constraints, e.g. "< 1.2.3; unaffected: = 1.2.0+patch.1"
-func (c packageTableRowConstraints) String() string {
-	var parts []string
-	if len(c.affected) > 0 {
-		parts = append(parts, joinConstraints(c.affected))
-	}
+// rows renders the table rows for the constraints. Unaffected constraints are listed after the affected constraint
+// when there is a single affected row, e.g. "< 1.2.3; unaffected: = 1.2.0+patch.1", otherwise on their own row.
+func (c packageTableRowConstraints) rows() []string {
+	var unaffected string
 	if len(c.unaffected) > 0 {
-		parts = append(parts, "unaffected: "+joinConstraints(c.unaffected))
+		unaffected = "unaffected: " + joinConstraints(c.unaffected)
 	}
-	return strings.Join(parts, "; ")
+
+	switch {
+	case len(c.affected) == 0:
+		return []string{unaffected}
+	case len(c.affected) == 1 && unaffected != "":
+		return []string{c.affected[0] + "; " + unaffected}
+	case unaffected != "":
+		return append(slices.Clone(c.affected), unaffected)
+	}
+	return c.affected
 }
 
 // joinConstraints returns the distinct constraints in sorted order, joined with "||" since "," is an AND within a single constraint
@@ -259,7 +294,7 @@ func renderDBSearchPackagesTableRows(matches dbsearch.Matches) [][]string {
 	var keys []packageTableRowKey
 	constraintsByKey := make(map[packageTableRowKey]*packageTableRowConstraints)
 
-	// rowConstraints returns the constraints of the table row that the package record is displayed on
+	// rowConstraints returns the constraints of the rows that the package record is displayed with
 	rowConstraints := func(rr dbsearch.AffectedPackage) *packageTableRowConstraints {
 		var pkgOrCPE, ecosystem string
 		if rr.Package != nil {
@@ -278,7 +313,7 @@ func renderDBSearchPackagesTableRows(matches dbsearch.Matches) [][]string {
 		}
 		constraints, ok := constraintsByKey[key]
 		if !ok {
-			constraints = &packageTableRowConstraints{}
+			constraints = &packageTableRowConstraints{affectedSeen: strset.New()}
 			constraintsByKey[key] = constraints
 			keys = append(keys, key)
 		}
@@ -288,7 +323,12 @@ func renderDBSearchPackagesTableRows(matches dbsearch.Matches) [][]string {
 	for _, m := range matches {
 		for _, pkg := range m.AffectedPackages {
 			constraints := rowConstraints(dbsearch.AffectedPackage{Vulnerability: m.Vulnerability, AffectedPackageInfo: pkg})
-			constraints.affected = append(constraints.affected, versionConstraints(pkg)...)
+			// ranges within a single record are joined with "||" like before, records are kept apart
+			constraint := strings.Join(versionConstraints(pkg), " || ")
+			if !constraints.affectedSeen.Has(constraint) {
+				constraints.affectedSeen.Add(constraint)
+				constraints.affected = append(constraints.affected, constraint)
+			}
 		}
 		for _, pkg := range m.Unaffected {
 			constraints := rowConstraints(dbsearch.AffectedPackage{Vulnerability: m.Vulnerability, AffectedPackageInfo: pkg})
@@ -298,7 +338,9 @@ func renderDBSearchPackagesTableRows(matches dbsearch.Matches) [][]string {
 
 	var rows [][]string
 	for _, key := range keys {
-		rows = append(rows, []string{key.vulnerability, key.pkgOrCPE, key.ecosystem, key.namespace, constraintsByKey[key].String()})
+		for _, constraint := range constraintsByKey[key].rows() {
+			rows = append(rows, []string{key.vulnerability, key.pkgOrCPE, key.ecosystem, key.namespace, constraint})
+		}
 	}
 
 	// sort rows by each column

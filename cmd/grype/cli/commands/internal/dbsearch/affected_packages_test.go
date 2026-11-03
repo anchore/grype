@@ -155,268 +155,6 @@ func TestAffectedPackageTableRowMarshalJSON(t *testing.T) {
 	}
 }
 
-func TestNewAffectedPackageRows(t *testing.T) {
-	affectedPkgs := []affectedPackageWithDecorations{
-		{
-			AffectedPackageHandle: v6.AffectedPackageHandle{
-				Package: &v6.Package{Name: "pkg1", Ecosystem: "ecosystem1"},
-				OperatingSystem: &v6.OperatingSystem{
-					Name:         "Linux",
-					MajorVersion: "5",
-					MinorVersion: "10",
-				},
-				Vulnerability: &v6.VulnerabilityHandle{
-					Name:          "CVE-1234-5678",
-					Provider:      &v6.Provider{ID: "provider1"},
-					Status:        "active",
-					PublishedDate: ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
-					ModifiedDate:  ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
-					BlobValue: &v6.VulnerabilityBlob{
-						Description: "Test vulnerability",
-						Severities: []v6.Severity{
-							{
-								Scheme: "CVSS_V3",
-								Value: CVSSSeverity{
-									Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
-									Version: "3.1",
-									Metrics: CvssMetrics{
-										BaseScore: 9.8,
-									},
-								},
-								Source: "nvd@nist.gov",
-								Rank:   1,
-							},
-						},
-					},
-				},
-				BlobValue: &v6.PackageBlob{
-					CVEs: []string{"CVE-1234-5678"},
-					Qualifiers: &v6.PackageQualifiers{
-						RpmModularity: ptr("modularity"),
-						PlatformCPEs:  []string{"platform-cpe-1"},
-					},
-					Ranges: []v6.Range{
-						{
-							Version: v6.Version{
-								Type:       "semver",
-								Constraint: ">=1.0.0, <2.0.0",
-							},
-							Fix: &v6.Fix{
-								Version: "1.2.0",
-								State:   "fixed",
-							},
-						},
-					},
-				},
-			},
-			vulnerabilityDecorations: vulnerabilityDecorations{
-				KnownExploited: []KnownExploited{
-					{
-						CVE:                        "CVE-1234-5678",
-						VendorProject:              "LinuxFoundation",
-						Product:                    "Linux",
-						DateAdded:                  "2025-02-02",
-						RequiredAction:             "Yes",
-						DueDate:                    "2025-02-02",
-						KnownRansomwareCampaignUse: "Known",
-						Notes:                      "note!",
-						URLs:                       []string{"https://example.com"},
-						CWEs:                       []string{"CWE-1234"},
-					},
-				},
-				EPSS: []EPSS{
-					{
-						CVE:        "CVE-1234-5678",
-						EPSS:       0.893,
-						Percentile: 0.99,
-						Date:       "2025-02-24",
-					},
-				},
-			},
-		},
-	}
-
-	affectedCPEs := []affectedCPEWithDecorations{
-		{
-			AffectedCPEHandle: v6.AffectedCPEHandle{
-				CPE: &v6.Cpe{Part: "a", Vendor: "vendor1", Product: "product1"},
-				Vulnerability: &v6.VulnerabilityHandle{
-					Name:      "CVE-9876-5432",
-					Provider:  &v6.Provider{ID: "provider2"},
-					BlobValue: &v6.VulnerabilityBlob{Description: "CPE vulnerability description"},
-				},
-				BlobValue: &v6.PackageBlob{
-					CVEs: []string{"CVE-9876-5432"},
-					Ranges: []v6.Range{
-						{
-							Version: v6.Version{
-								Type:       "rpm",
-								Constraint: ">=2.0.0, <3.0.0",
-							},
-							Fix: &v6.Fix{
-								Version: "2.5.0",
-								State:   "fixed",
-							},
-						},
-					},
-				},
-			},
-			vulnerabilityDecorations: vulnerabilityDecorations{
-				KnownExploited: []KnownExploited{
-					{
-						CVE:                        "CVE-9876-5432",
-						VendorProject:              "vendor1",
-						Product:                    "product1",
-						DateAdded:                  "2025-02-03",
-						RequiredAction:             "Yes",
-						DueDate:                    "2025-02-03",
-						KnownRansomwareCampaignUse: "Known",
-						Notes:                      "note!",
-						URLs:                       []string{"https://example.com"},
-						CWEs:                       []string{"CWE-5678"},
-					},
-				},
-				EPSS: []EPSS{
-					{
-						CVE:        "CVE-9876-5432",
-						EPSS:       0.938,
-						Percentile: 0.9222,
-						Date:       "2025-02-25",
-					},
-				},
-			},
-		},
-	}
-
-	rows := newAffectedPackageRows(affectedPkgs, affectedCPEs)
-	expected := []AffectedPackage{
-		{
-			Vulnerability: VulnerabilityInfo{
-				VulnerabilityBlob: v6.VulnerabilityBlob{
-					Description: "Test vulnerability",
-					Severities: []v6.Severity{
-						{
-							Scheme: "CVSS_V3",
-							Value: CVSSSeverity{
-								Vector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
-								Version: "3.1",
-								Metrics: CvssMetrics{
-									BaseScore: 9.8,
-								},
-							},
-							Source: "nvd@nist.gov",
-							Rank:   1,
-						},
-					},
-				},
-				Severity:      "critical",
-				Provider:      "provider1",
-				Status:        "active",
-				PublishedDate: ptr(time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)),
-				ModifiedDate:  ptr(time.Date(2023, 2, 1, 0, 0, 0, 0, time.UTC)),
-				KnownExploited: []KnownExploited{
-					{
-						CVE:                        "CVE-1234-5678",
-						VendorProject:              "LinuxFoundation",
-						Product:                    "Linux",
-						DateAdded:                  "2025-02-02",
-						RequiredAction:             "Yes",
-						DueDate:                    "2025-02-02",
-						KnownRansomwareCampaignUse: "Known",
-						Notes:                      "note!",
-						URLs:                       []string{"https://example.com"},
-						CWEs:                       []string{"CWE-1234"},
-					},
-				},
-				EPSS: []EPSS{
-					{
-						CVE:        "CVE-1234-5678",
-						EPSS:       0.893,
-						Percentile: 0.99,
-						Date:       "2025-02-24",
-					},
-				},
-			},
-			AffectedPackageInfo: AffectedPackageInfo{
-				OS:        &OperatingSystem{Name: "Linux", Version: "5.10"},
-				Package:   &Package{Name: "pkg1", Ecosystem: "ecosystem1"},
-				Namespace: "provider1:distro:Linux:5.10",
-				Detail: v6.PackageBlob{
-					CVEs: []string{"CVE-1234-5678"},
-					Qualifiers: &v6.PackageQualifiers{
-						RpmModularity: ptr("modularity"),
-						PlatformCPEs:  []string{"platform-cpe-1"},
-					},
-					Ranges: []v6.Range{
-						{
-							Version: v6.Version{
-								Type:       "semver",
-								Constraint: ">=1.0.0, <2.0.0",
-							},
-							Fix: &v6.Fix{
-								Version: "1.2.0",
-								State:   "fixed",
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			Vulnerability: VulnerabilityInfo{
-				VulnerabilityBlob: v6.VulnerabilityBlob{Description: "CPE vulnerability description"},
-				Severity:          "unknown",
-				Provider:          "provider2",
-				KnownExploited: []KnownExploited{
-					{
-						CVE:                        "CVE-9876-5432",
-						VendorProject:              "vendor1",
-						Product:                    "product1",
-						DateAdded:                  "2025-02-03",
-						RequiredAction:             "Yes",
-						DueDate:                    "2025-02-03",
-						KnownRansomwareCampaignUse: "Known",
-						Notes:                      "note!",
-						URLs:                       []string{"https://example.com"},
-						CWEs:                       []string{"CWE-5678"},
-					},
-				},
-				EPSS: []EPSS{
-					{
-						CVE:        "CVE-9876-5432",
-						EPSS:       0.938,
-						Percentile: 0.9222,
-						Date:       "2025-02-25",
-					},
-				},
-			},
-			AffectedPackageInfo: AffectedPackageInfo{
-				CPE:       &CPE{Part: "a", Vendor: "vendor1", Product: "product1"},
-				Namespace: "provider2:cpe",
-				Detail: v6.PackageBlob{
-					CVEs: []string{"CVE-9876-5432"},
-					Ranges: []v6.Range{
-						{
-							Version: v6.Version{
-								Type:       "rpm",
-								Constraint: ">=2.0.0, <3.0.0",
-							},
-							Fix: &v6.Fix{
-								Version: "2.5.0",
-								State:   "fixed",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	if diff := cmp.Diff(expected, rows, cmpOpts()...); diff != "" {
-		t.Errorf("unexpected rows (-want +got):\n%s", diff)
-	}
-}
-
 func TestAffectedPackages(t *testing.T) {
 	mockReader := new(affectedMockReader)
 
@@ -429,6 +167,7 @@ func TestAffectedPackages(t *testing.T) {
 				MinorVersion: "10",
 			},
 			Vulnerability: &v6.VulnerabilityHandle{
+				ID:            1,
 				Name:          "CVE-1234-5678",
 				Provider:      &v6.Provider{ID: "provider1"},
 				Status:        "active",
@@ -493,6 +232,7 @@ func TestAffectedPackages(t *testing.T) {
 		{
 			CPE: &v6.Cpe{Part: "a", Vendor: "vendor1", Product: "product1"},
 			Vulnerability: &v6.VulnerabilityHandle{
+				ID:        4,
 				Name:      "CVE-9876-5432",
 				Provider:  &v6.Provider{ID: "provider2"},
 				BlobValue: &v6.VulnerabilityBlob{Description: "CPE vulnerability description"},
@@ -655,8 +395,9 @@ func TestAffectedPackages(t *testing.T) {
 		},
 	}
 
-	results, err := FindAffectedPackages(mockReader, criteria)
+	matches, err := FindMatches(mockReader, criteria)
 	require.NoError(t, err)
+	results := flatten(matches, func(m Match) []AffectedPackageInfo { return m.AffectedPackages })
 
 	expected := []AffectedPackage{
 		{
@@ -868,24 +609,34 @@ func TestAffectedPackages(t *testing.T) {
 		},
 	}
 
-	matches, err := FindMatches(mockReader, criteria)
+	// unaffected records are opt-in
+	assert.Empty(t, flattenUnaffected(matches))
+	matches, err = FindMatches(mockReader, criteria)
+	require.NoError(t, err)
+	assert.Empty(t, flattenUnaffected(matches))
+
+	criteria.IncludeUnaffected = true
+	matches, err = FindMatches(mockReader, criteria)
 	require.NoError(t, err)
 	if diff := cmp.Diff(expectedUnaffected, flattenUnaffected(matches), cmpOpts()...); diff != "" {
 		t.Errorf("unexpected unaffected results (-want +got):\n%s", diff)
 	}
 
-	// fix states are applied to unaffected records as well as affected records
+	// fix states are not applied to unaffected records, which are only kept as context for the affected records
+	// that match (none of the unaffected records here share a vulnerability with an affected record)
 	criteria.FixedStates = []string{"fixed"}
 	matches, err = FindMatches(mockReader, criteria)
 	require.NoError(t, err)
-	if diff := cmp.Diff(expectedUnaffected[1:], flattenUnaffected(matches), cmpOpts()...); diff != "" {
-		t.Errorf("unexpected fixed unaffected results (-want +got):\n%s", diff)
-	}
+	assert.Empty(t, flattenUnaffected(matches))
+	assert.NotEmpty(t, matches)
 
+	// not-affected selects all unaffected records regardless of how the provider stored the fix state, and
+	// includes them without asking for unaffected records separately
+	criteria.IncludeUnaffected = false
 	criteria.FixedStates = []string{"not-affected"}
 	matches, err = FindMatches(mockReader, criteria)
 	require.NoError(t, err)
-	if diff := cmp.Diff(expectedUnaffected[:1], flattenUnaffected(matches), cmpOpts()...); diff != "" {
+	if diff := cmp.Diff(expectedUnaffected, flattenUnaffected(matches), cmpOpts()...); diff != "" {
 		t.Errorf("unexpected not-affected unaffected results (-want +got):\n%s", diff)
 	}
 	for _, m := range matches {
@@ -893,11 +644,37 @@ func TestAffectedPackages(t *testing.T) {
 	}
 }
 
+func TestPackageRecords_KeepUnaffectedForAffectedVulnerabilities(t *testing.T) {
+	vuln := func(id v6.ID) *v6.VulnerabilityHandle { return &v6.VulnerabilityHandle{ID: id} }
+	pkg := func(id v6.ID) affectedPackageWithDecorations {
+		return affectedPackageWithDecorations{AffectedPackageHandle: v6.AffectedPackageHandle{Vulnerability: vuln(id)}}
+	}
+	cpe := func(id v6.ID) affectedCPEWithDecorations {
+		return affectedCPEWithDecorations{AffectedCPEHandle: v6.AffectedCPEHandle{Vulnerability: vuln(id)}}
+	}
+
+	records := packageRecords{
+		affectedPkgs:   []affectedPackageWithDecorations{pkg(1)},
+		affectedCPEs:   []affectedCPEWithDecorations{cpe(2)},
+		unaffectedPkgs: []affectedPackageWithDecorations{pkg(1), pkg(2), pkg(3), {}},
+		unaffectedCPEs: []affectedCPEWithDecorations{cpe(2), cpe(3)},
+	}
+	records.keepUnaffectedForAffectedVulnerabilities()
+
+	assert.Equal(t, []affectedPackageWithDecorations{pkg(1), pkg(2)}, records.unaffectedPkgs)
+	assert.Equal(t, []affectedCPEWithDecorations{cpe(2)}, records.unaffectedCPEs)
+}
+
 // flattenUnaffected returns the unaffected records of the matches, ordered by namespace
 func flattenUnaffected(matches Matches) []AffectedPackage {
+	return flatten(matches, func(m Match) []AffectedPackageInfo { return m.Unaffected })
+}
+
+// flatten returns the selected records of the matches, ordered by namespace
+func flatten(matches Matches, records func(Match) []AffectedPackageInfo) []AffectedPackage {
 	var rows []AffectedPackage
 	for _, m := range matches {
-		for _, pkg := range m.Unaffected {
+		for _, pkg := range records(m) {
 			rows = append(rows, AffectedPackage{Vulnerability: m.Vulnerability, AffectedPackageInfo: pkg})
 		}
 	}
@@ -1125,7 +902,8 @@ func TestFindAffectedPackages(t *testing.T) {
 				})).Return([]v6.UnaffectedCPEHandle{}, nil).Once()
 			}
 
-			_, err := findAffectedPackages(m, tc.config)
+			// request every record so both sets of calls are checked
+			_, err := findAffectedPackages(m, tc.config, allRecords)
 
 			if tc.expectedErr != nil {
 				require.ErrorIs(t, err, tc.expectedErr)
@@ -1136,8 +914,117 @@ func TestFindAffectedPackages(t *testing.T) {
 	}
 }
 
+func TestFindAffectedPackages_RecordLimit(t *testing.T) {
+	pkgLimit := func(limit int) any {
+		return mock.MatchedBy(func(actual *v6.GetPackageOptions) bool { return actual.Limit == limit })
+	}
+	cpeLimit := func(limit int) any {
+		return mock.MatchedBy(func(actual *v6.GetCPEOptions) bool { return actual.Limit == limit })
+	}
+	criteria := AffectedPackagesOptions{
+		Vulnerability: v6.VulnerabilitySpecifiers{{Name: "CVE-2024-0001"}},
+		RecordLimit:   3,
+	}
+
+	t.Run("unaffected queries get the full limit even when the affected records already add up past it", func(t *testing.T) {
+		m := new(affectedMockReader)
+		defer m.AssertExpectations(t)
+		// each affected query stays under the limit, but together they are over it
+		m.On("GetAffectedPackages", mock.Anything, pkgLimit(3)).Return([]v6.AffectedPackageHandle{{}, {}}, nil).Once()
+		m.On("GetAffectedCPEs", mock.Anything, cpeLimit(3)).Return([]v6.AffectedCPEHandle{{}, {}}, nil).Once()
+		m.On("GetUnaffectedPackages", mock.Anything, pkgLimit(3)).Return([]v6.UnaffectedPackageHandle{}, nil).Once()
+		m.On("GetUnaffectedCPEs", mock.Anything, cpeLimit(3)).Return([]v6.UnaffectedCPEHandle{{}}, nil).Once()
+
+		records, err := findAffectedPackages(m, criteria, allRecords)
+		require.NoError(t, err)
+		assert.Len(t, records.affectedPkgs, 2)
+		assert.Len(t, records.affectedCPEs, 2)
+		assert.Empty(t, records.unaffectedPkgs)
+		assert.Len(t, records.unaffectedCPEs, 1)
+	})
+
+	t.Run("affected records reaching the limit skip the unaffected records", func(t *testing.T) {
+		m := new(affectedMockReader)
+		defer m.AssertExpectations(t)
+		m.On("GetAffectedPackages", mock.Anything, pkgLimit(3)).Return([]v6.AffectedPackageHandle{{}, {}, {}}, v6.ErrLimitReached).Once()
+
+		records, err := findAffectedPackages(m, criteria, allRecords)
+		require.ErrorIs(t, err, v6.ErrLimitReached)
+		assert.Len(t, records.affectedPkgs, 3)
+		m.AssertNotCalled(t, "GetAffectedCPEs", mock.Anything, mock.Anything)
+		m.AssertNotCalled(t, "GetUnaffectedPackages", mock.Anything, mock.Anything)
+		m.AssertNotCalled(t, "GetUnaffectedCPEs", mock.Anything, mock.Anything)
+	})
+
+	t.Run("unaffected records reaching the limit are kept along with the limit error", func(t *testing.T) {
+		m := new(affectedMockReader)
+		defer m.AssertExpectations(t)
+		m.On("GetAffectedPackages", mock.Anything, pkgLimit(3)).Return([]v6.AffectedPackageHandle{{}}, nil).Once()
+		m.On("GetAffectedCPEs", mock.Anything, cpeLimit(3)).Return([]v6.AffectedCPEHandle{}, nil).Once()
+		m.On("GetUnaffectedPackages", mock.Anything, pkgLimit(3)).Return([]v6.UnaffectedPackageHandle{{}, {}, {}}, v6.ErrLimitReached).Once()
+
+		records, err := findAffectedPackages(m, criteria, allRecords)
+		require.ErrorIs(t, err, v6.ErrLimitReached)
+		assert.Len(t, records.affectedPkgs, 1)
+		assert.Len(t, records.unaffectedPkgs, 3)
+		m.AssertNotCalled(t, "GetUnaffectedCPEs", mock.Anything, mock.Anything)
+	})
+
+	t.Run("errors other than the limit drop every record", func(t *testing.T) {
+		m := new(affectedMockReader)
+		defer m.AssertExpectations(t)
+		m.On("GetAffectedPackages", mock.Anything, pkgLimit(3)).Return([]v6.AffectedPackageHandle{{}}, nil).Once()
+		m.On("GetAffectedCPEs", mock.Anything, cpeLimit(3)).Return([]v6.AffectedCPEHandle{}, nil).Once()
+		m.On("GetUnaffectedPackages", mock.Anything, pkgLimit(3)).Return([]v6.UnaffectedPackageHandle{{}}, assert.AnError).Once()
+
+		records, err := findAffectedPackages(m, criteria, allRecords)
+		require.ErrorIs(t, err, assert.AnError)
+		assert.Equal(t, packageRecords{}, records)
+	})
+}
+
+func TestFindMatches_NotAffectedOnlySkipsAffectedRecords(t *testing.T) {
+	m := new(affectedMockReader)
+	defer m.AssertExpectations(t)
+
+	// only unaffected records can be not-affected, so they get the whole record limit
+	m.On("GetUnaffectedPackages", mock.Anything, mock.MatchedBy(func(actual *v6.GetPackageOptions) bool {
+		return actual.Limit == 5
+	})).Return([]v6.UnaffectedPackageHandle{}, nil).Once()
+	m.On("GetUnaffectedCPEs", mock.Anything, mock.Anything).Return([]v6.UnaffectedCPEHandle{}, nil).Once()
+
+	_, err := FindMatches(m, AffectedPackagesOptions{
+		Vulnerability: v6.VulnerabilitySpecifiers{{Name: "CVE-2024-0001"}},
+		RecordLimit:   5,
+		FixedStates:   []string{"not-affected"},
+	})
+	require.NoError(t, err)
+	m.AssertNotCalled(t, "GetAffectedPackages", mock.Anything, mock.Anything)
+	m.AssertNotCalled(t, "GetAffectedCPEs", mock.Anything, mock.Anything)
+}
+
+func TestPackageRecords_DecorateOncePerVulnerability(t *testing.T) {
+	m := new(affectedMockReader)
+	defer m.AssertExpectations(t)
+	m.On("GetKnownExploitedVulnerabilities", "CVE-2024-0001").Return([]v6.KnownExploitedVulnerabilityHandle{}, nil).Once()
+	m.On("GetEpss", "CVE-2024-0001").Return([]v6.EpssHandle{}, nil).Once()
+
+	vuln := &v6.VulnerabilityHandle{ID: 1, Name: "CVE-2024-0001"}
+	records := packageRecords{
+		affectedPkgs:   []affectedPackageWithDecorations{{AffectedPackageHandle: v6.AffectedPackageHandle{Vulnerability: vuln}}},
+		affectedCPEs:   []affectedCPEWithDecorations{{AffectedCPEHandle: v6.AffectedCPEHandle{Vulnerability: vuln}}},
+		unaffectedPkgs: []affectedPackageWithDecorations{{AffectedPackageHandle: v6.AffectedPackageHandle{Vulnerability: vuln}}},
+	}
+	records.decorate(m)
+}
+
 type affectedMockReader struct {
 	mock.Mock
+}
+
+func (m *affectedMockReader) GetVulnerabilityAliases(names []string, limit int) ([]v6.VulnerabilityAlias, error) {
+	args := m.Called(names, limit)
+	return args.Get(0).([]v6.VulnerabilityAlias), args.Error(1)
 }
 
 func (m *affectedMockReader) GetAffectedPackages(pkgSpec *v6.PackageSpecifier, options *v6.GetPackageOptions) ([]v6.AffectedPackageHandle, error) {

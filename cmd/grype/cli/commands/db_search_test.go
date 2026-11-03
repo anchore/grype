@@ -236,7 +236,8 @@ func TestRenderDBSearchPackagesTableRows(t *testing.T) {
 			expected: [][]string{
 				{"CVE-2024-0001", "redis", "deb", "debian:distro:debian:9", "*; unaffected: *"},
 				{"CVE-2024-0002", "redis", "deb", "debian:distro:debian:9", "*"},
-				{"CVE-2024-0003", "redis", "deb", "debian:distro:debian:9", "* || < 7.2.4-1"},
+				{"CVE-2024-0003", "redis", "deb", "debian:distro:debian:9", "*"},
+				{"CVE-2024-0003", "redis", "deb", "debian:distro:debian:9", "< 7.2.4-1"},
 			},
 		},
 		{
@@ -253,15 +254,32 @@ func TestRenderDBSearchPackagesTableRows(t *testing.T) {
 			},
 		},
 		{
-			name: "constraints from multiple records are deduplicated and sorted",
+			name: "affected records with different constraints are separate rows, identical ones are listed once",
 			input: dbsearch.Matches{
 				{
 					Vulnerability:    vuln("CVE-2024-0001"),
-					AffectedPackages: pkgs(pkg("jinja2", "12", "< 3.1.5-1"), pkg("jinja2", "12", "< 3.1.2-1+deb12u2", "< 3.1.5-1")),
+					AffectedPackages: pkgs(pkg("jinja2", "12", "< 3.1.5-1"), pkg("jinja2", "12", "< 3.1.2-1+deb12u2", "< 3.1.5-1"), pkg("jinja2", "12", "< 3.1.5-1")),
 				},
 			},
 			expected: [][]string{
 				{"CVE-2024-0001", "jinja2", "deb", "debian:distro:debian:12", "< 3.1.2-1+deb12u2 || < 3.1.5-1"},
+				{"CVE-2024-0001", "jinja2", "deb", "debian:distro:debian:12", "< 3.1.5-1"},
+			},
+		},
+		{
+			// e.g. records for different RHEL minor releases share a namespace
+			name: "unaffected constraints are on their own row when there are several affected rows",
+			input: dbsearch.Matches{
+				{
+					Vulnerability:    vuln("CVE-2024-0001"),
+					AffectedPackages: pkgs(pkg("jinja2", "12", "< 3.1.5-1"), pkg("jinja2", "12", "< 3.1.6-1")),
+					Unaffected:       pkgs(pkg("jinja2", "12", "= 3.1.4-1+patched")),
+				},
+			},
+			expected: [][]string{
+				{"CVE-2024-0001", "jinja2", "deb", "debian:distro:debian:12", "< 3.1.5-1"},
+				{"CVE-2024-0001", "jinja2", "deb", "debian:distro:debian:12", "< 3.1.6-1"},
+				{"CVE-2024-0001", "jinja2", "deb", "debian:distro:debian:12", "unaffected: = 3.1.4-1+patched"},
 			},
 		},
 		{
@@ -288,4 +306,17 @@ func TestRenderDBSearchPackagesTableRows(t *testing.T) {
 			require.Equal(t, tt.expected, renderDBSearchPackagesTableRows(tt.input))
 		})
 	}
+}
+
+func TestDBSearchMatchOptions_IncludeAliases(t *testing.T) {
+	t.Run("vulnerability IDs given as args satisfy --include-aliases", func(t *testing.T) {
+		opts := &dbSearchMatchOptions{Vulnerability: options.DBSearchVulnerabilities{IncludeAliases: true}}
+		require.NoError(t, opts.applyArgs([]string{"CVE-2024-1234"}))
+		require.Equal(t, []string{"CVE-2024-1234"}, opts.Vulnerability.VulnerabilityIDs)
+	})
+
+	t.Run("--include-aliases without vulnerability IDs is rejected before opening the DB", func(t *testing.T) {
+		opts := dbSearchMatchOptions{Vulnerability: options.DBSearchVulnerabilities{IncludeAliases: true}}
+		require.ErrorContains(t, runDBSearchMatches(opts), "--include-aliases requires at least one vulnerability ID")
+	})
 }

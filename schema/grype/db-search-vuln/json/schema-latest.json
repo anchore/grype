@@ -208,13 +208,13 @@
     "Vulnerability": {
       "$defs": {
         "affected_packages": {
-          "description": "is the number of packages affected by the vulnerability"
+          "description": "is the number of package records affected by the vulnerability, up to the record limit (CPE records are not counted)"
         },
         "operating_systems": {
-          "description": "is a list of operating systems with package records for the vulnerability"
+          "description": "is a list of operating systems affected by the vulnerability"
         },
         "unaffected_packages": {
-          "description": "is the number of packages explicitly NOT affected by the vulnerability"
+          "description": "is the number of package records explicitly NOT affected by the vulnerability (CPE records are not counted)"
         }
       },
       "properties": {

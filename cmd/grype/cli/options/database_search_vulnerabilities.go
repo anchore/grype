@@ -28,11 +28,11 @@ func (c *DBSearchVulnerabilities) AddFlags(flags clio.FlagSet) {
 	if c.UseVulnIDFlag {
 		flags.StringArrayVarP(&c.VulnerabilityIDs, "vuln", "", "only show results for the given vulnerability ID")
 	}
-	flags.BoolVarP(&c.IncludeAliases, "include-aliases", "", "include vulnerabilities that are aliases of the given vulnerability ID")
+	flags.BoolVarP(&c.IncludeAliases, "include-aliases", "", "also show vulnerabilities linked to the given vulnerability IDs through aliases (up to two hops, not through advisories bundling several CVEs)")
 	flags.StringVarP(&c.PublishedAfter, "published-after", "", "only show vulnerabilities originally published after the given date (format: YYYY-MM-DD)")
 	flags.StringVarP(&c.ModifiedAfter, "modified-after", "", "only show vulnerabilities originally published or modified since the given date (format: YYYY-MM-DD)")
 	flags.StringArrayVarP(&c.Providers, "provider", "", "only show vulnerabilities from the given provider")
-	flags.StringArrayVarP(&c.FixedState, "fixed-state", "", "only show vulnerabilities with the given fix state (fixed, not-affected, not-fixed, unknown, wont-fix)")
+	flags.StringArrayVarP(&c.FixedState, "fixed-state", "", "only show package records with the given fix state (fixed, not-fixed, unknown, wont-fix), or not-affected to show all records explicitly NOT affected (package searches only)")
 }
 
 func (c *DBSearchVulnerabilities) PostLoad() error {
@@ -82,7 +82,6 @@ func (c *DBSearchVulnerabilities) PostLoad() error {
 	for _, vulnID := range c.VulnerabilityIDs {
 		specs = append(specs, v6.VulnerabilitySpecifier{
 			Name:           vulnID,
-			IncludeAliases: c.IncludeAliases,
 			PublishedAfter: publishedAfter,
 			ModifiedAfter:  modifiedAfter,
 			Providers:      c.Providers,

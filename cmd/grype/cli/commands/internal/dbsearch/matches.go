@@ -3,6 +3,7 @@ package dbsearch
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"sort"
 
 	"github.com/hashicorp/go-multierror"
@@ -13,35 +14,17 @@ import (
 // Matches is the JSON document for the `db search` command
 type Matches []Match
 
-// Match represents a pairing of a vulnerability advisory with the packages affected by the vulnerability.
+// Match represents a pairing of a vulnerability advisory with the packages affected by the vulnerability. When
+// unaffected records are requested, a match may only have unaffected packages and an empty list of affected packages.
 type Match struct {
 	// Vulnerability is the core advisory record for a single known vulnerability from a specific provider.
 	Vulnerability VulnerabilityInfo `json:"vulnerability"`
 
-	// AffectedPackages is the list of packages affected by the vulnerability.
+	// AffectedPackages is the list of packages affected by the vulnerability. This is empty when unaffected records were requested and the vulnerability only has unaffected records.
 	AffectedPackages []AffectedPackageInfo `json:"packages"`
 
-	// Unaffected is the list of packages explicitly NOT affected by the vulnerability.
+	// Unaffected is the list of packages explicitly NOT affected by the vulnerability. This is only populated when unaffected records are requested, and is omitted when there are none.
 	Unaffected []AffectedPackageInfo `json:"unaffected,omitempty"`
-}
-
-func (m Match) Flatten() []AffectedPackage {
-	var rows []AffectedPackage
-	for _, pkg := range m.AffectedPackages {
-		rows = append(rows, AffectedPackage{
-			Vulnerability:       m.Vulnerability,
-			AffectedPackageInfo: pkg,
-		})
-	}
-	return rows
-}
-
-func (m Matches) Flatten() []AffectedPackage {
-	var rows []AffectedPackage
-	for _, r := range m {
-		rows = append(rows, r.Flatten()...)
-	}
-	return rows
 }
 
 func newMatchesRows(records packageRecords) (rows []Match, retErr error) {
@@ -55,7 +38,7 @@ func newMatchesRows(records packageRecords) (rows []Match, retErr error) {
 		for i := range pkgs {
 			pkg := pkgs[i]
 			if pkg.Vulnerability == nil {
-				retErr = multierror.Append(retErr, fmt.Errorf("affected package record missing vulnerability: %+v", pkg))
+				retErr = multierror.Append(retErr, fmt.Errorf("package record missing vulnerability: %+v", pkg))
 				continue
 			}
 			if _, ok := vulnsByID[pkg.Vulnerability.ID]; !ok {
@@ -68,7 +51,7 @@ func newMatchesRows(records packageRecords) (rows []Match, retErr error) {
 
 		for _, ac := range cpes {
 			if ac.Vulnerability == nil {
-				retErr = multierror.Append(retErr, fmt.Errorf("affected CPE record missing vulnerability: %+v", ac))
+				retErr = multierror.Append(retErr, fmt.Errorf("CPE record missing vulnerability: %+v", ac))
 				continue
 			}
 
@@ -112,9 +95,31 @@ func FindMatches(reader interface {
 	v6.AffectedCPEStoreReader
 	v6.UnaffectedPackageStoreReader
 	v6.UnaffectedCPEStoreReader
+	v6.VulnerabilityAliasStoreReader
 	v6.VulnerabilityDecoratorStoreReader
 }, criteria AffectedPackagesOptions) (Matches, error) {
-	records, fetchErr := findAffectedPackages(reader, criteria)
+	if criteria.IncludeAliases {
+		expanded, err := expandAliases(reader, criteria.Vulnerability)
+		if err != nil {
+			return nil, err
+		}
+		criteria.Vulnerability = expanded
+	}
+
+	// unaffected is a record type, not a blob fix state (providers store it as not-affected or as fixed), so asking
+	// for the not-affected state means asking for the unaffected records
+	wantNotAffected := slices.Contains(criteria.FixedStates, fixStateNotAffected)
+
+	set := affectedRecords
+	switch {
+	case wantNotAffected && onlyNotAffected(criteria.FixedStates):
+		// no affected record can pass the filter, so don't spend the record limit fetching them
+		set = unaffectedRecords
+	case wantNotAffected || criteria.IncludeUnaffected:
+		set = allRecords
+	}
+
+	records, fetchErr := findAffectedPackages(reader, criteria, set)
 
 	if fetchErr != nil {
 		if !errors.Is(fetchErr, v6.ErrLimitReached) {
@@ -125,13 +130,22 @@ func FindMatches(reader interface {
 	if len(criteria.FixedStates) > 0 {
 		records.affectedPkgs = filterByFixedStateForPackages(records.affectedPkgs, criteria.FixedStates)
 		records.affectedCPEs = filterByFixedStateForCPEs(records.affectedCPEs, criteria.FixedStates)
-		records.unaffectedPkgs = filterByFixedStateForPackages(records.unaffectedPkgs, criteria.FixedStates)
-		records.unaffectedCPEs = filterByFixedStateForCPEs(records.unaffectedCPEs, criteria.FixedStates)
+		if !wantNotAffected {
+			// keep unaffected records only as context for the vulnerabilities that still have affected records
+			records.keepUnaffectedForAffectedVulnerabilities()
+		}
 	}
+
+	records.decorate(reader)
 
 	rows, presErr := newMatchesRows(records)
 	if presErr != nil {
 		return nil, presErr
 	}
 	return rows, fetchErr
+}
+
+// onlyNotAffected is true when every requested fix state is not-affected
+func onlyNotAffected(states []string) bool {
+	return !slices.ContainsFunc(states, func(s string) bool { return s != fixStateNotAffected })
 }

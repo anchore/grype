@@ -1075,3 +1075,43 @@ func expectErrIs(t *testing.T, expected error) require.ErrorAssertionFunc {
 func pkgFromName(name string) *PackageSpecifier {
 	return &PackageSpecifier{Name: name}
 }
+
+func TestPackageAndCPEStores_LimitKeepsPartialResults(t *testing.T) {
+	db := setupTestStore(t).db
+	bs := newBlobStore(db)
+	oss := newOperatingSystemStore(db, bs)
+
+	affectedPkgs := newAffectedPackageStore(db, bs, oss)
+	require.NoError(t, affectedPkgs.AddAffectedPackages(testDistro1AffectedPackage2Handle(), testDistro2AffectedPackage2Handle()))
+	unaffectedPkgs := newUnaffectedPackageStore(db, bs, oss)
+	require.NoError(t, unaffectedPkgs.AddUnaffectedPackages(testDistro1UnaffectedPackage2Handle(), testDistro2UnaffectedPackage2Handle()))
+
+	affectedCPE2 := testAffectedCPEHandle()
+	affectedCPE2.CPE.Product = "other-product"
+	affectedCPEs := newAffectedCPEStore(db, bs)
+	require.NoError(t, affectedCPEs.AddAffectedCPEs(testAffectedCPEHandle(), affectedCPE2))
+	unaffectedCPE2 := testUnaffectedCPEHandle()
+	unaffectedCPE2.CPE.Product = "other-product"
+	unaffectedCPEs := newUnaffectedCPEStore(db, bs)
+	require.NoError(t, unaffectedCPEs.AddUnaffectedCPEs(testUnaffectedCPEHandle(), unaffectedCPE2))
+
+	// each store holds 2 records, so a limit of 1 cuts the results off
+	pkgOpts := &GetPackageOptions{Limit: 1}
+	cpeOpts := &GetCPEOptions{Limit: 1}
+
+	gotAffectedPkgs, err := affectedPkgs.GetAffectedPackages(nil, pkgOpts)
+	require.ErrorIs(t, err, ErrLimitReached)
+	assert.Len(t, gotAffectedPkgs, 1)
+
+	gotUnaffectedPkgs, err := unaffectedPkgs.GetUnaffectedPackages(nil, pkgOpts)
+	require.ErrorIs(t, err, ErrLimitReached)
+	assert.Len(t, gotUnaffectedPkgs, 1)
+
+	gotAffectedCPEs, err := affectedCPEs.GetAffectedCPEs(nil, cpeOpts)
+	require.ErrorIs(t, err, ErrLimitReached)
+	assert.Len(t, gotAffectedCPEs, 1)
+
+	gotUnaffectedCPEs, err := unaffectedCPEs.GetUnaffectedCPEs(nil, cpeOpts)
+	require.ErrorIs(t, err, ErrLimitReached)
+	assert.Len(t, gotUnaffectedCPEs, 1)
+}

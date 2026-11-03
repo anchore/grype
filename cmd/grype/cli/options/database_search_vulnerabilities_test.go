@@ -42,9 +42,10 @@ func TestDBSearchVulnerabilitiesPostLoad(t *testing.T) {
 				VulnerabilityIDs: []string{"CVE-2023-0001", "GHSA-1234"},
 				IncludeAliases:   true,
 			},
+			// aliases are expanded by the search itself, not by the store
 			expectedSpecs: v6.VulnerabilitySpecifiers{
-				{Name: "CVE-2023-0001", IncludeAliases: true},
-				{Name: "GHSA-1234", IncludeAliases: true},
+				{Name: "CVE-2023-0001"},
+				{Name: "GHSA-1234"},
 			},
 		},
 		{

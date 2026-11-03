@@ -284,10 +284,10 @@
     "Match": {
       "$defs": {
         "packages": {
-          "description": "is the list of packages affected by the vulnerability."
+          "description": "is the list of packages affected by the vulnerability. This is empty when unaffected records were requested and the vulnerability only has unaffected records."
         },
         "unaffected": {
-          "description": "is the list of packages explicitly NOT affected by the vulnerability."
+          "description": "is the list of packages explicitly NOT affected by the vulnerability. This is only populated when unaffected records are requested, and is omitted when there are none."
         },
         "vulnerability": {
           "description": "is the core advisory record for a single known vulnerability from a specific provider."
