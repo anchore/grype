@@ -37,6 +37,18 @@ func TestDBSearchVulnerabilitiesPostLoad(t *testing.T) {
 			},
 		},
 		{
+			name: "include aliases",
+			input: DBSearchVulnerabilities{
+				VulnerabilityIDs: []string{"CVE-2023-0001", "GHSA-1234"},
+				IncludeAliases:   true,
+			},
+			// aliases are expanded by the search itself, not by the store
+			expectedSpecs: v6.VulnerabilitySpecifiers{
+				{Name: "CVE-2023-0001"},
+				{Name: "GHSA-1234"},
+			},
+		},
+		{
 			name: "published-after set",
 			input: DBSearchVulnerabilities{
 				PublishedAfter: "2023-01-01",
@@ -105,7 +117,7 @@ func TestDBSearchVulnerabilitiesPostLoad(t *testing.T) {
 		{
 			name: "valid fixed-state: multiple values",
 			input: DBSearchVulnerabilities{
-				FixedState: []string{"fixed", "not-fixed", "wont-fix", "unknown"},
+				FixedState: []string{"fixed", "not-affected", "not-fixed", "wont-fix", "unknown"},
 			},
 			expectedSpecs: nil,
 		},
