@@ -24,7 +24,7 @@ const (
 	Revision = 1
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 11
+	Addition = 12
 
 	// v6 model changelog:
 	// 6.0.0: Initial version 🎉
@@ -63,6 +63,11 @@ const (
 	//         source. Not surfaced in vulnerability.Metadata or scan output; readable only via
 	//         Reader.GetSsvcs.
 	// 6.1.11: Add SearchRule table (search_rules): data-defined rules that rewrite how a package is searched
+	// 6.1.12: No table change. Marks clients that keep per-binary (arch-qualified) apk rows off
+	//         subpackages (the apk origin copy is marked arch "src"). Chainguard and Wolfi OSV rows
+	//         live under their own OSs (chainguard-osv, wolfi-osv), and the search rule sending apk
+	//         searches there is gated to this addition (OSVRedirectClientDBSchemas), so 6.1.11
+	//         clients, which read search rules but lack the fix, keep searching the secdb rows.
 )
 
 const (
@@ -108,6 +113,7 @@ type Writer interface {
 	UnaffectedPackageStoreWriter
 	AffectedCPEStoreWriter
 	UnaffectedCPEStoreWriter
+	SearchRuleStoreWriter
 	io.Closer
 }
 

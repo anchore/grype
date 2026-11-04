@@ -14,6 +14,11 @@ type SearchRuleStoreReader interface {
 	GetSearchRules() ([]SearchRule, error)
 }
 
+type SearchRuleStoreWriter interface {
+	// AddSearchRules writes rules beyond the built-in ones the DB is created with (see InitialData)
+	AddSearchRules(rules ...*SearchRule) error
+}
+
 type searchRuleStore struct {
 	db *gorm.DB
 }
@@ -42,4 +47,14 @@ func (s *searchRuleStore) GetSearchRules() ([]SearchRule, error) {
 	})
 
 	return rows, nil
+}
+
+func (s *searchRuleStore) AddSearchRules(rules ...*SearchRule) error {
+	if len(rules) == 0 {
+		return nil
+	}
+	if err := s.db.Create(rules).Error; err != nil {
+		return fmt.Errorf("unable to create search rules: %w", err)
+	}
+	return nil
 }
