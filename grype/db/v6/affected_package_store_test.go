@@ -788,6 +788,17 @@ func TestAffectedPackageStore_GetAffectedPackages_MultipleVulnerabilitySpecs(t *
 
 	assert.ElementsMatch(t, expectedVulns.List(), actualVulns.List())
 
+	// names are grouped into one IN term per set of other filters, so a name never picks up another spec's filters
+	result, err = s.GetAffectedPackages(nil, &GetPackageOptions{
+		PreloadVulnerability: true,
+		Vulnerabilities: []VulnerabilitySpecifier{
+			{Name: "CVE-2023-1234", Providers: []string{"provider1"}},
+			{Name: "CVE-2023-5678", Providers: []string{"provider2"}},
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, result, 1)
+	assert.Equal(t, "CVE-2023-1234", result[0].Vulnerability.Name)
 }
 
 func TestAffectedPackageStore_GetAffectedPackages(t *testing.T) {
