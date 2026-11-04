@@ -24,7 +24,7 @@ const (
 	Revision = 1
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 10
+	Addition = 11
 
 	// v6 model changelog:
 	// 6.0.0: Initial version 🎉
@@ -62,6 +62,10 @@ const (
 	//         timestamp, exploitation, automatable, technicalImpact), one row per CVE and
 	//         source. Not surfaced in vulnerability.Metadata or scan output; readable only via
 	//         Reader.GetSsvcs.
+	// 6.1.11: Add LightwellBaseVersion field to PackageQualifiers (used by the OSV lightwell
+	//         strategy to scope Red Hat Lightwell advisories to the remediated build line they
+	//         cover; the lightwell runtime qualifier in pkg/qualifier/lightwell filters out
+	//         packages that aren't Lightwell builds of that line via the NAK pattern)
 )
 
 const (

@@ -1,0 +1,130 @@
+{
+  "schema_version": "1.9.0",
+  "id": "RHLW-2026-e0e5640c50ceea84",
+  "published": "2026-10-21T19:19:23Z",
+  "modified": "2026-10-21T19:19:23Z",
+  "severity": [
+    {
+      "type": "CVSS_V3",
+      "score": "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:C/C:H/I:H/A:H"
+    }
+  ],
+  "references": [
+    {
+      "url": "https://security.access.redhat.com/data/csaf/v2/vex/2026/cve-2026-40477.json",
+      "type": "WEB"
+    },
+    {
+      "url": "https://access.redhat.com/errata/RHSA-2026:21772",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://access.redhat.com/security/cve/CVE-2026-40477",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://github.com/CVEProject/cvelistV5/tree/main/cves/2026/40xxx/CVE-2026-40477.json",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://github.com/thymeleaf/thymeleaf/security/advisories/GHSA-r4v4-5mwr-2fwr",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-40477",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://github.com/advisories/GHSA-r4v4-5mwr-2fwr",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://security.access.redhat.com/data/csaf/v2/vex/2026/cve-2026-40478.json",
+      "type": "WEB"
+    },
+    {
+      "url": "https://access.redhat.com/security/cve/CVE-2026-40478",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://github.com/CVEProject/cvelistV5/tree/main/cves/2026/40xxx/CVE-2026-40478.json",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://github.com/thymeleaf/thymeleaf/security/advisories/GHSA-xjw8-8c5c-9r79",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-40478",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://github.com/advisories/GHSA-xjw8-8c5c-9r79",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://github.com/CVEProject/cvelistV5/tree/main/cves/2026/41xxx/CVE-2026-41901.json",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://github.com/thymeleaf/thymeleaf/security/advisories/GHSA-c9ph-gxww-7744",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-41901",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://github.com/advisories/GHSA-c9ph-gxww-7744",
+      "type": "ADVISORY"
+    }
+  ],
+  "summary": "Lightwell Security Advisory: thymeleaf 3.0.15.RELEASE-rhlw-00009",
+  "details": "Red Hat Lightwell has released org.thymeleaf:thymeleaf 3.0.15.RELEASE-rhlw-00009 with backported fixes for CVE-2026-40477, CVE-2026-40478, and CVE-2026-41901.\n\nCVE-2026-40477: Improper restriction of the scope of accessible objects in Thymeleaf expressions\n\nCVE-2026-40478: Improper neutralization of specific syntax patterns for unauthorized expressions in Thymeleaf\n\nCVE-2026-41901: Thymeleaf: Improper recognition of unauthorized syntax patterns in sandboxed Thymeleaf expressions\n\nThis patched artifact is a drop-in replacement for org.thymeleaf:thymeleaf 3.0.15.RELEASE-rhlw-00009 from Maven Central.",
+  "upstream": [
+    "CVE-2026-40477",
+    "CVE-2026-40478",
+    "CVE-2026-41901",
+    "GHSA-r4v4-5mwr-2fwr",
+    "GHSA-xjw8-8c5c-9r79",
+    "GHSA-c9ph-gxww-7744"
+  ],
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "Red Hat Lightwell:Maven",
+        "name": "org.thymeleaf:thymeleaf",
+        "purl": "pkg:maven/org.thymeleaf/thymeleaf"
+      },
+      "versions": [
+        "3.0.15.RELEASE-rhlw-00009"
+      ],
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "3.0.15.RELEASE-rhlw-00009"
+            }
+          ]
+        }
+      ],
+      "database_specific": {
+        "lightwell": {
+          "backport_base_version": "3.0.15.RELEASE-rhlw-00009",
+          "remediated_version": "3.0.15.RELEASE-rhlw-00009",
+          "repository_url": "https://packages.redhat.com/lightwell/java/remediated/"
+        }
+      }
+    }
+  ],
+  "credits": [
+    {
+      "name": "Red Hat Lightwell",
+      "type": "REMEDIATION_DEVELOPER"
+    }
+  ]
+}

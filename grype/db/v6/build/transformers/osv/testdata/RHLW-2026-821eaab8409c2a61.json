@@ -1,0 +1,82 @@
+{
+  "schema_version": "1.9.0",
+  "id": "RHLW-2026-821eaab8409c2a61",
+  "published": "2026-09-23T12:12:40Z",
+  "modified": "2026-09-23T12:12:40Z",
+  "severity": [
+    {
+      "type": "CVSS_V3",
+      "score": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+    }
+  ],
+  "references": [
+    {
+      "url": "https://github.com/CVEProject/cvelistV5/tree/main/cves/2023/36xxx/CVE-2023-36464.json",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://github.com/py-pdf/pypdf/security/advisories/GHSA-4vvm-4w3v-6mr8",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-36464",
+      "type": "ADVISORY"
+    },
+    {
+      "url": "https://github.com/py-pdf/pypdf/pull/1828",
+      "type": "FIX"
+    },
+    {
+      "url": "https://github.com/py-pdf/pypdf/pull/969",
+      "type": "FIX"
+    },
+    {
+      "url": "https://github.com/advisories/GHSA-4vvm-4w3v-6mr8",
+      "type": "ADVISORY"
+    }
+  ],
+  "summary": "Lightwell Security Advisory: pypdf2 3.0.1+rhlw.1",
+  "details": "Red Hat Lightwell has released pypdf2 3.0.1+rhlw.1 with a backported security fix.\n\nCVE-2023-36464: Infinite Loop when a comment isn't followed by a character in pypdf\n\nThis patched artifact is a drop-in replacement for pypdf2 3.0.1 from PyPI.",
+  "upstream": [
+    "CVE-2023-36464",
+    "GHSA-4vvm-4w3v-6mr8"
+  ],
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "Red Hat Lightwell:PyPI",
+        "name": "pypdf2",
+        "purl": "pkg:pypi/pypdf2"
+      },
+      "versions": [
+        "3.0.1"
+      ],
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "3.0.1+rhlw.1"
+            }
+          ]
+        }
+      ],
+      "database_specific": {
+        "lightwell": {
+          "backport_base_version": "3.0.1",
+          "remediated_version": "3.0.1+rhlw.1",
+          "repository_url": "https://packages.redhat.com/lightwell/python/remediated/"
+        }
+      }
+    }
+  ],
+  "credits": [
+    {
+      "name": "Red Hat Lightwell",
+      "type": "REMEDIATION_DEVELOPER"
+    }
+  ]
+}
