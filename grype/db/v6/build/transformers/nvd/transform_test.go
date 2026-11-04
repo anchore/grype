@@ -3018,6 +3018,17 @@ func TestGetVulnStatus(t *testing.T) {
 			expected: db.UnknownVulnerabilityStatus,
 		},
 		{
+			name: "no vulnStatus with a disputed cveTag is disputed",
+			// the NVD API schema allows vulnStatus to be omitted, so the dispute check must not depend on it
+			vuln: unmarshal.NVDVulnerability{
+				ID: "CVE-2023-12345",
+				CveTags: []nvd.CveTag{
+					{SourceIdentifier: "cve@mitre.org", Tags: []string{"disputed"}},
+				},
+			},
+			expected: db.VulnerabilityDisputed,
+		},
+		{
 			name: "analyzed vulnStatus with no disputed cveTag is active",
 			vuln: unmarshal.NVDVulnerability{
 				ID:         "CVE-2023-12345",
