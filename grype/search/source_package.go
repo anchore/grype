@@ -7,7 +7,9 @@ import (
 var _ vulnerability.Criteria = (*SourcePackageCriteria)(nil)
 
 // SourcePackageCriteria marks a search for an upstream or source package, without constraining
-// results; records found by it are indirect matches, even under the package's own name.
+// results; records found by it are indirect matches, even under the package's own name. Every search
+// for one of a package's upstreams should carry it, which is how search rules tell an upstream search from
+// a direct one.
 type SourcePackageCriteria struct{}
 
 // BySourcePackage returns criteria marking a search for an upstream or source package.

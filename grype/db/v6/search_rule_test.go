@@ -182,6 +182,39 @@ func TestSearchRule_Validate(t *testing.T) { //nolint:funlen // one case per val
 			name: "distro name substitution without a distro pattern is legal (echo shape)",
 			row:  SearchRule{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchPackageVersion: `.*[.-]echo.*`, ReplacementDistroName: ptr("echo")},
 		},
+		{
+			name: "an upstream search",
+			row:  SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchEcosystem: "deb", MatchUpstreamSearch: ptr(true), ReplacementChannel: ptr("rf")},
+		},
+		{
+			name: "a CPE substitution",
+			row:  SearchRule{Action: SearchRuleAdd, MatchEcosystem: "apk", MatchCPEProduct: `(?P<base>.+)-libs`, ReplacementCPEVendor: "haxx", ReplacementCPEProduct: "${base}"},
+		},
+		{
+			name:    "a CPE substitution without a CPE pattern",
+			row:     SearchRule{Action: SearchRuleAdd, MatchEcosystem: "apk", MatchPackageName: "curl", ReplacementCPEVendor: "haxx"},
+			wantErr: "must have a CPE vendor or product pattern",
+		},
+		{
+			name:    "a CPE substitution with an OS substitution",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "alpine", MatchCPEProduct: "curl", ReplacementCPEVendor: "haxx", ReplacementDistroName: ptr("")},
+			wantErr: "cannot have an OS or package name substitution",
+		},
+		{
+			name:    "a CPE substitution with a package name substitution",
+			row:     SearchRule{Action: SearchRuleAdd, MatchPackageName: "curl", MatchCPEProduct: "curl", ReplacementCPEProduct: "libcurl", ReplacementPackageName: "libcurl"},
+			wantErr: "cannot have an OS or package name substitution",
+		},
+		{
+			name:    "a CPE exclude pattern's groups are not referenceable",
+			row:     SearchRule{Action: SearchRuleAdd, MatchCPEProduct: "curl", ExcludeCPEVendor: `(?P<v>.+)-old`, ReplacementCPEVendor: "${v}"},
+			wantErr: "names no group",
+		},
+		{
+			name:    "an upstream search alone does not scope a substitution",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchUpstreamSearch: ptr(true), ReplacementChannel: ptr("rf")},
+			wantErr: "must match an ecosystem, package name, package version or CPE",
+		},
 	}
 
 	for _, tt := range tests {
@@ -271,7 +304,7 @@ func cpeSearch(p pkg.Package) []vulnerability.Criteria {
 type searched struct {
 	// OS is name@version+channels, empty for the rows of no OS
 	OS string
-	// Name is the searched name, "cpe" for a CPE search
+	// Name is the searched name, "cpe:<vendor>:<product>" for a CPE search
 	Name     string
 	Ruled    bool
 	Priority int
@@ -297,7 +330,7 @@ func searchesOf(searches [][]vulnerability.Criteria) []searched {
 			case *search.PackageNameCriteria:
 				s.Name = c.PackageName
 			case *search.CPECriteria:
-				s.Name = "cpe"
+				s.Name = "cpe:" + c.CPE.Attributes.Vendor + ":" + c.CPE.Attributes.Product
 			case *search.RuleCriteria:
 				s.Ruled, s.Priority = true, c.Priority
 			}
@@ -429,12 +462,12 @@ func TestVulnerabilityProvider_SearchRewrites_KnownRules(t *testing.T) { //nolin
 		{
 			name:   "rapidfort-alpine rule speaks only for apk packages",
 			search: cpeSearch(searchOf("curl", "8.5.0-r0", rfAlpine, syftPkg.NpmPkg)),
-			want:   []searched{own("", "cpe")},
+			want:   []searched{own("", "cpe:vendor:curl")},
 		},
 		{
 			name:   "stock alpine CPE search reads NVD",
 			search: cpeSearch(searchOf("curl", "8.5.0-r0", *distro.New(distro.Alpine, "3.18", ""), apk)),
-			want:   []searched{own("", "cpe")},
+			want:   []searched{own("", "cpe:vendor:curl")},
 		},
 	}
 	for _, tt := range tests {
@@ -596,7 +629,7 @@ func TestVulnerabilityProvider_SearchRewrites_Replacements(t *testing.T) { //nol
 			name:   "no OS: on a CPE search, which already reads no OS, a no-op",
 			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "debian", MatchEcosystem: "deb", ReplacementDistroName: ptr("")}},
 			search: cpeSearch(searchOf("curl", "1.0-1", deb, debEco)),
-			want:   []searched{own("", "cpe")},
+			want:   []searched{own("", "cpe:vendor:curl")},
 		},
 		{
 			name: "a CPE search: only a cpe match rule applies",
@@ -605,7 +638,7 @@ func TestVulnerabilityProvider_SearchRewrites_Replacements(t *testing.T) { //nol
 				{Action: SearchRuleAdd, MatchDistroName: "debian", MatchEcosystem: "deb", ReplacementDistroName: ptr(""), Priority: 5},
 			},
 			search: cpeSearch(searchOf("curl", "1.0-1+rf1", deb, debEco)),
-			want:   []searched{own("", "cpe")},
+			want:   []searched{own("", "cpe:vendor:curl")},
 		},
 		{
 			name:   "a CPE search: a drop rule drops it",
@@ -663,7 +696,7 @@ func TestVulnerabilityProvider_SearchRewrites_Replacements(t *testing.T) { //nol
 			name:   "package name: not applied to a CPE search, which has no name",
 			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageName: `rootio[-_](?P<upstream>.+)`, ReplacementPackageName: "${upstream}"}},
 			search: cpeSearch(searchOf("rootio-requests", "2.31.0", syftPkg.PythonPkg)),
-			want:   []searched{own("", "cpe")},
+			want:   []searched{own("", "cpe:vendor:rootio-requests")},
 		},
 		{
 			name: "package name: the searched name and repeats are not added",
@@ -788,6 +821,135 @@ func TestVulnerabilityProvider_SearchRewrites_KeepsSourcePackage(t *testing.T) {
 		assert.Contains(t, set, search.BySourcePackage(), "every search is still for a source package")
 	}
 	assert.ElementsMatch(t, []string{"rf-curl", "curl"}, names)
+}
+
+func TestVulnerabilityProvider_SearchRewrites_CPE(t *testing.T) { //nolint:funlen // one case per CPE rule shape
+	deb := *distro.New(distro.Debian, "12", "")
+	debEco := syftPkg.DebPkg
+	curl := cpeSearch(searchOf("curl", "1.0-1", deb, debEco))
+
+	tests := []struct {
+		name   string
+		rules  []SearchRule
+		search []vulnerability.Criteria
+		want   []searched
+	}{
+		{
+			name:   "vendor: added beside the searched CPE",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchCPEProduct: "curl", ReplacementCPEVendor: "haxx", Priority: 5}},
+			search: curl,
+			want:   []searched{own("", "cpe:vendor:curl"), ruled("", "cpe:haxx:curl", 5)},
+		},
+		{
+			name:   "vendor and product: in place of the searched CPE",
+			rules:  []SearchRule{{Action: SearchRuleReplace, MatchCPEVendor: "vendor", MatchCPEProduct: "curl", ReplacementCPEVendor: "haxx", ReplacementCPEProduct: "libcurl"}},
+			search: curl,
+			want:   []searched{ruled("", "cpe:haxx:libcurl", 0)},
+		},
+		{
+			name:   "product: named group of the product pattern, matched field of the vendor",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchCPEVendor: `.*`, MatchCPEProduct: `rf-(?P<base>.+)`, ReplacementCPEVendor: "${cpe_vendor}-${base}", ReplacementCPEProduct: "${base}"}},
+			search: cpeSearch(searchOf("rf-curl", "1.0-1", deb, debEco)),
+			want:   []searched{own("", "cpe:vendor:rf-curl"), ruled("", "cpe:vendor-curl:curl", 0)},
+		},
+		{
+			name:   "exclude vendor: rejects a matching vendor",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchCPEProduct: "curl", ExcludeCPEVendor: "vend.*", ReplacementCPEVendor: "haxx"}},
+			search: curl,
+			want:   []searched{own("", "cpe:vendor:curl")},
+		},
+		{
+			name:   "exclude product: passes another product",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchCPEVendor: "vendor", ExcludeCPEProduct: "wget", ReplacementCPEVendor: "haxx"}},
+			search: curl,
+			want:   []searched{own("", "cpe:vendor:curl"), ruled("", "cpe:haxx:curl", 0)},
+		},
+		{
+			name:   "exclude product: rejects a matching product",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchCPEVendor: "vendor", ExcludeCPEProduct: "curl", ReplacementCPEVendor: "haxx"}},
+			search: curl,
+			want:   []searched{own("", "cpe:vendor:curl")},
+		},
+		{
+			name:   "the searched CPE is not added again",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchCPEProduct: "curl", ReplacementCPEVendor: "VENDOR", ReplacementCPEProduct: "Curl"}},
+			search: curl,
+			want:   []searched{own("", "cpe:vendor:curl")},
+		},
+		{
+			name: "rules searching the same CPE keep the higher priority",
+			rules: []SearchRule{
+				{Action: SearchRuleAdd, MatchCPEProduct: "curl", ReplacementCPEVendor: "haxx", Priority: 1},
+				{Action: SearchRuleAdd, MatchCPEProduct: "curl", ReplacementCPEProduct: "libcurl", Priority: 2},
+				{Action: SearchRuleAdd, MatchCPEProduct: "cu.*", MatchEcosystem: "deb", ReplacementCPEVendor: "haxx", Priority: 3},
+			},
+			search: curl,
+			want:   []searched{own("", "cpe:vendor:curl"), ruled("", "cpe:haxx:curl", 3), ruled("", "cpe:vendor:libcurl", 2)},
+		},
+		{
+			name:   "a CPE rule does not apply to a name search",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchCPEProduct: `.*`, ReplacementCPEVendor: "haxx"}},
+			search: nameSearch(searchOf("curl", "1.0-1", deb, debEco)),
+			want:   []searched{own("debian@12+", "curl")},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vp := rulesProvider(tt.rules...)
+			assert.ElementsMatch(t, tt.want, searchesOf(rewrites(vp, pkg.Package{}, tt.search)))
+		})
+	}
+
+	t.Run("the rest of the search and of its CPE is kept", func(t *testing.T) {
+		vp := rulesProvider(SearchRule{Action: SearchRuleReplace, MatchCPEProduct: "curl", ReplacementCPEVendor: "haxx"})
+		p := searchOf("curl", "8.5.0", deb, debEco)
+		cs := []vulnerability.Criteria{search.ByCPE(cpe.Must("cpe:2.3:a:vendor:curl:8.5.0:*:*:*:*:*:*:*", "")), search.BySourcePackage(), search.WithPackage(p)}
+
+		searches := rewrites(vp, pkg.Package{}, cs)
+		require.Len(t, searches, 1)
+		var got []string
+		for _, c := range searches[0] {
+			if cc, ok := c.(*search.CPECriteria); ok {
+				got = append(got, cc.CPE.Attributes.String())
+			}
+		}
+		assert.Equal(t, []string{"cpe:2.3:a:haxx:curl:8.5.0:*:*:*:*:*:*:*"}, got)
+		assert.Contains(t, searches[0], search.BySourcePackage())
+		assert.Contains(t, searches[0], search.WithPackage(p))
+		assert.Equal(t, "cpe:2.3:a:vendor:curl:8.5.0:*:*:*:*:*:*:*", cs[0].(*search.CPECriteria).CPE.Attributes.String(), "the searched CPE is not changed")
+	})
+}
+
+func TestVulnerabilityProvider_SearchRewrites_UpstreamSearch(t *testing.T) {
+	deb := *distro.New(distro.Debian, "12", "")
+	const debNo = "debian@12+"
+	p := searchOf("curl", "1.0", deb)
+	direct := nameSearch(p)
+	upstream := append(nameSearch(p), search.BySourcePackage())
+
+	t.Run("true matches only a search for an upstream", func(t *testing.T) {
+		vp := rulesProvider(SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: "curl", MatchUpstreamSearch: ptr(true), ReplacementChannel: ptr("rf")})
+		notRewritten(t, vp, direct)
+		assert.ElementsMatch(t, []searched{own(debNo, "curl"), ruled(debNo+"rf", "curl", 0)}, searchesOf(rewrites(vp, pkg.Package{}, upstream)))
+	})
+
+	t.Run("false matches only a search for the package itself", func(t *testing.T) {
+		vp := rulesProvider(SearchRule{Action: SearchRuleDrop, MatchDistroName: "debian", MatchPackageName: "curl", MatchUpstreamSearch: ptr(false)})
+		assert.Empty(t, rewrites(vp, pkg.Package{}, direct))
+		notRewritten(t, vp, upstream)
+	})
+
+	t.Run("unset matches either", func(t *testing.T) {
+		vp := rulesProvider(SearchRule{Action: SearchRuleDrop, MatchDistroName: "debian", MatchPackageName: "curl"})
+		assert.Empty(t, rewrites(vp, pkg.Package{}, direct))
+		assert.Empty(t, rewrites(vp, pkg.Package{}, upstream))
+	})
+
+	t.Run("a regex rule is limited too", func(t *testing.T) {
+		vp := rulesProvider(SearchRule{Action: SearchRuleDrop, MatchDistroName: "debian", MatchPackageName: "cu.*", MatchUpstreamSearch: ptr(true)})
+		notRewritten(t, vp, direct)
+		assert.Empty(t, rewrites(vp, pkg.Package{}, upstream))
+	})
 }
 
 func TestFilterSearchRulesForClient(t *testing.T) {

@@ -92,7 +92,9 @@ func (n *searchIndex) walk(s searchSubject, out []matchedRule) []matchedRule {
 		return out
 	}
 	for _, m := range n.matches {
-		out = append(out, matchedRule{rule: m})
+		if m.appliesTo(s) {
+			out = append(out, matchedRule{rule: m})
+		}
 	}
 	if len(n.byPackageName) > 0 {
 		out = n.byPackageName[strings.ToLower(s.name)].walk(s, out)

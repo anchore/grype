@@ -9,6 +9,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
@@ -164,7 +165,7 @@ func (m *Matcher) matchRedhatEUS(vp vulnerability.Provider, p pkg.Package) ([]ma
 
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
 		// upstreams are tagged arch "src", so binary-arch records are rejected
-		indirectMatches, ignores, err := m.eusMatches(provider, p, indirectPackage)
+		indirectMatches, ignores, err := m.eusMatches(provider, p, indirectPackage, search.BySourcePackage())
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
 		}
@@ -175,7 +176,7 @@ func (m *Matcher) matchRedhatEUS(vp vulnerability.Provider, p pkg.Package) ([]ma
 	return matches, ignored, nil
 }
 
-func (m *Matcher) eusMatches(provider result.Provider, target, searchPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+func (m *Matcher) eusMatches(provider result.Provider, target, searchPkg pkg.Package, extra ...vulnerability.Criteria) ([]match.Match, []match.IgnoreFilter, error) {
 	if searchPkg.Distro == nil {
 		return nil, nil, nil
 	}
@@ -183,7 +184,7 @@ func (m *Matcher) eusMatches(provider result.Provider, target, searchPkg pkg.Pac
 		log.WithFields("package", searchPkg.Name).Trace("skipping package with unknown version")
 		return nil, nil, nil
 	}
-	return redhatEUSMatches(provider, target, searchPkg, m.cfg.MissingEpochStrategy)
+	return redhatEUSMatches(provider, target, searchPkg, m.cfg.MissingEpochStrategy, extra...)
 }
 
 // matchDistro searches the binary package, with an explicit epoch (see matchRedhatEUS), and its

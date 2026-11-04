@@ -34,6 +34,17 @@ func (o SearchRule) isOSLessSearch() bool {
 	return o.ReplacementDistroName != nil && *o.ReplacementDistroName == ""
 }
 
+// hasCPEReplacement is true for a rule that searches another CPE vendor and/or product.
+func (o SearchRule) hasCPEReplacement() bool {
+	return o.ReplacementCPEVendor != "" || o.ReplacementCPEProduct != ""
+}
+
+// hasNameOrOSReplacement is true for a rule that searches another package name and/or OS.
+func (o SearchRule) hasNameOrOSReplacement() bool {
+	return o.ReplacementChannel != nil || o.ReplacementDistroName != nil || o.ReplacementDistroVersion != nil ||
+		o.ReplacementPackageName != ""
+}
+
 // searchSubject is what one search states about the package it searches for.
 type searchSubject struct {
 	name      string
@@ -43,6 +54,9 @@ type searchSubject struct {
 
 	// of the searched CPE; empty for a search by no CPE
 	cpeVendor, cpeProduct string
+
+	// for one of the package's upstream (source) packages rather than the package itself
+	upstream bool
 }
 
 // matchType is which of the search's values a Match*/Exclude* column matches. A match captures the
@@ -136,6 +150,14 @@ type searchMatch struct {
 	distroName    template
 	distroVersion template
 	packageName   template
+	cpeVendor     template
+	cpeProduct    template
+}
+
+// appliesTo is false for a rule limited to the other kind of search than s (see
+// SearchRule.MatchUpstreamSearch).
+func (m *searchMatch) appliesTo(s searchSubject) bool {
+	return m.row.MatchUpstreamSearch == nil || *m.row.MatchUpstreamSearch == s.upstream
 }
 
 // compiledRule is a rule as it is filed: under its exact values, then down a chain of its remaining
@@ -168,6 +190,8 @@ func compileSearchRule(row SearchRule) (*compiledRule, error) {
 		// excludes last, so rules differing only by one share the patterns before it
 		{packageName, row.ExcludePackageName, true, nil},
 		{packageVersion, row.ExcludePackageVersion, true, nil},
+		{cpeVendor, row.ExcludeCPEVendor, true, nil},
+		{cpeProduct, row.ExcludeCPEProduct, true, nil},
 	} {
 		if p.pattern == "" {
 			continue
@@ -193,33 +217,41 @@ func compileSearchRule(row SearchRule) (*compiledRule, error) {
 	if err := validateSearchRule(row, r.keys); err != nil {
 		return nil, err
 	}
+	if err := r.match.compileReplacements(names); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
 
+// compileReplacements parses the rule's replacement templates, which may reference names.
+func (m *searchMatch) compileReplacements(names map[string]struct{}) error {
+	row := m.row
 	for _, t := range []struct {
 		column string
 		value  *string
 		dst    *template
 	}{
-		{"replacement channel", row.ReplacementChannel, &r.match.channel},
-		{"replacement distro name", row.ReplacementDistroName, &r.match.distroName},
-		{"replacement distro version", row.ReplacementDistroVersion, &r.match.distroVersion},
-		{"replacement package name", &row.ReplacementPackageName, &r.match.packageName},
+		{"replacement channel", row.ReplacementChannel, &m.channel},
+		{"replacement distro name", row.ReplacementDistroName, &m.distroName},
+		{"replacement distro version", row.ReplacementDistroVersion, &m.distroVersion},
+		{"replacement package name", &row.ReplacementPackageName, &m.packageName},
+		{"replacement CPE vendor", &row.ReplacementCPEVendor, &m.cpeVendor},
+		{"replacement CPE product", &row.ReplacementCPEProduct, &m.cpeProduct},
 	} {
 		if t.value == nil {
 			continue
 		}
 		parsed := parseTemplate(*t.value)
 		if err := parsed.validate(names); err != nil {
-			return nil, fmt.Errorf("search rule %s %q: %w", t.column, *t.value, err)
+			return fmt.Errorf("search rule %s %q: %w", t.column, *t.value, err)
 		}
 		*t.dst = parsed
 	}
-
-	return r, nil
+	return nil
 }
 
 func validateSearchRule(row SearchRule, keys indexKeys) error {
-	hasReplacement := row.ReplacementChannel != nil || row.ReplacementDistroName != nil || row.ReplacementDistroVersion != nil ||
-		row.ReplacementPackageName != ""
+	hasReplacement := row.hasNameOrOSReplacement() || row.hasCPEReplacement()
 	switch {
 	case keys == indexKeys{}:
 		return fmt.Errorf("search rule must have an exact (non-regex) package name, distro name, ecosystem, CPE vendor or CPE product")
@@ -242,6 +274,12 @@ func validateSearchRule(row SearchRule, keys indexKeys) error {
 	default:
 		return fmt.Errorf("search rule has an unknown action %q (want %q, %q or %q)", row.Action, SearchRuleAdd, SearchRuleReplace, SearchRuleDrop)
 	}
+	return validateReplacements(row, keys)
+}
+
+// validateReplacements rejects replacements the rule's patterns do not scope, or that cannot apply
+// together.
+func validateReplacements(row SearchRule, keys indexKeys) error {
 	switch {
 	case row.ReplacementPackageName != "" && row.MatchPackageName == "":
 		return fmt.Errorf("search rule with a replacement package name must have a package name pattern")
@@ -253,6 +291,10 @@ func validateSearchRule(row SearchRule, keys indexKeys) error {
 		return fmt.Errorf("search rule searching no OS cannot have a channel substitution")
 	case row.isOSLessSearch() && row.ReplacementDistroVersion != nil:
 		return fmt.Errorf("search rule searching no OS cannot have a distro version substitution")
+	case row.hasCPEReplacement() && row.MatchCPEVendor == "" && row.MatchCPEProduct == "":
+		return fmt.Errorf("search rule with a CPE substitution must have a CPE vendor or product pattern")
+	case row.hasCPEReplacement() && row.hasNameOrOSReplacement():
+		return fmt.Errorf("search rule with a CPE substitution cannot have an OS or package name substitution")
 	}
 	return nil
 }
@@ -313,7 +355,9 @@ func (rm *regexMatch) walk(s searchSubject, captures []capture, out []matchedRul
 		return out
 	}
 	for _, m := range rm.matches {
-		out = append(out, matchedRule{rule: m, captures: captures})
+		if m.appliesTo(s) {
+			out = append(out, matchedRule{rule: m, captures: captures})
+		}
 	}
 	for _, next := range rm.next {
 		out = next.walk(s, captures, out)

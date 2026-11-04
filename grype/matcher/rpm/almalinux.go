@@ -89,6 +89,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, target, binaryPkg p
 			search.ByPackageName(upstreamPkg.Name),
 			search.ByDistro(rhelCompatibleDistro),
 			internal.OnlyQualifiedPackages(upstreamPkg),
+			search.BySourcePackage(),
 		)
 		if err != nil {
 			log.WithFields("error", err, "upstreamPkg", upstreamPkg.Name, "binaryPkg", binaryPkg.Name).Debug("failed to fetch RHEL disclosures for upstream package")
@@ -153,12 +154,13 @@ func findRelatedUnaffectedPackages(provider result.Provider, searchPkg pkg.Packa
 			continue // skip the main package name as it's already searched
 		}
 
-		// Search for unaffected records using related package names
+		// Search for unaffected records using related package names, which are the source package's
 		relatedResults, err := provider.FindResults(
 			search.ByPackageName(relatedName),
 			search.ByExactDistro(*searchPkg.Distro), // use exact distro to avoid alias mapping
 			internal.OnlyQualifiedPackages(searchPkg),
 			search.ForUnaffected(),
+			search.BySourcePackage(),
 		)
 		if err != nil {
 			log.WithFields("error", err, "relatedName", relatedName, "originalPkg", searchPkg.Name).Debug("failed to fetch related unaffected packages")

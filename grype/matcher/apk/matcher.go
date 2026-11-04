@@ -137,7 +137,7 @@ func (m *Matcher) cpeResults(provider vulnerability.Provider, p pkg.Package) (re
 	}
 
 	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
-		upstreamDisclosures, upstreamIgnores, err := m.cpeDisclosures(provider, upstreamPkg)
+		upstreamDisclosures, upstreamIgnores, err := m.cpeDisclosures(provider, upstreamPkg, search.BySourcePackage())
 		if err != nil {
 			return nil, nil, err
 		}
@@ -148,8 +148,8 @@ func (m *Matcher) cpeResults(provider vulnerability.Provider, p pkg.Package) (re
 	return disclosures, ignores, nil
 }
 
-func (m *Matcher) cpeDisclosures(provider vulnerability.Provider, searchPkg pkg.Package) (result.Set, []match.IgnoreFilter, error) {
-	cpeSet, ignores, err := internal.FindResultsByCPEs(provider, searchPkg, m.Type())
+func (m *Matcher) cpeDisclosures(provider vulnerability.Provider, searchPkg pkg.Package, extra ...vulnerability.Criteria) (result.Set, []match.IgnoreFilter, error) {
+	cpeSet, ignores, err := internal.FindResultsByCPEs(provider, searchPkg, m.Type(), extra...)
 	if err != nil {
 		if !errors.Is(err, internal.ErrEmptyCPEMatch) {
 			return nil, nil, err

@@ -703,8 +703,9 @@ func (os *OperatingSystemSpecifierOverride) BeforeCreate(_ *gorm.DB) (err error)
 }
 
 // SearchRule alters a search it matches, by its Action: it adds a search to it or replaces it with
-// one (the same search under another package name and/or OS: a channel, another OS name, or no OS), or
-// drops it. For example, an rpm versioned `...fc43` on rapidfort-redhat:9 searches the channel "fc43".
+// one (the same search under another package name and/or OS: a channel, another OS name, or no OS; or
+// a CPE search under another CPE vendor and/or product), or drops it. For example, an rpm versioned
+// `...fc43` on rapidfort-redhat:9 searches the channel "fc43".
 //
 // Every Match*/Exclude* field is an anchored pattern, matched ignoring case: one without regex syntax
 // is compared whole, anything else is a regex. A rule must have an exact package name, distro name,
@@ -712,7 +713,8 @@ func (os *OperatingSystemSpecifierOverride) BeforeCreate(_ *gorm.DB) (err error)
 //
 // Replacements are templates: `${name}` references a named group of any match pattern or the matched
 // value of a Match* field the rule has (`${distro_name}`, `${distro_version}`, `${ecosystem}`,
-// `${package_name}`, `${package_version}`). Positional references (`$1`) are not supported.
+// `${package_name}`, `${package_version}`, `${cpe_vendor}`, `${cpe_product}`).
+// Positional references (`$1`) are not supported.
 //
 // Every matching rule applies; the records its search finds are ranked by its Priority. The matched
 // search is kept unless a matching rule replaces or drops it.
@@ -747,8 +749,17 @@ type SearchRule struct {
 	// MatchCPEVendor is matched against the vendor of the searched CPE; a search by no CPE states none
 	MatchCPEVendor string `gorm:"column:match_cpe_vendor"`
 
+	ExcludeCPEVendor string `gorm:"column:exclude_cpe_vendor"`
+
 	// MatchCPEProduct is matched against the product of the searched CPE; a search by no CPE states none
 	MatchCPEProduct string `gorm:"column:match_cpe_product"`
+
+	ExcludeCPEProduct string `gorm:"column:exclude_cpe_product"`
+
+	// MatchUpstreamSearch limits the rule to searches for one of the package's upstream (source)
+	// packages (see search.SourcePackageCriteria) when true, and to searches for the package itself
+	// when false; NULL matches either.
+	MatchUpstreamSearch *bool `gorm:"column:match_upstream_search"`
 
 	// ReplacementChannel is the channel of the searched OS to search, and requires an exact
 	// MatchDistroName. An empty expansion selects the channel-less rows.
@@ -766,6 +777,15 @@ type SearchRule struct {
 
 	// ReplacementPackageName is the name to search
 	ReplacementPackageName string `gorm:"column:replacement_package_name"`
+
+	// ReplacementCPEVendor is the CPE vendor to search, in place of the searched CPE's. It requires a
+	// CPE vendor or product pattern, and cannot be combined with an OS or package name replacement: a
+	// CPE search has neither. An empty expansion keeps the searched vendor.
+	ReplacementCPEVendor string `gorm:"column:replacement_cpe_vendor"`
+
+	// ReplacementCPEProduct is the CPE product to search, in place of the searched CPE's, as
+	// ReplacementCPEVendor is the vendor. An empty expansion keeps the searched product.
+	ReplacementCPEProduct string `gorm:"column:replacement_cpe_product"`
 
 	// Priority ranks the records a rule's search finds against those of the package's own searches,
 	// which rank at 0, and of other rules' searches: a positive priority outranks the package's own

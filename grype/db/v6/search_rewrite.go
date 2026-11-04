@@ -15,10 +15,11 @@ import (
 // rewrite returns the searches to run in place of cs, or false when no rule applies and cs is searched
 // as is (see SearchRuleProvider.SearchRewrites). A search no rule applies to allocates nothing.
 //
-// Every matching add or replace rule contributes one search: cs with the rule's OS and/or name, marked
-// with the rule's priority. cs itself is kept unless a matching rule drops it, or a matching rule
-// replaces it and no matching rule adds to it; a drop rule contributes no search, so a search every
-// matching rule drops is rewritten to none. Only a drop rule applies to a CPE search.
+// Every matching add or replace rule contributes one search: cs with the rule's OS and/or name (or, for
+// a CPE search, CPE vendor and/or product), marked with the rule's priority. cs itself is kept unless a
+// matching rule drops it, or a matching rule replaces it and no matching rule adds to it; a drop rule
+// contributes no search, so a search every matching rule drops is rewritten to none. Only a drop rule
+// or a CPE substitution applies to a CPE search.
 func (idx *searchIndex) rewrite(p pkg.Package, cs []vulnerability.Criteria) ([][]vulnerability.Criteria, bool) {
 	own := splitSearch(cs)
 	s := own.subject(p)
@@ -77,18 +78,19 @@ func (idx *searchIndex) rewrite(p pkg.Package, cs []vulnerability.Criteria) ([][
 type searchParts struct {
 	name   *search.PackageNameCriteria // nil for none
 	distro *search.DistroCriteria      // nil for the rows of no OS
+	cpe    *search.CPECriteria         // nil for a search by no CPE
 
-	// the search as given, of which the criteria at nameAt and distroAt (-1 for none) are replaced by
-	// name and distro
-	all              []vulnerability.Criteria
-	nameAt, distroAt int
+	// the search as given, of which the criteria at nameAt, distroAt and cpeAt (-1 for none) are
+	// replaced by name, distro and cpe
+	all                     []vulnerability.Criteria
+	nameAt, distroAt, cpeAt int
 
-	pkg *pkg.Package // of the search.WithPackage criteria, which is kept
-	cpe *cpe.CPE     // of the search.ByCPE criteria; nil for a search by no CPE
+	pkg      *pkg.Package // of the search.WithPackage criteria, which is kept
+	upstream bool         // a search.BySourcePackage criteria, which is kept
 }
 
 func splitSearch(cs []vulnerability.Criteria) searchParts {
-	sp := searchParts{all: cs, nameAt: -1, distroAt: -1}
+	sp := searchParts{all: cs, nameAt: -1, distroAt: -1, cpeAt: -1}
 	for i, c := range cs {
 		switch c := c.(type) {
 		case *search.PackageNameCriteria:
@@ -103,8 +105,10 @@ func splitSearch(cs []vulnerability.Criteria) searchParts {
 			sp.pkg = &c.Package
 		case *search.CPECriteria:
 			if sp.cpe == nil {
-				sp.cpe = &c.CPE
+				sp.cpe, sp.cpeAt = c, i
 			}
+		case *search.SourcePackageCriteria:
+			sp.upstream = true
 		}
 	}
 	return sp
@@ -113,17 +117,18 @@ func splitSearch(cs []vulnerability.Criteria) searchParts {
 // subject returns what the search states about the package it searches for, else p. That is not
 // always the cataloged package: matchers search under other names and versions (upstreams, rootio
 // names, epoch-patched rpm versions). Only distro and CPE searches have an OS for rules to match; an
-// ecosystem search has none. A pattern on something the search does not state does not match.
+// ecosystem search has none. A pattern on something the search does not state does not match. A
+// search is of an upstream when it is marked search.BySourcePackage, else of the package itself.
 func (sp searchParts) subject(p pkg.Package) searchSubject {
 	if sp.pkg != nil {
 		p = *sp.pkg
 	}
-	s := searchSubject{name: p.Name, version: p.Version}
+	s := searchSubject{name: p.Name, version: p.Version, upstream: sp.upstream}
 	if sp.distro != nil || sp.cpe != nil {
 		s.distro = p.Distro
 	}
 	if sp.cpe != nil {
-		s.cpeVendor, s.cpeProduct = sp.cpe.Attributes.Vendor, sp.cpe.Attributes.Product
+		s.cpeVendor, s.cpeProduct = sp.cpe.CPE.Attributes.Vendor, sp.cpe.CPE.Attributes.Product
 	}
 	switch {
 	case p.Type != "" && p.Type != syftPkg.UnknownPkg:
@@ -136,10 +141,11 @@ func (sp searchParts) subject(p pkg.Package) searchSubject {
 
 // ruleSearch returns what the rule searches in place of sp. It is false when the rule changes nothing,
 // or renames a search that has no name: a rule's OS and name are one search, so a rename it cannot
-// apply drops its OS too. A CPE search reads NVD's rows, which have no OS, so a rule can only drop it.
+// apply drops its OS too. A CPE search reads NVD's rows, which have no OS or name, so a rule can only
+// change its CPE's vendor and/or product (or drop it).
 func (sp searchParts) ruleSearch(rm matchedRule, s searchSubject) (rs searchParts, ok bool) {
 	if sp.cpe != nil {
-		return rs, false
+		return sp.cpeRuleSearch(rm, s)
 	}
 	d, hasOS, osLess := rm.overlayDistro(s)
 	name := rm.expand(rm.rule.packageName, s)
@@ -168,6 +174,26 @@ func (sp searchParts) ruleSearch(rm matchedRule, s searchSubject) (rs searchPart
 	return rs, true
 }
 
+// cpeRuleSearch is ruleSearch for a CPE search: its CPE under the rule's vendor and/or product, where
+// an empty expansion keeps the searched one.
+func (sp searchParts) cpeRuleSearch(rm matchedRule, s searchSubject) (rs searchParts, ok bool) {
+	searched := sp.cpe.CPE
+	attrs := searched.Attributes
+	if vendor := rm.expand(rm.rule.cpeVendor, s); vendor != "" {
+		attrs.Vendor = vendor
+	}
+	if product := rm.expand(rm.rule.cpeProduct, s); product != "" {
+		attrs.Product = product
+	}
+	if sameCPEProduct(attrs, searched.Attributes) {
+		return rs, false
+	}
+	searched.Attributes = attrs
+	rs = sp
+	rs.cpe = &search.CPECriteria{CPE: searched}
+	return rs, true
+}
+
 // distroSearch is a DistroCriteria with its one distro, in one allocation.
 type distroSearch struct {
 	criteria search.DistroCriteria
@@ -187,11 +213,23 @@ func (sp searchParts) searchedName() string {
 	return sp.name.PackageName
 }
 
-// sameRows is true when both searches read the same rows, by their OS, its aliasing and name; the rest
-// is the same across one rewrite.
+// sameRows is true when both searches read the same rows, by their OS, its aliasing, name and CPE
+// vendor and product; the rest is the same across one rewrite.
 func (sp searchParts) sameRows(other searchParts) bool {
 	return sp.searchedName() == other.searchedName() && isExact(sp.distro) == isExact(other.distro) &&
-		slices.EqualFunc(distrosOf(sp.distro), distrosOf(other.distro), sameOS)
+		slices.EqualFunc(distrosOf(sp.distro), distrosOf(other.distro), sameOS) && sameCPE(sp.cpe, other.cpe)
+}
+
+func sameCPE(a, b *search.CPECriteria) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return sameCPEProduct(a.CPE.Attributes, b.CPE.Attributes)
+}
+
+// sameCPEProduct is true for the same CPE vendor and product, which is all a rule changes of a CPE.
+func sameCPEProduct(a, b cpe.Attributes) bool {
+	return strings.EqualFold(a.Vendor, b.Vendor) && strings.EqualFold(a.Product, b.Product)
 }
 
 func isExact(c *search.DistroCriteria) bool {
@@ -212,15 +250,18 @@ func sameOS(a, b distro.Distro) bool {
 
 // criteria rebuilds the search, with extra appended.
 func (sp searchParts) criteria(extra ...vulnerability.Criteria) []vulnerability.Criteria {
-	out := make([]vulnerability.Criteria, 0, len(sp.all)+len(extra)+2)
+	out := make([]vulnerability.Criteria, 0, len(sp.all)+len(extra)+3)
 	if sp.name != nil {
 		out = append(out, sp.name)
 	}
 	if sp.distro != nil {
 		out = append(out, sp.distro)
 	}
+	if sp.cpe != nil {
+		out = append(out, sp.cpe)
+	}
 	for i, c := range sp.all {
-		if i != sp.nameAt && i != sp.distroAt {
+		if i != sp.nameAt && i != sp.distroAt && i != sp.cpeAt {
 			out = append(out, c)
 		}
 	}
