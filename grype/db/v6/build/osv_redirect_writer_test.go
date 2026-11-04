@@ -1,12 +1,15 @@
 package v6
 
 import (
+	"fmt"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/provider"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
@@ -147,5 +150,76 @@ func TestWriter_OSVRedirectApkMatcher(t *testing.T) {
 			}
 			assert.Equal(t, tt.want, got)
 		})
+	}
+}
+
+// The secdb and OSV records of one CVE come from the same provider ("chainguard"), and the OSV
+// transformer renames CGAs to their CVE, so both handles have the same name and provider. The secdb
+// row under chainguard must still read exactly what a secdb-only build gives it (released clients read
+// it), whichever record arrives first; vunnel's results put the OSV records first (CGA- < CVE-).
+//
+// The store keys a handle on name, provider and blob, not dates. So:
+//   - blobs differ (the real feeds: OSV carries a description, references, severities): two handles.
+//   - blobs are identical: one handle. The name merger holds OSV entries until Close, so the secdb
+//     handle is always written first and is the one kept: the secdb row is unchanged, and the OSV row
+//     shares the secdb handle (losing only the OSV published date, which no matcher reads).
+func TestWriter_OSVRedirectSameCVEUnderOneProvider(t *testing.T) {
+	published := time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)
+	osvRecord := func(details string) unmarshal.OSVVulnerability {
+		r := cgRecord("CGA-1111-1111-1111", "foo", cveA)
+		r.Details = details
+		r.Published = published
+		return r
+	}
+
+	for _, details := range []string{"an OSV description", ""} {
+		for _, osvFirst := range []bool{true, false} {
+			name := fmt.Sprintf("osv details %q, OSV first %v", details, osvFirst)
+			t.Run(name, func(t *testing.T) {
+				entries := []transformers.RelatedEntries{secdbEntry(cveA, "foo")}
+				osvEntries := cgEntries(t, osvRecord(details))
+				if osvFirst {
+					entries = append(osvEntries, entries...)
+				} else {
+					entries = append(entries, osvEntries...)
+				}
+
+				reader, err := db.NewReader(db.Config{DBDirPath: buildDB(t, entries...)})
+				require.NoError(t, err)
+				t.Cleanup(func() { _ = reader.Close() })
+
+				rowsUnder := func(osName string) []db.AffectedPackageHandle {
+					rows, err := reader.GetAffectedPackages(&db.PackageSpecifier{Name: "foo"}, &db.GetPackageOptions{
+						PreloadOS:            true,
+						PreloadVulnerability: true,
+						PreloadBlob:          true,
+						OSs:                  db.OSSpecifiers{{Name: osName}},
+					})
+					require.NoError(t, err)
+					return rows
+				}
+
+				sec := rowsUnder("chainguard")
+				require.Len(t, sec, 1, "only the secdb row is under chainguard")
+				require.NotNil(t, sec[0].Vulnerability)
+				assert.Equal(t, cveA, sec[0].Vulnerability.Name)
+				assert.Equal(t, &db.VulnerabilityBlob{ID: cveA}, sec[0].Vulnerability.BlobValue, "the secdb row keeps the secdb blob")
+				assert.Nil(t, sec[0].Vulnerability.PublishedDate, "the secdb row keeps the secdb handle's dates")
+				assert.Nil(t, sec[0].BlobValue.Qualifiers, "the secdb row is unqualified, as secdb writes it")
+
+				osvRows := rowsUnder("chainguard-osv")
+				require.Len(t, osvRows, 1, "the OSV row is under chainguard-osv")
+				require.NotNil(t, osvRows[0].Vulnerability)
+				assert.Equal(t, cveA, osvRows[0].Vulnerability.Name)
+				if details == "" {
+					assert.Equal(t, sec[0].Vulnerability.ID, osvRows[0].Vulnerability.ID, "identical blobs share the secdb handle")
+					return
+				}
+				assert.NotEqual(t, sec[0].Vulnerability.ID, osvRows[0].Vulnerability.ID, "the two feeds' records are separate handles")
+				assert.Equal(t, details, osvRows[0].Vulnerability.BlobValue.Description)
+				require.NotNil(t, osvRows[0].Vulnerability.PublishedDate)
+				assert.True(t, published.Equal(*osvRows[0].Vulnerability.PublishedDate))
+			})
+		}
 	}
 }
