@@ -2,6 +2,7 @@ package v6
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -36,6 +37,10 @@ type writer struct {
 	// nameMerge folds entries sharing a provider and name into one handle at Close time.
 	// See name_merge.go.
 	nameMerge *nameMerger
+
+	// osvRedirectRows counts the package rows written per OSV redirect OS (e.g. "chainguard-osv"),
+	// so Close emits the search rule for an OS only when the DB holds rows for it.
+	osvRedirectRows map[string]int
 
 	// Two-tier batching: parent records (vulnerabilities + providers) and child records (related entries)
 	// This maintains FK integrity while maximizing batch sizes
@@ -109,6 +114,7 @@ func NewWriter(directory string, states provider.States, failOnMissingFixDate bo
 		severityCache:        make(map[string]db.Severity),
 		goMerge:              newGoVulnDBMerger(),
 		nameMerge:            newNameMerger(),
+		osvRedirectRows:      make(map[string]int),
 		parentBatchSize:      batchSize,
 		childBatchSize:       batchSize,
 		parentBuffer:         make([]func() error, 0, batchSize),
@@ -263,6 +269,8 @@ func (w *writer) writeAffectedPackage(vulnHandle *db.VulnerabilityHandle, row db
 		}
 	}
 
+	w.countOSVRedirectRow(row.OperatingSystem)
+
 	// Add affected package to child batch - defer VulnerabilityID assignment until flush
 	pkgHandle := row
 	return w.addToChildBatch(func() error {
@@ -292,6 +300,8 @@ func (w *writer) writeAffectedCPE(vulnHandle *db.VulnerabilityHandle, row db.Aff
 }
 
 func (w *writer) writeUnaffectedPackage(vulnHandle *db.VulnerabilityHandle, row db.UnaffectedPackageHandle) error {
+	w.countOSVRedirectRow(row.OperatingSystem)
+
 	// Add unaffected package to child batch - defer VulnerabilityID assignment until flush
 	pkgHandle := row
 	return w.addToChildBatch(func() error {
@@ -517,6 +527,10 @@ func (w *writer) Close() error {
 		return fmt.Errorf("unable to flush child batch: %w", err)
 	}
 
+	if err := w.writeOSVRedirectSearchRules(); err != nil {
+		return err
+	}
+
 	if err := w.store.Close(); err != nil {
 		return fmt.Errorf("unable to close store: %w", err)
 	}
@@ -527,6 +541,46 @@ func (w *writer) Close() error {
 		"child_batches", w.totalChildBatches,
 	).Info("database created")
 
+	return nil
+}
+
+// countOSVRedirectRow notes a package row written to an OSV redirect OS (see db.OSVRedirectSearchRules).
+func (w *writer) countOSVRedirectRow(os *db.OperatingSystem) {
+	if os == nil {
+		return
+	}
+	name := strings.ToLower(os.Name)
+	if _, ok := db.OSVRedirectSearchRules()[name]; ok {
+		w.mu.Lock()
+		w.osvRedirectRows[name]++
+		w.mu.Unlock()
+	}
+}
+
+// writeOSVRedirectSearchRules writes the search rule redirecting a distro to the OS holding its OSV rows,
+// only for an OS the DB holds rows for. A rule for an OS with no rows would blank that distro for every
+// client following the rule; with no rule, clients search the distro's own (secdb) rows as before.
+func (w *writer) writeOSVRedirectSearchRules() error {
+	rules := db.OSVRedirectSearchRules()
+	names := make([]string, 0, len(rules))
+	for name := range rules {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	var out []*db.SearchRule
+	for _, name := range names {
+		n := w.osvRedirectRows[name]
+		if n == 0 {
+			continue
+		}
+		rule := rules[name]
+		log.WithFields("os", name, "rows", n, "distro", rule.MatchDistroName, "clients", rule.ApplicableClientDBSchemas).Info("redirecting distro to its OSV rows")
+		out = append(out, &rule)
+	}
+	if err := w.store.AddSearchRules(out...); err != nil {
+		return fmt.Errorf("unable to write OSV redirect search rules: %w", err)
+	}
 	return nil
 }
 

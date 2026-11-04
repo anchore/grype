@@ -84,11 +84,13 @@ func openProvider(t *testing.T, dir string) vulnerability.Provider {
 	return vp
 }
 
+// findChainguard searches the OS holding Chainguard's OSV rows directly: the search rule sending
+// `chainguard` searches there applies in the matchers, not to FindVulnerabilities.
 func findChainguard(t *testing.T, vp vulnerability.Provider, pkgName string) []vulnerability.Vulnerability {
 	t.Helper()
 	vulns, err := vp.FindVulnerabilities(
 		search.ByPackageName(pkgName),
-		search.ByDistro(*distro.New(distro.Chainguard, "", "")),
+		search.ByDistro(*distro.New(distro.Type("chainguard-osv"), "", "")),
 	)
 	require.NoError(t, err)
 	return vulns

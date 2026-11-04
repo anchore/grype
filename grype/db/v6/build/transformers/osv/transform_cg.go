@@ -293,18 +293,21 @@ func cgGetQualifiers(affected osvmodel.Affected) *db.PackageQualifiers {
 
 // cgOperatingSystem maps the OSV ecosystem string to a grype DB OperatingSystem row.
 // CG OSV advisories can carry affected entries across multiple apk-based distros
-// (Chainguard, Wolfi). Each becomes its own OS row so apk-distro matchers can find
-// them via the operating_systems table + operating_system_specifier_overrides.
+// (Chainguard, Wolfi). Each becomes its own OS row.
+//
+// The rows go under the distro's OSV OS (e.g. "chainguard-osv"), not the distro itself: released
+// clients look an OS up by name or release ID, so they never see these rows and keep searching the
+// distro's secdb rows. Clients with the subpackage fix reach them through the search rule the writer
+// emits once rows exist (see db.OSVRedirectSearchRules).
 // Returns nil if the ecosystem is not a known apk distro — caller skips that entry.
 func cgOperatingSystem(ecosystem string) *db.OperatingSystem {
-	lower := strings.ToLower(ecosystem)
-	switch lower {
-	case "chainguard", "wolfi":
-		return &db.OperatingSystem{
-			Name:         lower,
-			ReleaseID:    lower,
-			LabelVersion: "rolling",
-		}
+	target, ok := db.OSVRedirectTarget(ecosystem)
+	if !ok {
+		return nil
 	}
-	return nil
+	return &db.OperatingSystem{
+		Name:         target,
+		ReleaseID:    target,
+		LabelVersion: "rolling",
+	}
 }

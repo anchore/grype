@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -1207,6 +1208,11 @@ func newDistroDetailAssertion(t TestingT, p pkg.Package, detail *match.Detail, s
 func assertSearchedDistroMatchesPackage(t TestingT, p pkg.Package, searchedBy match.DistroParameters) {
 	t.Helper()
 	if p.Distro == nil {
+		return
+	}
+	// a distro whose OSV rows the DB keeps under their own OS (e.g. chainguard -> chainguard-osv) is
+	// searched there, version-less, by the search rule the DB carries for it
+	if target, ok := v6.OSVRedirectTarget(string(p.Distro.Type)); ok && strings.EqualFold(searchedBy.Distro.Type, target) {
 		return
 	}
 	assert.Equal(t, string(p.Distro.Type), searchedBy.Distro.Type, "unexpected distro type in SearchedBy")

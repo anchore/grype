@@ -16,22 +16,22 @@ import (
 
 // chainguardOS / wolfiOS are small constructors used by TestChainguardTransform
 // to keep expected AffectedPackageHandle entries readable. Each ecosystem gets
-// its own OS row (Name == ReleaseID == lowercased ecosystem) with a shared
+// its own OSV OS row (Name == ReleaseID == lowercased ecosystem + "-osv") with a shared
 // LabelVersion of "rolling" — both distros are rolling-release with no version
 // number to attach, so the OS-specifier-override layer matches on Name/ReleaseID
 // alone.
 func chainguardOS() *db.OperatingSystem {
 	return &db.OperatingSystem{
-		Name:         "chainguard",
-		ReleaseID:    "chainguard",
+		Name:         "chainguard-osv",
+		ReleaseID:    "chainguard-osv",
 		LabelVersion: "rolling",
 	}
 }
 
 func wolfiOS() *db.OperatingSystem {
 	return &db.OperatingSystem{
-		Name:         "wolfi",
-		ReleaseID:    "wolfi",
+		Name:         "wolfi-osv",
+		ReleaseID:    "wolfi-osv",
 		LabelVersion: "rolling",
 	}
 }
@@ -759,7 +759,9 @@ func TestCgGetQualifiers(t *testing.T) {
 
 // TestCgOperatingSystem covers the ecosystem → OperatingSystem mapping. CGA
 // records carry per-affected-row ecosystem strings ("Chainguard" / "Wolfi");
-// each maps to its own OS row (Name == ReleaseID == lowercased ecosystem) with
+// each maps to its own OSV OS row (Name == ReleaseID == lowercased ecosystem
+// plus "-osv", so released clients, which look the distro up by name or
+// release ID, never see it) with
 // a shared LabelVersion of "rolling" — both distros are rolling-release. Any
 // other ecosystem (lowercased variants, unrecognized strings, empty) must
 // return nil so the caller leaves OperatingSystem unset on the
@@ -771,20 +773,20 @@ func TestCgOperatingSystem(t *testing.T) {
 		want      *db.OperatingSystem
 	}{
 		{
-			name:      "Chainguard maps to lowercase OS with rolling label",
+			name:      "Chainguard maps to its OSV OS with rolling label",
 			ecosystem: "Chainguard",
 			want: &db.OperatingSystem{
-				Name:         "chainguard",
-				ReleaseID:    "chainguard",
+				Name:         "chainguard-osv",
+				ReleaseID:    "chainguard-osv",
 				LabelVersion: "rolling",
 			},
 		},
 		{
-			name:      "Wolfi maps to lowercase OS with rolling label",
+			name:      "Wolfi maps to its OSV OS with rolling label",
 			ecosystem: "Wolfi",
 			want: &db.OperatingSystem{
-				Name:         "wolfi",
-				ReleaseID:    "wolfi",
+				Name:         "wolfi-osv",
+				ReleaseID:    "wolfi-osv",
 				LabelVersion: "rolling",
 			},
 		},
