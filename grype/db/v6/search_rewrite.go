@@ -8,6 +8,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -19,7 +20,7 @@ import (
 // a CPE search, CPE vendor and/or product), marked with the rule's priority. cs itself is kept unless a
 // matching rule drops it, or a matching rule replaces it and no matching rule adds to it; a drop rule
 // contributes no search, so a search every matching rule drops is rewritten to none. Only a drop rule
-// or a CPE substitution applies to a CPE search.
+// or a CPE substitution applies to a CPE search. Each search a rule that applies is logged
 func (idx *searchIndex) rewrite(p pkg.Package, cs []vulnerability.Criteria) ([][]vulnerability.Criteria, bool) {
 	own := splitSearch(cs)
 	s := own.subject(p)
@@ -36,6 +37,7 @@ func (idx *searchIndex) rewrite(p pkg.Package, cs []vulnerability.Criteria) ([][
 		switch rm.rule.row.Action {
 		case SearchRuleDrop:
 			dropped = true
+			log.WithFields("search", own, "rule", &rm.rule.row).Trace("search rule dropped search")
 			continue
 		case SearchRuleAdd:
 			added = true
@@ -62,15 +64,27 @@ func (idx *searchIndex) rewrite(p pkg.Package, cs []vulnerability.Criteria) ([][
 			ownRule = r
 			continue
 		}
+		logRuledSearch(own, r, dropsOwnSearch)
 		searches = append(searches, r.search.criteria(r.rule.byRule))
 	}
 	switch {
 	case !dropsOwnSearch:
 		searches = append(searches, cs)
 	case ownRule != nil:
+		logRuledSearch(own, ownRule, dropsOwnSearch)
 		searches = append(searches, own.criteria(ownRule.rule.byRule))
 	}
 	return searches, true
+}
+
+// logRuledSearch logs the search r's rule runs in place of own, when own is dropped and the rule
+// replaces it, else beside it.
+func logRuledSearch(own searchParts, r *ruledSearch, ownDropped bool) {
+	msg := "search rule added search"
+	if ownDropped && r.rule.row.Action == SearchRuleReplace {
+		msg = "search rule replaced search"
+	}
+	log.WithFields("search", own, "new", r.search, "rule", &r.rule.row).Trace(msg)
 }
 
 // searchParts is a search split into the criteria rules read or replace, and the rest, which every
@@ -246,6 +260,41 @@ func distrosOf(c *search.DistroCriteria) []distro.Distro {
 func sameOS(a, b distro.Distro) bool {
 	return strings.EqualFold(a.Name(), b.Name()) && a.Version == b.Version && strings.EqualFold(a.Codename, b.Codename) &&
 		slices.EqualFunc(a.Channels, b.Channels, strings.EqualFold)
+}
+
+// String describes the rows the search reads, for logging: its name (at the searched version) or CPE,
+// its OS, and whether it is for an upstream.
+func (sp searchParts) String() string {
+	var sb strings.Builder
+	switch {
+	case sp.cpe != nil:
+		sb.WriteString(sp.cpe.CPE.Attributes.BindToFmtString())
+	case sp.name != nil:
+		sb.WriteString(sp.name.PackageName)
+		if sp.pkg != nil && sp.pkg.Version != "" {
+			sb.WriteString("@" + sp.pkg.Version)
+		}
+	}
+	sb.WriteString(" in ")
+	if sp.distro == nil {
+		sb.WriteString("no OS")
+	}
+	for i, d := range distrosOf(sp.distro) {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteString(d.Name())
+		if d.Version != "" {
+			sb.WriteString(":" + d.Version)
+		}
+		if len(d.Channels) > 0 {
+			sb.WriteString("+" + strings.Join(d.Channels, ","))
+		}
+	}
+	if sp.upstream {
+		sb.WriteString(" (upstream)")
+	}
+	return sb.String()
 }
 
 // criteria rebuilds the search, with extra appended.

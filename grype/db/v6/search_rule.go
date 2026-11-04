@@ -34,6 +34,62 @@ func (o SearchRule) isOSLessSearch() bool {
 	return o.ReplacementDistroName != nil && *o.ReplacementDistroName == ""
 }
 
+// String describes the rule by its action, the columns it sets and its priority, for logging.
+func (o SearchRule) String() string {
+	var sb strings.Builder
+	sb.WriteString(string(o.Action))
+	var upstream *string
+	if o.MatchUpstreamSearch != nil {
+		upstream = ptr(strconv.FormatBool(*o.MatchUpstreamSearch))
+	}
+	for _, c := range []struct {
+		column string
+		value  *string // nil for a column the rule does not set
+	}{
+		{"match_distro_name", setString(o.MatchDistroName)},
+		{"match_distro_version", setString(o.MatchDistroVersion)},
+		{"match_distro_channel", setString(o.MatchDistroChannel)},
+		{"match_ecosystem", setString(o.MatchEcosystem)},
+		{"match_package_name", setString(o.MatchPackageName)},
+		{"exclude_package_name", setString(o.ExcludePackageName)},
+		{"match_package_version", setString(o.MatchPackageVersion)},
+		{"exclude_package_version", setString(o.ExcludePackageVersion)},
+		{"match_cpe_vendor", setString(o.MatchCPEVendor)},
+		{"exclude_cpe_vendor", setString(o.ExcludeCPEVendor)},
+		{"match_cpe_product", setString(o.MatchCPEProduct)},
+		{"exclude_cpe_product", setString(o.ExcludeCPEProduct)},
+		{"match_upstream_search", upstream},
+		{"replacement_channel", o.ReplacementChannel},
+		{"replacement_distro_name", o.ReplacementDistroName},
+		{"replacement_distro_version", o.ReplacementDistroVersion},
+		{"replacement_package_name", setString(o.ReplacementPackageName)},
+		{"replacement_cpe_vendor", setString(o.ReplacementCPEVendor)},
+		{"replacement_cpe_product", setString(o.ReplacementCPEProduct)},
+		{"applicable_client_db_schemas", setString(o.ApplicableClientDBSchemas)},
+	} {
+		if c.value == nil {
+			continue
+		}
+		value := *c.value
+		if value == "" {
+			value = `""`
+		}
+		sb.WriteString(" " + c.column + "=" + value)
+	}
+	if o.Priority != 0 {
+		sb.WriteString(" priority=" + strconv.Itoa(o.Priority))
+	}
+	return sb.String()
+}
+
+// setString is s, or nil for an empty column.
+func setString(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
 // hasCPEReplacement is true for a rule that searches another CPE vendor and/or product.
 func (o SearchRule) hasCPEReplacement() bool {
 	return o.ReplacementCPEVendor != "" || o.ReplacementCPEProduct != ""
