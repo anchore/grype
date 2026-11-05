@@ -7,6 +7,30 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestFuzzyVersion_Constraint_ShortPrerelease(t *testing.T) {
+	tests := []testCase{
+		{name: "beta matches inclusive bound", version: "2.1b1", constraint: "<= 2.1b1", satisfied: true},
+		{name: "earlier release matches beta bound", version: "2.0.0", constraint: "<= 2.1b1", satisfied: true},
+		{name: "final release is newer than beta bound", version: "2.1.0", constraint: "<= 2.1b1", satisfied: false},
+		{name: "patch release is newer than beta bound", version: "2.1.1", constraint: "<= 2.1b1", satisfied: false},
+		{name: "beta is older than final release", version: "2.1b1", constraint: "< 2.1.0", satisfied: true},
+		{name: "alpha is older than beta", version: "2.1a1", constraint: "< 2.1b1", satisfied: true},
+		{name: "beta sequence is numeric", version: "2.1b2", constraint: "< 2.1b10", satisfied: true},
+		{name: "bounded prerelease range", version: "2.1b2", constraint: ">= 2.1b1, < 2.1.0", satisfied: true},
+		{name: "final release outside prerelease range", version: "2.1.0", constraint: ">= 2.1b1, < 2.1.0", satisfied: false},
+		{name: "alternative prerelease ranges", version: "2.1.1", constraint: "<= 2.1b1 || >= 3.0.0", satisfied: false},
+		{name: "alpha matches normalized version", version: "2.1a1", constraint: "= 2.1.0-alpha.1", satisfied: true},
+		{name: "letter-only patch is newer than release", version: "1.0.2b", constraint: "> 1.0.2", satisfied: true},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			constraint, err := GetConstraint(test.constraint, UnknownFormat)
+			assert.NoError(t, err)
+			test.assertVersionConstraint(t, UnknownFormat, constraint)
+		})
+	}
+}
+
 func TestFuzzyVersionComparison(t *testing.T) {
 	cases := []struct {
 		v1, v2 string
