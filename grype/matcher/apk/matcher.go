@@ -104,7 +104,9 @@ func (m *Matcher) settleByOrigin(vp vulnerability.Provider, p pkg.Package, unset
 	}
 	for _, up := range pkg.UpstreamPackages(p) {
 		up.Metadata = p.Metadata
-		_, upFixed, err := internal.FindResultsByDistro(vp, up, m.Type(), nil)
+		// marked as an upstream search, as search rules expect (see search.BySourcePackage); the
+		// results only settle by identity, so being indirect changes nothing here
+		_, upFixed, err := internal.FindResultsByDistro(vp, up, m.Type(), nil, search.BySourcePackage())
 		if err != nil {
 			return nil, err
 		}

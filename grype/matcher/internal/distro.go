@@ -16,9 +16,10 @@ import (
 
 // FindResultsByDistro searches the distro feed under every name the provider claims for p and splits
 // the union once (see SplitVulnerable), so a rootio NAK under `rootio-libssl3` denies a disclosure
-// under `libssl3`.
-func FindResultsByDistro(provider vulnerability.Provider, p pkg.Package, matcherType match.MatcherType, cfg *version.ComparisonConfig) (vulnerable, notVulnerable result.Set, err error) {
-	return findResultsByDistro(provider, p, p, nil, matcherType, cfg)
+// under `libssl3`. Any extra criteria are added to each search, e.g. search.BySourcePackage when p is
+// one of another package's upstreams.
+func FindResultsByDistro(provider vulnerability.Provider, p pkg.Package, matcherType match.MatcherType, cfg *version.ComparisonConfig, extra ...vulnerability.Criteria) (vulnerable, notVulnerable result.Set, err error) {
+	return findResultsByDistro(provider, p, p, nil, matcherType, cfg, extra...)
 }
 
 // FindResultsByDistroAcrossUpstreams is FindResultsByDistro that also searches searchPkg's upstream
@@ -31,7 +32,7 @@ func FindResultsByDistroAcrossUpstreams(provider vulnerability.Provider, searchP
 	return findResultsByDistro(provider, searchPkg, matchPackage(searchPkg, target), pkg.UpstreamPackages(searchPkg), matcherType, cfg)
 }
 
-func findResultsByDistro(provider vulnerability.Provider, searchPkg, target pkg.Package, upstreams []pkg.Package, matcherType match.MatcherType, cfg *version.ComparisonConfig) (vulnerable, notVulnerable result.Set, err error) {
+func findResultsByDistro(provider vulnerability.Provider, searchPkg, target pkg.Package, upstreams []pkg.Package, matcherType match.MatcherType, cfg *version.ComparisonConfig, extra ...vulnerability.Criteria) (vulnerable, notVulnerable result.Set, err error) {
 	if searchPkg.Distro == nil {
 		return result.Set{}, result.Set{}, nil
 	}
@@ -42,7 +43,7 @@ func findResultsByDistro(provider vulnerability.Provider, searchPkg, target pkg.
 	if isUnknownVersion(searchPkg.Version) {
 		log.WithFields("package", searchPkg.Name).Trace("skipping package with unknown version")
 	} else {
-		applicable, err = applicableForDistro(provider, rp, searchPkg)
+		applicable, err = applicableForDistro(provider, rp, searchPkg, extra...)
 		if err != nil {
 			return nil, nil, err
 		}

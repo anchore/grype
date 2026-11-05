@@ -31,6 +31,8 @@ type searchRecorder struct {
 	vulnerability.Provider
 	vuln     vulnerability.Vulnerability
 	searches [][]vulnerability.Criteria
+	// cpeOnly finds vuln only by CPE, so the distro feed is silent and an NVD result stays unsettled
+	cpeOnly bool
 }
 
 var _ v6.SearchRuleProvider = (*searchRecorder)(nil)
@@ -40,8 +42,16 @@ func (r *searchRecorder) SearchRewrites(_ pkg.Package, cs []vulnerability.Criter
 	return nil, false
 }
 
-func (r *searchRecorder) FindVulnerabilities(...vulnerability.Criteria) ([]vulnerability.Vulnerability, error) {
+func (r *searchRecorder) FindVulnerabilities(cs ...vulnerability.Criteria) ([]vulnerability.Vulnerability, error) {
+	if r.cpeOnly && !slices.ContainsFunc(cs, isCPE) {
+		return nil, nil
+	}
 	return []vulnerability.Vulnerability{r.vuln}, nil
+}
+
+func isCPE(c vulnerability.Criteria) bool {
+	_, ok := c.(*search.CPECriteria)
+	return ok
 }
 
 // searchedName is the package name a search is for: its name criteria, else its CPE's product.
@@ -69,8 +79,11 @@ func TestMatchers_MarkEveryUpstreamSearch(t *testing.T) {
 		distro  *distro.Distro
 		version string
 		format  version.Format
+		cpeOnly bool
 	}{
 		{name: "apk", matcher: &apk.Matcher{}, pkgType: syftPkg.ApkPkg, distro: distro.New(distro.Alpine, "3.18", ""), version: "1.0-r0", format: version.ApkFormat},
+		// an NVD result the distro feed is silent on is settled by searching the origin again (settleByOrigin)
+		{name: "apk nvd only", matcher: &apk.Matcher{}, pkgType: syftPkg.ApkPkg, distro: distro.New(distro.Alpine, "3.18", ""), version: "1.0-r0", format: version.ApkFormat, cpeOnly: true},
 		{name: "dpkg", matcher: dpkg.NewDpkgMatcher(dpkg.MatcherConfig{UseCPEs: true}), pkgType: syftPkg.DebPkg, distro: distro.New(distro.Debian, "12", ""), version: "1.0-1", format: version.DebFormat},
 		{name: "dpkg ubuntu esm", matcher: dpkg.NewDpkgMatcher(dpkg.MatcherConfig{}), pkgType: syftPkg.DebPkg, distro: distro.New(distro.Ubuntu, "16.04+esm", ""), version: "1.0-1", format: version.DebFormat},
 		{name: "rpm", matcher: rpm.NewRpmMatcher(rpm.MatcherConfig{UseCPEs: true}), pkgType: syftPkg.RpmPkg, distro: distro.New(distro.RedHat, "9", ""), version: "1.0-1.el9", format: version.RpmFormat},
@@ -96,6 +109,7 @@ func TestMatchers_MarkEveryUpstreamSearch(t *testing.T) {
 					PackageName: binary,
 					Constraint:  version.MustGetConstraint("< 99", tt.format),
 				},
+				cpeOnly: tt.cpeOnly,
 			}
 
 			_, _, err := tt.matcher.Match(vp, p)
