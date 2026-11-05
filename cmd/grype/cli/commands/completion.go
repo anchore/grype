@@ -68,6 +68,31 @@ $ grype completion fish > ~/.config/fish/completions/grype.fish
 	}
 }
 
+// targetSchemePrefixes is the set of scheme prefixes documented in the root command's long help text.
+// Each entry includes the trailing ":" so that completion produces a value the user can keep typing
+// after without having to add the separator themselves.
+var targetSchemePrefixes = []string{
+	"docker:",
+	"podman:",
+	"docker-archive:",
+	"oci-archive:",
+	"oci-dir:",
+	"singularity:",
+	"registry:",
+	"dir:",
+	"file:",
+	"sbom:",
+	"purl:",
+	"cpes:",
+}
+
+// imageSchemePrefixes is the subset of scheme prefixes for which we can usefully enumerate local
+// Docker daemon images (the docker SDK speaks to both Docker and Podman daemons via DOCKER_HOST).
+var imageSchemePrefixes = []string{
+	"docker:",
+	"podman:",
+}
+
 func listLocalDockerImages(prefix string) ([]string, error) {
 	var repoTags = make([]string, 0)
 	ctx := context.Background()
@@ -95,14 +120,75 @@ func listLocalDockerImages(prefix string) ([]string, error) {
 	return repoTags, nil
 }
 
+// schemePrefixCompletions returns the subset of known scheme prefixes that begin with toComplete.
+// When the user has typed nothing yet, all known prefixes are returned.
+func schemePrefixCompletions(toComplete string) []string {
+	matches := make([]string, 0, len(targetSchemePrefixes))
+	for _, p := range targetSchemePrefixes {
+		if strings.HasPrefix(p, toComplete) {
+			matches = append(matches, p)
+		}
+	}
+	return matches
+}
+
+// hasImageScheme reports whether toComplete starts with a scheme that we can enumerate via the
+// local container daemon.
+func hasImageScheme(toComplete string) (string, bool) {
+	for _, p := range imageSchemePrefixes {
+		if strings.HasPrefix(toComplete, p) {
+			return p, true
+		}
+	}
+	return "", false
+}
+
+// hasAnyTargetScheme reports whether toComplete starts with any known scheme prefix.
+func hasAnyTargetScheme(toComplete string) bool {
+	for _, p := range targetSchemePrefixes {
+		if strings.HasPrefix(toComplete, p) {
+			return true
+		}
+	}
+	return false
+}
+
 func dockerImageValidArgsFunction(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	// Since we use ValidArgsFunction, Cobra will call this AFTER having parsed all flags and arguments provided.
-	// When the docker daemon is unavailable (or has no images), fall through to the shell's default behavior so
-	// that subcommand completions and filename completion still work — returning ShellCompDirectiveError here
-	// causes shells (notably zsh) to discard all completions, including the auto-generated subcommand list.
-	dockerImageRepoTags, err := listLocalDockerImages(toComplete)
-	if err != nil || len(dockerImageRepoTags) == 0 {
+	// The scan target argument can be an image name (the historical default), or any of the documented scheme
+	// prefixes (registry:, dir:, file:, oci-archive:, ...). We suggest scheme prefixes when the partial input
+	// either matches a prefix or is empty, and we enumerate local container images when the input is plain or
+	// uses a daemon-backed scheme. For file- and dir-based schemes we fall through to the shell's default
+	// completion so it can expand paths after the colon.
+	if scheme, ok := hasImageScheme(toComplete); ok {
+		// strip the scheme to query the daemon, then re-attach the scheme to each suggestion
+		stripped := strings.TrimPrefix(toComplete, scheme)
+		tags, err := listLocalDockerImages(stripped)
+		if err != nil || len(tags) == 0 {
+			return nil, cobra.ShellCompDirectiveDefault
+		}
+		out := make([]string, 0, len(tags))
+		for _, t := range tags {
+			out = append(out, scheme+t)
+		}
+		return out, cobra.ShellCompDirectiveDefault
+	}
+
+	if hasAnyTargetScheme(toComplete) {
+		// a non-image scheme is in play (sbom:, dir:, file:, ...); let the shell complete the path
 		return nil, cobra.ShellCompDirectiveDefault
 	}
-	return dockerImageRepoTags, cobra.ShellCompDirectiveDefault
+
+	// no scheme typed yet: offer scheme prefixes plus the historical docker-image suggestions. We use
+	// ShellCompDirectiveNoSpace so that "dir:" can be followed by a path without the shell jumping to
+	// a new token, and ShellCompDirectiveDefault so the shell still offers filename completion when
+	// the user ignores our suggestions.
+	completions := schemePrefixCompletions(toComplete)
+	if tags, err := listLocalDockerImages(toComplete); err == nil {
+		completions = append(completions, tags...)
+	}
+	if len(completions) == 0 {
+		return nil, cobra.ShellCompDirectiveDefault
+	}
+	return completions, cobra.ShellCompDirectiveNoSpace | cobra.ShellCompDirectiveDefault
 }
