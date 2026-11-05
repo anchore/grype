@@ -6,6 +6,7 @@ import (
 	"os"
 	"reflect"
 	"text/template"
+	"text/template/parse"
 
 	"github.com/Masterminds/sprig/v3"
 
@@ -46,6 +47,16 @@ func (pres *Presenter) Present(output io.Writer) error {
 	tmpl, err := template.New(templateName).Funcs(FuncMap).Parse(string(templateContents))
 	if err != nil {
 		return fmt.Errorf("unable to parse template: %w", err)
+	}
+	hasAction := false
+	for _, node := range tmpl.Tree.Root.Nodes {
+		if _, ok := node.(*parse.TextNode); !ok {
+			hasAction = true
+			break
+		}
+	}
+	if !hasAction {
+		return fmt.Errorf("output template %q must contain a template action", expandedPathToTemplateFile)
 	}
 
 	err = tmpl.Execute(output, pres.document)
