@@ -81,9 +81,9 @@ func SetupConfig(id clio.Identification) *clio.SetupConfig {
 			stereoscope.Cleanup() //nolint:staticcheck
 		}).
 		WithMapExitCode(func(err error) int {
-			// return exit code 2 to indicate when a vulnerability severity is discovered
-			// that is equal or above the given --fail-on severity value.
-			if errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
+			// return exit code 2 to indicate when a vulnerability is discovered with a severity
+			// or risk score that is equal or above the given --fail-on value.
+			if errors.Is(err, grypeerr.ErrAboveSeverityThreshold) || errors.Is(err, grypeerr.ErrAboveRiskThreshold) {
 				return 2
 			}
 			// return exit code 100 to indicate a DB upgrade is available (cmd: db check).
