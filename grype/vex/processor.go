@@ -30,6 +30,10 @@ type vexProcessorImplementation interface {
 	// adds new results to the scanner results when the product is marked as
 	// affected in the VEX data.
 	AugmentMatches(any, []match.IgnoreRule, *pkg.Context, *match.Matches, []match.IgnoredMatch) (*match.Matches, []match.IgnoredMatch, error)
+
+	// MatchesWithoutStatement returns the matches that the underlying VEX data has no statement about (of any
+	// status) for the match's vulnerability and the scanned product or matched package.
+	MatchesWithoutStatement(any, *pkg.Context, *match.Matches) ([]match.Match, error)
 }
 
 // getVexImplementation this function returns the vex processor implementation
@@ -109,6 +113,26 @@ func (vm *Processor) ApplyVEX(pkgContext *pkg.Context, remainingMatches *match.M
 	}
 
 	return remainingMatches, ignoredMatches, nil
+}
+
+// MatchesWithoutStatement returns the matches that none of the VEX documents specified in the grype invocation make
+// a statement about. When no VEX documents were specified, every match is returned.
+func (vm *Processor) MatchesWithoutStatement(pkgContext *pkg.Context, matches *match.Matches) ([]match.Match, error) {
+	if len(vm.Options.Documents) == 0 {
+		return matches.Sorted(), nil
+	}
+
+	rawVexData, err := vm.impl.ReadVexDocuments(vm.Options.Documents)
+	if err != nil {
+		return nil, fmt.Errorf("parsing vex document: %w", err)
+	}
+
+	unstated, err := vm.impl.MatchesWithoutStatement(rawVexData, pkgContext, matches)
+	if err != nil {
+		return nil, fmt.Errorf("checking matches for VEX statements: %w", err)
+	}
+
+	return unstated, nil
 }
 
 // extractVexRules is a utility function that takes a set of ignore rules and

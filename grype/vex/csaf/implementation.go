@@ -155,6 +155,23 @@ func (*Processor) AugmentMatches(
 	return matches, remainingIgnoredMatches, nil
 }
 
+// MatchesWithoutStatement returns the matches that no CSAF advisory has a product status for, regardless of the
+// status, for the match's vulnerability and package URL.
+func (*Processor) MatchesWithoutStatement(docRaw any, _ *pkg.Context, matches *match.Matches) ([]match.Match, error) {
+	advisories, ok := docRaw.(advisories)
+	if !ok {
+		return nil, errors.New("unable to cast vex document as CSAF Advisories")
+	}
+
+	var unstated []match.Match
+	for _, m := range matches.Sorted() {
+		if advisories.matches(m.Vulnerability.ID, m.Package.PURL) == nil {
+			unstated = append(unstated, m)
+		}
+	}
+	return unstated, nil
+}
+
 // matchingRule cycles through a set of ignore rules and returns the first
 // one that matches the statement and the match. Returns nil if none match.
 func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, advMatch *advisoryMatch, allowedStatuses []vexStatus.Status) *match.IgnoreRule {
