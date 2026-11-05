@@ -62,9 +62,13 @@ func (c *simpleRangeExpression) satisfiedWithConfig(format Format, version *Vers
 			var result int
 			var err error
 
-			// Use config-aware comparison for RPM and Deb formats when config is provided
-			if cfg.MissingEpochStrategy != "" && (format == RpmFormat || format == DebFormat) {
-				result, err = compareWithConfig(version, constraintVersion, cfg)
+			// Use config-aware comparison for RPM, Deb and APK formats when config is provided
+			if cfg.hasConfig() && (format == RpmFormat || format == DebFormat || format == ApkFormat) {
+				var comparator Comparator
+				comparator, err = version.getComparator(version.Format)
+				if err == nil {
+					result, err = compareWithConfig(comparator, constraintVersion, cfg)
+				}
 			} else {
 				result, err = version.Compare(constraintVersion)
 			}
@@ -84,25 +88,25 @@ func (c *simpleRangeExpression) satisfiedWithConfig(format Format, version *Vers
 	return oneSatisfied, nil
 }
 
-// compareWithConfig performs a version comparison using the provided configuration.
-// This function extracts the comparator and calls CompareWithConfig if the comparator
-// supports it (RPM and Deb versions).
-func compareWithConfig(version *Version, constraintVersion *Version, cfg ComparisonConfig) (int, error) {
-	comparator, err := version.getComparator(version.Format)
-	if err != nil {
-		return 0, err
-	}
-
-	// Check if the comparator supports config-aware comparison
+// compareWithConfig performs a version comparison using the provided configuration. It calls
+// CompareWithConfig if the comparator supports it (RPM, Deb and APK versions).
+func compareWithConfig(comparator Comparator, other *Version, cfg ComparisonConfig) (int, error) {
 	switch v := comparator.(type) {
 	case rpmVersion:
-		return v.CompareWithConfig(constraintVersion, cfg)
+		if cfg.MissingEpochStrategy != "" {
+			return v.CompareWithConfig(other, cfg)
+		}
 	case debVersion:
-		return v.CompareWithConfig(constraintVersion, cfg)
-	default:
-		// Fall back to regular comparison for other formats
-		return comparator.Compare(constraintVersion)
+		if cfg.MissingEpochStrategy != "" {
+			return v.CompareWithConfig(other, cfg)
+		}
+	case apkVersion:
+		if cfg.MissingApkReleaseStrategy != "" {
+			return v.CompareWithConfig(other, cfg)
+		}
 	}
+	// Fall back to regular comparison for other formats
+	return comparator.Compare(other)
 }
 
 func scanExpression(phrase string) ([][]string, error) {

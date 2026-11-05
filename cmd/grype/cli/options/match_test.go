@@ -128,6 +128,7 @@ func TestMatchConfig_PostLoad(t *testing.T) {
 			cfg: matchConfig{
 				Rpm:  rpmConfig{MissingEpochStrategy: "zero"},
 				Dpkg: dpkgConfig{MissingEpochStrategy: "auto"},
+				Apk:  apkConfig{MissingReleaseStrategy: "zero"},
 			},
 			wantErr: false,
 		},
@@ -148,6 +149,16 @@ func TestMatchConfig_PostLoad(t *testing.T) {
 			},
 			wantErr: true,
 			errMsg:  "dpkg.missing-epoch-strategy",
+		},
+		{
+			name: "invalid apk config",
+			cfg: matchConfig{
+				Rpm:  rpmConfig{MissingEpochStrategy: "zero"},
+				Dpkg: dpkgConfig{MissingEpochStrategy: "zero"},
+				Apk:  apkConfig{MissingReleaseStrategy: "bad"},
+			},
+			wantErr: true,
+			errMsg:  "apk.missing-release-strategy",
 		},
 		{
 			name: "both invalid",
@@ -208,4 +219,31 @@ func TestDefaultMatchConfig(t *testing.T) {
 	// Ensure the entire default config is valid
 	err := cfg.PostLoad()
 	require.NoError(t, err, "default match config should be valid")
+}
+
+func TestApkConfig_PostLoad(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfg     apkConfig
+		wantErr require.ErrorAssertionFunc
+	}{
+		{name: "zero", cfg: apkConfig{MissingReleaseStrategy: "zero"}, wantErr: require.NoError},
+		{name: "auto is not supported", cfg: apkConfig{MissingReleaseStrategy: "auto"}, wantErr: require.Error},
+		{name: "strict", cfg: apkConfig{MissingReleaseStrategy: "strict"}, wantErr: require.NoError},
+		{name: "garbage", cfg: apkConfig{MissingReleaseStrategy: "garbage"}, wantErr: require.Error},
+		{name: "empty", cfg: apkConfig{MissingReleaseStrategy: ""}, wantErr: require.Error},
+		{name: "case sensitive", cfg: apkConfig{MissingReleaseStrategy: "Zero"}, wantErr: require.Error},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.wantErr(t, tt.cfg.PostLoad())
+		})
+	}
+}
+
+func TestDefaultApkConfig(t *testing.T) {
+	cfg := defaultApkConfig()
+	assert.Equal(t, version.MissingApkReleaseStrategyZero, cfg.MissingReleaseStrategy, "default should read a missing release as -r0")
+	require.NoError(t, cfg.PostLoad(), "default config should be valid")
+	assert.Equal(t, cfg, defaultMatchConfig().Apk)
 }

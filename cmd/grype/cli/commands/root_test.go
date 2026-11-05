@@ -14,6 +14,7 @@ import (
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher"
+	"github.com/anchore/grype/grype/matcher/apk"
 	"github.com/anchore/grype/grype/matcher/dotnet"
 	"github.com/anchore/grype/grype/matcher/dpkg"
 	"github.com/anchore/grype/grype/matcher/golang"
@@ -135,6 +136,9 @@ func Test_getMatcherConfig(t *testing.T) {
 				Dpkg: dpkg.MatcherConfig{
 					MissingEpochStrategy: "zero",
 				},
+				Apk: apk.MatcherConfig{
+					MissingReleaseStrategy: "zero",
+				},
 			},
 		},
 		{
@@ -169,6 +173,9 @@ func Test_getMatcherConfig(t *testing.T) {
 				},
 				Dpkg: dpkg.MatcherConfig{
 					MissingEpochStrategy: "zero",
+				},
+				Apk: apk.MatcherConfig{
+					MissingReleaseStrategy: "zero",
 				},
 			},
 		},
@@ -205,6 +212,9 @@ func Test_getMatcherConfig(t *testing.T) {
 				Dpkg: dpkg.MatcherConfig{
 					MissingEpochStrategy: "auto",
 				},
+				Apk: apk.MatcherConfig{
+					MissingReleaseStrategy: "zero",
+				},
 			},
 		},
 		{
@@ -240,6 +250,47 @@ func Test_getMatcherConfig(t *testing.T) {
 				},
 				Dpkg: dpkg.MatcherConfig{
 					MissingEpochStrategy: "zero",
+				},
+				Apk: apk.MatcherConfig{
+					MissingReleaseStrategy: "zero",
+				},
+			},
+		},
+		{
+			name: "apk missing-release-strategy set to strict",
+			opts: func() *options.Grype {
+				opts := options.DefaultGrype(clio.Identification{Name: "test", Version: "1.0"})
+				opts.Match.Apk.MissingReleaseStrategy = "strict"
+				return opts
+			}(),
+			want: matcher.Config{
+				Java: java.MatcherConfig{
+					ExternalSearchConfig: java.ExternalSearchConfig{
+						SearchMavenUpstream: false,
+						MavenBaseURL:        "https://search.maven.org/solrsearch/select",
+						MavenRateLimit:      300000000,
+					},
+					UseCPEs: false,
+				},
+				Ruby:       ruby.MatcherConfig{},
+				Python:     python.MatcherConfig{},
+				Dotnet:     dotnet.MatcherConfig{},
+				Javascript: javascript.MatcherConfig{},
+				Golang: golang.MatcherConfig{
+					UseCPEs:                                false,
+					AlwaysUseCPEForStdlib:                  false,
+					AllowMainModulePseudoVersionComparison: false,
+				},
+				Hex:   hex.MatcherConfig{},
+				Stock: stock.MatcherConfig{UseCPEs: true},
+				Rpm: rpm.MatcherConfig{
+					MissingEpochStrategy: "auto",
+				},
+				Dpkg: dpkg.MatcherConfig{
+					MissingEpochStrategy: "zero",
+				},
+				Apk: apk.MatcherConfig{
+					MissingReleaseStrategy: "strict",
 				},
 			},
 		},

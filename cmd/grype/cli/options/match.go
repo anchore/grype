@@ -21,6 +21,7 @@ type matchConfig struct {
 	Stock      matcherConfig `yaml:"stock" json:"stock" mapstructure:"stock"`                // settings for the default/stock matcher
 	Dpkg       dpkgConfig    `yaml:"dpkg" json:"dpkg" mapstructure:"dpkg"`                   // settings for the dpkg matcher
 	Rpm        rpmConfig     `yaml:"rpm" json:"rpm" mapstructure:"rpm"`                      // settings for the rpm matcher
+	Apk        apkConfig     `yaml:"apk" json:"apk" mapstructure:"apk"`                      // settings for the apk matcher
 }
 
 var _ interface {
@@ -88,6 +89,34 @@ type rpmConfig struct {
 	UseCPEsForEOL        bool                         `yaml:"use-cpes-for-eol" json:"use-cpes-for-eol" mapstructure:"use-cpes-for-eol"` // if CPEs should be used for EOL distro packages
 }
 
+// apkConfig contains configuration for the apk matcher.
+type apkConfig struct {
+	// MissingReleaseStrategy controls how apk package versions without a "-rN" release suffix are
+	// handled during vulnerability matching.
+	//
+	// Valid values:
+	//   - "zero" (default): Treat a missing release as "-r0"
+	//   - "strict": Compare as apk-tools does, where a bare version sorts below "-r0"
+	//
+	// Every built apk carries a release suffix, so a bare version means the SBOM or purl author
+	// dropped it. The "zero" strategy reads it as the first build of that upstream version, which is
+	// how Alpine and Wolfi package an upstream security release.
+	//
+	// Example:
+	//   Package version: 3.6.3 (no release)
+	//   Constraint: < 3.6.3-r0
+	//
+	//   With "zero":   Treat package as 3.6.3-r0 → NO MATCH
+	//   With "strict": 3.6.3 < 3.6.3-r0 → MATCH
+	MissingReleaseStrategy version.MissingApkReleaseStrategy `yaml:"missing-release-strategy" json:"missing-release-strategy" mapstructure:"missing-release-strategy"`
+}
+
+func defaultApkConfig() apkConfig {
+	return apkConfig{
+		MissingReleaseStrategy: version.MissingApkReleaseStrategyZero,
+	}
+}
+
 func defaultGolangConfig() golangConfig {
 	return golangConfig{
 		matcherConfig: matcherConfig{
@@ -130,6 +159,7 @@ func defaultMatchConfig() matchConfig {
 		Stock:      useCpe,
 		Dpkg:       defaultDpkgConfig(),
 		Rpm:        defaultRpmConfig(),
+		Apk:        defaultApkConfig(),
 	}
 }
 
@@ -138,6 +168,9 @@ func (cfg *matchConfig) PostLoad() error {
 		return err
 	}
 	if err := cfg.Dpkg.PostLoad(); err != nil {
+		return err
+	}
+	if err := cfg.Apk.PostLoad(); err != nil {
 		return err
 	}
 	return nil
@@ -161,6 +194,16 @@ func (cfg *dpkgConfig) PostLoad() error {
 	return nil
 }
 
+// PostLoad validates the apk configuration.
+func (cfg *apkConfig) PostLoad() error {
+	switch cfg.MissingReleaseStrategy {
+	case version.MissingApkReleaseStrategyZero, version.MissingApkReleaseStrategyStrict:
+		return nil
+	}
+	return fmt.Errorf("invalid apk.missing-release-strategy: %q (allowable: %s, %s)",
+		cfg.MissingReleaseStrategy, version.MissingApkReleaseStrategyZero, version.MissingApkReleaseStrategyStrict)
+}
+
 func (cfg *matchConfig) DescribeFields(descriptions clio.FieldDescriptionSet) {
 	usingCpeDescription := `use CPE matching to find vulnerabilities`
 	descriptions.Add(&cfg.Java.UseCPEs, usingCpeDescription)
@@ -180,6 +223,8 @@ func (cfg *matchConfig) DescribeFields(descriptions clio.FieldDescriptionSet) {
 		`strategy for handling missing epochs in dpkg package versions during matching (options: zero, auto)`)
 	descriptions.Add(&cfg.Rpm.MissingEpochStrategy,
 		`strategy for handling missing epochs in RPM package versions during matching (options: zero, auto)`)
+	descriptions.Add(&cfg.Apk.MissingReleaseStrategy,
+		`strategy for handling a missing "-rN" release suffix in apk package versions during matching (options: zero, strict)`)
 
 	eolCpeDescription := `use CPE matching for packages from end-of-life distributions`
 	descriptions.Add(&cfg.Dpkg.UseCPEsForEOL, eolCpeDescription)
