@@ -49,16 +49,17 @@ func (p *Presenter) Present(output io.Writer) error {
 	// a consistent cyclondx BOM across syft and grype
 	cyclonedxBOM := cyclonedxhelpers.ToFormatModel(*p.sbom)
 
-	// empty the tool metadata and add grype metadata
-	cyclonedxBOM.Metadata.Tools = &cyclonedx.ToolsChoice{
-		Components: &[]cyclonedx.Component{
-			{
-				Type:    cyclonedx.ComponentTypeApplication,
-				Author:  "anchore",
-				Name:    p.id.Name,
-				Version: p.id.Version,
-			},
-		},
+	grypeTool := cyclonedx.Component{
+		Type:    cyclonedx.ComponentTypeApplication,
+		Author:  "anchore",
+		Name:    p.id.Name,
+		Version: p.id.Version,
+	}
+	tools := cyclonedxBOM.Metadata.Tools.Components
+	if len(*tools) == 0 || (*tools)[0].Name == "" {
+		*tools = []cyclonedx.Component{grypeTool}
+	} else if (*tools)[0].Name != grypeTool.Name || (*tools)[0].Version != grypeTool.Version {
+		*tools = append(*tools, grypeTool)
 	}
 
 	vulns := make([]cyclonedx.Vulnerability, 0)

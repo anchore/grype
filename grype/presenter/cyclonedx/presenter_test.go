@@ -15,6 +15,8 @@ import (
 	"github.com/anchore/grype/grype/presenter/models"
 	"github.com/anchore/grype/internal/testutils"
 	"github.com/anchore/syft/syft/file"
+	"github.com/anchore/syft/syft/format/common/cyclonedxhelpers"
+	"github.com/anchore/syft/syft/format/cyclonedxjson"
 	"github.com/anchore/syft/syft/sbom"
 )
 
@@ -148,6 +150,56 @@ func Test_noTypedNils(t *testing.T) {
 	err := p.Present(&contents)
 	require.NoError(t, err)
 	require.NotContains(t, contents.String(), "null")
+}
+
+func TestCycloneDXPreservesInputTool(t *testing.T) {
+	pb := internal.GeneratePresenterConfig(t, internal.DirectorySource)
+	pb.SBOM.Descriptor = sbom.Descriptor{Name: "syft", Version: "1.52.0"}
+
+	var input bytes.Buffer
+	require.NoError(t, cyclonedxlib.NewBOMEncoder(&input, cyclonedxlib.BOMFileFormatJSON).Encode(cyclonedxhelpers.ToFormatModel(*pb.SBOM)))
+	decoded, _, _, err := cyclonedxjson.NewFormatDecoder().Decode(&input)
+	require.NoError(t, err)
+	pb.SBOM = decoded
+
+	var output bytes.Buffer
+	require.NoError(t, NewJSONPresenter(pb).Present(&output))
+
+	var bom cyclonedxlib.BOM
+	require.NoError(t, cyclonedxlib.NewBOMDecoder(&output, cyclonedxlib.BOMFileFormatJSON).Decode(&bom))
+	require.NotNil(t, bom.Metadata)
+	require.NotNil(t, bom.Metadata.Tools)
+	require.NotNil(t, bom.Metadata.Tools.Components)
+	require.Len(t, *bom.Metadata.Tools.Components, 2)
+	require.Equal(t, []string{"syft", pb.ID.Name}, []string{
+		(*bom.Metadata.Tools.Components)[0].Name,
+		(*bom.Metadata.Tools.Components)[1].Name,
+	})
+	require.Equal(t, []string{"1.52.0", pb.ID.Version}, []string{
+		(*bom.Metadata.Tools.Components)[0].Version,
+		(*bom.Metadata.Tools.Components)[1].Version,
+	})
+}
+
+func TestCycloneDXDoesNotDuplicateInputTool(t *testing.T) {
+	pb := internal.GeneratePresenterConfig(t, internal.DirectorySource)
+
+	var input bytes.Buffer
+	require.NoError(t, NewJSONPresenter(pb).Present(&input))
+	decoded, _, _, err := cyclonedxjson.NewFormatDecoder().Decode(&input)
+	require.NoError(t, err)
+	pb.SBOM = decoded
+
+	var output bytes.Buffer
+	require.NoError(t, NewJSONPresenter(pb).Present(&output))
+
+	var bom cyclonedxlib.BOM
+	require.NoError(t, cyclonedxlib.NewBOMDecoder(&output, cyclonedxlib.BOMFileFormatJSON).Decode(&bom))
+	require.NotNil(t, bom.Metadata)
+	require.NotNil(t, bom.Metadata.Tools)
+	require.NotNil(t, bom.Metadata.Tools.Components)
+	require.Len(t, *bom.Metadata.Tools.Components, 1)
+	require.Equal(t, pb.ID.Name, (*bom.Metadata.Tools.Components)[0].Name)
 }
 
 func TestCycloneDxPresenterImage(t *testing.T) {
