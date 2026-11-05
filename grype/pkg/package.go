@@ -254,6 +254,25 @@ func excludePackage(p *Package, parent *Package) bool {
 	// python      3.9.2      binary
 	// python3.9   3.9.2-1    deb
 
+	comprehensiveDistroOwner := distroFeedIsComprehensive(parent.Distro) && isOSPackage(parent)
+
+	// The Go standard library carries the toolchain's own version string
+	// ("go1.22.5") rather than the distro package's ("1.22.5-1.azl3"), so the
+	// version-similarity check below never recognizes the duplicate it is. The
+	// distro's Go package is the authoritative representation of that standard
+	// library and a comprehensive feed tracks it, so the module can go.
+	//
+	// The exclusion stops at the toolchain on purpose. Extending it to a
+	// package's own main module - the containerd package owning
+	// github.com/containerd/containerd - cannot be told apart from a
+	// third-party package owning its own module, such as a vault package
+	// owning github.com/hashicorp/vault, whose vulnerabilities the distro feed
+	// does not track. Separating the two needs package-origin provenance,
+	// which is not available here yet.
+	if comprehensiveDistroOwner && p.Type == syftPkg.GoModulePkg && isDistroToolchainStdlib(p.Name, parent.Name) {
+		return true
+	}
+
 	// If the version is not approximately the same, keep both
 	if !strings.HasPrefix(parent.Version, p.Version) && !strings.HasPrefix(p.Version, parent.Version) {
 		return false
@@ -263,7 +282,7 @@ func excludePackage(p *Package, parent *Package) bool {
 	// for distros that have a comprehensive feed. That is, distros that list
 	// vulnerabilities that aren't fixed. Otherwise, the child package might
 	// be needed for matching.
-	if distroFeedIsComprehensive(parent.Distro) && isOSPackage(parent) && !isOSPackage(p) {
+	if comprehensiveDistroOwner && !isOSPackage(p) {
 		return true
 	}
 
@@ -313,6 +332,18 @@ var comprehensiveDistros = []distro.Type{
 	distro.RedHat,
 	distro.SLES,
 	distro.Ubuntu,
+}
+
+// isDistroToolchainStdlib indicates whether a Go module found within an OS
+// package's files is the standard library shipped by that distro's own Go
+// toolchain package, which is the one case where the distro package is
+// unambiguously the authoritative representation of the module.
+func isDistroToolchainStdlib(modulePath, packageName string) bool {
+	if modulePath != "stdlib" {
+		return false
+	}
+
+	return strings.EqualFold(packageName, "go") || strings.EqualFold(packageName, "golang")
 }
 
 func isOSPackage(p *Package) bool {
