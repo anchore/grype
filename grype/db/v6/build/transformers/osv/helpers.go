@@ -82,7 +82,13 @@ func eventsToRanges(events []osvmodel.Event, fixes map[string]db.FixAvailability
 		if constraint == "" {
 			constraint = c
 		} else {
-			constraint = versionutil.AndConstraints(constraint, c)
+			// comma, not space: grype's range expression parser only splits AND clauses on
+			// commas, and a space-joined ">= 1.00 < 1.35" fails to parse for every format
+			// that does not go through EnforceSemVerConstraint below (cpan, apk). The
+			// constraint then matches nothing, silently, so any window opened by a non-zero
+			// `introduced` disappears. Semver-ish formats are unaffected either way, since
+			// EnforceSemVerConstraint re-joins on commas regardless of the input separator.
+			constraint = strings.Join([]string{constraint, c}, ", ")
 		}
 	}
 	emit := func(fix *db.Fix) {

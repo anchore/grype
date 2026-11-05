@@ -1,0 +1,64 @@
+{
+  "identifier": "cpansa-cgi-session-2026-56016",
+  "item": {
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "CPAN",
+          "name": "CGI-Session"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2026-07-01",
+                    "kind": "advisory",
+                    "version": "4.49"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "4.49"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      }
+    ],
+    "aliases": [
+      "CVE-2026-56016"
+    ],
+    "database_specific": {
+      "cpansa_commit": "2089ff7201b44e5e462742a5baaa080ba003d257",
+      "cpansa_generated": "Sun Jul 26 06:23:50 2026"
+    },
+    "details": "CGI::Session::ID::md5 versions before 4.49 for Perl generate predictable session ids from low-entropy sources.  The generate_id method builds the session id from a MD5 digest of the process id, the epoch time, and the built-in rand() function. All three are predictable, low-entropy sources: the PID is drawn from a small range, the epoch time can be guessed or read from the HTTP Date header, and Perl's rand() is unsuitable for security purposes because it is predictable and reversible.  An attacker who predicts a session id can impersonate the corresponding session and bypass authentication.",
+    "id": "CPANSA-CGI-Session-2026-56016",
+    "modified": "2026-07-26T06:23:50Z",
+    "published": "2026-07-01T00:00:00Z",
+    "references": [
+      {
+        "type": "WEB",
+        "url": "https://metacpan.org/release/MARKSTOS/CGI-Session-4.49/changes"
+      },
+      {
+        "type": "WEB",
+        "url": "https://metacpan.org/release/MARKSTOS/CGI-Session-4.49/source/lib/CGI/Session/ID/md5.pm"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.openwall.com/lists/oss-security/2026/07/01/6"
+      }
+    ],
+    "schema_version": "1.6.1"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.1.json"
+}
