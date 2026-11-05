@@ -57,10 +57,50 @@ func TestPacmanVersionCompare(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			// libalpm's final showdown: a remaining alpha tail sorts below the
+			// release it belongs to (it is a pre-release)
 			name:    "alpha vs release",
 			v1:      "1.0.0alpha",
 			v2:      "1.0.0",
+			want:    -1,
+			wantErr: false,
+		},
+		{
+			// AVG-1348: tensorflow 2.4.0rc4-2 is affected, fixed in 2.4.0-1
+			name:    "release candidate sorts below the release",
+			v1:      "2.4.0rc4-2",
+			v2:      "2.4.0-1",
+			want:    -1,
+			wantErr: false,
+		},
+		{
+			name:    "release sorts above its release candidate",
+			v1:      "2.4.0",
+			v2:      "2.4.0rc4",
 			want:    1,
+			wantErr: false,
+		},
+		{
+			// a tail that starts with a separator is still newer, only a tail
+			// that starts with the letters themselves loses
+			name:    "dot separated alpha segment is newer",
+			v1:      "1.5.a",
+			v2:      "1.5",
+			want:    1,
+			wantErr: false,
+		},
+		{
+			name:    "digit tail is newer",
+			v1:      "1.5.2",
+			v2:      "1.5",
+			want:    1,
+			wantErr: false,
+		},
+		{
+			name:    "alpha suffix directly after a segment is older",
+			v1:      "1.5a",
+			v2:      "1.5",
+			want:    -1,
 			wantErr: false,
 		},
 		{
