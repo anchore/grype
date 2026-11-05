@@ -24,6 +24,7 @@ type maven struct {
 	SearchUpstreamBySha1 bool          `yaml:"search-upstream" json:"searchUpstreamBySha1" mapstructure:"search-maven-upstream"`
 	BaseURL              string        `yaml:"base-url" json:"baseUrl" mapstructure:"base-url"`
 	RateLimit            time.Duration `yaml:"rate-limit" json:"rateLimit" mapstructure:"rate-limit"`
+	Timeout              time.Duration `yaml:"timeout" json:"timeout" mapstructure:"timeout"`
 }
 
 func defaultExternalSources() externalSources {
@@ -32,6 +33,7 @@ func defaultExternalSources() externalSources {
 			SearchUpstreamBySha1: true,
 			BaseURL:              defaultMavenBaseURL,
 			RateLimit:            300 * time.Millisecond,
+			Timeout:              10 * time.Second,
 		},
 	}
 }
@@ -46,6 +48,7 @@ func (cfg externalSources) ToJavaMatcherConfig() java.ExternalSearchConfig {
 		SearchMavenUpstream: smu,
 		MavenBaseURL:        cfg.Maven.BaseURL,
 		MavenRateLimit:      cfg.Maven.RateLimit,
+		MavenTimeout:        cfg.Maven.Timeout,
 	}
 }
 
@@ -53,4 +56,5 @@ func (cfg *externalSources) DescribeFields(descriptions clio.FieldDescriptionSet
 	descriptions.Add(&cfg.Enable, `enable Grype searching network source for additional information`)
 	descriptions.Add(&cfg.Maven.SearchUpstreamBySha1, `search for Maven artifacts by SHA1`)
 	descriptions.Add(&cfg.Maven.BaseURL, `base URL of the Maven repository to search`)
+	descriptions.Add(&cfg.Maven.Timeout, `per-request timeout for Maven SHA1 lookups; 0 disables the timeout`)
 }
