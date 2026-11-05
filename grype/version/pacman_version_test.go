@@ -60,7 +60,7 @@ func TestPacmanVersionCompare(t *testing.T) {
 			name:    "alpha vs release",
 			v1:      "1.0.0alpha",
 			v2:      "1.0.0",
-			want:    1,
+			want:    -1,
 			wantErr: false,
 		},
 		{
@@ -78,10 +78,10 @@ func TestPacmanVersionCompare(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "tilde version",
+			name:    "tilde is a plain separator",
 			v1:      "1.0.0~rc1",
 			v2:      "1.0.0",
-			want:    -1,
+			want:    1,
 			wantErr: false,
 		},
 		{
@@ -135,6 +135,128 @@ func TestPacmanVersionCompare(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.want, result)
 			}
+		})
+	}
+}
+
+// TestPacmanVersionCompare_Vercmp runs the cases from pacman's own vercmp test suite
+// (test/util/vercmptest.sh), each in both directions as the suite does.
+func TestPacmanVersionCompare_Vercmp(t *testing.T) {
+	tests := []struct {
+		v1   string
+		v2   string
+		want int
+	}{
+		// all similar length, no pkgrel
+		{"1.5.0", "1.5.0", 0},
+		{"1.5.1", "1.5.0", 1},
+		// mixed length
+		{"1.5.1", "1.5", 1},
+		// with pkgrel, simple
+		{"1.5.0-1", "1.5.0-1", 0},
+		{"1.5.0-1", "1.5.0-2", -1},
+		{"1.5.0-1", "1.5.1-1", -1},
+		{"1.5.0-2", "1.5.1-1", -1},
+		// with pkgrel, mixed lengths
+		{"1.5-1", "1.5.1-1", -1},
+		{"1.5-2", "1.5.1-1", -1},
+		{"1.5-2", "1.5.1-2", -1},
+		// mixed pkgrel inclusion
+		{"1.5", "1.5-1", 0},
+		{"1.5-1", "1.5", 0},
+		{"1.1-1", "1.1", 0},
+		{"1.0-1", "1.1", -1},
+		{"1.1-1", "1.0", 1},
+		// alphanumeric versions
+		{"1.5b-1", "1.5-1", -1},
+		{"1.5b", "1.5", -1},
+		{"1.5b-1", "1.5", -1},
+		{"1.5b", "1.5.1", -1},
+		// from the manpage
+		{"1.0a", "1.0alpha", -1},
+		{"1.0alpha", "1.0b", -1},
+		{"1.0b", "1.0beta", -1},
+		{"1.0beta", "1.0rc", -1},
+		{"1.0rc", "1.0", -1},
+		// alpha-dotted versions
+		{"1.5.a", "1.5", 1},
+		{"1.5.b", "1.5.a", 1},
+		{"1.5.1", "1.5.b", 1},
+		// alpha dots and dashes
+		{"1.5.b-1", "1.5.b", 0},
+		{"1.5-1", "1.5.b", -1},
+		// same/similar content, differing separators
+		{"2.0", "2_0", 0},
+		{"2.0_a", "2_0.a", 0},
+		{"2.0a", "2.0.a", -1},
+		{"2___a", "2_a", 1},
+		// epoch included version comparisons
+		{"0:1.0", "0:1.0", 0},
+		{"0:1.0", "0:1.1", -1},
+		{"1:1.0", "0:1.0", 1},
+		{"1:1.0", "0:1.1", 1},
+		{"1:1.0", "2:1.1", -1},
+		// epoch + sometimes present pkgrel
+		{"1:1.0", "0:1.0-1", 1},
+		{"1:1.0-1", "0:1.1-1", 1},
+		// the vercmptest.sh cases with an epoch on only one side are not included:
+		// grype intentionally ignores an epoch that is missing from one of the versions
+	}
+
+	for _, tt := range tests {
+		for _, tc := range []struct {
+			v1, v2 string
+			want   int
+		}{{tt.v1, tt.v2, tt.want}, {tt.v2, tt.v1, -tt.want}} {
+			t.Run(tc.v1+" vs "+tc.v2, func(t *testing.T) {
+				v1, err := newPacmanVersion(tc.v1)
+				assert.NoError(t, err)
+
+				result, err := v1.Compare(New(tc.v2, PacmanFormat))
+				assert.NoError(t, err)
+				assert.Equal(t, tc.want, result)
+			})
+		}
+	}
+}
+
+func TestPacmanVersionConstraint(t *testing.T) {
+	tests := []struct {
+		name       string
+		constraint string
+		version    string
+		satisfied  bool
+	}{
+		{
+			// AVG-1348: tensorflow 2.4.0rc4-2 is affected, fixed in 2.4.0-1
+			name:       "release candidate is before the release",
+			constraint: "< 2.4.0-1",
+			version:    "2.4.0rc4-2",
+			satisfied:  true,
+		},
+		{
+			// AVG-1350: tensorflow 2.3.1-7 is affected, fixed in 2.4.0rc4-1
+			name:       "release is after the release candidate",
+			constraint: "< 2.4.0rc4-1",
+			version:    "2.4.0-1",
+			satisfied:  false,
+		},
+		{
+			name:       "dotted letter suffix is after the release",
+			constraint: "< 1.1.1.w-1",
+			version:    "1.1.1-1",
+			satisfied:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := GetConstraint(tt.constraint, PacmanFormat)
+			assert.NoError(t, err)
+
+			satisfied, err := c.Satisfied(New(tt.version, PacmanFormat))
+			assert.NoError(t, err)
+			assert.Equal(t, tt.satisfied, satisfied)
 		})
 	}
 }
