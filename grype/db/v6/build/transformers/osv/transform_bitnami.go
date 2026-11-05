@@ -1,7 +1,6 @@
 package osv
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 
@@ -35,10 +34,7 @@ func (bitnamiStrategy) Matches(id string) bool {
 }
 
 func (bitnamiStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
-	severities, err := getSeverities(vuln)
-	if err != nil {
-		return nil, fmt.Errorf("unable to obtain severities: %w", err)
-	}
+	severities := getSeverities(vuln)
 
 	in := []any{
 		db.VulnerabilityHandle{

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	"github.com/anchore/grype/grype/db/provider"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
@@ -128,6 +129,7 @@ func runTransformCases(t *testing.T, tests []transformCase) {
 func Test_extractCVSSInfo(t *testing.T) {
 	tests := []struct {
 		name        string
+		cvssType    osvmodel.SeverityType
 		cvss        string
 		wantVersion string
 		wantVector  string
@@ -135,25 +137,56 @@ func Test_extractCVSSInfo(t *testing.T) {
 	}{
 		{
 			name:        "valid cvss",
+			cvssType:    osvmodel.SeverityCVSSV3,
 			cvss:        "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
 			wantVersion: "3.1",
 			wantVector:  "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
 			wantErr:     false,
 		},
 		{
-			name:    "invalid cvss",
-			cvss:    "foo:3.1/bar",
-			wantErr: true,
+			name:     "invalid cvss",
+			cvssType: osvmodel.SeverityCVSSV3,
+			cvss:     "foo:3.1/bar",
+			wantErr:  true,
 		},
 		{
-			name:    "empty cvss",
-			cvss:    "",
-			wantErr: true,
+			name:     "empty cvss",
+			cvssType: osvmodel.SeverityCVSSV3,
+			cvss:     "",
+			wantErr:  true,
 		},
 		{
-			name:    "invalid cvss version",
-			cvss:    "CVSS:foo/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
-			wantErr: true,
+			name:     "invalid cvss version",
+			cvssType: osvmodel.SeverityCVSSV3,
+			cvss:     "CVSS:foo/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+			wantErr:  true,
+		},
+		{
+			// ADV-600: this is a real shape from the live CleanStart feed
+			// (e.g. CLEANSTART-2023-BF94464) -- a CVSSv2 vector with no
+			// "CVSS:2.0/" prefix, which is the conventional, valid way
+			// CVSSv2 (unlike v3/v4) has always been written.
+			name:        "bare CVSSv2 vector, no prefix",
+			cvssType:    osvmodel.SeverityCVSSV2,
+			cvss:        "AV:N/AC:L/Au:N/C:N/I:N/A:P",
+			wantVersion: "2.0",
+			wantVector:  "CVSS:2.0/AV:N/AC:L/Au:N/C:N/I:N/A:P",
+			wantErr:     false,
+		},
+		{
+			// the bare form is only a valid reading for CVSS_V2 -- v3/v4
+			// have always required the prefix, so the same bare string must
+			// not be silently accepted as a v3/v4 vector.
+			name:     "bare vector rejected for CVSS_V3",
+			cvssType: osvmodel.SeverityCVSSV3,
+			cvss:     "AV:N/AC:L/Au:N/C:N/I:N/A:P",
+			wantErr:  true,
+		},
+		{
+			name:     "malformed bare string is still rejected",
+			cvssType: osvmodel.SeverityCVSSV2,
+			cvss:     "not a cvss vector at all",
+			wantErr:  true,
 		},
 	}
 	t.Parallel()
@@ -161,7 +194,7 @@ func Test_extractCVSSInfo(t *testing.T) {
 		test := testToRun
 		t.Run(test.name, func(tt *testing.T) {
 			tt.Parallel()
-			gotVersion, gotVector, err := extractCVSSInfo(test.cvss)
+			gotVersion, gotVector, err := extractCVSSInfo(test.cvssType, test.cvss)
 			if (err != nil) != test.wantErr {
 				tt.Errorf("extractCVSSInfo() error = %v, wantErr %v", err, test.wantErr)
 				return
@@ -174,4 +207,29 @@ func Test_extractCVSSInfo(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Test_getSeverities_SkipsMalformedWithoutAborting is the regression for
+// ADV-600/599: one malformed severity entry (something extractCVSSInfo truly
+// cannot parse, bare-CVSSv2 recovery included) used to make getSeverities
+// return an error, and every strategy's Transform() treated that as fatal for
+// the whole record -- which is what aborted an entire 9,901-record grype-db
+// build over a single advisory. A real malformed shape from the live feed
+// sits alongside a real valid one so the assertion is "the good one survives
+// and the bad one is skipped," not merely "no error."
+func Test_getSeverities_SkipsMalformedWithoutAborting(t *testing.T) {
+	vuln := unmarshal.OSVVulnerability{}
+	vuln.ID = "CLEANSTART-TEST-0001"
+	vuln.Severity = []osvmodel.Severity{
+		{Type: osvmodel.SeverityCVSSV3, Score: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"},
+		{Type: osvmodel.SeverityCVSSV2, Score: "not a cvss vector at all"},
+	}
+
+	// one malformed entry must not fail the whole record
+	got := getSeverities(vuln)
+	require.Len(t, got, 1, "the malformed entry must be skipped, not counted")
+	require.Equal(t, db.SeveritySchemeCVSS, got[0].Scheme)
+	cvss, ok := got[0].Value.(db.CVSSSeverity)
+	require.True(t, ok)
+	require.Equal(t, "3.1", cvss.Version)
 }
