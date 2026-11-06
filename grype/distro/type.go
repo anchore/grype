@@ -38,6 +38,7 @@ const (
 	SecureOS     Type = "secureos"
 	PostmarketOS Type = "postmarketos"
 	Hummingbird  Type = "hummingbird"
+	DHI          Type = "dhi"
 )
 
 // All contains all Linux distribution options
@@ -70,6 +71,7 @@ var All = []Type{
 	SecureOS,
 	PostmarketOS,
 	Hummingbird,
+	DHI,
 }
 
 // IDMapping maps a distro ID from the /etc/os-release (e.g. like "ubuntu") to a Distro type.
@@ -101,6 +103,7 @@ var IDMapping = map[string]Type{
 	"secureos":      SecureOS,
 	"postmarketos":  PostmarketOS,
 	"hummingbird":   Hummingbird,
+	"dhi":           DHI,
 }
 
 // aliasTypes maps common aliases to their corresponding Type.
@@ -108,6 +111,13 @@ var aliasTypes = map[string]Type{
 	"Alpine Linux":     Alpine, // needed for CPE matching (see #2039)
 	"windows":          Windows,
 	"scientific linux": Scientific, // Scientific linux prior to v7 didn't have an os-release file and syft raises up "scientific linux" as the release id as parsed from /etc/redhat-release
+}
+
+// releaseScopedTypes are distributions whose vulnerability data is published per release and never
+// applies to another release of the same major version, so version fallback during matching must be
+// disabled for them (for example DHI 3.25 must not match records published for DHI 3.24).
+var releaseScopedTypes = map[Type]struct{}{
+	DHI: {},
 }
 
 var typeToIDMapping = map[Type]string{}
@@ -154,6 +164,13 @@ func TypeFromRelease(release linux.Release) Type {
 }
 
 // String returns the string representation of the given Linux distribution.
+// IsReleaseScoped reports whether vulnerability records for this distribution apply only to the exact
+// release they were published for.
+func (t Type) IsReleaseScoped() bool {
+	_, ok := releaseScopedTypes[t]
+	return ok
+}
+
 func (t Type) String() string {
 	return string(t)
 }
