@@ -114,7 +114,7 @@ require (
 	github.com/anchore/go-rpmdb v0.2.2 // indirect
 	github.com/anchore/go-struct-converter v0.2.0-rc2 // indirect
 	github.com/anchore/go-sync v0.1.2 // indirect
-	github.com/andybalholm/brotli v1.2.0 // indirect
+	github.com/andybalholm/brotli v1.2.7 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/apparentlymart/go-textseg/v17 v17.0.1 // indirect
 	github.com/aquasecurity/go-version v0.0.1 // indirect
