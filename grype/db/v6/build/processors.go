@@ -35,6 +35,13 @@ func WithInferNVDFixVersions(infer bool) Option {
 	}
 }
 
+// WithCNAIndex gives the NVD transformer CVE 5 data to combine with NVD records. A nil index leaves it off.
+func WithCNAIndex(idx *nvd.Index) Option {
+	return func(cfg *Config) {
+		cfg.NVD.CNA = idx
+	}
+}
+
 func NewConfig(options ...Option) Config {
 	var cfg Config
 	for _, option := range options {
