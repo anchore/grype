@@ -58,6 +58,25 @@ func TestSearchRule_Validate(t *testing.T) { //nolint:funlen // one case per val
 			row:  SearchRule{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchPackageVersion: `.*\.echo.*`, ReplacementDistroName: ptr("echo"), ReplacementDistroVersion: ptr("")},
 		},
 		{
+			name:    "distro label version substitution without a distro name",
+			row:     SearchRule{Action: SearchRuleAdd, MatchEcosystem: "apk", MatchPackageVersion: `.*_alpha.*`, ReplacementDistroLabelVersion: ptr("edge")},
+			wantErr: "must have a distro name substitution or an exact distro name",
+		},
+		{
+			name:    "distro label version substitution on a search of no OS",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "alpine", MatchEcosystem: "apk", ReplacementDistroName: ptr(""), ReplacementDistroLabelVersion: ptr("edge")},
+			wantErr: "searching no OS cannot have a distro label version substitution",
+		},
+		{
+			name: "distro label version substitution alone is a replacement",
+			row:  SearchRule{Action: SearchRuleReplace, MatchDistroName: "alpine", MatchEcosystem: "apk", ReplacementDistroLabelVersion: ptr("edge")},
+		},
+		{
+			name:    "distro label version substitution referencing an unknown group",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "alpine", MatchEcosystem: "apk", ReplacementDistroLabelVersion: ptr("${nope}")},
+			wantErr: "replacement distro label version",
+		},
+		{
 			name:    "a channel substitution with a regex distro name",
 			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: `rapidfort-.*`, MatchEcosystem: "rpm", ReplacementChannel: ptr("rf")},
 			wantErr: "must have an exact distro name",
@@ -302,7 +321,8 @@ func cpeSearch(p pkg.Package) []vulnerability.Criteria {
 
 // searched describes one search a rewrite returns.
 type searched struct {
-	// OS is name@version+channels, empty for the rows of no OS
+	// OS is name@version+channels, or name@version(label)+channels with a label version; empty for the
+	// rows of no OS
 	OS string
 	// Name is the searched name, "cpe:<vendor>:<product>" for a CPE search
 	Name     string
@@ -326,7 +346,11 @@ func searchesOf(searches [][]vulnerability.Criteria) []searched {
 			switch c := c.(type) {
 			case *search.DistroCriteria:
 				d := c.Distros[0]
-				s.OS = d.Name() + "@" + d.Version + "+" + strings.Join(d.Channels, ",")
+				s.OS = d.Name() + "@" + d.Version
+				if d.Codename != "" {
+					s.OS += "(" + d.Codename + ")"
+				}
+				s.OS += "+" + strings.Join(d.Channels, ",")
 			case *search.PackageNameCriteria:
 				s.Name = c.PackageName
 			case *search.CPECriteria:
@@ -509,6 +533,8 @@ func TestVulnerabilityProvider_SearchRewrites_Replacements(t *testing.T) { //nol
 	rfRedhat := *distro.New(distro.RapidFortRedHat, "9.4", "")
 	deb := *distro.New(distro.Debian, "12", "")
 	deb.Channels = []string{"x"}
+	debBookworm := *distro.New(distro.Debian, "12", "bookworm")
+	alp := *distro.New(distro.Alpine, "3.21", "")
 	debEco := syftPkg.DebPkg
 
 	const (
@@ -612,6 +638,36 @@ func TestVulnerabilityProvider_SearchRewrites_Replacements(t *testing.T) { //nol
 			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageVersion: `.*\+deb(?P<v>\d+)u\d+`, ReplacementDistroVersion: ptr("${v}")}},
 			search: nameSearch(searchOf("curl", "7.88.1-10+deb11u5", deb)),
 			want:   []searched{own(debX, "curl"), ruled("debian@11+", "curl", 0)},
+		},
+		{
+			name:   "distro label version: literal, the searched OS version kept",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "debian", MatchEcosystem: "deb", ReplacementDistroLabelVersion: ptr("bookworm")}},
+			search: nameSearch(searchOf("curl", "1.0-1", deb, debEco)),
+			want:   []searched{own(debX, "curl"), ruled("debian@12(bookworm)+", "curl", 0)},
+		},
+		{
+			name:   "distro label version: with an empty version, searches the label alone",
+			rules:  []SearchRule{{Action: SearchRuleReplace, MatchDistroName: "alpine", MatchPackageVersion: `.*_alpha.*`, ReplacementDistroVersion: ptr(""), ReplacementDistroLabelVersion: ptr("edge")}},
+			search: nameSearch(searchOf("busybox", "1.37.0_alpha1-r0", alp)),
+			want:   []searched{ruled("alpine@(edge)+", "busybox", 0)},
+		},
+		{
+			name:   "distro label version: with a distro name, on an ecosystem search",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "apk", MatchPackageVersion: `.*_alpha.*`, ReplacementDistroName: ptr("alpine"), ReplacementDistroLabelVersion: ptr("edge")}},
+			search: nameSearch(searchOf("busybox", "1.37.0_alpha1-r0", syftPkg.ApkPkg)),
+			want:   []searched{own("", "busybox"), ruled("alpine@(edge)+", "busybox", 0)},
+		},
+		{
+			name:   "distro label version: named group",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageVersion: `.*~(?P<label>[a-z]+)\d*`, ReplacementDistroVersion: ptr(""), ReplacementDistroLabelVersion: ptr("${label}")}},
+			search: nameSearch(searchOf("curl", "1.0-1~bookworm1", deb)),
+			want:   []searched{own(debX, "curl"), ruled("debian@(bookworm)+", "curl", 0)},
+		},
+		{
+			name:   "distro label version: empty, drops the searched label",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "debian", MatchEcosystem: "deb", ReplacementDistroLabelVersion: ptr("")}},
+			search: nameSearch(searchOf("curl", "1.0-1", debBookworm, debEco)),
+			want:   []searched{own("debian@12(bookworm)+", "curl"), ruled(debNo, "curl", 0)},
 		},
 		{
 			name:   "distro name and channel together",
@@ -767,15 +823,15 @@ func TestVulnerabilityProvider_SearchRewrites_Package(t *testing.T) { //nolint:f
 		vp := rulesProvider(SearchRule{Action: SearchRuleAdd, MatchDistroName: "ubuntu", MatchDistroVersion: `(?P<code>jammy)`, MatchPackageName: `.*`, ReplacementChannel: ptr("${code}-rf")})
 		ubuntu := *distro.New(distro.Ubuntu, "22.04", "jammy")
 		got := searchesOf(rewrites(vp, pkg.Package{}, nameSearch(searchOf("curl", "", ubuntu))))
-		assert.Contains(t, got, ruled("ubuntu@22.04+jammy-rf", "curl", 0))
+		assert.Contains(t, got, ruled("ubuntu@22.04(jammy)+jammy-rf", "curl", 0))
 	})
 
 	t.Run("a match type reference resolves to the value that matched", func(t *testing.T) {
 		vp := rulesProvider(SearchRule{Action: SearchRuleAdd, MatchDistroName: "ubuntu", MatchDistroVersion: `jammy|22\.04`, MatchPackageName: `.*`, ReplacementChannel: ptr("${distro_version}-rf")})
 		jammy := *distro.New(distro.Ubuntu, "22.04", "jammy")
-		assert.Contains(t, searchesOf(rewrites(vp, pkg.Package{}, nameSearch(searchOf("curl", "", jammy)))), ruled("ubuntu@22.04+22.04-rf", "curl", 0), "the release, tried first")
+		assert.Contains(t, searchesOf(rewrites(vp, pkg.Package{}, nameSearch(searchOf("curl", "", jammy)))), ruled("ubuntu@22.04(jammy)+22.04-rf", "curl", 0), "the release, tried first")
 		vp = rulesProvider(SearchRule{Action: SearchRuleAdd, MatchDistroName: "ubuntu", MatchDistroVersion: `jammy`, MatchPackageName: `.*`, ReplacementChannel: ptr("${distro_version}-rf")})
-		assert.Contains(t, searchesOf(rewrites(vp, pkg.Package{}, nameSearch(searchOf("curl", "", jammy)))), ruled("ubuntu@22.04+jammy-rf", "curl", 0), "the label, when only it matched")
+		assert.Contains(t, searchesOf(rewrites(vp, pkg.Package{}, nameSearch(searchOf("curl", "", jammy)))), ruled("ubuntu@22.04(jammy)+jammy-rf", "curl", 0), "the label, when only it matched")
 	})
 
 	t.Run("every matching rule applies, at its priority", func(t *testing.T) {

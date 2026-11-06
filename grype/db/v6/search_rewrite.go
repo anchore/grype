@@ -263,7 +263,7 @@ func sameOS(a, b distro.Distro) bool {
 }
 
 // String describes the rows the search reads, for logging: its name (at the searched version) or CPE,
-// its OS, and whether it is for an upstream.
+// its OS (name:version(label)+channels), and whether it is for an upstream.
 func (sp searchParts) String() string {
 	var sb strings.Builder
 	switch {
@@ -286,6 +286,9 @@ func (sp searchParts) String() string {
 		sb.WriteString(d.Name())
 		if d.Version != "" {
 			sb.WriteString(":" + d.Version)
+		}
+		if d.Codename != "" {
+			sb.WriteString("(" + d.Codename + ")")
 		}
 		if len(d.Channels) > 0 {
 			sb.WriteString("+" + strings.Join(d.Channels, ","))

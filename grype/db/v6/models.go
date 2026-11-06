@@ -775,6 +775,12 @@ type SearchRule struct {
 	// expansion searches the version-less rows (e.g. a rolling distro's).
 	ReplacementDistroVersion *string `gorm:"column:replacement_distro_version"`
 
+	// ReplacementDistroLabelVersion is the OS label version to search (e.g. "edge" or a codename such as
+	// "bookworm"), and requires a ReplacementDistroName or an exact MatchDistroName. NULL keeps the
+	// searched OS label unless the rule replaces the OS name or version; an empty expansion searches by
+	// the OS version alone.
+	ReplacementDistroLabelVersion *string `gorm:"column:replacement_distro_label_version"`
+
 	// ReplacementPackageName is the name to search
 	ReplacementPackageName string `gorm:"column:replacement_package_name"`
 

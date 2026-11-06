@@ -62,6 +62,7 @@ func (o SearchRule) String() string {
 		{"replacement_channel", o.ReplacementChannel},
 		{"replacement_distro_name", o.ReplacementDistroName},
 		{"replacement_distro_version", o.ReplacementDistroVersion},
+		{"replacement_distro_label_version", o.ReplacementDistroLabelVersion},
 		{"replacement_package_name", setString(o.ReplacementPackageName)},
 		{"replacement_cpe_vendor", setString(o.ReplacementCPEVendor)},
 		{"replacement_cpe_product", setString(o.ReplacementCPEProduct)},
@@ -98,7 +99,7 @@ func (o SearchRule) hasCPEReplacement() bool {
 // hasNameOrOSReplacement is true for a rule that searches another package name and/or OS.
 func (o SearchRule) hasNameOrOSReplacement() bool {
 	return o.ReplacementChannel != nil || o.ReplacementDistroName != nil || o.ReplacementDistroVersion != nil ||
-		o.ReplacementPackageName != ""
+		o.ReplacementDistroLabelVersion != nil || o.ReplacementPackageName != ""
 }
 
 // searchSubject is what one search states about the package it searches for.
@@ -202,12 +203,13 @@ type searchMatch struct {
 	order  int                    // read order, which decides search order
 	byRule vulnerability.Criteria // marks the searches the rule adds
 
-	channel       template
-	distroName    template
-	distroVersion template
-	packageName   template
-	cpeVendor     template
-	cpeProduct    template
+	channel            template
+	distroName         template
+	distroVersion      template
+	distroLabelVersion template
+	packageName        template
+	cpeVendor          template
+	cpeProduct         template
 }
 
 // appliesTo is false for a rule limited to the other kind of search than s (see
@@ -290,6 +292,7 @@ func (m *searchMatch) compileReplacements(names map[string]struct{}) error {
 		{"replacement channel", row.ReplacementChannel, &m.channel},
 		{"replacement distro name", row.ReplacementDistroName, &m.distroName},
 		{"replacement distro version", row.ReplacementDistroVersion, &m.distroVersion},
+		{"replacement distro label version", row.ReplacementDistroLabelVersion, &m.distroLabelVersion},
 		{"replacement package name", &row.ReplacementPackageName, &m.packageName},
 		{"replacement CPE vendor", &row.ReplacementCPEVendor, &m.cpeVendor},
 		{"replacement CPE product", &row.ReplacementCPEProduct, &m.cpeProduct},
@@ -345,8 +348,12 @@ func validateReplacements(row SearchRule, keys indexKeys) error {
 		return fmt.Errorf("search rule with a distro version substitution must have a distro name substitution or an exact distro name")
 	case row.isOSLessSearch() && row.ReplacementChannel != nil:
 		return fmt.Errorf("search rule searching no OS cannot have a channel substitution")
+	case row.ReplacementDistroLabelVersion != nil && row.ReplacementDistroName == nil && keys.distroName == "":
+		return fmt.Errorf("search rule with a distro label version substitution must have a distro name substitution or an exact distro name")
 	case row.isOSLessSearch() && row.ReplacementDistroVersion != nil:
 		return fmt.Errorf("search rule searching no OS cannot have a distro version substitution")
+	case row.isOSLessSearch() && row.ReplacementDistroLabelVersion != nil:
+		return fmt.Errorf("search rule searching no OS cannot have a distro label version substitution")
 	case row.hasCPEReplacement() && row.MatchCPEVendor == "" && row.MatchCPEProduct == "":
 		return fmt.Errorf("search rule with a CPE substitution must have a CPE vendor or product pattern")
 	case row.hasCPEReplacement() && row.hasNameOrOSReplacement():
@@ -499,15 +506,16 @@ func (m matchedRule) expand(t template, s searchSubject) string {
 }
 
 // overlayDistro returns the OS the rule searches instead of the searched one: the searched OS with
-// the rule's channel and/or version, and/or another OS name; ok is false to keep it. osLess is true for
-// a rule searching the rows of no OS. A search with no OS can only gain an OS name, version-less unless
-// the rule names a version.
+// the rule's channel, version and/or label version, and/or another OS name; ok is false to keep it.
+// osLess is true for a rule searching the rows of no OS. A search with no OS can only gain an OS name,
+// version-less and label-less unless the rule names them.
 func (m matchedRule) overlayDistro(s searchSubject) (overlay distro.Distro, ok, osLess bool) {
 	row := m.rule.row
 	if row.isOSLessSearch() {
 		return overlay, false, true
 	}
-	if row.ReplacementChannel == nil && row.ReplacementDistroName == nil && row.ReplacementDistroVersion == nil {
+	if row.ReplacementChannel == nil && row.ReplacementDistroName == nil && row.ReplacementDistroVersion == nil &&
+		row.ReplacementDistroLabelVersion == nil {
 		return overlay, false, false
 	}
 
@@ -519,6 +527,11 @@ func (m matchedRule) overlayDistro(s searchSubject) (overlay distro.Distro, ok, 
 		}
 	}
 
+	var label string
+	if row.ReplacementDistroLabelVersion != nil {
+		label = m.expand(m.rule.distroLabelVersion, s)
+	}
+
 	if s.distro == nil {
 		if name == "" {
 			return overlay, false, false
@@ -527,7 +540,7 @@ func (m matchedRule) overlayDistro(s searchSubject) (overlay distro.Distro, ok, 
 		if row.ReplacementDistroVersion != nil {
 			version = m.expand(m.rule.distroVersion, s)
 		}
-		return *distro.New(distro.TypeFromID(name), version, ""), true, false
+		return *distro.New(distro.TypeFromID(name), version, label), true, false
 	}
 
 	switch {
@@ -543,6 +556,10 @@ func (m matchedRule) overlayDistro(s searchSubject) (overlay distro.Distro, ok, 
 	default:
 		overlay = *s.distro
 		overlay.Channels = nil
+	}
+	if row.ReplacementDistroLabelVersion != nil {
+		// an empty expansion searches by the OS version alone
+		overlay.Codename = label
 	}
 	if row.ReplacementChannel != nil {
 		// an empty expansion selects the channel-less rows
