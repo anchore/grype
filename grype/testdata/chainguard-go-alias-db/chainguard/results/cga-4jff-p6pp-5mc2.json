@@ -1,0 +1,35 @@
+{
+  "identifier": "CGA-4jff-p6pp-5mc2",
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.0.json",
+  "item": {
+    "schema_version": "1.7.0",
+    "id": "CGA-4jff-p6pp-5mc2",
+    "published": "2026-10-01T00:00:00Z",
+    "modified": "2026-10-01T00:00:00Z",
+    "aliases": [
+      "GO-2026-5932"
+    ],
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "Chainguard",
+          "name": "spqr",
+          "purl": "pkg:apk/chainguard/spqr?arch=x86_64"
+        },
+        "ranges": [
+          {
+            "type": "ECOSYSTEM",
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "0"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -569,6 +569,35 @@ func TestMatcherApk_UpstreamCveDedupedByIntroducedZeroAlias(t *testing.T) {
 	})
 }
 
+// TestMatcherApk_GoAliasNakProducesIgnore covers a Chainguard OSV record keyed by a CGA id that links
+// to the Go vulnerability database only through a GO- alias: CGA-4jff-p6pp-5mc2 marks spqr as not
+// affected ("< 0") by GO-2026-5932. A Go module finding on a binary the APK owns carries only the GO
+// id, so the ownership ignores must name GO-2026-5932 as well as the CGA id, or the advisory cannot
+// suppress that finding.
+func TestMatcherApk_GoAliasNakProducesIgnore(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		pkgID := pkg.ID("spqr-pkg")
+		p := dbtest.NewPackage("spqr", "3.1.0-r5", syftPkg.ApkPkg).
+			WithID(pkgID).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("x86_64").
+			Build()
+
+		ignores := db.Match(t, &matcher, p).Ignores()
+		ignores.SelectRelatedPackageIgnores(ignorereasons.DistroNAK,
+			"CGA-4jff-p6pp-5mc2",
+			"GO-2026-5932").
+			ForPackage(pkgID).
+			WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
+		ignores.SelectRelatedPackageIgnores(ignorereasons.DistroFixed,
+			"CGA-4jff-p6pp-5mc2",
+			"GO-2026-5932").
+			ForPackage(pkgID).
+			WithRelationshipType(artifact.OwnershipByFileOverlapRelationship)
+	})
+}
+
 // TestMatcherApk_SelfUpstreamIsRecordedAsIndirect covers an apk whose origin package is itself, which
 // is common (an apk that is its own origin still lists one). The distro feed is searched twice for
 // it, once directly and once as its own upstream, and the upstream pass must record what it finds as
