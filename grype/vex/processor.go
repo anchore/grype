@@ -49,6 +49,13 @@ func getVexImplementation(documents []string) (vexProcessorImplementation, error
 	if csaf.IsCSAF(firstDoc) {
 		return csaf.New(), nil
 	}
+	// a document that declares itself as CSAF but cannot be loaded must not
+	// silently fall through to the OpenVEX processor: go-vex would convert it
+	// but key the statements by CSAF product ID, which never matches a
+	// package, so the document would be silently ignored
+	if csaf.LooksLikeCSAF(firstDoc) {
+		return nil, fmt.Errorf("unable to load CSAF VEX document %q (the CSAF loader rejected it; verify the document against the CSAF 2.0 schema)", firstDoc)
+	}
 	if openvex.IsOpenVex(firstDoc) {
 		return openvex.New(), nil
 	}
