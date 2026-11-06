@@ -757,3 +757,141 @@ func TestFilterMatches_OCIProductWithFullRepositoryURL(t *testing.T) {
 	require.Empty(t, remaining.Sorted(), "match should be suppressed by the repository_url-qualified oci product")
 	require.Len(t, ignored, 1)
 }
+
+func TestFilterMatches_UnderInvestigationWithVexAdd(t *testing.T) {
+	// Regression for https://github.com/anchore/grype/issues/3890.
+	// When vex-add (or an explicit ignore rule) opts into under_investigation,
+	// FilterMatches must suppress matching findings. Without the rule the
+	// finding stays active.
+	processor := New()
+	pkgCtx := &pkg.Context{
+		Source: &source.Description{
+			Name: "alpine",
+			Metadata: source.ImageMetadata{
+				RepoDigests: []string{
+					"alpine@sha256:124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
+				},
+			},
+		},
+	}
+
+	vexDoc := &openvex.VEX{
+		Statements: []openvex.Statement{
+			{
+				Vulnerability: openvex.Vulnerability{Name: "CVE-2023-1255"},
+				Products: []openvex.Product{
+					{
+						Component: openvex.Component{
+							ID: "pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
+						},
+						Subcomponents: []openvex.Subcomponent{
+							{Component: openvex.Component{ID: "pkg:apk/alpine/libcrypto3@3.0.8-r3"}},
+						},
+					},
+				},
+				Status: openvex.StatusUnderInvestigation,
+			},
+		},
+	}
+
+	m := match.Match{
+		Vulnerability: vulnerability.Vulnerability{
+			Reference: vulnerability.Reference{ID: "CVE-2023-1255"},
+		},
+		Package: pkg.Package{
+			ID:   "cc8f90662d91481d",
+			Name: "libcrypto3",
+			PURL: "pkg:apk/alpine/libcrypto3@3.0.8-r3",
+		},
+	}
+
+	t.Run("without opt-in rule match stays active", func(t *testing.T) {
+		matches := match.NewMatches(m)
+		rules := []match.IgnoreRule{
+			{Namespace: "vex", VexStatus: "not_affected"},
+			{Namespace: "vex", VexStatus: "fixed"},
+		}
+		remaining, ignored, err := processor.FilterMatches(vexDoc, rules, pkgCtx, &matches, nil)
+		require.NoError(t, err)
+		require.Len(t, remaining.Sorted(), 1)
+		require.Empty(t, ignored)
+	})
+
+	t.Run("with under_investigation rule match is ignored", func(t *testing.T) {
+		matches := match.NewMatches(m)
+		rules := []match.IgnoreRule{
+			{Namespace: "vex", VexStatus: "not_affected"},
+			{Namespace: "vex", VexStatus: "fixed"},
+			{Namespace: "vex", VexStatus: "under_investigation"},
+		}
+		remaining, ignored, err := processor.FilterMatches(vexDoc, rules, pkgCtx, &matches, nil)
+		require.NoError(t, err)
+		require.Empty(t, remaining.Sorted())
+		require.Len(t, ignored, 1)
+		require.Equal(t, "under_investigation", ignored[0].AppliedIgnoreRules[0].VexStatus)
+	})
+}
+
+func TestAugmentMatches_DoesNotUndoUnderInvestigationFilter(t *testing.T) {
+	// Companion to #3890: after FilterMatches suppresses an under_investigation
+	// finding, AugmentMatches must leave it ignored even though vex-add rules
+	// are also consulted for augmentation.
+	processor := New()
+	pkgCtx := &pkg.Context{
+		Source: &source.Description{
+			Name: "alpine",
+			Metadata: source.ImageMetadata{
+				RepoDigests: []string{
+					"alpine@sha256:124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
+				},
+			},
+		},
+	}
+
+	vexDoc := &openvex.VEX{
+		Statements: []openvex.Statement{
+			{
+				Vulnerability: openvex.Vulnerability{Name: "CVE-2023-1255"},
+				Products: []openvex.Product{
+					{
+						Component: openvex.Component{
+							ID: "pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
+						},
+						Subcomponents: []openvex.Subcomponent{
+							{Component: openvex.Component{ID: "pkg:apk/alpine/libcrypto3@3.0.8-r3"}},
+						},
+					},
+				},
+				Status: openvex.StatusUnderInvestigation,
+			},
+		},
+	}
+
+	m := match.Match{
+		Vulnerability: vulnerability.Vulnerability{
+			Reference: vulnerability.Reference{ID: "CVE-2023-1255"},
+		},
+		Package: pkg.Package{
+			ID:   "cc8f90662d91481d",
+			Name: "libcrypto3",
+			PURL: "pkg:apk/alpine/libcrypto3@3.0.8-r3",
+		},
+	}
+
+	rules := []match.IgnoreRule{
+		{Namespace: "vex", VexStatus: "not_affected"},
+		{Namespace: "vex", VexStatus: "fixed"},
+		{Namespace: "vex", VexStatus: "under_investigation"},
+	}
+
+	matches := match.NewMatches(m)
+	remaining, ignored, err := processor.FilterMatches(vexDoc, rules, pkgCtx, &matches, nil)
+	require.NoError(t, err)
+	require.Empty(t, remaining.Sorted())
+	require.Len(t, ignored, 1)
+
+	remaining, ignored, err = processor.AugmentMatches(vexDoc, rules, pkgCtx, remaining, ignored)
+	require.NoError(t, err)
+	require.Empty(t, remaining.Sorted(), "AugmentMatches must not re-activate a VEX-filtered under_investigation match")
+	require.Len(t, ignored, 1)
+}
