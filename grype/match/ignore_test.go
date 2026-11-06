@@ -1363,3 +1363,10 @@ func TestShouldIgnore(t *testing.T) {
 		})
 	}
 }
+
+func TestIgnoreRule_HasConditions(t *testing.T) {
+	assert.False(t, IgnoreRule{}.HasConditions())
+	assert.False(t, IgnoreRule{VexStatus: string(vulnerability.FixStateFixed), VexJustification: "component_not_present"}.HasConditions())
+	assert.True(t, IgnoreRule{Package: IgnoreRulePackage{Name: "libfoo"}}.HasConditions())
+	assert.True(t, IgnoreRule{FixState: string(vulnerability.FixStateFixed)}.HasConditions())
+}
