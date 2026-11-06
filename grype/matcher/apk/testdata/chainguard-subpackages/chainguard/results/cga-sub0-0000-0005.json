@@ -1,0 +1,53 @@
+{
+  "identifier": "chainguard:rolling/CGA-sub0-0000-0005",
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.0.json",
+  "item": {
+    "schema_version": "1.7.0",
+    "id": "CGA-sub0-0000-0005",
+    "published": "2026-02-24T13:07:08Z",
+    "modified": "2026-02-24T13:07:08Z",
+    "summary": "foo-docs: fixed on the subpackage itself",
+    "severity": [
+      {
+        "type": "CVSS_V3",
+        "score": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N"
+      }
+    ],
+    "upstream": [
+      "CVE-2026-41005"
+    ],
+    "references": [
+      {
+        "type": "ADVISORY",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-41005"
+      }
+    ],
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "Chainguard",
+          "name": "foo-docs",
+          "purl": "pkg:apk/chainguard/foo-docs?arch=x86_64"
+        },
+        "ranges": [
+          {
+            "type": "ECOSYSTEM",
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "1.2.3-r1"
+              }
+            ]
+          }
+        ],
+        "database_specific": {
+          "chainguard": {
+            "applies_to_subpackages": false
+          }
+        }
+      }
+    ]
+  }
+}

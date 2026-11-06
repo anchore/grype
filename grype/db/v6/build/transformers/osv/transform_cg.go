@@ -134,24 +134,51 @@ func cgRangeType(t osvmodel.RangeType) string {
 // DB PackageQualifiers. If the PURL is malformed, empty, or carries no "arch" qualifier,
 // returns nil.
 func cgGetQualifiers(affected osvmodel.Affected) *db.PackageQualifiers {
-	if affected.Package.Purl == "" {
+	var qualifiers db.PackageQualifiers
+	if arch := cgArch(affected); arch != "" {
+		qualifiers.Architecture = &arch
+	}
+	if !cgAppliesToSubpackages(affected) {
+		exclude := true
+		qualifiers.ExcludeFromUpstreamMatching = &exclude
+	}
+	if qualifiers.Architecture == nil && qualifiers.ExcludeFromUpstreamMatching == nil {
 		return nil
+	}
+	return &qualifiers
+}
+
+// cgArch returns the "arch" qualifier from the affected package's PURL, or "" when the PURL is empty,
+// malformed, or carries no arch.
+func cgArch(affected osvmodel.Affected) string {
+	if affected.Package.Purl == "" {
+		return ""
 	}
 	purl, err := packageurl.FromString(affected.Package.Purl)
 	if err != nil {
-		return nil
+		return ""
 	}
 	for _, q := range purl.Qualifiers {
-		// if we have a purl with an "arch" qualifier, we want to pull that out and
-		// store it in the qualifiers for this affected package
 		if q.Key == "arch" && q.Value != "" {
-			arch := q.Value
-			return &db.PackageQualifiers{
-				Architecture: &arch,
-			}
+			return q.Value
 		}
 	}
-	return nil
+	return ""
+}
+
+// cgAppliesToSubpackages reads database_specific.chainguard.applies_to_subpackages. Chainguard publishes
+// one OSV entry per APK, and sets the field to false to say the entry must not be applied to subpackages
+// that name the APK as their origin. Absent or unreadable means true, which keeps today's origin matching.
+func cgAppliesToSubpackages(affected osvmodel.Affected) bool {
+	chainguard, ok := affected.DatabaseSpecific["chainguard"].(map[string]any)
+	if !ok {
+		return true
+	}
+	applies, ok := chainguard["applies_to_subpackages"].(bool)
+	if !ok {
+		return true
+	}
+	return applies
 }
 
 // cgOperatingSystem maps the OSV ecosystem string to a grype DB OperatingSystem row.

@@ -60,7 +60,19 @@ func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to find nvd matches for apk pkg=%q: %w", p.Name, err)
 	}
-	vulnerable = vulnerable.Merge(cpeVulnerable.Remove(vulnerable).Remove(allFixed))
+	unsettled := cpeVulnerable.Remove(vulnerable).Remove(allFixed)
+
+	// entries excluded from upstream matching never reach this package through its upstreams, so they
+	// are not in allFixed. NVD discloses against the upstream's name, though, so when this package has no
+	// entry of its own, an upstream's fix or NAK still settles the NVD match.
+	if len(unsettled) > 0 {
+		upstreamFixed, err := m.upstreamFixedForNVD(vp, p)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to find upstream fixes for apk pkg=%q: %w", p.Name, err)
+		}
+		unsettled = unsettled.Remove(upstreamFixed)
+	}
+	vulnerable = vulnerable.Merge(unsettled)
 
 	// NAK entries never produce matches of their own, only ignores
 	nakIgnores, err := m.nakIgnores(vp, p)
@@ -103,6 +115,32 @@ func (m *Matcher) distroResults(vp vulnerability.Provider, p pkg.Package) (vulne
 	return vulnerable, allFixed, nil
 }
 
+// upstreamFixedForNVD returns the fixed, unaffected and NAK entries of the package's upstreams, including
+// entries excluded from upstream matching. It is used only to settle NVD matches: it never produces matches
+// and never feeds ownership ignores, so an entry scoped to the upstream package cannot hide anything the
+// package's own entries say.
+func (m *Matcher) upstreamFixedForNVD(vp vulnerability.Provider, p pkg.Package) (result.Set, error) {
+	fixed := result.Set{}
+	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
+		_, upstreamFixed, err := internal.FindResultsByDistro(vp, withoutUpstreamSearch(upstreamPkg), &p, m.Type(), nil)
+		if err != nil {
+			return nil, err
+		}
+		fixed = fixed.Merge(upstreamFixed)
+	}
+	return fixed, nil
+}
+
+// withoutUpstreamSearch clears the upstream search marker, so qualifiers that exclude entries from upstream
+// matching treat the copy like a cataloged package.
+func withoutUpstreamSearch(p pkg.Package) pkg.Package {
+	if md, ok := p.Metadata.(pkg.ApkMetadata); ok {
+		md.UpstreamSearch = false
+		p.Metadata = md
+	}
+	return p
+}
+
 // nakIgnores collects explicit NAK ("< 0") entries for the package and its upstreams and returns them
 // as ignore filters. NAK entries never produce matches; they only allow later rules to suppress the
 // same vulnerability on packages that overlap this one by location.
@@ -117,6 +155,7 @@ func (m *Matcher) nakIgnores(vp vulnerability.Provider, p pkg.Package) ([]match.
 		search.ByDistro(*p.Distro),
 		search.ByPackageName(p.Name),
 		nakConstraint,
+		internal.OnlyQualifiedPackages(p),
 	)
 	if err != nil {
 		return nil, err
@@ -127,6 +166,7 @@ func (m *Matcher) nakIgnores(vp vulnerability.Provider, p pkg.Package) ([]match.
 			search.ByDistro(*upstreamPkg.Distro),
 			search.ByPackageName(upstreamPkg.Name),
 			nakConstraint,
+			internal.OnlyQualifiedPackages(upstreamPkg),
 		)
 		if err != nil {
 			return nil, err
