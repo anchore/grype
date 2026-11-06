@@ -50,8 +50,8 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 
 		// alpine family
 		{Alias: "alpine", VersionPattern: `.*_alpha.*`, ReplacementLabelVersion: strRef("edge"), Rolling: true},
-		{Alias: "wolfi", Rolling: true},
-		{Alias: "chainguard", Rolling: true},
+		{Alias: "wolfi", ReplacementMajorVersion: ptr(""), ReplacementMinorVersion: ptr(""), ReplacementLabelVersion: ptr("rolling"), Rolling: false, ApplicableClientDBSchemas: "< 6.1.11"},
+		{Alias: "chainguard", ReplacementMajorVersion: ptr(""), ReplacementMinorVersion: ptr(""), ReplacementLabelVersion: ptr("rolling"), Rolling: false, ApplicableClientDBSchemas: "< 6.1.11"},
 		{Alias: "secureos", Rolling: true},
 
 		// others
@@ -148,6 +148,29 @@ func KnownSearchRules() []SearchRule {
 
 		// rapidfort-alpine data is complete, so its packages are not searched by CPE
 		{Action: SearchRuleDrop, MatchDistroName: rapidfortAlpineDistro, MatchEcosystem: apkEcosystem, MatchCPEProduct: `.*`},
+
+		// for chainguard-osv
+		{Action: SearchRuleDrop,
+			MatchDistroName:     "chainguard",
+			MatchEcosystem:      apkEcosystem,
+			MatchUpstreamSearch: ptr(true)},
+		{Action: SearchRuleReplace,
+			MatchDistroName:               "chainguard",
+			MatchEcosystem:                apkEcosystem,
+			MatchUpstreamSearch:           ptr(false),
+			ReplacementDistroName:         ptr("chainguard"),
+			ReplacementDistroVersion:      ptr(""),
+			ReplacementDistroLabelVersion: ptr("cga")},
+		{Action: SearchRuleDrop, MatchDistroName: "wolfi",
+			MatchEcosystem:      apkEcosystem,
+			MatchUpstreamSearch: ptr(true)},
+		{Action: SearchRuleReplace,
+			MatchDistroName:               "wolfi",
+			MatchEcosystem:                apkEcosystem,
+			MatchUpstreamSearch:           ptr(false),
+			ReplacementDistroName:         ptr("chainguard"),
+			ReplacementDistroVersion:      ptr(""),
+			ReplacementDistroLabelVersion: ptr("cga")},
 	}
 }
 
