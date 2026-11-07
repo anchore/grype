@@ -59,6 +59,11 @@ func TestReflectTypeFromJSONName(t *testing.T) {
 			wantRecord: reflect.TypeFor[pkg.RpmMetadata](),
 		},
 		{
+			name:       "RustMetadata lookup",
+			lookup:     "RustMetadata",
+			wantRecord: reflect.TypeFor[pkg.RustMetadata](),
+		},
+		{
 			name:       "JavaVMInstallationMetadata lookup",
 			lookup:     "JavaVMInstallationMetadata",
 			wantRecord: reflect.TypeFor[pkg.JavaVMInstallationMetadata](),
