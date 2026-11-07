@@ -1,0 +1,61 @@
+{
+  "schema": "1.0.1",
+  "subject": {
+    "image": "ghcr.io/anchore/test-images/archlinux@sha256:a933b27534e5c911e2c660f7090aa497dee763fbbcb214a37207c2320cfedd98",
+    "platform": "linux/amd64"
+  },
+  "labels": [
+    {
+      "package": "pkg:alpm/arch/curl@7.87.0-3",
+      "vulnerability": "AVG-2845",
+      "aliases": [
+        "CVE-2023-38545"
+      ],
+      "verdict": "tp",
+      "author": "williammurphy",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels b5f541d2-2e02-4c64-b35b-3d048ec75013: tp",
+          "author": "williammurphy",
+          "at": "2026-01-08T11:20:18Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-01-08T11:20:18Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:alpm/arch/vim@9.0.1182-1",
+      "vulnerability": "AVG-2843",
+      "aliases": [
+        "CVE-2022-0392"
+      ],
+      "verdict": "tp",
+      "author": "williammurphy",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 1ef4cd8a-8be9-4f83-a7d1-fe71725971ae: tp",
+          "author": "williammurphy",
+          "at": "2026-01-08T11:18:42Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-01-08T11:18:42Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    }
+  ]
+}

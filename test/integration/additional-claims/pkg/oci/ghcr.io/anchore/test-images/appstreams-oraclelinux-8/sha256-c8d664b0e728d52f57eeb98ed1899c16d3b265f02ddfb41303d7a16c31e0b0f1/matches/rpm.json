@@ -1,0 +1,1132 @@
+{
+  "schema": "1.0.1",
+  "subject": {
+    "image": "ghcr.io/anchore/test-images/appstreams-oraclelinux-8@sha256:c8d664b0e728d52f57eeb98ed1899c16d3b265f02ddfb41303d7a16c31e0b0f1",
+    "platform": "linux/amd64"
+  },
+  "labels": [
+    {
+      "package": "pkg:rpm/ol/curl@7.61.1-22.el8_6.4",
+      "vulnerability": "ELSA-2023-2963",
+      "aliases": [
+        "CVE-2022-35252"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 0394bd85-7df6-4aff-b2e6-8b3ab01e17dc: tp. Was CVE-2022-43552. ELSA-2023-2963 fixes curl in 0:7.61.1-30.el8; installed 7.61.1-22.el8_6.4 is older. grype --by-cve reports this advisory as CVE-2022-35252. Evidence: https://linux.oracle.com/errata/ELSA-2023-2963.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:23:01Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:23:01Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/curl@7.61.1-22.el8_6.4",
+      "vulnerability": "ELSA-2024-1601",
+      "aliases": [
+        "CVE-2023-28322"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels a34a6b2b-673f-4193-8d26-e8fa448d4379: tp. Was CVE-2023-38546. ELSA-2024-1601 fixes curl in 0:7.61.1-33.el8_9.5; installed 7.61.1-22.el8_6.4 is older. grype --by-cve reports this advisory as CVE-2023-28322. Evidence: https://linux.oracle.com/errata/ELSA-2024-1601.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:30:21Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:30:21Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/dbus@1.12.8-18.0.1.el8_6.1?epoch=1",
+      "vulnerability": "ELSA-2023-0096",
+      "aliases": [
+        "CVE-2022-42010"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 7510329a-ed23-4478-b1a0-e85f304e9486: tp. Was CVE-2022-42011. ELSA-2023-0096 fixes dbus in 1:1.12.8-23.0.1.el8_7.1; installed 1:1.12.8-18.0.1.el8_6.1 is older. grype --by-cve reports this advisory as CVE-2022-42010. Evidence: https://linux.oracle.com/errata/ELSA-2023-0096.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:22:45Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:22:45Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/dhcp-client@4.3.6-47.0.1.el8?epoch=12",
+      "vulnerability": "ELSA-2023-3000",
+      "aliases": [
+        "CVE-2022-2928"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 8c246e3f-e2fb-4324-83b9-ac22ec70e8ce: tp. Was CVE-2022-2929. ELSA-2023-3000 fixes dhcp-client in 12:4.3.6-49.el8; installed 12:4.3.6-47.0.1.el8 is older. grype --by-cve reports this advisory as CVE-2022-2928. Evidence: https://linux.oracle.com/errata/ELSA-2023-3000.html",
+          "author": "kzantow",
+          "at": "2026-04-15T18:26:42Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T18:26:42Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/dhcp-client@4.3.6-47.0.1.el8?epoch=12",
+      "vulnerability": "ELSA-2024-1782",
+      "aliases": [
+        "CVE-2023-4408"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 4dce6fb7-6189-4de7-a763-e38acfefca7b: tp. Was CVE-2023-50387. Oracle lists dhcp as fixed by ELSA-2024-1782 for CVE-2023-4408, CVE-2023-50387 and CVE-2023-50868, at 12:4.3.6-49.el8_9.1 (ELSA-2024-3271: 12:4.3.6-50.el8_10); installed 12:4.3.6-47.0.1.el8 is older. The dhcp build itself only rebuilds against the fixed bind ('Rebuild because of bind ABI changes related to CVE-2023-50387'); labeled TP to follow the vendor advisory, as the dhcp labels for this advisory were before. Evidence: https://linux.oracle.com/cve/CVE-2023-4408.html https://linux.oracle.com/errata/ELSA-2024-1782.html https://linux.oracle.com/errata/ELSA-2024-3271.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:31:09Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:31:09Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/dhcp-common@4.3.6-47.0.1.el8?epoch=12",
+      "vulnerability": "ELSA-2023-3000",
+      "aliases": [
+        "CVE-2022-2928"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels f36a4fa1-13d0-4b63-8a07-9f3535829b0e: tp. Was CVE-2022-2929. ELSA-2023-3000 fixes dhcp-common in 12:4.3.6-49.el8; installed 12:4.3.6-47.0.1.el8 is older. grype --by-cve reports this advisory as CVE-2022-2928. Evidence: https://linux.oracle.com/errata/ELSA-2023-3000.html",
+          "author": "kzantow",
+          "at": "2026-04-15T18:26:43Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T18:26:43Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/dhcp-common@4.3.6-47.0.1.el8?epoch=12",
+      "vulnerability": "ELSA-2024-1782",
+      "aliases": [
+        "CVE-2023-4408"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels ea6e41e4-14f2-4843-837d-e016246a2dcf: tp. Was CVE-2023-50387. Oracle lists dhcp as fixed by ELSA-2024-1782 for CVE-2023-4408, CVE-2023-50387 and CVE-2023-50868, at 12:4.3.6-49.el8_9.1 (ELSA-2024-3271: 12:4.3.6-50.el8_10); installed 12:4.3.6-47.0.1.el8 is older. The dhcp build itself only rebuilds against the fixed bind ('Rebuild because of bind ABI changes related to CVE-2023-50387'); labeled TP to follow the vendor advisory, as the dhcp labels for this advisory were before. Evidence: https://linux.oracle.com/cve/CVE-2023-4408.html https://linux.oracle.com/errata/ELSA-2024-1782.html https://linux.oracle.com/errata/ELSA-2024-3271.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:31:10Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:31:10Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/dhcp-libs@4.3.6-47.0.1.el8?epoch=12",
+      "vulnerability": "ELSA-2023-3000",
+      "aliases": [
+        "CVE-2022-2928"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 81f4aca4-3ad4-4293-b330-c844ee31eb7a: tp. Was CVE-2022-2929. ELSA-2023-3000 fixes dhcp-libs in 12:4.3.6-49.el8; installed 12:4.3.6-47.0.1.el8 is older. grype --by-cve reports this advisory as CVE-2022-2928. Evidence: https://linux.oracle.com/errata/ELSA-2023-3000.html",
+          "author": "kzantow",
+          "at": "2026-04-15T18:26:45Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T18:26:45Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/dhcp-libs@4.3.6-47.0.1.el8?epoch=12",
+      "vulnerability": "ELSA-2024-1782",
+      "aliases": [
+        "CVE-2023-4408"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels d755b7d2-d2a7-4a95-b7a5-4e72649e4932: tp. Was CVE-2023-50387. Oracle lists dhcp as fixed by ELSA-2024-1782 for CVE-2023-4408, CVE-2023-50387 and CVE-2023-50868, at 12:4.3.6-49.el8_9.1 (ELSA-2024-3271: 12:4.3.6-50.el8_10); installed 12:4.3.6-47.0.1.el8 is older. The dhcp build itself only rebuilds against the fixed bind ('Rebuild because of bind ABI changes related to CVE-2023-50387'); labeled TP to follow the vendor advisory, as the dhcp labels for this advisory were before. Evidence: https://linux.oracle.com/cve/CVE-2023-4408.html https://linux.oracle.com/errata/ELSA-2024-1782.html https://linux.oracle.com/errata/ELSA-2024-3271.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:31:34Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:31:34Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/expat@2.2.5-8.0.1.el8_6.2",
+      "vulnerability": "ELSA-2024-6989",
+      "aliases": [
+        "CVE-2024-45490"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 3e7e6d5a-a401-4475-aa8d-3b780496a641: tp. Was CVE-2024-45491. ELSA-2024-6989 fixes expat in 0:2.2.5-15.0.1.el8_10; installed 2.2.5-8.0.1.el8_6.2 is older. grype --by-cve reports this advisory as CVE-2024-45490. Evidence: https://linux.oracle.com/errata/ELSA-2024-6989.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:32:34Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:32:34Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/freetype@2.9.1-4.el8_3.1",
+      "vulnerability": "ELSA-2022-7745",
+      "aliases": [
+        "CVE-2022-27404"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 25d19fd9-2c99-48c9-9431-fb05cc71f2cf: tp. Was CVE-2022-27406. ELSA-2022-7745 fixes freetype in 0:2.9.1-9.el8; installed 2.9.1-4.el8_3.1 is older. grype --by-cve reports this advisory as CVE-2022-27404. Evidence: https://linux.oracle.com/errata/ELSA-2022-7745.html",
+          "author": "kzantow",
+          "at": "2026-04-15T18:19:09Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T18:19:09Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/glib2@2.56.4-158.el8",
+      "vulnerability": "ELSA-2022-7704",
+      "aliases": [
+        "CVE-2022-22624"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 341235f3-0498-459d-96b5-af6e9863bdd9: tp. Was CVE-2022-26709. Oracle lists glib2 as fixed by ELSA-2022-7704 at 0:2.56.4-159.0.1.el8; installed 2.56.4-158.el8 is older. The advisory's CVEs are WebKitGTK bugs and glib2's update only adds gdbus-codegen modes webkit2gtk3 builds with; labeled TP to follow the vendor advisory. Evidence: https://linux.oracle.com/cve/CVE-2022-22624.html https://linux.oracle.com/errata/ELSA-2022-7704.html",
+          "author": "kzantow",
+          "at": "2026-10-26T21:32:02Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-10-26T21:32:02Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/glibc@2.28-189.5.0.1.el8_6",
+      "vulnerability": "ELSA-2024-3344",
+      "aliases": [
+        "CVE-2024-33599"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 749618c4-2496-4572-a6a0-8dd21c390ec4: tp. Was CVE-2024-33600. ELSA-2024-3344 fixes glibc in 0:2.28-251.0.2.el8_10.2; installed 2.28-189.5.0.1.el8_6 is older. grype --by-cve reports this advisory as CVE-2024-33599. The CVEs are in nscd; the fix ships as a glibc source update. Evidence: https://linux.oracle.com/errata/ELSA-2024-3344.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:32:26Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:32:26Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/gnutls@3.6.16-4.el8",
+      "vulnerability": "ELSA-2022-9221",
+      "aliases": [
+        "CVE-2021-20231"
+      ],
+      "verdict": "fp",
+      "justification": "not-recorded",
+      "author": "kzantow, westonsteimel",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels c9c5d03e-137b-41f3-a296-6423f77a0509: fp with grype@v0.51.0-7-gfcce63b. This is because of fips versioning.  Need to add fips as another qualifier at some point. See also: https://linux.oracle.com/errata/ELSA-2021-4451.html",
+          "author": "westonsteimel",
+          "at": "2022-11-01T17:39:08Z"
+        },
+        {
+          "text": "ported from vulnerability-match-labels 225c8d61-f3fe-45e2-9b08-f51750b0cc4b: fp with grype[reference]@v0.111.0. Was CVE-2021-3580. Installed gnutls 3.6.16-4.el8 is exactly the fixed version from ELSA-2021-4451 (CVE-2021-20231, CVE-2021-20232, CVE-2021-3580). This match comes from ELSA-2022-9221, the FIPS build of gnutls. Oracle's OVAL for it applies only when the installed gnutls release matches 'fips' ('gnutls is fips patched') and is earlier than 10:3.6.16-4.0.1.el8_fips; the build changed its epoch from 1 to 10 (changelog). This package's release has no 'fips', and without that check epoch 10 makes every non-FIPS build compare as vulnerable. Evidence: https://linux.oracle.com/errata/ELSA-2021-4451.html https://linux.oracle.com/errata/ELSA-2022-9221.html https://linux.oracle.com/oval/com.oracle.elsa-20229221.xml",
+          "author": "kzantow",
+          "at": "2026-04-15T02:54:27Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "grype",
+            "version": "v0.111.0"
+          },
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2022-11-01T17:39:08Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/httpd@2.4.37-47.0.2.module%2Bel8.6.0%2B20724%2B119b489d.2",
+      "vulnerability": "ELSA-2022-7647",
+      "aliases": [
+        "CVE-2022-22719"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels f0ace92b-6cea-4985-bdf9-37fe465b5a11: tp. Was CVE-2022-22721. ELSA-2022-7647 fixes httpd in 0:2.4.37-51.0.1.module+el8.7.0+20778+02173b8e; installed 2.4.37-47.0.2.module+el8.6.0+20724+119b489d.2 is older. grype --by-cve reports this advisory as CVE-2022-22719. Evidence: https://linux.oracle.com/errata/ELSA-2022-7647.html",
+          "author": "kzantow",
+          "at": "2026-04-15T16:52:23Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T16:52:23Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/httpd@2.4.37-47.0.2.module%2Bel8.6.0%2B20724%2B119b489d.2",
+      "vulnerability": "ELSA-2024-4720",
+      "aliases": [
+        "CVE-2024-38473"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 1d0597f0-2bfb-4f5b-bb02-d28ed152147d: tp. Was CVE-2024-38475. ELSA-2024-4720 fixes httpd in 0:2.4.37-65.0.1.module+el8.10.0+90368+a557a4bf.1; installed 2.4.37-47.0.2.module+el8.6.0+20724+119b489d.2 is older. grype --by-cve reports this advisory as CVE-2024-38473. Evidence: https://linux.oracle.com/errata/ELSA-2024-4720.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:32:30Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:32:30Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/java-1.8.0-openjdk@1.8.0.345.b01-1.el8_6?epoch=1",
+      "vulnerability": "ELSA-2022-7006",
+      "aliases": [
+        "CVE-2022-21619"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 05de1da4-50c4-4b13-8e54-9bdc989a5a69: tp. Was CVE-2022-21626. ELSA-2022-7006 fixes java-1.8.0-openjdk in 1:1.8.0.352.b08-2.el8_6; installed 1:1.8.0.345.b01-1.el8_6 is older. grype --by-cve reports this advisory as CVE-2022-21619. Evidence: https://linux.oracle.com/errata/ELSA-2022-7006.html",
+          "author": "kzantow",
+          "at": "2026-04-15T16:43:22Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T16:43:22Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/java-1.8.0-openjdk@1.8.0.345.b01-1.el8_6?epoch=1",
+      "vulnerability": "ELSA-2023-1908",
+      "aliases": [
+        "CVE-2023-21930"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 3ed502d9-91ee-47de-8e1f-d5a634e8bf85: tp. Was CVE-2023-21939. ELSA-2023-1908 fixes java-1.8.0-openjdk in 1:1.8.0.372.b07-1.el8_7; installed 1:1.8.0.345.b01-1.el8_6 is older. grype --by-cve reports this advisory as CVE-2023-21930. Evidence: https://linux.oracle.com/errata/ELSA-2023-1908.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:24:38Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:24:38Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/java-1.8.0-openjdk@1.8.0.345.b01-1.el8_6?epoch=1",
+      "vulnerability": "ELSA-2024-0265",
+      "aliases": [
+        "CVE-2024-20918"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 7bf832f9-5a69-44ac-bec6-018d4be3fcb3: tp. Was CVE-2024-20945. ELSA-2024-0265 fixes java-1.8.0-openjdk in 1:1.8.0.402.b06-2.0.1.el8; installed 1:1.8.0.345.b01-1.el8_6 is older. grype --by-cve reports this advisory as CVE-2024-20918. Evidence: https://linux.oracle.com/errata/ELSA-2024-0265.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:32:09Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:32:09Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/java-1.8.0-openjdk@1.8.0.345.b01-1.el8_6?epoch=1",
+      "vulnerability": "ELSA-2024-8117",
+      "aliases": [
+        "CVE-2023-48161"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels ebf1c248-f5a1-4bfd-8513-5a892a9f3f1f: tp. Was CVE-2024-21235. ELSA-2024-8117 fixes java-1.8.0-openjdk in 1:1.8.0.432.b06-2.0.1.el8; installed 1:1.8.0.345.b01-1.el8_6 is older. grype --by-cve reports this advisory as CVE-2023-48161. CVE-2023-48161 is in the giflib bundled with OpenJDK (updated to 5.2.2); Red Hat lists java-1.8.0-openjdk as fixed by RHSA-2024:8117. Evidence: https://linux.oracle.com/errata/ELSA-2024-8117.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:32:14Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:32:14Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/krb5-libs@1.18.2-14.0.1.el8",
+      "vulnerability": "ELSA-2024-5312",
+      "aliases": [
+        "CVE-2024-37370"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels cc2f308f-91a5-4763-bca2-da5d62f21f3b: tp. Was CVE-2024-37371. ELSA-2024-5312 fixes krb5-libs in 0:1.18.2-29.0.1.el8_10; installed 1.18.2-14.0.1.el8 is older. grype --by-cve reports this advisory as CVE-2024-37370. Evidence: https://linux.oracle.com/errata/ELSA-2024-5312.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:32:28Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:32:28Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/libX11@1.6.8-5.el8",
+      "vulnerability": "ELSA-2024-2973",
+      "aliases": [
+        "CVE-2023-43785"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 3be67d8e-082d-4795-918e-a73e72fffb87: tp. Was CVE-2023-43787. ELSA-2024-2973 fixes libX11 in 0:1.6.8-8.el8; installed 1.6.8-5.el8 is older. grype --by-cve reports this advisory as CVE-2023-43785. Evidence: https://linux.oracle.com/errata/ELSA-2024-2973.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:30:36Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:30:36Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/libcap@2.48-2.el8",
+      "vulnerability": "ELSA-2023-4524",
+      "aliases": [
+        "CVE-2023-2602"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels d2bed307-7229-46c9-8949-79d0d03b4f5e: tp. Was CVE-2023-2603. ELSA-2023-4524 fixes libcap in 0:2.48-5.el8_8; installed 2.48-2.el8 is older. grype --by-cve reports this advisory as CVE-2023-2602. Evidence: https://linux.oracle.com/errata/ELSA-2023-4524.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:25:33Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:25:33Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/libssh@0.9.6-3.el8",
+      "vulnerability": "ELSA-2023-3839",
+      "aliases": [
+        "CVE-2023-1667"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 265f6871-bec9-4864-b2fd-e8b30a081682: tp. Was CVE-2023-2283. ELSA-2023-3839 fixes libssh in 0:0.9.6-10.el8_8; installed 0.9.6-3.el8 is older. grype --by-cve reports this advisory as CVE-2023-1667. Evidence: https://linux.oracle.com/errata/ELSA-2023-3839.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:24:46Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:24:46Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/libssh@0.9.6-3.el8",
+      "vulnerability": "ELSA-2024-3233",
+      "aliases": [
+        "CVE-2023-6004"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 186348ba-2514-49f2-8f48-71d8b86fcb65: tp. Was CVE-2023-6918. ELSA-2024-3233 fixes libssh in 0:0.9.6-14.el8; installed 0.9.6-3.el8 is older. grype --by-cve reports this advisory as CVE-2023-6004. Evidence: https://linux.oracle.com/errata/ELSA-2024-3233.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:31:46Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:31:46Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/mariadb@10.3.35-1.module%2Bel8.6.0%2B20730%2Be6b28fc7?epoch=3",
+      "vulnerability": "ELSA-2023-5259",
+      "aliases": [
+        "CVE-2022-32084"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels f2d36a54-6b63-4e5d-a2a5-3cbde12b6068: tp. Was CVE-2022-38791. ELSA-2023-5259 fixes mariadb in 3:10.3.39-1.module+el8.8.0+21165+f6462f70; installed 3:10.3.35-1.module+el8.6.0+20730+e6b28fc7 is older. grype --by-cve reports this advisory as CVE-2022-32084. Evidence: https://linux.oracle.com/errata/ELSA-2023-5259.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:11:46Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:11:46Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/mod_http2@1.15.7-5.module%2Bel8.6.0%2B20548%2B01710940",
+      "vulnerability": "ELSA-2024-4720",
+      "aliases": [
+        "CVE-2024-38473"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels a7d8db38-516c-4285-87d2-cc273ab69426: tp. Was CVE-2024-38475. Oracle lists mod_http2 as fixed by ELSA-2024-4720 at 0:1.15.7-10.module+el8.10.0+90327+96b8ea28; installed 1.15.7-5 is older. That is the same mod_http2 build first shipped in ELSA-2024-3121: errata for the httpd:2.4 module list every package in the stream. Labeled TP to follow the vendor advisory, consistent with the TP label for ELSA-2024-4197 (CVE-2023-38709), which lists the same build. Evidence: https://linux.oracle.com/cve/CVE-2024-38473.html https://linux.oracle.com/errata/ELSA-2024-4720.html https://linux.oracle.com/errata/ELSA-2024-3121.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:32:31Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:32:31Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/nodejs@14.20.0-2.module%2Bel8.6.0%2B20729%2B8fb6d84e?epoch=1",
+      "vulnerability": "ELSA-2022-7830",
+      "aliases": [
+        "CVE-2021-44531"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels ee07fce8-be33-4cde-b2de-b9a32ab5a027: tp with grype[reference]@v0.111.0. Was CVE-2021-44532. ELSA-2022-7830 fixes nodejs in 1:14.20.1-2.module+el8.6.0+20874+338992dc; installed 1:14.20.0-2.module+el8.6.0+20729+8fb6d84e is older. grype --by-cve reports this advisory as CVE-2021-44531. Evidence: https://linux.oracle.com/errata/ELSA-2022-7830.html",
+          "author": "kzantow",
+          "at": "2026-04-15T03:52:10Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "grype",
+            "version": "v0.111.0"
+          },
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T03:52:10Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/nodejs@14.20.0-2.module%2Bel8.6.0%2B20729%2B8fb6d84e?epoch=1",
+      "vulnerability": "ELSA-2023-1743",
+      "aliases": [
+        "CVE-2021-35065"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 25ab6d3f-bbd1-426f-846b-24f709b01523: tp. Was CVE-2022-3517. ELSA-2023-1743 fixes nodejs in 1:14.21.3-1.module+el8.7.0+21031+52889874; installed 1:14.20.0-2.module+el8.6.0+20729+8fb6d84e is older. grype --by-cve reports this advisory as CVE-2021-35065. CVE-2021-35065 itself is glob-parent, fixed in nodejs-nodemon; the nodejs fixes in this advisory are CVE-2022-25881, CVE-2022-38900, CVE-2022-4904, CVE-2023-23918 and CVE-2023-23920. Evidence: https://linux.oracle.com/errata/ELSA-2023-1743.html",
+          "author": "kzantow",
+          "at": "2026-04-15T19:11:54Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T19:11:54Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/pam@1.3.1-16.el8_6.1",
+      "vulnerability": "ELSA-2024-10379",
+      "aliases": [
+        "CVE-2024-10041"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 253a63b0-bd14-4fe7-82d3-2535ea866cb0: tp. Was CVE-2024-10963. ELSA-2024-10379 fixes pam in 0:1.3.1-36.0.1.el8_10; installed 1.3.1-16.el8_6.1 is older. grype --by-cve reports this advisory as CVE-2024-10041. Evidence: https://linux.oracle.com/errata/ELSA-2024-10379.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:32:01Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:32:01Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/php@7.4.19-4.module%2Bel8.6.0%2B20746%2B7a133c42",
+      "vulnerability": "ELSA-2022-7628",
+      "aliases": [
+        "CVE-2021-21707"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 0c33e3e8-36d4-450f-b531-148ccaf17910: tp with grype@v0.54.0",
+          "author": "kzantow",
+          "at": "2022-12-24T20:29:54Z"
+        },
+        {
+          "text": "ported from vulnerability-match-labels 6970a382-c43a-4221-89fe-f88bb39695e1: tp with grype[reference]@v0.111.0. Was CVE-2021-32610. ELSA-2022-7628 fixes php in 0:7.4.30-1.module+el8.7.0+20800+8e29b882; installed 7.4.19-4.module+el8.6.0+20746+7a133c42 is older. grype --by-cve reports this advisory as CVE-2021-21707. Evidence: https://linux.oracle.com/errata/ELSA-2022-7628.html",
+          "author": "kzantow",
+          "at": "2026-04-15T03:53:23Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "grype",
+            "version": "v0.111.0"
+          },
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2022-12-24T20:29:54Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/php@7.4.19-4.module%2Bel8.6.0%2B20746%2B7a133c42",
+      "vulnerability": "ELSA-2023-2903",
+      "aliases": [
+        "CVE-2022-31628"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 11f96270-898a-4e46-bc71-9cb76fb39a1d: tp. Was CVE-2022-31631. ELSA-2023-2903 fixes php in 0:7.4.33-1.module+el8.8.0+20974+ef7eddfa; installed 7.4.19-4.module+el8.6.0+20746+7a133c42 is older. grype --by-cve reports this advisory as CVE-2022-31628. Evidence: https://linux.oracle.com/errata/ELSA-2023-2903.html",
+          "author": "kzantow",
+          "at": "2026-04-15T19:11:39Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T19:11:39Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/php@7.4.19-4.module%2Bel8.6.0%2B20746%2B7a133c42",
+      "vulnerability": "ELSA-2024-10952",
+      "aliases": [
+        "CVE-2023-0567"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 4f42cec5-1d18-47b2-8a74-8a93380ed738: tp. Was CVE-2024-2756. ELSA-2024-10952 fixes php in 0:7.4.33-2.module+el8.10.0+90472+f810484b; installed 7.4.19-4.module+el8.6.0+20746+7a133c42 is older. grype --by-cve reports this advisory as CVE-2023-0567. Evidence: https://linux.oracle.com/errata/ELSA-2024-10952.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:32:21Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:32:21Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/platform-python@3.6.8-47.0.1.el8_6",
+      "vulnerability": "ELSA-2023-0833",
+      "aliases": [
+        "CVE-2020-10735"
+      ],
+      "verdict": "tp",
+      "author": "westonsteimel",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels f3f6a7fe-9b8d-473b-9082-23b1c26611ea: tp with grype@v0.65.2-3-g8513e90. Was CVE-2021-28861. ELSA-2023-0833 fixes platform-python in 0:3.6.8-48.0.1.el8_7.1; installed 3.6.8-47.0.1.el8_6 is older. grype --by-cve reports this advisory as CVE-2020-10735. Evidence: https://linux.oracle.com/errata/ELSA-2023-0833.html",
+          "author": "westonsteimel",
+          "at": "2023-08-18T14:36:39Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "grype",
+            "version": "v0.65.2-3-g8513e90"
+          },
+          {
+            "name": "syft",
+            "version": "v0.87.1"
+          }
+        ]
+      },
+      "firstIssued": "2023-08-18T14:36:39Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/platform-python@3.6.8-47.0.1.el8_6",
+      "vulnerability": "ELSA-2024-3347",
+      "aliases": [
+        "CVE-2023-6597"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels aabc25e4-4757-4f48-8a67-d2a86f5f1b66: tp. Was CVE-2024-0450. ELSA-2024-3347 fixes platform-python in 0:3.6.8-62.0.1.el8_10; installed 3.6.8-47.0.1.el8_6 is older. grype --by-cve reports this advisory as CVE-2023-6597. Evidence: https://linux.oracle.com/errata/ELSA-2024-3347.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:31:50Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:31:50Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/platform-python@3.6.8-47.0.1.el8_6",
+      "vulnerability": "ELSA-2024-6975",
+      "aliases": [
+        "CVE-2024-4032"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 56dc5e1e-185d-4c84-8516-2e0f956aaee6: tp. Was CVE-2024-6923. ELSA-2024-6975 fixes platform-python in 0:3.6.8-67.0.1.el8_10; installed 3.6.8-47.0.1.el8_6 is older. grype --by-cve reports this advisory as CVE-2024-4032. Evidence: https://linux.oracle.com/errata/ELSA-2024-6975.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:34:07Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:34:07Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/postgresql@12.11-2.module%2Bel8.6.0%2B20676%2B128a094e",
+      "vulnerability": "ELSA-2023-7714",
+      "aliases": [
+        "CVE-2023-39417"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 6fe8076b-8c22-4ec1-9db7-06757a0d446e: tp. Was CVE-2023-5869. ELSA-2023-7714 fixes postgresql in 0:12.17-1.0.1.module+el8.9.0+90107+c48bae1a; installed 12.11-2.module+el8.6.0+20676+128a094e is older. grype --by-cve reports this advisory as CVE-2023-39417. Evidence: https://linux.oracle.com/errata/ELSA-2023-7714.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:31:40Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:31:40Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/postgresql@12.11-2.module%2Bel8.6.0%2B20676%2B128a094e",
+      "vulnerability": "ELSA-2024-10785",
+      "aliases": [
+        "CVE-2024-10976"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 61cf882d-9990-4328-986a-5ea2393af015: tp. Was CVE-2024-10978. ELSA-2024-10785 fixes postgresql in 0:12.22-1.module+el8.10.0+90457+0de00356; installed 12.11-2.module+el8.6.0+20676+128a094e is older. grype --by-cve reports this advisory as CVE-2024-10976. Evidence: https://linux.oracle.com/errata/ELSA-2024-10785.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:32:02Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:32:02Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/python3-libs@3.6.8-47.0.1.el8_6",
+      "vulnerability": "ELSA-2023-0833",
+      "aliases": [
+        "CVE-2020-10735"
+      ],
+      "verdict": "tp",
+      "author": "westonsteimel",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels c98510fb-8f6a-4509-93fc-05667fa9e445: tp with grype@v0.65.2-3-g8513e90. Was CVE-2021-28861. ELSA-2023-0833 fixes python3-libs in 0:3.6.8-48.0.1.el8_7.1; installed 3.6.8-47.0.1.el8_6 is older. grype --by-cve reports this advisory as CVE-2020-10735. Evidence: https://linux.oracle.com/errata/ELSA-2023-0833.html",
+          "author": "westonsteimel",
+          "at": "2023-08-18T14:36:49Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "grype",
+            "version": "v0.65.2-3-g8513e90"
+          },
+          {
+            "name": "syft",
+            "version": "v0.87.1"
+          }
+        ]
+      },
+      "firstIssued": "2023-08-18T14:36:49Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/python3-libs@3.6.8-47.0.1.el8_6",
+      "vulnerability": "ELSA-2024-3347",
+      "aliases": [
+        "CVE-2023-6597"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 0ec609ec-f1c0-42c0-8d11-cb8bfebb817f: tp. Was CVE-2024-0450. ELSA-2024-3347 fixes python3-libs in 0:3.6.8-62.0.1.el8_10; installed 3.6.8-47.0.1.el8_6 is older. grype --by-cve reports this advisory as CVE-2023-6597. Evidence: https://linux.oracle.com/errata/ELSA-2024-3347.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:31:51Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:31:51Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/python3-libs@3.6.8-47.0.1.el8_6",
+      "vulnerability": "ELSA-2024-6975",
+      "aliases": [
+        "CVE-2024-4032"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels 5f46ca10-1e01-4b61-92a3-a55c4c660212: tp. Was CVE-2024-6923. ELSA-2024-6975 fixes python3-libs in 0:3.6.8-67.0.1.el8_10; installed 3.6.8-47.0.1.el8_6 is older. grype --by-cve reports this advisory as CVE-2024-4032. Evidence: https://linux.oracle.com/errata/ELSA-2024-6975.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:34:30Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:34:30Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    },
+    {
+      "package": "pkg:rpm/ol/ruby@2.5.9-110.module%2Bel8.6.0%2B20712%2B84e27c2d",
+      "vulnerability": "ELSA-2023-7025",
+      "aliases": [
+        "CVE-2021-33621"
+      ],
+      "verdict": "tp",
+      "author": "kzantow",
+      "notes": [
+        {
+          "text": "ported from vulnerability-match-labels fb9fcd8d-4622-4fb2-b072-cb87687602f7: tp. Was CVE-2023-28756. ELSA-2023-7025 fixes ruby in 0:2.5.9-111.module+el8.9.0+90042+a65659a6; installed 2.5.9-110.module+el8.6.0+20712+84e27c2d is older. grype --by-cve reports this advisory as CVE-2021-33621. Evidence: https://linux.oracle.com/errata/ELSA-2023-7025.html",
+          "author": "kzantow",
+          "at": "2026-04-15T20:27:14Z"
+        }
+      ],
+      "seenIn": {
+        "tools": [
+          {
+            "name": "syft",
+            "version": "v1.14.0"
+          }
+        ]
+      },
+      "firstIssued": "2026-04-15T20:27:14Z",
+      "lastUpdated": "2026-10-29T14:34:29Z"
+    }
+  ]
+}

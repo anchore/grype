@@ -583,6 +583,73 @@ func TestAssertFindings_SelectMatch_NoArgsMultipleMatches(t *testing.T) {
 	assert.True(t, mockT.fataled, "expected SelectMatch() to fatal when multiple matches exist")
 }
 
+func TestMultipleFindingAssertion_WithNamespace(t *testing.T) {
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", "rapidfort:distro:rapidfort-redhat:9"),
+			Package:       p,
+			Details:       []match.Detail{{Type: match.ExactDirectMatch}},
+		},
+		{
+			Vulnerability: makeVuln("CVE-2024-0001", "rapidfort:distro:rapidfort-redhat:9+fc43"),
+			Package:       p,
+			Details:       []match.Detail{{Type: match.ExactDirectMatch}},
+		},
+	}
+
+	found := AssertFindings(t, matches, p).SkipCompleteness().
+		SelectMatches("CVE-2024-0001").
+		HasCount(2).
+		WithNamespace("rapidfort:distro:rapidfort-redhat:9+fc43")
+
+	found.InNamespace("rapidfort:distro:rapidfort-redhat:9+fc43")
+}
+
+func TestMultipleFindingAssertion_WithNamespace_NotFound(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{Vulnerability: makeVuln("CVE-2024-0001", "a"), Package: p},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatches("CVE-2024-0001").
+		WithNamespace("b") // not present
+
+	assert.True(t, mockT.fataled, "expected WithNamespace to fatal when no match is in the namespace")
+}
+
+func TestMultipleFindingAssertion_WithNamespace_MultipleMatches(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{Vulnerability: makeVuln("CVE-2024-0001", "a"), Package: p},
+		{Vulnerability: makeVuln("CVE-2024-0001", "a"), Package: p}, // same namespace
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatches("CVE-2024-0001").
+		WithNamespace("a") // ambiguous
+
+	assert.True(t, mockT.fataled, "expected WithNamespace to fatal when multiple matches share the namespace")
+}
+
+func TestMultipleFindingAssertion_HasCount_Failure(t *testing.T) {
+	mockT := newMockT()
+	p := pkg.Package{Name: "curl"}
+	matches := []match.Match{
+		{Vulnerability: makeVuln("CVE-2024-0001", "a"), Package: p},
+		{Vulnerability: makeVuln("CVE-2024-0001", "b"), Package: p},
+	}
+
+	AssertFindings(mockT, matches, p).SkipCompleteness().
+		SelectMatches("CVE-2024-0001").
+		HasCount(1) // actually two
+
+	assert.True(t, mockT.Failed(), "expected HasCount to fail on an unexpected number of matches")
+}
+
 func TestSingleFindingAssertion_HasMatchType_Failure(t *testing.T) {
 	mockT := newMockT()
 	p := pkg.Package{Name: "curl", Version: "7.88.1"}

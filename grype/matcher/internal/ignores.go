@@ -3,6 +3,8 @@ package internal
 import (
 	"slices"
 
+	"github.com/scylladb/go-set/strset"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -12,8 +14,14 @@ import (
 func OwnershipIgnores(p pkg.Package, reason string, ignoredVulnerabilities ...vulnerability.Vulnerability) []match.IgnoreFilter {
 	var ignores []match.IgnoreFilter
 
+	seen := strset.New()
 	for _, ignoredVulnerability := range ignoredVulnerabilities {
 		for _, ignoreVulnID := range collectVulnerabilityIDs(ignoredVulnerability) {
+			if seen.Has(ignoreVulnID) {
+				continue
+			}
+			seen.Add(ignoreVulnID)
+
 			ignores = append(ignores, match.IgnoreRelatedPackage{
 				Reason:           reason,
 				RelationshipType: artifact.OwnershipByFileOverlapRelationship,

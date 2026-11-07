@@ -139,7 +139,7 @@ func TestMatcherApk_FixedVersionProducesIgnore_Wolfi(t *testing.T) {
 // TestMatcherApk_FixedVersionInUpstreamProducesIgnore verifies that when a
 // binary apk package's upstream is at or past the secdb fix, the
 // distro-fixed ignore is emitted against the binary package's ID
-// (catalogPkg) - not the synthetic upstream - so consumers can suppress
+// (target) - not the synthetic upstream - so consumers can suppress
 // language-ecosystem matches that overlap the binary by file ownership.
 func TestMatcherApk_FixedVersionInUpstreamProducesIgnore(t *testing.T) {
 	dbtest.DBs(t, "alpine318").

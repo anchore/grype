@@ -1,0 +1,40 @@
+{
+  "identifier": "amzn:2/alas2tomcat8.5-2023-012",
+  "item": {
+    "Vulnerability": {
+      "Description": "Multiple issues were addressed in the amazon-extras tomcat8.5 package. (CVE-2020-1938)",
+      "FixedIn": [
+        {
+          "Name": "tomcat",
+          "NamespaceName": "amzn:2",
+          "Version": "8.5.51-1.amzn2",
+          "VersionFormat": "rpm"
+        },
+        {
+          "Name": "tomcat-servlet-3.1-api",
+          "NamespaceName": "amzn:2",
+          "Version": "8.5.51-1.amzn2",
+          "VersionFormat": "rpm"
+        }
+      ],
+      "Link": "https://alas.aws.amazon.com/AL2/ALAS2TOMCAT8.5-2023-012.html",
+      "Metadata": {
+        "CVE": [
+          {
+            "Name": "CVE-2019-17569"
+          },
+          {
+            "Name": "CVE-2020-1935"
+          },
+          {
+            "Name": "CVE-2020-1938"
+          }
+        ]
+      },
+      "Name": "ALAS2TOMCAT8.5-2023-012",
+      "NamespaceName": "amzn:2",
+      "Severity": "High"
+    }
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/os/schema-1.1.2.json"
+}

@@ -21,5 +21,5 @@ func (m *Matcher) Type() match.MatcherType {
 
 func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	// Portage doesn't use epochs, so pass nil for the config
-	return internal.MatchPackageByDistro(store, p, nil, m.Type(), nil)
+	return internal.MatchPackageByDistro(store, p, m.Type(), nil)
 }

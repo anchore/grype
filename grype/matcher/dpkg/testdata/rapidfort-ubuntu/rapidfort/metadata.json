@@ -1,0 +1,19 @@
+{
+  "provider": "rapidfort",
+  "version": 1,
+  "processor": "vunnel@0.60.0",
+  "schema": {
+    "version": "1.0.3",
+    "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
+  },
+  "urls": [
+    "https://github.com/rapidfort/security-advisories.git"
+  ],
+  "timestamp": "2026-08-01T00:00:00Z",
+  "listing": {
+    "path": "results/listing.xxh64",
+    "digest": "0000000000000000",
+    "algorithm": "xxh64"
+  },
+  "store": "flat-file"
+}

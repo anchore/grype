@@ -273,7 +273,7 @@ func unwrapGoVulnDBPackages(entry *transformers.RelatedEntries) map[int]transfor
 //
 // Any shared id bridges, not just CVEs: two records that claim the same alias are
 // the same advisory whatever the id scheme, which is how identity is resolved at
-// match time too (see result.getIdentity). Today the GHSA feed only carries CVE
+// match time too (see result.Identity). Today the GHSA feed only carries CVE
 // aliases, so this is the same set of bridges with no prefix knowledge baked in.
 func (m *goVulnDBMerger) buildAliasIndex() map[string][]string {
 	index := make(map[string][]string)

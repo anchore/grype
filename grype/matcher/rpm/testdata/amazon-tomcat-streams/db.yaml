@@ -1,0 +1,30 @@
+# Hand-authored fixture (auto-generate disabled). Real Amazon Linux 2 advisory records kept
+# verbatim in OS schema, scoped to the tomcat packages under test, so the real
+# vunnel -> grype-db -> grype path is what gets tested. No synthetic vulnerability data.
+#
+# Amazon ships tomcat 7 in the core repo and tomcat 8.5/9 as amazon-extras topics, and every
+# topic's advisories are keyed on the same source rpm name ("tomcat"). A host on the core
+# tomcat 7 build therefore sees three release lines' advisories in one search, joined only by
+# their shared CVE aliases:
+#
+#   amzn:2/alas2-2020-1449          fixes tomcat 7.0.76-10.amzn2.0.2 -- the core build under
+#                                   test IS this fix. Its only alias is CVE-2020-9484.
+#   amzn:2/alas2tomcat8.5-2023-008  fixes tomcat 8.5.56-1.amzn2 in the tomcat8.5 topic, and
+#                                   also names CVE-2020-9484. A 7.0.76 build trivially
+#                                   satisfies "< 8.5.56", so this one is reported.
+#   amzn:2/alas2-2020-1402          fixes tomcat 7.0.76-10.amzn2.0.1 -- the build under test is
+#                                   past it. Names five CVEs, one of which (CVE-2020-1938) the
+#                                   tomcat8.5 topic also answers for.
+#   amzn:2/alas2tomcat8.5-2023-012  fixes tomcat 8.5.51-1.amzn2 in the tomcat8.5 topic, naming
+#                                   CVE-2020-1938 among others; reported for the same reason.
+#
+# The two 8.5 advisories key their servlet api on tomcat-servlet-3.1-api, which the tomcat 7
+# build does not carry -- they reach it only through the source rpm search. See
+# amazon_tomcat_streams_test.go for what each pairing pins.
+auto-generate: false
+extractions:
+    amazon:
+        - amzn:2/alas2-2020-1449
+        - amzn:2/alas2-2020-1402
+        - amzn:2/alas2tomcat8.5-2023-008
+        - amzn:2/alas2tomcat8.5-2023-012
