@@ -19,7 +19,7 @@ Given a version number format `MODEL.REVISION.ADDITION`:
 
 ## Generating a New Schema
 
-Create the new schema by running `make generate-json-schema` from the root of the repo:
+Create the new schema by running `make generate:json-schema` from the root of the repo:
 
 - If there is **not** an existing schema for the given version, then the new schema file will be written to `schema/grype/db-search/json/schema-$VERSION.json`
 - If there is an existing schema for the given version and the new schema matches the existing schema, no action is taken

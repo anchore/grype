@@ -23,7 +23,7 @@ func TestAllNames(t *testing.T) {
 	if !assert.ElementsMatch(t, expected, actual) {
 		t.Errorf("metadata types not fully represented: \n%s", cmp.Diff(expected, actual))
 		t.Log("did you add a new pkg.*Metadata type without updating the JSON schema?")
-		t.Log("if so, you need to update the schema version and regenerate the JSON schema (make generate-json-schema)")
+		t.Log("if so, you need to update the schema version and regenerate the JSON schema (make generate:json-schema)")
 	}
 
 	for _, ty := range AllTypes() {
