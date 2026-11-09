@@ -5,9 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 	"github.com/spf13/cobra"
 
 	"github.com/anchore/clio"
@@ -71,20 +69,21 @@ $ grype completion fish > ~/.config/fish/completions/grype.fish
 func listLocalDockerImages(prefix string) ([]string, error) {
 	var repoTags = make([]string, 0)
 	ctx := context.Background()
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	// API version negotiation is enabled by default in the moby client
+	cli, err := client.New(client.FromEnv)
 	if err != nil {
 		return repoTags, err
 	}
+	defer cli.Close()
 
 	// Only want to return tagged images
-	imageListArgs := filters.NewArgs()
-	imageListArgs.Add("dangling", "false")
-	images, err := cli.ImageList(ctx, image.ListOptions{All: false, Filters: imageListArgs})
+	imageListArgs := make(client.Filters).Add("dangling", "false")
+	images, err := cli.ImageList(ctx, client.ImageListOptions{All: false, Filters: imageListArgs})
 	if err != nil {
 		return repoTags, err
 	}
 
-	for _, image := range images {
+	for _, image := range images.Items {
 		// image may have multiple tags
 		for _, tag := range image.RepoTags {
 			if strings.HasPrefix(tag, prefix) {
