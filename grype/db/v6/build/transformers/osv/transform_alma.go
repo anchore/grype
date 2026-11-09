@@ -1,7 +1,6 @@
 package osv
 
 import (
-	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -40,10 +39,7 @@ func (almaStrategy) Matches(id string) bool {
 }
 
 func (almaStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
-	severities, err := getSeverities(vuln)
-	if err != nil {
-		return nil, fmt.Errorf("unable to obtain severities: %w", err)
-	}
+	severities := getSeverities(vuln)
 
 	// alma puts CVEs in `related` for the dominant shape; merge into aliases.
 	aliases := append([]string{}, vuln.Aliases...)

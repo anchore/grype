@@ -1,7 +1,6 @@
 package osv
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 
@@ -27,10 +26,7 @@ func (chainguardStrategy) Matches(id string) bool {
 // Transform CG OSV records into grype DB entries. CG OSV records specify the range of vulnerable versions
 // for a given vulnerability
 func (chainguardStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
-	severities, err := getSeverities(vuln)
-	if err != nil {
-		return nil, fmt.Errorf("unable to obtain severities: %w", err)
-	}
+	severities := getSeverities(vuln)
 
 	aliases := vuln.Aliases
 	in := []any{
