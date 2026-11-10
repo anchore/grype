@@ -73,12 +73,23 @@ func syftSBOMProviderFromReader(reader io.ReadSeeker, config ProviderConfig, app
 }
 
 func getSBOM(userInput string) (*sbom.SBOM, sbom.FormatID, string, error) {
-	reader, path, err := getSBOMReader(userInput)
+	reader, path, explicit, err := getSBOMReader(userInput)
 	if err != nil {
 		return nil, "", path, err
 	}
 
 	s, fmtID, err := readSBOM(reader)
+	if err != nil && !explicit && !errors.Is(err, errDoesNotProvide) {
+		// the input only implicitly looked like a possible SBOM document (e.g. a plain
+		// text file); if no SBOM format can be identified in the content then it is not
+		// an SBOM, so defer to other providers instead of raising a hard error. Content
+		// identified as an SBOM that fails to decode keeps the hard error.
+		if _, seekErr := reader.Seek(0, io.SeekStart); seekErr == nil {
+			if id, _ := format.Identify(reader); id == "" {
+				return nil, "", path, errDoesNotProvide
+			}
+		}
+	}
 	return s, fmtID, path, err
 }
 
@@ -95,7 +106,7 @@ func readSBOM(reader io.ReadSeeker) (*sbom.SBOM, sbom.FormatID, error) {
 	return s, fmtID, nil
 }
 
-func getSBOMReader(userInput string) (io.ReadSeeker, string, error) {
+func getSBOMReader(userInput string) (reader io.ReadSeeker, path string, explicit bool, err error) {
 	switch {
 	// the order of cases matter
 	case userInput == "":
@@ -103,27 +114,32 @@ func getSBOMReader(userInput string) (io.ReadSeeker, string, error) {
 		// options from the CLI, otherwise we should not assume there is any valid input from stdin.
 		r, err := stdinReader()
 		if err != nil {
-			return nil, "", err
+			return nil, "", true, err
 		}
-		return decodeStdin(r)
+		reader, path, err = decodeStdin(r)
+		return reader, path, true, err
 
 	case explicitlySpecifyingPurlList(userInput):
 		filepath := strings.TrimPrefix(userInput, purlInputPrefix)
-		return openFile(filepath)
+		reader, path, err = openFile(filepath)
+		return reader, path, true, err
 
 	case explicitlySpecifyingCPEList(userInput):
 		filepath := strings.TrimPrefix(userInput, cpeListPrefix)
-		return openFile(filepath)
+		reader, path, err = openFile(filepath)
+		return reader, path, true, err
 
 	case explicitlySpecifyingSBOM(userInput):
 		filepath := strings.TrimPrefix(userInput, "sbom:")
-		return openFile(filepath)
+		reader, path, err = openFile(filepath)
+		return reader, path, true, err
 
 	case isPossibleSBOM(userInput):
-		return openFile(userInput)
+		reader, path, err = openFile(userInput)
+		return reader, path, false, err
 
 	default:
-		return nil, "", errDoesNotProvide
+		return nil, "", false, errDoesNotProvide
 	}
 }
 
