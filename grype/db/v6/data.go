@@ -1,6 +1,8 @@
+//nolint:goconst
 package v6
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
@@ -50,8 +52,8 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 
 		// alpine family
 		{Alias: "alpine", VersionPattern: `.*_alpha.*`, ReplacementLabelVersion: strRef("edge"), Rolling: true},
-		{Alias: "wolfi", ReplacementMajorVersion: ptr(""), ReplacementMinorVersion: ptr(""), ReplacementLabelVersion: ptr("rolling"), Rolling: false, ApplicableClientDBSchemas: "< 6.1.11"},
-		{Alias: "chainguard", ReplacementMajorVersion: ptr(""), ReplacementMinorVersion: ptr(""), ReplacementLabelVersion: ptr("rolling"), Rolling: false, ApplicableClientDBSchemas: "< 6.1.11"},
+		{Alias: "wolfi", Rolling: true},
+		{Alias: "chainguard", Rolling: true},
 		{Alias: "secureos", Rolling: true},
 
 		// others
@@ -114,7 +116,6 @@ func KnownOperatingSystemSpecifierOverrides() []OperatingSystemSpecifierOverride
 const (
 	rapidfortAlpineDistro = "rapidfort-alpine"
 	rapidfortDebianDistro = "rapidfort-debian"
-	rapidfortRedhatDistro = "rapidfort-redhat"
 	rapidfortUbuntuDistro = "rapidfort-ubuntu"
 
 	apkEcosystem = string(pkg.ApkPkg)
@@ -127,51 +128,73 @@ const (
 
 	// `rfubu` appears on debian rebuilds too; `~` is dpkg's pre-release marker (e.g. `1.2-4rfdebian~rf.1`)
 	rapidfortDpkgRebuildMarker = `.*(?:rfubu|rfdeb).*|.*[.+~-]rf(?:[._].*)?`
+
+	rapidfortRPMRebuildMarker = `.*\.rf(?:[._~-].*)?`
+
+	// 6.1.11 introduced search rules: a DB before it has none, so the built-in rules for it are those
+	// before, and the rules seeded into a DB are those after
+	beforeSearchRules = "< 6.1.11"
+	afterSearchRules  = ">= 6.1.11"
 )
 
-// KnownSearchRules are the built-in search rules, used when the DB has no search_rules table.
-// Patterns are anchored, so partial matches need an explicit `.*`.
+// rapidfortRPMDistros are the RapidFort rpm distros, each with the dist tag of its own releases' builds
+// (`.el9`, `.amzn2023`); onboarding one is an entry here.
+var rapidfortRPMDistros = []struct{ name, releaseTag string }{
+	{name: "rapidfort-redhat", releaseTag: "el"},
+	{name: "rapidfort-rockylinux", releaseTag: "el"},
+	{name: "rapidfort-almalinux", releaseTag: "el"},
+	{name: "rapidfort-oraclelinux", releaseTag: "el"},
+	{name: "rapidfort-amazonlinux", releaseTag: "amzn"},
+}
+
+// rapidfortRPMRules route each rpm to the release stream its version names: the channel-less rows hold
+// the image release's own builds, and every other stream (a RapidFort rebuild, a Fedora build, a build
+// for another release) is a channel.
+func rapidfortRPMRules(applicable string) []SearchRule {
+	var rules []SearchRule
+	for _, d := range rapidfortRPMDistros {
+		releaseTagged := fmt.Sprintf(`.*?\.%s(?P<release>\d+)(?:[._~-].*)?`, d.releaseTag)
+		rules = append(rules,
+			SearchRule{Action: SearchRuleReplace, ApplicableClientDBSchemas: applicable, MatchDistroName: d.name,
+				MatchEcosystem: rpmEcosystem, MatchPackageVersion: rapidfortRPMRebuildMarker, ReplacementChannel: new("rf"), Priority: highestPriority},
+
+			// lazy wildcard so the group binds the first dist tag (`1.2-3.fc31.fc43` -> fc31); a rebuild of a
+			// Fedora build (`1.2-3.fc43.rf`) is in the rf stream alone
+			SearchRule{Action: SearchRuleReplace, ApplicableClientDBSchemas: applicable, MatchDistroName: d.name,
+				MatchEcosystem: rpmEcosystem, MatchPackageVersion: `.*?\.fc(?P<fedora>\d+)(?:[._~-].*)?`, ExcludePackageVersion: rapidfortRPMRebuildMarker,
+				ReplacementChannel: new("fc${fedora}"), Priority: higherPriority},
+
+			// the image release's own builds are channel-less, so this adds a search: of no rows for those, and
+			// of that release's channel for a build for another release (an el9 build in a RHEL 10 image),
+			// whose records then outrank the channel-less ones
+			SearchRule{Action: SearchRuleAdd, ApplicableClientDBSchemas: applicable, MatchDistroName: d.name,
+				MatchEcosystem: rpmEcosystem, MatchPackageVersion: releaseTagged, ExcludePackageVersion: rapidfortRPMRebuildMarker,
+				ReplacementChannel: new(d.releaseTag + "${release}"), Priority: higherPriority},
+
+			// rf- name fallback for a version naming no stream
+			SearchRule{Action: SearchRuleReplace, ApplicableClientDBSchemas: applicable, MatchDistroName: d.name,
+				MatchEcosystem: rpmEcosystem, MatchPackageName: `rf-.*`, ExcludePackageVersion: fmt.Sprintf(`.*\.%s\d+(?:[._~-].*)?`, d.releaseTag),
+				ReplacementChannel: new("rf"), Priority: highPriority},
+		)
+	}
+	return rules
+}
+
+// KnownSearchRules are the search rules seeded into a newly built DB. A client applies them itself only
+// to a DB without rules, and only as far as that DB's schema allows: they route searches to data an
+// older DB does not have. Patterns are anchored, so partial matches need an explicit `.*`.
 func KnownSearchRules() []SearchRule {
-	return []SearchRule{
-		// rapidfort-redhat: .rf versions search the rf channel; native elN versions are channel-less
-		{Action: SearchRuleReplace, MatchDistroName: rapidfortRedhatDistro, MatchEcosystem: rpmEcosystem, MatchPackageVersion: `.*\.rf(?:[._~-].*)?`, ReplacementChannel: ptr("rf"), Priority: highestPriority},
-
+	return append(rapidfortRPMRules(afterSearchRules), []SearchRule{
 		// no rf- name rule for dpkg: rf- names appear in both streams
-		{Action: SearchRuleReplace, MatchDistroName: rapidfortUbuntuDistro, MatchEcosystem: debEcosystem, MatchPackageVersion: rapidfortDpkgRebuildMarker, ReplacementChannel: ptr("rf"), Priority: highestPriority},
-		{Action: SearchRuleReplace, MatchDistroName: rapidfortDebianDistro, MatchEcosystem: debEcosystem, MatchPackageVersion: rapidfortDpkgRebuildMarker, ReplacementChannel: ptr("rf"), Priority: highestPriority},
-
-		// lazy wildcard so the group binds the first dist tag (`1.2-3.fc31.fc43` -> fc31)
-		{Action: SearchRuleReplace, MatchDistroName: rapidfortRedhatDistro, MatchEcosystem: rpmEcosystem, MatchPackageVersion: `.*?\.fc(?P<fedora>\d+)(?:[._~-].*)?`, ReplacementChannel: ptr("fc${fedora}"), Priority: higherPriority},
-
-		// rf- name fallback; elN versions are channel-less, so they are excluded here
-		{Action: SearchRuleReplace, MatchDistroName: rapidfortRedhatDistro, MatchEcosystem: rpmEcosystem, MatchPackageName: `rf-.*`, ExcludePackageVersion: `.*\.el\d+(?:[._~-].*)?`, ReplacementChannel: ptr("rf"), Priority: highPriority},
+		{Action: SearchRuleReplace, ApplicableClientDBSchemas: afterSearchRules, MatchDistroName: rapidfortUbuntuDistro,
+			MatchEcosystem: debEcosystem, MatchPackageVersion: rapidfortDpkgRebuildMarker, ReplacementChannel: new("rf"), Priority: highestPriority},
+		{Action: SearchRuleReplace, ApplicableClientDBSchemas: afterSearchRules, MatchDistroName: rapidfortDebianDistro,
+			MatchEcosystem: debEcosystem, MatchPackageVersion: rapidfortDpkgRebuildMarker, ReplacementChannel: new("rf"), Priority: highestPriority},
 
 		// rapidfort-alpine data is complete, so its packages are not searched by CPE
-		{Action: SearchRuleDrop, MatchDistroName: rapidfortAlpineDistro, MatchEcosystem: apkEcosystem, MatchCPEProduct: `.*`},
-
-		// for chainguard-osv
-		{Action: SearchRuleDrop,
-			MatchDistroName:     "chainguard",
-			MatchEcosystem:      apkEcosystem,
-			MatchUpstreamSearch: ptr(true)},
-		{Action: SearchRuleReplace,
-			MatchDistroName:               "chainguard",
-			MatchEcosystem:                apkEcosystem,
-			MatchUpstreamSearch:           ptr(false),
-			ReplacementDistroName:         ptr("chainguard"),
-			ReplacementDistroVersion:      ptr(""),
-			ReplacementDistroLabelVersion: ptr("cga")},
-		{Action: SearchRuleDrop, MatchDistroName: "wolfi",
-			MatchEcosystem:      apkEcosystem,
-			MatchUpstreamSearch: ptr(true)},
-		{Action: SearchRuleReplace,
-			MatchDistroName:               "wolfi",
-			MatchEcosystem:                apkEcosystem,
-			MatchUpstreamSearch:           ptr(false),
-			ReplacementDistroName:         ptr("chainguard"),
-			ReplacementDistroVersion:      ptr(""),
-			ReplacementDistroLabelVersion: ptr("cga")},
-	}
+		{Action: SearchRuleDrop, ApplicableClientDBSchemas: afterSearchRules, MatchDistroName: rapidfortAlpineDistro,
+			MatchEcosystem: apkEcosystem, MatchCPEProduct: `.*`},
+	}...)
 }
 
 func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {

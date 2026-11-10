@@ -2,6 +2,7 @@ package os
 
 import (
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/anchore/grype/grype/db/provider"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
+	"github.com/anchore/grype/grype/distro"
 )
 
 var timeVal = time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -1484,12 +1486,44 @@ func TestGetOSInfo(t *testing.T) {
 				channel: "fc43",
 			},
 		},
+		{
+			name:  "rapidfort-rockylinux + another release's channel",
+			group: "rapidfort-rockylinux:9+el10",
+			expected: osInfo{
+				name:    "rapidfort-rockylinux",
+				id:      "rapidfort-rockylinux",
+				version: "9",
+				channel: "el10",
+			},
+		},
+		{
+			name:  "rapidfort-amazonlinux",
+			group: "rapidfort-amazonlinux:2023",
+			expected: osInfo{
+				name:    "rapidfort-amazonlinux",
+				id:      "rapidfort-amazonlinux",
+				version: "2023",
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			oi := getOSInfo(tt.group)
 			assert.Equal(t, tt.expected, oi, "expected osInfo to match for group %s", tt.group)
+		})
+	}
+}
+
+func TestGetPackageType_RapidFort(t *testing.T) {
+	for _, d := range distro.All {
+		if !strings.HasPrefix(string(d), "rapidfort-") {
+			continue
+		}
+		t.Run(string(d), func(t *testing.T) {
+			// rapidfort-{distro} namespaces carry the base distro's packages
+			assert.Equal(t, getPackageType(strings.TrimPrefix(string(d), "rapidfort-")), getPackageType(string(d)))
+			assert.NotEmpty(t, getPackageType(string(d)))
 		})
 	}
 }

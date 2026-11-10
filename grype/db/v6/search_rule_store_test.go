@@ -26,7 +26,14 @@ func TestNewVulnerabilityProvider_SearchRuleDefaults(t *testing.T) {
 		want  []SearchRule
 	}{
 		{
-			name: "a single rule in the table prevents the defaults",
+			name: "seeded rules are used",
+			setup: func(t *testing.T, dir string) {
+				setupTestStore(t, dir)
+			},
+			want: KnownSearchRules(),
+		},
+		{
+			name: "the table's rules are used as written, without the built-in rules",
 			setup: func(t *testing.T, dir string) {
 				s := setupTestStore(t, dir)
 				require.NoError(t, s.db.Where("1 = 1").Delete(&SearchRule{}).Error)

@@ -396,11 +396,15 @@ func TestVulnerabilityProvider_SearchRewrites_KnownRules(t *testing.T) { //nolin
 	rfUbuntu := *distro.New(distro.RapidFortUbuntu, "22.04", "")
 	rfDebian := *distro.New(distro.RapidFortDebian, "12", "")
 	rfAlpine := *distro.New(distro.RapidFortAlpine, "3.18", "")
+	rfRocky := *distro.New(distro.RapidFortRockyLinux, "9", "")
+	rfAmazon := *distro.New(distro.RapidFortAmazonLinux, "2023", "")
 	apk, deb, rpm := syftPkg.ApkPkg, syftPkg.DebPkg, syftPkg.RpmPkg
 
 	const (
-		rh  = "rapidfort-redhat@9+"
-		ubu = "rapidfort-ubuntu@22.04+"
+		rh    = "rapidfort-redhat@9+"
+		ubu   = "rapidfort-ubuntu@22.04+"
+		rocky = "rapidfort-rockylinux@9+"
+		amzn  = "rapidfort-amazonlinux@2023+"
 	)
 
 	tests := []struct {
@@ -419,9 +423,14 @@ func TestVulnerabilityProvider_SearchRewrites_KnownRules(t *testing.T) { //nolin
 			want:   []searched{ruled(rh+"fc31", "curl", 20)},
 		},
 		{
-			name:   "the rebuild marker and the dist tag both apply, ranked",
+			name:   "a rebuild of a fedora build is in the rf stream alone",
 			search: nameSearch(searchOf("curl", "7.78.0-3.fc43.rf.1", rfRedhat, rpm)),
-			want:   []searched{ruled(rh+"rf", "curl", 30), ruled(rh+"fc43", "curl", 20)},
+			want:   []searched{ruled(rh+"rf", "curl", 30)},
+		},
+		{
+			name:   "the rebuild marker after the dist tag",
+			search: nameSearch(searchOf("rf-pcre2", "10.47-12.rf.fc43", rfRedhat, rpm)),
+			want:   []searched{ruled(rh+"rf", "rf-pcre2", 30)},
 		},
 		{
 			name:   "rf- name fallback",
@@ -429,9 +438,15 @@ func TestVulnerabilityProvider_SearchRewrites_KnownRules(t *testing.T) { //nolin
 			want:   []searched{ruled(rh+"rf", "rf-scanner", 10)},
 		},
 		{
+			// the el9 channel has no rows on release 9: its own el9 builds are channel-less
 			name:   "rf- name with a native el version is channel-less",
 			search: nameSearch(searchOf("rf-scanner", "1.0-1.el9", rfRedhat, rpm)),
-			want:   []searched{own(rh, "rf-scanner")},
+			want:   []searched{own(rh, "rf-scanner"), ruled(rh+"el9", "rf-scanner", 20)},
+		},
+		{
+			name:   "rf- name with another release's el version adds that release's channel",
+			search: nameSearch(searchOf("rf-tar", "2:1.35-7.el10_0.2", rfRedhat, rpm)),
+			want:   []searched{own(rh, "rf-tar"), ruled(rh+"el10", "rf-tar", 20)},
 		},
 		{
 			name:   "rf- name with a dist tag ranks the dist tag first",
@@ -441,7 +456,42 @@ func TestVulnerabilityProvider_SearchRewrites_KnownRules(t *testing.T) { //nolin
 		{
 			name:   "native el version",
 			search: nameSearch(searchOf("curl", "7.76.1-29.el9", rfRedhat, rpm)),
-			want:   []searched{own(rh, "curl")},
+			want:   []searched{own(rh, "curl"), ruled(rh+"el9", "curl", 20)},
+		},
+		{
+			name:   "modular el build names no release",
+			search: nameSearch(searchOf("nodejs", "1:20.19.5-1.module+el9.7.0+23457+f6a3e1b2", rfRedhat, rpm)),
+			want:   []searched{own(rh, "nodejs")},
+		},
+		{
+			name:   "rapidfort-rockylinux rebuild",
+			search: nameSearch(searchOf("rf-avahi-autoipd", "0.9~rc2-11.rf", rfRocky, rpm)),
+			want:   []searched{ruled(rocky+"rf", "rf-avahi-autoipd", 30)},
+		},
+		{
+			name:   "rapidfort-rockylinux fedora build",
+			search: nameSearch(searchOf("curl", "0:8.15.0-5.fc43", rfRocky, rpm)),
+			want:   []searched{ruled(rocky+"fc43", "curl", 20)},
+		},
+		{
+			name:   "rapidfort-rockylinux build for another release",
+			search: nameSearch(searchOf("rf-tar", "1.35-7.el10_0.2", rfRocky, rpm)),
+			want:   []searched{own(rocky, "rf-tar"), ruled(rocky+"el10", "rf-tar", 20)},
+		},
+		{
+			name:   "rapidfort-amazonlinux native build",
+			search: nameSearch(searchOf("7zip", "26.01-14.amzn2023.0.1", rfAmazon, rpm)),
+			want:   []searched{own(amzn, "7zip"), ruled(amzn+"amzn2023", "7zip", 20)},
+		},
+		{
+			name:   "rapidfort-amazonlinux rf- name with a native version is not in the rf stream",
+			search: nameSearch(searchOf("rf-acl", "0:2.4.0-1.amzn2023.0.1", rfAmazon, rpm)),
+			want:   []searched{own(amzn, "rf-acl"), ruled(amzn+"amzn2023", "rf-acl", 20)},
+		},
+		{
+			name:   "rapidfort-amazonlinux rf- name fallback",
+			search: nameSearch(searchOf("rf-acl", "0:2.4.0-1", rfAmazon, rpm)),
+			want:   []searched{ruled(amzn+"rf", "rf-acl", 10)},
 		},
 		{
 			name:   "rapidfort-redhat rules speak only for rpm packages",
