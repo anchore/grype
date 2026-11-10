@@ -719,7 +719,7 @@ func (os *OperatingSystemSpecifierOverride) BeforeCreate(_ *gorm.DB) (err error)
 // Every matching rule applies; the records its search finds are ranked by its Priority. The matched
 // search is kept unless a matching rule replaces or drops it.
 //
-// The table has no primary key: rows are read as a whole set and never referenced.
+// The table has no primary key: rows are read as a whole set, in rowid order, and never referenced.
 type SearchRule struct {
 	// Action is how the rule alters a search it matches: add the rule's search to it, replace it with
 	// the rule's search, or drop it. A rule without one is invalid.

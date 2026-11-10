@@ -109,7 +109,7 @@ func newStore(cfg Config, empty, writable bool) (*store, error) {
 		vulnerabilityDecoratorStore: newVulnerabilityDecoratorStore(db, bs, dbVersion),
 		unaffectedCPEStore:          newUnaffectedCPEStore(db, bs),
 		architectureAliasStore:      newArchitectureAliasStore(db),
-		searchRuleStore:             newSearchRuleStore(db),
+		searchRuleStore:             newSearchRuleStore(db, dbVersion),
 		blobStore:                   bs,
 		db:                          db,
 		config:                      cfg,

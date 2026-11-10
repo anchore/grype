@@ -210,8 +210,9 @@ func rapidfortRPMRules(applicable string) []SearchRule {
 }
 
 // KnownSearchRules are the search rules seeded into a newly built DB. A client applies them itself only
-// to a DB without rules, and only as far as that DB's schema allows: they route searches to data an
-// older DB does not have. Patterns are anchored, so partial matches need an explicit `.*`.
+// to a DB that predates the search_rules table, or whose table it cannot read; a DB with the table is
+// authoritative, even when it has no rules. Patterns are anchored, so partial matches need an explicit
+// `.*`.
 func KnownSearchRules() []SearchRule {
 	return append(rapidfortRPMRules(afterSearchRules), []SearchRule{
 		// no rf- name rule for dpkg: rf- names appear in both streams

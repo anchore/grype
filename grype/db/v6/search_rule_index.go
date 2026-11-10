@@ -25,7 +25,8 @@ type searchIndex struct {
 	matches       []*searchMatch // rules with no pattern beyond their exact values
 }
 
-// newSearchIndex skips invalid rows (e.g. with no action) with a debug log.
+// newSearchIndex skips invalid rows with a debug log; GetSearchRules has already skipped them with a
+// warning.
 func newSearchIndex(rows []SearchRule) *searchIndex {
 	root := &searchIndex{}
 	for i, row := range rows {

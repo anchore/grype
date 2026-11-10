@@ -11,7 +11,6 @@ import (
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
-	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -1059,20 +1058,21 @@ func TestVulnerabilityProvider_SearchRewrites_UpstreamSearch(t *testing.T) {
 	})
 }
 
-func TestFilterSearchRulesForClient(t *testing.T) {
-	clientVersion := version.New("6.1.0", version.SemanticFormat)
-	rows := []SearchRule{
+func TestApplicableSearchRules_ClientSchema(t *testing.T) {
+	var rows []searchRuleRow
+	for _, r := range []SearchRule{
 		{Action: SearchRuleAdd, MatchDistroName: "a", MatchPackageName: "x", ReplacementChannel: ptr("c")},
 		{Action: SearchRuleAdd, MatchDistroName: "b", MatchPackageName: "x", ReplacementChannel: ptr("c"), ApplicableClientDBSchemas: "< 6.0.0"},
 		{Action: SearchRuleAdd, MatchDistroName: "c", MatchPackageName: "x", ReplacementChannel: ptr("c"), ApplicableClientDBSchemas: ">= 6.0.0"},
-		// an unparsable constraint fails open
+		// an unparsable constraint is skipped, not applied
 		{Action: SearchRuleAdd, MatchDistroName: "d", MatchPackageName: "x", ReplacementChannel: ptr("c"), ApplicableClientDBSchemas: "not-a-constraint"},
+	} {
+		rows = append(rows, searchRuleRow{SearchRule: r})
 	}
 
-	got := filterSearchRulesForClient(rows, clientVersion)
 	var names []string
-	for _, r := range got {
+	for _, r := range applicableSearchRules(rows, nil) {
 		names = append(names, r.MatchDistroName)
 	}
-	assert.Equal(t, []string{"a", "c", "d"}, names)
+	assert.Equal(t, []string{"a", "c"}, names)
 }

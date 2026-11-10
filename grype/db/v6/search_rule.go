@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"regexp/syntax"
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/pkg"
@@ -364,16 +366,61 @@ func validateReplacements(row SearchRule, keys indexKeys) error {
 
 // compilePattern returns the pattern as an anchored, case-insensitive regex, and its value when it has
 // no regex syntax. The anchoring group is non-capturing, so a top-level `|` is anchored on every branch.
+// Patterns come from the DB, so a bad one is an error, never a panic.
 func compilePattern(pattern string) (re *regexp.Regexp, literal string, err error) {
-	anchored := "^(?:" + pattern + ")$"
-	re, err = regexp.Compile(anchored)
+	if c, ok := compiledPatterns.Load(pattern); ok {
+		c := c.(compiledPattern)
+		return c.re, c.literal, c.err
+	}
+	var c compiledPattern
+	c.re, c.literal, c.err = compileUncachedPattern(pattern)
+	compiledPatterns.Store(pattern, c)
+	return c.re, c.literal, c.err
+}
+
+// compiledPatterns caches compilePattern by pattern: a DB's rules share patterns, and a rule compiles
+// once to validate it and again to index it.
+// ponytail: unbounded, but it holds only the patterns of the DBs a process loads.
+var compiledPatterns sync.Map
+
+type compiledPattern struct {
+	re      *regexp.Regexp
+	literal string
+	err     error
+}
+
+func compileUncachedPattern(pattern string) (*regexp.Regexp, string, error) {
+	// the pattern must parse on its own, or it could close the anchoring group (`a)|(?:b`)
+	parsed, err := syntax.Parse(pattern, syntax.Perl)
 	if err != nil {
-		return nil, "", fmt.Errorf("search rule has an invalid pattern %q: %w", pattern, err)
+		return nil, "", invalidPatternError(pattern, err)
 	}
-	if prefix, complete := re.LiteralPrefix(); complete {
-		literal = prefix
+	re, err := regexp.Compile("(?i)^(?:" + pattern + ")$")
+	if err != nil {
+		return nil, "", invalidPatternError(pattern, err)
 	}
-	return regexp.MustCompile("(?i)" + anchored), literal, nil
+	var literal string
+	if parsed.Op == syntax.OpLiteral && parsed.Flags&syntax.FoldCase == 0 {
+		literal = string(parsed.Rune)
+	}
+	return re, literal, nil
+}
+
+// invalidPatternError abbreviates the pattern, which regexp errors repeat whole, as it is logged.
+func invalidPatternError(pattern string, err error) error {
+	var serr *syntax.Error
+	if errors.As(err, &serr) {
+		err = &syntax.Error{Code: serr.Code, Expr: abbreviate(serr.Expr)}
+	}
+	return fmt.Errorf("search rule has an invalid pattern %q: %w", abbreviate(pattern), err)
+}
+
+func abbreviate(s string) string {
+	const maxLen = 80
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
 
 // addGroupNames adds re's named groups to names, rejecting one that shadows a match type or that
