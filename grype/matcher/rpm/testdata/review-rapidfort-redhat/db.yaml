@@ -1,0 +1,7 @@
+auto-generate: true
+extractions:
+    rapidfort:
+        - rapidfort-redhat:9/cve-2025-14017
+    rhel:
+        - rhel:9/cve-2023-38546
+        - rhel:8/cve-2023-38546
