@@ -688,17 +688,17 @@
 {{- $FilteredMatches := list }}
 
 {{/* Loop through all vulns limit output and set count*/}}
-{{- range $vuln := .Matches }}
+{{- range $vuln := .matches }}
     {{/* Use this filter to exclude severity if needed */}}
-    {{- if or (eq $vuln.Vulnerability.Severity "Critical") (eq $vuln.Vulnerability.Severity "High") (eq $vuln.Vulnerability.Severity "Medium") (eq $vuln.Vulnerability.Severity "Low") (eq $vuln.Vulnerability.Severity "Unknown") }}
+    {{- if or (eq $vuln.vulnerability.severity "Critical") (eq $vuln.vulnerability.severity "High") (eq $vuln.vulnerability.severity "Medium") (eq $vuln.vulnerability.severity "Low") (eq $vuln.vulnerability.severity "Unknown") }}
         {{- $FilteredMatches = append $FilteredMatches $vuln }}
-        {{- if eq $vuln.Vulnerability.Severity "Critical" }}
+        {{- if eq $vuln.vulnerability.severity "Critical" }}
             {{- $CountCritical = add $CountCritical 1 }}
-        {{- else if eq $vuln.Vulnerability.Severity "High" }}
+        {{- else if eq $vuln.vulnerability.severity "High" }}
             {{- $CountHigh = add $CountHigh 1 }}
-        {{- else if eq $vuln.Vulnerability.Severity "Medium" }}
+        {{- else if eq $vuln.vulnerability.severity "Medium" }}
             {{- $CountMedium = add $CountMedium 1 }}
-        {{- else if eq $vuln.Vulnerability.Severity "Low" }}
+        {{- else if eq $vuln.vulnerability.severity "Low" }}
             {{- $CountLow = add $CountLow 1 }}
         {{- else }}
             {{- $CountUnknown = add $CountUnknown 1 }}
@@ -713,40 +713,40 @@
                 <h1 class="report-title">Vulnerability Report</h1>
                 <dl class="report-details">
                     <dt>Name:</dt>
-                    <dd id="nameValue"> {{- if eq (.Source.Type) "image" -}} {{.Source.Target.UserInput}}
-                        {{- else if eq (.Source.Type) "directory" -}} {{.Source.Target}}
-                        {{- else if eq (.Source.Type) "file" -}} {{.Source.Target}}
+                    <dd id="nameValue"> {{- if eq (.source.type) "image" -}} {{.source.target.userInput}}
+                        {{- else if eq (.source.type) "directory" -}} {{.source.target}}
+                        {{- else if eq (.source.type) "file" -}} {{.source.target}}
                         {{- else -}} unknown
                         {{- end -}}</dd>
 
                     <dt>Type:</dt>
-                    <dd id="typeValue">{{ .Source.Type }}</dd>
+                    <dd id="typeValue">{{ .source.type }}</dd>
 
                     {{- /* Conditionally add ImageID (Checksum) for images */ -}}
-                    {{- if eq .Source.Type "image" -}}
-                    {{- with .Source.Target.ID -}}
+                    {{- if eq .source.type "image" -}}
+                    {{- with .source.target.id -}}
                     <dt>Checksum:</dt>
                     <dd id="checksumValue">{{ . }}</dd>
                     {{- end -}}
                     {{- end -}}
 
                     <dt>Grype Version:</dt>
-                    <dd>{{.Descriptor.Name}} {{.Descriptor.Version}}</dd>
+                    <dd>{{.descriptor.name}} {{.descriptor.version}}</dd>
 
-                    {{- if .Descriptor.DB -}}
+                    {{- if .descriptor.db -}}
                     <dt>Vulnerability DB:</dt>
-                    <dd>{{ toJson .Descriptor.DB }}</dd>
+                    <dd>{{ toJson .descriptor.db }}</dd>
                     {{- end -}}
 
                     <dt>Date:</dt>
                     <dd>
-                        <span id="dateElement">{{.Descriptor.Timestamp}}</span>
+                        <span id="dateElement">{{.descriptor.timestamp}}</span>
                         <span id="prettyDateElement" style="display: none;"></span>
                     </dd>
                     <dt>Grype Version:</dt>
-                    <dd>{{ .Descriptor.Version }}</dd>
+                    <dd>{{ .descriptor.version }}</dd>
                     <dt>DB Built:</dt>
-                    <dd>{{ .Descriptor.DB.Status.Built }}</dd>
+                    <dd>{{ .descriptor.db.status.built }}</dd>
                 </dl>
             </div>
             <div class="heading-right">
@@ -796,28 +796,28 @@
                 <tbody>
                     {{- range $FilteredMatches }}
                     <tr>
-                        <td>{{.Artifact.Name}}</td>
+                        <td>{{.artifact.name}}</td>
                         <td>
                             <ul>
-                            {{- range .Artifact.Locations }}
-                                <li>{{ .RealPath }}</li>
+                            {{- range .artifact.locations }}
+                                <li>{{ .path }}</li>
                             {{- end }}
                             </ul>
                         </td>
-                        <td>{{.Artifact.Version}}</td>
-                        <td>{{.Artifact.Type}}</td>
+                        <td>{{.artifact.version}}</td>
+                        <td>{{.artifact.type}}</td>
                         <td>
-                            <a href="{{.Vulnerability.DataSource}}">{{.Vulnerability.ID}}</a>
+                            <a href="{{.vulnerability.dataSource}}">{{.vulnerability.id}}</a>
                         </td>
-                        <td>{{.Vulnerability.Severity}}</td>
-                        <td>{{.Vulnerability.Fix.State}}</td>
-                        <td>{{html .Vulnerability.Description}}</td>
-                        <td>{{ toJson .Vulnerability.URLs }}</td>
-                        <td>{{ .Artifact.PURL }}</td>
+                        <td>{{.vulnerability.severity}}</td>
+                        <td>{{.vulnerability.fix.state}}</td>
+                        <td>{{html .vulnerability.description}}</td>
+                        <td>{{ toJson .vulnerability.urls }}</td>
+                        <td>{{ .artifact.purl }}</td>
                         <td>
-                            {{- if .Vulnerability.Fix.Versions }}
+                            {{- if .vulnerability.fix.versions }}
                             <ul>
-                                {{- range .Vulnerability.Fix.Versions }}
+                                {{- range .vulnerability.fix.versions }}
                                 <li>{{ . }}</li>
                                 {{- end }}
                             </ul>
