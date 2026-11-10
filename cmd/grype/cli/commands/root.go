@@ -408,6 +408,7 @@ func getProviderConfig(opts *options.Grype) pkg.ProviderConfig {
 	cfg := syft.DefaultCreateSBOMConfig()
 	cfg.Packages.JavaArchive.IncludeIndexedArchives = opts.Search.IncludeIndexedArchives
 	cfg.Packages.JavaArchive.IncludeUnindexedArchives = opts.Search.IncludeUnindexedArchives
+	cfg.Search = cfg.Search.WithScope(opts.Search.GetScope())
 
 	// capture Go binary function symbols so the gosymbols qualifier can suppress false positives for
 	// module- and stdlib-scoped govulndb advisories (e.g. a net/http server DoS matching any binary that
