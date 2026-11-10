@@ -14,6 +14,7 @@ import (
 
 type PresentationConfig struct {
 	TemplateFilePath string
+	TemplateLegacy   bool
 	ShowSuppressed   bool
 	Pretty           bool
 }
@@ -38,7 +39,7 @@ func GetPresenter(format Format, c PresentationConfig, pb models.PresenterConfig
 	case SarifFormat:
 		return sarif.NewPresenter(pb)
 	case TemplateFormat:
-		return template.NewPresenter(pb, c.TemplateFilePath)
+		return template.NewPresenter(pb, c.TemplateFilePath, c.TemplateLegacy)
 	// DEPRECATED TODO: remove in v1.0
 	case EmbeddedVEXJSON:
 		log.Warn("embedded-cyclonedx-vex-json format is deprecated and will be removed in v1.0")
