@@ -17,13 +17,14 @@ import (
 // chainguardOS / wolfiOS are small constructors used by TestChainguardTransform
 // to keep expected AffectedPackageHandle entries readable. Each ecosystem gets
 // its own OS row (Name == ReleaseID == lowercased ecosystem) with a shared
-// LabelVersion of "cga", which keeps CGA-sourced data apart from the secdb data
-// the same provider writes under the "rolling" label.
+// LabelVersion of "rolling" — both distros are rolling-release with no version
+// number to attach, so the OS-specifier-override layer matches on Name/ReleaseID
+// alone.
 func chainguardOS() *db.OperatingSystem {
 	return &db.OperatingSystem{
 		Name:         "chainguard",
 		ReleaseID:    "chainguard",
-		LabelVersion: "cga",
+		LabelVersion: "rolling",
 	}
 }
 
@@ -31,7 +32,7 @@ func wolfiOS() *db.OperatingSystem {
 	return &db.OperatingSystem{
 		Name:         "wolfi",
 		ReleaseID:    "wolfi",
-		LabelVersion: "cga",
+		LabelVersion: "rolling",
 	}
 }
 
@@ -616,7 +617,7 @@ func TestCgGetQualifiers(t *testing.T) {
 // TestCgOperatingSystem covers the ecosystem → OperatingSystem mapping. CGA
 // records carry per-affected-row ecosystem strings ("Chainguard" / "Wolfi");
 // each maps to its own OS row (Name == ReleaseID == lowercased ecosystem) with
-// a shared LabelVersion of "cga" to keep it apart from "rolling" secdb data. Any
+// a shared LabelVersion of "rolling" — both distros are rolling-release. Any
 // other ecosystem (lowercased variants, unrecognized strings, empty) must
 // return nil so the caller leaves OperatingSystem unset on the
 // AffectedPackageHandle.
@@ -627,21 +628,21 @@ func TestCgOperatingSystem(t *testing.T) {
 		want      *db.OperatingSystem
 	}{
 		{
-			name:      "Chainguard maps to lowercase OS with cga label",
+			name:      "Chainguard maps to lowercase OS with rolling label",
 			ecosystem: "Chainguard",
 			want: &db.OperatingSystem{
 				Name:         "chainguard",
 				ReleaseID:    "chainguard",
-				LabelVersion: "cga",
+				LabelVersion: "rolling",
 			},
 		},
 		{
-			name:      "Wolfi maps to lowercase OS with cga label",
+			name:      "Wolfi maps to lowercase OS with rolling label",
 			ecosystem: "Wolfi",
 			want: &db.OperatingSystem{
 				Name:         "wolfi",
 				ReleaseID:    "wolfi",
-				LabelVersion: "cga",
+				LabelVersion: "rolling",
 			},
 		},
 		{

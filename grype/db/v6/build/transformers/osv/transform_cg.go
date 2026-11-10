@@ -154,11 +154,6 @@ func cgGetQualifiers(affected osvmodel.Affected) *db.PackageQualifiers {
 	return nil
 }
 
-// cgaLabelVersion is the OS label version for data sourced from CG OSV (CGA) advisories. The same
-// provider also emits secdb data under the "rolling" label, so CGA data gets its own label to keep
-// the two data sets in distinct OS rows.
-const cgaLabelVersion = "cga"
-
 // cgOperatingSystem maps the OSV ecosystem string to a grype DB OperatingSystem row.
 // CG OSV advisories can carry affected entries across multiple apk-based distros
 // (Chainguard, Wolfi). Each becomes its own OS row so apk-distro matchers can find
@@ -171,7 +166,7 @@ func cgOperatingSystem(ecosystem string) *db.OperatingSystem {
 		return &db.OperatingSystem{
 			Name:         lower,
 			ReleaseID:    lower,
-			LabelVersion: cgaLabelVersion,
+			LabelVersion: "rolling",
 		}
 	}
 	return nil
