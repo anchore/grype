@@ -9,6 +9,7 @@
       "package": "pkg:alpm/arch/curl@7.87.0-3",
       "vulnerability": "AVG-2845",
       "aliases": [
+        "CVE-2023-38546",
         "CVE-2023-38545"
       ],
       "verdict": "tp",
@@ -35,6 +36,7 @@
       "package": "pkg:alpm/arch/vim@9.0.1182-1",
       "vulnerability": "AVG-2843",
       "aliases": [
+        "CVE-2023-0433",
         "CVE-2022-0392"
       ],
       "verdict": "tp",
