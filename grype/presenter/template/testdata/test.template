@@ -1,11 +1,11 @@
-Identified distro as {{.Distro.Name}} version {{.Distro.Version}}.
-{{- range .Matches}}
-    Vulnerability: {{.Vulnerability.ID}}
-    Severity: {{.Vulnerability.Severity}}
-    Package: {{.Artifact.Name}} version {{.Artifact.Version}} ({{.Artifact.Type}})
-    CPEs: {{ toJson .Artifact.CPEs }}
-    {{- range .MatchDetails}}
-    Matched by: {{.Matcher}}
+Identified distro as {{.distro.name}} version {{.distro.version}}.
+{{- range .matches}}
+    Vulnerability: {{.vulnerability.id}}
+    Severity: {{.vulnerability.severity}}
+    Package: {{.artifact.name}} version {{.artifact.version}} ({{.artifact.type}})
+    CPEs: {{ toJson .artifact.cpes }}
+    {{- range .matchDetails}}
+    Matched by: {{.matcher}}
     {{- end}}
 {{- end}}
 
