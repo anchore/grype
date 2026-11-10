@@ -125,6 +125,49 @@ func TestApplyDistroIdentifiers(t *testing.T) {
 			},
 		},
 		{
+			name:   "rocky is remapped",
+			distro: distro.New(distro.RockyLinux, "9.6", ""),
+			sbom:   dirSBOM("/", "/usr/share/rapidfort/curated.json"),
+			want: func(t *testing.T, got *distro.Distro) {
+				assert.Equal(t, distro.RapidFortRockyLinux, got.Type)
+				assert.Equal(t, "9.6", got.Version)
+			},
+		},
+		{
+			name:   "alma is remapped",
+			distro: distro.New(distro.AlmaLinux, "10", ""),
+			sbom:   dirSBOM("/", "/usr/share/rapidfort/curated.json"),
+			want: func(t *testing.T, got *distro.Distro) {
+				assert.Equal(t, distro.RapidFortAlmaLinux, got.Type)
+			},
+		},
+		{
+			name:   "oracle is remapped",
+			distro: distro.New(distro.OracleLinux, "9", ""),
+			sbom:   dirSBOM("/", "/usr/share/rapidfort/curated.json"),
+			want: func(t *testing.T, got *distro.Distro) {
+				assert.Equal(t, distro.RapidFortOracleLinux, got.Type)
+			},
+		},
+		{
+			name:   "amazon is remapped",
+			distro: distro.New(distro.AmazonLinux, "2023", ""),
+			sbom:   dirSBOM("/", "/usr/share/rapidfort/curated.json"),
+			want: func(t *testing.T, got *distro.Distro) {
+				assert.Equal(t, distro.RapidFortAmazonLinux, got.Type)
+				assert.Equal(t, "2023", got.Version)
+			},
+		},
+		{
+			// RapidFort publishes no CentOS data (no OS/centos tree)
+			name:   "centos is not remapped",
+			distro: distro.New(distro.CentOS, "9", ""),
+			sbom:   dirSBOM("/", "/usr/share/rapidfort/curated.json"),
+			want: func(t *testing.T, got *distro.Distro) {
+				assert.Equal(t, distro.CentOS, got.Type)
+			},
+		},
+		{
 			name: "base fix channels are cleared",
 			distro: func() *distro.Distro {
 				d := distro.New(distro.Ubuntu, "20.04", "")

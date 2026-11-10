@@ -62,14 +62,17 @@ func DefaultIdentifiers() Identifiers {
 			// the label covers SBOMs that keep image labels but not the file catalog
 			MarkerPaths: []string{"/usr/share/rapidfort/curated.json"},
 			Label:       LabelMatcher{Key: "maintainer", ValuePrefix: "rapidfort"},
+			// the distros RapidFort publishes data for; fedora is not remapped since the feed has no
+			// Fedora releases (only fc* events in EL releases), nor centos since it has no CentOS data
 			DistroIDs: map[string]string{
-				string(Ubuntu): string(RapidFortUbuntu),
-				"alpine":       string(RapidFortAlpine),
-				"debian":       string(RapidFortDebian),
-				// RapidFort publishes all EL-family data under rapidfort-redhat; fedora is not
-				// remapped since the feed has no Fedora releases (only fc* events in EL releases)
+				string(Ubuntu):  string(RapidFortUbuntu),
+				"alpine":        string(RapidFortAlpine),
+				"debian":        string(RapidFortDebian),
 				rhelOSReleaseID: string(RapidFortRedHat),
-				"centos":        string(RapidFortRedHat),
+				"rocky":         string(RapidFortRockyLinux),
+				"almalinux":     string(RapidFortAlmaLinux),
+				"ol":            string(RapidFortOracleLinux),
+				"amzn":          string(RapidFortAmazonLinux),
 			},
 			Apply: IdentifierAuto,
 		},

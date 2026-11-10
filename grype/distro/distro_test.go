@@ -418,6 +418,10 @@ func Test_NewDistroFromRelease_Coverage(t *testing.T) {
 	definedDistros.Remove(string(RapidFortAlpine))
 	definedDistros.Remove(string(RapidFortDebian))
 	definedDistros.Remove(string(RapidFortRedHat))
+	definedDistros.Remove(string(RapidFortRockyLinux))
+	definedDistros.Remove(string(RapidFortAlmaLinux))
+	definedDistros.Remove(string(RapidFortOracleLinux))
+	definedDistros.Remove(string(RapidFortAmazonLinux))
 
 	tests := []struct {
 		Name         string

@@ -40,10 +40,14 @@ const (
 	Hummingbird  Type = "hummingbird"
 
 	// RapidFort types are never read from /etc/os-release; they are applied by an Identifier
-	RapidFortUbuntu Type = "rapidfort-ubuntu"
-	RapidFortAlpine Type = "rapidfort-alpine"
-	RapidFortDebian Type = "rapidfort-debian"
-	RapidFortRedHat Type = "rapidfort-redhat"
+	RapidFortUbuntu      Type = "rapidfort-ubuntu"
+	RapidFortAlpine      Type = "rapidfort-alpine"
+	RapidFortDebian      Type = "rapidfort-debian"
+	RapidFortRedHat      Type = "rapidfort-redhat"
+	RapidFortRockyLinux  Type = "rapidfort-rockylinux"
+	RapidFortAlmaLinux   Type = "rapidfort-almalinux"
+	RapidFortOracleLinux Type = "rapidfort-oraclelinux"
+	RapidFortAmazonLinux Type = "rapidfort-amazonlinux"
 )
 
 // All contains all Linux distribution options
@@ -80,6 +84,10 @@ var All = []Type{
 	RapidFortAlpine,
 	RapidFortDebian,
 	RapidFortRedHat,
+	RapidFortRockyLinux,
+	RapidFortAlmaLinux,
+	RapidFortOracleLinux,
+	RapidFortAmazonLinux,
 }
 
 // rhelOSReleaseID is the /etc/os-release ID for Red Hat Enterprise Linux (the Type is "redhat")
@@ -115,10 +123,14 @@ var IDMapping = map[string]Type{
 	"postmarketos":  PostmarketOS,
 	"hummingbird":   Hummingbird,
 
-	"rapidfort-ubuntu": RapidFortUbuntu,
-	"rapidfort-alpine": RapidFortAlpine,
-	"rapidfort-debian": RapidFortDebian,
-	"rapidfort-redhat": RapidFortRedHat,
+	"rapidfort-ubuntu":      RapidFortUbuntu,
+	"rapidfort-alpine":      RapidFortAlpine,
+	"rapidfort-debian":      RapidFortDebian,
+	"rapidfort-redhat":      RapidFortRedHat,
+	"rapidfort-rockylinux":  RapidFortRockyLinux,
+	"rapidfort-almalinux":   RapidFortAlmaLinux,
+	"rapidfort-oraclelinux": RapidFortOracleLinux,
+	"rapidfort-amazonlinux": RapidFortAmazonLinux,
 }
 
 // TypeFromID returns the Type for an os-release ID (e.g. "ubuntu"), or the raw ID as a Type when unknown.
