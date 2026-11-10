@@ -268,7 +268,8 @@ func TestSet_SplitVulnerable_UnaffectedIsNeverAMatch(t *testing.T) {
 	})
 
 	t.Run("an unaffected record that does not cover the version denies nothing", func(t *testing.T) {
-		// the apk "< 0" NAK shape, satisfied by no version
+		// an unaffected record satisfied by no version (the apk "< 0" shape is an affected row, see
+		// TestSet_SplitVulnerable_ApkNotAffectedRows)
 		s := setOf("CVE-1",
 			record("CVE-1", nativeNS, ">= 0"),
 			unaffectedRecord("CVE-1", nativeNS, "< 0"),
