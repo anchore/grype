@@ -1,6 +1,8 @@
 package pkg
 
 import (
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -601,4 +603,40 @@ func Test_PurlList(t *testing.T) {
 
 func testFixChannels() []distro.FixChannel {
 	return distro.DefaultFixChannels()
+}
+
+func TestSyftSBOMProvider_NonSBOMTextFile(t *testing.T) {
+	applyChannel := getDistroChannelApplier(testFixChannels())
+
+	// a plain text file that is not an SBOM (e.g. a conan.lock file) should not cause a
+	// hard failure; the provider should defer to other providers (like syft) instead
+	dir := t.TempDir()
+	plainFile := filepath.Join(dir, "conan.lock")
+	require.NoError(t, os.WriteFile(plainFile, []byte(`{"graph_lock": {"nodes": {}}}`), 0644))
+
+	t.Run("implicit non-SBOM file defers to other providers", func(t *testing.T) {
+		_, _, _, err := syftSBOMProvider(plainFile, ProviderConfig{}, applyChannel)
+		require.ErrorIs(t, err, errDoesNotProvide)
+	})
+
+	t.Run("implicit empty JSON object defers to other providers", func(t *testing.T) {
+		emptyJSON := filepath.Join(dir, "empty.json")
+		require.NoError(t, os.WriteFile(emptyJSON, []byte(`{}`), 0644))
+		_, _, _, err := syftSBOMProvider(emptyJSON, ProviderConfig{}, applyChannel)
+		require.ErrorIs(t, err, errDoesNotProvide)
+	})
+
+	t.Run("implicit malformed SBOM keeps the hard decode error", func(t *testing.T) {
+		_, _, _, err := syftSBOMProvider("testdata/bad-sbom.json", ProviderConfig{}, applyChannel)
+		require.Error(t, err)
+		require.NotErrorIs(t, err, errDoesNotProvide)
+		assert.Contains(t, err.Error(), "unable to decode sbom")
+	})
+
+	t.Run("explicit sbom scheme keeps the hard decode error", func(t *testing.T) {
+		_, _, _, err := syftSBOMProvider("sbom:"+plainFile, ProviderConfig{}, applyChannel)
+		require.Error(t, err)
+		require.NotErrorIs(t, err, errDoesNotProvide)
+		assert.Contains(t, err.Error(), "unable to decode sbom")
+	})
 }
