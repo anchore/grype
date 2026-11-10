@@ -1,21 +1,21 @@
 # Vulnerability Report
 
-- Name: {{- if eq (.Source.Type) "image" }} {{ .Source.Target.UserInput }}
-{{ else if eq (.Source.Type) "directory" }} {{ .Source.Target }}
-{{ else if eq (.Source.Type) "file" }} {{ .Source.Target }}
-{{ else if eq (.Source.Type) "sbom-file" }} {{ .Source.Target }}
+- Name: {{- if eq (.source.type) "image" }} {{ .source.target.userInput }}
+{{ else if eq (.source.type) "directory" }} {{ .source.target }}
+{{ else if eq (.source.type) "file" }} {{ .source.target }}
+{{ else if eq (.source.type) "sbom-file" }} {{ .source.target }}
 {{ else }} unknown
 {{ end -}}
-- Type: {{ .Source.Type }}
-{{- if eq .Source.Type "image" }}
-{{ with .Source.Target.ID }}
+- Type: {{ .source.type }}
+{{- if eq .source.type "image" }}
+{{ with .source.target.id }}
 - Checksum: {{ . }}
 {{- end -}}
 {{- end}}
-- Date: {{ .Descriptor.Timestamp }}
+- Date: {{ .descriptor.timestamp }}
 
 | Package | Version Installed | Vulnerability ID | Severity |
 |---------|-------------------|------------------|----------|
-{{- range .Matches }}
-| {{ .Artifact.Name }} | {{ .Artifact.Version }} | {{ .Vulnerability.ID }} | {{ .Vulnerability.Severity }} |
+{{- range .matches }}
+| {{ .artifact.name }} | {{ .artifact.version }} | {{ .vulnerability.id }} | {{ .vulnerability.severity }} |
 {{- end }}
