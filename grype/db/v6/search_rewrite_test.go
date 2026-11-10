@@ -22,7 +22,7 @@ type loggedEntry struct {
 	fields map[string]string
 }
 
-// debugRecorder records the trace messages logged with fields, and discards the rest.
+// debugRecorder records the trace and warn messages logged with fields, and discards the rest.
 type debugRecorder struct {
 	logger.Logger
 	entries *[]loggedEntry
@@ -46,7 +46,11 @@ func (r fieldsRecorder) Trace(args ...any) {
 	*r.entries = append(*r.entries, e)
 }
 
-// recordDebugLogs records what is logged at trace level with fields until the test ends.
+func (r fieldsRecorder) Warn(args ...any) {
+	r.Trace(args...)
+}
+
+// recordDebugLogs records what is logged at trace or warn level with fields until the test ends.
 func recordDebugLogs(t *testing.T) *[]loggedEntry {
 	t.Helper()
 	var entries []loggedEntry

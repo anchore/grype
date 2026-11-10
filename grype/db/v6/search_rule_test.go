@@ -454,14 +454,15 @@ func TestVulnerabilityProvider_SearchRewrites_KnownRules(t *testing.T) { //nolin
 			want:   []searched{ruled(rh+"fc43", "rf-scanner", 20), ruled(rh+"rf", "rf-scanner", 10)},
 		},
 		{
+			// the base distro backs what the RapidFort feed lacks, ranked below it
 			name:   "native el version",
 			search: nameSearch(searchOf("curl", "7.76.1-29.el9", rfRedhat, rpm)),
-			want:   []searched{own(rh, "curl"), ruled(rh+"el9", "curl", 20)},
+			want:   []searched{own(rh, "curl"), ruled(rh+"el9", "curl", 20), ruled("redhat@9+", "curl", -10)},
 		},
 		{
 			name:   "modular el build names no release",
 			search: nameSearch(searchOf("nodejs", "1:20.19.5-1.module+el9.7.0+23457+f6a3e1b2", rfRedhat, rpm)),
-			want:   []searched{own(rh, "nodejs")},
+			want:   []searched{own(rh, "nodejs"), ruled("redhat@9+", "nodejs", -10)},
 		},
 		{
 			name:   "rapidfort-rockylinux rebuild",
@@ -481,7 +482,7 @@ func TestVulnerabilityProvider_SearchRewrites_KnownRules(t *testing.T) { //nolin
 		{
 			name:   "rapidfort-amazonlinux native build",
 			search: nameSearch(searchOf("7zip", "26.01-14.amzn2023.0.1", rfAmazon, rpm)),
-			want:   []searched{own(amzn, "7zip"), ruled(amzn+"amzn2023", "7zip", 20)},
+			want:   []searched{own(amzn, "7zip"), ruled(amzn+"amzn2023", "7zip", 20), ruled("amazonlinux@2023+", "7zip", -10)},
 		},
 		{
 			name:   "rapidfort-amazonlinux rf- name with a native version is not in the rf stream",
@@ -516,7 +517,7 @@ func TestVulnerabilityProvider_SearchRewrites_KnownRules(t *testing.T) { //nolin
 		{
 			name:   "rapidfort-debian stock build",
 			search: nameSearch(searchOf("curl", "7.88.1-10+deb12u5", rfDebian, deb)),
-			want:   []searched{own("rapidfort-debian@12+", "curl")},
+			want:   []searched{own("rapidfort-debian@12+", "curl"), ruled("debian@12+", "curl", -10)},
 		},
 		{
 			name:   "rapidfort-ubuntu stock build",
@@ -526,7 +527,7 @@ func TestVulnerabilityProvider_SearchRewrites_KnownRules(t *testing.T) { //nolin
 		{
 			name:   "rapidfort-alpine name search is kept",
 			search: nameSearch(searchOf("curl", "8.5.0-r0", rfAlpine, apk)),
-			want:   []searched{own("rapidfort-alpine@3.18+", "curl")},
+			want:   []searched{own("rapidfort-alpine@3.18+", "curl"), ruled("alpine@3.18+", "curl", -10)},
 		},
 		{
 			name:   "rapidfort-alpine CPE search is dropped",

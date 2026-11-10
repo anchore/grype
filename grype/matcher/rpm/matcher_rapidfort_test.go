@@ -137,3 +137,32 @@ func TestRapidFortRedHat_Matching(t *testing.T) {
 		}
 	})
 }
+
+// a RapidFort image falls back to the base distro's records where the RapidFort feed has none, ranked
+// below the feed's own, so a base distro NAK cannot hide a finding the feed reports. rhel:9 NAKs
+// CVE-2026-61711 for podman, which rapidfort-redhat:9 reports affected at every version.
+func TestRapidFortRedHat_BaseDistroNAKDoesNotDenyFeedFinding(t *testing.T) {
+	const cve = "CVE-2026-61711"
+
+	dbtest.DBs(t, "review-rapidfort-redhat").
+		SelectOnly("rapidfort-redhat:9/cve-2026-61711", "rhel:9/cve-2026-61711").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := NewRpmMatcher(MatcherConfig{})
+
+			t.Run("control: plain redhat 9 takes the NAK", func(t *testing.T) {
+				p := dbtest.NewPackage("podman", "5:5.6.0-5.el9", syftPkg.RpmPkg).WithDistro(distro.New(distro.RedHat, "9", "")).Build()
+
+				db.Match(t, matcher, p).Ignores().SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, cve)
+			})
+
+			// ignore completeness fails the test if the outranked NAK still comes back as an ignore
+			t.Run("rapidfort-redhat 9 reports the feed's finding and not the outranked NAK", func(t *testing.T) {
+				p := dbtest.NewPackage("podman", "5:5.6.0-5.el9", syftPkg.RpmPkg).WithDistro(distro.New(distro.RapidFortRedHat, "9", "")).Build()
+
+				db.Match(t, matcher, p).SelectMatch(cve).
+					InNamespace("rapidfort:distro:rapidfort-redhat:9").
+					SelectDetailByType(match.ExactDirectMatch).
+					AsDistroSearch()
+			})
+		})
+}

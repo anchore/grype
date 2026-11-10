@@ -3,6 +3,8 @@ package internal
 import (
 	"slices"
 
+	"github.com/scylladb/go-set/strset"
+
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
@@ -20,7 +22,9 @@ import (
 //   - When searches disagree (e.g. a base distro's rows and a rebuild's channel a search rule selected,
 //     or the channels of two rules), the highest-ranked search with a covering range decides (see
 //     result.Rank).
-//   - Unaffected records (NAKs) deny regardless of rank.
+//   - Unaffected records (NAKs) deny a candidate from a search ranked at or below their own priority. A
+//     NAK from a lower-ranked search (e.g. a base distro a search rule falls back to) does not deny, and
+//     is dropped rather than reported as not vulnerable.
 //
 // v is the fallback for records whose details do not carry the searched version.
 func SplitVulnerable(s result.Set, v *version.Version) (vulnerable, notVulnerable result.Set) {
@@ -42,10 +46,47 @@ func SplitVulnerable(s result.Set, v *version.Version) (vulnerable, notVulnerabl
 
 	candidates = keepMoreSpecificCandidates(candidates, notVulnerable)
 
-	vulnerable = candidates.Remove(unaffected)
+	vulnerable = removeDenied(candidates, unaffected)
 
-	// an unaffected record whose ranges miss this version is in neither result
-	return vulnerable, removeByIDAndAlias(affected, vulnerable).Merge(unaffected)
+	// an unaffected record whose ranges miss this version is in neither result, nor is one a surviving
+	// candidate outranks
+	return vulnerable, removeByIDAndAlias(affected, vulnerable).Merge(removeByIDAndAlias(unaffected, vulnerable))
+}
+
+// removeDenied drops the candidates an unaffected record denies: one sharing an ID or alias with the
+// candidate, found by a search of the candidate's priority or higher. Equal priorities deny whatever the
+// match type, so a source package's NAK still denies its binary's record.
+func removeDenied(candidates, unaffected result.Set) result.Set {
+	type nak struct {
+		identity *strset.Set
+		priority int
+	}
+	naks := make([]nak, 0, len(unaffected))
+	for id, results := range unaffected {
+		naks = append(naks, nak{identity: result.Identity(id, results), priority: maxPriority(results)})
+	}
+
+	out := result.Set{}
+	for id, results := range candidates {
+		identity, priority := result.Identity(id, results), maxPriority(results)
+		denied := slices.ContainsFunc(naks, func(n nak) bool {
+			return n.priority >= priority && !strset.Intersection(identity, n.identity).IsEmpty()
+		})
+		if !denied {
+			out[id] = results
+		}
+	}
+	return out
+}
+
+func maxPriority(results []result.Result) int {
+	var p int
+	for i, r := range results {
+		if i == 0 || r.Rank.Priority > p {
+			p = r.Rank.Priority
+		}
+	}
+	return p
 }
 
 func removeExactVulnerabilitiesByNamespace(candidates result.Set) vulnerability.Criteria {

@@ -20,6 +20,9 @@ func TestReview_R37_OwnReleaseBuildAddsNoEmptyChannelSearch(t *testing.T) {
 	rfRedhat9 := *distro.New(distro.RapidFortRedHat, "9", "")
 	rfAmazon := *distro.New(distro.RapidFortAmazonLinux, "2023", "")
 
+	// every native build also searches the base distro, which this test is not about
+	rhel9 := ruled("redhat@9+", "curl", -10)
+
 	tests := []struct {
 		name    string
 		pkgName string
@@ -29,22 +32,22 @@ func TestReview_R37_OwnReleaseBuildAddsNoEmptyChannelSearch(t *testing.T) {
 	}{
 		{
 			name:    "control: an el10 build on a RHEL 9 image adds the el10 channel",
-			want:    []searched{own("rapidfort-redhat@9+", "curl"), ruled("rapidfort-redhat@9+el10", "curl", 20)},
+			want:    []searched{own("rapidfort-redhat@9+", "curl"), ruled("rapidfort-redhat@9+el10", "curl", 20), rhel9},
 			pkgName: "curl", version: "8.12.1-1.el10", d: rfRedhat9,
 		},
 		{
 			name:    "an el9 build on a RHEL 9 image searches only its own channel-less rows",
-			want:    []searched{own("rapidfort-redhat@9+", "curl")},
+			want:    []searched{own("rapidfort-redhat@9+", "curl"), rhel9},
 			pkgName: "curl", version: "7.76.1-29.el9", d: rfRedhat9,
 		},
 		{
 			name:    "an el9_4 build on a RHEL 9 image searches only its own channel-less rows",
-			want:    []searched{own("rapidfort-redhat@9+", "curl")},
+			want:    []searched{own("rapidfort-redhat@9+", "curl"), rhel9},
 			pkgName: "curl", version: "7.76.1-29.el9_4.1", d: rfRedhat9,
 		},
 		{
 			name:    "an amzn2023 build on an Amazon Linux 2023 image searches only its own channel-less rows",
-			want:    []searched{own("rapidfort-amazonlinux@2023+", "7zip")},
+			want:    []searched{own("rapidfort-amazonlinux@2023+", "7zip"), ruled("amazonlinux@2023+", "7zip", -10)},
 			pkgName: "7zip", version: "26.01-14.amzn2023.0.1", d: rfAmazon,
 		},
 	}

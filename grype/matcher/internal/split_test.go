@@ -255,11 +255,22 @@ func TestSet_SplitVulnerable_UnaffectedIsNeverAMatch(t *testing.T) {
 		require.Empty(t, vulnerable)
 	})
 
-	t.Run("a nak is not ranked against the streams", func(t *testing.T) {
-		// a NAK denies regardless of which stream it came from
+	t.Run("a lower ranked nak does not deny a higher ranked stream", func(t *testing.T) {
 		s := setOf("CVE-1",
 			record("CVE-1", streamNS, ">= 0"),
 			unaffectedRecord("CVE-1", nativeNS, ">= 0"),
+		)
+
+		vulnerable, notVulnerable := SplitVulnerable(s, debVersion("1.1.1-2rfubu.1"))
+
+		require.Equal(t, []string{streamNS}, namespacesOf(vulnerable))
+		require.Empty(t, notVulnerable, "the outranked nak is not reported as not vulnerable")
+	})
+
+	t.Run("a higher ranked nak denies a lower ranked record", func(t *testing.T) {
+		s := setOf("CVE-1",
+			record("CVE-1", nativeNS, ">= 0"),
+			unaffectedRecord("CVE-1", streamNS, ">= 0"),
 		)
 
 		vulnerable, _ := SplitVulnerable(s, debVersion("1.1.1-2rfubu.1"))

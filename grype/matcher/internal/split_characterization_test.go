@@ -199,9 +199,14 @@ func TestSet_SplitVulnerable_RanksFromSearchRules(t *testing.T) {
 		}
 		require.Equal(t, map[string]int{streamNS: priority, nativeNS: 0}, ranks, "ranks come from the rule's priority")
 
-		// today: a NAK denies whatever the ranks, so the package's own NAK silences a rule stream that
-		// outranks it as well as one ranked below it
+		// the package's own NAK silences a rule stream ranked below it, but not one that outranks it, and
+		// an outranked NAK is not reported as not vulnerable
 		vulnerable, notVulnerable := SplitVulnerable(found, debVersion("1.0"))
+		if priority > 0 {
+			require.Equal(t, []string{streamNS}, namespacesOf(vulnerable), "priority %d", priority)
+			require.Empty(t, notVulnerable, "priority %d", priority)
+			continue
+		}
 		require.Empty(t, vulnerable, "priority %d", priority)
 		require.ElementsMatch(t, []string{streamNS, nativeNS}, namespacesOf(notVulnerable), "priority %d", priority)
 	}
