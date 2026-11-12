@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/url"
+	"regexp"
 	"slices"
 	"sort"
 	"strings"
@@ -18,6 +19,7 @@ import (
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/packageurl-go"
+	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -70,7 +72,9 @@ func project(r unmarshal.CVE5Record) Projection {
 }
 
 // CPESource returns the cpeApplicability that supplies CPE rows when the NVD record has no configurations: the
-// `anchoreadp` container's when it has one, else the CNA's unless its assigner is excluded.
+// `anchoreadp` container's when it has one, else the CNA's unless its assigner is excluded. The CNA's matches that
+// state no version range or bound the range by a commit hash are dropped, since neither says which released
+// versions are affected.
 func (p Projection) CPESource() []nvd.Configuration {
 	if len(p.ADPCPE) > 0 {
 		return p.ADPCPE
@@ -78,7 +82,73 @@ func (p Projection) CPESource() []nvd.Configuration {
 	if !cpeApplicabilityUsable(p.Assigner) {
 		return nil
 	}
-	return p.CNACPE
+	return filterCNAConfigurations(p.ID, p.CNACPE)
+}
+
+// commitHashBound is a git commit hash, which orders against no release version. A run of digits only is more
+// likely a date or a version, so the all-digits case is excluded where the pattern is used.
+var commitHashBound = regexp.MustCompile(`^[0-9a-f]{7,40}$`)
+
+// filterCNAConfigurations drops each vulnerable match that cnaMatchDropReason rejects, then each configuration
+// that lost a match and has no vulnerable match left. Configurations the filter does not touch are kept as is.
+func filterCNAConfigurations(cve string, cfgs []nvd.Configuration) []nvd.Configuration {
+	var out []nvd.Configuration
+	for _, cfg := range cfgs {
+		dropped := false
+		kept := cfg
+		kept.Nodes = nil
+		hasVulnerable := false
+		for _, node := range cfg.Nodes {
+			n := node
+			n.CpeMatch = nil
+			for _, m := range node.CpeMatch {
+				if reason := cnaMatchDropReason(m); reason != "" {
+					log.WithFields("cve", cve, "criteria", m.Criteria, "reason", reason).Debug("skipping CNA CPE match")
+					dropped = true
+					continue
+				}
+				hasVulnerable = hasVulnerable || m.Vulnerable
+				n.CpeMatch = append(n.CpeMatch, m)
+			}
+			if len(n.CpeMatch) > 0 {
+				kept.Nodes = append(kept.Nodes, n)
+			}
+		}
+		switch {
+		case !dropped:
+			out = append(out, cfg)
+		case hasVulnerable:
+			out = append(out, kept)
+		}
+	}
+	return out
+}
+
+// cnaMatchDropReason is why a vulnerable match cannot supply a CPE row, or empty when it can.
+func cnaMatchDropReason(m nvd.CpeMatch) string {
+	if !m.Vulnerable {
+		return ""
+	}
+
+	bounds := []*string{m.VersionStartIncluding, m.VersionStartExcluding, m.VersionEndIncluding, m.VersionEndExcluding}
+	hasBound := false
+	for _, b := range bounds {
+		if b == nil || *b == "" {
+			continue
+		}
+		hasBound = true
+		if commitHashBound.MatchString(*b) && strings.Trim(*b, "0123456789") != "" {
+			return "version bound is a commit hash"
+		}
+	}
+
+	if !hasBound {
+		// the parsed attributes hold the any-version wildcard "*" as an empty version
+		if attrs, err := cpe.NewAttributes(m.Criteria); err == nil && (attrs.Version == "" || attrs.Version == "-") {
+			return "no version range"
+		}
+	}
+	return ""
 }
 
 // Index holds the CNA data of CVE 5 records, keyed by lowercased CVE ID, for the NVD transformer to look up.
