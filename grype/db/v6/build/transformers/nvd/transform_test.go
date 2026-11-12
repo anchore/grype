@@ -3063,6 +3063,11 @@ func TestTransform_withCNAIndex(t *testing.T) {
 			sameCPEsAsNVDAlone: true,
 		},
 		{
+			// the CNA's only match is adminer:adminer:- with no version range
+			name: "a CNA CPE match with no version range gives no CPE row",
+			cve:  "CVE-2026-34967",
+		},
+		{
 			name: "Linux kernel cpeApplicability is not used",
 			cve:  "CVE-2026-98165",
 		},

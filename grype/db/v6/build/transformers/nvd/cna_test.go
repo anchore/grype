@@ -320,6 +320,26 @@ func TestProjection_CPESource(t *testing.T) {
 		require.NotEmpty(t, p.CPESource())
 	})
 
+	// the CNA matches below are from unmodified published records
+	for _, tt := range []struct {
+		name string
+		cve  string
+		want []string
+	}{
+		{"no version range and a hyphen version", "CVE-2026-34967", nil},
+		{"no version range and a wildcard version", "CVE-2026-59704", nil},
+		{"versionEndExcluding is a commit hash", "CVE-2026-44405", nil},
+		{"versionEndIncluding is a commit hash", "CVE-2026-97731", nil},
+		{"versionEndExcluding is a date", "CVE-2025-48964", []string{"cpe:2.3:a:iputils:iputils:*:*:*:*:*:*:*:*"}},
+	} {
+		t.Run("CNA match kept or dropped: "+tt.name, func(t *testing.T) {
+			p := published(t, tt.cve)
+			require.Empty(t, p.ADPCPE)
+			require.NotEmpty(t, p.CNACPE)
+			require.Equal(t, tt.want, criteria(p.CPESource()))
+		})
+	}
+
 	t.Run("an excluded assigner's CNA list is dropped but anchoreadp's is used", func(t *testing.T) {
 		cna, adp := []nvd.Configuration{{}}, []nvd.Configuration{{Nodes: []nvd.Node{{}}}}
 		require.Nil(t, Projection{Assigner: "Linux", CNACPE: cna}.CPESource())
