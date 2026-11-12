@@ -1,18 +1,18 @@
 {
-  "provider": "rapidfort",
+  "provider": "rhel",
   "version": 1,
-  "processor": "vunnel@0.66.0-post.22+6094d9ed",
+  "processor": "vunnel@0.63.1.post49+15c107c",
   "schema": {
     "version": "1.0.3",
     "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
   },
   "urls": [
-    "https://github.com/rapidfort/security-advisories.git"
+    "https://access.redhat.com/hydra/rest/securitydata/cve.json"
   ],
-  "timestamp": "2026-11-10T17:37:28Z",
+  "timestamp": "2026-10-13T08:19:26Z",
   "listing": {
     "path": "results/listing.xxh64",
-    "digest": "5cba300151d6032e",
+    "digest": "5a2eb299de60c189",
     "algorithm": "xxh64"
   },
   "store": "flat-file"

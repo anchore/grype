@@ -33,8 +33,9 @@ func applyDistroIdentifiers(s *sbom.SBOM, d *distro.Distro, identifiers []distro
 
 		log.WithFields("identifier", id.Name, "from", d.ID(), "to", newID, "evidence", evidence).Debug("applying distro identifier")
 
-		// base-distro channels (e.g. esm, eus) are dropped: they would exclude the vendor's channel-less records
-		return distro.New(newType, d.Version, "", d.IDLike...)
+		// base-distro channels (e.g. esm, eus) are dropped: they would exclude the vendor's channel-less records.
+		// The base distro leads ID_LIKE, so a release the vendor publishes no data for is searched as it.
+		return distro.New(newType, d.Version, "", append([]string{string(d.Type)}, d.IDLike...)...)
 	}
 
 	return d

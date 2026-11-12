@@ -88,8 +88,7 @@ func TestRapidFortUbuntu_Matching(t *testing.T) {
 			},
 		},
 		{
-			// a release RapidFort does not publish falls back to ubuntu:22.04, which this fixture has no rows for
-			name:       "rapidfort release with no rapidfort or base distro data yields no matches",
+			name:       "rapidfort distro with no data yields no matches",
 			pkgName:    "curl",
 			pkgVersion: "7.68.0-1ubuntu2.5",
 			d:          distro.New(distro.RapidFortUbuntu, "22.04", ""),

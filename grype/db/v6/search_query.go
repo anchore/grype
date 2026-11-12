@@ -19,7 +19,6 @@ type searchQuery struct {
 	pkgType        syftPkg.Type
 	versionMatcher search.VersionConstraintMatcher
 	unaffectedOnly bool
-	byRule         bool // a search a search rule added (see search.RuleCriteria)
 }
 
 func newSearchQuery(criteriaSet []vulnerability.Criteria) (*searchQuery, []vulnerability.Criteria, error) {
@@ -73,9 +72,6 @@ func (b *searchQueryBuilder) ApplyCriteria(criteriaSet []vulnerability.Criteria)
 		case *search.DistroCriteria:
 			b.handleDistro(c)
 			applied = true
-		case *search.RuleCriteria:
-			// it constrains nothing, so it is also kept with the remaining criteria
-			b.query.byRule = true
 		}
 
 		if !applied {

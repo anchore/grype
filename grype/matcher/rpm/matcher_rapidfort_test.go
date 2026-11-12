@@ -1,10 +1,16 @@
 package rpm
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
+	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
+	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/dbtest"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -138,31 +144,115 @@ func TestRapidFortRedHat_Matching(t *testing.T) {
 	})
 }
 
-// a RapidFort image falls back to the base distro's records where the RapidFort feed has none, ranked
-// below the feed's own, so a base distro NAK cannot hide a finding the feed reports. rhel:9 NAKs
-// CVE-2026-61711 for podman, which rapidfort-redhat:9 reports affected at every version.
-func TestRapidFortRedHat_BaseDistroNAKDoesNotDenyFeedFinding(t *testing.T) {
-	const cve = "CVE-2026-61711"
+// A release the RapidFort feed does not publish is searched as its base distro, which the identifier
+// leads ID_LIKE with. CVE-2023-38546 is fixed for curl in rhel:8 and rhel:9 and absent from the RapidFort
+// feed, which publishes no rapidfort-redhat:8. The fixture is extracted from the rapidfort and rhel
+// vunnel runs.
+func TestRapidFortRedHat_UnpublishedReleaseFallsBackToBaseDistro(t *testing.T) {
+	dbtest.DBs(t, "rapidfort-redhat-with-rhel").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := NewRpmMatcher(MatcherConfig{})
 
-	dbtest.DBs(t, "review-rapidfort-redhat").
-		SelectOnly("rapidfort-redhat:9/cve-2026-61711", "rhel:9/cve-2026-61711").
-		Run(func(t *testing.T, db *dbtest.DB) {
-			matcher := NewRpmMatcher(MatcherConfig{})
+		t.Run("control: plain redhat 9 finds the base distro CVE", func(t *testing.T) {
+			p := dbtest.NewPackage("curl", "0:7.76.1-14.el9", syftPkg.RpmPkg).WithDistro(distro.New(distro.RedHat, "9", "")).Build()
 
-			t.Run("control: plain redhat 9 takes the NAK", func(t *testing.T) {
-				p := dbtest.NewPackage("podman", "5:5.6.0-5.el9", syftPkg.RpmPkg).WithDistro(distro.New(distro.RedHat, "9", "")).Build()
-
-				db.Match(t, matcher, p).Ignores().SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, cve)
-			})
-
-			// ignore completeness fails the test if the outranked NAK still comes back as an ignore
-			t.Run("rapidfort-redhat 9 reports the feed's finding and not the outranked NAK", func(t *testing.T) {
-				p := dbtest.NewPackage("podman", "5:5.6.0-5.el9", syftPkg.RpmPkg).WithDistro(distro.New(distro.RapidFortRedHat, "9", "")).Build()
-
-				db.Match(t, matcher, p).SelectMatch(cve).
-					InNamespace("rapidfort:distro:rapidfort-redhat:9").
-					SelectDetailByType(match.ExactDirectMatch).
-					AsDistroSearch()
-			})
+			db.Match(t, matcher, p).SkipCompleteness().ContainsVulnerabilities("CVE-2023-38546")
 		})
+
+		t.Run("a published release finds the RapidFort feed CVE", func(t *testing.T) {
+			p := dbtest.NewPackage("curl", "0:7.76.1-14.el9", syftPkg.RpmPkg).WithDistro(distro.New(distro.RapidFortRedHat, "9", "", "redhat")).Build()
+
+			db.Match(t, matcher, p).SkipCompleteness().ContainsVulnerabilities("CVE-2025-14017")
+		})
+
+		t.Run("an unpublished release finds the base distro CVE", func(t *testing.T) {
+			p := dbtest.NewPackage("curl", "0:7.61.1-22.el8", syftPkg.RpmPkg).WithDistro(distro.New(distro.RapidFortRedHat, "8", "", "redhat")).Build()
+
+			db.Match(t, matcher, p).SkipCompleteness().ContainsVulnerabilities("CVE-2023-38546")
+		})
+	})
+}
+
+// An el9 build on a RHEL 10 image is searched in the el9 channel at priority 20, beside its own
+// channel-less search at priority 0. A NAK only denies a candidate found at its own priority or lower,
+// so a channel-less NAK does not remove the el9 stream's affected record. The fixture is hand-written,
+// since the feed carries no NAK records.
+func TestRapidFortRedHat_LowerRankedNAKDoesNotDenyHigherRankedFinding(t *testing.T) {
+	rhel10 := distro.New(distro.RapidFortRedHat, "10", "")
+
+	dbtest.DBs(t, "rapidfort-redhat-nak").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := NewRpmMatcher(MatcherConfig{})
+
+		t.Run("control: the el9 stream holds an affected record for the package", func(t *testing.T) {
+			el9Stream := *rhel10
+			el9Stream.Channels = []string{"el9"}
+
+			vulns, err := db.FindVulnerabilities(search.ByPackageName("curl"), search.ByDistro(el9Stream))
+			require.NoError(t, err)
+			require.Len(t, vulns, 1)
+			require.Equal(t, "CVE-2026-90002", vulns[0].ID)
+		})
+
+		t.Run("the el9 stream's affected record survives a channel-less NAK", func(t *testing.T) {
+			p := dbtest.NewPackage("curl", "0:7.76.1-14.el9", syftPkg.RpmPkg).WithDistro(rhel10).Build()
+
+			db.Match(t, matcher, p).SkipCompleteness().ContainsVulnerabilities("CVE-2026-90002")
+		})
+	})
+}
+
+// every DB published before 6.1.11 has no search_rules table, but hydrating it (what the curator does on
+// import) auto-migrates the current models and so creates the table, empty. A client that took an
+// existing table as authoritative would apply no rules to these DBs, losing the built-in rules, and a
+// RapidFort rebuild would be searched in the image release's own rows.
+func TestRapidFortRedHat_HydratedPre611DBKeepsBuiltInRules(t *testing.T) {
+	dbtest.DBs(t, "rapidfort-redhat-with-rhel").Run(func(t *testing.T, fixture *dbtest.DB) {
+		dir := t.TempDir()
+		content, err := os.ReadFile(filepath.Join(fixture.Path, v6.VulnerabilityDBFileName))
+		require.NoError(t, err)
+		require.NoError(t, os.WriteFile(filepath.Join(dir, v6.VulnerabilityDBFileName), content, 0o600)) //nolint:gosec // dir is t.TempDir()
+
+		// make the copy look like a 6.1.10 DB: no search_rules table, addition 10
+		gdb, err := v6.NewLowLevelDB(filepath.Join(dir, v6.VulnerabilityDBFileName), false, true, false)
+		require.NoError(t, err)
+		require.NoError(t, gdb.Migrator().DropTable(&v6.SearchRule{}))
+		require.NoError(t, gdb.Model(&v6.DBMetadata{}).Where("true").Update("addition", 10).Error)
+		sqlDB, err := gdb.DB()
+		require.NoError(t, err)
+		require.NoError(t, sqlDB.Close())
+
+		require.NoError(t, v6.Hydrater()(dir))
+
+		// the trap: hydration left an empty table behind
+		gdb, err = v6.NewLowLevelDB(filepath.Join(dir, v6.VulnerabilityDBFileName), false, false, false)
+		require.NoError(t, err)
+		require.True(t, gdb.Migrator().HasTable(&v6.SearchRule{}), "hydration should create the search_rules table")
+		var count int64
+		require.NoError(t, gdb.Model(&v6.SearchRule{}).Count(&count).Error)
+		require.Zero(t, count, "hydration should not seed search rules")
+		sqlDB, err = gdb.DB()
+		require.NoError(t, err)
+		require.NoError(t, sqlDB.Close())
+
+		rdr, err := v6.NewReader(v6.Config{DBDirPath: dir})
+		require.NoError(t, err)
+		t.Cleanup(func() { _ = rdr.Close() })
+		provider := v6.NewVulnerabilityProvider(rdr)
+
+		// the built-in rules apply: a RapidFort rebuild is searched in the rf channel alone
+		p := dbtest.NewPackage("curl", "0:7.76.1-14.el9.rf.1", syftPkg.RpmPkg).WithDistro(distro.New(distro.RapidFortRedHat, "9", "")).Build()
+		searches, rewritten := provider.(v6.SearchRuleProvider).SearchRewrites(p, []vulnerability.Criteria{
+			search.ByPackageName(p.Name), search.ByDistro(*p.Distro), search.WithPackage(p),
+		})
+		require.True(t, rewritten)
+		require.Len(t, searches, 1)
+		var channels []string
+		for _, c := range searches[0] {
+			if dc, ok := c.(*search.DistroCriteria); ok {
+				for _, d := range dc.Distros {
+					channels = append(channels, d.Channels...)
+				}
+			}
+		}
+		require.Equal(t, []string{"rf"}, channels)
+	})
 }

@@ -90,26 +90,31 @@ func logRuledSearch(own searchParts, r *ruledSearch, ownDropped bool) {
 // searchParts is a search split into the criteria rules read or replace, and the rest, which every
 // search a rule adds keeps as is.
 type searchParts struct {
-	name   *search.PackageNameCriteria // nil for none
-	distro *search.DistroCriteria      // nil for the rows of no OS
-	cpe    *search.CPECriteria         // nil for a search by no CPE
+	name      *search.PackageNameCriteria // nil for none
+	ecosystem *search.EcosystemCriteria   // nil for a search by no ecosystem
+	distro    *search.DistroCriteria      // nil for the rows of no OS
+	cpe       *search.CPECriteria         // nil for a search by no CPE
 
-	// the search as given, of which the criteria at nameAt, distroAt and cpeAt (-1 for none) are
-	// replaced by name, distro and cpe
-	all                     []vulnerability.Criteria
-	nameAt, distroAt, cpeAt int
+	// the search as given, of which the criteria at nameAt, ecosystemAt, distroAt and cpeAt (-1 for
+	// none) are replaced by name, ecosystem, distro and cpe
+	all                                  []vulnerability.Criteria
+	nameAt, ecosystemAt, distroAt, cpeAt int
 
 	pkg      *pkg.Package // of the search.WithPackage criteria, which is kept
 	upstream bool         // a search.BySourcePackage criteria, which is kept
 }
 
 func splitSearch(cs []vulnerability.Criteria) searchParts {
-	sp := searchParts{all: cs, nameAt: -1, distroAt: -1, cpeAt: -1}
+	sp := searchParts{all: cs, nameAt: -1, ecosystemAt: -1, distroAt: -1, cpeAt: -1}
 	for i, c := range cs {
 		switch c := c.(type) {
 		case *search.PackageNameCriteria:
 			if sp.name == nil {
 				sp.name, sp.nameAt = c, i
+			}
+		case *search.EcosystemCriteria:
+			if sp.ecosystem == nil {
+				sp.ecosystem, sp.ecosystemAt = c, i
 			}
 		case *search.DistroCriteria:
 			if sp.distro == nil {
@@ -154,9 +159,10 @@ func (sp searchParts) subject(p pkg.Package) searchSubject {
 }
 
 // ruleSearch returns what the rule searches in place of sp. It is false when the rule changes nothing,
-// or renames a search that has no name: a rule's OS and name are one search, so a rename it cannot
-// apply drops its OS too. A CPE search reads NVD's rows, which have no OS or name, so a rule can only
-// change its CPE's vendor and/or product (or drop it).
+// or renames a search that has no name or re-ecosystems one that has no ecosystem: a rule's OS, name
+// and ecosystem are one search, so a replacement it cannot apply drops the others too. A CPE search
+// reads NVD's rows, which have no OS, name or ecosystem, so a rule can only change its CPE's vendor
+// and/or product (or drop it).
 func (sp searchParts) ruleSearch(rm matchedRule, s searchSubject) (rs searchParts, ok bool) {
 	if sp.cpe != nil {
 		return sp.cpeRuleSearch(rm, s)
@@ -169,6 +175,13 @@ func (sp searchParts) ruleSearch(rm matchedRule, s searchSubject) (rs searchPart
 	if name != "" && sp.name == nil {
 		return rs, false
 	}
+	eco := rm.expand(rm.rule.ecosystem, s)
+	if strings.EqualFold(eco, sp.searchedEcosystem()) {
+		eco = ""
+	}
+	if eco != "" && sp.ecosystem == nil {
+		return rs, false
+	}
 
 	rs = sp
 	switch {
@@ -179,11 +192,15 @@ func (sp searchParts) ruleSearch(rm matchedRule, s searchSubject) (rs searchPart
 		// rather than rhel's); a channel of the searched OS keeps the search's aliasing
 		exact := rm.rule.row.ReplacementDistroName != nil || sp.distro != nil && sp.distro.Exact
 		rs.distro = newDistroCriteria(d, exact)
-	case name == "":
+	case name == "" && eco == "":
 		return rs, false
 	}
 	if name != "" {
 		rs.name = &search.PackageNameCriteria{PackageName: name}
+	}
+	if eco != "" {
+		// the store searches the package type when it has one (see searchQueryBuilder.handleEcosystem)
+		rs.ecosystem = &search.EcosystemCriteria{Language: sp.ecosystem.Language, PackageType: syftPkg.Type(eco)}
 	}
 	return rs, true
 }
@@ -227,10 +244,26 @@ func (sp searchParts) searchedName() string {
 	return sp.name.PackageName
 }
 
-// sameRows is true when both searches read the same rows, by their OS, its aliasing, name and CPE
-// vendor and product; the rest is the same across one rewrite.
+// searchedEcosystem is the ecosystem whose rows the search reads, as searchQueryBuilder.handleEcosystem
+// picks it: the package type when it is known, else the language; empty for a search by no ecosystem.
+func (sp searchParts) searchedEcosystem() string {
+	if sp.ecosystem == nil {
+		return ""
+	}
+	if t := sp.ecosystem.PackageType; t != "" && t != syftPkg.UnknownPkg {
+		return string(t)
+	}
+	if sp.ecosystem.Language != "" {
+		return string(sp.ecosystem.Language)
+	}
+	return string(sp.ecosystem.PackageType)
+}
+
+// sameRows is true when both searches read the same rows, by their OS, its aliasing, name, ecosystem
+// and CPE vendor and product; the rest is the same across one rewrite.
 func (sp searchParts) sameRows(other searchParts) bool {
-	return sp.searchedName() == other.searchedName() && isExact(sp.distro) == isExact(other.distro) &&
+	return sp.searchedName() == other.searchedName() && strings.EqualFold(sp.searchedEcosystem(), other.searchedEcosystem()) &&
+		isExact(sp.distro) == isExact(other.distro) &&
 		slices.EqualFunc(distrosOf(sp.distro), distrosOf(other.distro), sameOS) && sameCPE(sp.cpe, other.cpe)
 }
 
@@ -263,7 +296,7 @@ func sameOS(a, b distro.Distro) bool {
 }
 
 // String describes the rows the search reads, for logging: its name (at the searched version) or CPE,
-// its OS (name:version(label)+channels), and whether it is for an upstream.
+// its ecosystem, its OS (name:version(label)+channels), and whether it is for an upstream.
 func (sp searchParts) String() string {
 	var sb strings.Builder
 	switch {
@@ -274,6 +307,9 @@ func (sp searchParts) String() string {
 		if sp.pkg != nil && sp.pkg.Version != "" {
 			sb.WriteString("@" + sp.pkg.Version)
 		}
+	}
+	if eco := sp.searchedEcosystem(); eco != "" {
+		sb.WriteString(" (" + eco + ")")
 	}
 	sb.WriteString(" in ")
 	if sp.distro == nil {
@@ -302,9 +338,12 @@ func (sp searchParts) String() string {
 
 // criteria rebuilds the search, with extra appended.
 func (sp searchParts) criteria(extra ...vulnerability.Criteria) []vulnerability.Criteria {
-	out := make([]vulnerability.Criteria, 0, len(sp.all)+len(extra)+3)
+	out := make([]vulnerability.Criteria, 0, len(sp.all)+len(extra)+4)
 	if sp.name != nil {
 		out = append(out, sp.name)
+	}
+	if sp.ecosystem != nil {
+		out = append(out, sp.ecosystem)
 	}
 	if sp.distro != nil {
 		out = append(out, sp.distro)
@@ -313,7 +352,7 @@ func (sp searchParts) criteria(extra ...vulnerability.Criteria) []vulnerability.
 		out = append(out, sp.cpe)
 	}
 	for i, c := range sp.all {
-		if i != sp.nameAt && i != sp.distroAt && i != sp.cpeAt {
+		if i != sp.nameAt && i != sp.ecosystemAt && i != sp.distroAt && i != sp.cpeAt {
 			out = append(out, c)
 		}
 	}

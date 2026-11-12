@@ -122,11 +122,9 @@ const (
 	debEcosystem = string(pkg.DebPkg)
 	rpmEcosystem = string(pkg.RpmPkg)
 
-	// below the package's own searches (0), so a RapidFort record outranks the base distro's
-	baseDistroPriority = -10
-	highPriority       = 10
-	higherPriority     = 20
-	highestPriority    = 30
+	highPriority    = 10
+	higherPriority  = 20
+	highestPriority = 30
 
 	// `rfubu` appears on debian rebuilds too; `~` is dpkg's pre-release marker (e.g. `1.2-4rfdebian~rf.1`)
 	rapidfortDpkgRebuildMarker = `.*(?:rfubu|rfdeb).*|.*[.+~-]rf(?:[._].*)?`
@@ -138,41 +136,17 @@ const (
 
 	// 6.1.11 introduced search rules: a DB before it has none, so the built-in rules for it are those
 	// before, and the rules seeded into a DB are those after
-	beforeSearchRules = "< 6.1.11"
-	afterSearchRules  = ">= 6.1.11"
+	afterSearchRules = ">= 6.1.11"
 )
 
 // rapidfortRPMDistros are the RapidFort rpm distros, each with the dist tag of its own releases' builds
-// (`.el9`, `.amzn2023`); onboarding one is an entry here and in rapidfortBaseDistros.
+// (`.el9`, `.amzn2023`); onboarding one is an entry here.
 var rapidfortRPMDistros = []struct{ name, releaseTag string }{
 	{name: "rapidfort-redhat", releaseTag: "el"},
 	{name: "rapidfort-rockylinux", releaseTag: "el"},
 	{name: "rapidfort-almalinux", releaseTag: "el"},
 	{name: "rapidfort-oraclelinux", releaseTag: "el"},
 	{name: "rapidfort-amazonlinux", releaseTag: "amzn"},
-}
-
-// rapidfortBaseDistros maps each RapidFort distro to the distro whose records back the RapidFort feed
-// where it has none (a CVE or a whole release it does not publish). rocky and alma read rhel's records,
-// as their own images do.
-var rapidfortBaseDistros = map[string]string{
-	"rapidfort-redhat":      rhelDistro,
-	"rapidfort-rockylinux":  rhelDistro,
-	"rapidfort-almalinux":   rhelDistro,
-	"rapidfort-oraclelinux": "ol",
-	"rapidfort-amazonlinux": "amzn",
-	rapidfortUbuntuDistro:   "ubuntu",
-	rapidfortDebianDistro:   "debian",
-	rapidfortAlpineDistro:   "alpine",
-}
-
-// baseDistroRule adds a search of d's base distro at the same release, below the package's own search.
-// It must not match what a replace rule for d matches: an add rule keeps the package's own search,
-// which would undo the replacement. rf- names are RapidFort's own, so the base distro has none of them.
-func baseDistroRule(applicable, d, ecosystem, excludeVersion string) SearchRule {
-	return SearchRule{Action: SearchRuleAdd, ApplicableClientDBSchemas: applicable, MatchDistroName: d,
-		MatchEcosystem: ecosystem, ExcludePackageName: `rf-.*`, ExcludePackageVersion: excludeVersion,
-		ReplacementDistroName: new(rapidfortBaseDistros[d]), Priority: baseDistroPriority}
 }
 
 // rapidfortRPMRules route each rpm to the release stream its version names: the channel-less rows hold
@@ -202,8 +176,6 @@ func rapidfortRPMRules(applicable string) []SearchRule {
 			SearchRule{Action: SearchRuleReplace, ApplicableClientDBSchemas: applicable, MatchDistroName: d.name,
 				MatchEcosystem: rpmEcosystem, MatchPackageName: `rf-.*`, ExcludePackageVersion: fmt.Sprintf(`.*\.%s\d+(?:[._~-].*)?`, d.releaseTag),
 				ReplacementChannel: new("rf"), Priority: highPriority},
-
-			baseDistroRule(applicable, d.name, rpmEcosystem, rapidfortRPMRebuildMarker+"|"+fedoraDistTag),
 		)
 	}
 	return rules
@@ -220,10 +192,6 @@ func KnownSearchRules() []SearchRule {
 			MatchEcosystem: debEcosystem, MatchPackageVersion: rapidfortDpkgRebuildMarker, ReplacementChannel: new("rf"), Priority: highestPriority},
 		{Action: SearchRuleReplace, ApplicableClientDBSchemas: afterSearchRules, MatchDistroName: rapidfortDebianDistro,
 			MatchEcosystem: debEcosystem, MatchPackageVersion: rapidfortDpkgRebuildMarker, ReplacementChannel: new("rf"), Priority: highestPriority},
-
-		baseDistroRule(afterSearchRules, rapidfortUbuntuDistro, debEcosystem, rapidfortDpkgRebuildMarker),
-		baseDistroRule(afterSearchRules, rapidfortDebianDistro, debEcosystem, rapidfortDpkgRebuildMarker),
-		baseDistroRule(afterSearchRules, rapidfortAlpineDistro, apkEcosystem, ""),
 
 		// rapidfort-alpine data is complete, so its packages are not searched by CPE
 		{Action: SearchRuleDrop, ApplicableClientDBSchemas: afterSearchRules, MatchDistroName: rapidfortAlpineDistro,

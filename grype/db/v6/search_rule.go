@@ -66,6 +66,7 @@ func (o SearchRule) String() string {
 		{"replacement_distro_version", o.ReplacementDistroVersion},
 		{"replacement_distro_label_version", o.ReplacementDistroLabelVersion},
 		{"replacement_package_name", setString(o.ReplacementPackageName)},
+		{"replacement_ecosystem", setString(o.ReplacementEcosystem)},
 		{"replacement_cpe_vendor", setString(o.ReplacementCPEVendor)},
 		{"replacement_cpe_product", setString(o.ReplacementCPEProduct)},
 		{"applicable_client_db_schemas", setString(o.ApplicableClientDBSchemas)},
@@ -98,10 +99,11 @@ func (o SearchRule) hasCPEReplacement() bool {
 	return o.ReplacementCPEVendor != "" || o.ReplacementCPEProduct != ""
 }
 
-// hasNameOrOSReplacement is true for a rule that searches another package name and/or OS.
-func (o SearchRule) hasNameOrOSReplacement() bool {
+// hasPackageSearchReplacement is true for a rule that searches another package name, ecosystem and/or
+// OS.
+func (o SearchRule) hasPackageSearchReplacement() bool {
 	return o.ReplacementChannel != nil || o.ReplacementDistroName != nil || o.ReplacementDistroVersion != nil ||
-		o.ReplacementDistroLabelVersion != nil || o.ReplacementPackageName != ""
+		o.ReplacementDistroLabelVersion != nil || o.ReplacementPackageName != "" || o.ReplacementEcosystem != ""
 }
 
 // searchSubject is what one search states about the package it searches for.
@@ -210,6 +212,7 @@ type searchMatch struct {
 	distroVersion      template
 	distroLabelVersion template
 	packageName        template
+	ecosystem          template
 	cpeVendor          template
 	cpeProduct         template
 }
@@ -296,6 +299,7 @@ func (m *searchMatch) compileReplacements(names map[string]struct{}) error {
 		{"replacement distro version", row.ReplacementDistroVersion, &m.distroVersion},
 		{"replacement distro label version", row.ReplacementDistroLabelVersion, &m.distroLabelVersion},
 		{"replacement package name", &row.ReplacementPackageName, &m.packageName},
+		{"replacement ecosystem", &row.ReplacementEcosystem, &m.ecosystem},
 		{"replacement CPE vendor", &row.ReplacementCPEVendor, &m.cpeVendor},
 		{"replacement CPE product", &row.ReplacementCPEProduct, &m.cpeProduct},
 	} {
@@ -312,7 +316,7 @@ func (m *searchMatch) compileReplacements(names map[string]struct{}) error {
 }
 
 func validateSearchRule(row SearchRule, keys indexKeys) error {
-	hasReplacement := row.hasNameOrOSReplacement() || row.hasCPEReplacement()
+	hasReplacement := row.hasPackageSearchReplacement() || row.hasCPEReplacement()
 	switch {
 	case keys == indexKeys{}:
 		return fmt.Errorf("search rule must have an exact (non-regex) package name, distro name, ecosystem, CPE vendor or CPE product")
@@ -344,6 +348,8 @@ func validateReplacements(row SearchRule, keys indexKeys) error {
 	switch {
 	case row.ReplacementPackageName != "" && row.MatchPackageName == "":
 		return fmt.Errorf("search rule with a replacement package name must have a package name pattern")
+	case row.ReplacementEcosystem != "" && row.MatchEcosystem == "":
+		return fmt.Errorf("search rule with a replacement ecosystem must have an ecosystem pattern")
 	case row.ReplacementChannel != nil && keys.distroName == "":
 		return fmt.Errorf("search rule with a channel substitution must have an exact distro name")
 	case row.ReplacementDistroVersion != nil && row.ReplacementDistroName == nil && keys.distroName == "":
@@ -358,8 +364,8 @@ func validateReplacements(row SearchRule, keys indexKeys) error {
 		return fmt.Errorf("search rule searching no OS cannot have a distro label version substitution")
 	case row.hasCPEReplacement() && row.MatchCPEVendor == "" && row.MatchCPEProduct == "":
 		return fmt.Errorf("search rule with a CPE substitution must have a CPE vendor or product pattern")
-	case row.hasCPEReplacement() && row.hasNameOrOSReplacement():
-		return fmt.Errorf("search rule with a CPE substitution cannot have an OS or package name substitution")
+	case row.hasCPEReplacement() && row.hasPackageSearchReplacement():
+		return fmt.Errorf("search rule with a CPE substitution cannot have an OS, package name or ecosystem substitution")
 	}
 	return nil
 }

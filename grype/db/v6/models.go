@@ -784,6 +784,12 @@ type SearchRule struct {
 	// ReplacementPackageName is the name to search
 	ReplacementPackageName string `gorm:"column:replacement_package_name"`
 
+	// ReplacementEcosystem is the ecosystem to search (e.g. "${ecosystem}-vendor" for a vendor's rebuilds
+	// of a language's packages, kept apart from the upstream rows), and requires an ecosystem pattern. It
+	// applies only to a search by ecosystem (a language package's): a distro or CPE search has none. The
+	// searched name is not normalized for it, since the names a package is searched by already are.
+	ReplacementEcosystem string `gorm:"column:replacement_ecosystem"`
+
 	// ReplacementCPEVendor is the CPE vendor to search, in place of the searched CPE's. It requires a
 	// CPE vendor or product pattern, and cannot be combined with an OS or package name replacement: a
 	// CPE search has neither. An empty expansion keeps the searched vendor.

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -12,6 +13,7 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/syft/syft/cpe"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -31,6 +33,30 @@ func TestSearchRule_Validate(t *testing.T) { //nolint:funlen // one case per val
 			name:    "replacement package name without a name pattern",
 			row:     SearchRule{Action: SearchRuleAdd, MatchEcosystem: "rpm", ReplacementPackageName: "x", MatchPackageVersion: `.*\.rf.*`},
 			wantErr: "must have a package name pattern",
+		},
+		{
+			name:    "replacement ecosystem without an ecosystem pattern",
+			row:     SearchRule{Action: SearchRuleAdd, MatchPackageName: "requests", MatchPackageVersion: `.*\+asdf\.\d+`, ReplacementEcosystem: "python-asdf"},
+			wantErr: "must have an ecosystem pattern",
+		},
+		{
+			name: "replacement ecosystem with an ecosystem pattern",
+			row:  SearchRule{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageVersion: `.*\+asdf\.\d+`, ReplacementEcosystem: "${ecosystem}-asdf"},
+		},
+		{
+			name: "replacement ecosystem with a package name and OS substitution",
+			row: SearchRule{Action: SearchRuleReplace, MatchEcosystem: "python", MatchPackageName: `asdf-(?P<base>.+)`,
+				ReplacementPackageName: "${base}", ReplacementEcosystem: "python-asdf", ReplacementDistroName: ptr("asdf")},
+		},
+		{
+			name:    "replacement ecosystem referencing an unknown group",
+			row:     SearchRule{Action: SearchRuleAdd, MatchEcosystem: "python", ReplacementEcosystem: "${vendor}-asdf"},
+			wantErr: `replacement ecosystem "${vendor}-asdf"`,
+		},
+		{
+			name:    "a drop rule with a replacement ecosystem",
+			row:     SearchRule{Action: SearchRuleDrop, MatchEcosystem: "python", ReplacementEcosystem: "python-asdf"},
+			wantErr: "cannot have a replacement",
 		},
 		{
 			name:    "channel substitution without a distro name",
@@ -216,12 +242,17 @@ func TestSearchRule_Validate(t *testing.T) { //nolint:funlen // one case per val
 		{
 			name:    "a CPE substitution with an OS substitution",
 			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "alpine", MatchCPEProduct: "curl", ReplacementCPEVendor: "haxx", ReplacementDistroName: ptr("")},
-			wantErr: "cannot have an OS or package name substitution",
+			wantErr: "cannot have an OS, package name or ecosystem substitution",
 		},
 		{
 			name:    "a CPE substitution with a package name substitution",
 			row:     SearchRule{Action: SearchRuleAdd, MatchPackageName: "curl", MatchCPEProduct: "curl", ReplacementCPEProduct: "libcurl", ReplacementPackageName: "libcurl"},
-			wantErr: "cannot have an OS or package name substitution",
+			wantErr: "cannot have an OS, package name or ecosystem substitution",
+		},
+		{
+			name:    "a CPE substitution with an ecosystem substitution",
+			row:     SearchRule{Action: SearchRuleAdd, MatchEcosystem: "python", MatchCPEProduct: "requests", ReplacementCPEVendor: "psf", ReplacementEcosystem: "python-asdf"},
+			wantErr: "cannot have an OS, package name or ecosystem substitution",
 		},
 		{
 			name:    "a CPE exclude pattern's groups are not referenceable",
@@ -453,15 +484,14 @@ func TestVulnerabilityProvider_SearchRewrites_KnownRules(t *testing.T) { //nolin
 			want:   []searched{ruled(rh+"fc43", "rf-scanner", 20), ruled(rh+"rf", "rf-scanner", 10)},
 		},
 		{
-			// the base distro backs what the RapidFort feed lacks, ranked below it
 			name:   "native el version",
 			search: nameSearch(searchOf("curl", "7.76.1-29.el9", rfRedhat, rpm)),
-			want:   []searched{own(rh, "curl"), ruled(rh+"el9", "curl", 20), ruled("redhat@9+", "curl", -10)},
+			want:   []searched{own(rh, "curl"), ruled(rh+"el9", "curl", 20)},
 		},
 		{
 			name:   "modular el build names no release",
 			search: nameSearch(searchOf("nodejs", "1:20.19.5-1.module+el9.7.0+23457+f6a3e1b2", rfRedhat, rpm)),
-			want:   []searched{own(rh, "nodejs"), ruled("redhat@9+", "nodejs", -10)},
+			want:   []searched{own(rh, "nodejs")},
 		},
 		{
 			name:   "rapidfort-rockylinux rebuild",
@@ -481,7 +511,7 @@ func TestVulnerabilityProvider_SearchRewrites_KnownRules(t *testing.T) { //nolin
 		{
 			name:   "rapidfort-amazonlinux native build",
 			search: nameSearch(searchOf("7zip", "26.01-14.amzn2023.0.1", rfAmazon, rpm)),
-			want:   []searched{own(amzn, "7zip"), ruled(amzn+"amzn2023", "7zip", 20), ruled("amazonlinux@2023+", "7zip", -10)},
+			want:   []searched{own(amzn, "7zip"), ruled(amzn+"amzn2023", "7zip", 20)},
 		},
 		{
 			name:   "rapidfort-amazonlinux rf- name with a native version is not in the rf stream",
@@ -516,7 +546,7 @@ func TestVulnerabilityProvider_SearchRewrites_KnownRules(t *testing.T) { //nolin
 		{
 			name:   "rapidfort-debian stock build",
 			search: nameSearch(searchOf("curl", "7.88.1-10+deb12u5", rfDebian, deb)),
-			want:   []searched{own("rapidfort-debian@12+", "curl"), ruled("debian@12+", "curl", -10)},
+			want:   []searched{own("rapidfort-debian@12+", "curl")},
 		},
 		{
 			name:   "rapidfort-ubuntu stock build",
@@ -526,7 +556,7 @@ func TestVulnerabilityProvider_SearchRewrites_KnownRules(t *testing.T) { //nolin
 		{
 			name:   "rapidfort-alpine name search is kept",
 			search: nameSearch(searchOf("curl", "8.5.0-r0", rfAlpine, apk)),
-			want:   []searched{own("rapidfort-alpine@3.18+", "curl"), ruled("alpine@3.18+", "curl", -10)},
+			want:   []searched{own("rapidfort-alpine@3.18+", "curl")},
 		},
 		{
 			name:   "rapidfort-alpine CPE search is dropped",
@@ -821,6 +851,227 @@ func TestVulnerabilityProvider_SearchRewrites_Replacements(t *testing.T) { //nol
 			assert.ElementsMatch(t, tt.want, searchesOf(rewrites(vp, pkg.Package{}, tt.search)))
 		})
 	}
+}
+
+// ecoSearched is one search a rewrite runs, by the ecosystem and name whose rows it reads.
+type ecoSearched struct {
+	// Ecosystem is the searched ecosystem; empty for a distro or CPE search
+	Ecosystem string
+	// Name is the searched name, "cpe:<vendor>:<product>" for a CPE search
+	Name     string
+	Ruled    bool
+	Priority int
+}
+
+func ownEco(ecosystem, name string) ecoSearched {
+	return ecoSearched{Ecosystem: ecosystem, Name: name}
+}
+
+func ruledEco(ecosystem, name string, priority int) ecoSearched {
+	return ecoSearched{Ecosystem: ecosystem, Name: name, Ruled: true, Priority: priority}
+}
+
+func ecoSearchesOf(searches [][]vulnerability.Criteria) []ecoSearched {
+	out := []ecoSearched{}
+	for _, set := range searches {
+		sp := splitSearch(set)
+		s := ecoSearched{Ecosystem: sp.searchedEcosystem(), Name: sp.searchedName()}
+		if sp.cpe != nil {
+			s.Name = "cpe:" + sp.cpe.CPE.Attributes.Vendor + ":" + sp.cpe.CPE.Attributes.Product
+		}
+		for _, c := range set {
+			if rc, ok := c.(*search.RuleCriteria); ok {
+				s.Ruled, s.Priority = true, rc.Priority
+			}
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
+func TestVulnerabilityProvider_SearchRewrites_Ecosystem(t *testing.T) { //nolint:funlen // one case per rule shape
+	deb := *distro.New(distro.Debian, "12", "")
+	py := syftPkg.PythonPkg
+	const asdfVersion = `.*\+asdf\.\d+`
+
+	tests := []struct {
+		name   string
+		rules  []SearchRule
+		search []vulnerability.Criteria
+		want   []ecoSearched
+	}{
+		{
+			name:   "literal, on an ecosystem search, which it adds to",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageVersion: asdfVersion, ReplacementEcosystem: "python-asdf"}},
+			search: nameSearch(searchOf("requests", "2.31.0+asdf.1", py)),
+			want:   []ecoSearched{ownEco("python", "requests"), ruledEco("python-asdf", "requests", 0)},
+		},
+		{
+			name:   "a reference to the matched ecosystem",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageVersion: asdfVersion, ReplacementEcosystem: "${ecosystem}-asdf"}},
+			search: nameSearch(searchOf("requests", "2.31.0+asdf.1", py)),
+			want:   []ecoSearched{ownEco("python", "requests"), ruledEco("python-asdf", "requests", 0)},
+		},
+		{
+			name:   "a named group of the version pattern",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageVersion: `.*\+(?P<vendor>asdf|qwer)\.\d+`, ReplacementEcosystem: "${ecosystem}-${vendor}"}},
+			search: nameSearch(searchOf("requests", "2.31.0+qwer.3", py)),
+			want:   []ecoSearched{ownEco("python", "requests"), ruledEco("python-qwer", "requests", 0)},
+		},
+		{
+			name: "with a package name substitution, as one search",
+			rules: []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageName: `asdf-(?P<base>.+)`,
+				ReplacementPackageName: "${base}", ReplacementEcosystem: "python-asdf"}},
+			search: nameSearch(searchOf("asdf-requests", "2.31.0", py)),
+			want:   []ecoSearched{ownEco("python", "asdf-requests"), ruledEco("python-asdf", "requests", 0)},
+		},
+		{
+			name:   "replace: the rule's ecosystem alone is searched",
+			rules:  []SearchRule{{Action: SearchRuleReplace, MatchEcosystem: "python", MatchPackageVersion: asdfVersion, ReplacementEcosystem: "python-asdf", Priority: 10}},
+			search: nameSearch(searchOf("requests", "2.31.0+asdf.1", py)),
+			want:   []ecoSearched{ruledEco("python-asdf", "requests", 10)},
+		},
+		{
+			name: "rules searching the same ecosystem: one search, at the highest priority",
+			rules: []SearchRule{
+				{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageVersion: asdfVersion, ReplacementEcosystem: "python-asdf", Priority: 5},
+				{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageName: "requests", ReplacementEcosystem: "PYTHON-ASDF", Priority: 10},
+			},
+			search: nameSearch(searchOf("requests", "2.31.0+asdf.1", py)),
+			want:   []ecoSearched{ownEco("python", "requests"), ruledEco("PYTHON-ASDF", "requests", 10)},
+		},
+		{
+			name:   "the searched ecosystem changes nothing",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageVersion: asdfVersion, ReplacementEcosystem: "PYTHON"}},
+			search: nameSearch(searchOf("requests", "2.31.0+asdf.1", py)),
+			want:   []ecoSearched{ownEco("python", "requests")},
+		},
+		{
+			name:   "an upstream build's version does not match",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageVersion: asdfVersion, ReplacementEcosystem: "python-asdf"}},
+			search: nameSearch(searchOf("requests", "2.31.0", py)),
+			want:   []ecoSearched{ownEco("python", "requests")},
+		},
+		{
+			name:   "not applied to a distro search, which has no ecosystem",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchPackageVersion: `.*\.asdf\d+`, ReplacementEcosystem: "deb-asdf"}},
+			search: nameSearch(searchOf("curl", "7.88.1-10.asdf1", deb, syftPkg.DebPkg)),
+			want:   []ecoSearched{ownEco("", "curl")},
+		},
+		{
+			name: "on a distro search, the rule's OS is dropped with the ecosystem it cannot apply",
+			rules: []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchPackageVersion: `.*\.asdf\d+`,
+				ReplacementEcosystem: "deb-asdf", ReplacementDistroName: ptr("asdf")}},
+			search: nameSearch(searchOf("curl", "7.88.1-10.asdf1", deb, syftPkg.DebPkg)),
+			want:   []ecoSearched{ownEco("", "curl")},
+		},
+		{
+			name:   "not applied to a CPE search, which has no ecosystem",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageVersion: asdfVersion, ReplacementEcosystem: "python-asdf"}},
+			search: cpeSearch(searchOf("requests", "2.31.0+asdf.1", py)),
+			want:   []ecoSearched{ownEco("", "cpe:vendor:requests")},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vp := rulesProvider(tt.rules...)
+			assert.ElementsMatch(t, tt.want, ecoSearchesOf(rewrites(vp, pkg.Package{}, tt.search)))
+		})
+	}
+}
+
+func TestVulnerabilityProvider_SearchRewrites_EcosystemKeepsLanguage(t *testing.T) {
+	vp := rulesProvider(SearchRule{Action: SearchRuleReplace, MatchEcosystem: "python", ReplacementEcosystem: "python-asdf"})
+	p := pkg.Package{Name: "requests", Version: "2.31.0", Type: syftPkg.PythonPkg, Language: syftPkg.Python}
+	cs := []vulnerability.Criteria{search.ByEcosystem(p.Language, p.Type), search.ByPackageName(p.Name), search.WithPackage(p)}
+
+	searches := rewrites(vp, p, cs)
+	require.Len(t, searches, 1)
+	eco := splitSearch(searches[0]).ecosystem
+	require.NotNil(t, eco)
+	assert.Equal(t, syftPkg.Python, eco.Language)
+	assert.Equal(t, syftPkg.Type("python-asdf"), eco.PackageType)
+}
+
+func TestSearchIndex_Rewrite_LogsEcosystem(t *testing.T) {
+	rule := SearchRule{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageVersion: `.*\+asdf\.\d+`, ReplacementEcosystem: "python-asdf"}
+	assert.Equal(t, `add match_ecosystem=python match_package_version=.*\+asdf\.\d+ replacement_ecosystem=python-asdf`, rule.String())
+
+	vp := rulesProvider(rule)
+	logged := recordDebugLogs(t)
+	rewrites(vp, pkg.Package{}, nameSearch(searchOf("requests", "2.31.0+asdf.1", syftPkg.PythonPkg)))
+	assert.Equal(t, []loggedEntry{{msg: "search rule added search", fields: map[string]string{
+		"search": "requests@2.31.0+asdf.1 (python) in no OS",
+		"new":    "requests@2.31.0+asdf.1 (python-asdf) in no OS",
+		"rule":   rule.String(),
+	}}}, *logged)
+}
+
+// A rule stored in the DB can send a language package's search to another ecosystem: rows stored under
+// it are found by the rule's search alone, never by the package's own search.
+func TestVulnerabilityProvider_SearchRules_LanguagePackageUnderReplacementEcosystem(t *testing.T) {
+	const (
+		pkgName = "com.fasterxml.woodstox:woodstox-core"
+		nakID   = "ASDF-2026-0001"
+	)
+	dir := t.TempDir()
+	w, err := NewWriter(Config{DBDirPath: dir})
+	require.NoError(t, err)
+
+	now := time.Now()
+	provider := &Provider{ID: "asdf", Version: "1", Processor: "test", DateCaptured: &now}
+	vuln := &VulnerabilityHandle{
+		Name:       nakID,
+		ProviderID: provider.ID,
+		Provider:   provider,
+		BlobValue:  &VulnerabilityBlob{ID: nakID, Aliases: []string{"GHSA-3f7h-mf4q-vrm4"}},
+	}
+	require.NoError(t, w.AddVulnerabilities(vuln))
+	require.NoError(t, w.AddUnaffectedPackages(&UnaffectedPackageHandle{
+		Vulnerability: vuln,
+		Package:       &Package{Ecosystem: "java-archive-asdf", Name: pkgName},
+		BlobValue: &PackageBlob{
+			CVEs:   []string{"GHSA-3f7h-mf4q-vrm4"},
+			Ranges: []Range{{Version: Version{Type: "maven", Constraint: ">= 6.0.3.asdf-00001"}}},
+		},
+	}))
+	// the rule is read back from the DB, so ReplacementEcosystem must persist
+	require.NoError(t, w.(*store).db.Create(&SearchRule{
+		Action: SearchRuleAdd, MatchEcosystem: string(syftPkg.JavaPkg), MatchPackageVersion: `.*[.-]asdf-\d+`,
+		ReplacementEcosystem: "${ecosystem}-asdf",
+	}).Error)
+	log.CloseAndLogError(w, dir)
+
+	vp, ok := NewVulnerabilityProvider(setupReadOnlyTestStore(t, dir)).(*vulnerabilityProvider)
+	require.True(t, ok)
+
+	// the IDs each search the rules run for a language package at version finds
+	found := func(t *testing.T, version string) [][]string {
+		t.Helper()
+		p := pkg.Package{Name: pkgName, Version: version, Type: syftPkg.JavaPkg, Language: syftPkg.Java}
+		cs := []vulnerability.Criteria{
+			search.ByEcosystem(p.Language, p.Type), search.ByPackageName(pkgName), search.WithPackage(p), search.ForUnaffected(),
+		}
+		var out [][]string
+		for _, s := range rewrites(*vp, p, cs) {
+			vulns, err := vp.FindVulnerabilities(s...)
+			require.NoError(t, err)
+			ids := []string{}
+			for _, v := range vulns {
+				ids = append(ids, v.ID)
+			}
+			out = append(out, ids)
+		}
+		return out
+	}
+
+	t.Run("a downstream build: the rule's search finds the row, the package's own search does not", func(t *testing.T) {
+		require.ElementsMatch(t, [][]string{{nakID}, {}}, found(t, "6.0.3.asdf-00001"))
+	})
+
+	t.Run("an upstream build: no rule applies and the row is not found", func(t *testing.T) {
+		require.Equal(t, [][]string{{}}, found(t, "6.0.3"))
+	})
 }
 
 func TestVulnerabilityProvider_SearchRewrites_Package(t *testing.T) { //nolint:funlen // one case per package shape

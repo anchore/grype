@@ -115,13 +115,14 @@ func TestApplyDistroIdentifiers(t *testing.T) {
 			},
 		},
 		{
-			name:   "matching label remaps rhel and preserves id-like",
+			name:   "matching label remaps rhel and leads id-like with the base distro",
 			distro: distro.New(distro.RedHat, "9.4", "", "fedora"),
 			sbom:   imageSBOM(map[string]string{"maintainer": "rapidfort"}),
 			want: func(t *testing.T, got *distro.Distro) {
 				assert.Equal(t, distro.RapidFortRedHat, got.Type)
 				assert.Equal(t, "9.4", got.Version)
-				assert.Equal(t, []string{"fedora"}, got.IDLike)
+				// the base distro is searched for a release the RapidFort feed does not publish
+				assert.Equal(t, []string{"redhat", "fedora"}, got.IDLike)
 			},
 		},
 		{
