@@ -2,6 +2,7 @@ package rpm
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/anchore/grype/grype/distro"
@@ -189,55 +190,90 @@ func applyAlmaLinuxUnaffectedFiltering(disclosures result.Set, unaffectedResults
 		unaffectedResults.Filter(search.ByVersion(*pkgVersion)),
 	)
 
-	// Update remaining vulnerabilities with AlmaLinux fix information
-	return filtered.Update(unaffectedResults, result.IdentitiesOverlap, replaceWithAlmaLinuxFixInfo)
+	// Several AlmaLinux advisories can cover one disclosure. The package stops being affected at the
+	// lowest of their lower bounds, so that is the fix: apply only that record.
+	out := make(result.Set, len(filtered))
+	for id, results := range filtered {
+		results = slices.Clone(results)
+		for i := range results {
+			if fix, vuln, ok := lowestAlmaLinuxFix(results[i], unaffectedResults); ok {
+				replaceWithAlmaLinuxFixInfo(&results[i], fix, vuln)
+			}
+		}
+		out[id] = results
+	}
+	return out
 }
 
-// replaceWithAlmaLinuxFixInfo updates the Constraint, Fix, and Advisories fields from AlmaLinux unaffected data
+// lowestAlmaLinuxFix returns the lowest fix version, and the AlmaLinux vulnerability it came from, among
+// the unaffected records overlapping existing; equal versions are broken by advisory ID so the choice never
+// depends on map order.
+func lowestAlmaLinuxFix(existing result.Result, unaffected result.Set) (string, vulnerability.Vulnerability, bool) {
+	var bestID, bestFix string
+	var bestVuln vulnerability.Vulnerability
+	var bestVersion *version.Version
+	for _, records := range unaffected {
+		for _, r := range records {
+			if !result.IdentitiesOverlap(existing, r) {
+				continue
+			}
+			for _, vuln := range r.Vulnerabilities {
+				fix := extractFixVersionFromConstraint(vuln.Constraint)
+				if fix == "" {
+					continue
+				}
+				v := version.New(fix, version.RpmFormat)
+				if v.Validate() != nil {
+					continue
+				}
+				if bestVersion != nil {
+					if cmp, err := v.Compare(bestVersion); err != nil || cmp > 0 || (cmp == 0 && r.ID >= bestID) {
+						continue
+					}
+				}
+				bestID, bestFix, bestVuln, bestVersion = r.ID, fix, vuln, v
+			}
+		}
+	}
+	return bestFix, bestVuln, bestVersion != nil
+}
+
+// replaceWithAlmaLinuxFixInfo updates the Constraint, Fix, and Advisories fields from the given AlmaLinux fix
 // while preserving the match Details from the RHEL disclosure. This is used to replace RHEL fix
 // versions with AlmaLinux-specific fix versions when available.
-func replaceWithAlmaLinuxFixInfo(existing *result.Result, incoming result.Result) {
-	// For each vulnerability in the existing result (RHEL disclosure)
+func replaceWithAlmaLinuxFixInfo(existing *result.Result, fixVersion string, almaVuln vulnerability.Vulnerability) {
+	// update constraint to match AlmaLinux fix version (form: "< fixVersion")
+	newConstraint, err := version.GetConstraint(fmt.Sprintf("< %s", fixVersion), version.RpmFormat)
+	if err != nil {
+		log.WithFields("error", err, "fixVersion", fixVersion).Debug("failed to create constraint from AlmaLinux fix version")
+		return
+	}
+
+	// use advisories from database, or construct if missing
+	advisories := almaVuln.Advisories
+	if len(advisories) == 0 {
+		advisories = constructAdvisory(almaVuln, existing.Package)
+	}
+
+	// copy before writing so the caller's backing arrays are left untouched
+	existing.Vulnerabilities = slices.Clone(existing.Vulnerabilities)
+	existing.Details = slices.Clone(existing.Details)
+
 	for i := range existing.Vulnerabilities {
-		// Find the corresponding AlmaLinux vulnerability and extract fix info
-		for _, incomingVuln := range incoming.Vulnerabilities {
-			// Extract fix version from the unaffected constraint (e.g., ">= 2.4.48" -> "2.4.48")
-			fixVersion := extractFixVersionFromConstraint(incomingVuln.Constraint)
-			if fixVersion == "" {
-				continue
-			}
+		existing.Vulnerabilities[i].Constraint = newConstraint
+		existing.Vulnerabilities[i].Fix = vulnerability.Fix{
+			Versions:  []string{fixVersion},
+			State:     vulnerability.FixStateFixed,
+			Available: availableForVersion(almaVuln.Fix.Available, fixVersion),
+		}
+		existing.Vulnerabilities[i].Advisories = advisories
+	}
 
-			// Update constraint to match AlmaLinux fix version (form: "< fixVersion")
-			newConstraint, err := version.GetConstraint(fmt.Sprintf("< %s", fixVersion), version.RpmFormat)
-			if err != nil {
-				log.WithFields("error", err, "fixVersion", fixVersion).Debug("failed to create constraint from AlmaLinux fix version")
-				continue
-			}
-			existing.Vulnerabilities[i].Constraint = newConstraint
-
-			// Update fix version and advisories to AlmaLinux's data
-			existing.Vulnerabilities[i].Fix = vulnerability.Fix{
-				Versions:  []string{fixVersion},
-				State:     vulnerability.FixStateFixed,
-				Available: availableForVersion(incomingVuln.Fix.Available, fixVersion),
-			}
-
-			// Use advisories from database, or construct if missing
-			advisories := incomingVuln.Advisories
-			if len(advisories) == 0 {
-				advisories = constructAdvisory(incomingVuln, existing.Package)
-			}
-			existing.Vulnerabilities[i].Advisories = advisories
-
-			// Update Details to reflect the AlmaLinux constraint in the match details
-			for j := range existing.Details {
-				if distroResult, ok := existing.Details[j].Found.(match.DistroResult); ok {
-					distroResult.VersionConstraint = newConstraint.String()
-					existing.Details[j].Found = distroResult
-				}
-			}
-
-			break // Only need first match
+	// update Details to reflect the AlmaLinux constraint in the match details
+	for j := range existing.Details {
+		if distroResult, ok := existing.Details[j].Found.(match.DistroResult); ok {
+			distroResult.VersionConstraint = newConstraint.String()
+			existing.Details[j].Found = distroResult
 		}
 	}
 }

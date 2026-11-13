@@ -50,6 +50,42 @@ func Test_basicPackageDiff(t *testing.T) {
 			},
 		},
 		{
+			// a fix-date-only change updates fix data on matches, so it is reported as a package modification
+			name:  "fix-date-only-package-modified",
+			oldDB: []string{"**/debian-11/cve-2025-13012.json"},
+			newDB: []string{"**/debian-11/cve-2025-13012-fixdate.json"},
+			expected: map[string]changes{
+				"firefox-esr": {
+					modified{"CVE-2025-13012"},
+				},
+				"thunderbird": {},
+			},
+		},
+		{
+			// a fix-kind-only change likewise
+			name:  "fix-kind-only-package-modified",
+			oldDB: []string{"**/debian-11/cve-2025-13012.json"},
+			newDB: []string{"**/debian-11/cve-2025-13012-fixkind.json"},
+			expected: map[string]changes{
+				"firefox-esr": {
+					modified{"CVE-2025-13012"},
+				},
+				"thunderbird": {},
+			},
+		},
+		{
+			// a record added beside an existing record under the same key (another module stream)
+			name:  "record-added-beside-existing",
+			oldDB: []string{"**/rhel-9/cve-2025-13012.json"},
+			newDB: []string{"**/rhel-9/cve-2025-13012-sibling.json"},
+			expected: map[string]changes{
+				"firefox": {
+					modified{"CVE-2025-13012"},
+				},
+				"thunderbird": {},
+			},
+		},
+		{
 			name: "os-echo-modify",
 			oldDB: []string{
 				"cve-2025-59800",
@@ -120,6 +156,17 @@ func Test_basicPackageDiff(t *testing.T) {
 				"cve-2025-24456",
 				"cve-2025-21916-modified",
 			},
+			expected: map[string]changes{
+				"linux_kernel": {
+					modified{"CVE-2025-21916"},
+				},
+			},
+		},
+		{
+			// a fix-date-only change on a CPE record is reported as a modification
+			name:  "cpe-fix-date-only-modified",
+			oldDB: []string{"cve-2025-21916"},
+			newDB: []string{"cve-2025-21916-fixdate"},
 			expected: map[string]changes{
 				"linux_kernel": {
 					modified{"CVE-2025-21916"},
@@ -206,6 +253,85 @@ func Test_basicPackageDiff(t *testing.T) {
 			expected: map[string]changes{
 				"pillow": {
 					modified{"CGA-v587-68x3-qwqr"},
+				},
+			},
+		},
+		{
+			// a fix-date-only change on an unaffected record is reported as a modification
+			name:  "unaffected-fix-date-only-modified",
+			oldDB: []string{"pypi/CGA-v587-68x3-qwqr.json"},
+			newDB: []string{"pypi/CGA-v587-68x3-qwqr-fixdate.json"},
+			expected: map[string]changes{
+				"pillow": {
+					modified{"CGA-v587-68x3-qwqr"},
+				},
+			},
+		},
+		{
+			name: "affected-and-unaffected-same-os-unchanged",
+			oldDB: []string{
+				"rhel-8/cve-2026-19843",
+			},
+			newDB: []string{
+				"rhel-8/cve-2026-19843",
+			},
+			expected: map[string]changes{
+				"389-ds-base": {},
+			},
+		},
+		{
+			name: "module-stream-becomes-affected",
+			oldDB: []string{
+				"rhel-8/cve-2026-19843-not-affected",
+			},
+			newDB: []string{
+				"rhel-8/cve-2026-19843",
+			},
+			expected: map[string]changes{
+				"389-ds-base": {
+					added{"CVE-2026-19843"},
+				},
+			},
+		},
+		{
+			name: "module-stream-becomes-not-affected",
+			oldDB: []string{
+				"rhel-8/cve-2026-19843",
+			},
+			newDB: []string{
+				"rhel-8/cve-2026-19843-not-affected",
+			},
+			expected: map[string]changes{
+				"389-ds-base": {
+					removed{"CVE-2026-19843"},
+				},
+			},
+		},
+		{
+			name: "affected-module-stream-added",
+			oldDB: []string{
+				"rhel-8/cve-2026-19843-module-only",
+			},
+			newDB: []string{
+				"rhel-8/cve-2026-19843-two-streams",
+			},
+			expected: map[string]changes{
+				"389-ds-base": {
+					modified{"CVE-2026-19843"},
+				},
+			},
+		},
+		{
+			name: "affected-module-stream-dropped",
+			oldDB: []string{
+				"rhel-8/cve-2026-19843-two-streams",
+			},
+			newDB: []string{
+				"rhel-8/cve-2026-19843-module-only",
+			},
+			expected: map[string]changes{
+				"389-ds-base": {
+					modified{"CVE-2026-19843"},
 				},
 			},
 		},
@@ -1151,6 +1277,45 @@ func Test_hydrationPermutations(t *testing.T) {
 	}
 }
 
+func Test_reversedDBOrder(t *testing.T) {
+	inputDir, err := filepath.Abs(filepath.Join("testdata", "inputs"))
+	require.NoError(t, err)
+
+	tmpdir := t.TempDir()
+
+	oldDir := filepath.Join(tmpdir, "oldDB")
+	testdb.BuildFromFlatFileDir(t, time.Time{}, oldDir, inputDir, "cve-2025-59800")
+
+	newDir := filepath.Join(tmpdir, "newDB")
+	testdb.BuildFromFlatFileDir(t, time.Time{}, newDir, inputDir, "cve-2025-59800", "cve-2025-59801")
+
+	oldDB, err := ResolveDB(oldDir, "", 0)
+	require.NoError(t, err)
+	oldDB.Info.BuildTimestamp = "2022-08-11T18:01:05Z"
+
+	newDB, err := ResolveDB(newDir, "", 0)
+	require.NoError(t, err)
+	newDB.Info.BuildTimestamp = "2022-08-12T01:55:19Z"
+
+	// provide the newer database first; the diff should be from the newer to the older database, labeled accordingly
+	differ, err := newDBDifferDirs(newDB, oldDB, Config{})
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = differ.Close() })
+
+	result, err := differ.Diff()
+	require.NoError(t, err)
+
+	require.Equal(t, newDB.Info, result.Databases.Before)
+	require.Equal(t, oldDB.Info, result.Databases.After)
+
+	pkgs := findPackageDiff(result, "ghostscript")
+	require.NotEmpty(t, pkgs)
+	for _, p := range pkgs {
+		requireVulns(t, "removed", p.Vulnerabilities.Removed, "CVE-2025-59801")
+		require.Empty(t, p.Vulnerabilities.Added)
+	}
+}
+
 // Test_handlesWithoutBlobs verifies that package / CPE handles without a blob are excluded from the diff, rather than
 // being reported as modified (missing blobs can't be compared, so they would never be considered equivalent)
 func Test_handlesWithoutBlobs(t *testing.T) {
@@ -1205,7 +1370,8 @@ func Test_packageDiffExact(t *testing.T) {
 			mutateNew: []string{"UPDATE packages SET ecosystem = ''"},
 		},
 		{
-			// fix availability doesn't affect matching, so blobs that only differ there are not modified
+			// a fix's availability is part of the record, so a change to only its date or kind is a modification:
+			// a consumer that refreshes fix data from the package diff never sees it otherwise
 			name:  "fix availability only change",
 			oldDB: []string{"echo-rolling/CVE-2025-13012", "cve-2025-21916"},
 			newDB: []string{"echo-rolling/CVE-2025-13012", "cve-2025-21916"},
@@ -1214,6 +1380,11 @@ func Test_packageDiffExact(t *testing.T) {
 				 WHERE id IN (SELECT blob_id FROM affected_package_handles) AND value LIKE '%"first-observed"%'`,
 				`UPDATE blobs SET value = replace(value, '"first-observed"', '"advisory"')
 				 WHERE id IN (SELECT blob_id FROM affected_cpe_handles) AND value LIKE '%"first-observed"%'`,
+			},
+			expected: []PackageDiff{
+				{Ecosystem: "deb", Name: "firefox-esr", Vulnerabilities: VulnerabilityChanges{Modified: []VulnerabilityID{{Provider: "echo", ID: "CVE-2025-13012"}}}},
+				{Ecosystem: "cpe", Name: "linux_kernel", CPE: "cpe:2.3:o:linux:linux_kernel:*:*:*:*:*:*:*:*", Vulnerabilities: VulnerabilityChanges{Modified: []VulnerabilityID{{Provider: "nvd", ID: "CVE-2025-21916"}}}},
+				{Ecosystem: "deb", Name: "thunderbird", Vulnerabilities: VulnerabilityChanges{Modified: []VulnerabilityID{{Provider: "echo", ID: "CVE-2025-13012"}}}},
 			},
 		},
 		{
@@ -1319,7 +1490,7 @@ func Test_ResolvedDB_cleanupNeverPanics(t *testing.T) {
 	testdb.BuildFromFlatFileDir(t, time.Time{}, dbDir, inputDir, "cve-2025-59800")
 
 	for _, value := range []string{dbDir, filepath.Join(dbDir, v6.VulnerabilityDBFileName)} {
-		resolved, err := ResolveDB(value, "")
+		resolved, err := ResolveDB(value, "", 0)
 		require.NoError(t, err)
 		require.NotPanics(t, resolved.Cleanup, value)
 	}
@@ -1383,7 +1554,8 @@ func Test_ResolveDB_keepsUserDataOnFailure(t *testing.T) {
 			dir := t.TempDir()
 			require.NoError(t, os.WriteFile(filepath.Join(dir, keep), []byte("x"), 0o600))
 
-			_, err := ResolveDB(tt.setup(t, dir))
+			value, defaultDir := tt.setup(t, dir)
+			_, err := ResolveDB(value, defaultDir, 0)
 			require.Error(t, err)
 
 			assert.FileExists(t, filepath.Join(dir, tt.kept))
@@ -1412,7 +1584,7 @@ func Test_ResolveDB_archiveExtraction(t *testing.T) {
 		archive := writeDBArchive(t, dir, goodDB)
 
 		for range 2 {
-			resolved, err := ResolveDB(archive, "")
+			resolved, err := ResolveDB(archive, "", 0)
 			require.NoError(t, err)
 			assert.Equal(t, filepath.Join(dir, "db"), resolved.Dir)
 			assert.NotEmpty(t, resolved.Info.BuildTimestamp)
@@ -1425,14 +1597,14 @@ func Test_ResolveDB_archiveExtraction(t *testing.T) {
 		dir := t.TempDir()
 		archive := writeDBArchive(t, dir, badDB)
 
-		_, err := ResolveDB(archive, "")
+		_, err := ResolveDB(archive, "", 0)
 		require.Error(t, err)
 		assert.NoDirExists(t, filepath.Join(dir, "db"))
 		requireNoExtractLeftovers(t, dir)
 
 		// replacing the archive is enough to recover, there is nothing stale to remove by hand
 		writeDBArchive(t, dir, goodDB)
-		_, err = ResolveDB(archive, "")
+		_, err = ResolveDB(archive, "", 0)
 		require.NoError(t, err)
 	})
 
@@ -1442,7 +1614,7 @@ func Test_ResolveDB_archiveExtraction(t *testing.T) {
 		require.NoError(t, os.Mkdir(filepath.Join(dir, "db"), 0o700))
 		require.NoError(t, os.WriteFile(filepath.Join(dir, "db", v6.VulnerabilityDBFileName), badDB, 0o600))
 
-		_, err := ResolveDB(archive, "")
+		_, err := ResolveDB(archive, "", 0)
 		require.ErrorContains(t, err, fmt.Sprintf("%q", filepath.Join(dir, "db")))
 	})
 }
@@ -1486,9 +1658,9 @@ func Test_NewDBDiffer_defaultsToInstalledDB(t *testing.T) {
 	differ, err := NewDBDiffer(Config{Config: cfg, OldDB: oldDir})
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = differ.Close() })
-	// the differ orders the two sides by build time, which is taken from the clock when a db is built, not the time
-	// passed to the builder, so only check that the installed db is one of them
-	assert.Contains(t, []string{differ.oldDB.Dir, differ.newDB.Dir}, cfg.DBDirectoryPath())
+	// the provided db is always the first, regardless of build time
+	assert.Equal(t, oldDir, differ.firstDB.Dir)
+	assert.Equal(t, cfg.DBDirectoryPath(), differ.secondDB.Dir)
 }
 
 // Test_DBDiffer_removesDownloads verifies downloaded databases are removed when the other side fails to resolve,
@@ -1526,6 +1698,17 @@ func Test_DBDiffer_removesDownloads(t *testing.T) {
 	require.Len(t, downloads(), 1)
 	require.NoError(t, differ.Close())
 	assert.Empty(t, downloads(), "download kept after Close")
+}
+
+// Test_downloadDB_timesOut verifies a server that never responds can't hang the download
+func Test_downloadDB_timesOut(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		<-r.Context().Done()
+	}))
+	t.Cleanup(srv.Close)
+
+	_, err := downloadDB(srv.URL, 100*time.Millisecond)
+	require.ErrorContains(t, err, "Client.Timeout")
 }
 
 func requireVulns(t *testing.T, testType string, vulns []VulnerabilityID, vulnNames ...string) {

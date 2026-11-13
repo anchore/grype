@@ -324,9 +324,6 @@ func (ovm *Processor) FilterMatches(
 // matchingRule cycles through a set of ignore rules and returns the first
 // one that matches the statement and the match. Returns nil if none match.
 func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, statement *openvex.Statement, allowedStatuses []vexStatus.Status) *match.IgnoreRule {
-	ms := match.NewMatches()
-	ms.Add(m)
-
 	// By default, if there are no ignore rules (which means the user didn't provide
 	// any custom VEX rule), a matching rule should be returned if the statement
 	// status is one of the allowed statuses.
@@ -345,7 +342,7 @@ func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, statement *open
 		if rule.HasConditions() {
 			r := rule
 			r.VexStatus = ""
-			if _, ignored := match.ApplyIgnoreRules(ms, []match.IgnoreRule{r}); len(ignored) == 0 {
+			if len(r.IgnoreMatch(m)) == 0 {
 				continue
 			}
 		}
