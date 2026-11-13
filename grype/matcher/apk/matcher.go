@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/anchore/grype/grype/internal/architecture"
 	"github.com/anchore/grype/grype/internal/ignorereasons"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
@@ -116,6 +117,7 @@ func (m *Matcher) nakIgnores(vp vulnerability.Provider, p pkg.Package) ([]match.
 	naks, err := provider.FindResults(
 		search.ByDistro(*p.Distro),
 		search.ByPackageName(p.Name),
+		search.ByArchitecture(architecture.BinaryDefault(p.Arch)),
 		nakConstraint,
 	)
 	if err != nil {
@@ -126,6 +128,7 @@ func (m *Matcher) nakIgnores(vp vulnerability.Provider, p pkg.Package) ([]match.
 		upstreamNaks, err := provider.FindResults(
 			search.ByDistro(*upstreamPkg.Distro),
 			search.ByPackageName(upstreamPkg.Name),
+			search.ByArchitecture(upstreamPkg.Arch),
 			nakConstraint,
 		)
 		if err != nil {

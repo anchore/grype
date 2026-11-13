@@ -27,6 +27,7 @@ func TestUpstreamPackages(t *testing.T) {
 			pkg: Package{
 				Name:    "name",
 				Version: "version",
+				Arch:    "x86_64",
 				CPEs: []cpe.CPE{
 					cpe.Must("cpe:2.3:*:name:name:version:*:*:*:*:*:*:*", ""),
 				},
@@ -40,6 +41,7 @@ func TestUpstreamPackages(t *testing.T) {
 				{
 					Name:    "new-name", // new
 					Version: "version",  // original
+					Arch:    "src",      // upstreams are source packages, whatever the binary's arch
 					CPEs: []cpe.CPE{
 						// name and vendor replaced
 						cpe.Must("cpe:2.3:*:new-name:new-name:version:*:*:*:*:*:*:*", ""),
@@ -67,6 +69,7 @@ func TestUpstreamPackages(t *testing.T) {
 				{
 					Name:    "new-name",    // new
 					Version: "new-version", // new
+					Arch:    "src",         // upstreams are source packages
 					CPEs: []cpe.CPE{
 						// name, vendor, and version replaced
 						cpe.Must("cpe:2.3:*:new-name:new-name:new-version:*:*:*:*:*:*:*", ""),

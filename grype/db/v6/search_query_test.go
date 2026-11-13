@@ -73,7 +73,7 @@ func TestNewSearchCriteria(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			query, _, err := newSearchQuery(test.criteria)
+			query, _, err := newSearchQuery(test.criteria, nil)
 			require.NoError(t, err)
 			test.validate(t, query)
 		})
@@ -81,10 +81,36 @@ func TestNewSearchCriteria(t *testing.T) {
 }
 
 func TestQueryBuilder_ApplyCriteria(t *testing.T) {
+	// a DB alias table that folds a dialect the built-in defaults don't know about ("riscv64") and
+	// omits the built-in arm64 fold, so the comparison must use this table rather than the defaults
+	archAliases := map[string]string{"x86_64": "amd64", "riscv64": "riscv", "source": "src"}
+
+	// matchesArch validates that the architecture criteria is kept for filtering, and how it treats a
+	// record with each architecture when compared through archAliases
+	matchesArch := func(want map[string]bool) func(t *testing.T, builder *searchQueryBuilder) {
+		return func(t *testing.T, builder *searchQueryBuilder) {
+			require.Len(t, builder.remainingCriteria, 1)
+			_, ok := builder.remainingCriteria[0].(*search.ArchitectureCriteria)
+			require.True(t, ok, "architecture criteria should be kept")
+			for vulnArch, expected := range want {
+				matches, reason, err := builder.remainingCriteria[0].MatchesVulnerability(vulnerability.Vulnerability{Arch: vulnArch})
+				require.NoError(t, err)
+				require.Equal(t, expected, matches, "record architecture %q", vulnArch)
+				if !matches {
+					require.NotEmpty(t, reason)
+				}
+			}
+		}
+	}
+
+	// the caller's architecture criteria, which must not be modified when the DB's aliases are applied
+	callerArch := &search.ArchitectureCriteria{Arch: "x86_64"}
+
 	tests := []struct {
-		name     string
-		criteria []vulnerability.Criteria
-		validate func(t *testing.T, builder *searchQueryBuilder)
+		name        string
+		criteria    []vulnerability.Criteria
+		archAliases map[string]string
+		validate    func(t *testing.T, builder *searchQueryBuilder)
 	}{
 		{
 			name: "package name criteria",
@@ -151,6 +177,49 @@ func TestQueryBuilder_ApplyCriteria(t *testing.T) {
 			},
 		},
 		{
+			name:        "architecture criteria",
+			criteria:    []vulnerability.Criteria{callerArch},
+			archAliases: archAliases,
+			validate: func(t *testing.T, builder *searchQueryBuilder) {
+				matchesArch(map[string]bool{
+					"x86_64":  true,  // same spelling
+					"amd64":   true,  // aliased spelling
+					"aarch64": false, // different arch
+					"source":  true,  // role spelling folded to "src" by the DB table
+					"x64":     false, // folded by the defaults, but not by the DB table
+					"":        true,  // record without arch
+				})(t, builder)
+				// the caller's criteria still compares through the defaults
+				matches, _, err := callerArch.MatchesVulnerability(vulnerability.Vulnerability{Arch: "x64"})
+				require.NoError(t, err)
+				require.True(t, matches, "the caller's criteria should not be modified")
+			},
+		},
+		{
+			name:        "architecture criteria, alias only in the DB table",
+			criteria:    []vulnerability.Criteria{search.ByArchitecture("riscv64")},
+			archAliases: archAliases,
+			validate:    matchesArch(map[string]bool{"riscv": true}),
+		},
+		{
+			name:        "architecture criteria, spelling not in the DB table is not folded",
+			criteria:    []vulnerability.Criteria{search.ByArchitecture("arm64")},
+			archAliases: archAliases,
+			validate:    matchesArch(map[string]bool{"aarch64": false}),
+		},
+		{
+			name:        "architecture criteria, source package",
+			criteria:    []vulnerability.Criteria{search.ByArchitecture("source")},
+			archAliases: archAliases,
+			validate:    matchesArch(map[string]bool{"binary-no-arch-specified": false, "src": true}),
+		},
+		{
+			name:        "architecture criteria, package without arch",
+			criteria:    []vulnerability.Criteria{search.ByArchitecture("")},
+			archAliases: archAliases,
+			validate:    matchesArch(map[string]bool{"x86_64": true}),
+		},
+		{
 			name: "multiple criteria",
 			criteria: []vulnerability.Criteria{
 				search.ByPackageName("test-package"),
@@ -169,7 +238,7 @@ func TestQueryBuilder_ApplyCriteria(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			builder := newSearchQueryBuilder()
+			builder := newSearchQueryBuilder(tt.archAliases)
 			err := builder.ApplyCriteria(tt.criteria)
 			require.NoError(t, err)
 			tt.validate(t, builder)
@@ -178,7 +247,7 @@ func TestQueryBuilder_ApplyCriteria(t *testing.T) {
 }
 
 func TestQueryBuilder_CPEErrorHandling(t *testing.T) {
-	builder := newSearchQueryBuilder()
+	builder := newSearchQueryBuilder(nil)
 
 	// create a CPE without a product (which should cause an error)
 	invalidCPE := cpe.CPE{
@@ -257,7 +326,7 @@ func TestQueryBuilder_PostProcess(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			builder := newSearchQueryBuilder()
+			builder := newSearchQueryBuilder(nil)
 			tt.setup(builder)
 
 			_, _, err := builder.Build()
@@ -269,7 +338,7 @@ func TestQueryBuilder_PostProcess(t *testing.T) {
 }
 
 func TestQueryBuilder_Build(t *testing.T) {
-	builder := newSearchQueryBuilder()
+	builder := newSearchQueryBuilder(nil)
 
 	// add some test data
 	builder.query.unaffectedOnly = true
@@ -337,7 +406,7 @@ func TestQueryBuilder_ExactDistroCriteria(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			query, remaining, err := newSearchQuery(test.criteria)
+			query, remaining, err := newSearchQuery(test.criteria, nil)
 			require.NoError(t, err)
 			test.validate(t, query, remaining)
 		})
@@ -357,7 +426,7 @@ func TestQueryBuilder_IntegrationWithRealCriteria(t *testing.T) {
 		}),
 	}
 
-	builder := newSearchQueryBuilder()
+	builder := newSearchQueryBuilder(nil)
 
 	err := builder.ApplyCriteria(criteria)
 	require.NoError(t, err)

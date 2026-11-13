@@ -74,8 +74,8 @@ func TestAlmaLinuxMatching_ModularVulnerable(t *testing.T) {
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.AlmaLinux8).
 				WithMetadata(pkg.RpmMetadata{
-					Epoch:           intPtr(0),
-					ModularityLabel: strPtr("httpd:2.4:1234:5678"),
+					Epoch:           new(0),
+					ModularityLabel: new("httpd:2.4:1234:5678"),
 				}).
 				Build()
 
@@ -105,8 +105,8 @@ func TestAlmaLinuxMatching_ModularFixed(t *testing.T) {
 				WithID(pkgID).
 				WithDistro(dbtest.AlmaLinux8).
 				WithMetadata(pkg.RpmMetadata{
-					Epoch:           intPtr(0),
-					ModularityLabel: strPtr("httpd:2.4:1234:5678"),
+					Epoch:           new(0),
+					ModularityLabel: new("httpd:2.4:1234:5678"),
 				}).
 				Build()
 
@@ -131,8 +131,8 @@ func TestAlmaLinuxMatching_ModularityMismatch(t *testing.T) {
 				WithArchitecture("aarch64").
 				WithDistro(dbtest.AlmaLinux8).
 				WithMetadata(pkg.RpmMetadata{
-					Epoch:           intPtr(0),
-					ModularityLabel: strPtr("httpd:2.6:1234:5678"),
+					Epoch:           new(0),
+					ModularityLabel: new("httpd:2.6:1234:5678"),
 				}).
 				Build()
 
@@ -195,7 +195,7 @@ func TestAlmaLinuxMatching_WontFixPassesThrough(t *testing.T) {
 			p := dbtest.NewPackage("tar", "2:1.30-5.el8", syftPkg.RpmPkg).
 				WithArchitecture("aarch64").
 				WithDistro(dbtest.AlmaLinux8).
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(2)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(2)}).
 				Build()
 
 			db.Match(t, &matcher, p).
@@ -224,8 +224,8 @@ func TestAlmaLinuxMatching_UpstreamMatchWithFixReplacement(t *testing.T) {
 				WithDistro(dbtest.AlmaLinux8).
 				WithUpstream("httpd", "2.4.37-30.module_el8.3.0+1234+abcd").
 				WithMetadata(pkg.RpmMetadata{
-					Epoch:           intPtr(0),
-					ModularityLabel: strPtr("httpd:2.4:1234:5678"),
+					Epoch:           new(0),
+					ModularityLabel: new("httpd:2.4:1234:5678"),
 				}).
 				Build()
 
@@ -337,7 +337,7 @@ func TestAlmaLinuxMatching_RHELFixKeepsDateWithoutAlmaRecord(t *testing.T) {
 			p := dbtest.NewPackage("patch", "2.7.6-10.el8", syftPkg.RpmPkg).
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.AlmaLinux8).
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(0)}).
 				Build()
 
 			db.Match(t, &matcher, p).
@@ -355,8 +355,8 @@ func httpdToolsPackage() pkg.Package {
 		WithDistro(dbtest.AlmaLinux8).
 		WithUpstream("httpd", "2.4.37-30.module_el8.3.0+1234+abcd").
 		WithMetadata(pkg.RpmMetadata{
-			Epoch:           intPtr(0),
-			ModularityLabel: strPtr("httpd:2.4:1234:5678"),
+			Epoch:           new(0),
+			ModularityLabel: new("httpd:2.4:1234:5678"),
 		}).
 		Build()
 }
@@ -388,8 +388,8 @@ func TestAlmaLinuxMatching_LowerAlmaModuleBuildFiltersVulnerability(t *testing.T
 				WithID(pkgID).
 				WithDistro(dbtest.AlmaLinux8).
 				WithMetadata(pkg.RpmMetadata{
-					Epoch:           intPtr(3),
-					ModularityLabel: strPtr("mariadb:10.3:1234:abcd"),
+					Epoch:           new(3),
+					ModularityLabel: new("mariadb:10.3:1234:abcd"),
 				}).
 				Build()
 
@@ -418,8 +418,8 @@ func TestAlmaLinuxMatching_BelowBothModuleBuildsStillVulnerable(t *testing.T) {
 				WithArchitecture("aarch64").
 				WithDistro(dbtest.AlmaLinux8).
 				WithMetadata(pkg.RpmMetadata{
-					Epoch:           intPtr(3),
-					ModularityLabel: strPtr("mariadb:10.3:1234:abcd"),
+					Epoch:           new(3),
+					ModularityLabel: new("mariadb:10.3:1234:abcd"),
 				}).
 				Build()
 
@@ -520,8 +520,8 @@ func TestAlmaLinuxIgnoreFilters_AlmaUnaffectedAndAliasUnwind(t *testing.T) {
 				WithID(pkgID).
 				WithDistro(dbtest.AlmaLinux8).
 				WithMetadata(pkg.RpmMetadata{
-					Epoch:           intPtr(0),
-					ModularityLabel: strPtr("httpd:2.4:1234:5678"),
+					Epoch:           new(0),
+					ModularityLabel: new("httpd:2.4:1234:5678"),
 				}).
 				Build()
 

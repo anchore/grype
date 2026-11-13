@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/anchore/grype/grype/internal/architecture"
 	"github.com/anchore/grype/grype/internal/ignorereasons"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal/result"
@@ -56,6 +57,7 @@ func FindResultsByDistro(provider vulnerability.Provider, searchPkg pkg.Package,
 			search.ByPackageName(name),
 			search.ByDistro(*searchPkg.Distro),
 			OnlyQualifiedPackages(searchPkg),
+			search.ByArchitecture(architecture.BinaryDefault(searchPkg.Arch)),
 		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", searchPkg.Distro, name, err)
@@ -71,6 +73,7 @@ func FindResultsByDistro(provider vulnerability.Provider, searchPkg pkg.Package,
 		u, err := rp.FindResults(
 			search.ByDistro(*searchPkg.Distro),
 			search.ByPackageName(name),
+			search.ByArchitecture(architecture.BinaryDefault(searchPkg.Arch)),
 			search.ForUnaffected(),
 			versionCriteria,
 		)

@@ -49,8 +49,7 @@ var (
 
 // PackageBuilder provides a fluent API for building test packages.
 type PackageBuilder struct {
-	pkg  pkg.Package
-	arch string
+	pkg pkg.Package
 }
 
 // NewPackage creates a new PackageBuilder with the given name, version, and type.
@@ -103,12 +102,11 @@ func (b *PackageBuilder) WithDistro(d *distro.Distro) *PackageBuilder {
 	return b
 }
 
-// WithArchitecture sets the package architecture (e.g., "x86_64", "aarch64"), stamped onto
-// the rpm metadata at Build time. Read by the architectureQualifier at match time to match a
-// package against the architecture a vulnerability entry applies to. Applied last so it
-// composes with WithMetadata regardless of call order.
+// WithArchitecture sets the package architecture (e.g., "x86_64", "aarch64"), which matchers
+// search with (see search.ByArchitecture) to match a package against the architecture a
+// vulnerability entry applies to.
 func (b *PackageBuilder) WithArchitecture(arch string) *PackageBuilder {
-	b.arch = arch
+	b.pkg.Arch = arch
 	return b
 }
 
@@ -196,13 +194,6 @@ func (b *PackageBuilder) WithRelatedPackage(relationshipType artifact.Relationsh
 func (b *PackageBuilder) Build() pkg.Package {
 	if b.pkg.ID == "" {
 		b.pkg.ID = pkg.ID(uuid.New().String())
-	}
-	if b.arch != "" {
-		// arch lives on the rpm metadata contract; stamp it onto any existing RpmMetadata,
-		// otherwise synthesize one (arch-based matching is rpm-only today).
-		m, _ := b.pkg.Metadata.(pkg.RpmMetadata)
-		m.Arch = b.arch
-		b.pkg.Metadata = m
 	}
 	return b.pkg
 }

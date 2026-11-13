@@ -48,7 +48,7 @@ const (
 	//        architecture). The field's semantics are unchanged; the rename drops the rpm-
 	//        specific prefix because the value already lives in PackageQualifiers and can
 	//        carry any architecture string for future arch-scoped advisories.
-	// 6.1.8: Add ArchitectureAlias table (architecture_aliases). The architecture qualifier
+	// 6.1.8: Add ArchitectureAlias table (architecture_aliases). The vulnerability provider
 	//        reads it at match time to fold dialect arch spellings (e.g. "x86_64" <-> "amd64")
 	//        onto a canonical token. Older clients ignore the table; clients reading a DB built
 	//        before it existed fall back to the built-in default aliases.

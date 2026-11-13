@@ -62,9 +62,8 @@ func TestPackageBuilder_WithID(t *testing.T) {
 }
 
 // TestPackageBuilder_WithArchitecture pins down both the set path (concrete
-// arch stamped onto pkg.RpmMetadata) and the default (unset → no arch), since
-// the empty case is what triggers the architectureQualifier's inert-passthrough
-// branch at match time.
+// arch stored on pkg.Package.Arch) and the default (unset → no arch), since
+// the empty case is what makes search.ByArchitecture match any architecture.
 func TestPackageBuilder_WithArchitecture(t *testing.T) {
 	tests := []struct {
 		name string
@@ -93,11 +92,7 @@ func TestPackageBuilder_WithArchitecture(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			b := NewPackage("test-pkg", "1.0.0", syftPkg.RpmPkg)
 			p := tt.set(b).Build()
-			var got string
-			if m, ok := p.Metadata.(pkg.RpmMetadata); ok {
-				got = m.Arch
-			}
-			assert.Equal(t, tt.want, got)
+			assert.Equal(t, tt.want, p.Arch)
 		})
 	}
 }

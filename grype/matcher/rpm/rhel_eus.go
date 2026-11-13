@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/internal/architecture"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/matcher/internal/result"
@@ -180,6 +181,7 @@ func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package, missingEp
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(distroWithoutEUS), // e.g.  >= 9.0 && < 10 (no EUS channel)
 		internal.OnlyQualifiedPackages(searchPkg),
+		search.ByArchitecture(architecture.BinaryDefault(searchPkg.Arch)),
 		internal.OnlyVulnerableVersions(pkgVersion), // if these records indicate the version of the package is not vulnerable, do not include them
 	}
 
@@ -197,6 +199,7 @@ func redhatEUSMatches(provider result.Provider, searchPkg pkg.Package, missingEp
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(distroWithoutEUS, *searchPkg.Distro), // e.g.  (>= 9.0 && < 10) || 9.4+eus
 		internal.OnlyQualifiedPackages(searchPkg),
+		search.ByArchitecture(architecture.BinaryDefault(searchPkg.Arch)),
 		// note: we do **not** apply any version criteria to the search as to raise up all possible fixes
 		// and combine within the collection. If we do filter on a fix version, it could result in
 		// false positives (missing EUS fixes that resolve a disclosure).

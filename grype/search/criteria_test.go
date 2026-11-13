@@ -93,6 +93,16 @@ func Test_ValidateCriteria(t *testing.T) {
 			in:      []vulnerability.Criteria{Or(ByPackageName("steve"), ByPackageName("bob"))},
 			wantErr: require.NoError,
 		},
+		{
+			name:    "multiple architectures error",
+			in:      []vulnerability.Criteria{ByArchitecture("x86_64"), ByArchitecture("aarch64")},
+			wantErr: require.Error,
+		},
+		{
+			name:    "multiple architectures in or condition not error",
+			in:      []vulnerability.Criteria{Or(ByArchitecture("x86_64"), ByArchitecture("aarch64"))},
+			wantErr: require.NoError,
+		},
 	}
 
 	for _, test := range tests {

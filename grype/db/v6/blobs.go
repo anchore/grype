@@ -161,14 +161,14 @@ type PackageQualifiers struct {
 	// PlatformCPEs lists Common Platform Enumeration (CPE) identifiers for affected platforms.
 	PlatformCPEs []string `json:"platform_cpes,omitempty"`
 
-	// Architecture is the architecture of the affected RPM, copied from the source PURL's
+	// Architecture is the architecture of the affected package, copied from the source PURL's
 	// `arch` qualifier when present (e.g. "src", "x86_64") or set to a synthesized sentinel
 	// like "binary-no-arch-specified" when a binary RPM was disclosed without an explicit
-	// arch. At match time the architecture qualifier compares this value against the scanned
-	// package's arch (see pkg/qualifier/architecture, Satisfied): a "binary-no-arch-specified"
-	// entry matches any binary package but rejects the rpm matcher's synthesized "src" upstream,
-	// so providers that disclose at binary granularity (e.g. hummingbird CSAF VEX) avoid
-	// FP-matching unrelated sibling binaries built from the same source.
+	// arch. At match time this value is compared against the scanned package's arch (see
+	// search.ByArchitecture): a "binary-no-arch-specified" entry matches any binary package but
+	// rejects the rpm matcher's synthesized "src" upstream, so providers that disclose at binary
+	// granularity (e.g. hummingbird CSAF VEX) avoid FP-matching unrelated sibling binaries built
+	// from the same source.
 	Architecture *string `json:"architecture,omitempty"`
 
 	// RootIO indicates that the vulnerability applies only to Root IO packages (packages with Root IO fixes).

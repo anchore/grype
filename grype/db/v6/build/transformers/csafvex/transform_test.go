@@ -12,7 +12,7 @@ import (
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
-	"github.com/anchore/grype/grype/pkg/qualifier/architecture"
+	"github.com/anchore/grype/grype/internal/architecture"
 )
 
 var timeVal = time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)

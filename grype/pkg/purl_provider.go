@@ -63,7 +63,7 @@ func setUpstreamsFromPURL(out *Package, purl packageurl.PackageURL, syftPkg syft
 func upstreamsFromPURL(purl packageurl.PackageURL, pkgType syftPkg.Type) (upstreams []UpstreamPackage) {
 	for _, qualifier := range purl.Qualifiers {
 		if qualifier.Key == syftPkg.PURLQualifierUpstream {
-			for _, newUpstream := range parseUpstream(purl.Name, qualifier.Value, pkgType) {
+			for _, newUpstream := range parseUpstream(qualifier.Value, pkgType) {
 				if slices.Contains(upstreams, newUpstream) {
 					continue
 				}

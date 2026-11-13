@@ -34,6 +34,7 @@ func MatchPackageByLanguage(store vulnerability.Provider, p pkg.Package, matcher
 			search.ByEcosystem(p.Language, p.Type),
 			search.ByPackageName(name),
 			OnlyQualifiedPackages(p),
+			search.ByArchitecture(p.Arch),
 			OnlyNonWithdrawnVulnerabilities(),
 		}
 
@@ -67,6 +68,7 @@ func MatchPackageByEcosystemPackageName(vp vulnerability.Provider, p pkg.Package
 		search.ByEcosystem(p.Language, p.Type),
 		search.ByPackageName(packageName),
 		OnlyQualifiedPackages(p),
+		search.ByArchitecture(p.Arch),
 		OnlyNonWithdrawnVulnerabilities(),
 	}
 

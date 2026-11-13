@@ -18,7 +18,7 @@ import (
 //     advisory's known_affected ∪ fixed for the same platform.
 //  2. Every emitted RPM-typed entry is tagged with an architecture ("src" /
 //     "binary-no-arch-specified" / a literal arch). The RPM matcher tags its synthesized
-//     upstream (source) package "src", so the architecture qualifier matches it only against
+//     upstream (source) package "src", so searching by architecture matches it only against
 //     src records and rejects binary-arch records — direct matches still hit because the
 //     scanned binary's own arch matches the binary/concrete records.
 //
@@ -27,7 +27,10 @@ import (
 
 // TestHummingbirdMatching_BinaryDirectHit verifies that a binary RPM listed verbatim in a
 // hummingbird advisory's known_affected (`glibc`) still produces a direct match — the
-// architecture=binary-no-arch-specified tag does NOT block direct lookups.
+// architecture=binary-no-arch-specified tag does NOT block direct lookups. glibc is built from a
+// same-name source rpm (glibc.src), so it is searched twice, as the binary and as the source; the
+// source search, tagged "src", must not pick up the binary `glibc` record, so the match stays a
+// single direct detail rather than gaining an indirect one.
 func TestHummingbirdMatching_BinaryDirectHit(t *testing.T) {
 	dbtest.DBs(t, "hummingbird").
 		SelectOnly("cve-2026-5928").
@@ -36,11 +39,14 @@ func TestHummingbirdMatching_BinaryDirectHit(t *testing.T) {
 			p := dbtest.NewPackage("glibc", "2.42-11.1.hum1", syftPkg.RpmPkg).
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.Hummingbird1).
+				WithUpstream("glibc", "2.42-11.1.hum1").
+				WithMetadata(pkg.RpmMetadata{Epoch: new(0)}).
 				Build()
 
 			findings := db.Match(t, &matcher, p)
 			findings.SelectMatch("CVE-2026-5928").
 				InNamespace("hummingbird:distro:hummingbird:rolling").
+				HasDetailCount(1).
 				SelectDetailByDistro("hummingbird", "1").
 				HasMatchType(match.ExactDirectMatch)
 		})
@@ -51,7 +57,7 @@ func TestHummingbirdMatching_BinaryDirectHit(t *testing.T) {
 // advisory. Without our changes, grype's upstream search (name=glibc, derived from the
 // package's `upstream` field) would hit the binary `glibc` row in the DB and emit an
 // indirect match. Because the matcher tags the synthesized upstream package "src", the
-// architecture qualifier excludes the binary `glibc` row from the upstream search, and
+// architecture search criteria excludes the binary `glibc` row from the upstream search, and
 // there's no glibc-minimal-langpack entry to direct-match, so no match is produced.
 func TestHummingbirdMatching_SiblingBinaryUpstreamFiltered(t *testing.T) {
 	dbtest.DBs(t, "hummingbird").
@@ -62,7 +68,7 @@ func TestHummingbirdMatching_SiblingBinaryUpstreamFiltered(t *testing.T) {
 				WithArchitecture("aarch64").
 				WithDistro(dbtest.Hummingbird1).
 				WithUpstream("glibc", "2.42-11.1.hum1").
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(0)}).
 				Build()
 
 			db.Match(t, &matcher, p).IsEmpty()
@@ -83,7 +89,7 @@ func TestHummingbirdMatching_GlibcCommonDirectOnly(t *testing.T) {
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.Hummingbird1).
 				WithUpstream("glibc", "2.42-11.1.hum1").
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(0)}).
 				Build()
 
 			findings := db.Match(t, &matcher, p)
@@ -91,6 +97,93 @@ func TestHummingbirdMatching_GlibcCommonDirectOnly(t *testing.T) {
 				SelectDetailByDistro("hummingbird", "1").
 				HasMatchType(match.ExactDirectMatch)
 		})
+}
+
+// CVE-2026-73231 is a hummingbird advisory with only known_not_affected products: the binary
+// `grafana` (stored as binary-no-arch-specified, covering every version) and the source
+// `grafana12.4.src` (stored as src, pinned to = 12.4.8-0.1.hum1). The rpm matcher turns an
+// unaffected record that applies to the searched package into a "Distro Not Vulnerable" ignore,
+// so the tests below pin which packages each arch-scoped unaffected record applies to.
+
+// TestHummingbirdNotAffected_BinaryRecordAppliesToAnyBinary verifies that a
+// binary-no-arch-specified unaffected record applies to the named binary whatever its arch,
+// including an arch-independent package and one with no recorded arch.
+func TestHummingbirdNotAffected_BinaryRecordAppliesToAnyBinary(t *testing.T) {
+	for _, arch := range []string{"x86_64", "aarch64", "noarch", ""} {
+		t.Run("arch="+arch, func(t *testing.T) {
+			dbtest.DBs(t, "hummingbird").
+				SelectOnly("cve-2026-73231").
+				Run(func(t *testing.T, db *dbtest.DB) {
+					matcher := Matcher{}
+					p := dbtest.NewPackage("grafana", "12.4.8-0.1.hum1", syftPkg.RpmPkg).
+						WithArchitecture(arch).
+						WithDistro(dbtest.Hummingbird1).
+						Build()
+
+					db.Match(t, &matcher, p).Ignores().
+						SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2026-73231").
+						ForPackage(p.ID)
+				})
+		})
+	}
+}
+
+// TestHummingbirdNotAffected_BinaryRecordDoesNotApplyToSource verifies that a
+// binary-no-arch-specified unaffected record does not apply to a source package. A binary built
+// from a source rpm named `grafana` (grafana-selinux, as Fedora builds it) is searched upstream as
+// `grafana` tagged "src", which must not pick up the not-affected statement about the `grafana`
+// binary: that statement says nothing about the source or its other binaries.
+func TestHummingbirdNotAffected_BinaryRecordDoesNotApplyToSource(t *testing.T) {
+	dbtest.DBs(t, "hummingbird").
+		SelectOnly("cve-2026-73231").
+		Run(func(t *testing.T, db *dbtest.DB) {
+			matcher := Matcher{}
+			p := dbtest.NewPackage("grafana-selinux", "12.4.8-0.1.hum1", syftPkg.RpmPkg).
+				WithArchitecture("noarch").
+				WithDistro(dbtest.Hummingbird1).
+				WithUpstream("grafana", "12.4.8-0.1.hum1").
+				WithMetadata(pkg.RpmMetadata{Epoch: new(0)}).
+				Build()
+
+			db.Match(t, &matcher, p).IsEmpty()
+		})
+}
+
+// TestHummingbirdNotAffected_SrcRecordApplies verifies that a src unaffected record applies both
+// to a binary built from that source (through the upstream search, tagged "src") and to a
+// same-name binary searched directly, whatever its arch.
+func TestHummingbirdNotAffected_SrcRecordApplies(t *testing.T) {
+	tests := []struct {
+		name string
+		pkg  *dbtest.PackageBuilder
+	}{
+		{
+			name: "binary built from the source, via upstream",
+			pkg: dbtest.NewPackage("grafana-selinux", "12.4.8-0.1.hum1", syftPkg.RpmPkg).
+				WithArchitecture("noarch").
+				WithUpstream("grafana12.4", "12.4.8-0.1.hum1").
+				WithMetadata(pkg.RpmMetadata{Epoch: new(0)}),
+		},
+		{
+			name: "same-name binary, direct",
+			pkg: dbtest.NewPackage("grafana12.4", "12.4.8-0.1.hum1", syftPkg.RpmPkg).
+				WithArchitecture("aarch64"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dbtest.DBs(t, "hummingbird").
+				SelectOnly("cve-2026-73231").
+				Run(func(t *testing.T, db *dbtest.DB) {
+					matcher := Matcher{}
+					p := tt.pkg.WithDistro(dbtest.Hummingbird1).Build()
+
+					db.Match(t, &matcher, p).Ignores().
+						SelectRelatedPackageIgnore(IgnoreReasonDistroNotVulnerable, "CVE-2026-73231").
+						ForPackage(p.ID)
+				})
+		})
+	}
 }
 
 // TestHummingbirdMatching_PerlBDirectFix is the perl-flavored counterpart to the glibc-
@@ -114,7 +207,7 @@ func TestHummingbirdMatching_PerlBDirectFix(t *testing.T) {
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.Hummingbird1).
 				WithUpstream("perl", "5.42.0-524.1.hum1").
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(0)}).
 				Build()
 
 			findings := db.Match(t, &matcher, p)
