@@ -7,11 +7,11 @@ import (
 )
 
 // TestMatches pins down the arch matching rules, which are identical for affected and unaffected
-// vulnerability entries: concrete arches compare in normalized form; a src entry matches every
-// package; binary-no-arch matches any package except a source package; a source package does not
-// match a concrete entry; and an unset or arch-independent (rpm "noarch", deb "all") value on
-// either side always matches. Dialect spellings are folded through the given alias table first (see
-// TestCanonical).
+// vulnerability entries: an unset value on either side always matches; a source package matches only
+// src entries (in any spelling the alias table folds to src) and a src entry matches only source
+// packages; between binaries, arch-independent (rpm "noarch", deb "all") and binary-no-arch values
+// match anything, and concrete arches compare in canonical form. Dialect spellings are folded
+// through the given alias table first (see TestCanonical).
 func TestMatches(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -68,16 +68,72 @@ func TestMatches(t *testing.T) {
 			want:       true,
 		},
 		{
-			// a binary is built from the source, so what applies to the source applies to it
-			name:       "binary package / src entry -> matches",
+			// a binary reaches its own source's entries through its upstream search, so a source
+			// package that only shares the binary's name does not apply to it
+			name:       "binary package / src entry -> does not match",
 			recordArch: ArchSource,
 			pkgArch:    "x86_64",
+			want:       false,
+		},
+		{
+			name:       "source package / empty entry -> matches",
+			recordArch: "",
+			pkgArch:    ArchSource,
 			want:       true,
 		},
 		{
 			name:       "source package / concrete entry -> does not match",
 			recordArch: "x86_64",
 			pkgArch:    ArchSource,
+			want:       false,
+		},
+		{
+			// a noarch entry is a binary package's
+			name:       "source package / noarch entry -> does not match",
+			recordArch: "noarch",
+			pkgArch:    ArchSource,
+			want:       false,
+		},
+		{
+			name:       "noarch package / src entry -> does not match",
+			recordArch: ArchSource,
+			pkgArch:    "noarch",
+			want:       false,
+		},
+		{
+			name:       "source package / src entry, different case -> matches",
+			recordArch: "SRC",
+			pkgArch:    ArchSource,
+			want:       true,
+		},
+		{
+			name:       "source package / deb 'source' entry, default aliases -> matches",
+			recordArch: "source",
+			pkgArch:    ArchSource,
+			aliases:    DefaultAliases(),
+			want:       true,
+		},
+		{
+			name:       "deb 'source' package / src entry, default aliases -> matches",
+			recordArch: ArchSource,
+			pkgArch:    "source",
+			aliases:    DefaultAliases(),
+			want:       true,
+		},
+		{
+			// a DB alias table can name source spellings the built-in defaults don't know about
+			name:       "source package / entry spelled by the DB table -> matches",
+			recordArch: "srpm",
+			pkgArch:    ArchSource,
+			aliases:    map[string]string{"srpm": ArchSource},
+			want:       true,
+		},
+		{
+			// the DB table replaces the defaults, so a spelling only the defaults fold is not a source
+			name:       "source package / deb 'source' entry, DB table without it -> does not match",
+			recordArch: "source",
+			pkgArch:    ArchSource,
+			aliases:    map[string]string{"srpm": ArchSource},
 			want:       false,
 		},
 
@@ -109,10 +165,10 @@ func TestMatches(t *testing.T) {
 			want:       true,
 		},
 		{
-			name:       "binary-no-arch package / src entry -> matches",
+			name:       "binary-no-arch package / src entry -> does not match",
 			recordArch: ArchSource,
 			pkgArch:    ArchBinaryNoArchSpecified,
-			want:       true,
+			want:       false,
 		},
 		{
 			name:       "noarch package / binary-no-arch entry -> matches",
@@ -156,13 +212,6 @@ func TestMatches(t *testing.T) {
 			want:       false,
 		},
 		{
-			name:       "x86_64 package / deb 'source' entry, default aliases -> matches",
-			recordArch: "source",
-			pkgArch:    "x86_64",
-			aliases:    DefaultAliases(),
-			want:       true,
-		},
-		{
 			name:       "amd64 package / x86_64 entry, nil aliases use the defaults -> matches",
 			recordArch: "x86_64",
 			pkgArch:    "amd64",
@@ -176,9 +225,9 @@ func TestMatches(t *testing.T) {
 			want:       false,
 		},
 		{
-			name:       "x86_64 package / deb 'source' entry, empty alias table -> does not match",
+			name:       "source package / deb 'source' entry, empty alias table -> does not match",
 			recordArch: "source",
-			pkgArch:    "x86_64",
+			pkgArch:    ArchSource,
 			aliases:    map[string]string{},
 			want:       false,
 		},
@@ -266,6 +315,26 @@ func TestBinaryDefault(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			require.Equal(t, tt.want, BinaryDefault(tt.arch))
+		})
+	}
+}
+
+func TestIsSource(t *testing.T) {
+	tests := []struct {
+		arch string
+		want bool
+	}{
+		{arch: ArchSource, want: true},
+		{arch: "SRC", want: true},
+		{arch: "source", want: true},
+		{arch: "", want: false},
+		{arch: "amd64", want: false},
+		{arch: "all", want: false},
+		{arch: ArchBinaryNoArchSpecified, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.arch, func(t *testing.T) {
+			require.Equal(t, tt.want, IsSource(tt.arch))
 		})
 	}
 }

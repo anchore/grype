@@ -66,21 +66,26 @@ func BinaryDefault(pkgArch string) string {
 	return pkgArch
 }
 
+// IsSource reports whether arch names a source package, in any spelling the built-in aliases fold to
+// ArchSource.
+func IsSource(arch string) bool {
+	return canonical(arch, DefaultAliases()) == ArchSource
+}
+
 // Matches reports whether a package of architecture pkgArch falls under a vulnerability entry
 // scoped to recordArch. The rules are identical for affected and unaffected entries:
 //
 //   - an unset arch on either side matches: an entry with no arch applies to every package, and
 //     a package with no arch cannot be ruled out.
-//   - an arch-independent value (rpm "noarch", deb "all") on either side matches: it has no
-//     architecture-specific content, so there is nothing to compare against.
-//   - an ArchSource entry matches every package: a source package, or a binary built from that
-//     source, which inherits what applies to its source.
-//   - an ArchBinaryNoArchSpecified entry matches any binary package, but NOT a source package.
-//     That exclusion keeps a binary record from matching through a synthesized "src" upstream
-//     package, so a sibling binary built from the same source isn't falsely matched.
-//   - a source package does not match an entry scoped to a concrete arch.
-//   - an ArchBinaryNoArchSpecified package (a binary whose arch was not recorded) matches an
-//     entry scoped to a concrete arch: its arch cannot be ruled out.
+//   - an ArchSource entry matches only a source package, and a source package matches only an
+//     ArchSource entry (or one with no arch). A binary reaches what applies to its source through
+//     its upstream search, whose synthesized package is tagged ArchSource (see pkg.UpstreamPackages),
+//     so a binary that shares its name with an unrelated source package is not matched against that
+//     source's entries, and a binary entry is not matched through the upstream of a sibling binary.
+//   - an arch-independent value (rpm "noarch", deb "all") on either side of two binaries matches: it
+//     has no architecture-specific content, so there is nothing to compare against.
+//   - an ArchBinaryNoArchSpecified value on either side of two binaries matches: the binary's arch
+//     was not recorded, so it cannot be ruled out.
 //   - otherwise the canonical arches must be equal.
 //
 // Both arches are first folded to their canonical spelling through aliases (alias spelling ->
@@ -95,15 +100,11 @@ func Matches(pkgArch, recordArch string, aliases map[string]string) bool {
 	switch {
 	case p == "" || r == "":
 		return true
+	case p == ArchSource || r == ArchSource:
+		return p == r
 	case p == archIndependent || r == archIndependent:
 		return true
-	case r == ArchSource:
-		return true
-	case r == ArchBinaryNoArchSpecified:
-		return p != ArchSource
-	case p == ArchSource:
-		return false
-	case p == ArchBinaryNoArchSpecified:
+	case p == ArchBinaryNoArchSpecified || r == ArchBinaryNoArchSpecified:
 		return true
 	}
 	return p == r

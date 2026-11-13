@@ -81,9 +81,10 @@ func TestNewSearchCriteria(t *testing.T) {
 }
 
 func TestQueryBuilder_ApplyCriteria(t *testing.T) {
-	// a DB alias table that folds a dialect the built-in defaults don't know about ("riscv64") and
-	// omits the built-in arm64 fold, so the comparison must use this table rather than the defaults
-	archAliases := map[string]string{"x86_64": "amd64", "riscv64": "riscv", "source": "src"}
+	// a DB alias table that folds spellings the built-in defaults don't know about ("riscv64", and
+	// "srpm" for a source package) and omits the built-in arm64 fold, so the comparison must use this
+	// table rather than the defaults
+	archAliases := map[string]string{"x86_64": "amd64", "riscv64": "riscv", "source": "src", "srpm": "src"}
 
 	// matchesArch validates that the architecture criteria is kept for filtering, and how it treats a
 	// record with each architecture when compared through archAliases
@@ -185,7 +186,7 @@ func TestQueryBuilder_ApplyCriteria(t *testing.T) {
 					"x86_64":  true,  // same spelling
 					"amd64":   true,  // aliased spelling
 					"aarch64": false, // different arch
-					"source":  true,  // role spelling folded to "src" by the DB table
+					"source":  false, // a source record, which only a source package's search finds
 					"x64":     false, // folded by the defaults, but not by the DB table
 					"":        true,  // record without arch
 				})(t, builder)
@@ -208,10 +209,26 @@ func TestQueryBuilder_ApplyCriteria(t *testing.T) {
 			validate:    matchesArch(map[string]bool{"aarch64": false}),
 		},
 		{
+			// the upstream (source) package grype searches with is tagged "src"
 			name:        "architecture criteria, source package",
+			criteria:    []vulnerability.Criteria{search.ByArchitecture("src")},
+			archAliases: archAliases,
+			validate: matchesArch(map[string]bool{
+				"":                         true,  // record without arch
+				"src":                      true,  // source record
+				"SRC":                      true,  // source record, different case
+				"source":                   true,  // source record, spelling the DB table folds to "src"
+				"srpm":                     true,  // source record, spelling only the DB table folds to "src"
+				"binary-no-arch-specified": false, // binary record
+				"noarch":                   false, // binary record
+				"x86_64":                   false, // binary record
+			}),
+		},
+		{
+			name:        "architecture criteria, source package spelled by the DB table",
 			criteria:    []vulnerability.Criteria{search.ByArchitecture("source")},
 			archAliases: archAliases,
-			validate:    matchesArch(map[string]bool{"binary-no-arch-specified": false, "src": true}),
+			validate:    matchesArch(map[string]bool{"src": true, "srpm": true, "binary-no-arch-specified": false}),
 		},
 		{
 			name:        "architecture criteria, package without arch",
