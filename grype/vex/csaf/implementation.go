@@ -27,10 +27,8 @@ func New() *Processor {
 
 // IsCSAF checks if the provided document is a CSAF document
 func IsCSAF(document string) bool {
-	if _, err := csaf.LoadAdvisory(document); err == nil {
-		return true
-	}
-	return false
+	_, err := loadAdvisory(document)
+	return err == nil
 }
 
 // ReadVexDocuments reads different files and creates a collection of advisories based on them.
@@ -38,7 +36,7 @@ func (*Processor) ReadVexDocuments(docs []string) (any, error) {
 	var advs advisories
 
 	for _, doc := range docs {
-		adv, err := csaf.LoadAdvisory(doc)
+		adv, err := loadAdvisory(doc)
 		if err != nil {
 			return nil, fmt.Errorf("error loading VEX CSAF document: %w", err)
 		}
