@@ -1,0 +1,11 @@
+# hand-assembled from the output of the vunnel "ocaml" provider (OCaml security
+# advisories), which is not in a published vunnel cache yet
+auto-generate: false
+extractions:
+  ocaml:
+    # ocaml {>= "4.04" & < "4.04.2"}
+    - osec-2017-01
+    # ocaml {< "4.14.3" | >= "5" & < "5.4.1"}
+    - osec-2026-01
+    # GIT ranges only, no opam package
+    - osec-2026-28

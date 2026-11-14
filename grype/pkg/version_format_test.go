@@ -50,6 +50,13 @@ func TestVersionFormat(t *testing.T) {
 			format: version.PacmanFormat,
 		},
 		{
+			name: "opam (ocaml)",
+			p: Package{
+				Type: syftPkg.OpamPkg,
+			},
+			format: version.OpamFormat,
+		},
+		{
 			name: "jvm by metadata",
 			p: Package{
 				Metadata: JavaVMInstallationMetadata{},

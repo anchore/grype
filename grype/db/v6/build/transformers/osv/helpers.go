@@ -133,7 +133,7 @@ func normalizeConstraint(constraint string, rangeType string) string {
 	// strips); multi-window ranges built via versionutil.AndConstraints use
 	// space-separated form which the Go constraint parser rejects. Apply the
 	// same comma-separated normalization that semver/bitnami get.
-	if rangeType == "semver" || rangeType == "bitnami" || rangeType == "go" {
+	if rangeType == "semver" || rangeType == "bitnami" || rangeType == "go" || rangeType == "opam" {
 		return versionutil.EnforceSemVerConstraint(constraint)
 	}
 	return constraint
