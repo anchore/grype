@@ -45,6 +45,16 @@ func TestOpamVersionCompare(t *testing.T) {
 		{v1: "1.0", v2: "1.0-0", want: 0},
 		{v1: "1.0", v2: "1.0-", want: 0},
 		{v1: "-1", v2: "0.1", want: -1},
+		// opam versions are not necessarily semver: dates (menhir), "v" prefixes (Jane Street)
+		{v1: "20260209", v2: "20220210", want: 1},
+		{v1: "20260209~rc1", v2: "20260209", want: -1},
+		{v1: "20260209", v2: "20260209.1", want: -1},
+		{v1: "20260209", v2: "dev", want: -1},
+		{v1: "1.0.0", v2: "20260209", want: -1},
+		{v1: "v0.16.0", v2: "v0.15.1", want: 1},
+		{v1: "v0.16", v2: "v0.16.0", want: -1},
+		{v1: "v0.16.0~preview.129.00+243", v2: "v0.16.0", want: -1},
+		{v1: "0.17.0", v2: "v0.17.0", want: -1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.v1+" vs "+tt.v2, func(t *testing.T) {
@@ -116,6 +126,13 @@ func TestOpamVersionConstraint(t *testing.T) {
 		{constraint: "<= 2.0.0", version: "2.0.0+dev", satisfied: false},
 		{constraint: "< 4.14.3 || >= 5.0.0, < 5.4.1", version: "5.3.0", satisfied: true},
 		{constraint: "< 4.14.3 || >= 5.0.0, < 5.4.1", version: "4.14.3", satisfied: false},
+		// non-semver versions
+		{constraint: ">=20220210,<20260209", version: "20230415", satisfied: true},
+		{constraint: ">=20220210,<20260209", version: "20260209~rc1", satisfied: true},
+		{constraint: ">=20220210,<20260209", version: "20260209", satisfied: false},
+		{constraint: ">=v0.15.0,<v0.16.0", version: "v0.15.1", satisfied: true},
+		{constraint: ">=v0.15.0,<v0.16.0", version: "v0.16.0~preview.129.00+243", satisfied: true},
+		{constraint: ">=v0.15.0,<v0.16.0", version: "v0.16.0", satisfied: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.constraint+" with "+tt.version, func(t *testing.T) {

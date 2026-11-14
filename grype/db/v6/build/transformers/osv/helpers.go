@@ -132,8 +132,10 @@ func normalizeConstraint(constraint string, rangeType string) string {
 	// Go versions are semver-shaped (with optional "v"/"go" prefix the parser
 	// strips); multi-window ranges built via versionutil.AndConstraints use
 	// space-separated form which the Go constraint parser rejects. Apply the
-	// same comma-separated normalization that semver/bitnami get. The same holds
-	// for opam versions, which can't contain spaces or comparison operators.
+	// same comma-separated normalization that semver/bitnami get. This only
+	// rewrites the separators and doesn't require the versions to be semver, so
+	// it also applies to opam versions (e.g. "20260209" or "v0.16.0"), which
+	// can't contain spaces or comparison operators.
 	if rangeType == "semver" || rangeType == "bitnami" || rangeType == "go" || rangeType == "opam" {
 		return versionutil.EnforceSemVerConstraint(constraint)
 	}

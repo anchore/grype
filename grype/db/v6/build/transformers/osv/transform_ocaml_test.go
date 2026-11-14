@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 	"github.com/anchore/grype/grype/version"
@@ -162,4 +163,57 @@ func TestOCamlStrategyMatches(t *testing.T) {
 	assert.True(t, s.Matches("OSEC-2026-01"))
 	assert.False(t, s.Matches("GHSA-j26j-m5xr-g23c"))
 	assert.False(t, s.Matches("CVE-2026-28364"))
+}
+
+// opam versions are not necessarily semver, e.g. menhir uses dates ("20260209")
+// and Jane Street packages use a "v" prefix ("v0.16.0"); the constraint
+// normalization must keep them intact.
+func TestOCamlNonSemverRanges(t *testing.T) {
+	tests := []struct {
+		name       string
+		introduced string
+		fixed      string
+		constraint string
+		affected   []string
+		unaffected []string
+	}{
+		{
+			name:       "dates",
+			introduced: "20220210",
+			fixed:      "20260209",
+			constraint: ">=20220210,<20260209",
+			affected:   []string{"20220210", "20230415", "20260209~rc1"},
+			unaffected: []string{"20211230", "20260209", "20260209.1"},
+		},
+		{
+			name:       "v prefix",
+			introduced: "v0.15.0",
+			fixed:      "v0.16.0",
+			constraint: ">=v0.15.0,<v0.16.0",
+			affected:   []string{"v0.15.0", "v0.15.1", "v0.16.0~preview.129.00+243"},
+			unaffected: []string{"v0.14.3", "v0.16.0", "v0.17.0"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ranges := eventsToRanges([]osvmodel.Event{{Introduced: tt.introduced}, {Fixed: tt.fixed}}, nil, "opam")
+			require.Len(t, ranges, 1)
+			assert.Equal(t, tt.constraint, ranges[0].Version.Constraint)
+			require.NotNil(t, ranges[0].Fix)
+			assert.Equal(t, tt.fixed, ranges[0].Fix.Version)
+
+			c, err := version.GetConstraint(ranges[0].Version.Constraint, version.ParseFormat(ranges[0].Version.Type))
+			require.NoError(t, err)
+			for _, v := range tt.affected {
+				satisfied, err := c.Satisfied(version.New(v, version.OpamFormat))
+				require.NoError(t, err)
+				assert.True(t, satisfied, "%s should be affected", v)
+			}
+			for _, v := range tt.unaffected {
+				satisfied, err := c.Satisfied(version.New(v, version.OpamFormat))
+				require.NoError(t, err)
+				assert.False(t, satisfied, "%s should not be affected", v)
+			}
+		})
+	}
 }
