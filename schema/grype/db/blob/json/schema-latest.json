@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "anchore.io/schema/grype/db/blob/json/6.1.10",
+  "$id": "anchore.io/schema/grype/db/blob/json/6.1.11",
   "$defs": {
     "Fix": {
       "$defs": {
@@ -204,6 +204,9 @@
         "go_imports": {
           "description": "lists the packages and symbols within an affected Go module that contain the vulnerability\n(from govulndb's ecosystem_specific.imports). When set, packages carrying binary symbol evidence only\nmatch if at least one of the listed symbols is present in the binary."
         },
+        "lightwell_base_version": {
+          "description": "is the upstream version a Red Hat Lightwell remediated build line was\nbackported from (e.g. '6.0.3' for 6.0.3.rhlw-00001). When set, only Lightwell builds on that\nbase version line match this entry (NAK pattern)."
+        },
         "platform_cpes": {
           "description": "lists Common Platform Enumeration (CPE) identifiers for affected platforms."
         },
@@ -235,6 +238,9 @@
             "$ref": "#/$defs/GoImport"
           },
           "type": "array"
+        },
+        "lightwell_base_version": {
+          "type": "string"
         }
       },
       "type": "object"

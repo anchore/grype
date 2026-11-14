@@ -1,0 +1,83 @@
+{
+  "identifier": "rhlw-2026-36d9ed0bb47c794f",
+  "item": {
+    "schema_version": "1.9.0",
+    "id": "RHLW-2026-36d9ed0bb47c794f",
+    "published": "2026-10-12T19:49:49Z",
+    "modified": "2026-10-27T21:27:53Z",
+    "severity": [
+      {
+        "type": "CVSS_V3",
+        "score": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:N/A:H"
+      }
+    ],
+    "references": [
+      {
+        "url": "https://github.com/CVEProject/cvelistV5/tree/main/cves/2022/40xxx/CVE-2022-40152.json",
+        "type": "ADVISORY"
+      },
+      {
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-40152",
+        "type": "ADVISORY"
+      },
+      {
+        "url": "https://github.com/x-stream/xstream/issues/304",
+        "type": "REPORT"
+      },
+      {
+        "url": "https://github.com/advisories/GHSA-3f7h-mf4q-vrm4",
+        "type": "ADVISORY"
+      }
+    ],
+    "summary": "Lightwell Security Advisory: woodstox-core 6.2.2.rhlw-00004",
+    "details": "Red Hat Lightwell has released com.fasterxml.woodstox:woodstox-core 6.2.2.rhlw-00004 with a backported security fix.\n\nCVE-2022-40152: Stack Buffer Overflow in Woodstox\n\nThis patched artifact is a drop-in replacement for com.fasterxml.woodstox:woodstox-core 6.2.2 from Maven Central.",
+    "upstream": [
+      "CVE-2022-40152",
+      "GHSA-3f7h-mf4q-vrm4"
+    ],
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "Red Hat Lightwell:Maven",
+          "name": "com.fasterxml.woodstox:woodstox-core",
+          "purl": "pkg:maven/com.fasterxml.woodstox/woodstox-core"
+        },
+        "versions": [
+          "6.2.2"
+        ],
+        "ranges": [
+          {
+            "type": "ECOSYSTEM",
+            "events": [
+              {
+                "introduced": "6.2.2"
+              },
+              {
+                "fixed": "6.2.2.rhlw-00004"
+              }
+            ]
+          }
+        ],
+        "database_specific": {
+          "lightwell": {
+            "backport_base_version": "6.2.2",
+            "remediated_version": "6.2.2.rhlw-00004",
+            "repository_url": "https://packages.redhat.com/lightwell/java/remediated/"
+          }
+        }
+      }
+    ],
+    "credits": [
+      {
+        "name": "Red Hat Lightwell",
+        "type": "REMEDIATION_DEVELOPER"
+      }
+    ],
+    "database_specific": {
+      "anchore": {
+        "record_type": "advisory"
+      }
+    }
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.9.2.json"
+}
