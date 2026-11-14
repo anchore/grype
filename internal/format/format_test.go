@@ -24,6 +24,19 @@ func TestParse(t *testing.T) {
 			JSONFormat,
 		},
 		{
+			"jsonl",
+			JSONLinesFormat,
+		},
+		{
+			"JSONL",
+			JSONLinesFormat,
+		},
+		{
+			// ndjson is a common alias for JSON lines and is accepted as an alternate spelling.
+			"ndjson",
+			JSONLinesFormat,
+		},
+		{
 			"booboodepoopoo",
 			UnknownFormat,
 		},
