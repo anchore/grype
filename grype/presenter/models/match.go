@@ -11,7 +11,8 @@ import (
 	"github.com/anchore/grype/internal/log"
 )
 
-// Match is a single item for the JSON array reported
+// Match is a single vulnerability match in the presenter model (one element of Document.Matches).
+// Template authors should use the exported Go field names (Vulnerability, Artifact, and so on).
 type Match struct {
 	Vulnerability          Vulnerability           `json:"vulnerability"`
 	RelatedVulnerabilities []VulnerabilityMetadata `json:"relatedVulnerabilities"`
