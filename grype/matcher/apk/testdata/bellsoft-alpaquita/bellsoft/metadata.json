@@ -1,0 +1,19 @@
+{
+  "provider": "bellsoft",
+  "version": 1,
+  "processor": "vunnel@0.62.1.post8+17b61ae",
+  "schema": {
+    "version": "1.0.3",
+    "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
+  },
+  "urls": [
+    "https://github.com/bell-sw/osv-database.git"
+  ],
+  "timestamp": "2026-07-08T14:25:03Z",
+  "listing": {
+    "path": "results/listing.xxh64",
+    "digest": "b08ee6f818c3aadd",
+    "algorithm": "xxh64"
+  },
+  "store": "flat-file"
+}
