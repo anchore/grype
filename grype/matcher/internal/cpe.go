@@ -83,6 +83,7 @@ func FindResultsByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstr
 			search.ByCPE(c),
 			OnlyVulnerableTargets(p),
 			OnlyQualifiedPackages(p),
+			search.ByArchitecture(p.Arch),
 			OnlyNonWithdrawnVulnerabilities(),
 		}
 

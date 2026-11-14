@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/anchore/grype/grype/internal/architecture"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/matcher/internal/result"
@@ -221,9 +222,9 @@ func (m *Matcher) matchUpstreamPackages(vp vulnerability.Provider, p pkg.Package
 	var ignored []match.IgnoreFilter
 
 	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		// An rpm's upstream is its source rpm, so tag the synthesized package "src". The
-		// architecture qualifier then matches it only against src (and unspecified) records
-		// and rejects binary-arch records — which is how we avoid matching a binary's
+		// An rpm's upstream is its source rpm, so the synthesized package is tagged "src".
+		// Searching by that architecture then matches it only against src (and unspecified)
+		// records and rejects binary-arch records — which is how we avoid matching a binary's
 		// upstream against a sibling binary's vulnerability.
 		indirectMatches, ignores, err := m.findMatches(provider, indirectPackage)
 		if err != nil {
@@ -267,6 +268,7 @@ func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Packag
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
 		internal.OnlyQualifiedPackages(searchPkg),
+		search.ByArchitecture(architecture.BinaryDefault(searchPkg.Arch)),
 	}
 
 	all, err := provider.FindResults(disclosureCriteria...)
@@ -278,6 +280,7 @@ func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Packag
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
 		internal.OnlyQualifiedPackages(searchPkg),
+		search.ByArchitecture(architecture.BinaryDefault(searchPkg.Arch)),
 		internal.OnlyVulnerableVersions(pkgVersion),
 		search.ForUnaffected(),
 	}

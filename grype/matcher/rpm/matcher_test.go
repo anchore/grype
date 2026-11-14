@@ -22,7 +22,7 @@ func TestMatcherRpm_DirectMatch(t *testing.T) {
 			p := dbtest.NewPackage("openssl", "1:1.1.1b-1.el8", syftPkg.RpmPkg).
 				WithArchitecture("aarch64").
 				WithDistro(dbtest.RHEL8).
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(1)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(1)}).
 				Build()
 
 			db.Match(t, &matcher, p).
@@ -44,7 +44,7 @@ func TestMatcherRpm_IndirectMatchBySource(t *testing.T) {
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
 				WithUpstream("openssl", "1:1.1.1b-1.el8").
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(1)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(1)}).
 				Build()
 
 			db.Match(t, &matcher, p).
@@ -65,7 +65,7 @@ func TestMatcherRpm_FixedVersionNoMatch(t *testing.T) {
 			p := dbtest.NewPackage("openssl", "1:1.1.1c-2.el8", syftPkg.RpmPkg).
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(1)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(1)}).
 				Build()
 
 			db.Match(t, &matcher, p).Ignores().
@@ -83,8 +83,8 @@ func TestMatcherRpm_ModularityLabelMatchesVulnInSameModule(t *testing.T) {
 				WithArchitecture("aarch64").
 				WithDistro(dbtest.RHEL8).
 				WithMetadata(pkg.RpmMetadata{
-					Epoch:           intPtr(0),
-					ModularityLabel: strPtr("httpd:2.4:1234:5678"),
+					Epoch:           new(0),
+					ModularityLabel: new("httpd:2.4:1234:5678"),
 				}).
 				Build()
 
@@ -109,7 +109,7 @@ func TestMatcherRpm_PackageWithoutModularityLabelMatchesModuleVuln(t *testing.T)
 			p := dbtest.NewPackage("httpd", "0:2.4.37-30.module+el8.3.0+1.el8", syftPkg.RpmPkg).
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(0)}).
 				Build()
 
 			db.Match(t, &matcher, p).
@@ -129,8 +129,8 @@ func TestMatcherRpm_ModularityLabelMismatchSkipsVuln(t *testing.T) {
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
 				WithMetadata(pkg.RpmMetadata{
-					Epoch:           intPtr(0),
-					ModularityLabel: strPtr("httpd:2.6:1234:5678"),
+					Epoch:           new(0),
+					ModularityLabel: new("httpd:2.6:1234:5678"),
 				}).
 				Build()
 
@@ -176,7 +176,7 @@ func TestMatcherRpm_PackageEpochOnlyInMetadata(t *testing.T) {
 			p := dbtest.NewPackage("openssl", "1.1.1c-2.el8", syftPkg.RpmPkg).
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(0)}).
 				Build()
 
 			db.Match(t, &matcher, p).
@@ -198,7 +198,7 @@ func TestMatcherRpm_PackageHigherEpochNoMatch(t *testing.T) {
 			p := dbtest.NewPackage("openssl", "2:1.1.1b-1.el8", syftPkg.RpmPkg).
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(2)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(2)}).
 				Build()
 
 			// not vulnerable -> "Distro Not Vulnerable" ignore (no match)
@@ -223,7 +223,7 @@ func TestMatcherRpm_DistroNotVulnerableIgnore(t *testing.T) {
 				WithArchitecture("aarch64").
 				WithID(pkgID).
 				WithDistro(dbtest.RHEL8).
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(1)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(1)}).
 				Build()
 
 			findings := db.Match(t, &matcher, p)
@@ -249,7 +249,7 @@ func TestMatcherRpm_DistroNotVulnerableIgnoreViaUpstream(t *testing.T) {
 				WithID(pkgID).
 				WithDistro(dbtest.RHEL8).
 				WithUpstream("openssl", "1:1.1.1d-1.el8").
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(1)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(1)}).
 				Build()
 
 			findings := db.Match(t, &matcher, p)
@@ -352,7 +352,7 @@ func TestMatcherRpm_NoIgnoresWhenVulnerable(t *testing.T) {
 			p := dbtest.NewPackage("openssl", "1:1.1.1a-1.el8", syftPkg.RpmPkg).
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(1)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(1)}).
 				Build()
 
 			findings := db.Match(t, &matcher, p)
@@ -387,7 +387,7 @@ func Test_addEpochIfApplicable(t *testing.T) {
 			pkg: pkg.Package{
 				Version: "3.26.0-6.el8",
 				Metadata: pkg.RpmMetadata{
-					Epoch: intPtr(7),
+					Epoch: new(7),
 				},
 			},
 			expected: "7:3.26.0-6.el8",

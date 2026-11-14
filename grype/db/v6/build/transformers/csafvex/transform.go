@@ -12,7 +12,7 @@ import (
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
 	"github.com/anchore/grype/grype/db/v6/name"
-	"github.com/anchore/grype/grype/pkg/qualifier/architecture"
+	"github.com/anchore/grype/grype/internal/architecture"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/packageurl-go"

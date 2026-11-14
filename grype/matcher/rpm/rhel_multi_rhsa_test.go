@@ -38,7 +38,7 @@ func rhelPython39Host(d *distro.Distro, version string, id pkg.ID) pkg.Package {
 		WithID(id).
 		WithDistro(d).
 		WithUpstream("python3.9", version).
-		WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+		WithMetadata(pkg.RpmMetadata{Epoch: new(0)}).
 		Build()
 }
 
@@ -215,7 +215,7 @@ func TestRpmMultiRHSA_CVE2020_0543_MultiBaseWithAdvisories(t *testing.T) {
 					p := dbtest.NewPackage("microcode_ctl", c.version, syftPkg.RpmPkg).
 						WithID(pkgID).
 						WithDistro(d).
-						WithMetadata(pkg.RpmMetadata{Epoch: intPtr(4)}).
+						WithMetadata(pkg.RpmMetadata{Epoch: new(4)}).
 						Build()
 					if c.vulnerable {
 						db.Match(t, &matcher, p).
@@ -254,7 +254,7 @@ func TestRpmNotAffected_MinoredHostGetsSuppressingIgnore(t *testing.T) {
 			p := dbtest.NewPackage("mariadb", "3:10.5.16-1.module+el8.6.0+15522+7adc332a", syftPkg.RpmPkg).
 				WithID(pkg.ID("mariadb-10.5")).
 				WithDistro(distro.New(distro.RedHat, "8.6", "")).
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(3), ModularityLabel: strPtr("mariadb:10.5:8060020220715055054:1e6a3387")}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(3), ModularityLabel: new("mariadb:10.5:8060020220715055054:1e6a3387")}).
 				Build()
 
 			db.Match(t, &Matcher{}, p).
@@ -377,7 +377,7 @@ func rhelStreamHost(name string, d *distro.Distro, version string, id pkg.ID) pk
 	return dbtest.NewPackage(name, version, syftPkg.RpmPkg).
 		WithID(id).
 		WithDistro(d).
-		WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+		WithMetadata(pkg.RpmMetadata{Epoch: new(0)}).
 		Build()
 }
 
@@ -694,7 +694,7 @@ func TestRpmNotAffected_DoesNotDenyASiblingStream(t *testing.T) {
 			p := dbtest.NewPackage("mariadb", "3:10.3.28-1.module_el8.3.0+757+d382997d", syftPkg.RpmPkg).
 				WithID(pkg.ID("mariadb-10.3")).
 				WithDistro(distro.New(distro.RedHat, "8.6", "")).
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(3), ModularityLabel: strPtr("mariadb:10.3:8030020210427104546:0d55e02b")}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(3), ModularityLabel: new("mariadb:10.3:8030020210427104546:0d55e02b")}).
 				Build()
 
 			m := db.Match(t, &Matcher{}, p)

@@ -537,9 +537,9 @@ type PackageSpecifierOverride struct {
 
 // ArchitectureAlias folds an architecture spelling onto a canonical token shared by every
 // dialect spelling of the same CPU architecture (e.g. rpm "x86_64" and deb/OCI "amd64" both
-// fold to "amd64"). The architecture qualifier reads this table at match time so cross-dialect
+// fold to "amd64"). Architecture search criteria read this table at match time so cross-dialect
 // arch comparisons don't drop real matches; the data lives in the DB rather than the grype
-// binary so the folding can change without a release. See pkg/qualifier/architecture.
+// binary so the folding can change without a release. See search.ByArchitecture.
 type ArchitectureAlias struct {
 	// Alias is an architecture spelling as it may appear on a package or vulnerability entry
 	// (e.g. "x86_64"). Only non-canonical spellings are stored; a canonical token resolves to

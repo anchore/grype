@@ -623,23 +623,23 @@ func TestMatcherApk_NoDistroKeepsNvdFix(t *testing.T) {
 	})
 }
 
-// === architecture qualifier filtering (CG OSV records) ===
+// === architecture filtering (CG OSV records) ===
 //
 // The chainguard-rolling fixture has CGA-22hv-wp9q-4779, which emits
-// AffectedPackageHandles with an Architecture qualifier per row:
+// AffectedPackageHandles with an Architecture per row:
 //   - langfuse-3-worker      / Chainguard / arch=x86_64   / fixed:3.153.0-r0
 //   - langfuse-fips-3-worker / Chainguard / arch=x86_64   / fixed:3.152.0-r0
 //   - langfuse-3-worker      / Wolfi      / arch=aarch64  / fixed:3.153.0-r0
 //
-// These tests pin down architectureQualifier.Satisfied at the matcher level:
-// the qualifier filters vuln entries whose arch disagrees with the scanned
-// package, and is inert (passthrough) when the package has no arch. The
-// existing wolfi/alpine secdb tests don't exercise this path because the OS
-// transformer never emits Architecture qualifiers.
+// These tests pin down search.ByArchitecture at the matcher level: it
+// filters vuln entries whose arch disagrees with the scanned package, and
+// matches everything when the package has no arch. The existing wolfi/alpine
+// secdb tests don't exercise this path because the OS transformer never
+// emits an Architecture for them.
 
 // TestMatcherApk_ArchFilter_MatchWhenArchAgrees confirms the happy path:
-// arch on the package equals the qualifier's arch, so Satisfied returns
-// true and the vuln surfaces as a normal distro match.
+// arch on the package equals the entry's arch, so the vuln surfaces as a
+// normal distro match.
 func TestMatcherApk_ArchFilter_MatchWhenArchAgrees(t *testing.T) {
 	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
 		matcher := Matcher{}
@@ -659,7 +659,7 @@ func TestMatcherApk_ArchFilter_MatchWhenArchAgrees(t *testing.T) {
 
 // TestMatcherApk_ArchFilter_IgnoreWhenArchAgrees is the pair of
 // MatchWhenArchAgrees: same package, same arch, but a version past the
-// fix. The arch qualifier still passes so the fix path runs and emits
+// fix. The arch criteria still passes so the fix path runs and emits
 // one distro-fixed ignore per identifier (CGA id + aliases).
 // Cross-checks that arch filtering doesn't short-circuit the
 // fixed-version ignore emission.
@@ -690,7 +690,7 @@ func TestMatcherApk_ArchFilter_IgnoreWhenArchAgrees(t *testing.T) {
 
 // TestMatcherApk_ArchFilter_NoMatchWhenArchDisagrees is the load-bearing case:
 // the package's arch is aarch64 but the only Chainguard APH for this name has
-// arch=x86_64, so OnlyQualifiedPackages drops it before the version check ever
+// arch=x86_64, so the architecture search criteria drops it before the version check ever
 // runs. No match, no ignore (the vuln is filtered before reaching the fix
 // path that would emit a distro-fixed ignore).
 func TestMatcherApk_ArchFilter_NoMatchWhenArchDisagrees(t *testing.T) {
@@ -782,8 +782,8 @@ func TestMatcherApk_ArchFilter_WrongArchRowMustNotSuppressNvdMatch(t *testing.T)
 }
 
 // TestMatcherApk_ArchFilter_InertWhenPackageHasNoArch documents the
-// passthrough branch of Satisfied(p): if p.Arch == "" the qualifier is
-// treated as inert, preserving pre-change behavior for input paths that
+// passthrough branch of search.ByArchitecture: if p.Arch == "" any entry
+// arch matches, preserving pre-change behavior for input paths that
 // don't populate Arch. Without this branch every existing test using
 // WithDistro-but-not-WithArchitecture would regress against arch-tagged
 // providers like chainguard.
@@ -795,7 +795,7 @@ func TestMatcherApk_ArchFilter_InertWhenPackageHasNoArch(t *testing.T) {
 			// Architecture intentionally not set.
 			Build()
 
-		// package p is affected by this vulnerability because the qualifier is inert
+		// package p is affected by this vulnerability because any entry arch matches
 		// when the package has no arch
 		db.Match(t, &matcher, p).
 			SelectMatch("CGA-22hv-wp9q-4779").

@@ -51,6 +51,7 @@ type Package struct {
 	Distro    *distro.Distro   // a specific distro this package originated from
 	Licenses  []string
 	Type      syftPkg.Type // the package type (e.g. Npm, Yarn, Python, Rpm, Deb, etc)
+	Arch      string       // the package architecture as spelled by its ecosystem (e.g. "x86_64", "amd64", "noarch", "src"), "" when unknown
 	CPEs      []cpe.CPE    // all possible Common Platform Enumerators
 	PURL      string       // the Package URL (see https://github.com/package-url/purl-spec)
 	Upstreams []UpstreamPackage
@@ -87,6 +88,7 @@ func New(p syftPkg.Package, enhancers ...Enhancer) Package {
 		Licenses:  licenses,
 		Language:  p.Language,
 		Type:      p.Type,
+		Arch:      archFromPkg(p),
 		CPEs:      p.CPEs,
 		PURL:      p.PURL,
 		Upstreams: upstreams,
@@ -363,6 +365,47 @@ func dataFromPkg(p syftPkg.Package) (any, []UpstreamPackage) {
 	return metadata, upstreams
 }
 
+// archFromPkg returns the architecture recorded in the package metadata, falling back to the
+// PURL "arch" qualifier (e.g. for SBOM inputs which carry a PURL but no metadata)
+func archFromPkg(p syftPkg.Package) string {
+	var arch string
+	switch m := p.Metadata.(type) {
+	case syftPkg.RpmDBEntry:
+		arch = m.Arch
+	case syftPkg.RpmArchive:
+		arch = m.Arch
+	case syftPkg.DpkgDBEntry:
+		arch = m.Architecture
+	case syftPkg.DpkgArchiveEntry:
+		arch = m.Architecture
+	case syftPkg.ApkDBEntry:
+		arch = m.Architecture
+	case syftPkg.AlpmDBEntry:
+		arch = m.Architecture
+	case syftPkg.GolangBinaryBuildinfoEntry:
+		arch = m.Architecture
+	case syftPkg.GolangSourceEntry:
+		arch = m.Architecture
+	case syftPkg.CondaMetaPackage:
+		arch = m.Arch
+	case syftPkg.BitnamiSBOMEntry:
+		arch = m.Architecture
+	case syftPkg.SnapEntry:
+		arch = m.Architecture
+	case syftPkg.ELFBinaryPackageNoteJSONPayload:
+		arch = m.Architecture
+	}
+	if arch != "" || p.PURL == "" {
+		return arch
+	}
+
+	purl, err := packageurl.FromString(p.PURL)
+	if err != nil {
+		return ""
+	}
+	return purl.Qualifiers.Map()["arch"]
+}
+
 func javaVMDataFromPkg(p syftPkg.Package) any {
 	if value, ok := p.Metadata.(syftPkg.JavaVMInstallation); ok {
 		return JavaVMInstallationMetadata{
@@ -382,7 +425,7 @@ func apkMetadataFromPkg(p syftPkg.Package) any {
 	if m, ok := p.Metadata.(syftPkg.ApkDBEntry); ok {
 		// Grype's APK Metadata only has files, so return early
 		// and leave the field blank if there are no files.
-		if len(m.Files) == 0 && m.Architecture == "" {
+		if len(m.Files) == 0 {
 			return nil
 		}
 
@@ -394,7 +437,6 @@ func apkMetadataFromPkg(p syftPkg.Package) any {
 
 		return ApkMetadata{
 			Files: fileRecords,
-			Arch:  m.Architecture,
 		}
 	}
 
@@ -459,49 +501,44 @@ func rpmDataFromPkg(p syftPkg.Package) (metadata *RpmMetadata, upstreams []Upstr
 	switch m := p.Metadata.(type) {
 	case syftPkg.RpmDBEntry:
 		if m.SourceRpm != "" {
-			upstreams = handleSourceRPM(p.Name, m.SourceRpm)
+			upstreams = handleSourceRPM(m.SourceRpm)
 		}
 
-		if m.Epoch != nil || m.ModularityLabel != nil || m.Arch != "" {
+		if m.Epoch != nil || m.ModularityLabel != nil {
 			metadata = &RpmMetadata{
 				Epoch:           m.Epoch,
 				ModularityLabel: m.ModularityLabel,
-				Arch:            m.Arch,
 			}
 		}
 	case syftPkg.RpmArchive:
 		if m.SourceRpm != "" {
-			upstreams = handleSourceRPM(p.Name, m.SourceRpm)
+			upstreams = handleSourceRPM(m.SourceRpm)
 		}
 
-		if m.Epoch != nil || m.ModularityLabel != nil || m.Arch != "" {
+		if m.Epoch != nil || m.ModularityLabel != nil {
 			metadata = &RpmMetadata{
 				Epoch:           m.Epoch,
 				ModularityLabel: m.ModularityLabel,
-				Arch:            m.Arch,
 			}
 		}
 	}
 	return metadata, upstreams
 }
 
-func handleSourceRPM(pkgName, sourceRpm string) []UpstreamPackage {
-	var upstreams []UpstreamPackage
+// handleSourceRPM returns the source rpm as an upstream package. It is kept even when it shares the
+// binary's name: the source is searched separately, tagged "src", from the binary and its own arch.
+func handleSourceRPM(sourceRpm string) []UpstreamPackage {
 	name, version := getNameAndELVersion(sourceRpm)
-	if name == "" && version == "" {
+	if name == "" || version == "" {
 		log.Debugf("unable to extract name and version from SourceRPM=%q", sourceRpm)
-	} else if name != pkgName {
-		// don't include matches if the source package name matches the current package name
-		if name != "" && version != "" {
-			upstreams = append(upstreams,
-				UpstreamPackage{
-					Name:    name,
-					Version: version,
-				},
-			)
-		}
+		return nil
 	}
-	return upstreams
+	return []UpstreamPackage{
+		{
+			Name:    name,
+			Version: version,
+		},
+	}
 }
 
 func getNameAndELVersion(sourceRpm string) (string, string) {
@@ -598,20 +635,19 @@ func ByID(id ID, pkgs []Package) *Package {
 	return nil
 }
 
-func parseUpstream(pkgName string, value string, pkgType syftPkg.Type) []UpstreamPackage {
+func parseUpstream(value string, pkgType syftPkg.Type) []UpstreamPackage {
 	if pkgType == syftPkg.RpmPkg {
-		return handleSourceRPM(pkgName, value)
+		return handleSourceRPM(value)
 	}
-	return handleDefaultUpstream(pkgName, value)
+	return handleDefaultUpstream(value)
 }
 
-func handleDefaultUpstream(pkgName string, value string) []UpstreamPackage {
+// handleDefaultUpstream parses a "name[@version]" upstream. As with source rpms, an upstream that
+// shares the package's name is kept so it is searched as a source package too.
+func handleDefaultUpstream(value string) []UpstreamPackage {
 	fields := strings.Split(value, "@")
 	switch len(fields) {
 	case 2:
-		if fields[0] == pkgName {
-			return nil
-		}
 		return []UpstreamPackage{
 			{
 				Name:    fields[0],
@@ -619,9 +655,6 @@ func handleDefaultUpstream(pkgName string, value string) []UpstreamPackage {
 			},
 		}
 	case 1:
-		if fields[0] == pkgName {
-			return nil
-		}
 		return []UpstreamPackage{
 			{
 				Name: fields[0],

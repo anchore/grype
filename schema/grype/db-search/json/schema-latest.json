@@ -402,7 +402,7 @@
     "PackageQualifiers": {
       "$defs": {
         "architecture": {
-          "description": "is the architecture of the affected RPM, copied from the source PURL's\n`arch` qualifier when present (e.g. 'src', 'x86_64') or set to a synthesized sentinel\nlike 'binary-no-arch-specified' when a binary RPM was disclosed without an explicit\narch. Upstream-indirected RPM matches drop entries tagged with any arch other than\n'src', so providers that disclose at binary granularity (e.g. hummingbird CSAF VEX)\navoid FP-matching unrelated sibling binaries built from the same source. See\npkg/qualifier/architecture for the constants."
+          "description": "is the architecture of the affected package, copied from the source PURL's\n`arch` qualifier when present (e.g. 'src', 'x86_64') or set to a synthesized sentinel\nlike 'binary-no-arch-specified' when a binary RPM was disclosed without an explicit\narch. At match time this value is compared against the scanned package's arch (see\nsearch.ByArchitecture): a 'binary-no-arch-specified' entry matches any binary package but\nrejects the rpm matcher's synthesized 'src' upstream, so providers that disclose at binary\ngranularity (e.g. hummingbird CSAF VEX) avoid FP-matching unrelated sibling binaries built\nfrom the same source."
         },
         "go_imports": {
           "description": "lists the packages and symbols within an affected Go module that contain the vulnerability\n(from govulndb's ecosystem_specific.imports). When set, packages carrying binary symbol evidence only\nmatch if at least one of the listed symbols is present in the binary."
