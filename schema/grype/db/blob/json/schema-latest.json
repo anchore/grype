@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "anchore.io/schema/grype/db/blob/json/6.1.10",
+  "$id": "anchore.io/schema/grype/db/blob/json/6.1.11",
   "$defs": {
     "Fix": {
       "$defs": {
@@ -201,6 +201,9 @@
         "architecture": {
           "description": "is the architecture of the affected RPM, copied from the source PURL's\n`arch` qualifier when present (e.g. 'src', 'x86_64') or set to a synthesized sentinel\nlike 'binary-no-arch-specified' when a binary RPM was disclosed without an explicit\narch. At match time the architecture qualifier compares this value against the scanned\npackage's arch (see pkg/qualifier/architecture, Satisfied): a 'binary-no-arch-specified'\nentry matches any binary package but rejects the rpm matcher's synthesized 'src' upstream,\nso providers that disclose at binary granularity (e.g. hummingbird CSAF VEX) avoid\nFP-matching unrelated sibling binaries built from the same source."
         },
+        "exclude_from_upstream_matching": {
+          "description": "indicates that the entry applies only to the package it names, never to\npackages that name it as their upstream (APK origin) package. Set by the Chainguard OSV strategy from\ndatabase_specific.chainguard.applies_to_subpackages=false. At match time the upstreammatch qualifier\nrejects the copy of a package that UpstreamPackages builds to search its upstream's entries, so a\nsubpackage no longer inherits per-package entries filed against its origin package."
+        },
         "go_imports": {
           "description": "lists the packages and symbols within an affected Go module that contain the vulnerability\n(from govulndb's ecosystem_specific.imports). When set, packages carrying binary symbol evidence only\nmatch if at least one of the listed symbols is present in the binary."
         },
@@ -235,6 +238,9 @@
             "$ref": "#/$defs/GoImport"
           },
           "type": "array"
+        },
+        "exclude_from_upstream_matching": {
+          "type": "boolean"
         }
       },
       "type": "object"

@@ -50,10 +50,30 @@ func UpstreamPackages(p Package) (pkgs []Package) {
 		tmp.CPEs = updatedCPEs
 
 		setSrcArchOnUpstream(&tmp)
+		markApkUpstreamSearch(&tmp)
 
 		pkgs = append(pkgs, tmp)
 	}
 	return pkgs
+}
+
+// markApkUpstreamSearch flags an apk upstream copy so qualifiers can tell it apart from a cataloged
+// package. ApkMetadata is stored by value, so the flag never reaches the original package.
+func markApkUpstreamSearch(upstream *Package) {
+	if upstream == nil {
+		return
+	}
+	if m, ok := upstream.Metadata.(ApkMetadata); ok {
+		m.UpstreamSearch = true
+		upstream.Metadata = m
+	}
+}
+
+// IsUpstreamSearch reports whether p is a copy built by UpstreamPackages to search an upstream package's
+// entries, rather than a cataloged package.
+func IsUpstreamSearch(p Package) bool {
+	m, ok := p.Metadata.(ApkMetadata)
+	return ok && m.UpstreamSearch
 }
 
 func setSrcArchOnUpstream(upstream *Package) {

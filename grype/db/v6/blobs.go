@@ -179,6 +179,13 @@ type PackageQualifiers struct {
 	// (from govulndb's ecosystem_specific.imports). When set, packages carrying binary symbol evidence only
 	// match if at least one of the listed symbols is present in the binary.
 	GoImports []GoImport `json:"go_imports,omitempty"`
+
+	// ExcludeFromUpstreamMatching indicates that the entry applies only to the package it names, never to
+	// packages that name it as their upstream (APK origin) package. Set by the Chainguard OSV strategy from
+	// database_specific.chainguard.applies_to_subpackages=false. At match time the upstreammatch qualifier
+	// rejects the copy of a package that UpstreamPackages builds to search its upstream's entries, so a
+	// subpackage no longer inherits per-package entries filed against its origin package.
+	ExcludeFromUpstreamMatching *bool `json:"exclude_from_upstream_matching,omitempty"`
 }
 
 // GoImport describes a single package within an affected Go module and the vulnerable symbols it contains.
