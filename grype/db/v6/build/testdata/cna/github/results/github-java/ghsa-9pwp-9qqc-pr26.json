@@ -1,0 +1,135 @@
+{
+  "identifier": "github:java/ghsa-9pwp-9qqc-pr26",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2026-8763"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 9.1,
+          "base_severity": "Critical",
+          "exploitability_score": 3.9,
+          "impact_score": 5.2
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2026-09-19",
+            "kind": "first-observed"
+          },
+          "ecosystem": "java",
+          "identifier": "1.0.2.7",
+          "name": "org.bouncycastle:bc-fips",
+          "namespace": "github:java",
+          "range": "\u003c 1.0.2.7"
+        },
+        {
+          "available": {
+            "date": "2026-09-19",
+            "kind": "first-observed"
+          },
+          "ecosystem": "java",
+          "identifier": "2.0.2",
+          "name": "org.bouncycastle:bc-fips",
+          "namespace": "github:java",
+          "range": "\u003e= 2.0.0 \u003c 2.0.2"
+        },
+        {
+          "available": {
+            "date": "2026-09-19",
+            "kind": "first-observed"
+          },
+          "ecosystem": "java",
+          "identifier": "2.1.3",
+          "name": "org.bouncycastle:bc-fips",
+          "namespace": "github:java",
+          "range": "\u003e= 2.1.0 \u003c 2.1.3"
+        },
+        {
+          "available": {
+            "date": "2026-09-19",
+            "kind": "first-observed"
+          },
+          "ecosystem": "java",
+          "identifier": "1.85",
+          "name": "org.bouncycastle:bcprov-jdk18on",
+          "namespace": "github:java",
+          "range": "\u003c 1.85"
+        },
+        {
+          "available": {
+            "date": "2026-09-19",
+            "kind": "first-observed"
+          },
+          "ecosystem": "java",
+          "identifier": "2.73.12",
+          "name": "org.bouncycastle:bcprov-lts8on",
+          "namespace": "github:java",
+          "range": "\u003c 2.73.12"
+        },
+        {
+          "available": {
+            "date": "2026-09-19",
+            "kind": "first-observed"
+          },
+          "ecosystem": "java",
+          "identifier": "1.85",
+          "name": "org.bouncycastle:bcprov-jdk15to18",
+          "namespace": "github:java",
+          "range": "\u003c 1.85"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2026-8763"
+        ]
+      },
+      "Severity": "Critical",
+      "Summary": "Bouncy Castle: Name Constraints bypass via trailing dot in rfc822Name and URI",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+          "version": "3.1"
+        },
+        {
+          "vector": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:N/SC:N/SI:N/SA:N/U:Amber",
+          "version": "4.0"
+        }
+      ],
+      "ghsaId": "GHSA-9pwp-9qqc-pr26",
+      "namespace": "github:java",
+      "published": "2026-08-03T03:31:56Z",
+      "references": [
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-8763"
+        },
+        {
+          "url": "https://github.com/bcgit/bc-java/commit/2c28b253a44681fbbc562561eab6ad383d2ae558"
+        },
+        {
+          "url": "https://github.com/bcgit/bc-java/wiki/CVE-2026-8763"
+        },
+        {
+          "url": "https://github.com/bcgit/bc-java/wiki/CVE%E2%80%902026%E2%80%908763"
+        },
+        {
+          "url": "https://github.com/bcgit/bc-java/releases/tag/r1rv85v2"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-9pwp-9qqc-pr26"
+        }
+      ],
+      "updated": "2026-09-18T17:36:32Z",
+      "url": "https://github.com/advisories/GHSA-9pwp-9qqc-pr26",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

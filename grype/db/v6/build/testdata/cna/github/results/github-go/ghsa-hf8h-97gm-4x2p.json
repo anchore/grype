@@ -1,0 +1,70 @@
+{
+  "identifier": "github:go/ghsa-hf8h-97gm-4x2p",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2026-73605"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 5.8,
+          "base_severity": "Medium",
+          "exploitability_score": 3.9,
+          "impact_score": 1.4
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:L/I:N/A:N",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2026-10-02",
+            "kind": "first-observed"
+          },
+          "ecosystem": "go",
+          "identifier": "0.0.0-20260812083335-251596fc0de2",
+          "name": "github.com/siyuan-note/siyuan/kernel",
+          "namespace": "github:go",
+          "range": "\u003c 0.0.0-20260812083335-251596fc0de2"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2026-73605"
+        ]
+      },
+      "Severity": "Medium",
+      "Summary": "SiYuan: getUniqueFilename passes an unvalidated client-supplied path to the filesystem, giving anonymous readers an existence oracle over the entire host filesystem",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:L/I:N/A:N",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-hf8h-97gm-4x2p",
+      "namespace": "github:go",
+      "published": "2026-10-01T15:46:01Z",
+      "references": [
+        {
+          "url": "https://github.com/siyuan-note/siyuan/security/advisories/GHSA-hf8h-97gm-4x2p"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2026-73605"
+        },
+        {
+          "url": "https://www.vulncheck.com/advisories/siyuan-before-path-traversal-via-getuniquefilename"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-hf8h-97gm-4x2p"
+        }
+      ],
+      "updated": "2026-10-01T15:46:03Z",
+      "url": "https://github.com/advisories/GHSA-hf8h-97gm-4x2p",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}

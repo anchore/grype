@@ -237,7 +237,7 @@ func TestMatcherJava_ChainguardLibrariesSuppressesUpstreamGhsa(t *testing.T) {
 // open-ended on the upper side. The cgr suffix cannot accidentally save
 // the package; only a correctly-keyed openvex unaffected handle can.
 // That makes this test the canonical regression for the
-// packageNameFromPURL change: revert it to plain purl.Name and the
+// PackageNameFromPURL change: revert it to plain purl.Name and the
 // openvex side stores "h2" while the github side stores
 // "com.h2database:h2", the ignore rules vanish, and all three CVEs fire
 // on the rebuilt artifact.
