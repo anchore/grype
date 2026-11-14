@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.7.4",
+  "id": "OSEC-2026-28",
+  "modified": "2026-11-06T13:30:00Z",
+  "published": "2026-11-06T13:30:00Z",
+  "summary": "Unauthenticated arbitrary file read via path traversal in `/conferences/ocaml/**`",
+  "details": "`GET /conferences/ocaml/<path>` on ocaml.org concatenates the raw request target onto `OCAMLORG_V2_PATH` (`/v2`) and serves it with `Dream.from_filesystem`, bypassing the path validation that `Dream.static` performs. An unauthenticated request containing `..` segments escapes `/v2` and reads arbitrary files as the server process, which runs as `root` in the container.\n\nPlease note that the live deployment of https://ocaml.org is in a dedicated Docker container which does not contain any secrets. Thus the vulnerability is in the ocaml.org source code, but there has been no impact for the live deployment.\n\n## Affected code\n\n`src/ocamlorg_web/lib/handler.ml:1544 (commit ocaml/ocaml.org@31249f2d69fcb243284d3a6a2b91c0a4963f25b5)`:\n\n```ocaml\nlet v2_asset req =\n  let</>? path =\n    try Some (Config.v2_path ^ Dream.target req) with _ -> None\n  in\n  let</>? () = if Sys.file_exists path then Some () else None in\n  Filename.(Dream.from_filesystem (dirname path) (basename path) req)\n```\n\nThe route is public (`src/ocamlorg_web/lib/router.ml:186`):\n\n```ocaml\nDream.get \"/conferences/ocaml/**\" Handler.v2_asset;\n```\n\n`Config.v2_path` is `OCAMLORG_V2_PATH`, set to `/v2` in the production image (`Dockerfile:68`). `Dream.target` is the request target as received; nothing rejects `.` or `..` components.\n\n## Timeline\n\n- 2026-10-31 report via https://github.com/ocaml/security-advisories\n- 2026-11-02 fixed via https://github.com/ocaml/ocaml.org/pull/3942 and deployed ocaml.org",
+  "severity": [
+    {
+      "type": "CVSS_V3",
+      "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"
+    }
+  ],
+  "affected": [
+    {
+      "ranges": [
+        {
+          "type": "GIT",
+          "repo": "https://github.com/ocaml/ocaml.org",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "6b08ea625214fddcdd03cf990c004bc2dd77c17a"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [],
+  "credits": [
+    {
+      "name": "Sahil Kushwaha",
+      "type": "REPORTER"
+    },
+    {
+      "name": "Hannes Mehnert",
+      "type": "COORDINATOR"
+    },
+    {
+      "name": "Cuihtlauac Alvarado",
+      "type": "REMEDIATION_DEVELOPER"
+    }
+  ],
+  "database_specific": {
+    "osv": "https://github.com/ocaml/security-advisories/tree/generated-osv/2026/OSEC-2026-28.json",
+    "human_link": "https://github.com/ocaml/security-advisories/tree/main/advisories/2026/OSEC-2026-28.md",
+    "cwe": [
+      "CWE-22"
+    ]
+  }
+}

@@ -1,0 +1,268 @@
+{
+  "schema_version": "1.7.4",
+  "id": "OSEC-2026-01",
+  "modified": "2026-02-27T09:30:00Z",
+  "published": "2026-02-17T13:30:00Z",
+  "aliases": [
+    "CVE-2026-28364",
+    "GHSA-j26j-m5xr-g23c",
+    "GHSA-m34r-cgq7-jhfm"
+  ],
+  "summary": "Buffer Over-Read in OCaml Marshal Deserialization",
+  "details": "## Summary\n\nA critical buffer over-read vulnerability in OCaml's Marshal deserialization (runtime/intern.c) enables remote code execution through a multi-phase attack chain. The vulnerability stems from missing bounds validation in the readblock() function, which performs unbounded memcpy() operations using attacker-controlled lengths from malicious Marshal data.\n\nPlease note that Marshal is not type safe, and you have to be careful if you use the deserialization on untrusted input (due to type confusion, and remote code execution by design - you can use Marshal for code).\n\nAffected functions: `Marshal.from_channel`, `Marshal.from_bytes`, `Marshal.from_string`, `Stdlib.input_value`, `Pervasives.input_value` when reading data from an untrusted source.\n\n## Vulnerability Attack Vector\n\nCorrupted or malicious marshaled data that causes undefined behaviour in the runtime system when unmarshaled.\n`input_value` should either fail cleanly or produce a well-formed OCaml object, without corrupting the runtime system.\n\nConsequently, this excludes:\n\n* well-formed marshaled data that produces an OCaml object that is not of the type expected by the OCaml code and causes the Ocaml code to crash or misbehave\n\n* misuses of the OCaml runtime system by the program performing input_value, such as setting `Debugger.function_placeholder` to the wrong function.\n\nThe former issue may be addressed at some point by validating the unmarshaled OCaml value against the expected type, using the functions from module `Obj` and some kind of run-time type description.\n\nThe latter issue is a bug in the program that unmarshals the data.\n\n## Fix\n\n### OCaml runtime\n\nThe OCaml runtime has been hardened with additional bounds checks. An exception is raised on bad input.\n\n### Third party libraries\n\nThird party libraries that want to harden their custom Marshal deserialization code can follow the example fix for bigarrays from the standard library.\nThere are new macros in `custom.h` called `Wsize_custom_data` and `Bsize_custom_data` that return the size in words or bytes of the allocated custom destination block. The deserializer needs to ensure it only writes data within those bounds.\n\nThis only needs to be done if the library defines a custom type in a C binding, and `struct custom_operations`'s `deserialize` field is not set to `NULL` or `custom_deserialize_default`, and `struct custom_operations`'s `fixed_length` field is set to `NULL` or `custom_fixed_length_default`\n\nSince `Marshal.from*` and `input_value` remain unsafe to use, the fix for the OCaml runtime is released, and we wouldn't attempt to coordinate updating all deserialization functions in the ecosystem.\n\n## Timeline\n\n- Nov 4th 2025: Discovery Date: Discovered first in OxCaml\n- Nov 5th 2025: First Disclosure Date (Jane Street Team): Emailed top maintainers, no response.\n- Nov 9th 2025: Second Disclosure Date (OCaml Team): Submitted to OCaml/ocaml GitHub Repo as a Security Advisory.\n- Nov 11th 2025: Emailed OCaml Security Mail List: Submitted to OCaml over email, responded asking for details.\n- Nov 11th 2025: Third Disclosure (OCaml Security Response Team): Submitted to ocaml/security-advisories GitHub Repo as a Security Advisory.\n- Dec 16th 2025: Initial patch is developed\n- Dec 17th 2025: Fuzz testing found further issues\n- Dec 24th 2025: Final patch for OCaml is developed\n- Dec 25th 2025: Fuzz testing couldn't find any further issues\n- Jan 2nd 2026: Patch got reviewed by OCaml maintainers\n- Jan 4th 2026: Benchmarking of the patch with good results\n- Jan 6th 2026: Reporter got contacted to confirm\n- Jan 25th 2026: Further related issues discovered by fuzzing\n- Feb 17th 2026: fixed OCaml releases are published, security advisory is published",
+  "severity": [
+    {
+      "type": "CVSS_V3",
+      "score": "CVSS:3.1/AV:L/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:N"
+    }
+  ],
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "opam",
+        "name": "ocaml",
+        "purl": "pkg:opam/ocaml"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "4.14.3"
+            }
+          ],
+          "database_specific": {
+            "anchore": {
+              "fixes": [
+                {
+                  "version": "4.14.3",
+                  "date": "2026-02-17",
+                  "kind": "advisory"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "ECOSYSTEM",
+          "events": [
+            {
+              "introduced": "5"
+            },
+            {
+              "fixed": "5.4.1"
+            }
+          ],
+          "database_specific": {
+            "anchore": {
+              "fixes": [
+                {
+                  "version": "5.4.1",
+                  "date": "2026-02-17",
+                  "kind": "advisory"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "versions": [
+        "3.07",
+        "3.07+1",
+        "3.07+2",
+        "3.08.0",
+        "3.08.1",
+        "3.08.2",
+        "3.08.3",
+        "3.08.4",
+        "3.09.0",
+        "3.09.1",
+        "3.09.2",
+        "3.09.3",
+        "3.10.0",
+        "3.10.1",
+        "3.10.2",
+        "3.11.0",
+        "3.11.1",
+        "3.11.2",
+        "3.12.0",
+        "3.12.1",
+        "4.00.0",
+        "4.00.1",
+        "4.01.0",
+        "4.02.0",
+        "4.02.1",
+        "4.02.2",
+        "4.02.3",
+        "4.02.4",
+        "4.03.0",
+        "4.03.1",
+        "4.04.0",
+        "4.04.1",
+        "4.04.2",
+        "4.04.3",
+        "4.05.0",
+        "4.05.1",
+        "4.06.0",
+        "4.06.1",
+        "4.06.2",
+        "4.07.0",
+        "4.07.1",
+        "4.07.2",
+        "4.08.0",
+        "4.08.1",
+        "4.08.2",
+        "4.09.0",
+        "4.09.1",
+        "4.09.2",
+        "4.10.0",
+        "4.10.1",
+        "4.10.2",
+        "4.10.3",
+        "4.11.0",
+        "4.11.1",
+        "4.11.2",
+        "4.11.3",
+        "4.12.0",
+        "4.12.1",
+        "4.12.2",
+        "4.13.0",
+        "4.13.1",
+        "4.13.2",
+        "4.14.0",
+        "4.14.1",
+        "4.14.2",
+        "5.0.0",
+        "5.0.1",
+        "5.1.0",
+        "5.1.1",
+        "5.1.2",
+        "5.2.0",
+        "5.2.1",
+        "5.2.2",
+        "5.3.0",
+        "5.3.1",
+        "5.4.0"
+      ],
+      "ecosystem_specific": {
+        "opam_constraint": "ocaml {< \"4.14.3\" | >= \"5\" & < \"5.4.1\"}"
+      }
+    },
+    {
+      "ranges": [
+        {
+          "type": "GIT",
+          "repo": "https://github.com/ocaml/ocaml",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "b0a2614684a52acded784ec213f14ddfe085d146"
+            }
+          ]
+        },
+        {
+          "type": "GIT",
+          "repo": "https://github.com/ocaml/ocaml",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "e3919fef436f89271bc30bbe8592851f7289fb68"
+            }
+          ]
+        },
+        {
+          "type": "GIT",
+          "repo": "https://github.com/ocaml/ocaml",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "508d35d970a70a39ea2c9d9241ae4587a9b3a96a"
+            }
+          ]
+        },
+        {
+          "type": "GIT",
+          "repo": "https://github.com/ocaml/ocaml",
+          "events": [
+            {
+              "introduced": "0"
+            },
+            {
+              "fixed": "3aa27e4d2522950b2fe2acf868591209e93d1377"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "type": "REPORT",
+      "url": "https://github.com/ocaml/security-advisories/security/advisories/GHSA-j26j-m5xr-g23c"
+    }
+  ],
+  "credits": [
+    {
+      "name": "Justin Timperio",
+      "type": "REPORTER"
+    },
+    {
+      "name": "Nicol\u00e1s Ojeda B\u00e4r",
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "Xavier Leroy",
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "Gabriel Scherer",
+      "type": "REMEDIATION_DEVELOPER"
+    },
+    {
+      "name": "Xavier Leroy",
+      "type": "REMEDIATION_REVIEWER"
+    },
+    {
+      "name": "Olivier Nicole",
+      "type": "REMEDIATION_REVIEWER"
+    },
+    {
+      "name": "Damien Doligez",
+      "type": "REMEDIATION_REVIEWER"
+    },
+    {
+      "name": "Gabriel Scherer",
+      "type": "REMEDIATION_REVIEWER"
+    },
+    {
+      "name": "Mindy Preston",
+      "type": "REMEDIATION_VERIFIER"
+    },
+    {
+      "name": "Edwin T\u00f6r\u00f6k",
+      "type": "REMEDIATION_VERIFIER"
+    },
+    {
+      "name": "Hannes Mehnert",
+      "type": "COORDINATOR"
+    }
+  ],
+  "database_specific": {
+    "osv": "https://github.com/ocaml/security-advisories/tree/generated-osv/2026/OSEC-2026-01.json",
+    "human_link": "https://github.com/ocaml/security-advisories/tree/main/advisories/2026/OSEC-2026-01.md",
+    "cwe": [
+      "CWE-126",
+      "CWE-502",
+      "CWE-754"
+    ]
+  }
+}

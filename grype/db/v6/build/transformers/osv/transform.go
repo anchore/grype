@@ -48,6 +48,7 @@ var strategies = []Strategy{
 	almaStrategy{},
 	bitnamiStrategy{},
 	govulndbStrategy{},
+	ocamlStrategy{},
 	rootioStrategy{},
 	chainguardStrategy{},
 }

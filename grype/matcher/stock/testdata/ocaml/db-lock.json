@@ -1,0 +1,10 @@
+{
+  "content_hash": "manual-fixture",
+  "created_at": "2026-11-14T00:00:00Z",
+  "providers": {
+    "ocaml": {
+      "vunnel_version": "vunnel@0.66.0.post30+5282151",
+      "timestamp": "2026-11-13T20:00:00Z"
+    }
+  }
+}
