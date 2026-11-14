@@ -321,6 +321,29 @@ func (ovm *Processor) FilterMatches(
 	return &remainingMatches, ignoredMatches, nil
 }
 
+// MatchesWithoutStatement returns the matches that the VEX document has no statement about, regardless of status,
+// for the match's vulnerability and either the scanned product or the matched package.
+func (ovm *Processor) MatchesWithoutStatement(
+	docRaw any, pkgContext *pkg.Context, matches *match.Matches,
+) ([]match.Match, error) {
+	doc, ok := docRaw.(*openvex.VEX)
+	if !ok {
+		return nil, errors.New("unable to cast vex document as openvex")
+	}
+
+	products := productIdentifiersFromContext(pkgContext)
+
+	var unstated []match.Match
+	sorted := matches.Sorted()
+	for i := range sorted {
+		subcmp := subcomponentIdentifiersFromMatch(&sorted[i])
+		if statement, _, _ := findMatchingStatement(doc, sorted[i].Vulnerability.ID, products, subcmp); statement == nil {
+			unstated = append(unstated, sorted[i])
+		}
+	}
+	return unstated, nil
+}
+
 // matchingRule cycles through a set of ignore rules and returns the first
 // one that matches the statement and the match. Returns nil if none match.
 func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, statement *openvex.Statement, allowedStatuses []vexStatus.Status) *match.IgnoreRule {
