@@ -338,13 +338,15 @@ func matchingRule(ignoreRules []match.IgnoreRule, m match.Match, statement *open
 
 	for _, rule := range ignoreRules {
 		// If the rule has more conditions than just the VEX statement, check if
-		// it applies to the current match.
-		if rule.HasConditions() {
-			r := rule
-			r.VexStatus = ""
-			if len(r.IgnoreMatch(m)) == 0 {
-				continue
-			}
+		// it applies to the current match. The vulnerability is compared with
+		// the statement below, and the namespace is always "vex" (set by the
+		// processor), so neither is a condition on the match itself.
+		r := rule
+		r.VexStatus = ""
+		r.Namespace = ""
+		r.Vulnerability = ""
+		if r.HasConditions() && len(r.IgnoreMatch(m)) == 0 {
+			continue
 		}
 
 		// If the status in the statement is not the same in the rule
