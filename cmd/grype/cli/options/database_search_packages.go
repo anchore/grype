@@ -14,6 +14,7 @@ import (
 
 type DBSearchPackages struct {
 	AllowBroadCPEMatching bool                 `yaml:"allow-broad-cpe-matching" json:"allow-broad-cpe-matching" mapstructure:"allow-broad-cpe-matching"`
+	IncludeUnaffected     bool                 `yaml:"include-unaffected" json:"include-unaffected" mapstructure:"include-unaffected"`
 	Packages              []string             `yaml:"packages" json:"packages" mapstructure:"packages"`
 	Ecosystem             string               `yaml:"ecosystem" json:"ecosystem" mapstructure:"ecosystem"`
 	PkgSpecs              v6.PackageSpecifiers `yaml:"-" json:"-" mapstructure:"-"`
@@ -24,6 +25,7 @@ func (o *DBSearchPackages) AddFlags(flags clio.FlagSet) {
 	flags.StringArrayVarP(&o.Packages, "pkg", "", "package name/CPE/PURL to search for")
 	flags.StringVarP(&o.Ecosystem, "ecosystem", "", "ecosystem of the package to search within")
 	flags.BoolVarP(&o.AllowBroadCPEMatching, "broad-cpe-matching", "", "allow for specific package CPE attributes to match with '*' values on the vulnerability")
+	flags.BoolVarP(&o.IncludeUnaffected, "include-unaffected", "", "also show package records explicitly NOT affected by the vulnerability (with --fixed-state, only for vulnerabilities that still have matching affected records, unless not-affected is one of the states)")
 }
 
 func (o *DBSearchPackages) PostLoad() error {

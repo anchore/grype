@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -258,6 +259,13 @@ func TestVulnerabilities(t *testing.T) {
 		},
 	}, nil)
 
+	mockReader.On("GetUnaffectedPackages", mock.Anything, mock.Anything).Return([]v6.UnaffectedPackageHandle{
+		{
+			VulnerabilityID: 1,
+			OperatingSystem: &v6.OperatingSystem{Name: "Linux", MajorVersion: "5", MinorVersion: "10"},
+		},
+	}, nil)
+
 	mockReader.On("GetKnownExploitedVulnerabilities", "CVE-1234-5678").Return([]v6.KnownExploitedVulnerabilityHandle{
 		{
 			Cve: "CVE-1234-5678",
@@ -342,7 +350,8 @@ func TestVulnerabilities(t *testing.T) {
 			OperatingSystems: []OperatingSystem{
 				{Name: "Linux", Version: "5.10"},
 			},
-			AffectedPackages: 1,
+			AffectedPackages:   1,
+			UnaffectedPackages: 1,
 		},
 	}
 
@@ -390,6 +399,8 @@ func TestFindVulnerabilities_DecorationErrors(t *testing.T) {
 
 			mockReader.On("GetAffectedPackages", mock.Anything, mock.Anything).Return([]v6.AffectedPackageHandle{}, nil)
 
+			mockReader.On("GetUnaffectedPackages", mock.Anything, mock.Anything).Return([]v6.UnaffectedPackageHandle{}, nil)
+
 			mockReader.On("GetKnownExploitedVulnerabilities", "CVE-2021-22947").Return(
 				[]v6.KnownExploitedVulnerabilityHandle{}, tt.kevErr,
 			)
@@ -411,6 +422,174 @@ func TestFindVulnerabilities_DecorationErrors(t *testing.T) {
 	}
 }
 
+func TestFindVulnerabilities_PackageCounts(t *testing.T) {
+	linux := &v6.OperatingSystem{ID: 1, Name: "linux", MajorVersion: "5"}
+	debian := &v6.OperatingSystem{ID: 2, Name: "debian", MajorVersion: "12"}
+
+	tests := []struct {
+		name       string
+		affected   []v6.AffectedPackageHandle
+		unaffected []v6.UnaffectedPackageHandle
+		want       Vulnerability
+	}{
+		{
+			name: "no records",
+			want: Vulnerability{},
+		},
+		{
+			name:     "affected only",
+			affected: []v6.AffectedPackageHandle{{OperatingSystem: linux}, {OperatingSystem: linux}},
+			want:     Vulnerability{OperatingSystems: []OperatingSystem{{Name: "linux", Version: "5"}}, AffectedPackages: 2},
+		},
+		{
+			name:       "unaffected only, which does not report the operating system as affected",
+			unaffected: []v6.UnaffectedPackageHandle{{VulnerabilityID: 1, OperatingSystem: debian}},
+			want:       Vulnerability{UnaffectedPackages: 1},
+		},
+		{
+			name:       "affected and unaffected are counted separately in a single row with only affected operating systems",
+			affected:   []v6.AffectedPackageHandle{{OperatingSystem: linux}},
+			unaffected: []v6.UnaffectedPackageHandle{{VulnerabilityID: 1, OperatingSystem: debian}, {VulnerabilityID: 1, OperatingSystem: nil}},
+			want: Vulnerability{
+				OperatingSystems:   []OperatingSystem{{Name: "linux", Version: "5"}},
+				AffectedPackages:   1,
+				UnaffectedPackages: 2,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockReader := new(mockVulnReader)
+			mockReader.On("GetVulnerabilities", mock.Anything, mock.Anything).Return([]v6.VulnerabilityHandle{
+				{ID: 1, Name: "CVE-2024-0001", Provider: &v6.Provider{ID: "provider1"}},
+			}, nil)
+
+			// packages are fetched for the specific vulnerability record found, not by name
+			byRecordID := mock.MatchedBy(func(opts *v6.GetPackageOptions) bool {
+				return len(opts.Vulnerabilities) == 1 && opts.Vulnerabilities[0].ID == 1
+			})
+			mockReader.On("GetAffectedPackages", mock.Anything, byRecordID).Return(tt.affected, nil).Once()
+			mockReader.On("GetUnaffectedPackages", mock.Anything, byRecordID).Return(tt.unaffected, nil).Once()
+			mockReader.On("GetKnownExploitedVulnerabilities", mock.Anything).Return([]v6.KnownExploitedVulnerabilityHandle{}, nil)
+			mockReader.On("GetEpss", mock.Anything).Return([]v6.EpssHandle{}, nil)
+
+			results, err := FindVulnerabilities(mockReader, VulnerabilitiesOptions{
+				Vulnerability: v6.VulnerabilitySpecifiers{{Name: "CVE-2024-0001"}},
+			})
+			require.NoError(t, err)
+			mockReader.AssertExpectations(t)
+
+			require.Len(t, results, 1)
+			assert.Equal(t, tt.want.AffectedPackages, results[0].AffectedPackages)
+			assert.Equal(t, tt.want.UnaffectedPackages, results[0].UnaffectedPackages)
+			assert.ElementsMatch(t, tt.want.OperatingSystems, results[0].OperatingSystems)
+		})
+	}
+}
+
+func TestFindVulnerabilities_LimitKeepsPartialResults(t *testing.T) {
+	t.Run("unaffected counts are exact and fetched in one query for all vulnerabilities", func(t *testing.T) {
+		mockReader := new(mockVulnReader)
+		defer mockReader.AssertExpectations(t)
+		mockReader.On("GetVulnerabilities", mock.Anything, mock.Anything).Return([]v6.VulnerabilityHandle{
+			{ID: 1, Name: "CVE-2024-0001", Provider: &v6.Provider{ID: "provider1"}},
+			{ID: 2, Name: "CVE-2024-0002", Provider: &v6.Provider{ID: "provider1"}},
+		}, nil)
+		mockReader.On("GetAffectedPackages", mock.Anything, mock.Anything).Return([]v6.AffectedPackageHandle{}, nil)
+		// unaffected records are only counted, so nothing is preloaded, and the record limit does not cap the counts
+		batched := mock.MatchedBy(func(opts *v6.GetPackageOptions) bool {
+			return !opts.PreloadOS && !opts.PreloadPackage && !opts.PreloadVulnerability && !opts.PreloadBlob && opts.Limit == 0 &&
+				len(opts.Vulnerabilities) == 2 && opts.Vulnerabilities[0].ID == 1 && opts.Vulnerabilities[1].ID == 2
+		})
+		mockReader.On("GetUnaffectedPackages", mock.Anything, batched).Return([]v6.UnaffectedPackageHandle{
+			{VulnerabilityID: 1}, {VulnerabilityID: 1}, {VulnerabilityID: 2},
+		}, nil).Once()
+		mockReader.On("GetKnownExploitedVulnerabilities", mock.Anything).Return([]v6.KnownExploitedVulnerabilityHandle{}, nil)
+		mockReader.On("GetEpss", mock.Anything).Return([]v6.EpssHandle{}, nil)
+
+		results, err := FindVulnerabilities(mockReader, VulnerabilitiesOptions{
+			Vulnerability: v6.VulnerabilitySpecifiers{{Name: "CVE-2024"}},
+			RecordLimit:   2,
+		})
+		require.NoError(t, err)
+		require.Len(t, results, 2)
+		counts := map[string]int{}
+		for _, r := range results {
+			counts[r.Model.Name] = r.UnaffectedPackages
+		}
+		assert.Equal(t, map[string]int{"CVE-2024-0001": 2, "CVE-2024-0002": 1}, counts)
+	})
+
+	t.Run("vulnerabilities found before the limit are kept", func(t *testing.T) {
+		mockReader := new(mockVulnReader)
+		mockReader.On("GetVulnerabilities", mock.Anything, mock.Anything).Return([]v6.VulnerabilityHandle{
+			{ID: 1, Name: "CVE-2024-0001", Provider: &v6.Provider{ID: "provider1"}},
+		}, v6.ErrLimitReached)
+		mockReader.On("GetAffectedPackages", mock.Anything, mock.Anything).Return([]v6.AffectedPackageHandle{}, nil)
+		mockReader.On("GetUnaffectedPackages", mock.Anything, mock.Anything).Return([]v6.UnaffectedPackageHandle{}, nil)
+		mockReader.On("GetKnownExploitedVulnerabilities", mock.Anything).Return([]v6.KnownExploitedVulnerabilityHandle{}, nil)
+		mockReader.On("GetEpss", mock.Anything).Return([]v6.EpssHandle{}, nil)
+
+		results, err := FindVulnerabilities(mockReader, VulnerabilitiesOptions{
+			Vulnerability: v6.VulnerabilitySpecifiers{{Name: "CVE-2024"}},
+			RecordLimit:   1,
+		})
+		require.ErrorIs(t, err, v6.ErrLimitReached)
+		require.Len(t, results, 1)
+	})
+
+	t.Run("affected packages found before the limit are still counted", func(t *testing.T) {
+		linux := &v6.OperatingSystem{ID: 1, Name: "linux", MajorVersion: "5"}
+		mockReader := new(mockVulnReader)
+		mockReader.On("GetVulnerabilities", mock.Anything, mock.Anything).Return([]v6.VulnerabilityHandle{
+			{ID: 1, Name: "CVE-2024-0001", Provider: &v6.Provider{ID: "provider1"}},
+		}, nil)
+		mockReader.On("GetAffectedPackages", mock.Anything, mock.Anything).Return([]v6.AffectedPackageHandle{
+			{OperatingSystem: linux}, {OperatingSystem: linux},
+		}, v6.ErrLimitReached)
+		mockReader.On("GetUnaffectedPackages", mock.Anything, mock.Anything).Return([]v6.UnaffectedPackageHandle{}, nil)
+		mockReader.On("GetKnownExploitedVulnerabilities", mock.Anything).Return([]v6.KnownExploitedVulnerabilityHandle{}, nil)
+		mockReader.On("GetEpss", mock.Anything).Return([]v6.EpssHandle{}, nil)
+
+		results, err := FindVulnerabilities(mockReader, VulnerabilitiesOptions{
+			Vulnerability: v6.VulnerabilitySpecifiers{{Name: "CVE-2024-0001"}},
+			RecordLimit:   2,
+		})
+		require.ErrorIs(t, err, v6.ErrLimitReached)
+		require.Len(t, results, 1)
+		assert.Equal(t, 2, results[0].AffectedPackages)
+		assert.Equal(t, []OperatingSystem{{Name: "linux", Version: "5"}}, results[0].OperatingSystems)
+	})
+
+	t.Run("the record limit caps vulnerabilities across all specs", func(t *testing.T) {
+		mockReader := new(mockVulnReader)
+		defer mockReader.AssertExpectations(t)
+		limitIs := func(limit int) any {
+			return mock.MatchedBy(func(opts *v6.GetVulnerabilityOptions) bool { return opts.Limit == limit })
+		}
+		mockReader.On("GetVulnerabilities", &v6.VulnerabilitySpecifier{Name: "CVE-2024-0001"}, limitIs(3)).Return([]v6.VulnerabilityHandle{
+			{ID: 1, Name: "CVE-2024-0001", Provider: &v6.Provider{ID: "provider1"}},
+			{ID: 2, Name: "CVE-2024-0001", Provider: &v6.Provider{ID: "provider2"}},
+		}, nil).Once()
+		// the second spec only gets what is left of the limit
+		mockReader.On("GetVulnerabilities", &v6.VulnerabilitySpecifier{Name: "CVE-2024-0002"}, limitIs(1)).Return([]v6.VulnerabilityHandle{
+			{ID: 3, Name: "CVE-2024-0002", Provider: &v6.Provider{ID: "provider1"}},
+		}, v6.ErrLimitReached).Once()
+		mockReader.On("GetAffectedPackages", mock.Anything, mock.Anything).Return([]v6.AffectedPackageHandle{}, nil)
+		mockReader.On("GetUnaffectedPackages", mock.Anything, mock.Anything).Return([]v6.UnaffectedPackageHandle{}, nil)
+		mockReader.On("GetKnownExploitedVulnerabilities", mock.Anything).Return([]v6.KnownExploitedVulnerabilityHandle{}, nil)
+		mockReader.On("GetEpss", mock.Anything).Return([]v6.EpssHandle{}, nil)
+
+		results, err := FindVulnerabilities(mockReader, VulnerabilitiesOptions{
+			Vulnerability: v6.VulnerabilitySpecifiers{{Name: "CVE-2024-0001"}, {Name: "CVE-2024-0002"}, {Name: "CVE-2024-0003"}},
+			RecordLimit:   3,
+		})
+		require.ErrorIs(t, err, v6.ErrLimitReached)
+		require.Len(t, results, 3)
+	})
+}
+
 type mockVulnReader struct {
 	mock.Mock
 }
@@ -420,9 +599,19 @@ func (m *mockVulnReader) GetVulnerabilities(vuln *v6.VulnerabilitySpecifier, con
 	return args.Get(0).([]v6.VulnerabilityHandle), args.Error(1)
 }
 
+func (m *mockVulnReader) GetVulnerabilityAliases(names []string, limit int) ([]v6.VulnerabilityAlias, error) {
+	args := m.Called(names, limit)
+	return args.Get(0).([]v6.VulnerabilityAlias), args.Error(1)
+}
+
 func (m *mockVulnReader) GetAffectedPackages(pkg *v6.PackageSpecifier, config *v6.GetPackageOptions) ([]v6.AffectedPackageHandle, error) {
 	args := m.Called(pkg, config)
 	return args.Get(0).([]v6.AffectedPackageHandle), args.Error(1)
+}
+
+func (m *mockVulnReader) GetUnaffectedPackages(pkg *v6.PackageSpecifier, config *v6.GetPackageOptions) ([]v6.UnaffectedPackageHandle, error) {
+	args := m.Called(pkg, config)
+	return args.Get(0).([]v6.UnaffectedPackageHandle), args.Error(1)
 }
 
 func (m *mockVulnReader) GetKnownExploitedVulnerabilities(cve string) ([]v6.KnownExploitedVulnerabilityHandle, error) {
@@ -450,4 +639,29 @@ func cmpOpts() []cmp.Option {
 		cmpopts.IgnoreFields(AffectedPackageInfo{}, "Model"),
 		cmpopts.IgnoreFields(VulnerabilityInfo{}, "Model"),
 	}
+}
+
+// unaffectedByID returns one unaffected record for each vulnerability ID asked for
+type unaffectedByID struct{}
+
+func (unaffectedByID) GetUnaffectedPackages(_ *v6.PackageSpecifier, config *v6.GetPackageOptions) ([]v6.UnaffectedPackageHandle, error) {
+	var found []v6.UnaffectedPackageHandle
+	for _, spec := range config.Vulnerabilities {
+		found = append(found, v6.UnaffectedPackageHandle{VulnerabilityID: spec.ID})
+	}
+	return found, nil
+}
+
+func TestCountUnaffectedPackages_DuplicateVulnerabilities(t *testing.T) {
+	// the repeated vulnerability lands in a different batch than its first occurrence
+	var pairs []vulnerabilityAffectedPackageJoin
+	for id := range unaffectedCountBatchSize + 1 {
+		pairs = append(pairs, vulnerabilityAffectedPackageJoin{Vulnerability: v6.VulnerabilityHandle{ID: v6.ID(id + 1)}})
+	}
+	pairs = append(pairs, pairs[0])
+
+	counts, err := countUnaffectedPackages(unaffectedByID{}, pairs)
+	require.NoError(t, err)
+	assert.Len(t, counts, unaffectedCountBatchSize+1)
+	assert.Equal(t, 1, counts[1])
 }

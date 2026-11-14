@@ -2,6 +2,7 @@ package commands
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -19,6 +20,7 @@ import (
 	"github.com/anchore/grype/grype/db/v6/distribution"
 	"github.com/anchore/grype/grype/db/v6/installation"
 	"github.com/anchore/grype/internal/bus"
+	"github.com/anchore/grype/internal/log"
 )
 
 type dbSearchVulnerabilityOptions struct {
@@ -84,12 +86,21 @@ func runDBSearchVulnerabilities(opts dbSearchVulnerabilityOptions) error {
 		return err
 	}
 
-	rows, err := dbsearch.FindVulnerabilities(reader, dbsearch.VulnerabilitiesOptions{
-		Vulnerability: opts.Vulnerability.Specs,
-		RecordLimit:   opts.Bounds.RecordLimit,
+	if len(opts.Vulnerability.FixedState) > 0 {
+		// these options are shared with `db search`, but fix states only apply to package records
+		log.Warn("--fixed-state is ignored when searching vulnerabilities, use `grype db search --vuln` to filter package records by fix state")
+	}
+
+	rows, queryErr := dbsearch.FindVulnerabilities(reader, dbsearch.VulnerabilitiesOptions{
+		Vulnerability:  opts.Vulnerability.Specs,
+		RecordLimit:    opts.Bounds.RecordLimit,
+		IncludeAliases: opts.Vulnerability.IncludeAliases,
 	})
-	if err != nil {
-		return err
+	if queryErr != nil {
+		// the rows found before the limit was reached are still presented, followed by the limit error
+		if !errors.Is(queryErr, v6.ErrLimitReached) {
+			return queryErr
+		}
 	}
 
 	sb := &strings.Builder{}
@@ -98,8 +109,11 @@ func runDBSearchVulnerabilities(opts dbSearchVulnerabilityOptions) error {
 	if rep != "" {
 		bus.Report(rep)
 	}
+	if err != nil {
+		return fmt.Errorf("unable to present search results: %w", err)
+	}
 
-	return err
+	return queryErr
 }
 
 func validateProvidersFilter(reader v6.Reader, providers []string) error {
@@ -185,9 +199,9 @@ func renderDBSearchVulnerabilitiesTableRows(structuredRows []dbsearch.Vulnerabil
 	var rows [][]string
 	for r, versions := range versionsByRow {
 		prov := r.ProviderWithoutVersions
-		if len(versions) > 0 {
-			sort.Strings(versions)
-			prov = fmt.Sprintf("%s (%s)", r.ProviderWithoutVersions, strings.Join(versions, ", "))
+		if distinct := strset.New(versions...).List(); len(distinct) > 0 {
+			sort.Strings(distinct)
+			prov = fmt.Sprintf("%s (%s)", r.ProviderWithoutVersions, strings.Join(distinct, ", "))
 		}
 		rows = append(rows, []string{r.Vuln, prov, r.PublishedDate, r.Severity, r.Reference})
 	}

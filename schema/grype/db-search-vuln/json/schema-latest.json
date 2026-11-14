@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "anchore.io/schema/grype/db-search-vuln/json/1.0.6/vulnerabilities",
+  "$id": "anchore.io/schema/grype/db-search-vuln/json/1.0.7/vulnerabilities",
   "$ref": "#/$defs/Vulnerabilities",
   "$defs": {
     "CWE": {
@@ -208,10 +208,13 @@
     "Vulnerability": {
       "$defs": {
         "affected_packages": {
-          "description": "is the number of packages affected by the vulnerability"
+          "description": "is the number of package records affected by the vulnerability, up to the record limit (CPE records are not counted)"
         },
         "operating_systems": {
           "description": "is a list of operating systems affected by the vulnerability"
+        },
+        "unaffected_packages": {
+          "description": "is the number of package records explicitly NOT affected by the vulnerability (CPE records are not counted)"
         }
       },
       "properties": {
@@ -298,6 +301,9 @@
         },
         "affected_packages": {
           "type": "integer"
+        },
+        "unaffected_packages": {
+          "type": "integer"
         }
       },
       "type": "object",
@@ -306,7 +312,8 @@
         "provider",
         "status",
         "operating_systems",
-        "affected_packages"
+        "affected_packages",
+        "unaffected_packages"
       ]
     }
   }
