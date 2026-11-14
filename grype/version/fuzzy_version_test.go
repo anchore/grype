@@ -8,6 +8,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestFuzzyVersion_Compare_ShortPrerelease(t *testing.T) {
+	tests := []struct {
+		left, right string
+		want        int
+	}{
+		{"2.1b1", "2.1.0", -1},
+		{"2.1b1", "2.1.1", -1},
+		{"2.1.1", "2.1b1", 1},
+		{"2.1a1", "2.1b1", -1},
+		{"2.1b2", "2.1b10", -1},
+		{"2.1b1", "2.1.0-beta.1", 0},
+		{"2.1.0a1", "2.1.0-alpha.1", 0},
+		{"V2.1b1+build.1", "2.1.0-beta.1+build.2", 0},
+		{"1.0.2a", "1.0.2", 1},
+		{"1.0.2b", "1.0.2a", 1},
+		{"1.0.2ab", "1.0.2a", 1},
+	}
+	for _, test := range tests {
+		t.Run(test.left+" vs "+test.right, func(t *testing.T) {
+			got, err := New(test.left, UnknownFormat).Compare(New(test.right, UnknownFormat))
+			require.NoError(t, err)
+			assert.Equal(t, test.want, got)
+		})
+	}
+}
+
 func TestFuzzyVersion_Compare(t *testing.T) {
 	tests := []struct {
 		name           string
