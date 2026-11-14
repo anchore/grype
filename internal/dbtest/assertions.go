@@ -650,6 +650,53 @@ func (m *MultipleFindingAssertion) WithDetailType(detailType match.Type) *Single
 	return newSingleFindingAssertion(m.t, m.parent.pkg, &m.parent.matches[matchIdx], matchIdx, tracker)
 }
 
+// HasCount asserts how many matches share the selected vulnerability ID.
+func (m *MultipleFindingAssertion) HasCount(count int) *MultipleFindingAssertion {
+	m.t.Helper()
+	var got []string
+	for _, idx := range m.indices {
+		got = append(got, m.parent.matches[idx].Vulnerability.Namespace)
+	}
+	assert.Len(m.t, m.indices, count, "unexpected number of matches for %s (namespaces: %v)", m.vulnID, got)
+	return m
+}
+
+// WithNamespace selects the single match in namespace, failing on zero or several. The match is
+// tracked for completeness.
+func (m *MultipleFindingAssertion) WithNamespace(namespace string) *SingleFindingAssertion {
+	m.t.Helper()
+
+	matchIdx := -1
+	var got []string
+	for _, idx := range m.indices {
+		ns := m.parent.matches[idx].Vulnerability.Namespace
+		got = append(got, ns)
+		if ns != namespace {
+			continue
+		}
+		if matchIdx != -1 {
+			m.t.Fatalf("SelectMatches(%q).WithNamespace(%q) expected exactly one match in that namespace, but found multiple", m.vulnID, namespace)
+			return nil
+		}
+		matchIdx = idx
+	}
+	if matchIdx == -1 {
+		m.t.Fatalf("SelectMatches(%q).WithNamespace(%q) found no match in that namespace (have %v)", m.vulnID, namespace, got)
+		return nil
+	}
+
+	tracker := m.parent.assertedMatches[matchIdx]
+	if tracker == nil {
+		tracker = &singleFindingTracker{
+			selectedDetails:  make(map[int]bool),
+			completedDetails: make(map[int]bool),
+		}
+		m.parent.assertedMatches[matchIdx] = tracker
+	}
+
+	return newSingleFindingAssertion(m.t, m.parent.pkg, &m.parent.matches[matchIdx], matchIdx, tracker)
+}
+
 // SingleFindingAssertion provides detailed string-based assertions on a single
 // finding. There is intentionally no Match() accessor returning the underlying
 // match.Match: the assertion API is a façade so that the internal struct

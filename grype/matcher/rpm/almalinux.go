@@ -50,7 +50,7 @@ func markAsIndirectMatches(results result.Set) result.Set {
 // 2. Search for RHEL disclosures for all upstream (source) packages
 // 3. Search for AlmaLinux unaffected records for the binary package and related packages
 // 4. Apply filtering logic to determine which disclosures are still vulnerable on AlmaLinux
-func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+func almaLinuxMatchesWithUpstreams(provider result.Provider, target, binaryPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	if strings.HasSuffix(binaryPkg.Name, "-debuginfo") || strings.HasSuffix(binaryPkg.Name, "-debugsource") {
 		return nil, nil, nil // almalinux explicitly never publishes advisories for RPMs that are only debug material
 	}
@@ -73,12 +73,12 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 		return nil, nil, fmt.Errorf("matcher failed to fetch RHEL disclosures for AlmaLinux binary pkg=%q: %w", binaryPkg.Name, err)
 	}
 
-	binaryDisclosures := all.Filter(internal.OnlyVulnerableVersions(pkgVersion))
+	binaryDisclosures := all.Filter(internal.OnlyVulnerableVersions(pkgVersion)) //nolint:staticcheck
 	ignored = append(ignored, internal.OwnershipIgnores(binaryPkg, IgnoreReasonDistroFixed, all.Remove(binaryDisclosures).Vulnerabilities()...)...)
 
 	// Step 2: Find RHEL disclosures for upstream (source) packages (indirect match)
 	// Note: We do NOT add epochs to upstream package versions because sourceRPMs often omit epochs
-	// even when the source package has a non-zero epoch. See the comment in matchUpstreamPackages
+	// even when the source package has a non-zero epoch. See the comment on matchDistro
 	// in matcher.go for the full explanation of why this is necessary.
 	upstreamDisclosures := result.Set{}
 	for _, upstreamPkg := range pkg.UpstreamPackages(binaryPkg) {
@@ -90,13 +90,14 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 			search.ByPackageName(upstreamPkg.Name),
 			search.ByDistro(rhelCompatibleDistro),
 			internal.OnlyQualifiedPackages(upstreamPkg),
+			search.BySourcePackage(),
 		)
 		if err != nil {
 			log.WithFields("error", err, "upstreamPkg", upstreamPkg.Name, "binaryPkg", binaryPkg.Name).Debug("failed to fetch RHEL disclosures for upstream package")
 			continue
 		}
 
-		upstreamResults := all.Filter(internal.OnlyVulnerableVersions(upstreamVersion))
+		upstreamResults := all.Filter(internal.OnlyVulnerableVersions(upstreamVersion)) //nolint:staticcheck
 		ignored = append(ignored, internal.OwnershipIgnores(binaryPkg, IgnoreReasonDistroFixed, all.Remove(upstreamResults).Vulnerabilities()...)...)
 
 		// Mark these as indirect matches since they came from upstream package search
@@ -122,7 +123,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 	if err != nil {
 		log.WithFields("error", err, "distro", binaryPkg.Distro, "pkg", binaryPkg.Name).Debug("failed to fetch AlmaLinux unaffected packages")
 		// If we can't get unaffected data, return the original disclosures
-		return allDisclosures.ToMatches(), ignored, nil
+		return allDisclosures.ToMatches(target), ignored, nil
 	}
 
 	// Step 4: Find AlmaLinux unaffected records for related packages (source/binary relationships)
@@ -139,7 +140,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 	// allUnaffected is not filtered by version constraint, but the correct set gets applied to updatedDisclosures
 	ignored = append(ignored, internal.OwnershipIgnores(binaryPkg, IgnoreReasonAlmaUnaffected, allUnaffected.Remove(updatedDisclosures).Vulnerabilities()...)...)
 
-	return updatedDisclosures.ToMatches(), ignored, nil
+	return updatedDisclosures.ToMatches(target), ignored, nil
 }
 
 // findRelatedUnaffectedPackages searches for unaffected packages using source/binary RPM relationships
@@ -154,12 +155,13 @@ func findRelatedUnaffectedPackages(provider result.Provider, searchPkg pkg.Packa
 			continue // skip the main package name as it's already searched
 		}
 
-		// Search for unaffected records using related package names
+		// Search for unaffected records using related package names, which are the source package's
 		relatedResults, err := provider.FindResults(
 			search.ByPackageName(relatedName),
 			search.ByExactDistro(*searchPkg.Distro), // use exact distro to avoid alias mapping
 			internal.OnlyQualifiedPackages(searchPkg),
 			search.ForUnaffected(),
+			search.BySourcePackage(),
 		)
 		if err != nil {
 			log.WithFields("error", err, "relatedName", relatedName, "originalPkg", searchPkg.Name).Debug("failed to fetch related unaffected packages")

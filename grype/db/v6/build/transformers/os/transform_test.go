@@ -2,6 +2,7 @@ package os
 
 import (
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/anchore/grype/grype/db/provider"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
+	"github.com/anchore/grype/grype/distro"
 )
 
 var timeVal = time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -90,6 +92,36 @@ func TestTransform(t *testing.T) {
 		Name:         "archlinux",
 		ReleaseID:    "arch",
 		LabelVersion: "rolling",
+	}
+	rapidfortRedhat9OS := &db.OperatingSystem{
+		Name:         "rapidfort-redhat",
+		ReleaseID:    "rapidfort-redhat",
+		MajorVersion: "9",
+	}
+	rapidfortRedhat9Fc36OS := &db.OperatingSystem{
+		Name:         "rapidfort-redhat",
+		ReleaseID:    "rapidfort-redhat",
+		MajorVersion: "9",
+		Channel:      "fc36",
+	}
+	rapidfortRedhat9RfOS := &db.OperatingSystem{
+		Name:         "rapidfort-redhat",
+		ReleaseID:    "rapidfort-redhat",
+		MajorVersion: "9",
+		Channel:      "rf",
+	}
+	rapidfortUbuntu2004OS := &db.OperatingSystem{
+		Name:         "rapidfort-ubuntu",
+		ReleaseID:    "rapidfort-ubuntu",
+		MajorVersion: "20",
+		MinorVersion: "04",
+	}
+	rapidfortUbuntu2004RfOS := &db.OperatingSystem{
+		Name:         "rapidfort-ubuntu",
+		ReleaseID:    "rapidfort-ubuntu",
+		MajorVersion: "20",
+		MinorVersion: "04",
+		Channel:      "rf",
 	}
 	tests := []struct {
 		name     string
@@ -1015,6 +1047,158 @@ func TestTransform(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:     "testdata/rapidfort-redhat-9.json",
+			provider: "rapidfort",
+			want: []transformers.RelatedEntries{
+				{
+					VulnerabilityHandle: rapidfortRedhatVulnHandle(),
+					Related: affectedPkgSlice(
+						db.AffectedPackageHandle{
+							OperatingSystem: rapidfortRedhat9OS,
+							Package:         &db.Package{Ecosystem: "rpm", Name: "curl"},
+							BlobValue: &db.PackageBlob{
+								Qualifiers: &db.PackageQualifiers{RpmModularity: strRef("")},
+								Ranges: []db.Range{
+									{
+										Version: db.Version{
+											Type:       "rpm",
+											Constraint: ">= 0:7.61.0-1.el9, < 0:7.88.0-1.el9_2",
+										},
+										Fix: &db.Fix{
+											Version: "0:7.88.0-1.el9_2",
+											State:   db.FixedStatus,
+											Detail: &db.FixDetail{
+												Available: &db.FixAvailability{
+													Date: timeRef(time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)),
+													Kind: "first-observed",
+												},
+												References: []db.Reference{
+													{
+														ID:   "RHSA-2024:1234",
+														URL:  "https://access.redhat.com/errata/RHSA-2024:1234",
+														Tags: []string{db.AdvisoryReferenceTag},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					),
+				},
+				{
+					VulnerabilityHandle: rapidfortRedhatVulnHandle(),
+					Related: affectedPkgSlice(
+						db.AffectedPackageHandle{
+							OperatingSystem: rapidfortRedhat9Fc36OS,
+							Package:         &db.Package{Ecosystem: "rpm", Name: "curl"},
+							BlobValue: &db.PackageBlob{
+								Qualifiers: &db.PackageQualifiers{RpmModularity: strRef("")},
+								Ranges: []db.Range{
+									{
+										Version: db.Version{
+											Type:       "rpm",
+											Constraint: ">= 7.61.0-1.fc36, < 7.78.0-4.fc36",
+										},
+										Fix: &db.Fix{
+											Version: "7.78.0-4.fc36",
+											State:   db.FixedStatus,
+										},
+									},
+								},
+							},
+						},
+					),
+				},
+				{
+					VulnerabilityHandle: rapidfortRedhatVulnHandle(),
+					Related: affectedPkgSlice(
+						db.AffectedPackageHandle{
+							OperatingSystem: rapidfortRedhat9RfOS,
+							Package:         &db.Package{Ecosystem: "rpm", Name: "curl"},
+							BlobValue: &db.PackageBlob{
+								Qualifiers: &db.PackageQualifiers{RpmModularity: strRef("")},
+								Ranges: []db.Range{
+									{
+										Version: db.Version{
+											Type:       "rpm",
+											Constraint: ">= 0, < 0:7.88.0-1.rf",
+										},
+										Fix: &db.Fix{
+											Version: "0:7.88.0-1.rf",
+											State:   db.FixedStatus,
+										},
+									},
+								},
+							},
+						},
+					),
+				},
+			},
+		},
+		{
+			name:     "testdata/rapidfort-ubuntu-20.04.json",
+			provider: "rapidfort",
+			want: []transformers.RelatedEntries{
+				{
+					VulnerabilityHandle: rapidfortUbuntuVulnHandle(),
+					Related: affectedPkgSlice(
+						db.AffectedPackageHandle{
+							OperatingSystem: rapidfortUbuntu2004OS,
+							Package:         &db.Package{Ecosystem: "deb", Name: "curl"},
+							BlobValue: &db.PackageBlob{
+								Ranges: []db.Range{
+									{
+										Version: db.Version{
+											Type:       "dpkg",
+											Constraint: ">= 7.68.0, < 7.68.0-1ubuntu2.1",
+										},
+										Fix: &db.Fix{
+											Version: "7.68.0-1ubuntu2.1",
+											State:   db.FixedStatus,
+											Detail: &db.FixDetail{
+												References: []db.Reference{
+													{
+														ID:   "curl",
+														URL:  "https://github.com/rapidfort/security-advisories/blob/main/OS/ubuntu/curl_advisory.json",
+														Tags: []string{db.AdvisoryReferenceTag},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					),
+				},
+				{
+					VulnerabilityHandle: rapidfortUbuntuVulnHandle(),
+					Related: affectedPkgSlice(
+						db.AffectedPackageHandle{
+							OperatingSystem: rapidfortUbuntu2004RfOS,
+							Package:         &db.Package{Ecosystem: "deb", Name: "curl"},
+							BlobValue: &db.PackageBlob{
+								Ranges: []db.Range{
+									{
+										Version: db.Version{
+											Type:       "dpkg",
+											Constraint: ">= 7.68.0, < 7.68.0-1rfubu.1",
+										},
+										Fix: &db.Fix{
+											Version: "7.68.0-1rfubu.1",
+											State:   db.FixedStatus,
+										},
+									},
+								},
+							},
+						},
+					),
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -1036,6 +1220,58 @@ func TestTransform(t *testing.T) {
 				t.Errorf("data entries mismatch (-want +got):\n%s", diff)
 			}
 		})
+	}
+}
+
+// rapidfortRedhatVulnHandle is the vulnerability handle shared by every per-channel record of the
+// rapidfort-redhat fixture.
+func rapidfortRedhatVulnHandle() *db.VulnerabilityHandle {
+	return &db.VulnerabilityHandle{
+		Name:       "CVE-2014-0139",
+		Status:     "active",
+		ProviderID: "rapidfort",
+		Provider:   expectedProvider("rapidfort"),
+		BlobValue: &db.VulnerabilityBlob{
+			ID:          "CVE-2014-0139",
+			Description: "The default configuration in cURL and libcurl before 7.36.0 re-uses SCP, SFTP, POP3, POP3S, IMAP, IMAPS, SMTP, SMTPS, LDAP, and LDAPS connections.",
+			References: []db.Reference{
+				{
+					URL: "https://www.cve.org/CVERecord?id=CVE-2014-0139",
+				},
+			},
+			Severities: []db.Severity{
+				{
+					Scheme: db.SeveritySchemeCHMLN,
+					Value:  "high",
+					Rank:   1,
+				},
+			},
+		},
+	}
+}
+
+func rapidfortUbuntuVulnHandle() *db.VulnerabilityHandle {
+	return &db.VulnerabilityHandle{
+		Name:       "CVE-2020-8169",
+		Status:     "active",
+		ProviderID: "rapidfort",
+		Provider:   expectedProvider("rapidfort"),
+		BlobValue: &db.VulnerabilityBlob{
+			ID:          "CVE-2020-8169",
+			Description: "curl 7.62.0 through 7.70.0 is vulnerable to an information disclosure vulnerability that can lead to a partial password being leaked over the network and to the DNS server.",
+			References: []db.Reference{
+				{
+					URL: "https://www.cve.org/CVERecord?id=CVE-2020-8169",
+				},
+			},
+			Severities: []db.Severity{
+				{
+					Scheme: db.SeveritySchemeCHMLN,
+					Value:  "high",
+					Rank:   1,
+				},
+			},
+		},
 	}
 }
 
@@ -1117,6 +1353,19 @@ func TestGetOperatingSystem(t *testing.T) {
 				MinorVersion: "04",
 				Codename:     "jammy",
 				Channel:      "esm",
+			},
+		},
+		{
+			name:      "rapidfort-redhat with release-stream channel",
+			osName:    "rapidfort-redhat",
+			osID:      "rapidfort-redhat",
+			osVersion: "9",
+			channel:   "fc43",
+			expected: &db.OperatingSystem{
+				Name:         "rapidfort-redhat",
+				ReleaseID:    "rapidfort-redhat",
+				MajorVersion: "9",
+				Channel:      "fc43",
 			},
 		},
 	}
@@ -1218,12 +1467,63 @@ func TestGetOSInfo(t *testing.T) {
 				channel: "esm",
 			},
 		},
+		{
+			name:  "rapidfort-ubuntu",
+			group: "rapidfort-ubuntu:20.04",
+			expected: osInfo{
+				name:    "rapidfort-ubuntu",
+				id:      "rapidfort-ubuntu",
+				version: "20.04",
+			},
+		},
+		{
+			name:  "rapidfort-redhat + release-stream channel",
+			group: "rapidfort-redhat:9+fc43",
+			expected: osInfo{
+				name:    "rapidfort-redhat",
+				id:      "rapidfort-redhat",
+				version: "9",
+				channel: "fc43",
+			},
+		},
+		{
+			name:  "rapidfort-rockylinux + another release's channel",
+			group: "rapidfort-rockylinux:9+el10",
+			expected: osInfo{
+				name:    "rapidfort-rockylinux",
+				id:      "rapidfort-rockylinux",
+				version: "9",
+				channel: "el10",
+			},
+		},
+		{
+			name:  "rapidfort-amazonlinux",
+			group: "rapidfort-amazonlinux:2023",
+			expected: osInfo{
+				name:    "rapidfort-amazonlinux",
+				id:      "rapidfort-amazonlinux",
+				version: "2023",
+			},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			oi := getOSInfo(tt.group)
 			assert.Equal(t, tt.expected, oi, "expected osInfo to match for group %s", tt.group)
+		})
+	}
+}
+
+func TestGetPackageType_RapidFort(t *testing.T) {
+	for _, d := range distro.All {
+		if !strings.HasPrefix(string(d), "rapidfort-") {
+			continue
+		}
+		t.Run(string(d), func(t *testing.T) {
+			// rapidfort-{distro} namespaces carry the base distro's packages
+			assert.Equal(t, getPackageType(strings.TrimPrefix(string(d), "rapidfort-")), getPackageType(string(d)))
+			assert.NotEmpty(t, getPackageType(string(d)))
 		})
 	}
 }

@@ -1,0 +1,1329 @@
+package v6
+
+import (
+	"fmt"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/search"
+	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/syft/syft/cpe"
+	syftPkg "github.com/anchore/syft/syft/pkg"
+)
+
+func TestSearchRule_Validate(t *testing.T) { //nolint:funlen // one case per validation rule
+	tests := []struct {
+		name    string
+		row     SearchRule
+		wantErr string
+	}{
+		{
+			name:    "no pattern at all",
+			row:     SearchRule{Action: SearchRuleAdd, ReplacementDistroName: ptr("echo")},
+			wantErr: "must have an exact (non-regex) package name, distro name, ecosystem, CPE vendor or CPE product",
+		},
+		{
+			name:    "replacement package name without a name pattern",
+			row:     SearchRule{Action: SearchRuleAdd, MatchEcosystem: "rpm", ReplacementPackageName: "x", MatchPackageVersion: `.*\.rf.*`},
+			wantErr: "must have a package name pattern",
+		},
+		{
+			name:    "replacement ecosystem without an ecosystem pattern",
+			row:     SearchRule{Action: SearchRuleAdd, MatchPackageName: "requests", MatchPackageVersion: `.*\+asdf\.\d+`, ReplacementEcosystem: "python-asdf"},
+			wantErr: "must have an ecosystem pattern",
+		},
+		{
+			name: "replacement ecosystem with an ecosystem pattern",
+			row:  SearchRule{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageVersion: `.*\+asdf\.\d+`, ReplacementEcosystem: "${ecosystem}-asdf"},
+		},
+		{
+			name: "replacement ecosystem with a package name and OS substitution",
+			row: SearchRule{Action: SearchRuleReplace, MatchEcosystem: "python", MatchPackageName: `asdf-(?P<base>.+)`,
+				ReplacementPackageName: "${base}", ReplacementEcosystem: "python-asdf", ReplacementDistroName: ptr("asdf")},
+		},
+		{
+			name:    "replacement ecosystem referencing an unknown group",
+			row:     SearchRule{Action: SearchRuleAdd, MatchEcosystem: "python", ReplacementEcosystem: "${vendor}-asdf"},
+			wantErr: `replacement ecosystem "${vendor}-asdf"`,
+		},
+		{
+			name:    "a drop rule with a replacement ecosystem",
+			row:     SearchRule{Action: SearchRuleDrop, MatchEcosystem: "python", ReplacementEcosystem: "python-asdf"},
+			wantErr: "cannot have a replacement",
+		},
+		{
+			name:    "channel substitution without a distro name",
+			row:     SearchRule{Action: SearchRuleAdd, MatchEcosystem: "rpm", MatchPackageVersion: `.*\.rf.*`, ReplacementChannel: ptr("rf")},
+			wantErr: "must have an exact distro name",
+		},
+		{
+			name:    "only regex patterns cannot be indexed",
+			row:     SearchRule{Action: SearchRuleAdd, MatchPackageName: `rf-.*`, MatchPackageVersion: `.*\.rf.*`, ReplacementPackageName: "${package_name}"},
+			wantErr: "must have an exact (non-regex) package name, distro name, ecosystem, CPE vendor or CPE product",
+		},
+		{
+			name:    "distro version substitution without a distro name",
+			row:     SearchRule{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchPackageVersion: `.*\.rf.*`, ReplacementDistroVersion: ptr("")},
+			wantErr: "must have a distro name substitution or an exact distro name",
+		},
+		{
+			name:    "distro version substitution on a search of no OS",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchEcosystem: "deb", ReplacementDistroName: ptr(""), ReplacementDistroVersion: ptr("12")},
+			wantErr: "searching no OS cannot have a distro version substitution",
+		},
+		{
+			name: "distro version substitution with a distro name substitution",
+			row:  SearchRule{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchPackageVersion: `.*\.echo.*`, ReplacementDistroName: ptr("echo"), ReplacementDistroVersion: ptr("")},
+		},
+		{
+			name:    "distro label version substitution without a distro name",
+			row:     SearchRule{Action: SearchRuleAdd, MatchEcosystem: "apk", MatchPackageVersion: `.*_alpha.*`, ReplacementDistroLabelVersion: ptr("edge")},
+			wantErr: "must have a distro name substitution or an exact distro name",
+		},
+		{
+			name:    "distro label version substitution on a search of no OS",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "alpine", MatchEcosystem: "apk", ReplacementDistroName: ptr(""), ReplacementDistroLabelVersion: ptr("edge")},
+			wantErr: "searching no OS cannot have a distro label version substitution",
+		},
+		{
+			name: "distro label version substitution alone is a replacement",
+			row:  SearchRule{Action: SearchRuleReplace, MatchDistroName: "alpine", MatchEcosystem: "apk", ReplacementDistroLabelVersion: ptr("edge")},
+		},
+		{
+			name:    "distro label version substitution referencing an unknown group",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "alpine", MatchEcosystem: "apk", ReplacementDistroLabelVersion: ptr("${nope}")},
+			wantErr: "replacement distro label version",
+		},
+		{
+			name:    "a channel substitution with a regex distro name",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: `rapidfort-.*`, MatchEcosystem: "rpm", ReplacementChannel: ptr("rf")},
+			wantErr: "must have an exact distro name",
+		},
+		{
+			name: "an escaped pattern is exact, and so indexable",
+			row:  SearchRule{Action: SearchRuleAdd, MatchPackageName: `libstdc\+\+`, ReplacementPackageName: "gcc"},
+		},
+		{
+			name: "an exact pattern's value is its field",
+			row:  SearchRule{Action: SearchRuleAdd, MatchPackageName: "busybox", ReplacementPackageName: "rf-${package_name}"},
+		},
+		{
+			name:    "positional references are not supported",
+			row:     SearchRule{Action: SearchRuleAdd, MatchPackageName: "busybox", ReplacementPackageName: "$0"},
+			wantErr: "use a named group",
+		},
+		{
+			name: "a regex distro name",
+			row:  SearchRule{Action: SearchRuleAdd, MatchDistroName: `rapidfort-(?P<base>.*)`, MatchEcosystem: "deb", ReplacementDistroName: ptr("${base}")},
+		},
+		{
+			name:    "no replacement",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "rapidfort-alpine", MatchEcosystem: "apk"},
+			wantErr: "must have a replacement",
+		},
+		{
+			name:    "a replace rule needs a replacement",
+			row:     SearchRule{Action: SearchRuleReplace, MatchDistroName: "rapidfort-alpine", MatchEcosystem: "apk"},
+			wantErr: "must have a replacement",
+		},
+		{
+			name:    "no action",
+			row:     SearchRule{MatchDistroName: "rapidfort-redhat", MatchEcosystem: "rpm", ReplacementChannel: ptr("rf")},
+			wantErr: "must have an action",
+		},
+		{
+			name: "a drop rule needs no replacement",
+			row:  SearchRule{Action: SearchRuleDrop, MatchDistroName: "rapidfort-alpine", MatchEcosystem: "apk", MatchCPEProduct: `.*`},
+		},
+		{
+			name:    "a drop rule cannot have a replacement",
+			row:     SearchRule{Action: SearchRuleDrop, MatchDistroName: "rapidfort-alpine", MatchEcosystem: "apk", ReplacementChannel: ptr("rf")},
+			wantErr: "cannot have a replacement",
+		},
+		{
+			name:    "an unknown action",
+			row:     SearchRule{Action: "merge", MatchDistroName: "rapidfort-alpine", MatchEcosystem: "apk", ReplacementChannel: ptr("rf")},
+			wantErr: "unknown action",
+		},
+		{
+			name:    "substitution without an ecosystem or package pattern",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", ReplacementChannel: ptr("rf")},
+			wantErr: "must match an ecosystem, package name, package version or CPE",
+		},
+		{
+			name:    "a channel of no OS",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchEcosystem: "deb", ReplacementDistroName: ptr(""), ReplacementChannel: ptr("rf")},
+			wantErr: "cannot have a channel substitution",
+		},
+		{
+			name:    "invalid pattern",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageVersion: `(`, ReplacementChannel: ptr("rf")},
+			wantErr: "invalid pattern",
+		},
+		{
+			name:    "a reference to a group no pattern names",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "d", MatchPackageVersion: `.*\.fc(?P<release>\d+)`, ReplacementChannel: ptr("fc${fedora}")},
+			wantErr: "names no group",
+		},
+		{
+			// Go's template rules: `$vx` is the group named "vx", not group "v" then "x"
+			name:    "an unbraced reference runs to the end of the name",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "d", MatchPackageVersion: `.*\.fc(?P<v>\d+)`, ReplacementChannel: ptr("$vx")},
+			wantErr: "names no group",
+		},
+		{
+			name:    "an exclude pattern's groups are not referenceable",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "d", MatchPackageName: `.*`, ExcludePackageVersion: `.*\.(?P<tag>el)\d+`, ReplacementChannel: ptr("${tag}")},
+			wantErr: "names no group",
+		},
+		{
+			name:    "a group named by two patterns is ambiguous",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "d", MatchPackageName: `(?P<x>.*)`, MatchPackageVersion: `(?P<x>.*)`, ReplacementChannel: ptr("${x}")},
+			wantErr: "more than one pattern",
+		},
+		{
+			name:    "a group may not shadow a field",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "d", MatchPackageName: `(?P<package_name>.*)-rf`, ReplacementPackageName: "${package_name}"},
+			wantErr: "shadows the field",
+		},
+		{
+			name:    "a field the rule does not match is not referenceable",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "d", MatchPackageVersion: `.*\.rf`, ReplacementChannel: ptr("${package_name}")},
+			wantErr: "names no group",
+		},
+		{
+			name: "a matched field is referenceable",
+			row:  SearchRule{Action: SearchRuleAdd, MatchDistroName: "d", MatchEcosystem: "rpm", ReplacementDistroName: ptr("rf-${distro_name}-${ecosystem}")},
+		},
+		{
+			name: "a name repeated across alternation branches of one pattern",
+			row:  SearchRule{Action: SearchRuleAdd, MatchDistroName: "d", MatchPackageVersion: `.*\.fc(?P<v>\d+)|.*\.f(?P<v>\d+)`, ReplacementChannel: ptr("fc${v}")},
+		},
+		{
+			name: "named references resolve across patterns",
+			row:  SearchRule{Action: SearchRuleAdd, MatchDistroName: "d", MatchDistroVersion: `(?P<major>\d+).*`, MatchPackageName: `(?P<base>.*)-rf`, ReplacementChannel: ptr("el${major}"), ReplacementPackageName: "${base}"},
+		},
+		{
+			name: "a named distro name reference",
+			row:  SearchRule{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchPackageVersion: `.*\+(?P<vendor>echo)\d*`, ReplacementDistroName: ptr("${vendor}")},
+		},
+		{
+			name: "an ecosystem is enough to scope a substitution (rapidfort-alpine shape)",
+			row:  SearchRule{Action: SearchRuleAdd, MatchDistroName: "rapidfort-alpine", MatchEcosystem: "apk", ReplacementDistroName: ptr("rapidfort-alpine")},
+		},
+		{
+			name: "a rule may search no OS",
+			row:  SearchRule{Action: SearchRuleAdd, MatchDistroName: "rapidfort-alpine", MatchEcosystem: "apk", ReplacementDistroName: ptr("")},
+		},
+		{
+			name: "distro name substitution without a distro pattern is legal (echo shape)",
+			row:  SearchRule{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchPackageVersion: `.*[.-]echo.*`, ReplacementDistroName: ptr("echo")},
+		},
+		{
+			name: "an upstream search",
+			row:  SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchEcosystem: "deb", MatchUpstreamSearch: ptr(true), ReplacementChannel: ptr("rf")},
+		},
+		{
+			name: "a CPE substitution",
+			row:  SearchRule{Action: SearchRuleAdd, MatchEcosystem: "apk", MatchCPEProduct: `(?P<base>.+)-libs`, ReplacementCPEVendor: "haxx", ReplacementCPEProduct: "${base}"},
+		},
+		{
+			name:    "a CPE substitution without a CPE pattern",
+			row:     SearchRule{Action: SearchRuleAdd, MatchEcosystem: "apk", MatchPackageName: "curl", ReplacementCPEVendor: "haxx"},
+			wantErr: "must have a CPE vendor or product pattern",
+		},
+		{
+			name:    "a CPE substitution with an OS substitution",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "alpine", MatchCPEProduct: "curl", ReplacementCPEVendor: "haxx", ReplacementDistroName: ptr("")},
+			wantErr: "cannot have an OS, package name or ecosystem substitution",
+		},
+		{
+			name:    "a CPE substitution with a package name substitution",
+			row:     SearchRule{Action: SearchRuleAdd, MatchPackageName: "curl", MatchCPEProduct: "curl", ReplacementCPEProduct: "libcurl", ReplacementPackageName: "libcurl"},
+			wantErr: "cannot have an OS, package name or ecosystem substitution",
+		},
+		{
+			name:    "a CPE substitution with an ecosystem substitution",
+			row:     SearchRule{Action: SearchRuleAdd, MatchEcosystem: "python", MatchCPEProduct: "requests", ReplacementCPEVendor: "psf", ReplacementEcosystem: "python-asdf"},
+			wantErr: "cannot have an OS, package name or ecosystem substitution",
+		},
+		{
+			name:    "a CPE exclude pattern's groups are not referenceable",
+			row:     SearchRule{Action: SearchRuleAdd, MatchCPEProduct: "curl", ExcludeCPEVendor: `(?P<v>.+)-old`, ReplacementCPEVendor: "${v}"},
+			wantErr: "names no group",
+		},
+		{
+			name:    "an upstream search alone does not scope a substitution",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchUpstreamSearch: ptr(true), ReplacementChannel: ptr("rf")},
+			wantErr: "must match an ecosystem, package name, package version or CPE",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.row.Validate()
+			if tt.wantErr == "" {
+				assert.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tt.wantErr)
+		})
+	}
+}
+
+func TestParseTemplate(t *testing.T) {
+	named := map[string]string{"name": "N", "ax": "A-X", "a": "A"}
+	tests := []struct {
+		template string
+		want     string
+	}{
+		{template: "", want: ""},
+		{template: "rf", want: "rf"},
+		{template: "fc$a", want: "fcA"},
+		{template: "${a}x", want: "Ax"},
+		{template: "$ax", want: "A-X"},
+		{template: "$name-$a", want: "N-A"},
+		{template: "${name}s", want: "Ns"},
+		{template: "$$a", want: "$a"},
+		{template: "a$", want: "a$"},
+		{template: "a$-b", want: "a$-b"},
+		{template: "${name", want: "${name"},
+		{template: "${missing}", want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.template, func(t *testing.T) {
+			assert.Equal(t, tt.want, parseTemplate(tt.template).expand(func(n string) string { return named[n] }))
+		})
+	}
+}
+
+// requireAllValid fails when a fixture rule would be skipped.
+func requireAllValid(t *testing.T, rows []SearchRule) {
+	t.Helper()
+	for _, r := range rows {
+		require.NoError(t, r.Validate())
+	}
+}
+
+func TestKnownSearchRules_AllValid(t *testing.T) {
+	requireAllValid(t, KnownSearchRules())
+}
+
+// searchOf states the package a search is for: a name, a version, its OS and/or ecosystem.
+func searchOf(name, ver string, where ...any) pkg.Package {
+	p := pkg.Package{Name: name, Version: ver}
+	for _, w := range where {
+		switch w := w.(type) {
+		case distro.Distro:
+			p.Distro = &w
+		case syftPkg.Type:
+			p.Type = w
+		case syftPkg.Language:
+			p.Language = w
+		}
+	}
+	return p
+}
+
+// nameSearch is a search by p's name: in p's OS, else in its ecosystem.
+func nameSearch(p pkg.Package) []vulnerability.Criteria {
+	cs := []vulnerability.Criteria{search.ByPackageName(p.Name)}
+	if p.Distro != nil {
+		cs = append(cs, search.ByDistro(*p.Distro))
+	} else {
+		cs = append(cs, search.ByEcosystem(p.Language, p.Type))
+	}
+	return append(cs, search.WithPackage(p))
+}
+
+// cpeSearch is a search by a CPE for p, which reads the rows of no OS.
+func cpeSearch(p pkg.Package) []vulnerability.Criteria {
+	return []vulnerability.Criteria{search.ByCPE(cpe.Must("cpe:2.3:a:vendor:"+p.Name+":*:*:*:*:*:*:*:*", "")), search.WithPackage(p)}
+}
+
+// searched describes one search a rewrite returns.
+type searched struct {
+	// OS is name@version+channels, or name@version(label)+channels with a label version; empty for the
+	// rows of no OS
+	OS string
+	// Name is the searched name, "cpe:<vendor>:<product>" for a CPE search
+	Name     string
+	Ruled    bool
+	Priority int
+}
+
+func own(os, name string) searched {
+	return searched{OS: os, Name: name}
+}
+
+func ruled(os, name string, priority int) searched {
+	return searched{OS: os, Name: name, Ruled: true, Priority: priority}
+}
+
+func searchesOf(searches [][]vulnerability.Criteria) []searched {
+	var out []searched
+	for _, set := range searches {
+		var s searched
+		for _, c := range set {
+			switch c := c.(type) {
+			case *search.DistroCriteria:
+				d := c.Distros[0]
+				s.OS = d.Name() + "@" + d.Version
+				if d.Codename != "" {
+					s.OS += "(" + d.Codename + ")"
+				}
+				s.OS += "+" + strings.Join(d.Channels, ",")
+			case *search.PackageNameCriteria:
+				s.Name = c.PackageName
+			case *search.CPECriteria:
+				s.Name = "cpe:" + c.CPE.Attributes.Vendor + ":" + c.CPE.Attributes.Product
+			case *search.RuleCriteria:
+				s.Ruled, s.Priority = true, c.Priority
+			}
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
+// rewrites returns the searches to run in place of cs, which is cs itself when no rule applies.
+func rewrites(vp vulnerabilityProvider, p pkg.Package, cs []vulnerability.Criteria) [][]vulnerability.Criteria {
+	searches, rewritten := vp.SearchRewrites(p, cs)
+	if !rewritten {
+		return [][]vulnerability.Criteria{cs}
+	}
+	return searches
+}
+
+func notRewritten(t *testing.T, vp vulnerabilityProvider, cs []vulnerability.Criteria) {
+	t.Helper()
+	searches, rewritten := vp.SearchRewrites(pkg.Package{}, cs)
+	assert.False(t, rewritten)
+	assert.Nil(t, searches)
+}
+
+// rulesProvider panics on an invalid rule, which the index would otherwise skip with only a debug log.
+func rulesProvider(rows ...SearchRule) vulnerabilityProvider {
+	for _, r := range rows {
+		if err := r.Validate(); err != nil {
+			panic(fmt.Sprintf("invalid fixture rule %+v: %v", r, err))
+		}
+	}
+	return vulnerabilityProvider{searchRules: newSearchIndex(rows)}
+}
+
+func TestVulnerabilityProvider_SearchRewrites_KnownRules(t *testing.T) { //nolint:funlen // one case per built-in rule
+	vp := rulesProvider(KnownSearchRules()...)
+	rfRedhat := *distro.New(distro.RapidFortRedHat, "9", "")
+	rfUbuntu := *distro.New(distro.RapidFortUbuntu, "22.04", "")
+	rfDebian := *distro.New(distro.RapidFortDebian, "12", "")
+	rfAlpine := *distro.New(distro.RapidFortAlpine, "3.18", "")
+	rfRocky := *distro.New(distro.RapidFortRockyLinux, "9", "")
+	rfAmazon := *distro.New(distro.RapidFortAmazonLinux, "2023", "")
+	apk, deb, rpm := syftPkg.ApkPkg, syftPkg.DebPkg, syftPkg.RpmPkg
+
+	const (
+		rh    = "rapidfort-redhat@9+"
+		ubu   = "rapidfort-ubuntu@22.04+"
+		rocky = "rapidfort-rockylinux@9+"
+		amzn  = "rapidfort-amazonlinux@2023+"
+	)
+
+	tests := []struct {
+		name   string
+		search []vulnerability.Criteria
+		want   []searched
+	}{
+		{
+			name:   "rapidfort-redhat rf rebuild marker",
+			search: nameSearch(searchOf("curl", "7.76.1-29.el9.rf.1", rfRedhat, rpm)),
+			want:   []searched{ruled(rh+"rf", "curl", 30)},
+		},
+		{
+			name:   "rapidfort-redhat fedora dist tag binds the first tag",
+			search: nameSearch(searchOf("curl", "7.78.0-3.fc31.fc43", rfRedhat, rpm)),
+			want:   []searched{ruled(rh+"fc31", "curl", 20)},
+		},
+		{
+			name:   "a rebuild of a fedora build is in the rf stream alone",
+			search: nameSearch(searchOf("curl", "7.78.0-3.fc43.rf.1", rfRedhat, rpm)),
+			want:   []searched{ruled(rh+"rf", "curl", 30)},
+		},
+		{
+			name:   "the rebuild marker after the dist tag",
+			search: nameSearch(searchOf("rf-pcre2", "10.47-12.rf.fc43", rfRedhat, rpm)),
+			want:   []searched{ruled(rh+"rf", "rf-pcre2", 30)},
+		},
+		{
+			name:   "rf- name fallback",
+			search: nameSearch(searchOf("rf-scanner", "1.0-1", rfRedhat, rpm)),
+			want:   []searched{ruled(rh+"rf", "rf-scanner", 10)},
+		},
+		{
+			// the el9 channel has no rows on release 9: its own el9 builds are channel-less
+			name:   "rf- name with a native el version is channel-less",
+			search: nameSearch(searchOf("rf-scanner", "1.0-1.el9", rfRedhat, rpm)),
+			want:   []searched{own(rh, "rf-scanner"), ruled(rh+"el9", "rf-scanner", 20)},
+		},
+		{
+			name:   "rf- name with another release's el version adds that release's channel",
+			search: nameSearch(searchOf("rf-tar", "2:1.35-7.el10_0.2", rfRedhat, rpm)),
+			want:   []searched{own(rh, "rf-tar"), ruled(rh+"el10", "rf-tar", 20)},
+		},
+		{
+			name:   "rf- name with a dist tag ranks the dist tag first",
+			search: nameSearch(searchOf("rf-scanner", "1.0-1.fc43", rfRedhat, rpm)),
+			want:   []searched{ruled(rh+"fc43", "rf-scanner", 20), ruled(rh+"rf", "rf-scanner", 10)},
+		},
+		{
+			name:   "native el version",
+			search: nameSearch(searchOf("curl", "7.76.1-29.el9", rfRedhat, rpm)),
+			want:   []searched{own(rh, "curl"), ruled(rh+"el9", "curl", 20)},
+		},
+		{
+			name:   "modular el build names no release",
+			search: nameSearch(searchOf("nodejs", "1:20.19.5-1.module+el9.7.0+23457+f6a3e1b2", rfRedhat, rpm)),
+			want:   []searched{own(rh, "nodejs")},
+		},
+		{
+			name:   "rapidfort-rockylinux rebuild",
+			search: nameSearch(searchOf("rf-avahi-autoipd", "0.9~rc2-11.rf", rfRocky, rpm)),
+			want:   []searched{ruled(rocky+"rf", "rf-avahi-autoipd", 30)},
+		},
+		{
+			name:   "rapidfort-rockylinux fedora build",
+			search: nameSearch(searchOf("curl", "0:8.15.0-5.fc43", rfRocky, rpm)),
+			want:   []searched{ruled(rocky+"fc43", "curl", 20)},
+		},
+		{
+			name:   "rapidfort-rockylinux build for another release",
+			search: nameSearch(searchOf("rf-tar", "1.35-7.el10_0.2", rfRocky, rpm)),
+			want:   []searched{own(rocky, "rf-tar"), ruled(rocky+"el10", "rf-tar", 20)},
+		},
+		{
+			name:   "rapidfort-amazonlinux native build",
+			search: nameSearch(searchOf("7zip", "26.01-14.amzn2023.0.1", rfAmazon, rpm)),
+			want:   []searched{own(amzn, "7zip"), ruled(amzn+"amzn2023", "7zip", 20)},
+		},
+		{
+			name:   "rapidfort-amazonlinux rf- name with a native version is not in the rf stream",
+			search: nameSearch(searchOf("rf-acl", "0:2.4.0-1.amzn2023.0.1", rfAmazon, rpm)),
+			want:   []searched{own(amzn, "rf-acl"), ruled(amzn+"amzn2023", "rf-acl", 20)},
+		},
+		{
+			name:   "rapidfort-amazonlinux rf- name fallback",
+			search: nameSearch(searchOf("rf-acl", "0:2.4.0-1", rfAmazon, rpm)),
+			want:   []searched{ruled(amzn+"rf", "rf-acl", 10)},
+		},
+		{
+			name:   "rapidfort-redhat rules speak only for rpm packages",
+			search: nameSearch(searchOf("curl", "7.76.1-29.el9.rf.1", rfRedhat, syftPkg.PythonPkg)),
+			want:   []searched{own(rh, "curl")},
+		},
+		{
+			name:   "rapidfort-ubuntu rebuild",
+			search: nameSearch(searchOf("curl", "7.81.0-1ubuntu1.15rfubu1", rfUbuntu, deb)),
+			want:   []searched{ruled(ubu+"rf", "curl", 30)},
+		},
+		{
+			name:   "rapidfort-ubuntu pre-release rebuild marker",
+			search: nameSearch(searchOf("curl", "7.81.0-1rfubuntu1.15~rf.1", rfUbuntu, deb)),
+			want:   []searched{ruled(ubu+"rf", "curl", 30)},
+		},
+		{
+			name:   "rapidfort-debian rebuild",
+			search: nameSearch(searchOf("curl", "7.88.1-10+rf.1", rfDebian, deb)),
+			want:   []searched{ruled("rapidfort-debian@12+rf", "curl", 30)},
+		},
+		{
+			name:   "rapidfort-debian stock build",
+			search: nameSearch(searchOf("curl", "7.88.1-10+deb12u5", rfDebian, deb)),
+			want:   []searched{own("rapidfort-debian@12+", "curl")},
+		},
+		{
+			name:   "rapidfort-ubuntu stock build",
+			search: nameSearch(searchOf("rf-curl", "7.81.0-1ubuntu1.15", rfUbuntu, deb)),
+			want:   []searched{own(ubu, "rf-curl")},
+		},
+		{
+			name:   "rapidfort-alpine name search is kept",
+			search: nameSearch(searchOf("curl", "8.5.0-r0", rfAlpine, apk)),
+			want:   []searched{own("rapidfort-alpine@3.18+", "curl")},
+		},
+		{
+			name:   "rapidfort-alpine CPE search is dropped",
+			search: cpeSearch(searchOf("curl", "8.5.0-r0", rfAlpine, apk)),
+			want:   []searched{},
+		},
+		{
+			name:   "rapidfort-alpine rule speaks only for apk packages",
+			search: cpeSearch(searchOf("curl", "8.5.0-r0", rfAlpine, syftPkg.NpmPkg)),
+			want:   []searched{own("", "cpe:vendor:curl")},
+		},
+		{
+			name:   "stock alpine CPE search reads NVD",
+			search: cpeSearch(searchOf("curl", "8.5.0-r0", *distro.New(distro.Alpine, "3.18", ""), apk)),
+			want:   []searched{own("", "cpe:vendor:curl")},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.ElementsMatch(t, tt.want, searchesOf(rewrites(vp, pkg.Package{}, tt.search)))
+		})
+	}
+}
+
+// One case per replacement a rule can make, each reached by the searched package alone.
+func TestVulnerabilityProvider_SearchRewrites_NamedOSIsExact(t *testing.T) {
+	alma := *distro.New(distro.AlmaLinux, "9", "")
+	vp := rulesProvider(
+		SearchRule{Action: SearchRuleAdd, MatchDistroName: "almalinux", MatchEcosystem: "rpm", ReplacementDistroName: ptr("almalinux"), Priority: 10},
+		SearchRule{Action: SearchRuleAdd, MatchDistroName: "almalinux", MatchEcosystem: "rpm", ReplacementChannel: ptr("x"), Priority: 5},
+	)
+	searches := rewrites(vp, pkg.Package{}, nameSearch(searchOf("curl", "1.0-1.el9", alma, syftPkg.RpmPkg)))
+
+	// by the priority each search carries, 0 for the package's own
+	exact := map[int]bool{}
+	for _, set := range searches {
+		priority, isExact := 0, false
+		for _, c := range set {
+			switch c := c.(type) {
+			case *search.DistroCriteria:
+				isExact = c.Exact
+			case *search.RuleCriteria:
+				priority = c.Priority
+			}
+		}
+		exact[priority] = isExact
+	}
+	// the OS a rule names is searched as named, not under its alias (rhel), so it is a search of its
+	// own rather than the searched one; a channel of the searched OS keeps its aliasing
+	assert.Equal(t, map[int]bool{0: false, 10: true, 5: false}, exact)
+}
+
+func TestVulnerabilityProvider_SearchRewrites_Replacements(t *testing.T) { //nolint:funlen // one case per replacement type
+	rfRedhat := *distro.New(distro.RapidFortRedHat, "9.4", "")
+	deb := *distro.New(distro.Debian, "12", "")
+	deb.Channels = []string{"x"}
+	debBookworm := *distro.New(distro.Debian, "12", "bookworm")
+	alp := *distro.New(distro.Alpine, "3.21", "")
+	debEco := syftPkg.DebPkg
+
+	const (
+		rh    = "rapidfort-redhat@9.4+"
+		debX  = "debian@12+x"
+		debNo = "debian@12+"
+	)
+
+	tests := []struct {
+		name   string
+		rules  []SearchRule
+		search []vulnerability.Criteria
+		want   []searched
+	}{
+		{
+			name:   "channel: literal, the searched OS version kept",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "rapidfort-redhat", MatchPackageVersion: `.*\.rf`, ReplacementChannel: ptr("rf")}},
+			search: nameSearch(searchOf("curl", "1.0-1.rf", rfRedhat)),
+			want:   []searched{own(rh, "curl"), ruled(rh+"rf", "curl", 0)},
+		},
+		{
+			name:   "channel: matched by the searched OS's channel",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "debian", MatchDistroChannel: "x", MatchEcosystem: "deb", ReplacementChannel: ptr(""), Priority: -10}},
+			search: nameSearch(searchOf("curl", "1.0-1", deb, debEco)),
+			want:   []searched{own(debX, "curl"), ruled(debNo, "curl", -10)},
+		},
+		{
+			name:   "channel: a channel the searched OS lacks does not match",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "debian", MatchDistroChannel: "y", MatchEcosystem: "deb", ReplacementChannel: ptr("")}},
+			search: nameSearch(searchOf("curl", "1.0-1", deb, debEco)),
+			want:   []searched{own(debX, "curl")},
+		},
+		{
+			name:   "channel: the first match of a lazy named group",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "rapidfort-redhat", MatchPackageVersion: `.*?\.fc(?P<v>\d+).*`, ReplacementChannel: ptr("fc${v}")}},
+			search: nameSearch(searchOf("curl", "1.0-1.fc31.fc43", rfRedhat)),
+			want:   []searched{own(rh, "curl"), ruled(rh+"fc31", "curl", 0)},
+		},
+		{
+			name:   "channel: named group of the distro version pattern",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "rapidfort-redhat", MatchDistroVersion: `(?P<major>\d+)(?:\..*)?`, MatchPackageName: `rf-.*`, ReplacementChannel: ptr("el${major}")}},
+			search: nameSearch(searchOf("rf-curl", "1.0-1", rfRedhat)),
+			want:   []searched{own(rh, "rf-curl"), ruled(rh+"el9", "rf-curl", 0)},
+		},
+		{
+			name:   "channel: named group of the name pattern",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "rapidfort-redhat", MatchPackageName: `(?P<stream>rf|fips)-.*`, ReplacementChannel: ptr("${stream}")}},
+			search: nameSearch(searchOf("fips-openssl", "3.0-1", rfRedhat)),
+			want:   []searched{own(rh, "fips-openssl"), ruled(rh+"fips", "fips-openssl", 0)},
+		},
+		{
+			name:   "channel: an empty expansion selects the channel-less rows",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageVersion: `.*?(?:\+(?P<ch>rf))?`, ReplacementChannel: ptr("${ch}")}},
+			search: nameSearch(searchOf("curl", "1.0-1", deb)),
+			want:   []searched{own(debX, "curl"), ruled(debNo, "curl", 0)},
+		},
+		{
+			name:   "package name: a field the index matched",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "rapidfort-redhat", MatchPackageName: "curl", ReplacementPackageName: "rf-${package_name}"}},
+			search: nameSearch(searchOf("curl", "1.0-1", rfRedhat)),
+			want:   []searched{own(rh, "curl"), ruled(rh, "rf-curl", 0)},
+		},
+		{
+			name:   "channel: a field matched by a regex",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "rapidfort-redhat", MatchDistroVersion: `9\..*`, MatchPackageName: `rf-.*`, ReplacementChannel: ptr("el${distro_version}")}},
+			search: nameSearch(searchOf("rf-curl", "1.0-1", rfRedhat)),
+			want:   []searched{own(rh, "rf-curl"), ruled(rh+"el9.4", "rf-curl", 0)},
+		},
+		{
+			name:   "distro name: literal, on an OS search; the OS version kept, channels dropped",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchPackageVersion: `.*[.-]echo.*`, ReplacementDistroName: ptr("echo")}},
+			search: nameSearch(searchOf("curl", "7.88.1-10+deb12u5.echo1", deb, debEco)),
+			want:   []searched{own(debX, "curl"), ruled("echo@12+", "curl", 0)},
+		},
+		{
+			name:   "distro name: literal, on an ecosystem search, which it adds to",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchPackageVersion: `.*[.-]echo.*`, ReplacementDistroName: ptr("echo")}},
+			search: nameSearch(searchOf("curl", "7.88.1-10+deb12u5.echo1", debEco)),
+			want:   []searched{own("", "curl"), ruled("echo@+", "curl", 0)},
+		},
+		{
+			name:   "distro name: named group",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchPackageVersion: `.*[.+-](?P<vendor>echo|minimus)\d*`, ReplacementDistroName: ptr("${vendor}")}},
+			search: nameSearch(searchOf("curl", "7.88.1-10+deb12u5.echo1", deb, debEco)),
+			want:   []searched{own(debX, "curl"), ruled("echo@12+", "curl", 0)},
+		},
+		{
+			name:   "distro version: empty, on an OS search, searches the version-less rows",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchPackageVersion: `.*[.-]echo.*`, ReplacementDistroName: ptr("echo"), ReplacementDistroVersion: ptr("")}},
+			search: nameSearch(searchOf("curl", "7.88.1-10+deb12u5.echo1", deb, debEco)),
+			want:   []searched{own(debX, "curl"), ruled("echo@+", "curl", 0)},
+		},
+		{
+			name:   "distro version: on an ecosystem search",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchPackageVersion: `.*[.-]echo.*`, ReplacementDistroName: ptr("echo"), ReplacementDistroVersion: ptr("1")}},
+			search: nameSearch(searchOf("curl", "7.88.1-10+deb12u5.echo1", debEco)),
+			want:   []searched{own("", "curl"), ruled("echo@1+", "curl", 0)},
+		},
+		{
+			name:   "distro version: named group, of the searched OS",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageVersion: `.*\+deb(?P<v>\d+)u\d+`, ReplacementDistroVersion: ptr("${v}")}},
+			search: nameSearch(searchOf("curl", "7.88.1-10+deb11u5", deb)),
+			want:   []searched{own(debX, "curl"), ruled("debian@11+", "curl", 0)},
+		},
+		{
+			name:   "distro label version: literal, the searched OS version kept",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "debian", MatchEcosystem: "deb", ReplacementDistroLabelVersion: ptr("bookworm")}},
+			search: nameSearch(searchOf("curl", "1.0-1", deb, debEco)),
+			want:   []searched{own(debX, "curl"), ruled("debian@12(bookworm)+", "curl", 0)},
+		},
+		{
+			name:   "distro label version: with an empty version, searches the label alone",
+			rules:  []SearchRule{{Action: SearchRuleReplace, MatchDistroName: "alpine", MatchPackageVersion: `.*_alpha.*`, ReplacementDistroVersion: ptr(""), ReplacementDistroLabelVersion: ptr("edge")}},
+			search: nameSearch(searchOf("busybox", "1.37.0_alpha1-r0", alp)),
+			want:   []searched{ruled("alpine@(edge)+", "busybox", 0)},
+		},
+		{
+			name:   "distro label version: with a distro name, on an ecosystem search",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "apk", MatchPackageVersion: `.*_alpha.*`, ReplacementDistroName: ptr("alpine"), ReplacementDistroLabelVersion: ptr("edge")}},
+			search: nameSearch(searchOf("busybox", "1.37.0_alpha1-r0", syftPkg.ApkPkg)),
+			want:   []searched{own("", "busybox"), ruled("alpine@(edge)+", "busybox", 0)},
+		},
+		{
+			name:   "distro label version: named group",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageVersion: `.*~(?P<label>[a-z]+)\d*`, ReplacementDistroVersion: ptr(""), ReplacementDistroLabelVersion: ptr("${label}")}},
+			search: nameSearch(searchOf("curl", "1.0-1~bookworm1", deb)),
+			want:   []searched{own(debX, "curl"), ruled("debian@(bookworm)+", "curl", 0)},
+		},
+		{
+			name:   "distro label version: empty, drops the searched label",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "debian", MatchEcosystem: "deb", ReplacementDistroLabelVersion: ptr("")}},
+			search: nameSearch(searchOf("curl", "1.0-1", debBookworm, debEco)),
+			want:   []searched{own("debian@12(bookworm)+", "curl"), ruled(debNo, "curl", 0)},
+		},
+		{
+			name:   "distro name and channel together",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageVersion: `.*\+(?P<vendor>echo)(?P<n>\d+)`, ReplacementDistroName: ptr("${vendor}"), ReplacementChannel: ptr("v${n}")}},
+			search: nameSearch(searchOf("curl", "1.0-1+echo2", deb)),
+			want:   []searched{own(debX, "curl"), ruled("echo@12+v2", "curl", 0)},
+		},
+		{
+			name:   "no OS: a name search of the rows of no OS",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: `curl`, ReplacementDistroName: ptr("")}},
+			search: nameSearch(searchOf("curl", "1.0-1", deb)),
+			want:   []searched{own(debX, "curl"), ruled("", "curl", 0)},
+		},
+		{
+			name:   "no OS: on a CPE search, which already reads no OS, a no-op",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "debian", MatchEcosystem: "deb", ReplacementDistroName: ptr("")}},
+			search: cpeSearch(searchOf("curl", "1.0-1", deb, debEco)),
+			want:   []searched{own("", "cpe:vendor:curl")},
+		},
+		{
+			name: "a CPE search: only a cpe match rule applies",
+			rules: []SearchRule{
+				{Action: SearchRuleReplace, MatchDistroName: "debian", MatchPackageVersion: `.*\+rf.*`, ReplacementChannel: ptr("rf"), Priority: 30},
+				{Action: SearchRuleAdd, MatchDistroName: "debian", MatchEcosystem: "deb", ReplacementDistroName: ptr(""), Priority: 5},
+			},
+			search: cpeSearch(searchOf("curl", "1.0-1+rf1", deb, debEco)),
+			want:   []searched{own("", "cpe:vendor:curl")},
+		},
+		{
+			name:   "a CPE search: a drop rule drops it",
+			rules:  []SearchRule{{Action: SearchRuleDrop, MatchDistroName: "debian", MatchCPEProduct: "curl"}},
+			search: cpeSearch(searchOf("curl", "1.0-1+rf1", deb, debEco)),
+			want:   []searched{},
+		},
+		{
+			name: "replace and add: the add rule keeps the searched OS",
+			rules: []SearchRule{
+				{Action: SearchRuleReplace, MatchDistroName: "debian", MatchPackageName: "curl", ReplacementChannel: ptr("rf"), Priority: 30},
+				{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: "curl", ReplacementChannel: ptr("y"), Priority: 5},
+			},
+			search: nameSearch(searchOf("curl", "1.0-1", deb)),
+			want:   []searched{own(debX, "curl"), ruled("debian@12+rf", "curl", 30), ruled("debian@12+y", "curl", 5)},
+		},
+		{
+			name: "replace and add: the searched OS kept once by several add rules",
+			rules: []SearchRule{
+				{Action: SearchRuleReplace, MatchDistroName: "debian", MatchPackageName: "curl", ReplacementChannel: ptr("rf"), Priority: 30},
+				{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: "curl", ReplacementChannel: ptr("y"), Priority: 5},
+				{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: "curl", ReplacementChannel: ptr("z"), Priority: 5},
+			},
+			search: nameSearch(searchOf("curl", "1.0-1", deb)),
+			want:   []searched{own(debX, "curl"), ruled("debian@12+rf", "curl", 30), ruled("debian@12+y", "curl", 5), ruled("debian@12+z", "curl", 5)},
+		},
+		{
+			name: "drop and add: the drop rule drops the searched OS",
+			rules: []SearchRule{
+				{Action: SearchRuleDrop, MatchDistroName: "debian", MatchPackageName: "curl"},
+				{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: "curl", ReplacementChannel: ptr("y"), Priority: 5},
+			},
+			search: nameSearch(searchOf("curl", "1.0-1", deb)),
+			want:   []searched{ruled("debian@12+y", "curl", 5)},
+		},
+		{
+			name:   "package name: named group of a regex name pattern",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: `rf-(?P<base>.+)`, ReplacementPackageName: "${base}"}},
+			search: nameSearch(searchOf("rf-curl", "1.0-1", deb)),
+			want:   []searched{own(debX, "rf-curl"), ruled(debX, "curl", 0)},
+		},
+		{
+			name:   "package name: named group, on an ecosystem search (rootio shape)",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageName: `rootio[-_](?P<upstream>.+)`, ReplacementPackageName: "${upstream}"}},
+			search: nameSearch(searchOf("rootio-requests", "2.31.0", syftPkg.PythonPkg)),
+			want:   []searched{own("", "rootio-requests"), ruled("", "requests", 0)},
+		},
+		{
+			name:   "package name: named group of the version pattern",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "java-archive", MatchPackageName: `.*`, MatchPackageVersion: `.*\.(?P<flavor>jre\d+)`, ReplacementPackageName: "${package_name}-${flavor}"}},
+			search: nameSearch(searchOf("guava", "32.1.3.jre8", syftPkg.JavaPkg)),
+			want:   []searched{own("", "guava"), ruled("", "guava-jre8", 0)},
+		},
+		{
+			name:   "package name: not applied to a CPE search, which has no name",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageName: `rootio[-_](?P<upstream>.+)`, ReplacementPackageName: "${upstream}"}},
+			search: cpeSearch(searchOf("rootio-requests", "2.31.0", syftPkg.PythonPkg)),
+			want:   []searched{own("", "cpe:vendor:rootio-requests")},
+		},
+		{
+			name: "package name: the searched name and repeats are not added",
+			rules: []SearchRule{
+				{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: `(?P<head>cu)rl`, ReplacementPackageName: "rf-${head}"},
+				{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: `cu(?P<rest>rl)`, ReplacementPackageName: "cu${rest}"},
+				{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: `(?P<n>curl)`, ReplacementPackageName: "rf-cu"},
+			},
+			search: nameSearch(searchOf("curl", "1.0-1", deb)),
+			want:   []searched{own(debX, "curl"), ruled(debX, "rf-cu", 0)},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vp := rulesProvider(tt.rules...)
+			assert.ElementsMatch(t, tt.want, searchesOf(rewrites(vp, pkg.Package{}, tt.search)))
+		})
+	}
+}
+
+// ecoSearched is one search a rewrite runs, by the ecosystem and name whose rows it reads.
+type ecoSearched struct {
+	// Ecosystem is the searched ecosystem; empty for a distro or CPE search
+	Ecosystem string
+	// Name is the searched name, "cpe:<vendor>:<product>" for a CPE search
+	Name     string
+	Ruled    bool
+	Priority int
+}
+
+func ownEco(ecosystem, name string) ecoSearched {
+	return ecoSearched{Ecosystem: ecosystem, Name: name}
+}
+
+func ruledEco(ecosystem, name string, priority int) ecoSearched {
+	return ecoSearched{Ecosystem: ecosystem, Name: name, Ruled: true, Priority: priority}
+}
+
+func ecoSearchesOf(searches [][]vulnerability.Criteria) []ecoSearched {
+	out := []ecoSearched{}
+	for _, set := range searches {
+		sp := splitSearch(set)
+		s := ecoSearched{Ecosystem: sp.searchedEcosystem(), Name: sp.searchedName()}
+		if sp.cpe != nil {
+			s.Name = "cpe:" + sp.cpe.CPE.Attributes.Vendor + ":" + sp.cpe.CPE.Attributes.Product
+		}
+		for _, c := range set {
+			if rc, ok := c.(*search.RuleCriteria); ok {
+				s.Ruled, s.Priority = true, rc.Priority
+			}
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
+func TestVulnerabilityProvider_SearchRewrites_Ecosystem(t *testing.T) { //nolint:funlen // one case per rule shape
+	deb := *distro.New(distro.Debian, "12", "")
+	py := syftPkg.PythonPkg
+	const asdfVersion = `.*\+asdf\.\d+`
+
+	tests := []struct {
+		name   string
+		rules  []SearchRule
+		search []vulnerability.Criteria
+		want   []ecoSearched
+	}{
+		{
+			name:   "literal, on an ecosystem search, which it adds to",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageVersion: asdfVersion, ReplacementEcosystem: "python-asdf"}},
+			search: nameSearch(searchOf("requests", "2.31.0+asdf.1", py)),
+			want:   []ecoSearched{ownEco("python", "requests"), ruledEco("python-asdf", "requests", 0)},
+		},
+		{
+			name:   "a reference to the matched ecosystem",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageVersion: asdfVersion, ReplacementEcosystem: "${ecosystem}-asdf"}},
+			search: nameSearch(searchOf("requests", "2.31.0+asdf.1", py)),
+			want:   []ecoSearched{ownEco("python", "requests"), ruledEco("python-asdf", "requests", 0)},
+		},
+		{
+			name:   "a named group of the version pattern",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageVersion: `.*\+(?P<vendor>asdf|qwer)\.\d+`, ReplacementEcosystem: "${ecosystem}-${vendor}"}},
+			search: nameSearch(searchOf("requests", "2.31.0+qwer.3", py)),
+			want:   []ecoSearched{ownEco("python", "requests"), ruledEco("python-qwer", "requests", 0)},
+		},
+		{
+			name: "with a package name substitution, as one search",
+			rules: []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageName: `asdf-(?P<base>.+)`,
+				ReplacementPackageName: "${base}", ReplacementEcosystem: "python-asdf"}},
+			search: nameSearch(searchOf("asdf-requests", "2.31.0", py)),
+			want:   []ecoSearched{ownEco("python", "asdf-requests"), ruledEco("python-asdf", "requests", 0)},
+		},
+		{
+			name:   "replace: the rule's ecosystem alone is searched",
+			rules:  []SearchRule{{Action: SearchRuleReplace, MatchEcosystem: "python", MatchPackageVersion: asdfVersion, ReplacementEcosystem: "python-asdf", Priority: 10}},
+			search: nameSearch(searchOf("requests", "2.31.0+asdf.1", py)),
+			want:   []ecoSearched{ruledEco("python-asdf", "requests", 10)},
+		},
+		{
+			name: "rules searching the same ecosystem: one search, at the highest priority",
+			rules: []SearchRule{
+				{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageVersion: asdfVersion, ReplacementEcosystem: "python-asdf", Priority: 5},
+				{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageName: "requests", ReplacementEcosystem: "PYTHON-ASDF", Priority: 10},
+			},
+			search: nameSearch(searchOf("requests", "2.31.0+asdf.1", py)),
+			want:   []ecoSearched{ownEco("python", "requests"), ruledEco("PYTHON-ASDF", "requests", 10)},
+		},
+		{
+			name:   "the searched ecosystem changes nothing",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageVersion: asdfVersion, ReplacementEcosystem: "PYTHON"}},
+			search: nameSearch(searchOf("requests", "2.31.0+asdf.1", py)),
+			want:   []ecoSearched{ownEco("python", "requests")},
+		},
+		{
+			name:   "an upstream build's version does not match",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageVersion: asdfVersion, ReplacementEcosystem: "python-asdf"}},
+			search: nameSearch(searchOf("requests", "2.31.0", py)),
+			want:   []ecoSearched{ownEco("python", "requests")},
+		},
+		{
+			name:   "not applied to a distro search, which has no ecosystem",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchPackageVersion: `.*\.asdf\d+`, ReplacementEcosystem: "deb-asdf"}},
+			search: nameSearch(searchOf("curl", "7.88.1-10.asdf1", deb, syftPkg.DebPkg)),
+			want:   []ecoSearched{ownEco("", "curl")},
+		},
+		{
+			name: "on a distro search, the rule's OS is dropped with the ecosystem it cannot apply",
+			rules: []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchPackageVersion: `.*\.asdf\d+`,
+				ReplacementEcosystem: "deb-asdf", ReplacementDistroName: ptr("asdf")}},
+			search: nameSearch(searchOf("curl", "7.88.1-10.asdf1", deb, syftPkg.DebPkg)),
+			want:   []ecoSearched{ownEco("", "curl")},
+		},
+		{
+			name:   "not applied to a CPE search, which has no ecosystem",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageVersion: asdfVersion, ReplacementEcosystem: "python-asdf"}},
+			search: cpeSearch(searchOf("requests", "2.31.0+asdf.1", py)),
+			want:   []ecoSearched{ownEco("", "cpe:vendor:requests")},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vp := rulesProvider(tt.rules...)
+			assert.ElementsMatch(t, tt.want, ecoSearchesOf(rewrites(vp, pkg.Package{}, tt.search)))
+		})
+	}
+}
+
+func TestVulnerabilityProvider_SearchRewrites_EcosystemKeepsLanguage(t *testing.T) {
+	vp := rulesProvider(SearchRule{Action: SearchRuleReplace, MatchEcosystem: "python", ReplacementEcosystem: "python-asdf"})
+	p := pkg.Package{Name: "requests", Version: "2.31.0", Type: syftPkg.PythonPkg, Language: syftPkg.Python}
+	cs := []vulnerability.Criteria{search.ByEcosystem(p.Language, p.Type), search.ByPackageName(p.Name), search.WithPackage(p)}
+
+	searches := rewrites(vp, p, cs)
+	require.Len(t, searches, 1)
+	eco := splitSearch(searches[0]).ecosystem
+	require.NotNil(t, eco)
+	assert.Equal(t, syftPkg.Python, eco.Language)
+	assert.Equal(t, syftPkg.Type("python-asdf"), eco.PackageType)
+}
+
+func TestSearchIndex_Rewrite_LogsEcosystem(t *testing.T) {
+	rule := SearchRule{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageVersion: `.*\+asdf\.\d+`, ReplacementEcosystem: "python-asdf"}
+	assert.Equal(t, `add match_ecosystem=python match_package_version=.*\+asdf\.\d+ replacement_ecosystem=python-asdf`, rule.String())
+
+	vp := rulesProvider(rule)
+	logged := recordDebugLogs(t)
+	rewrites(vp, pkg.Package{}, nameSearch(searchOf("requests", "2.31.0+asdf.1", syftPkg.PythonPkg)))
+	assert.Equal(t, []loggedEntry{{msg: "search rule added search", fields: map[string]string{
+		"search": "requests@2.31.0+asdf.1 (python) in no OS",
+		"new":    "requests@2.31.0+asdf.1 (python-asdf) in no OS",
+		"rule":   rule.String(),
+	}}}, *logged)
+}
+
+// A rule stored in the DB can send a language package's search to another ecosystem: rows stored under
+// it are found by the rule's search alone, never by the package's own search.
+func TestVulnerabilityProvider_SearchRules_LanguagePackageUnderReplacementEcosystem(t *testing.T) {
+	const (
+		pkgName = "com.fasterxml.woodstox:woodstox-core"
+		nakID   = "ASDF-2026-0001"
+	)
+	dir := t.TempDir()
+	w, err := NewWriter(Config{DBDirPath: dir})
+	require.NoError(t, err)
+
+	now := time.Now()
+	provider := &Provider{ID: "asdf", Version: "1", Processor: "test", DateCaptured: &now}
+	vuln := &VulnerabilityHandle{
+		Name:       nakID,
+		ProviderID: provider.ID,
+		Provider:   provider,
+		BlobValue:  &VulnerabilityBlob{ID: nakID, Aliases: []string{"GHSA-3f7h-mf4q-vrm4"}},
+	}
+	require.NoError(t, w.AddVulnerabilities(vuln))
+	require.NoError(t, w.AddUnaffectedPackages(&UnaffectedPackageHandle{
+		Vulnerability: vuln,
+		Package:       &Package{Ecosystem: "java-archive-asdf", Name: pkgName},
+		BlobValue: &PackageBlob{
+			CVEs:   []string{"GHSA-3f7h-mf4q-vrm4"},
+			Ranges: []Range{{Version: Version{Type: "maven", Constraint: ">= 6.0.3.asdf-00001"}}},
+		},
+	}))
+	// the rule is read back from the DB, so ReplacementEcosystem must persist
+	require.NoError(t, w.(*store).db.Create(&SearchRule{
+		Action: SearchRuleAdd, MatchEcosystem: string(syftPkg.JavaPkg), MatchPackageVersion: `.*[.-]asdf-\d+`,
+		ReplacementEcosystem: "${ecosystem}-asdf",
+	}).Error)
+	log.CloseAndLogError(w, dir)
+
+	vp, ok := NewVulnerabilityProvider(setupReadOnlyTestStore(t, dir)).(*vulnerabilityProvider)
+	require.True(t, ok)
+
+	// the IDs each search the rules run for a language package at version finds
+	found := func(t *testing.T, version string) [][]string {
+		t.Helper()
+		p := pkg.Package{Name: pkgName, Version: version, Type: syftPkg.JavaPkg, Language: syftPkg.Java}
+		cs := []vulnerability.Criteria{
+			search.ByEcosystem(p.Language, p.Type), search.ByPackageName(pkgName), search.WithPackage(p), search.ForUnaffected(),
+		}
+		var out [][]string
+		for _, s := range rewrites(*vp, p, cs) {
+			vulns, err := vp.FindVulnerabilities(s...)
+			require.NoError(t, err)
+			ids := []string{}
+			for _, v := range vulns {
+				ids = append(ids, v.ID)
+			}
+			out = append(out, ids)
+		}
+		return out
+	}
+
+	t.Run("a downstream build: the rule's search finds the row, the package's own search does not", func(t *testing.T) {
+		require.ElementsMatch(t, [][]string{{nakID}, {}}, found(t, "6.0.3.asdf-00001"))
+	})
+
+	t.Run("an upstream build: no rule applies and the row is not found", func(t *testing.T) {
+		require.Equal(t, [][]string{{}}, found(t, "6.0.3"))
+	})
+}
+
+func TestVulnerabilityProvider_SearchRewrites_Package(t *testing.T) { //nolint:funlen // one case per package shape
+	rfRedhat := *distro.New(distro.RapidFortRedHat, "9", "")
+	const rh = "rapidfort-redhat@9+"
+	vp := rulesProvider(SearchRule{Action: SearchRuleAdd, MatchDistroName: "rapidfort-redhat", MatchPackageName: `curl`, MatchPackageVersion: `.*\.rf`, ReplacementChannel: ptr("rf")})
+
+	t.Run("no rule applies: cs is searched as is", func(t *testing.T) {
+		cs := nameSearch(searchOf("curl", "1.0-1", rfRedhat))
+		notRewritten(t, vp, cs)
+	})
+
+	t.Run("a pattern on a value the search does not state does not match", func(t *testing.T) {
+		for _, cs := range [][]vulnerability.Criteria{
+			nameSearch(searchOf("curl", "", rfRedhat)),
+			nameSearch(searchOf("", "1.0-1.rf", rfRedhat)),
+			nameSearch(searchOf("curl", "1.0-1.rf")),
+		} {
+			notRewritten(t, vp, cs)
+		}
+	})
+
+	t.Run("an ecosystem search reads no OS, whatever OS the package was found on", func(t *testing.T) {
+		p := searchOf("curl", "1.0-1.rf", rfRedhat)
+		cs := []vulnerability.Criteria{search.ByPackageName("curl"), search.ByEcosystem("", syftPkg.RpmPkg), search.WithPackage(p)}
+		notRewritten(t, vp, cs)
+	})
+
+	t.Run("the package falls back to the one given when the search states none", func(t *testing.T) {
+		p := searchOf("curl", "1.0-1.rf", rfRedhat)
+		cs := []vulnerability.Criteria{search.ByPackageName("curl"), search.ByDistro(rfRedhat)}
+		assert.ElementsMatch(t, []searched{own(rh, "curl"), ruled(rh+"rf", "curl", 0)}, searchesOf(rewrites(vp, p, cs)))
+	})
+
+	t.Run("the ecosystem falls back to the language", func(t *testing.T) {
+		vp := rulesProvider(SearchRule{Action: SearchRuleAdd, MatchEcosystem: "python", MatchPackageName: `rootio-(?P<upstream>.+)`, ReplacementPackageName: "${upstream}"})
+		got := searchesOf(rewrites(vp, pkg.Package{}, nameSearch(searchOf("rootio-requests", "", syftPkg.Python))))
+		assert.ElementsMatch(t, []searched{own("", "rootio-requests"), ruled("", "requests", 0)}, got)
+	})
+
+	t.Run("exclude patterns reject only a present subject", func(t *testing.T) {
+		vp := rulesProvider(SearchRule{Action: SearchRuleAdd, MatchDistroName: "rapidfort-redhat", MatchPackageName: `rf-.*`, ExcludePackageName: `rf-skip`, ExcludePackageVersion: `.*\.el\d+`, ReplacementChannel: ptr("rf")})
+		assert.Len(t, searchesOf(rewrites(vp, pkg.Package{}, nameSearch(searchOf("rf-curl", "1.0-1", rfRedhat)))), 2)
+		assert.Len(t, searchesOf(rewrites(vp, pkg.Package{}, nameSearch(searchOf("rf-curl", "", rfRedhat)))), 2, "no version to exclude")
+		assert.Len(t, searchesOf(rewrites(vp, pkg.Package{}, nameSearch(searchOf("rf-curl", "1.0-1.el9", rfRedhat)))), 1)
+		assert.Len(t, searchesOf(rewrites(vp, pkg.Package{}, nameSearch(searchOf("rf-skip", "1.0-1", rfRedhat)))), 1)
+	})
+
+	t.Run("the distro version matches the release, then the label", func(t *testing.T) {
+		vp := rulesProvider(SearchRule{Action: SearchRuleAdd, MatchDistroName: "ubuntu", MatchDistroVersion: `(?P<code>jammy)`, MatchPackageName: `.*`, ReplacementChannel: ptr("${code}-rf")})
+		ubuntu := *distro.New(distro.Ubuntu, "22.04", "jammy")
+		got := searchesOf(rewrites(vp, pkg.Package{}, nameSearch(searchOf("curl", "", ubuntu))))
+		assert.Contains(t, got, ruled("ubuntu@22.04(jammy)+jammy-rf", "curl", 0))
+	})
+
+	t.Run("a match type reference resolves to the value that matched", func(t *testing.T) {
+		vp := rulesProvider(SearchRule{Action: SearchRuleAdd, MatchDistroName: "ubuntu", MatchDistroVersion: `jammy|22\.04`, MatchPackageName: `.*`, ReplacementChannel: ptr("${distro_version}-rf")})
+		jammy := *distro.New(distro.Ubuntu, "22.04", "jammy")
+		assert.Contains(t, searchesOf(rewrites(vp, pkg.Package{}, nameSearch(searchOf("curl", "", jammy)))), ruled("ubuntu@22.04(jammy)+22.04-rf", "curl", 0), "the release, tried first")
+		vp = rulesProvider(SearchRule{Action: SearchRuleAdd, MatchDistroName: "ubuntu", MatchDistroVersion: `jammy`, MatchPackageName: `.*`, ReplacementChannel: ptr("${distro_version}-rf")})
+		assert.Contains(t, searchesOf(rewrites(vp, pkg.Package{}, nameSearch(searchOf("curl", "", jammy)))), ruled("ubuntu@22.04(jammy)+jammy-rf", "curl", 0), "the label, when only it matched")
+	})
+
+	t.Run("every matching rule applies, at its priority", func(t *testing.T) {
+		vp := rulesProvider(
+			SearchRule{Action: SearchRuleAdd, MatchDistroName: "rapidfort-redhat", MatchPackageName: `curl`, ReplacementChannel: ptr("a"), Priority: 2},
+			SearchRule{Action: SearchRuleAdd, MatchDistroName: "rapidfort-redhat", MatchPackageName: `curl`, ReplacementChannel: ptr("b"), Priority: 1},
+		)
+		got := searchesOf(rewrites(vp, pkg.Package{}, nameSearch(searchOf("curl", "", rfRedhat))))
+		assert.ElementsMatch(t, []searched{own(rh, "curl"), ruled(rh+"a", "curl", 2), ruled(rh+"b", "curl", 1)}, got)
+	})
+
+	t.Run("a rule's OS and name are one search", func(t *testing.T) {
+		vp := rulesProvider(
+			SearchRule{Action: SearchRuleAdd, MatchDistroName: "rapidfort-redhat", MatchPackageName: `(?P<head>cu)rl`, ReplacementChannel: ptr("a"), ReplacementPackageName: "rf-${head}", Priority: 2},
+			SearchRule{Action: SearchRuleAdd, MatchDistroName: "rapidfort-redhat", MatchPackageName: `curl`, ReplacementChannel: ptr("c"), Priority: 1},
+		)
+		got := searchesOf(rewrites(vp, pkg.Package{}, nameSearch(searchOf("curl", "", rfRedhat))))
+		assert.ElementsMatch(t, []searched{own(rh, "curl"), ruled(rh+"a", "rf-cu", 2), ruled(rh+"c", "curl", 1)}, got)
+	})
+
+	t.Run("rules searching the same rows keep the higher priority", func(t *testing.T) {
+		vp := rulesProvider(
+			SearchRule{Action: SearchRuleAdd, MatchDistroName: "rapidfort-redhat", MatchPackageName: `curl`, ReplacementChannel: ptr("a"), Priority: 1},
+			SearchRule{Action: SearchRuleAdd, MatchDistroName: "rapidfort-redhat", MatchPackageName: `cu.*`, ReplacementChannel: ptr("a"), Priority: 3},
+		)
+		got := searchesOf(rewrites(vp, pkg.Package{}, nameSearch(searchOf("curl", "", rfRedhat))))
+		assert.ElementsMatch(t, []searched{own(rh, "curl"), ruled(rh+"a", "curl", 3)}, got)
+	})
+}
+
+func TestVulnerabilityProvider_SearchRewrites_KeepsSourcePackage(t *testing.T) {
+	deb := *distro.New(distro.Debian, "12", "")
+	vp := rulesProvider(SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: `rf-(?P<base>.+)`, ReplacementPackageName: "${base}"})
+	cs := []vulnerability.Criteria{search.ByPackageName("rf-curl"), search.BySourcePackage(), search.ByDistro(deb), search.WithPackage(searchOf("rf-curl", "1.0", deb))}
+
+	var names []string
+	for _, set := range rewrites(vp, pkg.Package{}, cs) {
+		for _, c := range set {
+			if nc, ok := c.(*search.PackageNameCriteria); ok {
+				names = append(names, nc.PackageName)
+			}
+		}
+		assert.Contains(t, set, search.BySourcePackage(), "every search is still for a source package")
+	}
+	assert.ElementsMatch(t, []string{"rf-curl", "curl"}, names)
+}
+
+func TestVulnerabilityProvider_SearchRewrites_CPE(t *testing.T) { //nolint:funlen // one case per CPE rule shape
+	deb := *distro.New(distro.Debian, "12", "")
+	debEco := syftPkg.DebPkg
+	curl := cpeSearch(searchOf("curl", "1.0-1", deb, debEco))
+
+	tests := []struct {
+		name   string
+		rules  []SearchRule
+		search []vulnerability.Criteria
+		want   []searched
+	}{
+		{
+			name:   "vendor: added beside the searched CPE",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchCPEProduct: "curl", ReplacementCPEVendor: "haxx", Priority: 5}},
+			search: curl,
+			want:   []searched{own("", "cpe:vendor:curl"), ruled("", "cpe:haxx:curl", 5)},
+		},
+		{
+			name:   "vendor and product: in place of the searched CPE",
+			rules:  []SearchRule{{Action: SearchRuleReplace, MatchCPEVendor: "vendor", MatchCPEProduct: "curl", ReplacementCPEVendor: "haxx", ReplacementCPEProduct: "libcurl"}},
+			search: curl,
+			want:   []searched{ruled("", "cpe:haxx:libcurl", 0)},
+		},
+		{
+			name:   "product: named group of the product pattern, matched field of the vendor",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchCPEVendor: `.*`, MatchCPEProduct: `rf-(?P<base>.+)`, ReplacementCPEVendor: "${cpe_vendor}-${base}", ReplacementCPEProduct: "${base}"}},
+			search: cpeSearch(searchOf("rf-curl", "1.0-1", deb, debEco)),
+			want:   []searched{own("", "cpe:vendor:rf-curl"), ruled("", "cpe:vendor-curl:curl", 0)},
+		},
+		{
+			name:   "exclude vendor: rejects a matching vendor",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchCPEProduct: "curl", ExcludeCPEVendor: "vend.*", ReplacementCPEVendor: "haxx"}},
+			search: curl,
+			want:   []searched{own("", "cpe:vendor:curl")},
+		},
+		{
+			name:   "exclude product: passes another product",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchCPEVendor: "vendor", ExcludeCPEProduct: "wget", ReplacementCPEVendor: "haxx"}},
+			search: curl,
+			want:   []searched{own("", "cpe:vendor:curl"), ruled("", "cpe:haxx:curl", 0)},
+		},
+		{
+			name:   "exclude product: rejects a matching product",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchCPEVendor: "vendor", ExcludeCPEProduct: "curl", ReplacementCPEVendor: "haxx"}},
+			search: curl,
+			want:   []searched{own("", "cpe:vendor:curl")},
+		},
+		{
+			name:   "the searched CPE is not added again",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchCPEProduct: "curl", ReplacementCPEVendor: "VENDOR", ReplacementCPEProduct: "Curl"}},
+			search: curl,
+			want:   []searched{own("", "cpe:vendor:curl")},
+		},
+		{
+			name: "rules searching the same CPE keep the higher priority",
+			rules: []SearchRule{
+				{Action: SearchRuleAdd, MatchCPEProduct: "curl", ReplacementCPEVendor: "haxx", Priority: 1},
+				{Action: SearchRuleAdd, MatchCPEProduct: "curl", ReplacementCPEProduct: "libcurl", Priority: 2},
+				{Action: SearchRuleAdd, MatchCPEProduct: "cu.*", MatchEcosystem: "deb", ReplacementCPEVendor: "haxx", Priority: 3},
+			},
+			search: curl,
+			want:   []searched{own("", "cpe:vendor:curl"), ruled("", "cpe:haxx:curl", 3), ruled("", "cpe:vendor:libcurl", 2)},
+		},
+		{
+			name:   "a CPE rule does not apply to a name search",
+			rules:  []SearchRule{{Action: SearchRuleAdd, MatchEcosystem: "deb", MatchCPEProduct: `.*`, ReplacementCPEVendor: "haxx"}},
+			search: nameSearch(searchOf("curl", "1.0-1", deb, debEco)),
+			want:   []searched{own("debian@12+", "curl")},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vp := rulesProvider(tt.rules...)
+			assert.ElementsMatch(t, tt.want, searchesOf(rewrites(vp, pkg.Package{}, tt.search)))
+		})
+	}
+
+	t.Run("the rest of the search and of its CPE is kept", func(t *testing.T) {
+		vp := rulesProvider(SearchRule{Action: SearchRuleReplace, MatchCPEProduct: "curl", ReplacementCPEVendor: "haxx"})
+		p := searchOf("curl", "8.5.0", deb, debEco)
+		cs := []vulnerability.Criteria{search.ByCPE(cpe.Must("cpe:2.3:a:vendor:curl:8.5.0:*:*:*:*:*:*:*", "")), search.BySourcePackage(), search.WithPackage(p)}
+
+		searches := rewrites(vp, pkg.Package{}, cs)
+		require.Len(t, searches, 1)
+		var got []string
+		for _, c := range searches[0] {
+			if cc, ok := c.(*search.CPECriteria); ok {
+				got = append(got, cc.CPE.Attributes.String())
+			}
+		}
+		assert.Equal(t, []string{"cpe:2.3:a:haxx:curl:8.5.0:*:*:*:*:*:*:*"}, got)
+		assert.Contains(t, searches[0], search.BySourcePackage())
+		assert.Contains(t, searches[0], search.WithPackage(p))
+		assert.Equal(t, "cpe:2.3:a:vendor:curl:8.5.0:*:*:*:*:*:*:*", cs[0].(*search.CPECriteria).CPE.Attributes.String(), "the searched CPE is not changed")
+	})
+}
+
+func TestVulnerabilityProvider_SearchRewrites_UpstreamSearch(t *testing.T) {
+	deb := *distro.New(distro.Debian, "12", "")
+	const debNo = "debian@12+"
+	p := searchOf("curl", "1.0", deb)
+	direct := nameSearch(p)
+	upstream := append(nameSearch(p), search.BySourcePackage())
+
+	t.Run("true matches only a search for an upstream", func(t *testing.T) {
+		vp := rulesProvider(SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: "curl", MatchUpstreamSearch: ptr(true), ReplacementChannel: ptr("rf")})
+		notRewritten(t, vp, direct)
+		assert.ElementsMatch(t, []searched{own(debNo, "curl"), ruled(debNo+"rf", "curl", 0)}, searchesOf(rewrites(vp, pkg.Package{}, upstream)))
+	})
+
+	t.Run("false matches only a search for the package itself", func(t *testing.T) {
+		vp := rulesProvider(SearchRule{Action: SearchRuleDrop, MatchDistroName: "debian", MatchPackageName: "curl", MatchUpstreamSearch: ptr(false)})
+		assert.Empty(t, rewrites(vp, pkg.Package{}, direct))
+		notRewritten(t, vp, upstream)
+	})
+
+	t.Run("unset matches either", func(t *testing.T) {
+		vp := rulesProvider(SearchRule{Action: SearchRuleDrop, MatchDistroName: "debian", MatchPackageName: "curl"})
+		assert.Empty(t, rewrites(vp, pkg.Package{}, direct))
+		assert.Empty(t, rewrites(vp, pkg.Package{}, upstream))
+	})
+
+	t.Run("a regex rule is limited too", func(t *testing.T) {
+		vp := rulesProvider(SearchRule{Action: SearchRuleDrop, MatchDistroName: "debian", MatchPackageName: "cu.*", MatchUpstreamSearch: ptr(true)})
+		notRewritten(t, vp, direct)
+		assert.Empty(t, rewrites(vp, pkg.Package{}, upstream))
+	})
+}
+
+func TestApplicableSearchRules_ClientSchema(t *testing.T) {
+	var rows []searchRuleRow
+	for _, r := range []SearchRule{
+		{Action: SearchRuleAdd, MatchDistroName: "a", MatchPackageName: "x", ReplacementChannel: ptr("c")},
+		{Action: SearchRuleAdd, MatchDistroName: "b", MatchPackageName: "x", ReplacementChannel: ptr("c"), ApplicableClientDBSchemas: "< 6.0.0"},
+		{Action: SearchRuleAdd, MatchDistroName: "c", MatchPackageName: "x", ReplacementChannel: ptr("c"), ApplicableClientDBSchemas: ">= 6.0.0"},
+		// an unparsable constraint is skipped, not applied
+		{Action: SearchRuleAdd, MatchDistroName: "d", MatchPackageName: "x", ReplacementChannel: ptr("c"), ApplicableClientDBSchemas: "not-a-constraint"},
+	} {
+		rows = append(rows, searchRuleRow{SearchRule: r})
+	}
+
+	var names []string
+	for _, r := range applicableSearchRules(rows, nil) {
+		names = append(names, r.MatchDistroName)
+	}
+	assert.Equal(t, []string{"a", "c"}, names)
+}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	grypePkg "github.com/anchore/grype/grype/pkg"
@@ -37,6 +38,15 @@ type DB struct {
 
 var _ vulnerability.Provider = &DB{}
 var _ vulnerability.EOLChecker = &DB{}
+
+var _ v6.SearchRuleProvider = &DB{}
+
+func (db *DB) SearchRewrites(p grypePkg.Package, cs []vulnerability.Criteria) ([][]vulnerability.Criteria, bool) {
+	if rp, ok := db.provider.(v6.SearchRuleProvider); ok {
+		return rp.SearchRewrites(p, cs)
+	}
+	return nil, false
+}
 
 // PackageSearchNames returns the package names to search for in the database.
 func (db *DB) PackageSearchNames(p grypePkg.Package) []string {

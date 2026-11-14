@@ -38,6 +38,16 @@ const (
 	SecureOS     Type = "secureos"
 	PostmarketOS Type = "postmarketos"
 	Hummingbird  Type = "hummingbird"
+
+	// RapidFort types are never read from /etc/os-release; they are applied by an Identifier
+	RapidFortUbuntu      Type = "rapidfort-ubuntu"
+	RapidFortAlpine      Type = "rapidfort-alpine"
+	RapidFortDebian      Type = "rapidfort-debian"
+	RapidFortRedHat      Type = "rapidfort-redhat"
+	RapidFortRockyLinux  Type = "rapidfort-rockylinux"
+	RapidFortAlmaLinux   Type = "rapidfort-almalinux"
+	RapidFortOracleLinux Type = "rapidfort-oraclelinux"
+	RapidFortAmazonLinux Type = "rapidfort-amazonlinux"
 )
 
 // All contains all Linux distribution options
@@ -70,13 +80,24 @@ var All = []Type{
 	SecureOS,
 	PostmarketOS,
 	Hummingbird,
+	RapidFortUbuntu,
+	RapidFortAlpine,
+	RapidFortDebian,
+	RapidFortRedHat,
+	RapidFortRockyLinux,
+	RapidFortAlmaLinux,
+	RapidFortOracleLinux,
+	RapidFortAmazonLinux,
 }
+
+// rhelOSReleaseID is the /etc/os-release ID for Red Hat Enterprise Linux (the Type is "redhat")
+const rhelOSReleaseID = "rhel"
 
 // IDMapping maps a distro ID from the /etc/os-release (e.g. like "ubuntu") to a Distro type.
 var IDMapping = map[string]Type{
 	"debian":        Debian,
-	"ubuntu":        Ubuntu,
-	"rhel":          RedHat,
+	string(Ubuntu):  Ubuntu,
+	rhelOSReleaseID: RedHat,
 	"centos":        CentOS,
 	"fedora":        Fedora,
 	"alpine":        Alpine,
@@ -101,6 +122,23 @@ var IDMapping = map[string]Type{
 	"secureos":      SecureOS,
 	"postmarketos":  PostmarketOS,
 	"hummingbird":   Hummingbird,
+
+	"rapidfort-ubuntu":      RapidFortUbuntu,
+	"rapidfort-alpine":      RapidFortAlpine,
+	"rapidfort-debian":      RapidFortDebian,
+	"rapidfort-redhat":      RapidFortRedHat,
+	"rapidfort-rockylinux":  RapidFortRockyLinux,
+	"rapidfort-almalinux":   RapidFortAlmaLinux,
+	"rapidfort-oraclelinux": RapidFortOracleLinux,
+	"rapidfort-amazonlinux": RapidFortAmazonLinux,
+}
+
+// TypeFromID returns the Type for an os-release ID (e.g. "ubuntu"), or the raw ID as a Type when unknown.
+func TypeFromID(id string) Type {
+	if t, ok := IDMapping[id]; ok {
+		return t
+	}
+	return Type(id)
 }
 
 // aliasTypes maps common aliases to their corresponding Type.

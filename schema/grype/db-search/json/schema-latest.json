@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "anchore.io/schema/grype/db-search/json/1.1.7/matches",
+  "$id": "anchore.io/schema/grype/db-search/json/1.1.8/matches",
   "$ref": "#/$defs/Matches",
   "$defs": {
     "AffectedPackageInfo": {

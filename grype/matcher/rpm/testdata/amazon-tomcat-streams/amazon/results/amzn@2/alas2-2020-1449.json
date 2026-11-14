@@ -1,0 +1,34 @@
+{
+  "identifier": "amzn:2/alas2-2020-1449",
+  "item": {
+    "Vulnerability": {
+      "Description": "A deserialization flaw was discovered in Apache Tomcat's use of a FileStore. (CVE-2020-9484)",
+      "FixedIn": [
+        {
+          "Name": "tomcat",
+          "NamespaceName": "amzn:2",
+          "Version": "7.0.76-10.amzn2.0.2",
+          "VersionFormat": "rpm"
+        },
+        {
+          "Name": "tomcat-servlet-3.0-api",
+          "NamespaceName": "amzn:2",
+          "Version": "7.0.76-10.amzn2.0.2",
+          "VersionFormat": "rpm"
+        }
+      ],
+      "Link": "https://alas.aws.amazon.com/AL2/ALAS2-2020-1449.html",
+      "Metadata": {
+        "CVE": [
+          {
+            "Name": "CVE-2020-9484"
+          }
+        ]
+      },
+      "Name": "ALAS2-2020-1449",
+      "NamespaceName": "amzn:2",
+      "Severity": "High"
+    }
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/os/schema-1.1.2.json"
+}

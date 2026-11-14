@@ -29,4 +29,5 @@ type SynthesisConfig struct {
 type DistroConfig struct {
 	Override    *distro.Distro
 	FixChannels []distro.FixChannel
+	Identifiers []distro.Identifier
 }
