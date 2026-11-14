@@ -204,7 +204,14 @@ func NewFromRelease(release linux.Release, channels []FixChannel) (*Distro, erro
 		selectedVersion = release.VersionID
 	}
 
-	d := New(t, selectedVersion, release.VersionCodename, release.IDLike...)
+	codename := release.VersionCodename
+	if selectedVersion != "" && !isKnownID(release.ID) {
+		// the distro was identified through ID_LIKE, so the codename is the derivative's own and would
+		// keep the version from matching any record of the distro it derives from
+		codename = ""
+	}
+
+	d := New(t, selectedVersion, codename, release.IDLike...)
 	d.Channels = applyChannels(release, selectedVersionObj, d.Channels, channels)
 	d.SupportEnd = parseSupportEnd(release.SupportEnd)
 
