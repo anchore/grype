@@ -78,7 +78,9 @@ func newerCurrentReleaseDateFirst(a, b *csaf.Advisory) int {
 }
 
 // FilterMatches takes a set of scanning results and moves any results marked in
-// the VEX data as fixed or not_affected to the ignored list.
+// the VEX data with a filterable status to the ignored list. By default that is
+// fixed and not_affected; statuses listed via vex-add (affected,
+// under_investigation) are also filterable when present as ignore rules.
 func (*Processor) FilterMatches(
 	docRaw any, ignoreRules []match.IgnoreRule, _ *pkg.Context, matches *match.Matches, ignoredMatches []match.IgnoredMatch,
 ) (*match.Matches, []match.IgnoredMatch, error) {
@@ -87,6 +89,7 @@ func (*Processor) FilterMatches(
 		return nil, nil, errors.New("unable to cast vex document as CSAF Advisories")
 	}
 
+	allowedStatuses := allowedFilterStatuses(ignoreRules)
 	remainingMatches := match.NewMatches()
 	for _, m := range matches.Sorted() {
 		// Seek if our advisories have information about a vulnerability affecting
@@ -97,14 +100,8 @@ func (*Processor) FilterMatches(
 			continue
 		}
 
-		// Filtering only applies to not_affected and fixed statuses
-		if !matchesVexStatus(advMatch.Status, vexStatus.NotAffected) && !matchesVexStatus(advMatch.Status, vexStatus.Fixed) {
-			remainingMatches.Add(m)
-			continue
-		}
-
 		// Check if there's any ignore rule that matches the current match statement
-		rule := matchingRule(ignoreRules, m, advMatch, vexStatus.IgnoreList())
+		rule := matchingRule(ignoreRules, m, advMatch, allowedStatuses)
 		if rule == nil {
 			remainingMatches.Add(m)
 			continue
@@ -117,6 +114,29 @@ func (*Processor) FilterMatches(
 	}
 
 	return &remainingMatches, ignoredMatches, nil
+}
+
+// allowedFilterStatuses returns IgnoreList plus any augment statuses the user
+// opted into via ignore rules (vex-add).
+func allowedFilterStatuses(ignoreRules []match.IgnoreRule) []vexStatus.Status {
+	optIn := make([]vexStatus.Status, 0, len(ignoreRules))
+	for _, r := range ignoreRules {
+		if r.VexStatus != "" {
+			optIn = append(optIn, vexStatus.Status(r.VexStatus))
+		}
+	}
+	return vexStatus.AllowedFilterStatuses(optIn)
+}
+
+// alreadyFilteredByVexStatus reports whether a match was already suppressed by
+// a VEX ignore rule for the given status, so AugmentMatches must not undo it.
+func alreadyFilteredByVexStatus(im match.IgnoredMatch, status vexStatus.Status) bool {
+	for _, r := range im.AppliedIgnoreRules {
+		if r.Namespace == "vex" && r.VexStatus == string(status) {
+			return true
+		}
+	}
+	return false
 }
 
 // AugmentMatches adds results to the match.Matches array when matching data
@@ -133,6 +153,20 @@ func (*Processor) AugmentMatches(
 	remainingIgnoredMatches := []match.IgnoredMatch{}
 	for _, m := range ignoredMatches {
 		if advMatch := advisories.matches(m.Vulnerability.ID, m.Package.PURL); advMatch != nil {
+			// Do not undo a FilterMatches suppression for the same VEX status.
+			// vex-add installs ignore rules for these statuses; Augment must leave
+			// those filtered matches ignored (see #3890).
+			skipAugment := false
+			for _, allowed := range vexStatus.AugmentList() {
+				if matchesVexStatus(advMatch.Status, allowed) && alreadyFilteredByVexStatus(m, allowed) {
+					skipAugment = true
+					break
+				}
+			}
+			if skipAugment {
+				remainingIgnoredMatches = append(remainingIgnoredMatches, m)
+				continue
+			}
 			if rule := matchingRule(ignoreRules, m.Match, advMatch, vexStatus.AugmentList()); rule != nil {
 				newMatch := m.Match
 				newMatch.Details = append(newMatch.Details, match.Detail{
