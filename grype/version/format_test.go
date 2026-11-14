@@ -167,6 +167,19 @@ func TestParseFormat(t *testing.T) {
 			input:  "alpm",
 			format: PacmanFormat,
 		},
+		// CpanFormat cases
+		{
+			input:  "cpan",
+			format: CpanFormat,
+		},
+		{
+			input:  "perl",
+			format: CpanFormat,
+		},
+		{
+			input:  "CPAN",
+			format: CpanFormat,
+		},
 		// UnknownFormat case
 		{
 			input:  "unknown",
