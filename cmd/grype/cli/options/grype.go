@@ -15,14 +15,15 @@ type Grype struct {
 	Outputs                    []string           `yaml:"output" json:"output" mapstructure:"output"` // -o, <presenter>=<file> the Presenter hint string to use for report formatting and the output file
 	File                       string             `yaml:"file" json:"file" mapstructure:"file"`       // --file, the file to write report output to
 	Pretty                     bool               `yaml:"pretty" json:"pretty" mapstructure:"pretty"`
-	Distro                     string             `yaml:"distro" json:"distro" mapstructure:"distro"`                                           // --distro, specify a distro to explicitly use
-	GenerateMissingCPEs        bool               `yaml:"add-cpes-if-none" json:"add-cpes-if-none" mapstructure:"add-cpes-if-none"`             // --add-cpes-if-none, automatically generate CPEs if they are not present in import (e.g. from a 3rd party SPDX document)
-	OutputTemplateFile         string             `yaml:"output-template-file" json:"output-template-file" mapstructure:"output-template-file"` // -t, the template file to use for formatting the final report
-	CheckForAppUpdate          bool               `yaml:"check-for-app-update" json:"check-for-app-update" mapstructure:"check-for-app-update"` // whether to check for an application update on start up or not
-	OnlyFixed                  bool               `yaml:"only-fixed" json:"only-fixed" mapstructure:"only-fixed"`                               // only fail if detected vulns have a fix
-	OnlyNotFixed               bool               `yaml:"only-notfixed" json:"only-notfixed" mapstructure:"only-notfixed"`                      // only fail if detected vulns don't have a fix
-	IgnoreStates               string             `yaml:"ignore-states" json:"ignore-wontfix" mapstructure:"ignore-wontfix"`                    // ignore detections for vulnerabilities matching these comma-separated fix states
-	Platform                   string             `yaml:"platform" json:"platform" mapstructure:"platform"`                                     // --platform, override the target platform for a container image
+	Distro                     string             `yaml:"distro" json:"distro" mapstructure:"distro"`                                                 // --distro, specify a distro to explicitly use
+	GenerateMissingCPEs        bool               `yaml:"add-cpes-if-none" json:"add-cpes-if-none" mapstructure:"add-cpes-if-none"`                   // --add-cpes-if-none, automatically generate CPEs if they are not present in import (e.g. from a 3rd party SPDX document)
+	OutputTemplateFile         string             `yaml:"output-template-file" json:"output-template-file" mapstructure:"output-template-file"`       // -t, the template file to use for formatting the final report
+	OutputTemplateLegacy       bool               `yaml:"output-template-legacy" json:"output-template-legacy" mapstructure:"output-template-legacy"` // use the legacy Go struct document as the template input instead of the JSON output shape
+	CheckForAppUpdate          bool               `yaml:"check-for-app-update" json:"check-for-app-update" mapstructure:"check-for-app-update"`       // whether to check for an application update on start up or not
+	OnlyFixed                  bool               `yaml:"only-fixed" json:"only-fixed" mapstructure:"only-fixed"`                                     // only fail if detected vulns have a fix
+	OnlyNotFixed               bool               `yaml:"only-notfixed" json:"only-notfixed" mapstructure:"only-notfixed"`                            // only fail if detected vulns don't have a fix
+	IgnoreStates               string             `yaml:"ignore-states" json:"ignore-wontfix" mapstructure:"ignore-wontfix"`                          // ignore detections for vulnerabilities matching these comma-separated fix states
+	Platform                   string             `yaml:"platform" json:"platform" mapstructure:"platform"`                                           // --platform, override the target platform for a container image
 	Search                     search             `yaml:"search" json:"search" mapstructure:"search"`
 	Ignore                     []match.IgnoreRule `yaml:"ignore" json:"ignore" mapstructure:"ignore"`
 	Exclusions                 []string           `yaml:"exclude" json:"exclude" mapstructure:"exclude"`
@@ -114,6 +115,10 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 	flags.StringVarP(&o.OutputTemplateFile,
 		"template", "t",
 		"specify the path to a Go template file (requires 'template' output to be selected)")
+
+	flags.BoolVarP(&o.OutputTemplateLegacy,
+		"template-legacy", "",
+		"use the legacy Go struct document as the template input instead of the JSON output shape (requires 'template' output to be selected)")
 
 	flags.StringVarP(&o.FailOn,
 		"fail-on", "f",

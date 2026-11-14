@@ -4,13 +4,13 @@
 {{- $type_length := 4}}
 {{- $vulnerability_length := 13}}
 {{- $severity_length := 8}}
-{{- range .Matches}}
-{{- $temp_name_length := (len .Artifact.Name)}}
-{{- $temp_installed_length := (len .Artifact.Version)}}
-{{- $temp_fixed_in_length := (len (.Vulnerability.Fix.Versions | join " "))}}
-{{- $temp_type_length := (len .Artifact.Type)}}
-{{- $temp_vulnerability_length := (len .Vulnerability.ID)}}
-{{- $temp_severity_length := (len .Vulnerability.Severity)}}
+{{- range .matches}}
+{{- $temp_name_length := (len .artifact.name)}}
+{{- $temp_installed_length := (len .artifact.version)}}
+{{- $temp_fixed_in_length := (len (.vulnerability.fix.versions | join " "))}}
+{{- $temp_type_length := (len .artifact.type)}}
+{{- $temp_vulnerability_length := (len .vulnerability.id)}}
+{{- $temp_severity_length := (len .vulnerability.severity)}}
 {{- if (lt $name_length $temp_name_length) }}
 {{- $name_length = $temp_name_length}}
 {{- end}}
@@ -43,6 +43,6 @@
 {{- $severity_length = add $severity_length 2}}
 {{- $pad_severity := repeat (int $severity_length) " "}}
 {{cat "NAME" (substr 5 (int $name_length) $pad_name)}}{{cat "INSTALLED" (substr 10 (int $installed_length) $pad_installed)}}{{cat "FIXED-IN" (substr 9 (int $fixed_in_length) $pad_fixed_in)}}{{cat "TYPE" (substr 5 (int $type_length) $pad_type)}}{{cat "VULNERABILITY" (substr 14 (int $vulnerability_length) $pad_vulnerability)}}{{cat "SEVERITY" (substr 9 (int $severity_length) $pad_severity)}}
-{{- range .Matches}}
-{{cat .Artifact.Name (substr (int (add (len .Artifact.Name) 1)) (int $name_length) $pad_name)}}{{cat .Artifact.Version (substr (int (add (len .Artifact.Version) 1)) (int $installed_length) $pad_installed)}}{{cat (.Vulnerability.Fix.Versions | join " ") (substr (int (add (len (.Vulnerability.Fix.Versions | join " ")) 1)) (int $fixed_in_length) $pad_fixed_in)}}{{cat .Artifact.Type (substr (int (add (len .Artifact.Type) 1)) (int $type_length) $pad_type)}}{{cat .Vulnerability.ID (substr (int (add (len .Vulnerability.ID) 1)) (int $vulnerability_length) $pad_vulnerability)}}{{cat .Vulnerability.Severity (substr (int (add (len .Vulnerability.Severity) 1)) (int $severity_length) $pad_severity)}}
+{{- range .matches}}
+{{cat .artifact.name (substr (int (add (len .artifact.name) 1)) (int $name_length) $pad_name)}}{{cat .artifact.version (substr (int (add (len .artifact.version) 1)) (int $installed_length) $pad_installed)}}{{cat (.vulnerability.fix.versions | join " ") (substr (int (add (len (.vulnerability.fix.versions | join " ")) 1)) (int $fixed_in_length) $pad_fixed_in)}}{{cat .artifact.type (substr (int (add (len .artifact.type) 1)) (int $type_length) $pad_type)}}{{cat .vulnerability.id (substr (int (add (len .vulnerability.id) 1)) (int $vulnerability_length) $pad_vulnerability)}}{{cat .vulnerability.severity (substr (int (add (len .vulnerability.severity) 1)) (int $severity_length) $pad_severity)}}
 {{- end}}

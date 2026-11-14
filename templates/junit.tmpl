@@ -1,23 +1,23 @@
 <?xml version="1.0" ?>
 <testsuites name="grype-junit">
-{{- $failures := len $.Matches }}
-    <testsuite tests="{{ $failures }}" failures="{{ $failures }}" name="{{ $.Distro.Name }}:{{ $.Distro.Version }}" errors="0" skipped="0">
+{{- $failures := len $.matches }}
+    <testsuite tests="{{ $failures }}" failures="{{ $failures }}" name="{{ $.distro.name }}:{{ $.distro.version }}" errors="0" skipped="0">
         <properties>
-            <property name="type" value="{{ $.Distro.Name }}"></property>
+            <property name="type" value="{{ $.distro.name }}"></property>
         </properties>
-        {{- range .Matches }}
-        <testcase classname="{{ .Artifact.Name }}-{{ .Artifact.Version }} ({{ .Artifact.Type }})" name="[{{ .Vulnerability.Severity }}] {{ .Vulnerability.ID }}">
-            <failure message="{{ .Artifact.Name }}: {{ .Vulnerability.ID }}" type="description">
+        {{- range .matches }}
+        <testcase classname="{{ .artifact.name }}-{{ .artifact.version }} ({{ .artifact.type }})" name="[{{ .vulnerability.severity }}] {{ .vulnerability.id }}">
+            <failure message="{{ .artifact.name }}: {{ .vulnerability.id }}" type="description">
 <![CDATA[
-{{ html .Vulnerability.Description }}
+{{ html .vulnerability.description }}
 
 CPEs:
-{{- range .Artifact.CPEs }}
+{{- range .artifact.cpes }}
 {{ . }}
 {{- end }}
 
 DataSource:
-{{ html .Vulnerability.DataSource }}
+{{ html .vulnerability.dataSource }}
 
 ]]></failure>
         </testcase>
