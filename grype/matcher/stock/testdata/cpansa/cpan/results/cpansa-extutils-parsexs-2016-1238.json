@@ -1,0 +1,147 @@
+{
+  "identifier": "cpansa-extutils-parsexs-2016-1238",
+  "item": {
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "CPAN",
+          "name": "ExtUtils-ParseXS"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2016-08-02",
+                    "kind": "advisory",
+                    "version": "3.35"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "3.35"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      },
+      {
+        "package": {
+          "ecosystem": "CPAN",
+          "name": "perl"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2016-08-02",
+                    "kind": "advisory",
+                    "version": "5.024001"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "5.024001"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      }
+    ],
+    "aliases": [
+      "CVE-2016-1238"
+    ],
+    "database_specific": {
+      "cpansa_commit": "2089ff7201b44e5e462742a5baaa080ba003d257",
+      "cpansa_generated": "Sun Jul 26 06:23:50 2026",
+      "severity": "high"
+    },
+    "details": "(1) cpan/Archive-Tar/bin/ptar, (2) cpan/Archive-Tar/bin/ptardiff, (3) cpan/Archive-Tar/bin/ptargrep, (4) cpan/CPAN/scripts/cpan, (5) cpan/Digest-SHA/shasum, (6) cpan/Encode/bin/enc2xs, (7) cpan/Encode/bin/encguess, (8) cpan/Encode/bin/piconv, (9) cpan/Encode/bin/ucmlint, (10) cpan/Encode/bin/unidump, (11) cpan/ExtUtils-MakeMaker/bin/instmodsh, (12) cpan/IO-Compress/bin/zipdetails, (13) cpan/JSON-PP/bin/json_pp, (14) cpan/Test-Harness/bin/prove, (15) dist/ExtUtils-ParseXS/lib/ExtUtils/xsubpp, (16) dist/Module-CoreList/corelist, (17) ext/Pod-Html/bin/pod2html, (18) utils/c2ph.PL, (19) utils/h2ph.PL, (20) utils/h2xs.PL, (21) utils/libnetcfg.PL, (22) utils/perlbug.PL, (23) utils/perldoc.PL, (24) utils/perlivp.PL, and (25) utils/splain.PL in Perl 5.x before 5.22.3-RC2 and 5.24 before 5.24.1-RC2 do not properly remove . (period) characters from the end of the includes directory array, which might allow local users to gain privileges via a Trojan horse module under the current working directory.",
+    "id": "CPANSA-ExtUtils-ParseXS-2016-1238",
+    "modified": "2026-07-26T06:23:50Z",
+    "published": "2016-08-02T00:00:00Z",
+    "references": [
+      {
+        "type": "WEB",
+        "url": "http://lists.opensuse.org/opensuse-security-announce/2019-08/msg00002.html"
+      },
+      {
+        "type": "WEB",
+        "url": "http://perl5.git.perl.org/perl.git/commit/cee96d52c39b1e7b36e1c62d38bcd8d86e9a41ab"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.debian.org/security/2016/dsa-3628"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.nntp.perl.org/group/perl.perl5.porters/2016/07/msg238271.html"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.securityfocus.com/bid/92136"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.securitytracker.com/id/1036440"
+      },
+      {
+        "type": "WEB",
+        "url": "https://h20566.www2.hpe.com/portal/site/hpsc/public/kb/docDisplay?docId=emr_na-c05240731"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.apache.org/thread.html/7f6a16bc0fd0fd5e67c7fd95bd655069a2ac7d1f88e42d3c853e601c%40%3Cannounce.apache.org%3E"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.debian.org/debian-lts-announce/2018/11/msg00016.html"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/2FBQOCV3GBAN2EYZUM3CFDJ4ECA3GZOK/"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/DOFRQWJRP2NQJEYEWOMECVW3HAMD5SYN/"
+      },
+      {
+        "type": "WEB",
+        "url": "https://lists.fedoraproject.org/archives/list/package-announce%40lists.fedoraproject.org/message/TZBNQH3DMI7HDELJAZ4TFJJANHXOEDWH/"
+      },
+      {
+        "type": "WEB",
+        "url": "https://rt.perl.org/Public/Bug/Display.html?id=127834"
+      },
+      {
+        "type": "WEB",
+        "url": "https://security.gentoo.org/glsa/201701-75"
+      },
+      {
+        "type": "WEB",
+        "url": "https://security.gentoo.org/glsa/201812-07"
+      },
+      {
+        "type": "WEB",
+        "url": "https://perldoc.perl.org/5.24.1/perldelta"
+      }
+    ],
+    "schema_version": "1.6.1"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.1.json"
+}

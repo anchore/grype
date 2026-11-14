@@ -1,0 +1,60 @@
+{
+  "identifier": "cpansa-mojolicious-2021-01",
+  "item": {
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "CPAN",
+          "name": "Mojolicious"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2021-03-16",
+                    "kind": "advisory",
+                    "version": "9.11"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "9.11"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      }
+    ],
+    "aliases": [
+      "CVE-2021-47208"
+    ],
+    "database_specific": {
+      "cpansa_commit": "2089ff7201b44e5e462742a5baaa080ba003d257",
+      "cpansa_generated": "Sun Jul 26 06:23:50 2026"
+    },
+    "details": "A bug in format detection can potentially be exploited for a DoS attack.",
+    "id": "CPANSA-Mojolicious-2021-01",
+    "modified": "2026-07-26T06:23:50Z",
+    "published": "2021-03-16T00:00:00Z",
+    "references": [
+      {
+        "type": "WEB",
+        "url": "https://github.com/mojolicious/mojo/issues/1736"
+      },
+      {
+        "type": "WEB",
+        "url": "https://github.com/mojolicious/mojo/commit/a0c4576ffb11c235088550de9ba7ac4196e1953c"
+      }
+    ],
+    "schema_version": "1.6.1"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.1.json"
+}
