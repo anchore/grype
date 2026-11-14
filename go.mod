@@ -9,15 +9,15 @@ require (
 	github.com/OneOfOne/xxhash v1.2.8
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
 	github.com/adrg/xdg v0.5.3
-	github.com/anchore/bubbly v0.2.2
-	github.com/anchore/clio v0.1.2
-	github.com/anchore/fangs v0.1.1
-	github.com/anchore/go-collections v0.1.1
-	github.com/anchore/go-homedir v0.1.1
-	github.com/anchore/go-logger v0.2.0
+	github.com/anchore/bubbly v0.2.3-0.20261113055450-18aef2fd8c88
+	github.com/anchore/clio v0.1.3-0.20261113204513-18da1f4a030e
+	github.com/anchore/fangs v0.1.2-0.20261113223454-d8ff0432a380
+	github.com/anchore/go-collections v0.1.2-0.20261113083500-ba4aad2faeb9
+	github.com/anchore/go-homedir v0.1.2-0.20261113170613-7dbc6b942b2d
+	github.com/anchore/go-logger v0.2.1-0.20261113155452-d9a9975e4c8d
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
-	github.com/anchore/packageurl-go v0.2.0
-	github.com/anchore/stereoscope v0.4.1
+	github.com/anchore/packageurl-go v0.2.1-0.20261113033656-eaa3d8472743
+	github.com/anchore/stereoscope v0.4.2-0.20261113205631-61e46aa6b120
 	github.com/aquasecurity/go-pep440-version v0.0.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/bitnami/go-version v0.0.0-20250505154626-452e8c5ee607
@@ -77,7 +77,7 @@ require (
 )
 
 require (
-	github.com/anchore/syft v1.57.1
+	github.com/anchore/syft v1.57.2-0.20261114040530-8cb6f6aeb623
 	github.com/bmatcuk/doublestar/v4 v4.10.4
 	github.com/moby/moby/client v0.6.2
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
@@ -109,11 +109,11 @@ require (
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acobaugh/osrelease v0.1.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
-	github.com/anchore/go-lzo v0.1.1 // indirect
-	github.com/anchore/go-macholibre v0.1.1 // indirect
-	github.com/anchore/go-rpmdb v0.2.2 // indirect
+	github.com/anchore/go-lzo v0.1.2-0.20261113041526-80bc12f55e8c // indirect
+	github.com/anchore/go-macholibre v0.1.2-0.20261113232453-590aa9dafa3a // indirect
+	github.com/anchore/go-rpmdb v0.2.3-0.20261109005757-22483d422fb5 // indirect
 	github.com/anchore/go-struct-converter v0.2.0-rc2 // indirect
-	github.com/anchore/go-sync v0.1.2 // indirect
+	github.com/anchore/go-sync v0.1.3-0.20261113235518-efdcdeacccef // indirect
 	github.com/andybalholm/brotli v1.2.8 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/apparentlymart/go-textseg/v17 v17.0.1 // indirect
@@ -176,7 +176,7 @@ require (
 	github.com/deitch/magic v1.0.0 // indirect
 	github.com/diskfs/go-diskfs v1.9.4 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/docker/cli v29.9.2+incompatible // indirect
+	github.com/docker/cli v29.9.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.10 // indirect
 	github.com/docker/go-connections v0.8.2 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
@@ -301,7 +301,7 @@ require (
 	github.com/spdx/gordf v0.0.0-20250128162952-000978ccd6fb // indirect
 	github.com/spdx/tools-golang v0.6.0-rc4 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
-	github.com/spf13/pflag v1.0.10 // indirect
+	github.com/spf13/pflag v1.1.0 // indirect
 	github.com/spf13/viper v1.21.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.8.1 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6 // indirect
@@ -346,7 +346,7 @@ require (
 	golang.org/x/mod v0.42.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/oauth2 v0.37.0 // indirect
-	golang.org/x/sync v0.24.0 // indirect
+	golang.org/x/sync v0.25.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/term v0.47.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
@@ -362,5 +362,5 @@ require (
 	modernc.org/libc v1.79.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
-	modernc.org/sqlite v1.61.0 // indirect
+	modernc.org/sqlite v1.61.1 // indirect
 )
