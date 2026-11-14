@@ -250,3 +250,69 @@ func TestApkVersion_Compare_EdgeCases(t *testing.T) {
 		})
 	}
 }
+
+func TestApkVersion_CompareWithConfig(t *testing.T) {
+	tests := []struct {
+		name     string
+		pkg      string
+		other    string
+		strategy MissingApkReleaseStrategy
+		want     int
+	}{
+		// the case that motivates the strategy: an SBOM drops "-r0" from the first fixed build
+		{name: "strict: bare sorts below -r0", pkg: "3.6.3", other: "3.6.3-r0", strategy: MissingApkReleaseStrategyStrict, want: -1},
+		{name: "empty: same as strict", pkg: "3.6.3", other: "3.6.3-r0", strategy: "", want: -1},
+		{name: "zero: bare equals -r0", pkg: "3.6.3", other: "3.6.3-r0", strategy: MissingApkReleaseStrategyZero, want: 0},
+		// a fix shipped as a rebuild of the same upstream version
+		{name: "zero: bare is below a later rebuild", pkg: "3.6.3", other: "3.6.3-r4", strategy: MissingApkReleaseStrategyZero, want: -1},
+		// the upstream version still decides when it differs
+		{name: "zero: older upstream stays below", pkg: "3.6.2", other: "3.6.3-r0", strategy: MissingApkReleaseStrategyZero, want: -1},
+		{name: "zero: newer upstream stays above", pkg: "3.6.4", other: "3.6.3-r9", strategy: MissingApkReleaseStrategyZero, want: 1},
+		// only the package side is filled in
+		{name: "zero: package with release is untouched", pkg: "3.6.3-r1", other: "3.6.3-r2", strategy: MissingApkReleaseStrategyZero, want: -1},
+		{name: "zero: bare constraint is untouched", pkg: "3.6.3-r0", other: "3.6.3", strategy: MissingApkReleaseStrategyZero, want: 1},
+		{name: "zero: both bare", pkg: "3.6.3", other: "3.6.3", strategy: MissingApkReleaseStrategyZero, want: 0},
+		{name: "zero: leading v on the package", pkg: "v3.6.3", other: "3.6.3-r0", strategy: MissingApkReleaseStrategyZero, want: 0},
+		{name: "zero: suffixed upstream version", pkg: "9.10.4_p3", other: "9.10.4_p3-r0", strategy: MissingApkReleaseStrategyZero, want: 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			v, err := newApkVersion(tt.pkg)
+			require.NoError(t, err)
+
+			got, err := v.CompareWithConfig(New(tt.other, ApkFormat), ComparisonConfig{MissingApkReleaseStrategy: tt.strategy})
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+
+			// the same result through Version.Compare, which honors the embedded config
+			got, err = NewWithConfig(tt.pkg, ApkFormat, ComparisonConfig{MissingApkReleaseStrategy: tt.strategy}).Compare(New(tt.other, ApkFormat))
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestApkVersion_ConstraintWithConfig(t *testing.T) {
+	tests := []struct {
+		name       string
+		pkg        string
+		constraint string
+		strategy   MissingApkReleaseStrategy
+		satisfied  bool
+	}{
+		{name: "strict: bare first fixed build is vulnerable", pkg: "3.6.3", constraint: "< 3.6.3-r0", strategy: MissingApkReleaseStrategyStrict, satisfied: true},
+		{name: "zero: bare first fixed build is fixed", pkg: "3.6.3", constraint: "< 3.6.3-r0", strategy: MissingApkReleaseStrategyZero, satisfied: false},
+		{name: "zero: bare is vulnerable to a rebuild fix", pkg: "3.6.3", constraint: "< 3.6.3-r4", strategy: MissingApkReleaseStrategyZero, satisfied: true},
+		{name: "zero: NAK never matches", pkg: "3.6.3", constraint: "< 0", strategy: MissingApkReleaseStrategyZero, satisfied: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := GetConstraint(tt.constraint, ApkFormat)
+			require.NoError(t, err)
+
+			got, err := c.Satisfied(NewWithConfig(tt.pkg, ApkFormat, ComparisonConfig{MissingApkReleaseStrategy: tt.strategy}))
+			require.NoError(t, err)
+			assert.Equal(t, tt.satisfied, got)
+		})
+	}
+}
