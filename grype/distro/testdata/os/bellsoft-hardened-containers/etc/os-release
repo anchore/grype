@@ -1,0 +1,8 @@
+NAME="BellSoft Hardened Containers"
+ID=bellsoft-hardened-containers
+ID_LIKE="alpine"
+VERSION_ID=stream
+VERSION="Stream"
+PRETTY_NAME="BellSoft Hardened Containers Stream (glibc)"
+HOME_URL="https://bell-sw.com/"
+BUG_REPORT_URL="https://bell-sw.com/support/"
