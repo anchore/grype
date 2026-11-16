@@ -119,19 +119,66 @@ func TestDHITransformExactVersionsOnly(t *testing.T) {
 	}, handle.BlobValue.Ranges)
 }
 
-func TestDHITransformRejectsPackageWithoutCoverage(t *testing.T) {
-	vulns := loadFixture(t, "testdata/DHI-CVE-2016-2781-coreutils.json")
-	vulns[0].Affected[0].Ranges = nil
-	vulns[0].Affected[0].Versions = nil
-	_, err := Transform(vulns[0], inputProviderState())
-	require.ErrorContains(t, err, "neither affected versions nor ECOSYSTEM ranges")
+func TestDHITransformSkipsUnreadableAffectedPackage(t *testing.T) {
+	// one affected package the strategy cannot read must not fail the record or the database build:
+	// the vulnerability and every readable affected package are still written
+	tests := []struct {
+		name   string
+		mutate func(*osvmodel.Affected)
+	}{
+		{
+			name: "no affected versions and no ranges",
+			mutate: func(a *osvmodel.Affected) {
+				a.Ranges = nil
+				a.Versions = nil
+			},
+		},
+		{
+			name:   "non-DHI ecosystem",
+			mutate: func(a *osvmodel.Affected) { a.Package.Ecosystem = "Alpine:3.24" },
+		},
+		{
+			name:   "non-DHI PURL",
+			mutate: func(a *osvmodel.Affected) { a.Package.Purl = "pkg:apk/alpine/coreutils" },
+		},
+		{
+			name:   "malformed PURL",
+			mutate: func(a *osvmodel.Affected) { a.Package.Purl = "not-a-purl" },
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			vulns := loadFixture(t, "testdata/DHI-CVE-2016-2781-coreutils.json")
+			vuln := vulns[0]
+			readable := vuln.Affected[0]
+			readable.Package.Name = "tar"
+			readable.Package.Purl = "pkg:apk/dhi/tar"
+			test.mutate(&vuln.Affected[0])
+			vuln.Affected = append(vuln.Affected, readable)
+
+			entries, err := Transform(vuln, inputProviderState())
+			require.NoError(t, err)
+			require.Len(t, entries, 1)
+			related := entries[0].Data.(transformers.RelatedEntries)
+			require.Equal(t, vuln.ID, related.VulnerabilityHandle.Name)
+			require.Len(t, related.Related, 1)
+			require.Equal(t, "tar", related.Related[0].(db.AffectedPackageHandle).Package.Name)
+		})
+	}
 }
 
-func TestDHITransformRejectsNonEcosystemRange(t *testing.T) {
+func TestDHITransformNonEcosystemRangeUsesDefaultRangeType(t *testing.T) {
 	vulns := loadFixture(t, "testdata/DHI-CVE-2016-2781-coreutils.json")
 	vulns[0].Affected[0].Ranges[0].Type = osvmodel.RangeSemVer
-	_, err := Transform(vulns[0], inputProviderState())
-	require.ErrorContains(t, err, "unsupported SEMVER range")
+	vulns[0].Affected[0].Versions = nil
+
+	entries, err := Transform(vulns[0], inputProviderState())
+	require.NoError(t, err)
+	handle := entries[0].Data.(transformers.RelatedEntries).Related[0].(db.AffectedPackageHandle)
+	require.NotEmpty(t, handle.BlobValue.Ranges)
+	for _, r := range handle.BlobValue.Ranges {
+		require.Equal(t, defaultRangeType(osvmodel.RangeSemVer), r.Version.Type)
+	}
 }
 
 func TestParseDHIIdentity(t *testing.T) {

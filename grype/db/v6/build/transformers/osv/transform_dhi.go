@@ -14,6 +14,7 @@ import (
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
 	"github.com/anchore/grype/grype/db/v6/name"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/packageurl-go"
 	"github.com/anchore/syft/syft/pkg"
 )
@@ -34,12 +35,11 @@ func (dhiStrategy) Matches(id string) bool {
 
 // Transform converts a DHI OSV record into vulnerability and affected-package entries. A record
 // with no affected packages, the shape of a withdrawn DHI advisory, yields the vulnerability alone.
+// An affected package that cannot be read as a DHI package is logged and left out, so one
+// unexpected entry does not fail the database build.
 func (dhiStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
 	aliases := dhiAliases(vuln)
-	affected, err := dhiAffectedPackages(vuln, aliases)
-	if err != nil {
-		return nil, err
-	}
+	affected := dhiAffectedPackages(vuln, aliases)
 	severities, err := getSeverities(vuln)
 	if err != nil {
 		return nil, fmt.Errorf("unable to obtain severities: %w", err)
@@ -104,18 +104,22 @@ func dhiReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
 	return refs
 }
 
-// dhiAffectedPackages validates and converts each affected DHI package into a database handle.
-func dhiAffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string) ([]db.AffectedPackageHandle, error) {
+// dhiAffectedPackages converts each affected DHI package into a database handle. An entry with no
+// DHI package identity, or with no affected versions, is skipped: a handle written without an
+// operating system or without ranges would match packages the record does not name.
+func dhiAffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string) []db.AffectedPackageHandle {
 	var handles []db.AffectedPackageHandle
 	for _, affected := range vuln.Affected {
 		identity, err := parseDHIIdentity(affected.Package)
 		if err != nil {
-			return nil, fmt.Errorf("invalid DHI affected package in %s: %w", vuln.ID, err)
+			log.WithFields("id", vuln.ID, "package", affected.Package.Name, "error", err).Warn("skipping DHI affected package")
+			continue
 		}
 
-		ranges, err := dhiRanges(affected, identity.packageType.String())
-		if err != nil {
-			return nil, fmt.Errorf("invalid DHI affected package in %s: %w", vuln.ID, err)
+		ranges := dhiRanges(affected, identity.packageType.String())
+		if len(ranges) == 0 {
+			log.WithFields("id", vuln.ID, "package", affected.Package.Name).Warn("skipping DHI affected package with neither affected versions nor ranges")
+			continue
 		}
 
 		handles = append(handles, db.AffectedPackageHandle{
@@ -135,19 +139,21 @@ func dhiAffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string) ([]d
 		})
 	}
 	sort.Sort(internal.ByAffectedPackage(handles))
-	return handles, nil
+	return handles
 }
 
-// dhiRanges converts the affected ECOSYSTEM ranges and the enumerated affected versions of a
-// DHI package into database ranges. OSV gives affected[].versions and affected[].ranges union
+// dhiRanges converts the affected ranges and the enumerated affected versions of a DHI package
+// into database ranges. An ECOSYSTEM range carries versions in the package format (apk or deb);
+// any other range type uses the default mapping, as the Chainguard strategy does. OSV gives affected[].versions and affected[].ranges union
 // semantics: a version is affected if it is listed or falls within a range. Generated DHI
 // records carry both for assessed intervals and only versions for under_investigation
 // assessments, so exact versions become "= <version>" ranges alongside the interval ranges.
-func dhiRanges(affected osvmodel.Affected, rangeType string) ([]db.Range, error) {
+func dhiRanges(affected osvmodel.Affected, packageFormat string) []db.Range {
 	var ranges []db.Range
 	for _, affectedRange := range affected.Ranges {
+		rangeType := packageFormat
 		if affectedRange.Type != osvmodel.RangeEcosystem {
-			return nil, fmt.Errorf("package %s uses unsupported %s range; DHI OS packages require ECOSYSTEM ranges", affected.Package.Name, affectedRange.Type)
+			rangeType = defaultRangeType(affectedRange.Type)
 		}
 		ranges = append(ranges, getGrypeRangesFromRange(affectedRange, rangeType)...)
 	}
@@ -163,14 +169,11 @@ func dhiRanges(affected osvmodel.Affected, rangeType string) ([]db.Range, error)
 		}
 		seen[v] = struct{}{}
 		ranges = append(ranges, db.Range{
-			Version: db.Version{Type: rangeType, Constraint: fmt.Sprintf("= %s", v)},
+			Version: db.Version{Type: packageFormat, Constraint: fmt.Sprintf("= %s", v)},
 		})
 	}
 
-	if len(ranges) == 0 {
-		return nil, fmt.Errorf("package %s has neither affected versions nor ECOSYSTEM ranges", affected.Package.Name)
-	}
-	return ranges, nil
+	return ranges
 }
 
 type dhiIdentity struct {
