@@ -167,6 +167,48 @@ func TestDHITransformSkipsUnreadableAffectedPackage(t *testing.T) {
 	}
 }
 
+func TestDHITransformOpenRangeAffectsAllVersions(t *testing.T) {
+	// a range introduced at "0" with no fixed or last_affected event states that every version is
+	// affected, the shape of an unfixed vulnerability. It is stored as a package with no ranges.
+	tests := []struct {
+		name     string
+		versions []string
+	}{
+		{name: "no listed versions"},
+		{name: "listed versions add nothing", versions: []string{"9.11-r0"}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			vulns := loadFixture(t, "testdata/DHI-CVE-2016-2781-coreutils.json")
+			vulns[0].Affected[0].Ranges[0].Events = []osvmodel.Event{{Introduced: "0"}}
+			vulns[0].Affected[0].Versions = test.versions
+
+			entries, err := Transform(vulns[0], inputProviderState())
+			require.NoError(t, err)
+			related := entries[0].Data.(transformers.RelatedEntries).Related
+			require.Len(t, related, 1)
+			handle := related[0].(db.AffectedPackageHandle)
+			require.Equal(t, "coreutils", handle.Package.Name)
+			require.Empty(t, handle.BlobValue.Ranges)
+		})
+	}
+}
+
+func TestDHITransformWritesVulnerabilityWhenNoAffectedPackageIsReadable(t *testing.T) {
+	vulns := loadFixture(t, "testdata/DHI-CVE-2016-2781-coreutils.json")
+	vuln := vulns[0]
+	for i := range vuln.Affected {
+		vuln.Affected[i].Package.Ecosystem = "Docker Hardened Images:Wolfi:1"
+	}
+
+	entries, err := Transform(vuln, inputProviderState())
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+	related := entries[0].Data.(transformers.RelatedEntries)
+	require.Equal(t, db.VulnerabilityActive, related.VulnerabilityHandle.Status)
+	require.Empty(t, related.Related)
+}
+
 func TestDHITransformNonEcosystemRangeUsesDefaultRangeType(t *testing.T) {
 	vulns := loadFixture(t, "testdata/DHI-CVE-2016-2781-coreutils.json")
 	vulns[0].Affected[0].Ranges[0].Type = osvmodel.RangeSemVer
@@ -194,7 +236,7 @@ func TestParseDHIIdentity(t *testing.T) {
 				Name:      "coreutils",
 				Purl:      "pkg:apk/dhi/coreutils?os_distro=alpine&os_name=dhi&os_version=3.24",
 			},
-			want: dhiIdentity{packageType: pkg.ApkPkg, lineage: "alpine", release: "3.24"},
+			want: dhiIdentity{packageType: pkg.ApkPkg, release: "3.24"},
 		},
 		{
 			name: "Debian",
@@ -203,7 +245,7 @@ func TestParseDHIIdentity(t *testing.T) {
 				Name:      "coreutils",
 				Purl:      "pkg:deb/dhi/coreutils?os_distro=debian&os_name=dhi&os_version=13",
 			},
-			want: dhiIdentity{packageType: pkg.DebPkg, lineage: "debian", release: "13"},
+			want: dhiIdentity{packageType: pkg.DebPkg, release: "13"},
 		},
 		{
 			name: "architecture qualifier",
@@ -212,7 +254,7 @@ func TestParseDHIIdentity(t *testing.T) {
 				Name:      "coreutils",
 				Purl:      "pkg:apk/dhi/coreutils?arch=aarch64&os_distro=alpine&os_name=dhi&os_version=3.24",
 			},
-			want: dhiIdentity{packageType: pkg.ApkPkg, lineage: "alpine", release: "3.24", architecture: "aarch64"},
+			want: dhiIdentity{packageType: pkg.ApkPkg, release: "3.24", architecture: "aarch64"},
 		},
 		{
 			name: "Alpine without os qualifiers",
@@ -221,7 +263,7 @@ func TestParseDHIIdentity(t *testing.T) {
 				Name:      "coreutils",
 				Purl:      "pkg:apk/dhi/coreutils",
 			},
-			want: dhiIdentity{packageType: pkg.ApkPkg, lineage: "alpine", release: "3.24"},
+			want: dhiIdentity{packageType: pkg.ApkPkg, release: "3.24"},
 		},
 		{
 			name: "Debian without os qualifiers",
@@ -230,7 +272,7 @@ func TestParseDHIIdentity(t *testing.T) {
 				Name:      "coreutils",
 				Purl:      "pkg:deb/dhi/coreutils",
 			},
-			want: dhiIdentity{packageType: pkg.DebPkg, lineage: "debian", release: "13"},
+			want: dhiIdentity{packageType: pkg.DebPkg, release: "13"},
 		},
 		{
 			name: "architecture without os qualifiers",
@@ -239,7 +281,7 @@ func TestParseDHIIdentity(t *testing.T) {
 				Name:      "coreutils",
 				Purl:      "pkg:apk/dhi/coreutils?arch=aarch64",
 			},
-			want: dhiIdentity{packageType: pkg.ApkPkg, lineage: "alpine", release: "3.24", architecture: "aarch64"},
+			want: dhiIdentity{packageType: pkg.ApkPkg, release: "3.24", architecture: "aarch64"},
 		},
 	}
 

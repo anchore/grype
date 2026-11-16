@@ -20,10 +20,10 @@ import (
 )
 
 const (
-	dhiEcosystemPrefix = "Docker Hardened Images:"
-	dhiLineageAlpine   = "alpine"
-	dhiLineageDebian   = "debian"
-	dhiNamespace       = "dhi"
+	dhiEcosystemName = "Docker Hardened Images"
+	dhiLineageAlpine = "alpine"
+	dhiLineageDebian = "debian"
+	dhiNamespace     = "dhi"
 )
 
 type dhiStrategy struct{}
@@ -62,7 +62,7 @@ func (dhiStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.Sta
 		BlobValue: &db.VulnerabilityBlob{
 			ID:          vuln.ID,
 			Description: vuln.Details,
-			References:  dhiReferences(vuln),
+			References:  cgReferences(vuln),
 			Aliases:     aliases,
 			Severities:  severities,
 		},
@@ -91,22 +91,12 @@ func dhiAliases(vuln unmarshal.OSVVulnerability) []string {
 	return aliases
 }
 
-// dhiReferences converts OSV references into their Grype database representation.
-func dhiReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
-	refs := make([]db.Reference, 0, len(vuln.References))
-	for _, ref := range vuln.References {
-		refID := ""
-		if ref.Type == osvmodel.ReferenceAdvisory {
-			refID = vuln.ID
-		}
-		refs = append(refs, db.Reference{ID: refID, URL: ref.URL, Tags: []string{string(ref.Type)}})
-	}
-	return refs
-}
-
 // dhiAffectedPackages converts each affected DHI package into a database handle. An entry with no
-// DHI package identity, or with no affected versions, is skipped: a handle written without an
-// operating system or without ranges would match packages the record does not name.
+// DHI package identity is skipped, because a handle with no operating system would match the
+// package on every distribution. An entry that states neither versions nor ranges is skipped,
+// because a handle with no ranges matches every version and the record states none. An active
+// record that lists affected packages and keeps none is logged once more, since it is written
+// with the same shape as a withdrawn advisory.
 func dhiAffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string) []db.AffectedPackageHandle {
 	var handles []db.AffectedPackageHandle
 	for _, affected := range vuln.Affected {
@@ -116,8 +106,8 @@ func dhiAffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string) []db
 			continue
 		}
 
-		ranges := dhiRanges(affected, identity.packageType.String())
-		if len(ranges) == 0 {
+		ranges, allVersions := dhiRanges(affected, identity.packageType.String())
+		if len(ranges) == 0 && !allVersions {
 			log.WithFields("id", vuln.ID, "package", affected.Package.Name).Warn("skipping DHI affected package with neither affected versions nor ranges")
 			continue
 		}
@@ -138,24 +128,37 @@ func dhiAffectedPackages(vuln unmarshal.OSVVulnerability, aliases []string) []db
 			},
 		})
 	}
+	if len(vuln.Affected) > 0 && len(handles) == 0 && vuln.Withdrawn.IsZero() {
+		log.WithFields("id", vuln.ID, "affected", len(vuln.Affected)).Warn("DHI advisory lists affected packages and none could be read; it is written with no affected packages")
+	}
 	sort.Sort(internal.ByAffectedPackage(handles))
 	return handles
 }
 
 // dhiRanges converts the affected ranges and the enumerated affected versions of a DHI package
 // into database ranges. An ECOSYSTEM range carries versions in the package format (apk or deb);
-// any other range type uses the default mapping, as the Chainguard strategy does. OSV gives affected[].versions and affected[].ranges union
-// semantics: a version is affected if it is listed or falls within a range. Generated DHI
-// records carry both for assessed intervals and only versions for under_investigation
-// assessments, so exact versions become "= <version>" ranges alongside the interval ranges.
-func dhiRanges(affected osvmodel.Affected, packageFormat string) []db.Range {
-	var ranges []db.Range
+// any other range type uses the default mapping, as the Chainguard strategy does.
+//
+// OSV gives affected[].versions and affected[].ranges union semantics: a version is affected if
+// it is listed or falls within a range. Generated DHI records carry both for assessed intervals
+// and only versions for under_investigation assessments, so exact versions become "= <version>"
+// ranges alongside the interval ranges. A version under investigation is therefore reported as
+// affected until the feed drops it: the record carries no field that tells the two apart.
+//
+// allVersions is true when a range is introduced at "0" and never closed, which states that
+// every version is affected. That is stored as no ranges at all, so the listed versions add
+// nothing and are left out.
+func dhiRanges(affected osvmodel.Affected, packageFormat string) (ranges []db.Range, allVersions bool) {
 	for _, affectedRange := range affected.Ranges {
 		rangeType := packageFormat
 		if affectedRange.Type != osvmodel.RangeEcosystem {
 			rangeType = defaultRangeType(affectedRange.Type)
 		}
-		ranges = append(ranges, getGrypeRangesFromRange(affectedRange, rangeType)...)
+		converted := getGrypeRangesFromRange(affectedRange, rangeType)
+		if len(converted) == 0 && introducesAllVersions(affectedRange) {
+			return nil, true
+		}
+		ranges = append(ranges, converted...)
 	}
 
 	seen := make(map[string]struct{})
@@ -173,12 +176,22 @@ func dhiRanges(affected osvmodel.Affected, packageFormat string) []db.Range {
 		})
 	}
 
-	return ranges
+	return ranges, false
+}
+
+// introducesAllVersions reports whether a range has an introduced event, which with no database
+// range produced from it means the range opens at "0" and has no fixed or last_affected event.
+func introducesAllVersions(r osvmodel.Range) bool {
+	for _, e := range r.Events {
+		if e.Introduced != "" {
+			return true
+		}
+	}
+	return false
 }
 
 type dhiIdentity struct {
 	packageType  pkg.Type
-	lineage      string
 	release      string
 	architecture string
 }
@@ -195,7 +208,7 @@ func (i dhiIdentity) qualifiers() *db.PackageQualifiers {
 // parseDHIIdentity validates and extracts the package lineage, release, type, and architecture.
 func parseDHIIdentity(osvPackage osvmodel.Package) (dhiIdentity, error) {
 	parts := strings.Split(osvPackage.Ecosystem, ":")
-	if len(parts) != 3 || parts[0] != strings.TrimSuffix(dhiEcosystemPrefix, ":") {
+	if len(parts) != 3 || parts[0] != dhiEcosystemName {
 		return dhiIdentity{}, fmt.Errorf("ecosystem %q must be Docker Hardened Images:<Alpine|Debian>:<release>", osvPackage.Ecosystem)
 	}
 	lineage, release := strings.ToLower(parts[1]), parts[2]
@@ -233,7 +246,7 @@ func parseDHIIdentity(osvPackage osvmodel.Package) (dhiIdentity, error) {
 		}
 	}
 
-	return dhiIdentity{packageType: packageType, lineage: lineage, release: release, architecture: qualifiers["arch"]}, nil
+	return dhiIdentity{packageType: packageType, release: release, architecture: qualifiers["arch"]}, nil
 }
 
 // validDHIRelease reports whether a release is a numeric major or major-minor version.
