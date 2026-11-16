@@ -341,6 +341,7 @@ func TestQueryBuilder_ExactDistroCriteria(t *testing.T) {
 			validate: func(t *testing.T, query *searchQuery, remaining []vulnerability.Criteria) {
 				require.Len(t, query.osSpecs, 1)
 				require.True(t, query.osSpecs[0].DisableFallback)
+				require.True(t, query.osSpecs[0].RequireVersion)
 				require.Empty(t, remaining)
 			},
 		},
@@ -352,6 +353,7 @@ func TestQueryBuilder_ExactDistroCriteria(t *testing.T) {
 			validate: func(t *testing.T, query *searchQuery, remaining []vulnerability.Criteria) {
 				require.Len(t, query.osSpecs, 1)
 				require.False(t, query.osSpecs[0].DisableFallback)
+				require.False(t, query.osSpecs[0].RequireVersion)
 				require.Empty(t, remaining)
 			},
 		},

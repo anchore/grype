@@ -92,6 +92,13 @@ func TestMatcherApk_DirectMatch_DHI(t *testing.T) {
 			db.Match(t, &matcher, p).IsEmpty()
 		})
 
+		t.Run("DHI with no version matches no release", func(t *testing.T) {
+			p := dbtest.NewPackage("coreutils", "9.11-r0", syftPkg.ApkPkg).
+				WithDistro(distro.New(distro.DHI, "", "")).
+				Build()
+			db.Match(t, &matcher, p).IsEmpty()
+		})
+
 		t.Run("ordinary Alpine is isolated", func(t *testing.T) {
 			p := dbtest.NewPackage("coreutils", "9.11-r0", syftPkg.ApkPkg).
 				WithDistro(distro.New(distro.Alpine, "3.24", "")).
