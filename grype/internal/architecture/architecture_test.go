@@ -302,23 +302,6 @@ func TestCanonical(t *testing.T) {
 	}
 }
 
-func TestBinaryDefault(t *testing.T) {
-	tests := []struct {
-		name string
-		arch string
-		want string
-	}{
-		{name: "recorded arch is kept", arch: "x86_64", want: "x86_64"},
-		{name: "source package is kept", arch: ArchSource, want: ArchSource},
-		{name: "unrecorded arch is a binary", arch: "", want: ArchBinaryNoArchSpecified},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			require.Equal(t, tt.want, BinaryDefault(tt.arch))
-		})
-	}
-}
-
 func TestIsSource(t *testing.T) {
 	tests := []struct {
 		arch string

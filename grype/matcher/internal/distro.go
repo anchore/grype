@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/anchore/grype/grype/internal/architecture"
 	"github.com/anchore/grype/grype/internal/ignorereasons"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal/result"
@@ -26,6 +25,10 @@ import (
 // work: a scan against `rootio-libssl3` also searches for the bare
 // `libssl3` upstream disclosure, and any rootio NAK in the unaffected set
 // suppresses the match via ID + alias identity in result.Set.Remove.
+//
+// A catalogPkg is given when searchPkg is one of its upstream packages (see UpstreamPackages). When
+// it is catalogPkg's own source (see IsOwnSource), it only matches records that specify an
+// architecture: catalogPkg's own search already finds those that don't.
 func FindResultsByDistro(provider vulnerability.Provider, searchPkg pkg.Package, catalogPkg *pkg.Package, upstreamMatcher match.MatcherType, cfg *version.ComparisonConfig) (vulnerable result.Set, fixed result.Set, err error) {
 	if searchPkg.Distro == nil {
 		return result.Set{}, result.Set{}, nil
@@ -44,6 +47,7 @@ func FindResultsByDistro(provider vulnerability.Provider, searchPkg pkg.Package,
 	}
 
 	versionCriteria := OnlyVulnerableVersions(pkgVersion)
+	archCriteria := search.ByArchitecture(searchPkg.Arch).WithRequired(catalogPkg != nil && IsOwnSource(searchPkg, *catalogPkg))
 	rp := result.NewProvider(provider, matchPackage(searchPkg, catalogPkg), upstreamMatcher)
 
 	// Search by every name the provider claims for this package. For most
@@ -57,7 +61,7 @@ func FindResultsByDistro(provider vulnerability.Provider, searchPkg pkg.Package,
 			search.ByPackageName(name),
 			search.ByDistro(*searchPkg.Distro),
 			OnlyQualifiedPackages(searchPkg),
-			search.ByArchitecture(architecture.BinaryDefault(searchPkg.Arch)),
+			archCriteria,
 		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", searchPkg.Distro, name, err)
@@ -73,7 +77,7 @@ func FindResultsByDistro(provider vulnerability.Provider, searchPkg pkg.Package,
 		u, err := rp.FindResults(
 			search.ByDistro(*searchPkg.Distro),
 			search.ByPackageName(name),
-			search.ByArchitecture(architecture.BinaryDefault(searchPkg.Arch)),
+			archCriteria,
 			search.ForUnaffected(),
 			versionCriteria,
 		)

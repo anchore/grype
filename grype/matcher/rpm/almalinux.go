@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/anchore/grype/grype/distro"
-	"github.com/anchore/grype/grype/internal/architecture"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/matcher/internal/result"
@@ -71,7 +70,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 		search.ByPackageName(binaryPkg.Name),
 		search.ByDistro(rhelCompatibleDistro),
 		internal.OnlyQualifiedPackages(binaryPkg),
-		search.ByArchitecture(architecture.BinaryDefault(binaryPkg.Arch)),
+		search.ByArchitecture(binaryPkg.Arch),
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch RHEL disclosures for AlmaLinux binary pkg=%q: %w", binaryPkg.Name, err)
@@ -85,7 +84,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 	// even when the source package has a non-zero epoch. See the comment in matchUpstreamPackages
 	// in matcher.go for the full explanation of why this is necessary.
 	upstreamDisclosures := result.Set{}
-	for _, upstreamPkg := range pkg.UpstreamPackages(binaryPkg) {
+	for _, upstreamPkg := range internal.UpstreamPackages(binaryPkg) {
 		// Create a version object from the upstream package WITHOUT adding epoch
 		// This avoids false positives where binary package epochs differ from source package epochs
 		upstreamVersion := version.New(upstreamPkg.Version, pkg.VersionFormat(upstreamPkg))
@@ -94,7 +93,9 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 			search.ByPackageName(upstreamPkg.Name),
 			search.ByDistro(rhelCompatibleDistro),
 			internal.OnlyQualifiedPackages(upstreamPkg),
-			search.ByArchitecture(upstreamPkg.Arch),
+			// the binary's own source only adds records that specify an architecture; step 1
+			// already found those that don't
+			search.ByArchitecture(upstreamPkg.Arch).WithRequired(internal.IsOwnSource(upstreamPkg, binaryPkg)),
 		)
 		if err != nil {
 			log.WithFields("error", err, "upstreamPkg", upstreamPkg.Name, "binaryPkg", binaryPkg.Name).Debug("failed to fetch RHEL disclosures for upstream package")
@@ -122,7 +123,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 		search.ByPackageName(binaryPkg.Name),
 		search.ByExactDistro(*binaryPkg.Distro), // use exact AlmaLinux distro for unaffected lookup (no aliases)
 		internal.OnlyQualifiedPackages(binaryPkg),
-		search.ByArchitecture(architecture.BinaryDefault(binaryPkg.Arch)),
+		search.ByArchitecture(binaryPkg.Arch),
 		search.ForUnaffected(),
 	)
 	if err != nil {
@@ -154,13 +155,15 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 func findRelatedUnaffectedPackages(provider result.Provider, binaryPkg pkg.Package) result.Set {
 	allResults := make(result.Set)
 
-	for _, upstreamPkg := range pkg.UpstreamPackages(binaryPkg) {
+	for _, upstreamPkg := range internal.UpstreamPackages(binaryPkg) {
 		// Search for unaffected records using the source package name
 		relatedResults, err := provider.FindResults(
 			search.ByPackageName(upstreamPkg.Name),
 			search.ByExactDistro(*upstreamPkg.Distro), // use exact distro to avoid alias mapping
 			internal.OnlyQualifiedPackages(upstreamPkg),
-			search.ByArchitecture(upstreamPkg.Arch),
+			// the binary's own source only adds records that specify an architecture; step 3
+			// already found those that don't
+			search.ByArchitecture(upstreamPkg.Arch).WithRequired(internal.IsOwnSource(upstreamPkg, binaryPkg)),
 			search.ForUnaffected(),
 		)
 		if err != nil {

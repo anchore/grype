@@ -569,10 +569,10 @@ func TestMatcherApk_UpstreamCveDedupedByIntroducedZeroAlias(t *testing.T) {
 	})
 }
 
-// TestMatcherApk_SelfUpstreamIsRecordedAsIndirect covers an apk whose origin package is itself, which
-// is common (an apk that is its own origin still lists one). The distro feed is searched twice for
-// it, once directly and once as its own upstream, and the upstream pass must record what it finds as
-// an indirect match.
+// TestMatcherApk_SelfUpstreamIsRecordedAsIndirect covers an apk whose origin package is itself but at
+// another version (e.g. from an SBOM's upstream qualifier). The origin is then searched in full at its
+// own version, and here only it is vulnerable: the binary is at the fixed version, so its own search
+// finds the record fixed. The upstream pass must record what it finds as an indirect match.
 //
 // The match-type is otherwise derived by comparing the searched name against the cataloged one, and
 // here they are equal, so nothing downstream can tell the two passes apart. The upstream pass has to
@@ -580,18 +580,44 @@ func TestMatcherApk_UpstreamCveDedupedByIntroducedZeroAlias(t *testing.T) {
 func TestMatcherApk_SelfUpstreamIsRecordedAsIndirect(t *testing.T) {
 	dbtest.DBs(t, "alpine318").SelectOnly("3.18/CVE-2024-0727").Run(func(t *testing.T, db *dbtest.DB) {
 		matcher := Matcher{}
-		p := dbtest.NewPackage("openssl", "3.1.4-r0", syftPkg.ApkPkg).
-			WithDistro(dbtest.Alpine318).
-			WithUpstream("openssl", "3.1.4-r0").
-			Build()
+		p := dbtest.NewPackage("openssl", "3.1.4-r5", syftPkg.ApkPkg). // fixed in 3.1.4-r5
+										WithDistro(dbtest.Alpine318).
+										WithArchitecture("amd64").
+										WithUpstream("openssl", "3.1.4-r0"). // vulnerable
+										Build()
 
-		finding := db.Match(t, &matcher, p).SelectMatch("CVE-2024-0727")
-
-		// the direct search finds it...
-		finding.SelectDetailByType(match.ExactDirectMatch).AsDistroSearch()
-		// ...and so does the pass over its own upstream, which must not look direct as well
-		finding.SelectDetailByType(match.ExactIndirectMatch).AsDistroSearch()
+		findings := db.Match(t, &matcher, p)
+		findings.SelectMatch("CVE-2024-0727").
+			HasDetailCount(1).
+			SelectDetailByType(match.ExactIndirectMatch).AsDistroSearch()
+		findings.Ignores().
+			SelectRelatedPackageIgnore(ignorereasons.DistroFixed, "CVE-2024-0727").
+			ForPackage(p.ID)
 	})
+}
+
+// TestMatcherApk_SelfUpstreamDoesNotRepeatDirectMatch covers an apk whose origin package is itself,
+// which is common (an apk that is its own origin still lists one). With no architecture it is only
+// searched directly, which finds every record of its name. With one, it is also searched as its own
+// upstream, but only for records that specify an architecture. Either way the record, which has no
+// architecture, is reported once, by the direct search.
+func TestMatcherApk_SelfUpstreamDoesNotRepeatDirectMatch(t *testing.T) {
+	for _, arch := range []string{"", "x86_64"} {
+		t.Run("arch="+arch, func(t *testing.T) {
+			dbtest.DBs(t, "alpine318").SelectOnly("3.18/CVE-2024-0727").Run(func(t *testing.T, db *dbtest.DB) {
+				matcher := Matcher{}
+				p := dbtest.NewPackage("openssl", "3.1.4-r0", syftPkg.ApkPkg).
+					WithArchitecture(arch).
+					WithDistro(dbtest.Alpine318).
+					WithUpstream("openssl", "3.1.4-r0").
+					Build()
+
+				db.Match(t, &matcher, p).SelectMatch("CVE-2024-0727").
+					HasDetailCount(1).
+					SelectDetailByType(match.ExactDirectMatch).AsDistroSearch()
+			})
+		})
+	}
 }
 
 // TestMatcherApk_NoDistroKeepsNvdFix covers an apk package with no distro, which happens for

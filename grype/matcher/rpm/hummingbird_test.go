@@ -149,9 +149,11 @@ func TestHummingbirdNotAffected_BinaryRecordDoesNotApplyToSource(t *testing.T) {
 		})
 }
 
-// TestHummingbirdNotAffected_SrcRecordApplies verifies that a src unaffected record applies both
-// to a binary built from that source (through the upstream search, tagged "src") and to a
-// same-name binary searched directly, whatever its arch.
+// TestHummingbirdNotAffected_SrcRecordApplies verifies that a src unaffected record applies to a
+// binary built from that source (through the upstream search, tagged "src"), to the source package
+// itself and a same-name package with no arch (each searched directly, which finds src records), and
+// to a same-name binary that records no source, which is built from the source of its own name
+// (through a synthesized upstream of its own name).
 func TestHummingbirdNotAffected_SrcRecordApplies(t *testing.T) {
 	tests := []struct {
 		name string
@@ -165,7 +167,16 @@ func TestHummingbirdNotAffected_SrcRecordApplies(t *testing.T) {
 				WithMetadata(pkg.RpmMetadata{Epoch: new(0)}),
 		},
 		{
-			name: "same-name binary, direct",
+			name: "source package, direct",
+			pkg: dbtest.NewPackage("grafana12.4", "12.4.8-0.1.hum1", syftPkg.RpmPkg).
+				WithArchitecture("src"),
+		},
+		{
+			name: "same-name package with no arch, direct",
+			pkg:  dbtest.NewPackage("grafana12.4", "12.4.8-0.1.hum1", syftPkg.RpmPkg),
+		},
+		{
+			name: "binary with no recorded source, via same-name upstream",
 			pkg: dbtest.NewPackage("grafana12.4", "12.4.8-0.1.hum1", syftPkg.RpmPkg).
 				WithArchitecture("aarch64"),
 		},

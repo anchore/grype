@@ -54,18 +54,6 @@ func DefaultAliases() map[string]string {
 	return defaultAliases
 }
 
-// BinaryDefault returns the architecture to search with for an OS package (or an upstream source
-// package synthesized from one): the package's own architecture, or ArchBinaryNoArchSpecified when
-// none was recorded. A cataloged package with no recorded architecture is still known not to be a
-// source package: package managers catalog binaries, and the source packages grype searches with
-// are synthesized upstreams, which are tagged ArchSource (see pkg.UpstreamPackages).
-func BinaryDefault(pkgArch string) string {
-	if pkgArch == "" {
-		return ArchBinaryNoArchSpecified
-	}
-	return pkgArch
-}
-
 // IsSource reports whether arch names a source package, in any spelling the built-in aliases fold to
 // ArchSource.
 func IsSource(arch string) bool {

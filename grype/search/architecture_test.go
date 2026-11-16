@@ -14,11 +14,12 @@ func Test_ByArchitecture(t *testing.T) {
 	custom := map[string]string{"em64t": "x86_64"}
 
 	tests := []struct {
-		name    string
-		arch    string
-		aliases map[string]string
-		input   vulnerability.Vulnerability
-		matches bool
+		name     string
+		arch     string
+		required bool
+		aliases  map[string]string
+		input    vulnerability.Vulnerability
+		matches  bool
 	}{
 		{
 			name:    "same arch",
@@ -95,12 +96,32 @@ func Test_ByArchitecture(t *testing.T) {
 			input:   vulnerability.Vulnerability{Arch: "src", Unaffected: true},
 			matches: true,
 		},
+		{
+			name:     "required, vulnerability without arch",
+			arch:     "src",
+			required: true,
+			input:    vulnerability.Vulnerability{},
+			matches:  false,
+		},
+		{
+			name:     "required, same arch",
+			arch:     "src",
+			required: true,
+			input:    vulnerability.Vulnerability{Arch: "src"},
+			matches:  true,
+		},
+		{
+			name:     "required, different arch",
+			arch:     "src",
+			required: true,
+			input:    vulnerability.Vulnerability{Arch: "x86_64"},
+			matches:  false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			criteria := ByArchitecture(tt.arch).(*ArchitectureCriteria)
-			criteria.aliases = tt.aliases
+			criteria := ByArchitecture(tt.arch).WithRequired(tt.required).WithAliases(tt.aliases)
 			matches, reason, err := criteria.MatchesVulnerability(tt.input)
 			require.NoError(t, err)
 			require.Equal(t, tt.matches, matches)
