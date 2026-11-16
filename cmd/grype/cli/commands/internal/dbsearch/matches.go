@@ -110,8 +110,16 @@ func newMatchesRows(affectedPkgs []affectedPackageWithDecorations, affectedCPEs 
 		})
 	}
 
+	// the same vulnerability ID can come from multiple providers (and records), so break ties to keep the order stable
 	sort.Slice(rows, func(i, j int) bool {
-		return rows[i].Vulnerability.ID < rows[j].Vulnerability.ID
+		a, b := rows[i].Vulnerability, rows[j].Vulnerability
+		if a.ID != b.ID {
+			return a.ID < b.ID
+		}
+		if a.Provider != b.Provider {
+			return a.Provider < b.Provider
+		}
+		return a.Model.ID < b.Model.ID
 	})
 
 	return rows, retErr

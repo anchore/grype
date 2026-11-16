@@ -2,12 +2,13 @@ package format
 
 import (
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/docker/docker/pkg/homedir"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_MakeScanResultWriter(t *testing.T) {
@@ -197,6 +198,9 @@ func Test_newSBOMMultiWriter(t *testing.T) {
 }
 
 func Test_newSBOMWriterDescription(t *testing.T) {
+	home, err := os.UserHomeDir()
+	require.NoError(t, err)
+
 	tests := []struct {
 		name     string
 		path     string
@@ -205,7 +209,7 @@ func Test_newSBOMWriterDescription(t *testing.T) {
 		{
 			name:     "expand home dir",
 			path:     "~/place.txt",
-			expected: filepath.Join(homedir.Get(), "place.txt"),
+			expected: filepath.Join(home, "place.txt"),
 		},
 		{
 			name:     "passthrough other paths",

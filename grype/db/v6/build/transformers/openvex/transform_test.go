@@ -589,6 +589,135 @@ func Test_GetPackageHandles(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "versionless purl with not_affected status emits an empty constraint",
+			vuln: govex.Statement{
+				ID: "test-vuln-6",
+				Products: []govex.Product{
+					{
+						Component: govex.Component{
+							Identifiers: map[govex.IdentifierType]string{
+								govex.PURL: "pkg:pypi/urllib3",
+							},
+						},
+					},
+				},
+				Status: govex.StatusNotAffected,
+				Vulnerability: govex.Vulnerability{
+					Name: "cve-2023-43804",
+				},
+			},
+			want: []any{
+				db.UnaffectedPackageHandle{
+					Package: &db.Package{
+						Ecosystem: "python",
+						Name:      "urllib3",
+					},
+					BlobValue: &db.PackageBlob{
+						CVEs: []string{"cve-2023-43804"},
+						Ranges: []db.Range{
+							{
+								Version: db.Version{
+									Type:       "python",
+									Constraint: "", // important! not "= "
+								},
+								Fix: &db.Fix{
+									State: db.NotAffectedFixStatus,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "versionless purl with affected status applies to every version",
+			vuln: govex.Statement{
+				ID: "test-vuln-8",
+				Products: []govex.Product{
+					{
+						Component: govex.Component{
+							Identifiers: map[govex.IdentifierType]string{
+								govex.PURL: "pkg:pypi/urllib3",
+							},
+						},
+					},
+				},
+				Status: govex.StatusAffected,
+				Vulnerability: govex.Vulnerability{
+					Name: "cve-2023-43804",
+				},
+			},
+			want: []any{
+				db.AffectedPackageHandle{
+					Package: &db.Package{
+						Ecosystem: "python",
+						Name:      "urllib3",
+					},
+					BlobValue: &db.PackageBlob{
+						CVEs: []string{"cve-2023-43804"},
+						Ranges: []db.Range{
+							{
+								Version: db.Version{
+									Type:       "python",
+									Constraint: "", // important! not "= "
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "versionless purl with fixed status is skipped",
+			vuln: govex.Statement{
+				ID: "test-vuln-7",
+				Products: []govex.Product{
+					{
+						Component: govex.Component{
+							Identifiers: map[govex.IdentifierType]string{
+								govex.PURL: "pkg:pypi/certifi",
+							},
+						},
+					},
+					{
+						Component: govex.Component{
+							Identifiers: map[govex.IdentifierType]string{
+								govex.PURL: "pkg:pypi/urllib3@2.0.7",
+							},
+						},
+					},
+				},
+				Status: govex.StatusFixed,
+				Vulnerability: govex.Vulnerability{
+					Name: "cve-2023-43804",
+				},
+			},
+			want: []any{
+				// only the versioned product survives
+				db.UnaffectedPackageHandle{
+					Package: &db.Package{
+						Ecosystem: "python",
+						Name:      "urllib3",
+					},
+					BlobValue: &db.PackageBlob{
+						CVEs: []string{"cve-2023-43804"},
+						Ranges: []db.Range{
+							{
+								Version: db.Version{
+									Type:       "python",
+									Constraint: "= 2.0.7",
+								},
+								Fix: &db.Fix{
+									Version: "2.0.7",
+									State:   db.FixedStatus,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "invalid purl returns error",
 			vuln: govex.Statement{
 				ID: "test-vuln-5",

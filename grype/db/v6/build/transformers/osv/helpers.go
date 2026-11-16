@@ -3,6 +3,8 @@ package osv
 import (
 	"fmt"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
@@ -238,6 +240,10 @@ func createUnaffectedRange(fixedVersion string, fixByVersion map[string]db.FixAv
 
 var cvssPattern = regexp.MustCompile(`^CVSS:(\d+\.\d+)/(.+)$`)
 
+// cvssV2Pattern matches a CVSS v2 base vector, which carries no "CVSS:2.0/" prefix
+// (e.g. "AV:N/AC:M/Au:N/C:P/I:N/A:N").
+var cvssV2Pattern = regexp.MustCompile(`^AV:[LAN]/AC:[HML]/Au:[MSN]/C:[NPC]/I:[NPC]/A:[NPC]`)
+
 func extractCVSSInfo(cvss string) (string, string, error) {
 	matches := cvssPattern.FindStringSubmatch(cvss)
 	if len(matches) != 3 {
@@ -246,10 +252,19 @@ func extractCVSSInfo(cvss string) (string, string, error) {
 	return matches[1], matches[0], nil
 }
 
+// extractCVSSInfoForType parses a CVSS vector according to its OSV severity type. CVSS v3 and v4
+// vectors are self-describing ("CVSS:3.1/..."), whereas v2 vectors have no version prefix.
+func extractCVSSInfoForType(severityType osvmodel.SeverityType, cvss string) (string, string, error) {
+	if severityType == osvmodel.SeverityCVSSV2 && cvssV2Pattern.MatchString(cvss) {
+		return "2.0", cvss, nil
+	}
+	return extractCVSSInfo(cvss)
+}
+
 func normalizeSeverity(severity osvmodel.Severity) (db.Severity, error) {
 	switch severity.Type {
 	case osvmodel.SeverityCVSSV2, osvmodel.SeverityCVSSV3, osvmodel.SeverityCVSSV4:
-		version, vector, err := extractCVSSInfo(severity.Score)
+		version, vector, err := extractCVSSInfoForType(severity.Type, severity.Score)
 		if err != nil {
 			return db.Severity{}, err
 		}
@@ -286,5 +301,29 @@ func getSeverities(vuln unmarshal.OSVVulnerability) ([]db.Severity, error) {
 			severities = append(severities, severity)
 		}
 	}
+	sortSeveritiesByCVSSVersion(severities)
 	return severities, nil
+}
+
+// sortSeveritiesByCVSSVersion orders severities so that the newest CVSS version comes first
+// (v4.0, then v3.1, v3.0, and v2.0 only when nothing newer is present). Grype reports the first
+// severity as the vulnerability's severity, so this makes the choice explicit rather than
+// depending on the order a feed happens to list its vectors in. The sort is stable, and
+// non-CVSS severities keep their relative order after the CVSS entries.
+func sortSeveritiesByCVSSVersion(severities []db.Severity) {
+	sort.SliceStable(severities, func(i, j int) bool {
+		return cvssVersionPriority(severities[i]) > cvssVersionPriority(severities[j])
+	})
+}
+
+func cvssVersionPriority(severity db.Severity) float64 {
+	cvssSeverity, ok := severity.Value.(db.CVSSSeverity)
+	if !ok {
+		return -1
+	}
+	version, err := strconv.ParseFloat(cvssSeverity.Version, 64)
+	if err != nil {
+		return 0
+	}
+	return version
 }

@@ -13,6 +13,7 @@ type packageSpecifierLookup struct {
 // which allows us to upgrade some CPE-only provider results to more accurate package
 // ecosystem matches.  In future this will be another input data source to the grype db
 // build process, but this is good enough for now
+// nolint:goconst
 var CPEPackageSpecifierLookup = buildCPEPackageSpecifierLookup(
 	[]packageSpecifierLookup{
 		// Anchore Products
@@ -184,6 +185,276 @@ var CPEPackageSpecifierLookup = buildCPEPackageSpecifierLookup(
 				"cpe:2.3:a:atlassian:assets_discovery_data_center:*:*:*:*:*:maven:*:*",
 				"cpe:2.3:a:com.atlassian.jira.plugins:insight-discovery:*:*:*:*:*:*:*:*",
 				"cpe:2.3:a:com.atlassian.jira.plugins:insight-discovery:*:*:*:*:*:maven:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "github.com/hashicorp/consul-k8s/control-plane", Ecosystem: string(pkg.GoModulePkg)},
+			CPEs: []string{
+				"cpe:2.3:a:hashicorp:consul_k8s_control_plane:*:*:*:*:*:go:*:*",
+				"cpe:2.3:a:hashicorp:consul-k8s-control-plane:*:*:*:*:*:go:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "github.com/hashicorp/consul-template", Ecosystem: string(pkg.GoModulePkg)},
+			CPEs: []string{
+				"cpe:2.3:a:hashicorp:consul_template:*:*:*:*:*:go:*:*",
+				"cpe:2.3:a:hashicorp:consul_template:*:*:*:*:*:*:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "github.com/hashicorp/go-getter", Ecosystem: string(pkg.GoModulePkg)},
+			CPEs: []string{
+				"cpe:2.3:a:hashicorp:go-getter:*:*:*:*:*:go:*:*",
+				"cpe:2.3:a:hashicorp:go-getter:*:*:*:*:*:*:*:*",
+				"cpe:2.3:a:hashicorp:go_getter:*:*:*:*:*:go:*:*",
+				"cpe:2.3:a:hashicorp:go_getter:*:*:*:*:*:*:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "org.apache.thrift:libthrift", Ecosystem: string(pkg.JavaPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:org.apache.thrift:libthrift:*:*:*:*:*:maven:*:*",
+				"cpe:2.3:a:apache:thrift:*:*:*:*:*:maven:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "github.com/apache/thrift", Ecosystem: string(pkg.GoModulePkg)},
+			CPEs: []string{
+				"cpe:2.3:a:apache:thrift:*:*:*:*:*:go:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "ApacheThrift", Ecosystem: string(pkg.DotnetPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:apache:thrift:*:*:*:*:*:nuget:*:*",
+				"cpe:2.3:a:apache:thrift:*:*:*:*:*:.net:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "thrift", Ecosystem: string(pkg.PythonPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:apache:thrift:*:*:*:*:*:python:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "thrift", Ecosystem: string(pkg.ConanPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:apache:thrift:*:*:*:*:*:c\\+\\+:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "apache/thrift", Ecosystem: string(pkg.PhpComposerPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:apache:thrift:*:*:*:*:*:php:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "thrift", Ecosystem: string(pkg.GemPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:apache:thrift:*:*:*:*:*:ruby:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "Thrift", Ecosystem: string(pkg.CpanPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:apache:thrift:*:*:*:*:*:perl:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "thrift", Ecosystem: string(pkg.NpmPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:apache:thrift:*:*:*:*:*:node.js:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "thrift", Ecosystem: string(pkg.RustPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:apache:thrift:*:*:*:*:*:rust:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "org.apache.tomcat:tomcat-catalina", Ecosystem: string(pkg.JavaPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:org.apache.tomcat:tomcat-catalina:*:*:*:*:*:maven:*:*",
+				"cpe:2.3:a:apache:tomcat-catalina:*:*:*:*:*:maven:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "org.apache.tomcat:catalina", Ecosystem: string(pkg.JavaPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:org.apache.tomcat:tomcat-catalina:*:*:*:*:*:maven:*:*",
+				"cpe:2.3:a:apache:tomcat-catalina:*:*:*:*:*:maven:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "org.apache.tomcat.embed:tomcat-embed-core", Ecosystem: string(pkg.JavaPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:org.apache.tomcat.embed:tomcat-embed-core:*:*:*:*:*:maven:*:*",
+				"cpe:2.3:a:apache:tomcat-embed-core:*:*:*:*:*:maven:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "org.apache.tomcat:tomcat-coyote", Ecosystem: string(pkg.JavaPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:org.apache.tomcat:tomcat-coyote:*:*:*:*:*:maven:*:*",
+				"cpe:2.3:a:apache:tomcat-coyote:*:*:*:*:*:maven:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "org.apache.tomcat:coyote", Ecosystem: string(pkg.JavaPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:org.apache.tomcat:tomcat-coyote:*:*:*:*:*:maven:*:*",
+				"cpe:2.3:a:apache:tomcat-coyote:*:*:*:*:*:maven:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "org.apache.tomcat:tomcat-coyote-ffm", Ecosystem: string(pkg.JavaPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:org.apache.tomcat:tomcat-coyote-ffm:*:*:*:*:*:maven:*:*",
+				"cpe:2.3:a:apache:tomcat-coyote-ffm:*:*:*:*:*:maven:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "org.apache.tomcat:coyote-ffm", Ecosystem: string(pkg.JavaPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:org.apache.tomcat:tomcat-coyote-ffm:*:*:*:*:*:maven:*:*",
+				"cpe:2.3:a:apache:tomcat-coyote-ffm:*:*:*:*:*:maven:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "org.apache.tomcat:tomcat-util", Ecosystem: string(pkg.JavaPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:org.apache.tomcat:tomcat-util:*:*:*:*:*:maven:*:*",
+				"cpe:2.3:a:apache:tomcat-util:*:*:*:*:*:maven:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "org.apache.tomcat:tomcat-jasper", Ecosystem: string(pkg.JavaPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:org.apache.tomcat:tomcat-jasper:*:*:*:*:*:maven:*:*",
+				"cpe:2.3:a:apache:tomcat-jasper:*:*:*:*:*:maven:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "org.apache.tomcat:jasper", Ecosystem: string(pkg.JavaPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:org.apache.tomcat:tomcat-jasper:*:*:*:*:*:maven:*:*",
+				"cpe:2.3:a:apache:tomcat-jasper:*:*:*:*:*:maven:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "org.apache.tomcat.embed:tomcat-embed-websocket", Ecosystem: string(pkg.JavaPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:org.apache.tomcat.embed:tomcat-embed-websocket:*:*:*:*:*:maven:*:*",
+				"cpe:2.3:a:apache:tomcat-embed-websocket:*:*:*:*:*:maven:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "org.apache.tomcat:tomcat-websocket", Ecosystem: string(pkg.JavaPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:org.apache.tomcat:tomcat-websocket:*:*:*:*:*:maven:*:*",
+				"cpe:2.3:a:apache:tomcat-websocket:*:*:*:*:*:maven:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "pyload-ng", Ecosystem: string(pkg.PythonPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:pyload-ng_project:pyload-ng:*:*:*:*:*:python:*:*",
+				"cpe:2.3:a:pyload:pyload:*:*:*:*:*:python:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "cryptography", Ecosystem: string(pkg.PythonPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:cryptography.io:cryptography:*:*:*:*:*:python:*:*",
+				"cpe:2.3:a:cryptography_project:cryptography:*:*:*:*:*:python:*:*",
+				"cpe:2.3:a:python-cryptography_project:python-cryptography:*:*:*:*:*:python:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "picklescan", Ecosystem: string(pkg.PythonPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:mmaitre314:picklescan:*:*:*:*:*:python:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "tensorflow", Ecosystem: string(pkg.PythonPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:google:tensorflow:*:*:*:*:*:python:*:*",
+				"cpe:2.3:a:tensorflow:tensorflow:*:*:*:*:*:python:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "tensorflow-gpu", Ecosystem: string(pkg.PythonPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:google:tensorflow-gpu:*:*:*:*:*:python:*:*",
+				"cpe:2.3:a:tensorflow:tensorflow-gpu:*:*:*:*:*:python:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "tensorflow-cpu", Ecosystem: string(pkg.PythonPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:google:tensorflow-cpu:*:*:*:*:*:python:*:*",
+				"cpe:2.3:a:tensorflow:tensorflow-cpu:*:*:*:*:*:python:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "django", Ecosystem: string(pkg.PythonPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:djangoproject:django:*:*:*:*:*:python:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "pillow", Ecosystem: string(pkg.PythonPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:python:pillow:*:*:*:*:*:python:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "lightning", Ecosystem: string(pkg.PythonPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:apache:airflow:*:*:*:*:*:python:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "pytorch-lightning", Ecosystem: string(pkg.PythonPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:lightning_ai:lightning_ai\\/pytorch_lightning:*:*:*:*:*:*:*:*",
+				"cpe:2.3:a:lightning_ai:lightning_ai\\/pytorch_lightning:*:*:*:*:*:python:*:*",
+				"cpe:2.3:a:lightningai:pytorch_lightning:*:*:*:*:*:python:*:*",
+				"cpe:2.3:a:lightningai:pytorch_lightning:*:*:*:*:*:*:*:*",
+				"cpe:2.3:a:pytorchlightning:pytorch_lightning:*:*:*:*:*:python:*:*",
+				"cpe:2.3:a:pytorchlightning:pytorch_lightning:*:*:*:*:*:*:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "lightning", Ecosystem: string(pkg.PythonPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:lightning_ai:lightning_ai\\/pytorch_lightning:*:*:*:*:*:*:*:*",
+				"cpe:2.3:a:lightning_ai:lightning_ai\\/pytorch_lightning:*:*:*:*:*:python:*:*",
+				"cpe:2.3:a:lightningai:pytorch_lightning:*:*:*:*:*:python:*:*",
+				"cpe:2.3:a:lightningai:pytorch_lightning:*:*:*:*:*:*:*:*",
+				"cpe:2.3:a:pytorchlightning:pytorch_lightning:*:*:*:*:*:python:*:*",
+				"cpe:2.3:a:pytorchlightning:pytorch_lightning:*:*:*:*:*:*:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "praisonai", Ecosystem: string(pkg.PythonPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:praison:praisonai:*:*:*:*:*:python:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "praisonai-platform", Ecosystem: string(pkg.PythonPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:praison:praisonai-platform:*:*:*:*:*:python:*:*",
+			},
+		},
+		{
+			Package: PackageSpecifier{Name: "vllm", Ecosystem: string(pkg.PythonPkg)},
+			CPEs: []string{
+				"cpe:2.3:a:vllm-project:vllm:*:*:*:*:*:python:*:*",
+				"cpe:2.3:a:vllm:vllm:*:*:*:*:*:python:*:*",
 			},
 		},
 	},

@@ -14,6 +14,7 @@ import (
 	"github.com/anchore/grype/grype/db/v6/name"
 	"github.com/anchore/grype/grype/pkg/qualifier/architecture"
 	"github.com/anchore/grype/grype/version"
+	"github.com/anchore/grype/internal/log"
 	"github.com/anchore/packageurl-go"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
@@ -170,6 +171,7 @@ func getPackageHandles(vuln *unmarshal.CSAFVulnerability, idx *productIndex) []a
 		}
 		aph, err := makeFixedHandle(pid, vuln, idx, remediationsByProduct)
 		if err != nil {
+			log.WithFields("cve", vuln.CVE, "product", pid, "error", err).Debug("skipping fixed csaf product")
 			continue
 		}
 		aphs = append(aphs, *aph)
@@ -177,7 +179,7 @@ func getPackageHandles(vuln *unmarshal.CSAFVulnerability, idx *productIndex) []a
 
 	// known_not_affected → UnaffectedPackageHandle
 	for _, pid := range vuln.ProductStatus.KnownNotAffected {
-		uph, err := makeUnaffectedHandle(pid, vuln, idx, db.NotAffectedFixStatus, remediationsByProduct)
+		uph, err := makeUnaffectedHandle(pid, vuln, idx)
 		if err != nil {
 			continue
 		}
@@ -220,11 +222,17 @@ func makeAffectedHandle(productID string, vuln *unmarshal.CSAFVulnerability, idx
 
 	rem := remediations[productID]
 	if rem != nil && rem.URL != "" {
+		// a versionless purl makes the statement about every version of the
+		// package, which is an empty constraint; "< " would not parse
+		var constraint string
+		if purl.Version != "" {
+			constraint = fmt.Sprintf("< %s", purl.Version)
+		}
 		blob.Ranges = []db.Range{
 			{
 				Version: db.Version{
 					Type:       versionTypeFromPURL(purl),
-					Constraint: fmt.Sprintf("< %s", purl.Version),
+					Constraint: constraint,
 				},
 				Fix: &db.Fix{
 					State: db.NotFixedStatus,
@@ -249,6 +257,11 @@ func makeFixedHandle(productID string, vuln *unmarshal.CSAFVulnerability, idx *p
 	purl, ok := idx.productIDToPURL[productID]
 	if !ok {
 		return nil, fmt.Errorf("no PURL for product ID %s", productID)
+	}
+	if purl.Version == "" {
+		// without a fixed version there is no vulnerable range to express, and an
+		// empty constraint would report every version, including fixed ones
+		return nil, fmt.Errorf("no fixed version in PURL for product ID %s", productID)
 	}
 
 	pkgType := syftPkg.TypeFromPURL(purl.String())
@@ -297,7 +310,7 @@ func makeFixedHandle(productID string, vuln *unmarshal.CSAFVulnerability, idx *p
 	}, nil
 }
 
-func makeUnaffectedHandle(productID string, vuln *unmarshal.CSAFVulnerability, idx *productIndex, fixState db.FixStatus, remediations map[string]*unmarshal.CSAFRemediation) (*db.UnaffectedPackageHandle, error) {
+func makeUnaffectedHandle(productID string, vuln *unmarshal.CSAFVulnerability, idx *productIndex) (*db.UnaffectedPackageHandle, error) {
 	purl, ok := idx.productIDToPURL[productID]
 	if !ok {
 		return nil, fmt.Errorf("no PURL for product ID %s", productID)
@@ -312,29 +325,13 @@ func makeUnaffectedHandle(productID string, vuln *unmarshal.CSAFVulnerability, i
 	os := getOperatingSystem(productID, idx)
 
 	fix := &db.Fix{
-		State: fixState,
+		State: db.NotAffectedFixStatus,
 	}
 
-	if fixState == db.FixedStatus && purl.Version != "" {
-		fix.Version = purl.Version
-
-		// attach fix date from remediation if available
-		rem := remediations[productID]
-		if rem != nil && rem.Date != "" {
-			t := internal.ParseTime(rem.Date)
-			if t != nil {
-				fix.Detail = &db.FixDetail{
-					Available: &db.FixAvailability{
-						Date: t,
-						Kind: "advisory",
-					},
-				}
-			}
-		}
-	}
-
-	constraint := fmt.Sprintf("< %s", purl.Version)
-	if fixState == db.NotAffectedFixStatus {
+	// a versionless purl makes the statement about every version of the
+	// package, which is an empty constraint; "= " would not parse
+	var constraint string
+	if purl.Version != "" {
 		constraint = fmt.Sprintf("= %s", purl.Version)
 	}
 
@@ -440,6 +437,10 @@ func redundantSrcProductIDs(vuln *unmarshal.CSAFVulnerability, idx *productIndex
 		consider(pid)
 	}
 	for _, pid := range vuln.ProductStatus.Fixed {
+		// a versionless fixed product is skipped by makeFixedHandle, so it can't stand in for the src
+		if purl, ok := idx.productIDToPURL[pid]; ok && purl.Version == "" {
+			continue
+		}
 		consider(pid)
 	}
 

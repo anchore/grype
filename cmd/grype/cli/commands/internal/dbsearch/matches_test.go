@@ -1,6 +1,7 @@
 package dbsearch
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -259,6 +260,44 @@ func TestFilterCPEsByFixedState(t *testing.T) {
 				assert.ElementsMatch(t, tt.expectedStrs, resultStates)
 			}
 		})
+	}
+}
+
+func TestNewMatchesRows_StableOrder(t *testing.T) {
+	pkg := func(id v6.ID, name, provider string) affectedPackageWithDecorations {
+		return affectedPackageWithDecorations{
+			AffectedPackageHandle: v6.AffectedPackageHandle{
+				Vulnerability: &v6.VulnerabilityHandle{
+					ID:        id,
+					Name:      name,
+					Provider:  &v6.Provider{ID: provider},
+					BlobValue: &v6.VulnerabilityBlob{ID: name},
+				},
+			},
+		}
+	}
+	input := []affectedPackageWithDecorations{
+		pkg(2, "CVE-2024-1234", "ubuntu"),
+		pkg(4, "CVE-2024-1234", "nvd"),
+		pkg(1, "CVE-2024-1234", "ubuntu"),
+		pkg(3, "CVE-2024-0001", "ubuntu"),
+	}
+
+	// row construction ranges over a map, so repeat to shake out any nondeterminism
+	for range 50 {
+		rows, err := newMatchesRows(input, nil)
+		assert.NoError(t, err)
+
+		var got []string
+		for _, r := range rows {
+			got = append(got, fmt.Sprintf("%s/%s/%d", r.Vulnerability.ID, r.Vulnerability.Provider, r.Vulnerability.Model.ID))
+		}
+		assert.Equal(t, []string{
+			"CVE-2024-0001/ubuntu/3",
+			"CVE-2024-1234/nvd/4",
+			"CVE-2024-1234/ubuntu/1",
+			"CVE-2024-1234/ubuntu/2",
+		}, got)
 	}
 }
 
