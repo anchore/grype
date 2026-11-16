@@ -86,12 +86,21 @@ func TestDHITransformMetadataAndWithdrawal(t *testing.T) {
 	}, handle.BlobValue.References)
 }
 
-func TestDHITransformSkipsRecordWithoutAffectedPackages(t *testing.T) {
+func TestDHITransformWithdrawnRecordWithoutAffectedPackages(t *testing.T) {
+	// a withdrawn DHI advisory is published with a withdrawn timestamp and no affected packages
 	vulns := loadFixture(t, "testdata/DHI-CVE-2016-2781-coreutils.json")
-	vulns[0].Affected = nil
-	entries, err := Transform(vulns[0], inputProviderState())
+	vuln := vulns[0]
+	vuln.Affected = nil
+	vuln.Withdrawn = time.Date(2026, time.November, 13, 20, 35, 26, 0, time.UTC)
+
+	entries, err := Transform(vuln, inputProviderState())
 	require.NoError(t, err)
-	require.Empty(t, entries)
+	require.Len(t, entries, 1)
+	related := entries[0].Data.(transformers.RelatedEntries)
+	require.Equal(t, vuln.ID, related.VulnerabilityHandle.Name)
+	require.Equal(t, db.VulnerabilityRejected, related.VulnerabilityHandle.Status)
+	require.Equal(t, &vuln.Withdrawn, related.VulnerabilityHandle.WithdrawnDate)
+	require.Empty(t, related.Related)
 }
 
 func TestDHITransformExactVersionsOnly(t *testing.T) {

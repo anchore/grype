@@ -32,17 +32,14 @@ func (dhiStrategy) Matches(id string) bool {
 	return strings.HasPrefix(id, "DHI-")
 }
 
-// Transform converts a DHI OSV record into vulnerability and affected-package entries.
+// Transform converts a DHI OSV record into vulnerability and affected-package entries. A record
+// with no affected packages, the shape of a withdrawn DHI advisory, yields the vulnerability alone.
 func (dhiStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
 	aliases := dhiAliases(vuln)
 	affected, err := dhiAffectedPackages(vuln, aliases)
 	if err != nil {
 		return nil, err
 	}
-	if len(affected) == 0 {
-		return nil, nil
-	}
-
 	severities, err := getSeverities(vuln)
 	if err != nil {
 		return nil, fmt.Errorf("unable to obtain severities: %w", err)
