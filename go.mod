@@ -17,7 +17,7 @@ require (
 	github.com/anchore/go-logger v0.2.0
 	github.com/anchore/go-version v1.2.2-0.20210903204242-51efa5b487c4
 	github.com/anchore/packageurl-go v0.2.0
-	github.com/anchore/stereoscope v0.4.1
+	github.com/anchore/stereoscope v0.4.2
 	github.com/aquasecurity/go-pep440-version v0.0.1
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/bitnami/go-version v0.0.0-20250505154626-452e8c5ee607
@@ -77,7 +77,7 @@ require (
 )
 
 require (
-	github.com/anchore/syft v1.57.1
+	github.com/anchore/syft v1.57.2
 	github.com/bmatcuk/doublestar/v4 v4.10.4
 	github.com/moby/moby/client v0.6.2
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
@@ -176,7 +176,7 @@ require (
 	github.com/deitch/magic v1.0.0 // indirect
 	github.com/diskfs/go-diskfs v1.9.4 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/docker/cli v29.9.2+incompatible // indirect
+	github.com/docker/cli v29.9.3+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.9.10 // indirect
 	github.com/docker/go-connections v0.8.2 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
@@ -362,5 +362,5 @@ require (
 	modernc.org/libc v1.79.0 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.12.1 // indirect
-	modernc.org/sqlite v1.61.0 // indirect
+	modernc.org/sqlite v1.61.1 // indirect
 )
