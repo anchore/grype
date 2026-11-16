@@ -112,6 +112,20 @@ func TestMatcherApk_DirectMatch_DHI(t *testing.T) {
 				Build()
 			db.Match(t, &matcher, p).IsEmpty()
 		})
+
+		t.Run("DHI package the feed is silent on still matches NVD by CPE", func(t *testing.T) {
+			// the DHI feed replaces the Alpine feed, not NVD: where it has no record for a
+			// package, the apk matcher reports the NVD CPE match as it does for Alpine. This is
+			// the only coverage for an apk a later layer adds, which syft reports as pkg:apk/dhi.
+			p := dbtest.NewPackage("grafana", "9.0.0-r0", syftPkg.ApkPkg).
+				WithDistro(dbtest.DHI324).
+				WithCPE("cpe:2.3:a:grafana:grafana:9.0.0-r0:*:*:*:*:*:*:*").
+				Build()
+			db.Match(t, &matcher, p).
+				SelectMatch("CVE-2026-30000").
+				SelectDetailByType(match.CPEMatch).
+				AsCPESearch()
+		})
 	})
 }
 
