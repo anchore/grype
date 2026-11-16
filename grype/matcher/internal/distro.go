@@ -61,6 +61,7 @@ func FindResultsByDistro(provider vulnerability.Provider, searchPkg pkg.Package,
 			search.ByPackageName(name),
 			search.ByDistro(*searchPkg.Distro),
 			OnlyQualifiedPackages(searchPkg),
+			OnlyNonWithdrawnVulnerabilities(),
 			archCriteria,
 		)
 		if err != nil {
@@ -80,6 +81,7 @@ func FindResultsByDistro(provider vulnerability.Provider, searchPkg pkg.Package,
 			archCriteria,
 			search.ForUnaffected(),
 			versionCriteria,
+			OnlyNonWithdrawnVulnerabilities(),
 		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("matcher failed to fetch unaffected distro=%q pkg=%q: %w", searchPkg.Distro, name, err)

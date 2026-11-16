@@ -1,0 +1,5 @@
+NAME="Docker Hardened Images (Debian)"
+ID=dhi
+ID_LIKE=debian
+VERSION_ID=13
+PRETTY_NAME="Docker Hardened Images (Debian 13)"

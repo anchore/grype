@@ -31,7 +31,28 @@ import (
 	"github.com/anchore/stereoscope/pkg/image"
 	"github.com/anchore/syft/syft"
 	"github.com/anchore/syft/syft/cataloging"
+	"github.com/anchore/syft/syft/source"
 )
+
+func Test_getProviderConfig_scope(t *testing.T) {
+	tests := []struct {
+		scope string
+		want  source.Scope
+	}{
+		{scope: "squashed", want: source.SquashedScope},
+		{scope: "all-layers", want: source.AllLayersScope},
+		{scope: "deep-squashed", want: source.DeepSquashedScope},
+	}
+	for _, tt := range tests {
+		t.Run(tt.scope, func(t *testing.T) {
+			opts := options.DefaultGrype(clio.Identification{})
+			opts.Search.Scope = tt.scope
+			got := getProviderConfig(opts)
+			require.NotNil(t, got.SBOMOptions)
+			assert.Equal(t, tt.want, got.SBOMOptions.Search.Scope)
+		})
+	}
+}
 
 func Test_getProviderConfig(t *testing.T) {
 	tests := []struct {

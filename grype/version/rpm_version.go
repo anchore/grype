@@ -191,6 +191,10 @@ func splitEpochFromVersion(rawVersion string) (*int, string, error) {
 	return &epoch, fields[1], nil
 }
 
+// rpmSegmentPattern splits a version into the segments rpm compares. Unlike alphanumPattern
+// it keeps the caret, which rpm sorts above the version it follows and pacman does not know.
+var rpmSegmentPattern = regexp.MustCompile(`([a-zA-Z]+)|([0-9]+)|(~)|(\^)`)
+
 // compareRpmVersions compares two version or release strings without the epoch.
 // Source: https://github.com/cavaliercoder/go-rpm/blob/master/version.go
 //
@@ -198,7 +202,7 @@ func splitEpochFromVersion(rawVersion string) (*int, string, error) {
 // https://github.com/rpm-software-management/rpm/blob/master/lib/rpmvercmp.c#L16
 var alphanumPattern = regexp.MustCompile("([a-zA-Z]+)|([0-9]+)|(~)")
 
-//nolint:funlen,gocognit,dupl // see comparePacmanVersions for why we keep these decoupled
+//nolint:funlen,gocognit,gocyclo,dupl // see comparePacmanVersions for why we keep these decoupled
 func compareRpmVersions(a, b string) int {
 	// shortcut for equality
 	if a == b {
@@ -206,8 +210,8 @@ func compareRpmVersions(a, b string) int {
 	}
 
 	// get alpha/numeric segments
-	segsa := alphanumPattern.FindAllString(a, -1)
-	segsb := alphanumPattern.FindAllString(b, -1)
+	segsa := rpmSegmentPattern.FindAllString(a, -1)
+	segsb := rpmSegmentPattern.FindAllString(b, -1)
 	maxSegs := max(len(segsa), len(segsb))
 	minSegs := min(len(segsa), len(segsb))
 
@@ -222,6 +226,16 @@ func compareRpmVersions(a, b string) int {
 				return 1
 			}
 			if []rune(b)[0] != '~' {
+				return -1
+			}
+		}
+
+		// compare carets
+		if []rune(a)[0] == '^' || []rune(b)[0] == '^' {
+			if []rune(a)[0] != '^' {
+				return 1
+			}
+			if []rune(b)[0] != '^' {
 				return -1
 			}
 		}

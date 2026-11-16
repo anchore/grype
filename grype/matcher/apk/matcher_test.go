@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/internal/ignorereasons"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -55,6 +56,77 @@ func TestMatcherApk_DirectMatch_Wolfi(t *testing.T) {
 				SelectDetailByType(match.ExactDirectMatch).
 				AsDistroSearch()
 		})
+}
+
+func TestMatcherApk_DirectMatch_DHI(t *testing.T) {
+	dbtest.DBs(t, "dhi-324").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+
+		t.Run("affected DHI package matches", func(t *testing.T) {
+			p := dbtest.NewPackage("coreutils", "9.11-r0", syftPkg.ApkPkg).
+				WithDistro(dbtest.DHI324).
+				WithPURL("pkg:apk/dhi/coreutils@9.11-r0?arch=aarch64&distro=dhi-3.24").
+				Build()
+
+			db.Match(t, &matcher, p).
+				SelectMatch("DHI-CVE-2016-2781-coreutils").
+				SelectDetailByType(match.ExactDirectMatch).
+				AsDistroSearch()
+		})
+
+		t.Run("fixed DHI package does not match", func(t *testing.T) {
+			p := dbtest.NewPackage("coreutils", "9.11-r1", syftPkg.ApkPkg).
+				WithDistro(dbtest.DHI324).
+				Build()
+
+			// Fixed distro packages produce an ownership ignore, rather than a finding.
+			db.Match(t, &matcher, p).Ignores().
+				SelectRelatedPackageIgnores(ignorereasons.DistroFixed,
+					"DHI-CVE-2016-2781-coreutils", "CVE-2016-2781")
+		})
+
+		t.Run("different DHI release is isolated", func(t *testing.T) {
+			p := dbtest.NewPackage("coreutils", "9.11-r0", syftPkg.ApkPkg).
+				WithDistro(dbtest.DHI325).
+				Build()
+			db.Match(t, &matcher, p).IsEmpty()
+		})
+
+		t.Run("DHI with no version matches no release", func(t *testing.T) {
+			p := dbtest.NewPackage("coreutils", "9.11-r0", syftPkg.ApkPkg).
+				WithDistro(distro.New(distro.DHI, "", "")).
+				Build()
+			db.Match(t, &matcher, p).IsEmpty()
+		})
+
+		t.Run("ordinary Alpine is isolated", func(t *testing.T) {
+			p := dbtest.NewPackage("coreutils", "9.11-r0", syftPkg.ApkPkg).
+				WithDistro(distro.New(distro.Alpine, "3.24", "")).
+				Build()
+			db.Match(t, &matcher, p).IsEmpty()
+		})
+
+		t.Run("withdrawn DHI advisory is ignored", func(t *testing.T) {
+			p := dbtest.NewPackage("withdrawn-only", "1.0-r0", syftPkg.ApkPkg).
+				WithDistro(dbtest.DHI324).
+				Build()
+			db.Match(t, &matcher, p).IsEmpty()
+		})
+
+		t.Run("DHI package the feed is silent on still matches NVD by CPE", func(t *testing.T) {
+			// the DHI feed replaces the Alpine feed, not NVD: where it has no record for a
+			// package, the apk matcher reports the NVD CPE match as it does for Alpine. This is
+			// the only coverage for an apk a later layer adds, which syft reports as pkg:apk/dhi.
+			p := dbtest.NewPackage("grafana", "9.0.0-r0", syftPkg.ApkPkg).
+				WithDistro(dbtest.DHI324).
+				WithCPE("cpe:2.3:a:grafana:grafana:9.0.0-r0:*:*:*:*:*:*:*").
+				Build()
+			db.Match(t, &matcher, p).
+				SelectMatch("CVE-2026-30000").
+				SelectDetailByType(match.CPEMatch).
+				AsCPESearch()
+		})
+	})
 }
 
 // TestMatcherApk_IndirectMatchBySource verifies the upstream/origin

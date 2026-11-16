@@ -1,0 +1,23 @@
+{
+  "identifier": "DHI-WITHDRAWN-coreutils",
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.0.json",
+  "item": {
+    "schema_version": "1.6.0",
+    "id": "DHI-WITHDRAWN-coreutils",
+    "modified": "2026-07-29T00:00:00Z",
+    "published": "2026-07-28T00:00:00Z",
+    "withdrawn": "2026-07-29T00:00:00Z",
+    "summary": "Synthetic withdrawn DHI advisory",
+    "affected": [{
+      "package": {
+        "ecosystem": "Docker Hardened Images:Alpine:3.24",
+        "name": "withdrawn-only",
+        "purl": "pkg:apk/dhi/withdrawn-only?os_distro=alpine&os_name=dhi&os_version=3.24"
+      },
+      "ranges": [{
+        "type": "ECOSYSTEM",
+        "events": [{"introduced": "0"}, {"fixed": "99.0-r0"}]
+      }]
+    }]
+  }
+}

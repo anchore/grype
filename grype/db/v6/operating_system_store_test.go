@@ -357,6 +357,14 @@ func TestOperatingSystemStore_ResolveOperatingSystem(t *testing.T) {
 			expected: nil,
 		},
 		{
+			name: "no version with RequireVersion returns nothing",
+			os: OSSpecifier{
+				Name:           "alpine",
+				RequireVersion: true,
+			},
+			expected: nil,
+		},
+		{
 			name: "major-only distro with DisableFallback finds exact match (Debian EOL lookup)",
 			os: OSSpecifier{
 				Name:            "debian",
