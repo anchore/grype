@@ -268,29 +268,6 @@ func TestGoVulnDB_WithdrawnStdlibIsRejected(t *testing.T) {
 	}
 }
 
-// TestGoVulnDB_NoAffectedPackagesEmitsVulnerabilityOnly pins that a record with no affected
-// packages is written as a vulnerability handle with no package handles.
-func TestGoVulnDB_NoAffectedPackagesEmitsVulnerabilityOnly(t *testing.T) {
-	vuln := osvmodel.Vulnerability{ID: "GO-0000-9998"}
-	entries, err := Transform(vuln, inputProviderState())
-	if err != nil {
-		t.Fatalf("transform: %v", err)
-	}
-	if len(entries) != 1 {
-		t.Fatalf("expected 1 entry, got %d", len(entries))
-	}
-	re, ok := entries[0].Data.(transformers.RelatedEntries)
-	if !ok {
-		t.Fatalf("unexpected entry type %T", entries[0].Data)
-	}
-	if re.VulnerabilityHandle == nil || re.VulnerabilityHandle.Name != vuln.ID {
-		t.Fatalf("VulnerabilityHandle = %v, want handle named %s", re.VulnerabilityHandle, vuln.ID)
-	}
-	if len(re.Related) != 0 {
-		t.Errorf("expected no package handles, got %d", len(re.Related))
-	}
-}
-
 // TestGoVulnDB_EmitsStdlibAndGolangOrgX pins that both package classes on a real MIXED
 // advisory are emitted: GO-2022-0969 lists both "stdlib" and "golang.org/x/net". stdlib
 // exists only in govulndb (no GHSA names the stdlib module), and while many golang.org/x/*

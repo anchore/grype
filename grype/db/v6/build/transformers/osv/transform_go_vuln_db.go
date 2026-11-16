@@ -44,8 +44,12 @@ func (govulndbStrategy) Matches(id string) bool {
 }
 
 func (govulndbStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.State) ([]data.Entry, error) {
-	// a record with no affected packages yields the vulnerability handle alone
 	affected := govulndbAffectedPackages(vuln)
+	if len(affected) == 0 {
+		// no affected packages: emitting just the vulnerability handle would write
+		// an orphaned record that can never match a package, so skip the advisory.
+		return nil, nil
+	}
 
 	severities, err := getSeverities(vuln)
 	if err != nil {
