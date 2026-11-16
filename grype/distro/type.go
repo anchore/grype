@@ -163,7 +163,6 @@ func TypeFromRelease(release linux.Release) Type {
 	return ""
 }
 
-// String returns the string representation of the given Linux distribution.
 // IsReleaseScoped reports whether vulnerability records for this distribution apply only to the exact
 // release they were published for.
 func (t Type) IsReleaseScoped() bool {
@@ -171,6 +170,7 @@ func (t Type) IsReleaseScoped() bool {
 	return ok
 }
 
+// String returns the string representation of the given Linux distribution.
 func (t Type) String() string {
 	return string(t)
 }

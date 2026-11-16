@@ -1799,3 +1799,23 @@ func withLinuxRelease(s *sbom.SBOM, id string) *sbom.SBOM {
 func strRef(s string) *string {
 	return &s
 }
+
+func Test_distroFeedIsComprehensive(t *testing.T) {
+	tests := []struct {
+		name string
+		dst  *distro.Distro
+		want bool
+	}{
+		{name: "nil distro", dst: nil, want: false},
+		{name: "debian", dst: distro.New(distro.Debian, "13", ""), want: true},
+		{name: "like debian", dst: distro.New(distro.Type("custom"), "1", "", "debian"), want: true},
+		{name: "amazon linux like rhel", dst: distro.New(distro.AmazonLinux, "2", "", "rhel"), want: false},
+		{name: "dhi like debian", dst: distro.New(distro.DHI, "13", "", "debian"), want: false},
+		{name: "dhi like alpine", dst: distro.New(distro.DHI, "3.24", "", "alpine"), want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, distroFeedIsComprehensive(tt.dst))
+		})
+	}
+}
