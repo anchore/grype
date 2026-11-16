@@ -8,11 +8,12 @@ import (
 )
 
 // ByArchitecture returns criteria which will match vulnerabilities that apply to a package of the
-// given architecture. The same rules apply to affected and unaffected vulnerabilities: an unset
-// architecture on either side matches anything (unless required, see WithRequired), and case is
-// normalized. Other spelling differences (deb "source" vs "src", "x86_64" vs "amd64") are folded
-// through the built-in default aliases, or through the table given to WithAliases, which the v6
-// vulnerability provider uses to apply its DB's alias table.
+// given architecture. An unset architecture on either side matches anything (unless required, see
+// WithRequired), except that an unaffected vulnerability scoped to an architecture does not match a
+// package without one: unaffected vulnerabilities suppress matches, so they only apply where the
+// architecture is known. Case is normalized. Other spelling differences (deb "source" vs "src",
+// "x86_64" vs "amd64") are folded through the built-in default aliases, or through the table given to
+// WithAliases, which the v6 vulnerability provider uses to apply its DB's alias table.
 func ByArchitecture(arch string) *ArchitectureCriteria {
 	return &ArchitectureCriteria{
 		Arch: arch,
@@ -46,14 +47,24 @@ func (c *ArchitectureCriteria) WithRequired(required bool) *ArchitectureCriteria
 	return &out
 }
 
+// reasons ArchitectureCriteria does not match a vulnerability
+const (
+	archRequiredReason          = "architecture required"
+	archUnaffectedUnknownReason = "unknown package architecture"
+	archMismatchReason          = "architecture mismatch"
+)
+
 func (c *ArchitectureCriteria) MatchesVulnerability(v vulnerability.Vulnerability) (bool, string, error) {
 	if c.required && v.Arch == "" {
-		return false, fmt.Sprintf("vulnerability does not specify an architecture, which is required for package architecture %q", c.Arch), nil
+		return false, archRequiredReason, nil
+	}
+	if v.Unaffected && c.Arch == "" && v.Arch != "" {
+		return false, archUnaffectedUnknownReason, nil
 	}
 	if architecture.Matches(c.Arch, v.Arch, c.aliases) {
 		return true, "", nil
 	}
-	return false, fmt.Sprintf("vulnerability architecture %q does not apply to package architecture %q", v.Arch, c.Arch), nil
+	return false, archMismatchReason, nil
 }
 
 func (c *ArchitectureCriteria) Summarize() string {

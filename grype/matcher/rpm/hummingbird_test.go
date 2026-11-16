@@ -107,9 +107,9 @@ func TestHummingbirdMatching_GlibcCommonDirectOnly(t *testing.T) {
 
 // TestHummingbirdNotAffected_BinaryRecordAppliesToAnyBinary verifies that a
 // binary-no-arch-specified unaffected record applies to the named binary whatever its arch,
-// including an arch-independent package and one with no recorded arch.
+// including an arch-independent package.
 func TestHummingbirdNotAffected_BinaryRecordAppliesToAnyBinary(t *testing.T) {
-	for _, arch := range []string{"x86_64", "aarch64", "noarch", ""} {
+	for _, arch := range []string{"x86_64", "aarch64", "noarch"} {
 		t.Run("arch="+arch, func(t *testing.T) {
 			dbtest.DBs(t, "hummingbird").
 				SelectOnly("cve-2026-73231").
@@ -149,11 +149,31 @@ func TestHummingbirdNotAffected_BinaryRecordDoesNotApplyToSource(t *testing.T) {
 		})
 }
 
+// TestHummingbirdNotAffected_NoArchPackage verifies that an arch-scoped unaffected record does not
+// apply to a package with no recorded arch: the binary-no-arch-specified `grafana` record and the
+// src `grafana12.4` record each only suppress a match for a package known to fall under them.
+func TestHummingbirdNotAffected_NoArchPackage(t *testing.T) {
+	for _, name := range []string{"grafana", "grafana12.4"} {
+		t.Run(name, func(t *testing.T) {
+			dbtest.DBs(t, "hummingbird").
+				SelectOnly("cve-2026-73231").
+				Run(func(t *testing.T, db *dbtest.DB) {
+					matcher := Matcher{}
+					p := dbtest.NewPackage(name, "12.4.8-0.1.hum1", syftPkg.RpmPkg).
+						WithDistro(dbtest.Hummingbird1).
+						Build()
+
+					db.Match(t, &matcher, p).IsEmpty()
+				})
+		})
+	}
+}
+
 // TestHummingbirdNotAffected_SrcRecordApplies verifies that a src unaffected record applies to a
 // binary built from that source (through the upstream search, tagged "src"), to the source package
-// itself and a same-name package with no arch (each searched directly, which finds src records), and
-// to a same-name binary that records no source, which is built from the source of its own name
-// (through a synthesized upstream of its own name).
+// itself (searched directly, which finds src records), and to a same-name binary that records no
+// source, which is built from the source of its own name (through a synthesized upstream of its own
+// name).
 func TestHummingbirdNotAffected_SrcRecordApplies(t *testing.T) {
 	tests := []struct {
 		name string
@@ -170,10 +190,6 @@ func TestHummingbirdNotAffected_SrcRecordApplies(t *testing.T) {
 			name: "source package, direct",
 			pkg: dbtest.NewPackage("grafana12.4", "12.4.8-0.1.hum1", syftPkg.RpmPkg).
 				WithArchitecture("src"),
-		},
-		{
-			name: "same-name package with no arch, direct",
-			pkg:  dbtest.NewPackage("grafana12.4", "12.4.8-0.1.hum1", syftPkg.RpmPkg),
 		},
 		{
 			name: "binary with no recorded source, via same-name upstream",

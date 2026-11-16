@@ -79,9 +79,16 @@ func Test_ByArchitecture(t *testing.T) {
 			matches: true,
 		},
 		{
+			// an unaffected entry only suppresses a match for a package known to have its arch
 			name:    "package without arch, unaffected",
 			arch:    "",
 			input:   vulnerability.Vulnerability{Arch: "x86_64", Unaffected: true},
+			matches: false,
+		},
+		{
+			name:    "package without arch, unaffected without arch",
+			arch:    "",
+			input:   vulnerability.Vulnerability{Unaffected: true},
 			matches: true,
 		},
 		{
