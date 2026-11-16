@@ -42,6 +42,11 @@ type OSSpecifier struct {
 	// When set, only exact version matches are returned (no major-only fallback).
 	// Used for EOL lookups where we don't want e.g. Alpine 3.24 to match Alpine 3.12.
 	DisableFallback bool
+
+	// RequireVersion prevents a specifier with no major and no minor version from matching every
+	// release of the named operating system. It is set for a distribution whose records apply only
+	// to the release they were published for.
+	RequireVersion bool
 }
 
 func (d *OSSpecifier) clean() {
@@ -370,6 +375,9 @@ func (s *operatingSystemStore) searchForOSExactVersions(query *gorm.DB, d OSSpec
 	}
 
 	if d.MajorVersion == "" && d.MinorVersion == "" {
+		if d.RequireVersion {
+			return nil, nil
+		}
 		return handleQuery(query, "name and codename only")
 	}
 

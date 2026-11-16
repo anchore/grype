@@ -139,6 +139,7 @@ func (b *searchQueryBuilder) handleCPE(c *search.CPECriteria) error {
 
 func (b *searchQueryBuilder) handleDistro(c *search.DistroCriteria) {
 	for _, d := range c.Distros {
+		releaseScoped := d.Type.IsReleaseScoped()
 		var foundChannels int
 		for _, channel := range d.Channels {
 			if channel == "" {
@@ -154,6 +155,8 @@ func (b *searchQueryBuilder) handleDistro(c *search.DistroCriteria) {
 				LabelVersion:     d.LabelVersion(),
 				Channel:          channel,
 				DisableAliasing:  c.Exact,
+				DisableFallback:  releaseScoped,
+				RequireVersion:   releaseScoped,
 			})
 		}
 		if foundChannels == 0 {
@@ -164,6 +167,8 @@ func (b *searchQueryBuilder) handleDistro(c *search.DistroCriteria) {
 				RemainingVersion: d.RemainingVersion(),
 				LabelVersion:     d.LabelVersion(),
 				DisableAliasing:  c.Exact,
+				DisableFallback:  releaseScoped,
+				RequireVersion:   releaseScoped,
 			})
 		}
 	}
