@@ -37,12 +37,11 @@ func SplitVulnerable(s result.Set, v *version.Version) (vulnerable, notVulnerabl
 	// matching one range of a record sets aside its other ranges (same ID, namespace and package)
 	notVulnerable = affected.Filter(removeExactVulnerabilitiesByNamespace(candidates))
 
-	if v != nil {
-		notVulnerable = filterByVersion(notVulnerable, v, outsideConstraints)
+	// both checks use each record's own searched version, like the range check above
+	notVulnerable = filterByVersion(notVulnerable, v, outsideConstraints)
 
-		// TODO: only fixed records are kept; other not-vulnerable states (e.g. not-affected) are not kept here
-		notVulnerable = notVulnerable.Filter(search.ByFixedVersion(*v))
-	}
+	// TODO: only fixed records are kept; other not-vulnerable states (e.g. not-affected) are not kept here
+	notVulnerable = filterByVersion(notVulnerable, v, fixedAt)
 
 	candidates = keepMoreSpecificCandidates(candidates, notVulnerable)
 
@@ -120,6 +119,16 @@ func outsideConstraints(v *version.Version) vulnerability.Criteria {
 		}
 		return !matches, "", nil
 	})
+}
+
+// fixedAt tests that a record has a fix at or below v; with no version nothing is fixed.
+func fixedAt(v *version.Version) vulnerability.Criteria {
+	if v == nil || v.Raw == "" {
+		return search.ByFunc(func(vulnerability.Vulnerability) (bool, string, error) {
+			return false, "", nil
+		})
+	}
+	return search.ByFixedVersion(*v)
 }
 
 // removeByIDAndAlias drops from s every record whose ID is an ID or alias of a removal, and every

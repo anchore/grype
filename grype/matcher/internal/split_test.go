@@ -437,29 +437,39 @@ func TestSet_SplitVulnerable_BinaryAndSourceInOneNamespace(t *testing.T) {
 	})
 }
 
-func TestSet_SplitVulnerable_FixedIsJudgedAtTheSplitsVersion(t *testing.T) {
+func TestSet_SplitVulnerable_FixedIsJudgedAtEachSearchedVersion(t *testing.T) {
 	// one split spans searches at different versions (e.g. an rpm and its epoch-less source). A
 	// higher-ranked record searched at 2.0 is outside its range and past its fix there; a lower-ranked
-	// record searched at 1.0 covers it.
+	// record searched at 1.0 covers it. Each record's fix is judged at its own searched version, so the
+	// higher record's fix decides however the split was called.
 	const id = "CVE-2026-11"
 	s := result.Set{id: {
 		searchedResult("pkg-a", "2.0", result.Rank{Priority: 10}, record(id, streamNS, "< 1.5", "1.5")),
 		searchedResult("pkg-b", "1.0", result.Rank{}, record(id, nativeNS, "< 1.2", "1.2")),
 	}}
 
-	t.Run("called with the lower version, the higher record is not counted as fixed", func(t *testing.T) {
-		// today: the range check uses each record's searched version but the fixed check uses the
-		// version the split was called with, so 1.0 is not past 1.5 and the lower record decides
-		vulnerable, _ := SplitVulnerable(s, debVersion("1.0"))
+	for _, called := range []*version.Version{debVersion("1.0"), debVersion("2.0"), nil} {
+		name := "called with no version"
+		if called != nil {
+			name = "called with " + called.Raw
+		}
+		t.Run(name, func(t *testing.T) {
+			vulnerable, notVulnerable := SplitVulnerable(s, called)
+
+			require.Empty(t, vulnerable)
+			require.ElementsMatch(t, []string{nativeNS, streamNS}, namespacesOf(notVulnerable))
+		})
+	}
+
+	t.Run("a record whose searched version is not past its fix is not counted as fixed", func(t *testing.T) {
+		// the higher record is outside its range at 1.6 but has no fix at or below it
+		s := result.Set{id: {
+			searchedResult("pkg-a", "1.6", result.Rank{Priority: 10}, record(id, streamNS, "< 1.5 || > 1.8", "2.0")),
+			searchedResult("pkg-b", "1.0", result.Rank{}, record(id, nativeNS, "< 1.2", "1.2")),
+		}}
+		vulnerable, _ := SplitVulnerable(s, debVersion("2.5"))
 
 		require.Equal(t, []string{nativeNS}, namespacesOf(vulnerable))
-	})
-
-	t.Run("called with the higher version, the higher record's fix decides", func(t *testing.T) {
-		vulnerable, notVulnerable := SplitVulnerable(s, debVersion("2.0"))
-
-		require.Empty(t, vulnerable)
-		require.ElementsMatch(t, []string{nativeNS, streamNS}, namespacesOf(notVulnerable))
 	})
 }
 
