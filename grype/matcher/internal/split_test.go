@@ -381,6 +381,16 @@ func namespacesOf(s result.Set) []string {
 	return out
 }
 
+func packageNamesOf(results []result.Result) []string {
+	var out []string
+	for _, r := range results {
+		for _, v := range r.Vulnerabilities {
+			out = append(out, v.PackageName)
+		}
+	}
+	return out
+}
+
 // these tests pin what SplitVulnerable decides today in cases where ranking, the searched package, and
 // the searched version interact. Some outcomes are not what the ranking rules alone would give; those
 // say so, and a change to the split that flips one should update the assertion on purpose.
@@ -416,14 +426,14 @@ func TestSet_SplitVulnerable_BinaryAndSourceInOneNamespace(t *testing.T) {
 		require.ElementsMatch(t, []string{nativeNS, "another:distro:ns:1"}, namespacesOf(notVulnerable))
 	})
 
-	t.Run("in one namespace the source's covering range sets the binary's fixed record aside", func(t *testing.T) {
-		// today: records sharing an ID and namespace with a covering record are set aside before ranking,
-		// whatever package they describe, so the lower-ranked source record is reported
+	t.Run("in one namespace the binary's own record still decides", func(t *testing.T) {
+		// the source's covering range only sets aside other ranges of the source's own record, so the
+		// binary's fixed record still outranks it
 		vulnerable, notVulnerable := split(nativeNS, nativeNS)
 
-		require.Len(t, vulnerable[id], 1)
-		require.Equal(t, "openssl", vulnerable[id][0].Vulnerabilities[0].PackageName)
-		require.Empty(t, notVulnerable)
+		require.Empty(t, vulnerable)
+		require.Len(t, notVulnerable[id], 2)
+		require.ElementsMatch(t, []string{"libssl3", "openssl"}, packageNamesOf(notVulnerable[id]))
 	})
 }
 

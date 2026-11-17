@@ -34,7 +34,7 @@ func SplitVulnerable(s result.Set, v *version.Version) (vulnerable, notVulnerabl
 
 	candidates := filterByVersion(affected, v, matchesVersionConstraints)
 
-	// matching one range of a vulnerability sets aside its other ranges in that namespace
+	// matching one range of a record sets aside its other ranges (same ID, namespace and package)
 	notVulnerable = affected.Filter(removeExactVulnerabilitiesByNamespace(candidates))
 
 	if v != nil {
@@ -94,8 +94,10 @@ func removeExactVulnerabilitiesByNamespace(candidates result.Set) vulnerability.
 		vulnerable := candidates[incoming.ID]
 		for _, v := range vulnerable {
 			for _, v := range v.Vulnerabilities {
-				// a record with several affected ranges (e.g. GHSA) is hydrated as one vulnerability per range
-				if v.ID == incoming.ID && v.Namespace == incoming.Namespace {
+				// a record with several affected ranges (e.g. GHSA) is hydrated as one vulnerability per range.
+				// The package name keeps a source package's record from setting aside its binary's own
+				// record in the same namespace, which ranking has to weigh
+				if v.ID == incoming.ID && v.Namespace == incoming.Namespace && v.PackageName == incoming.PackageName {
 					return false, "same vulnerability ID", nil
 				}
 			}
