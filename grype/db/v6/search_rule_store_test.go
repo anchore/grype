@@ -131,6 +131,20 @@ func TestNewVulnerabilityProvider_SearchRuleDefaults(t *testing.T) { //nolint:fu
 			},
 			want: []SearchRule{other, custom},
 		},
+		{
+			// gorm writes a non-pointer int or bool field as 0 (false), so 0 is unset for a column this
+			// client does not know; a nonzero number still narrows the rule
+			name: "rules setting an unknown numeric column to zero are kept",
+			setup: func(t *testing.T, dir string) {
+				s := setupTestStore(t, dir)
+				narrowed := other
+				narrowed.ReplacementPackageName = "narrowed"
+				writeRules(t, s, narrowed, other, custom)
+				require.NoError(t, s.db.Exec("ALTER TABLE search_rules ADD COLUMN match_future_flag NUMERIC DEFAULT 0").Error)
+				require.NoError(t, s.db.Exec("UPDATE search_rules SET match_future_flag = 1 WHERE replacement_package_name = 'narrowed'").Error)
+			},
+			want: []SearchRule{other, custom},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

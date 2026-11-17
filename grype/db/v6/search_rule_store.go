@@ -73,7 +73,9 @@ func (s *searchRuleStore) readSearchRules() (rows []searchRuleRow, unknown []str
 		}
 		unknown = append(unknown, c.Name())
 		q := stmt.Quote(c.Name())
-		conds = append(conds, fmt.Sprintf("(%s IS NOT NULL AND %s != '')", q, q))
+		// NULL, '' and a numeric 0 are unset: gorm writes a non-pointer int or bool field as 0, so a newer
+		// column must use 0/false (or NULL/'') to mean "no restriction"
+		conds = append(conds, fmt.Sprintf("(%s IS NOT NULL AND %s != '' AND NOT (typeof(%s) IN ('integer', 'real') AND %s = 0))", q, q, q, q))
 	}
 	if len(conds) > 0 {
 		setsUnknown = strings.Join(conds, " OR ")
