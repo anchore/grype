@@ -27,7 +27,7 @@ import (
 // suppresses the match via ID + alias identity in result.Set.Remove.
 //
 // A catalogPkg is given when searchPkg is one of its upstream packages (see UpstreamPackages). When
-// it is catalogPkg's own source (see IsOwnSource), it only matches records that specify an
+// it is catalogPkg's own source (see IsSameUpstream), it only matches records that specify an
 // architecture: catalogPkg's own search already finds those that don't.
 func FindResultsByDistro(provider vulnerability.Provider, searchPkg pkg.Package, catalogPkg *pkg.Package, upstreamMatcher match.MatcherType, cfg *version.ComparisonConfig) (vulnerable result.Set, fixed result.Set, err error) {
 	if searchPkg.Distro == nil {
@@ -47,7 +47,7 @@ func FindResultsByDistro(provider vulnerability.Provider, searchPkg pkg.Package,
 	}
 
 	versionCriteria := OnlyVulnerableVersions(pkgVersion)
-	archCriteria := search.ByArchitecture(searchPkg.Arch).WithRequired(catalogPkg != nil && IsOwnSource(searchPkg, *catalogPkg))
+	archCriteria := search.ByArchitecture(searchPkg.Arch).WithRequired(catalogPkg != nil && IsSameUpstream(searchPkg, *catalogPkg))
 	rp := result.NewProvider(provider, matchPackage(searchPkg, catalogPkg), upstreamMatcher)
 
 	// Search by every name the provider claims for this package. For most

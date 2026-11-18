@@ -53,7 +53,7 @@ func shouldUseUbuntuESMMatching(d *distro.Distro) bool {
 // resolution search only pulls same-minor 'ubuntu:XX.YY' and 'ubuntu:XX.YY+esm' rows, so every '+esm' fix pulled
 // is reachable by construction.
 //
-// requireArch is set when searchPkg is the cataloged package's own source (see internal.IsOwnSource): it then only
+// requireArch is set when searchPkg is the cataloged package's own source (see internal.IsSameUpstream): it then only
 // matches records that specify an architecture, as the cataloged package's own search already finds those that don't.
 func ubuntuESMMatches(provider result.Provider, searchPkg pkg.Package, missingEpochStrategy version.MissingEpochStrategy, requireArch bool, extra ...vulnerability.Criteria) ([]match.Match, []match.IgnoreFilter, error) {
 	distroWithoutESM := *searchPkg.Distro

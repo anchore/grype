@@ -4,10 +4,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/version"
+	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/vulnerability/mock"
 	"github.com/anchore/grype/internal/dbtest"
 	"github.com/anchore/syft/syft/artifact"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -572,6 +576,36 @@ func TestMatcherRpm_CPEMatchingWhenEnabled(t *testing.T) {
 					findings.IsEmpty()
 				}
 			})
+		})
+	}
+}
+
+// TestMatcherRpm_SameNameSourceInheritsEpoch verifies that the source rpm search for a binary built
+// from a source rpm of its own name uses the binary's epoch: source rpm file names omit the epoch, so
+// the source would otherwise be compared as though it had none. The record is for an earlier version
+// lineage (epoch 1) than the package's (epoch 2), so the package is not vulnerable.
+func TestMatcherRpm_SameNameSourceInheritsEpoch(t *testing.T) {
+	store := mock.VulnerabilityProvider(vulnerability.Vulnerability{
+		PackageName: "openssl",
+		Constraint:  version.MustGetConstraint("< 1:5.0.0-1.el9", version.RpmFormat),
+		Reference:   vulnerability.Reference{ID: "CVE-2014-fake-1", Namespace: "redhat:distro:redhat:9"},
+		Arch:        "src",
+	})
+	for _, strategy := range []version.MissingEpochStrategy{version.MissingEpochStrategyZero, version.MissingEpochStrategyAuto} {
+		t.Run(string(strategy), func(t *testing.T) {
+			p := pkg.Package{
+				ID:        pkg.ID("openssl"),
+				Name:      "openssl",
+				Version:   "2:3.0.7-27.el9",
+				Type:      syftPkg.RpmPkg,
+				Arch:      "x86_64",
+				Distro:    distro.New(distro.RedHat, "9", ""),
+				Upstreams: []pkg.UpstreamPackage{{Name: "openssl", Version: "3.0.7-27.el9"}},
+			}
+			matcher := NewRpmMatcher(MatcherConfig{MissingEpochStrategy: strategy})
+			matches, _, err := matcher.Match(store, p)
+			require.NoError(t, err)
+			assert.Empty(t, matches)
 		})
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/pkg"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 func TestUpstreamPackages(t *testing.T) {
@@ -42,6 +43,37 @@ func TestUpstreamPackages(t *testing.T) {
 	}
 }
 
+func TestUpstreamPackages_InheritsEpoch(t *testing.T) {
+	tests := []struct {
+		name       string
+		pkgType    syftPkg.Type
+		pkgVersion string
+		metadata   any
+		upstream   pkg.UpstreamPackage
+		want       string
+	}{
+		{name: "source rpm of the same version-release", pkgType: syftPkg.RpmPkg, pkgVersion: "2:3.0.7-27.el9", upstream: pkg.UpstreamPackage{Name: "openssl", Version: "3.0.7-27.el9"}, want: "2:3.0.7-27.el9"},
+		{name: "source rpm of another name: not inherited", pkgType: syftPkg.RpmPkg, pkgVersion: "2:3.0.7-27.el9", upstream: pkg.UpstreamPackage{Name: "openssl-src", Version: "3.0.7-27.el9"}, want: "3.0.7-27.el9"},
+		{name: "epoch only in metadata", pkgType: syftPkg.RpmPkg, pkgVersion: "3.0.7-27.el9", metadata: pkg.RpmMetadata{Epoch: new(2)}, upstream: pkg.UpstreamPackage{Name: "openssl", Version: "3.0.7-27.el9"}, want: "2:3.0.7-27.el9"},
+		{name: "synthesized source of its own name", pkgType: syftPkg.RpmPkg, pkgVersion: "3.0.7-27.el9", metadata: pkg.RpmMetadata{Epoch: new(2)}, want: "2:3.0.7-27.el9"},
+		{name: "source rpm of another version: unknown epoch", pkgType: syftPkg.RpmPkg, pkgVersion: "2:3.0.6-1.el9", upstream: pkg.UpstreamPackage{Name: "openssl", Version: "3.0.7-27.el9"}, want: "3.0.7-27.el9"},
+		{name: "source rpm with its own epoch", pkgType: syftPkg.RpmPkg, pkgVersion: "2:3.0.7-27.el9", upstream: pkg.UpstreamPackage{Name: "openssl", Version: "1:3.0.7-27.el9"}, want: "1:3.0.7-27.el9"},
+		{name: "zero epoch is not inherited", pkgType: syftPkg.RpmPkg, pkgVersion: "0:3.0.7-27.el9", upstream: pkg.UpstreamPackage{Name: "openssl", Version: "3.0.7-27.el9"}, want: "3.0.7-27.el9"},
+		{name: "deb source version is explicit", pkgType: syftPkg.DebPkg, pkgVersion: "2:3.0.7-1", upstream: pkg.UpstreamPackage{Name: "openssl", Version: "3.0.7-1"}, want: "3.0.7-1"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := pkg.Package{Name: "openssl", Type: tt.pkgType, Version: tt.pkgVersion, Arch: "x86_64", Metadata: tt.metadata}
+			if tt.upstream.Name != "" {
+				p.Upstreams = []pkg.UpstreamPackage{tt.upstream}
+			}
+			upstreams := UpstreamPackages(p)
+			require.Len(t, upstreams, 1)
+			require.Equal(t, tt.want, upstreams[0].Version)
+		})
+	}
+}
+
 func TestIsOwnSource(t *testing.T) {
 	tests := []struct {
 		name            string
@@ -52,6 +84,7 @@ func TestIsOwnSource(t *testing.T) {
 	}{
 		{name: "same name and version", upstreamName: "openssl", upstreamVersion: "3.0.7-1", pkgVersion: "3.0.7-1", want: true},
 		{name: "same name, the upstream omits the epoch", upstreamName: "openssl", upstreamVersion: "3.0.7-1", pkgVersion: "1:3.0.7-1", want: true},
+		{name: "same name, the package records the epoch elsewhere", upstreamName: "openssl", upstreamVersion: "1:3.0.7-1", pkgVersion: "3.0.7-1", want: true},
 		{name: "same name, another epoch", upstreamName: "openssl", upstreamVersion: "2:3.0.7-1", pkgVersion: "1:3.0.7-1", want: false},
 		{name: "same name, another version", upstreamName: "openssl", upstreamVersion: "3.0.7-1", pkgVersion: "3.0.7-1+b1", want: false},
 		{name: "another name", upstreamName: "openssl-src", upstreamVersion: "3.0.7-1", pkgVersion: "3.0.7-1", want: false},
@@ -60,7 +93,7 @@ func TestIsOwnSource(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p := pkg.Package{Name: "openssl", Version: tt.pkgVersion}
 			u := pkg.Package{Name: tt.upstreamName, Version: tt.upstreamVersion}
-			require.Equal(t, tt.want, IsOwnSource(u, p))
+			require.Equal(t, tt.want, IsSameUpstream(u, p))
 		})
 	}
 }

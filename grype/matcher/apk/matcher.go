@@ -129,7 +129,7 @@ func (m *Matcher) nakIgnores(vp vulnerability.Provider, p pkg.Package) ([]match.
 			search.ByPackageName(upstreamPkg.Name),
 			// p's own source only adds records that specify an architecture; p's own search already
 			// finds those that don't
-			search.ByArchitecture(upstreamPkg.Arch).WithRequired(internal.IsOwnSource(upstreamPkg, p)),
+			search.ByArchitecture(upstreamPkg.Arch).WithRequired(internal.IsSameUpstream(upstreamPkg, p)),
 			nakConstraint,
 		)
 		if err != nil {

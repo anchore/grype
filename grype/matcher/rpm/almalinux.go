@@ -95,7 +95,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 			internal.OnlyQualifiedPackages(upstreamPkg),
 			// the binary's own source only adds records that specify an architecture; step 1
 			// already found those that don't
-			search.ByArchitecture(upstreamPkg.Arch).WithRequired(internal.IsOwnSource(upstreamPkg, binaryPkg)),
+			search.ByArchitecture(upstreamPkg.Arch).WithRequired(internal.IsSameUpstream(upstreamPkg, binaryPkg)),
 		)
 		if err != nil {
 			log.WithFields("error", err, "upstreamPkg", upstreamPkg.Name, "binaryPkg", binaryPkg.Name).Debug("failed to fetch RHEL disclosures for upstream package")
@@ -163,7 +163,7 @@ func findRelatedUnaffectedPackages(provider result.Provider, binaryPkg pkg.Packa
 			internal.OnlyQualifiedPackages(upstreamPkg),
 			// the binary's own source only adds records that specify an architecture; step 3
 			// already found those that don't
-			search.ByArchitecture(upstreamPkg.Arch).WithRequired(internal.IsOwnSource(upstreamPkg, binaryPkg)),
+			search.ByArchitecture(upstreamPkg.Arch).WithRequired(internal.IsSameUpstream(upstreamPkg, binaryPkg)),
 			search.ForUnaffected(),
 		)
 		if err != nil {

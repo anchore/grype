@@ -227,7 +227,7 @@ func (m *Matcher) matchUpstreamPackages(vp vulnerability.Provider, p pkg.Package
 		// upstream against a sibling binary's vulnerability.
 		// p's own source only adds records that specify an architecture; p's own search already
 		// finds those that don't.
-		indirectMatches, ignores, err := m.findMatches(provider, indirectPackage, internal.IsOwnSource(indirectPackage, p))
+		indirectMatches, ignores, err := m.findMatches(provider, indirectPackage, internal.IsSameUpstream(indirectPackage, p))
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
 		}
