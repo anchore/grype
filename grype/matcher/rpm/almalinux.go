@@ -194,11 +194,12 @@ func applyAlmaLinuxUnaffectedFiltering(disclosures result.Set, unaffectedResults
 
 	// Several AlmaLinux advisories can cover one disclosure. The package stops being affected at the
 	// lowest of their lower bounds, so that is the fix: apply only that record.
+	unaffected := unaffectedResults.Index()
 	out := make(result.Set, len(filtered))
 	for id, results := range filtered {
 		results = slices.Clone(results)
 		for i := range results {
-			if fix, vuln, ok := lowestAlmaLinuxFix(results[i], unaffectedResults); ok {
+			if fix, vuln, ok := lowestAlmaLinuxFix(results[i], unaffected); ok {
 				replaceWithAlmaLinuxFixInfo(&results[i], fix, vuln)
 			}
 		}
@@ -210,15 +211,13 @@ func applyAlmaLinuxUnaffectedFiltering(disclosures result.Set, unaffectedResults
 // lowestAlmaLinuxFix returns the lowest fix version, and the AlmaLinux vulnerability it came from, among
 // the unaffected records overlapping existing; equal versions are broken by advisory ID so the choice never
 // depends on map order.
-func lowestAlmaLinuxFix(existing result.Result, unaffected result.Set) (string, vulnerability.Vulnerability, bool) {
+func lowestAlmaLinuxFix(existing result.Result, unaffected result.Index) (string, vulnerability.Vulnerability, bool) {
 	var bestID, bestFix string
 	var bestVuln vulnerability.Vulnerability
 	var bestVersion *version.Version
-	for _, records := range unaffected {
-		for _, r := range records {
-			if !result.IdentitiesOverlap(existing, r) {
-				continue
-			}
+	for identifier := range existing.Identifiers() {
+		// a record carrying several of the identifiers is seen again, and loses the tie to itself
+		for _, r := range unaffected[identifier] {
 			for _, vuln := range r.Vulnerabilities {
 				fix := extractFixVersionFromConstraint(vuln.Constraint)
 				if fix == "" {

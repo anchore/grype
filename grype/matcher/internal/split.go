@@ -3,8 +3,6 @@ package internal
 import (
 	"slices"
 
-	"github.com/scylladb/go-set/strset"
-
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
@@ -49,33 +47,38 @@ func SplitVulnerable(s result.Set, v *version.Version) (vulnerable, notVulnerabl
 
 	// an unaffected record whose ranges miss this version is in neither result, nor is one a surviving
 	// candidate outranks
-	return vulnerable, removeByIDAndAlias(affected, vulnerable).Merge(removeByIDAndAlias(unaffected, vulnerable))
+	removals := vulnerable.Index()
+	return vulnerable, removeByIDAndAlias(affected, removals).Merge(removeByIDAndAlias(unaffected, removals))
 }
 
 // removeDenied drops the candidates an unaffected record denies: one sharing an ID or alias with the
 // candidate, found by a search of the candidate's priority or higher. Equal priorities deny whatever the
 // match type, so a source package's NAK still denies its binary's record.
 func removeDenied(candidates, unaffected result.Set) result.Set {
-	type nak struct {
-		identity *strset.Set
-		priority int
-	}
-	naks := make([]nak, 0, len(unaffected))
-	for id, results := range unaffected {
-		naks = append(naks, nak{identity: result.Identity(id, results), priority: maxPriority(results)})
-	}
-
+	naks := unaffected.Index()
 	out := result.Set{}
 	for id, results := range candidates {
-		identity, priority := result.Identity(id, results), maxPriority(results)
-		denied := slices.ContainsFunc(naks, func(n nak) bool {
-			return n.priority >= priority && !strset.Intersection(identity, n.identity).IsEmpty()
-		})
-		if !denied {
+		if !denied(results, naks) {
 			out[id] = results
 		}
 	}
 	return out
+}
+
+// denied reports whether an unaffected record sharing an ID or alias with one of results was found by a
+// search of their priority or higher.
+func denied(results []result.Result, naks result.Index) bool {
+	priority := maxPriority(results)
+	for _, r := range results {
+		for identifier := range r.Identifiers() {
+			for _, nak := range naks[identifier] {
+				if nak.Rank.Priority >= priority {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func maxPriority(results []result.Result) int {
@@ -136,35 +139,19 @@ func fixedAt(v *version.Version) vulnerability.Criteria {
 // or lower-ranked removal is a separate advisory (e.g. another release line's) and is kept.
 //
 //nolint:gocognit
-func removeByIDAndAlias(s result.Set, removals result.Set) result.Set {
-	// highest removal rank by ID and alias
-	removedRank := map[string]result.Rank{}
-	raise := func(id string, r result.Rank) {
-		if prev, ok := removedRank[id]; !ok || r.Compare(prev) > 0 {
-			removedRank[id] = r
-		}
-	}
-	for id, results := range removals {
-		for _, r := range results {
-			raise(id, r.Rank)
-			for _, v := range r.Vulnerabilities {
-				for _, alias := range v.RelatedVulnerabilities {
-					raise(alias.ID, r.Rank)
-				}
-			}
-		}
-	}
-
+func removeByIDAndAlias(s result.Set, removals result.Index) result.Set {
 	out := result.Set{}
 	for id, results := range s {
-		if _, ok := removedRank[id]; ok {
+		if len(removals[id]) > 0 {
 			continue
 		}
 		results = slices.DeleteFunc(slices.Clone(results), func(r result.Result) bool {
 			for _, v := range r.Vulnerabilities {
 				for _, alias := range v.RelatedVulnerabilities {
-					if removed, ok := removedRank[alias.ID]; ok && r.Rank.Compare(removed) < 0 {
-						return true
+					for _, removed := range removals[alias.ID] {
+						if r.Rank.Compare(removed.Rank) < 0 {
+							return true
+						}
 					}
 				}
 			}
