@@ -76,6 +76,7 @@ func applicableForDistro(provider vulnerability.Provider, rp result.Provider, se
 			search.ByPackageName(name),
 			search.ByDistro(*searchPkg.Distro),
 			OnlyQualifiedPackages(searchPkg),
+			OnlyNonWithdrawnVulnerabilities(),
 			search.WithPackage(searched),
 		}, extra...)...)
 		if err != nil {

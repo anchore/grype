@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	"github.com/anchore/grype/grype/db/provider"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
@@ -174,4 +175,171 @@ func Test_extractCVSSInfo(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Test_normalizeSeverity covers the per-type CVSS handling. CVSS v2 vectors in OSV carry no
+// "CVSS:2.0/" prefix (as published by, for example, the Docker Hardened Images feed), so they
+// must be recognized by shape rather than by the versioned prefix v3 and v4 vectors use.
+func Test_normalizeSeverity(t *testing.T) {
+	tests := []struct {
+		name     string
+		severity osvmodel.Severity
+		want     db.Severity
+		wantErr  bool
+	}{
+		{
+			name:     "bare cvss v2 vector",
+			severity: osvmodel.Severity{Type: osvmodel.SeverityCVSSV2, Score: "AV:N/AC:M/Au:N/C:P/I:N/A:N"},
+			want: db.Severity{
+				Scheme: db.SeveritySchemeCVSS,
+				Value:  db.CVSSSeverity{Vector: "AV:N/AC:M/Au:N/C:P/I:N/A:N", Version: "2.0"},
+			},
+		},
+		{
+			name:     "cvss v2 vector with temporal metrics",
+			severity: osvmodel.Severity{Type: osvmodel.SeverityCVSSV2, Score: "AV:N/AC:L/Au:N/C:P/I:P/A:P/E:POC/RL:OF/RC:C"},
+			want: db.Severity{
+				Scheme: db.SeveritySchemeCVSS,
+				Value:  db.CVSSSeverity{Vector: "AV:N/AC:L/Au:N/C:P/I:P/A:P/E:POC/RL:OF/RC:C", Version: "2.0"},
+			},
+		},
+		{
+			name:     "cvss v3 vector",
+			severity: osvmodel.Severity{Type: osvmodel.SeverityCVSSV3, Score: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"},
+			want: db.Severity{
+				Scheme: db.SeveritySchemeCVSS,
+				Value:  db.CVSSSeverity{Vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N", Version: "3.1"},
+			},
+		},
+		{
+			name:     "cvss v4 vector",
+			severity: osvmodel.Severity{Type: osvmodel.SeverityCVSSV4, Score: "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:H/SC:N/SI:N/SA:N"},
+			want: db.Severity{
+				Scheme: db.SeveritySchemeCVSS,
+				Value:  db.CVSSSeverity{Vector: "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:H/SC:N/SI:N/SA:N", Version: "4.0"},
+			},
+		},
+		{
+			name:     "bare v3 vector is not accepted as v2",
+			severity: osvmodel.Severity{Type: osvmodel.SeverityCVSSV2, Score: "AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"},
+			wantErr:  true,
+		},
+		{
+			name:     "bare vector under a v3 type",
+			severity: osvmodel.Severity{Type: osvmodel.SeverityCVSSV3, Score: "AV:N/AC:M/Au:N/C:P/I:N/A:N"},
+			wantErr:  true,
+		},
+		{
+			name:     "empty cvss v2",
+			severity: osvmodel.Severity{Type: osvmodel.SeverityCVSSV2, Score: ""},
+			wantErr:  true,
+		},
+		{
+			name:     "non-cvss severity passes through",
+			severity: osvmodel.Severity{Type: "Ubuntu", Score: "medium"},
+			want:     db.Severity{Scheme: db.UnknownSeverityScheme, Value: "medium"},
+		},
+	}
+	t.Parallel()
+	for _, testToRun := range tests {
+		test := testToRun
+		t.Run(test.name, func(tt *testing.T) {
+			tt.Parallel()
+			got, err := normalizeSeverity(test.severity)
+			if (err != nil) != test.wantErr {
+				tt.Fatalf("normalizeSeverity() error = %v, wantErr %v", err, test.wantErr)
+			}
+			if err != nil {
+				return
+			}
+			if diff := cmp.Diff(test.want, got); diff != "" {
+				tt.Errorf("normalizeSeverity() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+// Test_getSeverities covers the ordering of severities. Grype reports the first severity, so
+// the newest CVSS version must come first regardless of the order the feed lists them in.
+func Test_getSeverities(t *testing.T) {
+	v2 := osvmodel.Severity{Type: osvmodel.SeverityCVSSV2, Score: "AV:N/AC:M/Au:N/C:P/I:N/A:N"}
+	v30 := osvmodel.Severity{Type: osvmodel.SeverityCVSSV3, Score: "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"}
+	v31 := osvmodel.Severity{Type: osvmodel.SeverityCVSSV3, Score: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"}
+	v4 := osvmodel.Severity{Type: osvmodel.SeverityCVSSV4, Score: "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:H/SC:N/SI:N/SA:N"}
+	other := osvmodel.Severity{Type: "Ubuntu", Score: "medium"}
+
+	cvss := func(version, vector string) db.Severity {
+		return db.Severity{Scheme: db.SeveritySchemeCVSS, Value: db.CVSSSeverity{Vector: vector, Version: version}}
+	}
+	wantV2 := cvss("2.0", v2.Score)
+	wantV30 := cvss("3.0", v30.Score)
+	wantV31 := cvss("3.1", v31.Score)
+	wantV4 := cvss("4.0", v4.Score)
+	wantOther := db.Severity{Scheme: db.UnknownSeverityScheme, Value: "medium"}
+
+	tests := []struct {
+		name string
+		vuln unmarshal.OSVVulnerability
+		want []db.Severity
+	}{
+		{
+			name: "v3 preferred over v2 regardless of feed order",
+			vuln: osvVulnWithSeverities(v2, v31),
+			want: []db.Severity{wantV31, wantV2},
+		},
+		{
+			name: "v4 preferred over v3",
+			vuln: osvVulnWithSeverities(v31, v4),
+			want: []db.Severity{wantV4, wantV31},
+		},
+		{
+			name: "v3.1 preferred over v3.0",
+			vuln: osvVulnWithSeverities(v30, v31),
+			want: []db.Severity{wantV31, wantV30},
+		},
+		{
+			name: "v2 only",
+			vuln: osvVulnWithSeverities(v2),
+			want: []db.Severity{wantV2},
+		},
+		{
+			name: "already newest first is unchanged",
+			vuln: osvVulnWithSeverities(v4, v31, v2),
+			want: []db.Severity{wantV4, wantV31, wantV2},
+		},
+		{
+			name: "non-cvss severities follow cvss severities",
+			vuln: osvVulnWithSeverities(other, v2, v31),
+			want: []db.Severity{wantV31, wantV2, wantOther},
+		},
+		{
+			name: "affected-level severities are ordered with the record-level ones",
+			vuln: unmarshal.OSVVulnerability{
+				Severity: []osvmodel.Severity{v2},
+				Affected: []osvmodel.Affected{{Severity: []osvmodel.Severity{v4}}},
+			},
+			want: []db.Severity{wantV4, wantV2},
+		},
+		{
+			name: "no severities",
+			vuln: osvVulnWithSeverities(),
+			want: nil,
+		},
+	}
+	t.Parallel()
+	for _, testToRun := range tests {
+		test := testToRun
+		t.Run(test.name, func(tt *testing.T) {
+			tt.Parallel()
+			got, err := getSeverities(test.vuln)
+			require.NoError(tt, err)
+			if diff := cmp.Diff(test.want, got); diff != "" {
+				tt.Errorf("getSeverities() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func osvVulnWithSeverities(severities ...osvmodel.Severity) unmarshal.OSVVulnerability {
+	return unmarshal.OSVVulnerability{Severity: severities}
 }
