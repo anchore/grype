@@ -66,6 +66,12 @@ func TestJVMVersion_Constraint(t *testing.T) {
 		{version: "6u141", constraint: "> 1.6.0", satisfied: true},
 		{version: "1.6.0_141", constraint: "<= 6u141", satisfied: true},
 		{version: "6u141", constraint: "> 6u142", satisfied: false},
+
+		// more than three dot-separated version components
+		{version: "27.0.1.1+4", constraint: "> 27.0.1", satisfied: true},
+		{version: "25.0.5.0.3", constraint: "> 25.0.5.0.2", satisfied: true},
+		{version: "25.0.5.0.1", constraint: "<= 25.0.5", satisfied: false},
+		{version: "25.0.5", constraint: "<= 25.0.5.0", satisfied: true},
 	}
 
 	for _, test := range tests {
@@ -149,6 +155,13 @@ func TestJVMVersion_Compare(t *testing.T) {
 		{"6u141", "7", -1},
 		{"8u302-b08", "1.8.0_302", 0},
 		{"8u302", "8.0.302", 0},
+
+		// More than 3 dot-separated version components
+		{"27.0.1.1+4", "27.0.1+4", 1},
+		{"25.0.5.0.3", "25.0.5.0.2", 1},
+		{"25.0.5.0.3", "25.0.5", 1},
+		{"25.0.5.0.3", "25.0.6", -1},
+		{"25.0.5", "25.0.5.0", 0},
 	}
 
 	for _, test := range tests {
