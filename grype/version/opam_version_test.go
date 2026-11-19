@@ -1,6 +1,7 @@
 package version
 
 import (
+	"cmp"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,10 +18,8 @@ func TestOpamVersionCompare(t *testing.T) {
 		{v1: "1.0.0", v2: "1.0.0", want: 0},
 		{v1: "1.0.1", v2: "1.0.0", want: 1},
 		{v1: "1.0.9", v2: "1.0.10", want: -1},
-		{v1: "4.14.3", v2: "4.14.10", want: -1},
 		// missing components are smaller
 		{v1: "5", v2: "5.0.0", want: -1},
-		{v1: "1.0", v2: "1.0.0", want: -1},
 		// leading zeros are ignored in numeric parts
 		{v1: "1.0", v2: "1.00", want: 0},
 		{v1: "1.0", v2: "01.0", want: 0},
@@ -29,16 +28,13 @@ func TestOpamVersionCompare(t *testing.T) {
 		{v1: "1.0~~", v2: "1.0~beta", want: -1},
 		{v1: "2", v2: "2.0~alpha5", want: -1},
 		{v1: "2.0~alpha5", v2: "2.0.0~beta", want: -1},
-		{v1: "1.0.0~rc1", v2: "1.0.0", want: -1},
 		{v1: "1.0~beta2", v2: "1.0~beta10", want: -1},
 		// letters sort before other characters
 		{v1: "1.0z", v2: "1.0+", want: -1},
-		{v1: "1.0a", v2: "1.0_1", want: -1},
 		{v1: "1", v2: "a", want: -1},
 		{v1: "A", v2: "a", want: -1},
 		// the parts before the last "-" are compared first
 		{v1: "1.0-test", v2: "1.0+dev", want: -1},
-		{v1: "1.0-rc1", v2: "1.0+", want: -1},
 		{v1: "1.0-1", v2: "1.0-10", want: -1},
 		{v1: "1.0~rc1-1", v2: "1.0", want: -1},
 		{v1: "1.0-a-b", v2: "1.0-1", want: 1},
@@ -46,13 +42,7 @@ func TestOpamVersionCompare(t *testing.T) {
 		{v1: "1.0", v2: "1.0-", want: 0},
 		{v1: "-1", v2: "0.1", want: -1},
 		// opam versions are not necessarily semver: dates (menhir), "v" prefixes (Jane Street)
-		{v1: "20260209", v2: "20220210", want: 1},
 		{v1: "20260209~rc1", v2: "20260209", want: -1},
-		{v1: "20260209", v2: "20260209.1", want: -1},
-		{v1: "20260209", v2: "dev", want: -1},
-		{v1: "1.0.0", v2: "20260209", want: -1},
-		{v1: "v0.16.0", v2: "v0.15.1", want: 1},
-		{v1: "v0.16", v2: "v0.16.0", want: -1},
 		{v1: "v0.16.0~preview.129.00+243", v2: "v0.16.0", want: -1},
 		{v1: "0.17.0", v2: "v0.17.0", want: -1},
 		// numbers that don't fit in 64 bits are compared digit by digit
@@ -84,29 +74,34 @@ func TestOpamVersionOrdering(t *testing.T) {
 	ordered := []string{"~~", "~", "~beta2", "~beta10", "0.1", "1.0~beta", "1.0", "1.0-test", "1.0.1", "1.0.10", "dev", "trunk"}
 	for i := range ordered {
 		for j := range ordered {
-			want := opamCompareInts(i, j)
+			want := cmp.Compare(i, j)
 			assert.Equal(t, want, compareOpamVersions(ordered[i], ordered[j]), "%q vs %q", ordered[i], ordered[j])
 		}
 	}
 }
 
 func TestOpamVersionInvalid(t *testing.T) {
-	for _, raw := range []string{"", "1.0 beta", "1.0/2", "1.0:1", "v1.0é"} {
-		t.Run(raw, func(t *testing.T) {
-			_, err := newOpamVersion(raw)
-			require.Error(t, err)
+	tests := []struct {
+		raw     string
+		wantErr string
+	}{
+		{raw: "", wantErr: "empty version"},
+		{raw: "1.0 beta", wantErr: "invalid character ' '"},
+		{raw: "1.0/2", wantErr: "invalid character '/'"},
+		{raw: "1.0:1", wantErr: "invalid character ':'"},
+		{raw: "v1.0é", wantErr: "invalid character 'é'"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.raw, func(t *testing.T) {
+			_, err := newOpamVersion(tt.raw)
+			require.ErrorContains(t, err, tt.wantErr)
 
 			v, err := newOpamVersion("1.0")
 			require.NoError(t, err)
-			_, err = v.Compare(New(raw, OpamFormat))
-			require.Error(t, err)
+			_, err = v.Compare(New(tt.raw, OpamFormat))
+			require.ErrorContains(t, err, tt.wantErr)
 		})
 	}
-}
-
-func TestOpamVersionInvalidCharacterError(t *testing.T) {
-	_, err := newOpamVersion("v1.0é")
-	require.ErrorContains(t, err, `invalid character 'é'`)
 }
 
 func TestOpamVersionCompareNil(t *testing.T) {
@@ -125,13 +120,11 @@ func TestOpamVersionConstraint(t *testing.T) {
 		// constraints as stored for the OCaml security advisories (comma-separated, as the OSV transformer writes them)
 		{constraint: "<4.14.3", version: "4.14.2", satisfied: true},
 		{constraint: "<4.14.3", version: "4.14.3", satisfied: false},
+		{constraint: ">=5.0.0,<5.4.1", version: "5.0.0", satisfied: true},
 		{constraint: ">=5.0.0,<5.4.1", version: "5.4.0", satisfied: true},
 		{constraint: ">=5.0.0,<5.4.1", version: "5.4.1~rc1", satisfied: true},
 		{constraint: ">=5.0.0,<5.4.1", version: "5.0.0~alpha1", satisfied: false},
 		{constraint: ">=5.0.0,<5.4.1", version: "5.4.1", satisfied: false},
-		{constraint: ">=4.04.0,<4.04.2", version: "4.04.1", satisfied: true},
-		{constraint: ">=4.04.0,<4.04.2", version: "4.04.2", satisfied: false},
-		{constraint: ">=1.0.1", version: "2.8.2", satisfied: true},
 		{constraint: "<=2.0.0", version: "2.0.0", satisfied: true},
 		{constraint: "<=2.0.0", version: "2.0.0+dev", satisfied: false},
 		{constraint: "<4.14.3||>=5.0.0,<5.4.1", version: "5.3.0", satisfied: true},

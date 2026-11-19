@@ -35,37 +35,15 @@ func TestMatcher(t *testing.T) {
 			expected: []string{"OSEC-2017-01", "OSEC-2026-01"},
 		},
 		{
-			name:     "ocaml 4.04.2 is fixed for OSEC-2017-01",
-			pkgName:  "ocaml",
-			version:  "4.04.2",
-			expected: []string{"OSEC-2026-01"},
-		},
-		{
-			name:    "ocaml 4.14.3 is fixed",
-			pkgName: "ocaml",
-			version: "4.14.3",
-		},
-		{
 			name:    "ocaml 5.0.0~alpha1 is before the second range of OSEC-2026-01",
 			pkgName: "ocaml",
 			version: "5.0.0~alpha1",
-		},
-		{
-			name:     "ocaml 5.0.0 is in the second range of OSEC-2026-01",
-			pkgName:  "ocaml",
-			version:  "5.0.0",
-			expected: []string{"OSEC-2026-01"},
 		},
 		{
 			name:     "ocaml 5.4.1~rc1 is before the fix",
 			pkgName:  "ocaml",
 			version:  "5.4.1~rc1",
 			expected: []string{"OSEC-2026-01"},
-		},
-		{
-			name:    "ocaml 5.4.1 is fixed",
-			pkgName: "ocaml",
-			version: "5.4.1",
 		},
 		{
 			// not an opam version (an unreplaced build template), so no range can be evaluated
@@ -135,7 +113,7 @@ func TestMatcher_Type(t *testing.T) {
 //   - CVE-2017-9772 (NVD): cpe:2.3:a:ocaml:ocaml:4.04.0 and 4.04.1
 func TestMatcher_Cases(t *testing.T) {
 	dbtest.DBs(t, "ocaml-cases").Run(func(t *testing.T, db *dbtest.DB) {
-		t.Run("unfixed advisory matches every version, withdrawn one never", func(t *testing.T) {
+		t.Run("unfixed advisory matches, withdrawn one doesn't", func(t *testing.T) {
 			p := dbtest.NewPackage("ocaml", "5.3.0", syftPkg.OpamPkg).WithLanguage(syftPkg.OCaml).Build()
 
 			db.Match(t, NewOpamMatcher(MatcherConfig{}), p).

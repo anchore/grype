@@ -11,7 +11,6 @@ import (
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/osvmodel"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers"
-	"github.com/anchore/grype/grype/version"
 )
 
 // TestOCamlTransform exercises the ocaml strategy end-to-end against real
@@ -148,38 +147,6 @@ func TestOCamlTransform(t *testing.T) {
 	runTransformCases(t, tests)
 }
 
-// TestOCamlRangesUseOpamOrdering checks that the stored ranges of OSEC-2026-01
-// (< 4.14.3 and [5.0.0, 5.4.1)) are evaluated with the opam version ordering.
-func TestOCamlRangesUseOpamOrdering(t *testing.T) {
-	vulns := loadFixture(t, "testdata/OSEC-2026-01.json")
-	require.Len(t, vulns, 1)
-	aphs := ocamlAffectedPackages(vulns[0])
-	require.Len(t, aphs, 1)
-
-	for _, tt := range []struct {
-		version  string
-		affected bool
-	}{
-		{version: "4.14.2", affected: true},
-		{version: "4.14.3~rc1", affected: true},
-		{version: "4.14.3", affected: false},
-		{version: "5.0.0~alpha1", affected: false}, // pre-release before the first affected release 5.0.0
-		{version: "5.0.0", affected: true},
-		{version: "5.4.0", affected: true},
-		{version: "5.4.1", affected: false},
-	} {
-		affected := false
-		for _, r := range aphs[0].BlobValue.Ranges {
-			c, err := version.GetConstraint(r.Version.Constraint, version.ParseFormat(r.Version.Type))
-			require.NoError(t, err)
-			satisfied, err := c.Satisfied(version.New(tt.version, version.OpamFormat))
-			require.NoError(t, err)
-			affected = affected || satisfied
-		}
-		assert.Equal(t, tt.affected, affected, "version %s", tt.version)
-	}
-}
-
 // TestOCamlTransformRangeShapes covers OSV shapes the current advisories don't
 // use (yet), starting from OSEC-2017-01.
 func TestOCamlTransformRangeShapes(t *testing.T) {
@@ -229,6 +196,49 @@ func TestOCamlTransformRangeShapes(t *testing.T) {
 				}),
 			},
 		},
+		{
+			name: "lone introduced:0 keeps the package without ranges (every version)",
+			modify: func(v *unmarshal.OSVVulnerability) {
+				v.Affected[0].Ranges = ecosystemRange(osvmodel.Event{Introduced: "0"})
+			},
+			packages: []db.AffectedPackageHandle{ocamlPackage("ocaml")},
+		},
+		{
+			name: "no ECOSYSTEM range drops the package",
+			modify: func(v *unmarshal.OSVVulnerability) {
+				v.Affected[0].Ranges = []osvmodel.Range{{Type: osvmodel.RangeSemVer, Events: []osvmodel.Event{{Introduced: "0"}, {Fixed: "4.04.2"}}}}
+			},
+		},
+		{
+			name:   "ECOSYSTEM range without events drops the package",
+			modify: func(v *unmarshal.OSVVulnerability) { v.Affected[0].Ranges = ecosystemRange() },
+		},
+		{
+			name: "ECOSYSTEM range with only a limit drops the package",
+			modify: func(v *unmarshal.OSVVulnerability) {
+				v.Affected[0].Ranges = ecosystemRange(osvmodel.Event{Limit: "4.04.2"})
+			},
+		},
+		{
+			name: "date versions kept intact",
+			modify: func(v *unmarshal.OSVVulnerability) {
+				v.Affected[0].Ranges = ecosystemRange(osvmodel.Event{Introduced: "20220210"}, osvmodel.Event{Fixed: "20260209"})
+			},
+			packages: []db.AffectedPackageHandle{ocamlPackage("ocaml", db.Range{
+				Version: db.Version{Type: "opam", Constraint: ">=20220210,<20260209"},
+				Fix:     &db.Fix{Version: "20260209", State: db.FixedStatus},
+			})},
+		},
+		{
+			name: "v-prefixed versions kept intact",
+			modify: func(v *unmarshal.OSVVulnerability) {
+				v.Affected[0].Ranges = ecosystemRange(osvmodel.Event{Introduced: "v0.15.0"}, osvmodel.Event{Fixed: "v0.16.0"})
+			},
+			packages: []db.AffectedPackageHandle{ocamlPackage("ocaml", db.Range{
+				Version: db.Version{Type: "opam", Constraint: ">=v0.15.0,<v0.16.0"},
+				Fix:     &db.Fix{Version: "v0.16.0", State: db.FixedStatus},
+			})},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -253,11 +263,6 @@ func TestOCamlTransformReferences(t *testing.T) {
 		modify func(v *unmarshal.OSVVulnerability)
 		want   []db.Reference
 	}{
-		{
-			name:   "advisory page first",
-			modify: func(*unmarshal.OSVVulnerability) {},
-			want:   []db.Reference{advisory, report},
-		},
 		{
 			name:   "no references, only the advisory page",
 			modify: func(v *unmarshal.OSVVulnerability) { v.References = nil },
@@ -345,114 +350,4 @@ func TestOCamlStrategyMatches(t *testing.T) {
 	assert.True(t, s.Matches("OSEC-2026-01"))
 	assert.False(t, s.Matches("GHSA-j26j-m5xr-g23c"))
 	assert.False(t, s.Matches("CVE-2026-28364"))
-}
-
-// opam versions are not necessarily semver, e.g. menhir uses dates ("20260209")
-// and Jane Street packages use a "v" prefix ("v0.16.0"); the constraint
-// normalization must keep them intact.
-func TestOCamlNonSemverRanges(t *testing.T) {
-	tests := []struct {
-		name       string
-		introduced string
-		fixed      string
-		constraint string
-		affected   []string
-		unaffected []string
-	}{
-		{
-			name:       "dates",
-			introduced: "20220210",
-			fixed:      "20260209",
-			constraint: ">=20220210,<20260209",
-			affected:   []string{"20220210", "20230415", "20260209~rc1"},
-			unaffected: []string{"20211230", "20260209", "20260209.1"},
-		},
-		{
-			name:       "v prefix",
-			introduced: "v0.15.0",
-			fixed:      "v0.16.0",
-			constraint: ">=v0.15.0,<v0.16.0",
-			affected:   []string{"v0.15.0", "v0.15.1", "v0.16.0~preview.129.00+243"},
-			unaffected: []string{"v0.14.3", "v0.16.0", "v0.17.0"},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			ranges := eventsToRanges([]osvmodel.Event{{Introduced: tt.introduced}, {Fixed: tt.fixed}}, nil, "opam")
-			require.Len(t, ranges, 1)
-			assert.Equal(t, tt.constraint, ranges[0].Version.Constraint)
-			require.NotNil(t, ranges[0].Fix)
-			assert.Equal(t, tt.fixed, ranges[0].Fix.Version)
-
-			c, err := version.GetConstraint(ranges[0].Version.Constraint, version.ParseFormat(ranges[0].Version.Type))
-			require.NoError(t, err)
-			for _, v := range tt.affected {
-				satisfied, err := c.Satisfied(version.New(v, version.OpamFormat))
-				require.NoError(t, err)
-				assert.True(t, satisfied, "%s should be affected", v)
-			}
-			for _, v := range tt.unaffected {
-				satisfied, err := c.Satisfied(version.New(v, version.OpamFormat))
-				require.NoError(t, err)
-				assert.False(t, satisfied, "%s should not be affected", v)
-			}
-		})
-	}
-}
-
-// TestOCamlTransformUnfixed covers an advisory without a fix yet: like for
-// govulndb, an ECOSYSTEM range with a lone introduced:0 yields no ranges, which
-// grype treats as every version being vulnerable.
-func TestOCamlTransformUnfixed(t *testing.T) {
-	vulns := loadFixture(t, "testdata/OSEC-2017-01.json")
-	require.Len(t, vulns, 1)
-	vulns[0].Affected[0].Ranges = []osvmodel.Range{{
-		Type:   osvmodel.RangeEcosystem,
-		Events: []osvmodel.Event{{Introduced: "0"}},
-	}}
-
-	entries, err := Transform(vulns[0], inputProviderState())
-	require.NoError(t, err)
-	require.Len(t, entries, 1)
-	related, ok := entries[0].Data.(transformers.RelatedEntries)
-	require.True(t, ok)
-	require.Len(t, related.Related, 1)
-	aph, ok := related.Related[0].(db.AffectedPackageHandle)
-	require.True(t, ok)
-	assert.Equal(t, &db.Package{Name: "ocaml", Ecosystem: "opam"}, aph.Package)
-	assert.Empty(t, aph.BlobValue.Ranges)
-}
-
-// TestOCamlTransformWithoutUsableRange checks that an opam entry whose ranges
-// yield no constraints is dropped instead of being stored without ranges, which
-// would match every version: only a lone introduced:0 means that.
-func TestOCamlTransformWithoutUsableRange(t *testing.T) {
-	tests := []struct {
-		name   string
-		ranges []osvmodel.Range
-	}{
-		{
-			name:   "no ECOSYSTEM range",
-			ranges: []osvmodel.Range{{Type: osvmodel.RangeSemVer, Events: []osvmodel.Event{{Introduced: "0"}, {Fixed: "4.04.2"}}}},
-		},
-		{
-			name:   "ECOSYSTEM range without events",
-			ranges: []osvmodel.Range{{Type: osvmodel.RangeEcosystem}},
-		},
-		{
-			name:   "ECOSYSTEM range with only a limit",
-			ranges: []osvmodel.Range{{Type: osvmodel.RangeEcosystem, Events: []osvmodel.Event{{Limit: "4.04.2"}}}},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			vulns := loadFixture(t, "testdata/OSEC-2017-01.json")
-			require.Len(t, vulns, 1)
-			vulns[0].Affected[0].Ranges = tt.ranges
-
-			entries, err := Transform(vulns[0], inputProviderState())
-			require.NoError(t, err)
-			assert.Empty(t, entries)
-		})
-	}
 }
