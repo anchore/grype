@@ -37,6 +37,9 @@ import (
 //     all, and grype reports the first reference as the data source.
 type ocamlStrategy struct{}
 
+// ocamlRangeType is the grype version format of the ECOSYSTEM ranges.
+const ocamlRangeType = "opam"
+
 func (ocamlStrategy) Matches(id string) bool {
 	return strings.HasPrefix(id, "OSEC-")
 }
@@ -130,17 +133,21 @@ func ocamlAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackage
 			continue
 		}
 		var ranges []db.Range
-		hasEcosystemRange := false
+		allVersions := false
 		for _, r := range affected.Ranges {
 			if r.Type != osvmodel.RangeEcosystem {
 				continue
 			}
-			hasEcosystemRange = true
-			ranges = append(ranges, getGrypeRangesFromRange(r, string(pkg.OpamPkg))...)
+			converted := getGrypeRangesFromRange(r, ocamlRangeType)
+			if len(converted) == 0 && isDefaultFloorOnly(r.Events) {
+				allVersions = true
+			}
+			ranges = append(ranges, converted...)
 		}
-		// no ranges means every version is vulnerable, so keep the package only if
-		// the empty ranges come from an ECOSYSTEM range (e.g. a lone introduced:0)
-		if !hasEcosystemRange {
+		// no ranges means every version is vulnerable: keep a package without
+		// ranges only when an ECOSYSTEM range says so (a lone introduced:0), not
+		// when its ranges are missing or malformed
+		if len(ranges) == 0 && !allVersions {
 			continue
 		}
 		aphs = append(aphs, db.AffectedPackageHandle{

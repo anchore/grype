@@ -423,18 +423,36 @@ func TestOCamlTransformUnfixed(t *testing.T) {
 	assert.Empty(t, aph.BlobValue.Ranges)
 }
 
-// TestOCamlTransformWithoutEcosystemRange checks that an opam entry without an
-// ECOSYSTEM range is dropped instead of being stored without ranges, which would
-// match every version.
-func TestOCamlTransformWithoutEcosystemRange(t *testing.T) {
-	vulns := loadFixture(t, "testdata/OSEC-2017-01.json")
-	require.Len(t, vulns, 1)
-	vulns[0].Affected[0].Ranges = []osvmodel.Range{{
-		Type:   osvmodel.RangeSemVer,
-		Events: []osvmodel.Event{{Introduced: "0"}, {Fixed: "4.04.2"}},
-	}}
+// TestOCamlTransformWithoutUsableRange checks that an opam entry whose ranges
+// yield no constraints is dropped instead of being stored without ranges, which
+// would match every version: only a lone introduced:0 means that.
+func TestOCamlTransformWithoutUsableRange(t *testing.T) {
+	tests := []struct {
+		name   string
+		ranges []osvmodel.Range
+	}{
+		{
+			name:   "no ECOSYSTEM range",
+			ranges: []osvmodel.Range{{Type: osvmodel.RangeSemVer, Events: []osvmodel.Event{{Introduced: "0"}, {Fixed: "4.04.2"}}}},
+		},
+		{
+			name:   "ECOSYSTEM range without events",
+			ranges: []osvmodel.Range{{Type: osvmodel.RangeEcosystem}},
+		},
+		{
+			name:   "ECOSYSTEM range with only a limit",
+			ranges: []osvmodel.Range{{Type: osvmodel.RangeEcosystem, Events: []osvmodel.Event{{Limit: "4.04.2"}}}},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vulns := loadFixture(t, "testdata/OSEC-2017-01.json")
+			require.Len(t, vulns, 1)
+			vulns[0].Affected[0].Ranges = tt.ranges
 
-	entries, err := Transform(vulns[0], inputProviderState())
-	require.NoError(t, err)
-	assert.Empty(t, entries)
+			entries, err := Transform(vulns[0], inputProviderState())
+			require.NoError(t, err)
+			assert.Empty(t, entries)
+		})
+	}
 }
