@@ -38,6 +38,10 @@ func TestOCamlTransform(t *testing.T) {
 						ID:          "OSEC-2017-01",
 						Description: "## Description\n\nInsufficient sanitisation in the OCaml compiler versions 4.04.0 and 4.04.1 allows external code to be executed with raised privilege in binaries marked as setuid, by setting the CAML_CPLUGINS, CAML_NATIVE_CPLUGINS, or CAML_BYTE_CPLUGINS environment variable.",
 						References: []db.Reference{{
+							ID:   "OSEC-2017-01",
+							URL:  "https://github.com/ocaml/security-advisories/tree/main/advisories/2017/OSEC-2017-01.md",
+							Tags: []string{"ADVISORY"},
+						}, {
 							URL:  "https://github.com/ocaml/ocaml/issues/7557",
 							Tags: []string{"REPORT"},
 						}},
@@ -96,6 +100,10 @@ func TestOCamlTransform(t *testing.T) {
 						ID:          "OSEC-2026-01",
 						Description: "## Summary\n\nA critical buffer over-read vulnerability in OCaml's Marshal deserialization (runtime/intern.c) enables remote code execution through a multi-phase attack chain. The vulnerability stems from missing bounds validation in the readblock() function, which performs unbounded memcpy() operations using attacker-controlled lengths from malicious Marshal data.\n\nPlease note that Marshal is not type safe, and you have to be careful if you use the deserialization on untrusted input (due to type confusion, and remote code execution by design - you can use Marshal for code).\n\nAffected functions: `Marshal.from_channel`, `Marshal.from_bytes`, `Marshal.from_string`, `Stdlib.input_value`, `Pervasives.input_value` when reading data from an untrusted source.\n\n## Vulnerability Attack Vector\n\nCorrupted or malicious marshaled data that causes undefined behaviour in the runtime system when unmarshaled.\n`input_value` should either fail cleanly or produce a well-formed OCaml object, without corrupting the runtime system.\n\nConsequently, this excludes:\n\n* well-formed marshaled data that produces an OCaml object that is not of the type expected by the OCaml code and causes the Ocaml code to crash or misbehave\n\n* misuses of the OCaml runtime system by the program performing input_value, such as setting `Debugger.function_placeholder` to the wrong function.\n\nThe former issue may be addressed at some point by validating the unmarshaled OCaml value against the expected type, using the functions from module `Obj` and some kind of run-time type description.\n\nThe latter issue is a bug in the program that unmarshals the data.\n\n## Fix\n\n### OCaml runtime\n\nThe OCaml runtime has been hardened with additional bounds checks. An exception is raised on bad input.\n\n### Third party libraries\n\nThird party libraries that want to harden their custom Marshal deserialization code can follow the example fix for bigarrays from the standard library.\nThere are new macros in `custom.h` called `Wsize_custom_data` and `Bsize_custom_data` that return the size in words or bytes of the allocated custom destination block. The deserializer needs to ensure it only writes data within those bounds.\n\nThis only needs to be done if the library defines a custom type in a C binding, and `struct custom_operations`'s `deserialize` field is not set to `NULL` or `custom_deserialize_default`, and `struct custom_operations`'s `fixed_length` field is set to `NULL` or `custom_fixed_length_default`\n\nSince `Marshal.from*` and `input_value` remain unsafe to use, the fix for the OCaml runtime is released, and we wouldn't attempt to coordinate updating all deserialization functions in the ecosystem.\n\n## Timeline\n\n- Nov 4th 2025: Discovery Date: Discovered first in OxCaml\n- Nov 5th 2025: First Disclosure Date (Jane Street Team): Emailed top maintainers, no response.\n- Nov 9th 2025: Second Disclosure Date (OCaml Team): Submitted to OCaml/ocaml GitHub Repo as a Security Advisory.\n- Nov 11th 2025: Emailed OCaml Security Mail List: Submitted to OCaml over email, responded asking for details.\n- Nov 11th 2025: Third Disclosure (OCaml Security Response Team): Submitted to ocaml/security-advisories GitHub Repo as a Security Advisory.\n- Dec 16th 2025: Initial patch is developed\n- Dec 17th 2025: Fuzz testing found further issues\n- Dec 24th 2025: Final patch for OCaml is developed\n- Dec 25th 2025: Fuzz testing couldn't find any further issues\n- Jan 2nd 2026: Patch got reviewed by OCaml maintainers\n- Jan 4th 2026: Benchmarking of the patch with good results\n- Jan 6th 2026: Reporter got contacted to confirm\n- Jan 25th 2026: Further related issues discovered by fuzzing\n- Feb 17th 2026: fixed OCaml releases are published, security advisory is published",
 						References: []db.Reference{{
+							ID:   "OSEC-2026-01",
+							URL:  "https://github.com/ocaml/security-advisories/tree/main/advisories/2026/OSEC-2026-01.md",
+							Tags: []string{"ADVISORY"},
+						}, {
 							URL:  "https://github.com/ocaml/security-advisories/security/advisories/GHSA-j26j-m5xr-g23c",
 							Tags: []string{"REPORT"},
 						}},
@@ -232,18 +240,72 @@ func TestOCamlTransformRangeShapes(t *testing.T) {
 	}
 }
 
-func TestOCamlTransformWithoutReferences(t *testing.T) {
-	vulns := loadFixture(t, "testdata/OSEC-2017-01.json")
-	require.Len(t, vulns, 1)
-	vulns[0].References = nil
+// TestOCamlTransformReferences checks that the advisory page
+// (database_specific.human_link) comes first in the references: many records
+// have no references at all, and grype reports the first reference as the
+// data source of a match.
+func TestOCamlTransformReferences(t *testing.T) {
+	const advisoryURL = "https://github.com/ocaml/security-advisories/tree/main/advisories/2017/OSEC-2017-01.md"
+	advisory := db.Reference{ID: "OSEC-2017-01", URL: advisoryURL, Tags: []string{"ADVISORY"}}
+	report := db.Reference{URL: "https://github.com/ocaml/ocaml/issues/7557", Tags: []string{"REPORT"}}
+	tests := []struct {
+		name   string
+		modify func(v *unmarshal.OSVVulnerability)
+		want   []db.Reference
+	}{
+		{
+			name:   "advisory page first",
+			modify: func(*unmarshal.OSVVulnerability) {},
+			want:   []db.Reference{advisory, report},
+		},
+		{
+			name:   "no references, only the advisory page",
+			modify: func(v *unmarshal.OSVVulnerability) { v.References = nil },
+			want:   []db.Reference{advisory},
+		},
+		{
+			name: "advisory page already in the references",
+			modify: func(v *unmarshal.OSVVulnerability) {
+				v.References = append(v.References, osvmodel.Reference{Type: osvmodel.ReferenceWeb, URL: advisoryURL})
+			},
+			want: []db.Reference{advisory, report},
+		},
+		{
+			name:   "no human_link",
+			modify: func(v *unmarshal.OSVVulnerability) { delete(v.DatabaseSpecific, "human_link") },
+			want:   []db.Reference{report},
+		},
+		{
+			name: "human_link is not a URL",
+			modify: func(v *unmarshal.OSVVulnerability) {
+				v.DatabaseSpecific["human_link"] = "advisories/2017/OSEC-2017-01.md"
+			},
+			want: []db.Reference{report},
+		},
+		{
+			name: "no database_specific and no references",
+			modify: func(v *unmarshal.OSVVulnerability) {
+				v.DatabaseSpecific = nil
+				v.References = nil
+			},
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vulns := loadFixture(t, "testdata/OSEC-2017-01.json")
+			require.Len(t, vulns, 1)
+			tt.modify(&vulns[0])
 
-	entries, err := Transform(vulns[0], inputProviderState())
-	require.NoError(t, err)
-	require.Len(t, entries, 1)
-	related, ok := entries[0].Data.(transformers.RelatedEntries)
-	require.True(t, ok)
-	assert.Empty(t, related.VulnerabilityHandle.BlobValue.References)
-	assert.Len(t, related.Related, 1)
+			entries, err := Transform(vulns[0], inputProviderState())
+			require.NoError(t, err)
+			require.Len(t, entries, 1)
+			related, ok := entries[0].Data.(transformers.RelatedEntries)
+			require.True(t, ok)
+			assert.Equal(t, tt.want, related.VulnerabilityHandle.BlobValue.References)
+			assert.Len(t, related.Related, 1)
+		})
+	}
 }
 
 func ocamlPackage(name string, ranges ...db.Range) db.AffectedPackageHandle {

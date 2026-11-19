@@ -32,7 +32,9 @@ import (
 //   - records carry an extra `affected` entry without a package that only holds
 //     GIT ranges (commits in the upstream repository); it can't be matched
 //     against a package and is dropped, as are other non-opam entries.
-//   - references pass through, OSV type as tag.
+//   - references pass through, OSV type as tag, preceded by the advisory page
+//     from database_specific.human_link: many records have no references at
+//     all, and grype reports the first reference as the data source.
 type ocamlStrategy struct{}
 
 func (ocamlStrategy) Matches(id string) bool {
@@ -88,13 +90,37 @@ func (ocamlStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.S
 
 func ocamlReferences(vuln unmarshal.OSVVulnerability) []db.Reference {
 	var refs []db.Reference
+	advisoryURL := ocamlAdvisoryURL(vuln)
+	if advisoryURL != "" {
+		refs = append(refs, db.Reference{
+			ID:   vuln.ID,
+			URL:  advisoryURL,
+			Tags: []string{string(osvmodel.ReferenceAdvisory)},
+		})
+	}
 	for _, ref := range vuln.References {
+		if ref.URL == advisoryURL {
+			continue
+		}
 		refs = append(refs, db.Reference{
 			URL:  ref.URL,
 			Tags: []string{string(ref.Type)},
 		})
 	}
 	return refs
+}
+
+// ocamlAdvisoryURL returns the advisory page of the record
+// (database_specific.human_link, e.g.
+// https://github.com/ocaml/security-advisories/tree/main/advisories/2026/OSEC-2026-01.md),
+// or "" if there is none.
+func ocamlAdvisoryURL(vuln unmarshal.OSVVulnerability) string {
+	link, _ := vuln.DatabaseSpecific["human_link"].(string)
+	link = strings.TrimSpace(link)
+	if !strings.HasPrefix(link, "https://") && !strings.HasPrefix(link, "http://") {
+		return ""
+	}
+	return link
 }
 
 func ocamlAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackageHandle {
