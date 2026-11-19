@@ -21,7 +21,9 @@ import (
 // (https://github.com/ocaml/security-advisories, OSV records from the
 // generated-osv branch, provided by the vunnel "ocamlsec" provider).
 // OCaml specifics:
-//   - aliases hold CVEs directly; no `related` augmentation.
+//   - aliases hold the CVE and GHSA ids directly. Unlike alma and rootio,
+//     `related` is not merged into the aliases: it lists other OSEC advisories
+//     (e.g. OSEC-2026-18 → OSEC-2026-01), not identifiers of this one.
 //   - ecosystem is "opam" → syft opam package type, found by the matcher's
 //     ecosystem-name search.
 //   - ECOSYSTEM ranges use the opam version ordering → "opam" format. As for
@@ -108,7 +110,7 @@ func ocamlAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackage
 				continue
 			}
 			hasEcosystemRange = true
-			ranges = append(ranges, getGrypeRangesFromRange(r, strings.ToLower(string(pkg.OpamPkg)))...)
+			ranges = append(ranges, getGrypeRangesFromRange(r, string(pkg.OpamPkg))...)
 		}
 		// no ranges means every version is vulnerable, so keep the package only if
 		// the empty ranges come from an ECOSYSTEM range (e.g. a lone introduced:0)

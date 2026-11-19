@@ -91,7 +91,7 @@ func ParseFormat(userStr string) Format {
 		return JVMFormat
 	case strings.ToLower(PacmanFormat.String()), "pacman", pkg.AlpmPkg.String():
 		return PacmanFormat
-	case strings.ToLower(OpamFormat.String()), pkg.OpamPkg.String():
+	case strings.ToLower(OpamFormat.String()):
 		return OpamFormat
 	}
 	return UnknownFormat
