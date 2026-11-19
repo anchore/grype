@@ -20,6 +20,7 @@ const (
 	BitnamiMatcher     MatcherType = "bitnami-matcher"
 	PacmanMatcher      MatcherType = "pacman-matcher"
 	HexMatcher         MatcherType = "hex-matcher"
+	OpamMatcher        MatcherType = "opam-matcher"
 )
 
 var AllMatcherTypes = []MatcherType{
@@ -40,6 +41,7 @@ var AllMatcherTypes = []MatcherType{
 	BitnamiMatcher,
 	PacmanMatcher,
 	HexMatcher,
+	OpamMatcher,
 }
 
 type MatcherType string

@@ -1,7 +1,9 @@
-package stock
+package opam
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -9,7 +11,7 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-// TestMatcher_OpamPackage exercises ecosystem matching of opam (OCaml)
+// TestMatcher exercises ecosystem matching of opam (OCaml)
 // packages against real OSEC-* records from the OCaml security advisories, as
 // written by the vunnel "ocamlsec" provider:
 //
@@ -19,7 +21,7 @@ import (
 //
 // The versions exercise the opam version ordering, e.g. "~" pre-releases sort
 // before the release ("5.4.1~rc1" < "5.4.1", "5.0.0~alpha1" < "5.0.0").
-func TestMatcher_OpamPackage(t *testing.T) {
+func TestMatcher(t *testing.T) {
 	tests := []struct {
 		name     string
 		pkgName  string
@@ -79,7 +81,7 @@ func TestMatcher_OpamPackage(t *testing.T) {
 	}
 
 	dbtest.DBs(t, "ocaml").Run(func(t *testing.T, db *dbtest.DB) {
-		matcher := NewStockMatcher(MatcherConfig{})
+		matcher := NewOpamMatcher(MatcherConfig{})
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				p := dbtest.NewPackage(tt.pkgName, tt.version, syftPkg.OpamPkg).
@@ -101,9 +103,9 @@ func TestMatcher_OpamPackage(t *testing.T) {
 	})
 }
 
-func TestMatcher_OpamPackageFix(t *testing.T) {
+func TestMatcher_Fix(t *testing.T) {
 	dbtest.DBs(t, "ocaml").Run(func(t *testing.T, db *dbtest.DB) {
-		matcher := NewStockMatcher(MatcherConfig{})
+		matcher := NewOpamMatcher(MatcherConfig{})
 		p := dbtest.NewPackage("ocaml", "5.3.0", syftPkg.OpamPkg).
 			WithLanguage(syftPkg.OCaml).
 			Build()
@@ -116,4 +118,26 @@ func TestMatcher_OpamPackageFix(t *testing.T) {
 			SelectDetailByType(match.ExactDirectMatch).
 			AsEcosystemSearch("<4.14.3||>=5.0.0,<5.4.1 (opam)")
 	})
+}
+
+// TestMatcher_NoVersion checks that a package without a version (e.g. a
+// project's own <name>.opam file without a version field) isn't matched:
+// without a version it would match every vulnerability of its name.
+func TestMatcher_NoVersion(t *testing.T) {
+	dbtest.DBs(t, "ocaml").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := NewOpamMatcher(MatcherConfig{})
+		for _, v := range []string{"", " "} {
+			p := dbtest.NewPackage("ocaml", v, syftPkg.OpamPkg).
+				WithLanguage(syftPkg.OCaml).
+				Build()
+
+			db.Match(t, matcher, p).IsEmpty()
+		}
+	})
+}
+
+func TestMatcher_Type(t *testing.T) {
+	m := NewOpamMatcher(MatcherConfig{})
+	assert.Equal(t, []syftPkg.Type{syftPkg.OpamPkg}, m.PackageTypes())
+	assert.Equal(t, match.OpamMatcher, m.Type())
 }

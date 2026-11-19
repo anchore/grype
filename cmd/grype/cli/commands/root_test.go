@@ -20,6 +20,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/hex"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
+	"github.com/anchore/grype/grype/matcher/opam"
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/rpm"
 	"github.com/anchore/grype/grype/matcher/ruby"
@@ -149,6 +150,7 @@ func Test_getMatcherConfig(t *testing.T) {
 					AllowMainModulePseudoVersionComparison: false,
 				},
 				Hex:   hex.MatcherConfig{},
+				Opam:  opam.MatcherConfig{},
 				Stock: stock.MatcherConfig{UseCPEs: true},
 				Rpm: rpm.MatcherConfig{
 					MissingEpochStrategy: "auto",
@@ -184,6 +186,7 @@ func Test_getMatcherConfig(t *testing.T) {
 					AllowMainModulePseudoVersionComparison: false,
 				},
 				Hex:   hex.MatcherConfig{},
+				Opam:  opam.MatcherConfig{},
 				Stock: stock.MatcherConfig{UseCPEs: true},
 				Rpm: rpm.MatcherConfig{
 					MissingEpochStrategy: "zero",
@@ -219,6 +222,7 @@ func Test_getMatcherConfig(t *testing.T) {
 					AllowMainModulePseudoVersionComparison: false,
 				},
 				Hex:   hex.MatcherConfig{},
+				Opam:  opam.MatcherConfig{},
 				Stock: stock.MatcherConfig{UseCPEs: true},
 				Rpm: rpm.MatcherConfig{
 					MissingEpochStrategy: "auto",
@@ -255,6 +259,7 @@ func Test_getMatcherConfig(t *testing.T) {
 				},
 				Rust:  rust.MatcherConfig{UseCPEs: true},
 				Hex:   hex.MatcherConfig{},
+				Opam:  opam.MatcherConfig{},
 				Stock: stock.MatcherConfig{UseCPEs: true},
 				Rpm: rpm.MatcherConfig{
 					MissingEpochStrategy: "auto",

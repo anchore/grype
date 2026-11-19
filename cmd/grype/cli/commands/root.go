@@ -25,6 +25,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/hex"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
+	"github.com/anchore/grype/grype/matcher/opam"
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/rpm"
 	"github.com/anchore/grype/grype/matcher/ruby"
@@ -386,6 +387,7 @@ func getMatcherConfig(opts *options.Grype) matcher.Config {
 		},
 		Rust:  rust.MatcherConfig(opts.Match.Rust),
 		Hex:   hex.MatcherConfig(opts.Match.Hex),
+		Opam:  opam.MatcherConfig(opts.Match.Opam),
 		Stock: stock.MatcherConfig(opts.Match.Stock),
 		Dpkg: dpkg.MatcherConfig{
 			MissingEpochStrategy: opts.Match.Dpkg.MissingEpochStrategy,
