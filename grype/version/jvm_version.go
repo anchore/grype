@@ -16,7 +16,7 @@ var _ interface {
 
 var (
 	preJep223VersionPattern = regexp.MustCompile(`^1\.(?P<major>\d+)(\.(?P<minor>\d+))?([_u-](update)?(_)?(?P<patch>\d+))?(-(?P<prerelease>[^b][^-]+))?(-b(?P<build>\d+))?`)
-	nonCompliantSemverIsh   = regexp.MustCompile(`^(?P<major>\d+)(\.(?P<minor>\d+)(\.(?P<patch>\d+))?)?([_u-](update)?(_)?(?P<update>\d+))?(-(?P<prerelease>[^b][^-]+))?(-b(?P<build>\d+))?`)
+	nonCompliantSemverIsh   = regexp.MustCompile(`^(?P<major>\d+)(\.(?P<minor>\d+)(\.(?P<patch>\d+)(?P<extra>(\.\d+)*))?)?([_u-](update)?(_)?(?P<update>\d+))?(-(?P<prerelease>[^b][^-]+))?(-b(?P<build>\d+))?`)
 )
 
 type jvmVersion struct {
@@ -67,6 +67,7 @@ func convertNonCompliantSemver(version string) string {
 	// 8.0-update302 --> 8.0.302
 	// 8.0-update302-b08 --> 8.0.302+8
 	// 8.0-update_302-b08 --> 8.0.302+8
+	// 25.0.5.0.3 --> 25.0.5.0.3 (JEP 322 allows a $PATCH element and further vendor-defined elements)
 
 	matches := internal.MatchNamedCaptureGroups(nonCompliantSemverIsh, version)
 	if len(matches) == 0 {
@@ -81,12 +82,13 @@ func convertNonCompliantSemver(version string) string {
 	update := trim0sFromLeft(matches["update"])
 	preRelease := trim0sFromLeft(matches["prerelease"])
 	build := trim0sFromLeft(matches["build"])
+	extra := extraSegments(matches["extra"])
 
 	if (patchVersion == "" || patchVersion == "0") && update != "" {
 		patchVersion = update
 	}
 
-	return buildSemVer(majorVersion, minorVersion, patchVersion, preRelease, build)
+	return buildSemVer(majorVersion, minorVersion, patchVersion, preRelease, build, extra...)
 }
 
 func convertPreJep223Version(version string) string {
@@ -116,7 +118,24 @@ func convertPreJep223Version(version string) string {
 
 	return buildSemVer(majorVersion, minorVersion, patchVersion, preRelease, build)
 }
-func buildSemVer(majorVersion, minorVersion, patchVersion, preRelease, build string) string {
+
+// extraSegments splits the dot-separated elements after $UPDATE (e.g. ".0.3" in "25.0.5.0.3") into individual segments.
+func extraSegments(raw string) []string {
+	raw = strings.TrimPrefix(raw, ".")
+	if raw == "" {
+		return nil
+	}
+	segs := strings.Split(raw, ".")
+	for i, seg := range segs {
+		segs[i] = trim0sFromLeft(seg)
+		if segs[i] == "" {
+			segs[i] = "0"
+		}
+	}
+	return segs
+}
+
+func buildSemVer(majorVersion, minorVersion, patchVersion, preRelease, build string, extra ...string) string {
 	if minorVersion == "" {
 		minorVersion = "0"
 	}
@@ -124,6 +143,7 @@ func buildSemVer(majorVersion, minorVersion, patchVersion, preRelease, build str
 	segs := []string{majorVersion, minorVersion}
 	if patchVersion != "" {
 		segs = append(segs, patchVersion)
+		segs = append(segs, extra...)
 	}
 
 	var semver strings.Builder

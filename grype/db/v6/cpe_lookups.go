@@ -411,12 +411,6 @@ var CPEPackageSpecifierLookup = buildCPEPackageSpecifierLookup(
 			},
 		},
 		{
-			Package: PackageSpecifier{Name: "lightning", Ecosystem: string(pkg.PythonPkg)},
-			CPEs: []string{
-				"cpe:2.3:a:apache:airflow:*:*:*:*:*:python:*:*",
-			},
-		},
-		{
 			Package: PackageSpecifier{Name: "pytorch-lightning", Ecosystem: string(pkg.PythonPkg)},
 			CPEs: []string{
 				"cpe:2.3:a:lightning_ai:lightning_ai\\/pytorch_lightning:*:*:*:*:*:*:*:*",

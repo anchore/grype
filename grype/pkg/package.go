@@ -289,6 +289,11 @@ func distroFeedIsComprehensive(dst *distro.Distro) bool {
 		// and does not have an exhaustive vulnerability feed.
 		return false
 	}
+	if dst.Type == distro.DHI {
+		// DHI shows "like debian" or "like alpine" for its package manager lineage, and its records
+		// come from the DHI feed alone, never from the Debian feed that makes Debian comprehensive.
+		return false
+	}
 	for _, d := range comprehensiveDistros {
 		if strings.EqualFold(string(d), dst.Name()) {
 			return true
