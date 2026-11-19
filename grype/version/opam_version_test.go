@@ -55,6 +55,11 @@ func TestOpamVersionCompare(t *testing.T) {
 		{v1: "v0.16", v2: "v0.16.0", want: -1},
 		{v1: "v0.16.0~preview.129.00+243", v2: "v0.16.0", want: -1},
 		{v1: "0.17.0", v2: "v0.17.0", want: -1},
+		// numbers that don't fit in 64 bits are compared digit by digit
+		{v1: "18446744073709551616", v2: "18446744073709551617", want: -1},
+		{v1: "18446744073709551616", v2: "9223372036854775807", want: 1},
+		{v1: "1.18446744073709551616", v2: "1.2", want: 1},
+		{v1: "1.000018446744073709551616", v2: "1.18446744073709551616", want: 0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.v1+" vs "+tt.v2, func(t *testing.T) {
