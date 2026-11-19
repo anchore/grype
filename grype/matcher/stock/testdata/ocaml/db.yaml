@@ -1,5 +1,6 @@
-# hand-assembled from the output of the vunnel "ocamlsec" provider (OCaml security
-# advisories), which is not in a published vunnel cache yet
+# hand-assembled from the output of the vunnel "ocamlsec" provider (anchore/vunnel#1458),
+# run on the generated-osv branch of https://github.com/ocaml/security-advisories as of
+# 2026-11-19; the provider is not in a published vunnel cache yet
 auto-generate: false
 extractions:
   ocamlsec:

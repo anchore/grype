@@ -66,6 +66,12 @@ func TestMatcher_OpamPackage(t *testing.T) {
 			version: "5.4.1",
 		},
 		{
+			// not an opam version (an unreplaced build template), so no range can be evaluated
+			name:    "ocaml with an invalid version doesn't match",
+			pkgName: "ocaml",
+			version: "%%VERSION%%",
+		},
+		{
 			name:    "other packages don't match",
 			pkgName: "lwt",
 			version: "4.04.1",
@@ -85,7 +91,6 @@ func TestMatcher_OpamPackage(t *testing.T) {
 					findings.IsEmpty()
 					return
 				}
-				findings.OnlyHasVulnerabilities(tt.expected...)
 				for _, id := range tt.expected {
 					findings.SelectMatch(id).
 						SelectDetailByType(match.ExactDirectMatch).

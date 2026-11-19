@@ -99,6 +99,11 @@ func TestOpamVersionInvalid(t *testing.T) {
 	}
 }
 
+func TestOpamVersionInvalidCharacterError(t *testing.T) {
+	_, err := newOpamVersion("v1.0é")
+	require.ErrorContains(t, err, `invalid character 'é'`)
+}
+
 func TestOpamVersionCompareNil(t *testing.T) {
 	v, err := newOpamVersion("1.0")
 	require.NoError(t, err)
@@ -112,20 +117,20 @@ func TestOpamVersionConstraint(t *testing.T) {
 		version    string
 		satisfied  bool
 	}{
-		// shapes produced from the OCaml security advisories
-		{constraint: "< 4.14.3", version: "4.14.2", satisfied: true},
-		{constraint: "< 4.14.3", version: "4.14.3", satisfied: false},
-		{constraint: ">= 5.0.0, < 5.4.1", version: "5.4.0", satisfied: true},
-		{constraint: ">= 5.0.0, < 5.4.1", version: "5.4.1~rc1", satisfied: true},
-		{constraint: ">= 5.0.0, < 5.4.1", version: "5.0.0~alpha1", satisfied: false},
-		{constraint: ">= 5.0.0, < 5.4.1", version: "5.4.1", satisfied: false},
-		{constraint: ">= 4.04.0, < 4.04.2", version: "4.04.1", satisfied: true},
-		{constraint: ">= 4.04.0, < 4.04.2", version: "4.04.2", satisfied: false},
-		{constraint: ">= 1.0.1", version: "2.8.2", satisfied: true},
-		{constraint: "<= 2.0.0", version: "2.0.0", satisfied: true},
-		{constraint: "<= 2.0.0", version: "2.0.0+dev", satisfied: false},
-		{constraint: "< 4.14.3 || >= 5.0.0, < 5.4.1", version: "5.3.0", satisfied: true},
-		{constraint: "< 4.14.3 || >= 5.0.0, < 5.4.1", version: "4.14.3", satisfied: false},
+		// constraints as stored for the OCaml security advisories (comma-separated, as the OSV transformer writes them)
+		{constraint: "<4.14.3", version: "4.14.2", satisfied: true},
+		{constraint: "<4.14.3", version: "4.14.3", satisfied: false},
+		{constraint: ">=5.0.0,<5.4.1", version: "5.4.0", satisfied: true},
+		{constraint: ">=5.0.0,<5.4.1", version: "5.4.1~rc1", satisfied: true},
+		{constraint: ">=5.0.0,<5.4.1", version: "5.0.0~alpha1", satisfied: false},
+		{constraint: ">=5.0.0,<5.4.1", version: "5.4.1", satisfied: false},
+		{constraint: ">=4.04.0,<4.04.2", version: "4.04.1", satisfied: true},
+		{constraint: ">=4.04.0,<4.04.2", version: "4.04.2", satisfied: false},
+		{constraint: ">=1.0.1", version: "2.8.2", satisfied: true},
+		{constraint: "<=2.0.0", version: "2.0.0", satisfied: true},
+		{constraint: "<=2.0.0", version: "2.0.0+dev", satisfied: false},
+		{constraint: "<4.14.3||>=5.0.0,<5.4.1", version: "5.3.0", satisfied: true},
+		{constraint: "<4.14.3||>=5.0.0,<5.4.1", version: "4.14.3", satisfied: false},
 		// non-semver versions
 		{constraint: ">=20220210,<20260209", version: "20230415", satisfied: true},
 		{constraint: ">=20220210,<20260209", version: "20260209~rc1", satisfied: true},
