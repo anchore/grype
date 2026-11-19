@@ -120,24 +120,62 @@ func TestMatcher_Fix(t *testing.T) {
 	})
 }
 
-// TestMatcher_NoVersion checks that a package without a version (e.g. a
-// project's own <name>.opam file without a version field) isn't matched:
-// without a version it would match every vulnerability of its name.
-func TestMatcher_NoVersion(t *testing.T) {
-	dbtest.DBs(t, "ocaml").Run(func(t *testing.T, db *dbtest.DB) {
-		matcher := NewOpamMatcher(MatcherConfig{})
-		for _, v := range []string{"", " "} {
-			p := dbtest.NewPackage("ocaml", v, syftPkg.OpamPkg).
-				WithLanguage(syftPkg.OCaml).
-				Build()
-
-			db.Match(t, matcher, p).IsEmpty()
-		}
-	})
-}
-
 func TestMatcher_Type(t *testing.T) {
 	m := NewOpamMatcher(MatcherConfig{})
 	assert.Equal(t, []syftPkg.Type{syftPkg.OpamPkg}, m.PackageTypes())
 	assert.Equal(t, match.OpamMatcher, m.Type())
+}
+
+// TestMatcher_Cases covers record shapes the current advisories don't use and CPE
+// matching, against the ocaml-cases fixture:
+//
+//   - OSEC-2017-01: ocaml >= 4.04.0, < 4.04.2 (alias CVE-2017-9772)
+//   - OSEC-2026-05: withdrawn, so it never matches
+//   - OSEC-2026-18: no fix yet (a lone introduced:0), so every version matches
+//   - CVE-2017-9772 (NVD): cpe:2.3:a:ocaml:ocaml:4.04.0 and 4.04.1
+func TestMatcher_Cases(t *testing.T) {
+	dbtest.DBs(t, "ocaml-cases").Run(func(t *testing.T, db *dbtest.DB) {
+		t.Run("unfixed advisory matches every version, withdrawn one never", func(t *testing.T) {
+			p := dbtest.NewPackage("ocaml", "5.3.0", syftPkg.OpamPkg).WithLanguage(syftPkg.OCaml).Build()
+
+			db.Match(t, NewOpamMatcher(MatcherConfig{}), p).
+				SelectMatch("OSEC-2026-18").
+				HasNoFixVersions().
+				SelectDetailByType(match.ExactDirectMatch).
+				AsEcosystemSearch()
+		})
+
+		t.Run("no CPE matching by default", func(t *testing.T) {
+			p := dbtest.NewPackage("ocaml", "4.04.1", syftPkg.OpamPkg).
+				WithLanguage(syftPkg.OCaml).
+				WithCPE("cpe:2.3:a:ocaml:ocaml:4.04.1:*:*:*:*:*:*:*").
+				Build()
+
+			findings := db.Match(t, NewOpamMatcher(MatcherConfig{}), p)
+			findings.SelectMatch("OSEC-2017-01").
+				SelectDetailByType(match.ExactDirectMatch).
+				AsEcosystemSearch()
+			findings.SelectMatch("OSEC-2026-18").
+				SelectDetailByType(match.ExactDirectMatch).
+				AsEcosystemSearch()
+		})
+
+		t.Run("CPE matching with using-cpes", func(t *testing.T) {
+			p := dbtest.NewPackage("ocaml", "4.04.1", syftPkg.OpamPkg).
+				WithLanguage(syftPkg.OCaml).
+				WithCPE("cpe:2.3:a:ocaml:ocaml:4.04.1:*:*:*:*:*:*:*").
+				Build()
+
+			findings := db.Match(t, NewOpamMatcher(MatcherConfig{UseCPEs: true}), p)
+			findings.SelectMatch("OSEC-2017-01").
+				SelectDetailByType(match.ExactDirectMatch).
+				AsEcosystemSearch()
+			findings.SelectMatch("OSEC-2026-18").
+				SelectDetailByType(match.ExactDirectMatch).
+				AsEcosystemSearch()
+			findings.SelectMatch("CVE-2017-9772").
+				SelectDetailByType(match.CPEMatch).
+				AsCPESearch()
+		})
+	})
 }

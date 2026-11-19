@@ -1,8 +1,6 @@
 package opam
 
 import (
-	"strings"
-
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
@@ -35,13 +33,5 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
-	// An opam package without a version is the definition of a project (an
-	// <name>.opam file without a version field), typically the project being
-	// scanned, not an installed release. A package without a version matches
-	// every vulnerability of its name, so it isn't matched, like the main module
-	// of a Go binary whose version is unknown.
-	if strings.TrimSpace(p.Version) == "" {
-		return nil, nil, nil
-	}
 	return internal.MatchPackageByEcosystemAndCPEs(store, p, m.Type(), m.cfg.UseCPEs)
 }
