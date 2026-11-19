@@ -219,3 +219,42 @@ func TestOCamlNonSemverRanges(t *testing.T) {
 		})
 	}
 }
+
+// TestOCamlTransformUnfixed covers an advisory without a fix yet: like for
+// govulndb, an ECOSYSTEM range with a lone introduced:0 yields no ranges, which
+// grype treats as every version being vulnerable.
+func TestOCamlTransformUnfixed(t *testing.T) {
+	vulns := loadFixture(t, "testdata/OSEC-2017-01.json")
+	require.Len(t, vulns, 1)
+	vulns[0].Affected[0].Ranges = []osvmodel.Range{{
+		Type:   osvmodel.RangeEcosystem,
+		Events: []osvmodel.Event{{Introduced: "0"}},
+	}}
+
+	entries, err := Transform(vulns[0], inputProviderState())
+	require.NoError(t, err)
+	require.Len(t, entries, 1)
+	related, ok := entries[0].Data.(transformers.RelatedEntries)
+	require.True(t, ok)
+	require.Len(t, related.Related, 1)
+	aph, ok := related.Related[0].(db.AffectedPackageHandle)
+	require.True(t, ok)
+	assert.Equal(t, &db.Package{Name: "ocaml", Ecosystem: "opam"}, aph.Package)
+	assert.Empty(t, aph.BlobValue.Ranges)
+}
+
+// TestOCamlTransformWithoutEcosystemRange checks that an opam entry without an
+// ECOSYSTEM range is dropped instead of being stored without ranges, which would
+// match every version.
+func TestOCamlTransformWithoutEcosystemRange(t *testing.T) {
+	vulns := loadFixture(t, "testdata/OSEC-2017-01.json")
+	require.Len(t, vulns, 1)
+	vulns[0].Affected[0].Ranges = []osvmodel.Range{{
+		Type:   osvmodel.RangeSemVer,
+		Events: []osvmodel.Event{{Introduced: "0"}, {Fixed: "4.04.2"}},
+	}}
+
+	entries, err := Transform(vulns[0], inputProviderState())
+	require.NoError(t, err)
+	assert.Empty(t, entries)
+}

@@ -24,7 +24,9 @@ import (
 //   - aliases hold CVEs directly; no `related` augmentation.
 //   - ecosystem is "opam" → syft opam package type, found by the matcher's
 //     ecosystem-name search.
-//   - ECOSYSTEM ranges use the opam version ordering → "opam" format.
+//   - ECOSYSTEM ranges use the opam version ordering → "opam" format. As for
+//     govulndb, a lone introduced:0 yields no ranges, so grype treats every
+//     version as vulnerable (an advisory without a fix yet).
 //   - records carry an extra `affected` entry without a package that only holds
 //     GIT ranges (commits in the upstream repository); it can't be matched
 //     against a package and is dropped, as are other non-opam entries.
@@ -100,13 +102,17 @@ func ocamlAffectedPackages(vuln unmarshal.OSVVulnerability) []db.AffectedPackage
 			continue
 		}
 		var ranges []db.Range
+		hasEcosystemRange := false
 		for _, r := range affected.Ranges {
 			if r.Type != osvmodel.RangeEcosystem {
 				continue
 			}
+			hasEcosystemRange = true
 			ranges = append(ranges, getGrypeRangesFromRange(r, strings.ToLower(string(pkg.OpamPkg)))...)
 		}
-		if len(ranges) == 0 {
+		// no ranges means every version is vulnerable, so keep the package only if
+		// the empty ranges come from an ECOSYSTEM range (e.g. a lone introduced:0)
+		if !hasEcosystemRange {
 			continue
 		}
 		aphs = append(aphs, db.AffectedPackageHandle{
