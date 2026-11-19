@@ -14,7 +14,7 @@ import (
 )
 
 // TestOCamlTransform exercises the ocaml strategy end-to-end against real
-// OSEC-* records (as written by the vunnel ocaml provider, including the
+// OSEC-* records (as written by the vunnel ocamlsec provider, including the
 // database_specific.anchore.fixes it patches in).
 //
 //   - OSEC-2017-01: a single introduced/fixed window in the opam ECOSYSTEM range,

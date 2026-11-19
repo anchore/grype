@@ -1,8 +1,8 @@
-# hand-assembled from the output of the vunnel "ocaml" provider (OCaml security
+# hand-assembled from the output of the vunnel "ocamlsec" provider (OCaml security
 # advisories), which is not in a published vunnel cache yet
 auto-generate: false
 extractions:
-  ocaml:
+  ocamlsec:
     # ocaml {>= "4.04" & < "4.04.2"}: range [4.04.0, 4.04.2)
     - osec-2017-01
     # ocaml {< "4.14.3" | >= "5" & < "5.4.1"}: ranges < 4.14.3 and [5.0.0, 5.4.1)

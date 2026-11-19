@@ -19,7 +19,7 @@ import (
 
 // ocamlStrategy handles OSEC-* records from the OCaml security advisories
 // (https://github.com/ocaml/security-advisories, OSV records from the
-// generated-osv branch, provided by the vunnel "ocaml" provider).
+// generated-osv branch, provided by the vunnel "ocamlsec" provider).
 // OCaml specifics:
 //   - aliases hold CVEs directly; no `related` augmentation.
 //   - ecosystem is "opam" → syft opam package type, found by the matcher's

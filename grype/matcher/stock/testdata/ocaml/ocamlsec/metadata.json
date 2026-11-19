@@ -1,7 +1,7 @@
 {
-  "provider": "ocaml",
+  "provider": "ocamlsec",
   "version": 1,
-  "processor": "vunnel@0.66.0.post31+7fcf326",
+  "processor": "vunnel@0.66.0.post32+feff602",
   "schema": {
     "version": "1.0.3",
     "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"

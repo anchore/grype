@@ -11,7 +11,7 @@ import (
 
 // TestMatcher_OpamPackage exercises ecosystem matching of opam (OCaml)
 // packages against real OSEC-* records from the OCaml security advisories, as
-// written by the vunnel "ocaml" provider:
+// written by the vunnel "ocamlsec" provider:
 //
 //   - OSEC-2017-01: ocaml {>= "4.04" & < "4.04.2"}, range [4.04.0, 4.04.2)
 //   - OSEC-2026-01: ocaml {< "4.14.3" | >= "5" & < "5.4.1"}, ranges < 4.14.3 and [5.0.0, 5.4.1)
@@ -105,6 +105,7 @@ func TestMatcher_OpamPackageFix(t *testing.T) {
 
 		db.Match(t, matcher, p).
 			SelectMatch("OSEC-2026-01").
+			InNamespace("ocamlsec:language:ocaml").
 			// both ranges of the record are reported, with the fix of each
 			HasFix(vulnerability.FixStateFixed, "4.14.3", "5.4.1").
 			SelectDetailByType(match.ExactDirectMatch).
