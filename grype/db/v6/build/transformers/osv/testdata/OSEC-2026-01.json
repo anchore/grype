@@ -50,7 +50,7 @@
           "type": "ECOSYSTEM",
           "events": [
             {
-              "introduced": "5"
+              "introduced": "5.0.0"
             },
             {
               "fixed": "5.4.1"

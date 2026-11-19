@@ -61,7 +61,7 @@ func TestOCamlTransform(t *testing.T) {
 							Ranges: []db.Range{{
 								Version: db.Version{
 									Type:       "opam",
-									Constraint: ">=4.04,<4.04.2",
+									Constraint: ">=4.04.0,<4.04.2",
 								},
 								Fix: &db.Fix{
 									Version: "4.04.2",
@@ -91,7 +91,8 @@ func TestOCamlTransform(t *testing.T) {
 }
 
 // TestOCamlTransformMultipleRanges covers OSEC-2026-01, where the opam
-// constraint {< "4.14.3" | >= "5" & < "5.4.1"} results in two ECOSYSTEM ranges.
+// constraint {< "4.14.3" | >= "5" & < "5.4.1"} results in two ECOSYSTEM ranges
+// (< 4.14.3 and [5.0.0, 5.4.1)).
 func TestOCamlTransformMultipleRanges(t *testing.T) {
 	vulns := loadFixture(t, "testdata/OSEC-2026-01.json")
 	require.Len(t, vulns, 1)
@@ -117,7 +118,7 @@ func TestOCamlTransformMultipleRanges(t *testing.T) {
 		require.NotNil(t, r.Fix)
 		fixes = append(fixes, r.Fix.Version)
 	}
-	assert.Equal(t, []string{"<4.14.3", ">=5,<5.4.1"}, constraints)
+	assert.Equal(t, []string{"<4.14.3", ">=5.0.0,<5.4.1"}, constraints)
 	assert.Equal(t, []string{"4.14.3", "5.4.1"}, fixes)
 
 	// the stored constraints are usable with the opam version format
@@ -127,7 +128,8 @@ func TestOCamlTransformMultipleRanges(t *testing.T) {
 	}{
 		{version: "4.14.2", affected: true},
 		{version: "4.14.3", affected: false},
-		{version: "5.0.0~alpha1", affected: true}, // "5" < "5.0.0~alpha1" in opam ordering
+		{version: "5.0.0~alpha1", affected: false}, // pre-release before the first affected release 5.0.0
+		{version: "5.0.0", affected: true},
 		{version: "5.4.0", affected: true},
 		{version: "5.4.1", affected: false},
 	} {

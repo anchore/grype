@@ -3,9 +3,9 @@
 auto-generate: false
 extractions:
   ocaml:
-    # ocaml {>= "4.04" & < "4.04.2"}
+    # ocaml {>= "4.04" & < "4.04.2"}: range [4.04.0, 4.04.2)
     - osec-2017-01
-    # ocaml {< "4.14.3" | >= "5" & < "5.4.1"}
+    # ocaml {< "4.14.3" | >= "5" & < "5.4.1"}: ranges < 4.14.3 and [5.0.0, 5.4.1)
     - osec-2026-01
     # GIT ranges only, no opam package
     - osec-2026-28

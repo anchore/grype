@@ -13,12 +13,12 @@ import (
 // packages against real OSEC-* records from the OCaml security advisories, as
 // written by the vunnel "ocaml" provider:
 //
-//   - OSEC-2017-01: ocaml {>= "4.04" & < "4.04.2"}
-//   - OSEC-2026-01: ocaml {< "4.14.3" | >= "5" & < "5.4.1"}, two ranges
+//   - OSEC-2017-01: ocaml {>= "4.04" & < "4.04.2"}, range [4.04.0, 4.04.2)
+//   - OSEC-2026-01: ocaml {< "4.14.3" | >= "5" & < "5.4.1"}, ranges < 4.14.3 and [5.0.0, 5.4.1)
 //   - OSEC-2026-28: GIT ranges only, so nothing in the DB to match
 //
 // The versions exercise the opam version ordering, e.g. "~" pre-releases sort
-// before the release ("5.4.1~rc1" < "5.4.1") and "5" < "5.0.0~alpha1".
+// before the release ("5.4.1~rc1" < "5.4.1", "5.0.0~alpha1" < "5.0.0").
 func TestMatcher_OpamPackage(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -44,9 +44,14 @@ func TestMatcher_OpamPackage(t *testing.T) {
 			version: "4.14.3",
 		},
 		{
-			name:     "ocaml 5.0.0~alpha1 is in the second range of OSEC-2026-01",
+			name:    "ocaml 5.0.0~alpha1 is before the second range of OSEC-2026-01",
+			pkgName: "ocaml",
+			version: "5.0.0~alpha1",
+		},
+		{
+			name:     "ocaml 5.0.0 is in the second range of OSEC-2026-01",
 			pkgName:  "ocaml",
-			version:  "5.0.0~alpha1",
+			version:  "5.0.0",
 			expected: []string{"OSEC-2026-01"},
 		},
 		{
@@ -103,6 +108,6 @@ func TestMatcher_OpamPackageFix(t *testing.T) {
 			// both ranges of the record are reported, with the fix of each
 			HasFix(vulnerability.FixStateFixed, "4.14.3", "5.4.1").
 			SelectDetailByType(match.ExactDirectMatch).
-			AsEcosystemSearch("<4.14.3||>=5,<5.4.1 (opam)")
+			AsEcosystemSearch("<4.14.3||>=5.0.0,<5.4.1 (opam)")
 	})
 }

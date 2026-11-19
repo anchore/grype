@@ -1,7 +1,7 @@
 {
   "provider": "ocaml",
   "version": 1,
-  "processor": "vunnel@0.66.0.post30+5282151",
+  "processor": "vunnel@0.66.0.post31+7fcf326",
   "schema": {
     "version": "1.0.3",
     "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
@@ -9,7 +9,7 @@
   "urls": [
     "https://github.com/ocaml/security-advisories/archive/refs/heads/generated-osv.zip"
   ],
-  "timestamp": "2026-11-13T20:00:00Z",
+  "timestamp": "2026-11-19T12:00:00Z",
   "listing": {
     "path": "results/listing.xxh64",
     "digest": "0",
