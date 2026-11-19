@@ -269,6 +269,42 @@ func Test_getMatcherConfig(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "opam using-cpes enabled",
+			opts: func() *options.Grype {
+				opts := options.DefaultGrype(clio.Identification{Name: "test", Version: "1.0"})
+				opts.Match.Opam.UseCPEs = true
+				return opts
+			}(),
+			want: matcher.Config{
+				Java: java.MatcherConfig{
+					ExternalSearchConfig: java.ExternalSearchConfig{
+						SearchMavenUpstream: false,
+						MavenBaseURL:        "https://search.maven.org/solrsearch/select",
+						MavenRateLimit:      300000000,
+					},
+					UseCPEs: false,
+				},
+				Ruby:       ruby.MatcherConfig{},
+				Python:     python.MatcherConfig{},
+				Dotnet:     dotnet.MatcherConfig{},
+				Javascript: javascript.MatcherConfig{},
+				Golang: golang.MatcherConfig{
+					UseCPEs:                                false,
+					AlwaysUseCPEForStdlib:                  false,
+					AllowMainModulePseudoVersionComparison: false,
+				},
+				Hex:   hex.MatcherConfig{},
+				Opam:  opam.MatcherConfig{UseCPEs: true},
+				Stock: stock.MatcherConfig{UseCPEs: true},
+				Rpm: rpm.MatcherConfig{
+					MissingEpochStrategy: "auto",
+				},
+				Dpkg: dpkg.MatcherConfig{
+					MissingEpochStrategy: "zero",
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
