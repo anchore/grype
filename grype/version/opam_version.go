@@ -3,6 +3,7 @@ package version
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 )
 
 var _ Comparator = (*opamVersion)(nil)
@@ -26,7 +27,8 @@ func newOpamVersion(raw string) (opamVersion, error) {
 		return opamVersion{}, invalidFormatError(OpamFormat, raw, fmt.Errorf("empty version"))
 	}
 	if i := strings.IndexFunc(raw, func(r rune) bool { return !isOpamVersionChar(r) }); i >= 0 {
-		return opamVersion{}, invalidFormatError(OpamFormat, raw, fmt.Errorf("invalid character %q", raw[i]))
+		r, _ := utf8.DecodeRuneInString(raw[i:])
+		return opamVersion{}, invalidFormatError(OpamFormat, raw, fmt.Errorf("invalid character %q", r))
 	}
 	return opamVersion{raw: raw}, nil
 }
