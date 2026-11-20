@@ -25,7 +25,7 @@ const almaLinux = "almalinux"
 // they describe versions that are explicitly fixed, not vulnerable ranges.
 //
 // Alma-specific decisions:
-//   - CVEs live primarily in `related` (sometimes also `aliases`); the
+//   - CVEs live primarily in `upstream` (sometimes also `aliases`); the
 //     vulnerability blob's Aliases is the union of both.
 //   - Ecosystem is always "AlmaLinux:<version>"; package type is always RPM;
 //     OS metadata is extracted from the ecosystem string.
@@ -45,9 +45,9 @@ func (almaStrategy) Transform(vuln unmarshal.OSVVulnerability, state provider.St
 		return nil, fmt.Errorf("unable to obtain severities: %w", err)
 	}
 
-	// alma puts CVEs in `related` for the dominant shape; merge into aliases.
+	// alma puts CVEs in `upstream` for the dominant shape; merge into aliases.
 	aliases := append([]string{}, vuln.Aliases...)
-	aliases = append(aliases, vuln.Related...)
+	aliases = append(aliases, vuln.Upstream...)
 
 	in := []any{
 		db.VulnerabilityHandle{
@@ -118,7 +118,7 @@ func almaUnaffectedBlob(vuln unmarshal.OSVVulnerability, affected osvmodel.Affec
 
 	// PackageBlob.CVEs currently mirrors un-augmented vuln.Aliases (preserving
 	// historical behavior; this surfaces as nil for the dominant alma shape
-	// where CVEs are only in `related`). Functionally low-impact: the only
+	// where CVEs are only in `upstream`). Functionally low-impact: the only
 	// runtime read site is getRelatedVulnerabilities, which already sees the
 	// same CVEs via VulnerabilityBlob.Aliases (the augmented list) and dedups.
 	return &db.PackageBlob{
