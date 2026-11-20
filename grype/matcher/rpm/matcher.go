@@ -267,6 +267,7 @@ func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Packag
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
 		internal.OnlyQualifiedPackages(searchPkg),
+		onlyMatchingFIPSSuffix(searchPkg),
 	}
 
 	all, err := provider.FindResults(disclosureCriteria...)
