@@ -735,7 +735,12 @@
 
                     {{- if .Descriptor.DB -}}
                     <dt>Vulnerability DB:</dt>
-                    <dd>{{ toJson .Descriptor.DB }}</dd>
+                    <dd>
+                        <details>
+                            <summary>Show details</summary>
+                            <pre>{{ toJson .Descriptor.DB }}</pre>
+                        </details>
+                    </dd>
                     {{- end -}}
 
                     <dt>Date:</dt>
