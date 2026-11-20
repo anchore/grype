@@ -1,0 +1,65 @@
+{
+  "identifier": "go-2026-5932",
+  "item": {
+    "schema_version": "1.3.1",
+    "id": "GO-2026-5932",
+    "modified": "2026-07-07T22:15:29Z",
+    "published": "2026-07-07T22:15:29Z",
+    "summary": "The golang.org/x/crypto/openpgp package is unmaintained, unsafe by design, and has known security issues",
+    "details": "The golang.org/x/crypto/openpgp package is unsafe by design, has numerous known security issues, is not maintained, and should not be used.\n\nIf you are required to interoperate with OpenPGP systems and need a maintained package, consider github.com/ProtonMail/go-crypto/openpgp which is a maintained fork that aims to be a drop-in replacement for this package.",
+    "affected": [
+      {
+        "package": {
+          "name": "golang.org/x/crypto",
+          "ecosystem": "Go"
+        },
+        "ranges": [
+          {
+            "type": "SEMVER",
+            "events": [
+              {
+                "introduced": "0"
+              }
+            ]
+          }
+        ],
+        "ecosystem_specific": {
+          "imports": [
+            {
+              "path": "golang.org/x/crypto/openpgp"
+            },
+            {
+              "path": "golang.org/x/crypto/openpgp/packet"
+            },
+            {
+              "path": "golang.org/x/crypto/openpgp/armor"
+            },
+            {
+              "path": "golang.org/x/crypto/openpgp/clearsign"
+            },
+            {
+              "path": "golang.org/x/crypto/openpgp/errors"
+            },
+            {
+              "path": "golang.org/x/crypto/openpgp/elgamal"
+            },
+            {
+              "path": "golang.org/x/crypto/openpgp/s2k"
+            }
+          ]
+        }
+      }
+    ],
+    "references": [
+      {
+        "type": "REPORT",
+        "url": "https://go.dev/issue/44226"
+      }
+    ],
+    "database_specific": {
+      "url": "https://pkg.go.dev/vuln/GO-2026-5932",
+      "review_status": "REVIEWED"
+    }
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.3.1.json"
+}
