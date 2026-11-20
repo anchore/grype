@@ -42,10 +42,12 @@ func heavyWriteStatements(cacheSizeKiB int) []string {
 	}
 }
 
+// readConnectionOptions deliberately omits cache=shared: nothing can change under an immutable, read-only
+// connection, so a shared cache has nothing to keep consistent, while it makes every connection to the
+// file in the process share one page cache behind one lock, running their queries one at a time.
 var readConnectionOptions = []string{
-	"immutable=1",  // indicates that the database file is guaranteed not to change during the connection’s lifetime (slight performance benefit for read-only cases)
-	"mode=ro",      // opens the database in as read-only (an enforcement mechanism to allow immutable=1 to be effective)
-	"cache=shared", // multiple database connections within the same process share a single page cache
+	"immutable=1", // indicates that the database file is guaranteed not to change during the connection’s lifetime (slight performance benefit for read-only cases)
+	"mode=ro",     // opens the database in as read-only (an enforcement mechanism to allow immutable=1 to be effective)
 }
 
 type config struct {
@@ -147,22 +149,13 @@ func (c config) effectiveCacheSizeKiB() int {
 }
 
 func (c config) connectionString() string {
-	var conn string
 	if c.path == "" {
-		conn = ":memory:"
-	} else {
-		conn = fmt.Sprintf("file:%s?cache=shared", c.path)
+		return ":memory:"
 	}
-
-	if !c.writable && !c.memory {
-		if !strings.Contains(conn, "?") {
-			conn += "?"
-		}
-		for _, o := range readConnectionOptions {
-			conn += fmt.Sprintf("&%s", o)
-		}
+	if c.writable {
+		return fmt.Sprintf("file:%s?cache=shared", c.path)
 	}
-	return conn
+	return fmt.Sprintf("file:%s?%s", c.path, strings.Join(readConnectionOptions, "&"))
 }
 
 // Open a new connection to a sqlite3 database file
