@@ -143,6 +143,9 @@ func getPackageHandles(vuln *unmarshal.CSAFVulnerability, idx *productIndex) []a
 	// build a set of product IDs that have a vendor_fix remediation, and their fix URLs
 	remediationsByProduct := buildRemediationIndex(vuln.Remediations)
 
+	// fix states for known_affected products without a vendor fix (none_available / no_fix_planned)
+	noFixStates := buildNoFixStateIndex(vuln.Remediations)
+
 	// drop src products whose same-name binary is also in the affected/fixed set for the same
 	// platform — hummingbird CSAF lists both granularities for binary-disclosed advisories,
 	// and keeping the src would create an upstream-search target that triggers FPs on sibling
@@ -157,7 +160,7 @@ func getPackageHandles(vuln *unmarshal.CSAFVulnerability, idx *productIndex) []a
 		if redundantSrcs[pid] {
 			continue
 		}
-		aph, err := makeAffectedHandle(pid, vuln, idx, remediationsByProduct)
+		aph, err := makeAffectedHandle(pid, vuln, idx, remediationsByProduct, noFixStates)
 		if err != nil {
 			continue // skip products we can't resolve
 		}
@@ -200,7 +203,7 @@ func getPackageHandles(vuln *unmarshal.CSAFVulnerability, idx *productIndex) []a
 	return all
 }
 
-func makeAffectedHandle(productID string, vuln *unmarshal.CSAFVulnerability, idx *productIndex, remediations map[string]*unmarshal.CSAFRemediation) (*db.AffectedPackageHandle, error) {
+func makeAffectedHandle(productID string, vuln *unmarshal.CSAFVulnerability, idx *productIndex, remediations map[string]*unmarshal.CSAFRemediation, noFixStates map[string]db.FixStatus) (*db.AffectedPackageHandle, error) {
 	purl, ok := idx.productIDToPURL[productID]
 	if !ok {
 		return nil, fmt.Errorf("no PURL for product ID %s", productID)
@@ -241,6 +244,21 @@ func makeAffectedHandle(productID string, vuln *unmarshal.CSAFVulnerability, idx
 							{URL: rem.URL, Tags: []string{db.AdvisoryReferenceTag}},
 						},
 					},
+				},
+			},
+		}
+	} else {
+		// no vendor fix: the product is affected in every version we know of. The purl
+		// version is the latest build the vendor assessed (not a fix version), so bounding
+		// the range by it would hide newer builds that are still affected; keep the
+		// all-versions (empty) constraint and record the fix state explicitly.
+		blob.Ranges = []db.Range{
+			{
+				Version: db.Version{
+					Type: versionTypeFromPURL(purl),
+				},
+				Fix: &db.Fix{
+					State: unfixedState(productID, noFixStates),
 				},
 			},
 		}
@@ -470,6 +488,47 @@ func buildRemediationIndex(remediations []unmarshal.CSAFRemediation) map[string]
 		}
 	}
 	return out
+}
+
+// CSAF 2.0 remediation categories that state the vendor has no fix for a product (§3.2.3.12.1).
+const (
+	remediationNoneAvailable = "none_available"
+	remediationNoFixPlanned  = "no_fix_planned"
+)
+
+// buildNoFixStateIndex maps product IDs to the fix state implied by a "no fix" remediation:
+// no_fix_planned → wont-fix, none_available → not-fixed. When both are present for a
+// product, no_fix_planned wins since it is the stronger, more specific statement.
+func buildNoFixStateIndex(remediations []unmarshal.CSAFRemediation) map[string]db.FixStatus {
+	out := make(map[string]db.FixStatus)
+	for i := range remediations {
+		rem := &remediations[i]
+		var state db.FixStatus
+		switch rem.Category {
+		case remediationNoFixPlanned:
+			state = db.WontFixStatus
+		case remediationNoneAvailable:
+			state = db.NotFixedStatus
+		default:
+			continue
+		}
+		for _, pid := range rem.ProductIDs {
+			if out[pid] == db.WontFixStatus {
+				continue
+			}
+			out[pid] = state
+		}
+	}
+	return out
+}
+
+// unfixedState returns the fix state for a known_affected product without a vendor fix.
+// known_affected without any remediation still means "affected, no fix yet".
+func unfixedState(productID string, noFixStates map[string]db.FixStatus) db.FixStatus {
+	if s, ok := noFixStates[productID]; ok {
+		return s
+	}
+	return db.NotFixedStatus
 }
 
 func getOperatingSystem(productID string, idx *productIndex) *db.OperatingSystem {
