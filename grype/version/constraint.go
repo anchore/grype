@@ -38,6 +38,8 @@ func GetConstraint(constStr string, format Format) (Constraint, error) {
 		c, err = newGenericConstraint(PortageFormat, constStr)
 	case PacmanFormat:
 		c, err = newGenericConstraint(PacmanFormat, constStr)
+	case OpamFormat:
+		c, err = newGenericConstraint(OpamFormat, constStr)
 	case JVMFormat:
 		c, err = newGenericConstraint(JVMFormat, constStr)
 	case UnknownFormat:

@@ -20,6 +20,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/hex"
 	"github.com/anchore/grype/grype/matcher/java"
 	"github.com/anchore/grype/grype/matcher/javascript"
+	"github.com/anchore/grype/grype/matcher/opam"
 	"github.com/anchore/grype/grype/matcher/python"
 	"github.com/anchore/grype/grype/matcher/rpm"
 	"github.com/anchore/grype/grype/matcher/ruby"
@@ -149,6 +150,7 @@ func Test_getMatcherConfig(t *testing.T) {
 					AllowMainModulePseudoVersionComparison: false,
 				},
 				Hex:   hex.MatcherConfig{},
+				Opam:  opam.MatcherConfig{},
 				Stock: stock.MatcherConfig{UseCPEs: true},
 				Rpm: rpm.MatcherConfig{
 					MissingEpochStrategy: "auto",
@@ -184,6 +186,7 @@ func Test_getMatcherConfig(t *testing.T) {
 					AllowMainModulePseudoVersionComparison: false,
 				},
 				Hex:   hex.MatcherConfig{},
+				Opam:  opam.MatcherConfig{},
 				Stock: stock.MatcherConfig{UseCPEs: true},
 				Rpm: rpm.MatcherConfig{
 					MissingEpochStrategy: "zero",
@@ -219,6 +222,7 @@ func Test_getMatcherConfig(t *testing.T) {
 					AllowMainModulePseudoVersionComparison: false,
 				},
 				Hex:   hex.MatcherConfig{},
+				Opam:  opam.MatcherConfig{},
 				Stock: stock.MatcherConfig{UseCPEs: true},
 				Rpm: rpm.MatcherConfig{
 					MissingEpochStrategy: "auto",
@@ -255,6 +259,43 @@ func Test_getMatcherConfig(t *testing.T) {
 				},
 				Rust:  rust.MatcherConfig{UseCPEs: true},
 				Hex:   hex.MatcherConfig{},
+				Opam:  opam.MatcherConfig{},
+				Stock: stock.MatcherConfig{UseCPEs: true},
+				Rpm: rpm.MatcherConfig{
+					MissingEpochStrategy: "auto",
+				},
+				Dpkg: dpkg.MatcherConfig{
+					MissingEpochStrategy: "zero",
+				},
+			},
+		},
+		{
+			name: "opam using-cpes enabled",
+			opts: func() *options.Grype {
+				opts := options.DefaultGrype(clio.Identification{Name: "test", Version: "1.0"})
+				opts.Match.Opam.UseCPEs = true
+				return opts
+			}(),
+			want: matcher.Config{
+				Java: java.MatcherConfig{
+					ExternalSearchConfig: java.ExternalSearchConfig{
+						SearchMavenUpstream: false,
+						MavenBaseURL:        "https://search.maven.org/solrsearch/select",
+						MavenRateLimit:      300000000,
+					},
+					UseCPEs: false,
+				},
+				Ruby:       ruby.MatcherConfig{},
+				Python:     python.MatcherConfig{},
+				Dotnet:     dotnet.MatcherConfig{},
+				Javascript: javascript.MatcherConfig{},
+				Golang: golang.MatcherConfig{
+					UseCPEs:                                false,
+					AlwaysUseCPEForStdlib:                  false,
+					AllowMainModulePseudoVersionComparison: false,
+				},
+				Hex:   hex.MatcherConfig{},
+				Opam:  opam.MatcherConfig{UseCPEs: true},
 				Stock: stock.MatcherConfig{UseCPEs: true},
 				Rpm: rpm.MatcherConfig{
 					MissingEpochStrategy: "auto",
