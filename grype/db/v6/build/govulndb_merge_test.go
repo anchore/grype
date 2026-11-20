@@ -207,6 +207,26 @@ func TestHandleGoVulnDBEntry(t *testing.T) {
 		}
 	})
 
+	t.Run("record with no affected packages and no held GHSA is written", func(t *testing.T) {
+		m := newGoVulnDBMerger()
+		entry := goVulnEntry("GO-2021-0265", []string{"GHSA-c9gm-7rfj-8w5h"})
+
+		assert.True(t, m.handleEntry(&entry), "the GO record is the only record of the vulnerability")
+		assert.Empty(t, affectedPackageNames(entry))
+	})
+
+	t.Run("record with no affected packages and a held GHSA is dropped", func(t *testing.T) {
+		// the held GHSA record already represents the vulnerability, and the GO record has no
+		// package or symbol to add to it
+		m := newGoVulnDBMerger()
+		require.True(t, m.hold(ghsaEntry("GHSA-c9gm-7rfj-8w5h", goModuleAPH("github.com/tidwall/gjson"))))
+		entry := goVulnEntry("GO-2021-0265", []string{"GHSA-c9gm-7rfj-8w5h"})
+
+		assert.False(t, m.handleEntry(&entry))
+		held := heldGHSA(t, m, "ghsa-c9gm-7rfj-8w5h")
+		assert.Empty(t, held.VulnerabilityHandle.BlobValue.Modifications)
+	})
+
 	t.Run("aliased GHSA absent from the build leaves the record intact", func(t *testing.T) {
 		m := newGoVulnDBMerger()
 		entry := goVulnEntry("GO-2021-0265", []string{"GHSA-c9gm-7rfj-8w5h"},
