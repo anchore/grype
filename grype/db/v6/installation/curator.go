@@ -286,8 +286,8 @@ func (c curator) update(current *db.Description) (*distribution.Archive, error) 
 	mon.Set("checking for update")
 	update, checkErr := c.client.IsUpdateAvailable(current)
 	if checkErr != nil {
-		// we want to continue even if we can't check for an update
-		log.Warnf("unable to check for vulnerability database update")
+		// we want to continue even if we can't check for an update. The client already warns about it, and the
+		// error is returned to the caller, so only log the details here.
 		log.WithFields("error", checkErr).Debug("check for vulnerability update failed")
 	}
 
