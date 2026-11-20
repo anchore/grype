@@ -176,6 +176,14 @@ func TestPackageQualifiers_RoundTrip(t *testing.T) {
 			},
 			wantJSON: `{"rpm_modularity":"nodejs:16","platform_cpes":["cpe:2.3:o:redhat:enterprise_linux:8:*:*:*:*:*:*:*"],"rootio":true,"architecture":"aarch64"}`,
 		},
+		{
+			name: "exclude from upstream matching with architecture",
+			input: PackageQualifiers{
+				Architecture:                asPtr("x86_64"),
+				ExcludeFromUpstreamMatching: asPtr(true),
+			},
+			wantJSON: `{"architecture":"x86_64","exclude_from_upstream_matching":true}`,
+		},
 	}
 
 	for _, testToRun := range tests {

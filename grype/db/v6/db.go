@@ -24,7 +24,7 @@ const (
 	Revision = 1
 
 	// Addition indicates how many changes have been introduced that are compatible with all historical data
-	Addition = 10
+	Addition = 11
 
 	// v6 model changelog:
 	// 6.0.0: Initial version 🎉
@@ -62,6 +62,10 @@ const (
 	//         timestamp, exploitation, automatable, technicalImpact), one row per CVE and
 	//         source. Not surfaced in vulnerability.Metadata or scan output; readable only via
 	//         Reader.GetSsvcs.
+	// 6.1.11: Add ExcludeFromUpstreamMatching field to PackageQualifiers (used by the Chainguard OSV
+	//         strategy for entries published per APK; the upstreammatch runtime qualifier in
+	//         pkg/qualifier/upstreammatch keeps those entries out of the upstream (origin package)
+	//         search, so subpackages don't FP-match entries filed against their origin package)
 )
 
 const (

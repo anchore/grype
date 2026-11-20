@@ -547,6 +547,8 @@ func TestCgRangeType(t *testing.T) {
 func TestCgGetQualifiers(t *testing.T) {
 	archX86 := "x86_64"
 	archArm := "aarch64"
+	exclude := true
+	scoped := map[string]any{"chainguard": map[string]any{"applies_to_subpackages": false}}
 
 	tests := []struct {
 		name     string
@@ -601,6 +603,46 @@ func TestCgGetQualifiers(t *testing.T) {
 				Package: osvmodel.Package{Purl: "pkg:apk/chainguard/demo?arch="},
 			},
 			want: nil,
+		},
+		{
+			name: "applies_to_subpackages false sets exclude_from_upstream_matching alongside arch",
+			affected: osvmodel.Affected{
+				Package:          osvmodel.Package{Purl: "pkg:apk/chainguard/demo?arch=x86_64"},
+				DatabaseSpecific: scoped,
+			},
+			want: &db.PackageQualifiers{Architecture: &archX86, ExcludeFromUpstreamMatching: &exclude},
+		},
+		{
+			name: "applies_to_subpackages false without arch",
+			affected: osvmodel.Affected{
+				Package:          osvmodel.Package{Purl: "pkg:apk/chainguard/demo"},
+				DatabaseSpecific: scoped,
+			},
+			want: &db.PackageQualifiers{ExcludeFromUpstreamMatching: &exclude},
+		},
+		{
+			name: "applies_to_subpackages true keeps origin matching",
+			affected: osvmodel.Affected{
+				Package:          osvmodel.Package{Purl: "pkg:apk/chainguard/demo?arch=x86_64"},
+				DatabaseSpecific: map[string]any{"chainguard": map[string]any{"applies_to_subpackages": true}},
+			},
+			want: &db.PackageQualifiers{Architecture: &archX86},
+		},
+		{
+			name: "applies_to_subpackages of the wrong type is ignored",
+			affected: osvmodel.Affected{
+				Package:          osvmodel.Package{Purl: "pkg:apk/chainguard/demo?arch=x86_64"},
+				DatabaseSpecific: map[string]any{"chainguard": map[string]any{"applies_to_subpackages": "false"}},
+			},
+			want: &db.PackageQualifiers{Architecture: &archX86},
+		},
+		{
+			name: "other database_specific sections are ignored",
+			affected: osvmodel.Affected{
+				Package:          osvmodel.Package{Purl: "pkg:apk/chainguard/demo?arch=x86_64"},
+				DatabaseSpecific: map[string]any{"anchore": map[string]any{"applies_to_subpackages": false}},
+			},
+			want: &db.PackageQualifiers{Architecture: &archX86},
 		},
 	}
 
