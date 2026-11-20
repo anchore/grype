@@ -39,7 +39,7 @@ When you make changes to:
 You need to regenerate the schemas:
 
 ```bash
-task generate-db-schema
+make generate:db-schema
 ```
 
 This will:
@@ -60,7 +60,7 @@ Examples: Adding a new optional field to a blob, adding a new index
 
 2. Regenerate schemas:
    ```bash
-   task generate-db-schema
+   make generate:db-schema
    ```
 
 3. Commit the new schema files along with your code changes
@@ -101,7 +101,7 @@ task check-db-schema-drift
 
 This:
 1. Checks that working directory is clean
-2. Runs `task generate-db-schema`
+2. Runs `make generate:db-schema`
 3. Checks if any schema files changed
 
 If schemas changed but weren't committed, the check fails. This ensures:
