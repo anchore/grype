@@ -97,16 +97,12 @@ func (v Version) String() string {
 }
 
 // compareUsing runs the comparison honoring v's embedded ComparisonConfig for formats that support it
-// (currently rpm/deb missing-epoch handling), falling back to a plain comparison otherwise. v is always the
-// package side, other the constraint/fix side, matching CompareWithConfig's asymmetric auto-epoch semantics.
+// (rpm/deb missing-epoch handling, apk missing-release handling), falling back to a plain comparison
+// otherwise. v is always the package side, other the constraint/fix side, matching CompareWithConfig's
+// asymmetric semantics.
 func (v Version) compareUsing(comparator Comparator, other *Version) (int, error) {
-	if v.Config.MissingEpochStrategy != "" {
-		switch c := comparator.(type) {
-		case rpmVersion:
-			return c.CompareWithConfig(other, v.Config)
-		case debVersion:
-			return c.CompareWithConfig(other, v.Config)
-		}
+	if v.Config.hasConfig() {
+		return compareWithConfig(comparator, other, v.Config)
 	}
 	return comparator.Compare(other)
 }

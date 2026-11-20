@@ -24,7 +24,21 @@ var (
 	})
 )
 
-type Matcher struct{}
+type Matcher struct {
+	cfg MatcherConfig
+}
+
+type MatcherConfig struct {
+	// MissingReleaseStrategy controls how a package version without a "-rN" release suffix is compared
+	// against fix versions that have one. Empty preserves apk-tools ordering.
+	MissingReleaseStrategy version.MissingApkReleaseStrategy
+}
+
+func NewApkMatcher(cfg MatcherConfig) *Matcher {
+	return &Matcher{
+		cfg: cfg,
+	}
+}
 
 func (m *Matcher) PackageTypes() []syftPkg.Type {
 	return []syftPkg.Type{syftPkg.ApkPkg}
@@ -84,14 +98,14 @@ func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match
 // the feed calls unaffected, and apk "< 0" NAKs, which are vulnerable at no version and so land here
 // too. That is what makes it the right thing to reconcile other sources against.
 func (m *Matcher) distroResults(vp vulnerability.Provider, p pkg.Package) (vulnerable, allFixed result.Set, err error) {
-	// APK doesn't use epochs, so pass a nil comparison config.
-	vulnerable, allFixed, err = internal.FindResultsByDistro(vp, p, nil, m.Type(), nil)
+	cfg := m.comparisonConfig()
+	vulnerable, allFixed, err = internal.FindResultsByDistro(vp, p, nil, m.Type(), cfg)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
-		upstreamVulnerable, upstreamFixed, err := internal.FindResultsByDistro(vp, upstreamPkg, &p, m.Type(), nil)
+		upstreamVulnerable, upstreamFixed, err := internal.FindResultsByDistro(vp, upstreamPkg, &p, m.Type(), cfg)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -101,6 +115,15 @@ func (m *Matcher) distroResults(vp vulnerability.Provider, p pkg.Package) (vulne
 	}
 
 	return vulnerable, allFixed, nil
+}
+
+// comparisonConfig returns the version comparison config for distro matching, or nil when no
+// missing-release strategy is configured (apk-tools ordering).
+func (m *Matcher) comparisonConfig() *version.ComparisonConfig {
+	if m.cfg.MissingReleaseStrategy == "" {
+		return nil
+	}
+	return &version.ComparisonConfig{MissingApkReleaseStrategy: m.cfg.MissingReleaseStrategy}
 }
 
 // nakIgnores collects explicit NAK ("< 0") entries for the package and its upstreams and returns them
