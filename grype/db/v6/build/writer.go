@@ -33,6 +33,10 @@ type writer struct {
 	// govulndb_merge.go.
 	goMerge *goVulnDBMerger
 
+	// nvdMerge drops CNA package rows that another provider already covers. It is nil unless the build reconciles
+	// CNA data, and is reconciled before goMerge at Close. See nvd_package_merge.go.
+	nvdMerge *nvdPackageMerger
+
 	// Two-tier batching: parent records (vulnerabilities + providers) and child records (related entries)
 	// This maintains FK integrity while maximizing batch sizes
 	parentBatchSize int
@@ -60,6 +64,7 @@ type WriterOption func(*writerOptions)
 
 type writerOptions struct {
 	sqliteCacheSizeKiB int
+	nvdPackageMerge    bool
 }
 
 // WithSQLiteCacheSizeKiB sets the SQLite page cache size (in KiB) used while building the DB. Zero means use the
@@ -67,6 +72,14 @@ type writerOptions struct {
 func WithSQLiteCacheSizeKiB(kib int) WriterOption {
 	return func(o *writerOptions) {
 		o.sqliteCacheSizeKiB = kib
+	}
+}
+
+// WithNVDPackageMerge drops `nvd` package rows that another provider's package row covers. Without it, no `nvd` entry
+// is held and the writer behaves as it did before CNA reconciliation.
+func WithNVDPackageMerge() WriterOption {
+	return func(o *writerOptions) {
+		o.nvdPackageMerge = true
 	}
 }
 
@@ -96,7 +109,7 @@ func NewWriter(directory string, states provider.States, failOnMissingFixDate bo
 		batchSize = 2000
 	}
 
-	return &writer{
+	w := &writer{
 		dbPath:               cfg.DBFilePath(),
 		failOnMissingFixDate: failOnMissingFixDate,
 		providerCache:        make(map[string]db.Provider),
@@ -108,7 +121,11 @@ func NewWriter(directory string, states provider.States, failOnMissingFixDate bo
 		childBatchSize:       batchSize,
 		parentBuffer:         make([]func() error, 0, batchSize),
 		childBuffer:          make([]func() error, 0, batchSize),
-	}, nil
+	}
+	if o.nvdPackageMerge {
+		w.nvdMerge = newNVDPackageMerger()
+	}
+	return w, nil
 }
 
 func (w *writer) Write(entries ...data.Entry) error {
@@ -132,6 +149,17 @@ func (w *writer) Write(entries ...data.Entry) error {
 
 func (w *writer) writeEntry(entry transformers.RelatedEntries) error {
 	log.WithFields("entry", entry.String()).Trace("writing entry")
+
+	if w.nvdMerge != nil {
+		// observe before the go merge holds Go GHSAs and govulndb entries, which would hide their packages
+		w.nvdMerge.observe(entry)
+		if w.nvdMerge.hold(entry) {
+			// a held entry reaches writeEntryToBatch only at Close, after the GHSA and govulndb entries that alias it
+			// may have asked for its severity, so cache it now
+			w.fillInMissingSeverity(entry.VulnerabilityHandle)
+			return nil
+		}
+	}
 
 	if w.goMerge.hold(entry) {
 		return nil
@@ -483,6 +511,15 @@ func (w *writer) flushChildBatchLocked() error {
 }
 
 func (w *writer) Close() error {
+	// reconcile and write held nvd entries, which have seen every other provider's packages by now
+	if w.nvdMerge != nil {
+		for _, entry := range w.nvdMerge.reconcile() {
+			if err := w.writeEntryToBatch(entry); err != nil {
+				return fmt.Errorf("unable to write reconciled nvd entry %q: %w", entry.VulnerabilityHandle.Name, err)
+			}
+		}
+	}
+
 	// Reconcile and write held govulndb/GHSA entries before the final flush
 	for _, entry := range w.goMerge.reconcile() {
 		if err := w.writeEntryToBatch(entry); err != nil {
