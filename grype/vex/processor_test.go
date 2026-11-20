@@ -335,6 +335,54 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 				}},
 			}},
 		},
+		{
+			// Regression for https://github.com/anchore/grype/issues/3890:
+			// without a vex-add / ignore rule, under_investigation must not filter.
+			name: "openvex-under-investigation - no opt-in leaves match active",
+			options: ProcessorOptions{
+				Documents: []string{
+					"testdata/vex-docs/openvex-under-investigation.json",
+				},
+				IgnoreRules: []match.IgnoreRule{
+					{VexStatus: string(status.NotAffected)},
+					{VexStatus: string(status.Fixed)},
+				},
+			},
+			args: args{
+				pkgContext: pkgContext,
+				matches:    getSubject(),
+			},
+			wantMatches:        matchesRef(libCryptoCVE_2023_3817, libCryptoCVE_2023_2975, libCryptoCVE_2023_1255),
+			wantIgnoredMatches: []match.IgnoredMatch{},
+		},
+		{
+			// Regression for https://github.com/anchore/grype/issues/3890:
+			// vex-add installs an under_investigation ignore rule; ApplyVEX must
+			// honor it through FilterMatches and must not undo it in AugmentMatches.
+			name: "openvex-under-investigation - vex-add ignore rule suppresses match",
+			options: ProcessorOptions{
+				Documents: []string{
+					"testdata/vex-docs/openvex-under-investigation.json",
+				},
+				IgnoreRules: []match.IgnoreRule{
+					{VexStatus: string(status.NotAffected)},
+					{VexStatus: string(status.Fixed)},
+					{VexStatus: string(status.UnderInvestigation)},
+				},
+			},
+			args: args{
+				pkgContext: pkgContext,
+				matches:    getSubject(),
+			},
+			wantMatches: matchesRef(libCryptoCVE_2023_3817, libCryptoCVE_2023_2975),
+			wantIgnoredMatches: []match.IgnoredMatch{{
+				Match: libCryptoCVE_2023_1255,
+				AppliedIgnoreRules: []match.IgnoreRule{{
+					Namespace: "vex",
+					VexStatus: string(status.UnderInvestigation),
+				}},
+			}},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
