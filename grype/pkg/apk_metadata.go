@@ -10,7 +10,6 @@ var _ FileOwner = (*ApkMetadata)(nil)
 
 type ApkMetadata struct {
 	Files []ApkFileRecord `json:"files"`
-	Arch  string          // the architecture of the package (e.g. "amd64", "arm64", etc)
 }
 
 // ApkFileRecord represents a single file listing and metadata from a APK DB entry (which may have many of these file records).

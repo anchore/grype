@@ -52,7 +52,10 @@ func shouldUseUbuntuESMMatching(d *distro.Distro) bool {
 // Unlike RHEL EUS there is no cross-minor reachability problem: Ubuntu ESM is one line per LTS release and the
 // resolution search only pulls same-minor 'ubuntu:XX.YY' and 'ubuntu:XX.YY+esm' rows, so every '+esm' fix pulled
 // is reachable by construction.
-func ubuntuESMMatches(provider result.Provider, searchPkg pkg.Package, missingEpochStrategy version.MissingEpochStrategy, extra ...vulnerability.Criteria) ([]match.Match, []match.IgnoreFilter, error) {
+//
+// requireArch is set when searchPkg is the cataloged package's own source (see internal.IsSameUpstream): it then only
+// matches records that specify an architecture, as the cataloged package's own search already finds those that don't.
+func ubuntuESMMatches(provider result.Provider, searchPkg pkg.Package, missingEpochStrategy version.MissingEpochStrategy, requireArch bool, extra ...vulnerability.Criteria) ([]match.Match, []match.IgnoreFilter, error) {
 	distroWithoutESM := *searchPkg.Distro
 	distroWithoutESM.Channels = nil // clear the ESM channel so that we can search for the base distro
 
@@ -68,6 +71,7 @@ func ubuntuESMMatches(provider result.Provider, searchPkg pkg.Package, missingEp
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(distroWithoutESM), // e.g. ubuntu:16.04 (no ESM channel)
 		internal.OnlyQualifiedPackages(searchPkg),
+		search.ByArchitecture(searchPkg.Arch).WithRequired(requireArch),
 		internal.OnlyVulnerableVersions(pkgVersion),
 	}
 	disclosureCriteria = append(disclosureCriteria, extra...)
@@ -86,6 +90,7 @@ func ubuntuESMMatches(provider result.Provider, searchPkg pkg.Package, missingEp
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(distroWithoutESM, *searchPkg.Distro), // e.g. ubuntu:16.04 || ubuntu:16.04+esm
 		internal.OnlyQualifiedPackages(searchPkg),
+		search.ByArchitecture(searchPkg.Arch).WithRequired(requireArch),
 		// note: we do **not** apply any version criteria to the search as to raise up all possible fixes
 		// and combine within the collection. If we do filter on a fix version, it could result in
 		// false positives (missing ESM fixes that resolve a disclosure).

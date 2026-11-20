@@ -164,7 +164,7 @@ func (m *Matcher) matchPackage(vp vulnerability.Provider, p pkg.Package) ([]matc
 	// then patch the epoch into the version of the package that we are searching with.
 	addEpochIfApplicable(&p)
 
-	matches, ignores, err := m.findMatches(provider, p)
+	matches, ignores, err := m.findMatches(provider, p, false)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
 	}
@@ -220,12 +220,14 @@ func (m *Matcher) matchUpstreamPackages(vp vulnerability.Provider, p pkg.Package
 	var matches []match.Match
 	var ignored []match.IgnoreFilter
 
-	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		// An rpm's upstream is its source rpm, so tag the synthesized package "src". The
-		// architecture qualifier then matches it only against src (and unspecified) records
-		// and rejects binary-arch records — which is how we avoid matching a binary's
+	for _, indirectPackage := range internal.UpstreamPackages(p) {
+		// An rpm's upstream is its source rpm, so the synthesized package is tagged "src".
+		// Searching by that architecture then matches it only against src (and unspecified)
+		// records and rejects binary-arch records — which is how we avoid matching a binary's
 		// upstream against a sibling binary's vulnerability.
-		indirectMatches, ignores, err := m.findMatches(provider, indirectPackage)
+		// p's own source only adds records that specify an architecture; p's own search already
+		// finds those that don't.
+		indirectMatches, ignores, err := m.findMatches(provider, indirectPackage, internal.IsSameUpstream(indirectPackage, p))
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
 		}
@@ -236,7 +238,8 @@ func (m *Matcher) matchUpstreamPackages(vp vulnerability.Provider, p pkg.Package
 	return matches, ignored, nil
 }
 
-func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+// findMatches matches searchPkg; with requireArch set, it only matches records that specify an architecture.
+func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package, requireArch bool) ([]match.Match, []match.IgnoreFilter, error) {
 	if searchPkg.Distro == nil {
 		return nil, nil, nil
 	}
@@ -247,13 +250,13 @@ func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package) (
 
 	switch {
 	case shouldUseRedhatEUSMatching(searchPkg.Distro):
-		return redhatEUSMatches(provider, searchPkg, m.cfg.MissingEpochStrategy)
+		return redhatEUSMatches(provider, searchPkg, m.cfg.MissingEpochStrategy, requireArch)
 	default:
-		return m.standardMatches(provider, searchPkg)
+		return m.standardMatches(provider, searchPkg, requireArch)
 	}
 }
 
-func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Package, requireArch bool) ([]match.Match, []match.IgnoreFilter, error) {
 	// Create version with config embedded
 	pkgVersion := version.NewWithConfig(
 		searchPkg.Version,
@@ -267,6 +270,7 @@ func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Packag
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
 		internal.OnlyQualifiedPackages(searchPkg),
+		search.ByArchitecture(searchPkg.Arch).WithRequired(requireArch),
 	}
 
 	all, err := provider.FindResults(disclosureCriteria...)
@@ -278,6 +282,7 @@ func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Packag
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(*searchPkg.Distro),
 		internal.OnlyQualifiedPackages(searchPkg),
+		search.ByArchitecture(searchPkg.Arch).WithRequired(requireArch),
 		internal.OnlyVulnerableVersions(pkgVersion),
 		search.ForUnaffected(),
 	}

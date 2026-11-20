@@ -4,7 +4,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/anchore/grype/grype/pkg/qualifier/architecture"
+	"github.com/anchore/grype/grype/internal/architecture"
 	"github.com/anchore/syft/syft/pkg"
 )
 
@@ -173,7 +173,7 @@ func KnownPackageSpecifierOverrides() []PackageSpecifierOverride {
 }
 
 // KnownArchitectureAliases is the default arch alias table seeded into the DB at build time.
-// It is sourced from architecture.DefaultAliases so the build-time seed and the match-time
+// It is sourced from architecture.DefaultAliases so the build-time seed and the provider's
 // fallback (used by clients whose DB predates this table) can never drift apart.
 func KnownArchitectureAliases() []ArchitectureAlias {
 	defaults := architecture.DefaultAliases()

@@ -13,6 +13,7 @@ type Package struct {
 	Name         string              `json:"name"`
 	Version      string              `json:"version"`
 	Type         syftPkg.Type        `json:"type"`
+	Arch         string              `json:"architecture,omitempty"`
 	Locations    file.Locations      `json:"locations"`
 	Language     syftPkg.Language    `json:"language"`
 	Licenses     []string            `json:"licenses"`
@@ -57,6 +58,7 @@ func newPackage(p pkg.Package) Package {
 		Licenses:     licenses,
 		Language:     p.Language,
 		Type:         p.Type,
+		Arch:         p.Arch,
 		CPEs:         cpes,
 		PURL:         p.PURL,
 		Upstreams:    upstreams,

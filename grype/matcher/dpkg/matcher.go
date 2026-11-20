@@ -100,13 +100,13 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 func (m *Matcher) matchUbuntuESM(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	provider := result.NewProvider(store, p, m.Type())
 
-	matches, ignores, err := ubuntuESMMatches(provider, p, m.cfg.MissingEpochStrategy)
+	matches, ignores, err := ubuntuESMMatches(provider, p, m.cfg.MissingEpochStrategy, false)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
 	}
 
-	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, indirectIgnores, err := ubuntuESMMatches(provider, indirectPackage, m.cfg.MissingEpochStrategy)
+	for _, indirectPackage := range internal.UpstreamPackages(p) {
+		indirectMatches, indirectIgnores, err := ubuntuESMMatches(provider, indirectPackage, m.cfg.MissingEpochStrategy, internal.IsSameUpstream(indirectPackage, p))
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to find vulnerabilities for dpkg upstream source package: %w", err)
 		}
@@ -124,7 +124,7 @@ func (m *Matcher) matchUpstreamPackages(store vulnerability.Provider, p pkg.Pack
 	versionConfig := version.ComparisonConfig{
 		MissingEpochStrategy: m.cfg.MissingEpochStrategy,
 	}
-	for _, indirectPackage := range pkg.UpstreamPackages(p) {
+	for _, indirectPackage := range internal.UpstreamPackages(p) {
 		indirectMatches, ignored, err := internal.MatchPackageByDistro(store, indirectPackage, &p, m.Type(), &versionConfig)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to find vulnerabilities for dpkg upstream source package: %w", err)

@@ -61,6 +61,7 @@
     "name": "package-1",
     "version": "1.1.1",
     "type": "rpm",
+    "architecture": "x86_64",
     "locations": [
      {
       "path": "/foo/bar/somefile-1.txt",
@@ -77,8 +78,7 @@
     "metadataType": "RpmMetadata",
     "metadata": {
      "epoch": 2,
-     "modularityLabel": null,
-     "architecture": "x86_64"
+     "modularityLabel": null
     }
    }
   },

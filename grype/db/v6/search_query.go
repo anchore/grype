@@ -21,8 +21,11 @@ type searchQuery struct {
 	unaffectedOnly bool
 }
 
-func newSearchQuery(criteriaSet []vulnerability.Criteria) (*searchQuery, []vulnerability.Criteria, error) {
-	builder := newSearchQueryBuilder()
+// newSearchQuery parses criteriaSet into a searchQuery plus the criteria left to filter results with.
+// archAliases is the DB's architecture alias table (alias spelling -> canonical token), used to
+// compare architectures across spellings.
+func newSearchQuery(criteriaSet []vulnerability.Criteria, archAliases map[string]string) (*searchQuery, []vulnerability.Criteria, error) {
+	builder := newSearchQueryBuilder(archAliases)
 
 	if err := builder.ApplyCriteria(criteriaSet); err != nil {
 		return nil, nil, err
@@ -36,13 +39,15 @@ func newSearchQuery(criteriaSet []vulnerability.Criteria) (*searchQuery, []vulne
 type searchQueryBuilder struct {
 	query             *searchQuery
 	remainingCriteria []vulnerability.Criteria
+	archAliases       map[string]string
 }
 
 // newSearchQueryBuilder creates a new searchQueryBuilder with an empty query
-func newSearchQueryBuilder() *searchQueryBuilder {
+func newSearchQueryBuilder(archAliases map[string]string) *searchQueryBuilder {
 	return &searchQueryBuilder{
 		query:             &searchQuery{},
 		remainingCriteria: make([]vulnerability.Criteria, 0),
+		archAliases:       archAliases,
 	}
 }
 
@@ -72,6 +77,9 @@ func (b *searchQueryBuilder) ApplyCriteria(criteriaSet []vulnerability.Criteria)
 		case *search.DistroCriteria:
 			b.handleDistro(c)
 			applied = true
+		case *search.ArchitectureCriteria:
+			b.handleArchitecture(c)
+			applied = true
 		}
 
 		if !applied {
@@ -86,6 +94,13 @@ func (b *searchQueryBuilder) handlePackageName(c *search.PackageNameCriteria) {
 		b.query.pkgSpec = &PackageSpecifier{}
 	}
 	b.query.pkgSpec.Name = c.PackageName
+}
+
+// handleArchitecture keeps the architecture criteria for filtering results, comparing through this
+// DB's alias table, so the same architecture named in different ecosystem dialects (e.g. "x86_64"
+// and "amd64") still matches. The caller's criteria is copied (see WithAliases) rather than modified.
+func (b *searchQueryBuilder) handleArchitecture(c *search.ArchitectureCriteria) {
+	b.remainingCriteria = append(b.remainingCriteria, c.WithAliases(b.archAliases))
 }
 
 func (b *searchQueryBuilder) handleUnaffected(_ *search.UnaffectedCriteria) {
