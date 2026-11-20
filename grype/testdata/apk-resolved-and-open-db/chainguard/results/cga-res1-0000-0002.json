@@ -1,0 +1,39 @@
+{
+  "identifier": "chainguard:rolling/CGA-res1-0000-0002",
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.0.json",
+  "item": {
+    "schema_version": "1.7.0",
+    "id": "CGA-res1-0000-0002",
+    "published": "2026-10-12T00:00:00Z",
+    "modified": "2026-10-12T00:00:00Z",
+    "summary": "app: open advisory for another file, same vulnerability",
+    "upstream": [
+      "CVE-2022-27664"
+    ],
+    "references": [
+      {
+        "type": "ADVISORY",
+        "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-27664"
+      }
+    ],
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "Chainguard",
+          "name": "app",
+          "purl": "pkg:apk/chainguard/app?arch=x86_64"
+        },
+        "ranges": [
+          {
+            "type": "ECOSYSTEM",
+            "events": [
+              {
+                "introduced": "0"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
