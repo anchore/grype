@@ -25,13 +25,13 @@ const zarfSBOMSourceAnnotation = "zarf-sbom-source"
 
 const zarfInputPrefix = "zarf:"
 
-// maxSBOMEntryBytes is the maximum size of a single SBOM entry in sboms.tar.
+// maxSBOMEntryBytes is the maximum size of a single bundled SBOM resource.
 // This is arbitrarily selected and could be improved with empirical data from
 // large production Zarf packages.
 const maxSBOMEntryBytes = 256 << 20 // 256 MB
 
-// maxSBOMEntries is the maximum number of entries to process in sboms.tar,
-// as a safeguard against malformed archives with an excessive entry count.
+// maxSBOMEntries is the maximum number of bundled SBOM resources to process,
+// as a safeguard against malformed packages with an excessive entry count.
 const maxSBOMEntries = 1000
 
 // ZarfPackageMetadata holds context about the source Zarf package.
@@ -62,8 +62,8 @@ func zarfProvider(userInput string, config ProviderConfig, applyChannel func(*di
 	return packages, ctx, s, nil
 }
 
-// readZarfPackage opens a Zarf .tar.zst archive, locates sboms.tar within it,
-// and decodes each SBOM entry into a merged package list.
+// readZarfPackage decompresses a Zarf package archive and reads its bundled
+// SBOM layout.
 func readZarfPackage(archivePath string, config ProviderConfig, applyChannel func(*distro.Distro)) ([]*Package, *sbom.SBOM, error) {
 	f, err := os.Open(archivePath)
 	if err != nil {
@@ -73,7 +73,7 @@ func readZarfPackage(archivePath string, config ProviderConfig, applyChannel fun
 
 	// NOTE: no decompressed-size limit is applied to the zstd reader. Zarf packages
 	// could exceed 50GB decompressed in production, and the outer tar stream includes
-	// OCI image layers that must be skipped to reach sboms.tar. The streaming reader
+	// OCI image layers that must be skipped to reach bundled SBOMs. The streaming reader
 	// does not hold the full decompressed output in memory, but a decompression bomb
 	// could cause sustained CPU usage.
 	zr, err := zstd.NewReader(f)
@@ -83,7 +83,6 @@ func readZarfPackage(archivePath string, config ProviderConfig, applyChannel fun
 	defer zr.Close()
 
 	tr := tar.NewReader(zr)
-
 	for {
 		hdr, err := tr.Next()
 		if errors.Is(err, io.EOF) {
@@ -96,79 +95,118 @@ func readZarfPackage(archivePath string, config ProviderConfig, applyChannel fun
 		if hdr.Name == "sboms.tar" {
 			return readSBOMsFromTar(tr, config, applyChannel)
 		}
+		if isGranularSBOMResource(hdr) {
+			return readSBOMsFromOuterTar(tr, hdr, config, applyChannel)
+		}
 	}
 
 	return nil, nil, fmt.Errorf("sboms.tar not found in Zarf package %s", archivePath)
 }
 
-// readSBOMsFromTar iterates over entries in sboms.tar, decoding each SBOM
-// and merging all packages into a single result set.
+// readSBOMsFromTar iterates over entries in the legacy nested sboms.tar,
+// decoding each SBOM and merging all packages into a single result set.
 func readSBOMsFromTar(r io.Reader, config ProviderConfig, applyChannel func(*distro.Distro)) ([]*Package, *sbom.SBOM, error) {
-	sbomTar := tar.NewReader(r)
+	return readSBOMsFromTarReader(tar.NewReader(r), nil, false, config, applyChannel)
+}
 
+// readSBOMsFromOuterTar collects direct sboms/ resources beginning with first
+// and continuing through the rest of the outer archive stream.
+func readSBOMsFromOuterTar(outerTar *tar.Reader, first *tar.Header, config ProviderConfig, applyChannel func(*distro.Distro)) ([]*Package, *sbom.SBOM, error) {
+	return readSBOMsFromTarReader(outerTar, first, true, config, applyChannel)
+}
+
+func readSBOMsFromTarReader(sbomTar *tar.Reader, first *tar.Header, granular bool, config ProviderConfig, applyChannel func(*distro.Distro)) ([]*Package, *sbom.SBOM, error) {
 	var allPackages []*Package
 	pkgIndex := map[ID]*Package{}
 	var mergedSBOM *sbom.SBOM
 	var decodedCount int
 	var entryCount int
 
-	for {
-		hdr, err := sbomTar.Next()
-		if errors.Is(err, io.EOF) {
-			break
-		}
-		if err != nil {
-			return nil, nil, fmt.Errorf("error reading sboms.tar: %w", err)
+	for hdr := first; ; hdr = nil {
+		if hdr == nil {
+			var err error
+			hdr, err = nextZarfSBOMHeader(sbomTar, granular)
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			if err != nil {
+				return nil, nil, readZarfSBOMError(granular, err)
+			}
 		}
 
 		entryCount++
 		if entryCount > maxSBOMEntries {
-			return nil, nil, fmt.Errorf("sboms.tar contains more than %d entries, which exceeds the maximum", maxSBOMEntries)
+			return nil, nil, zarfSBOMEntryLimitError(granular)
 		}
-
 		if hdr.Typeflag != tar.TypeReg {
 			continue
 		}
 
 		log.WithFields("entry", hdr.Name, "size", hdr.Size).Debug("reading SBOM from Zarf package")
-
 		s, fmtID, ok := readSBOMEntry(sbomTar, hdr)
 		if !ok {
 			continue
 		}
 		decodedCount++
-
-		d, _ := distroFromSBOM(s, config, applyChannel)
-
-		var enhancers []Enhancer
-		if fmtID != syftjson.ID {
-			enhancers = purlEnhancers(applyChannel)
-		}
-
-		packages := FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig, enhancers...)
-
-		allPackages = mergePackagesFromSBOM(allPackages, pkgIndex, packages, d, zarfSBOMSourceID(s, hdr.Name))
-
-		if mergedSBOM == nil {
-			mergedSBOM = s
-		} else {
-			mergeSBOM(mergedSBOM, s)
-		}
+		allPackages, mergedSBOM = mergeZarfSBOM(allPackages, pkgIndex, mergedSBOM, s, fmtID, hdr.Name, config, applyChannel)
 	}
 
 	if decodedCount == 0 {
 		return nil, nil, fmt.Errorf("no SBOMs could be parsed from Zarf package")
 	}
-
 	if len(allPackages) == 0 {
 		log.WithFields("sboms", decodedCount).Debug("Zarf package SBOMs parsed successfully but contain no packages")
 	}
-
 	return allPackages, mergedSBOM, nil
 }
 
-// readSBOMEntry reads and decodes a single SBOM entry from sboms.tar, logging
-// and returning ok=false if the entry should be skipped.
+func isGranularSBOMResource(hdr *tar.Header) bool {
+	return hdr.Typeflag == tar.TypeReg && strings.HasPrefix(hdr.Name, "sboms/")
+}
+
+func nextZarfSBOMHeader(sbomTar *tar.Reader, granular bool) (*tar.Header, error) {
+	for {
+		hdr, err := sbomTar.Next()
+		if err != nil || !granular || isGranularSBOMResource(hdr) {
+			return hdr, err
+		}
+	}
+}
+
+func readZarfSBOMError(granular bool, err error) error {
+	if granular {
+		return fmt.Errorf("error reading Zarf archive: %w", err)
+	}
+	return fmt.Errorf("error reading sboms.tar: %w", err)
+}
+
+func zarfSBOMEntryLimitError(granular bool) error {
+	if granular {
+		return fmt.Errorf("sboms/ contains more than %d entries, which exceeds the maximum", maxSBOMEntries)
+	}
+	return fmt.Errorf("sboms.tar contains more than %d entries, which exceeds the maximum", maxSBOMEntries)
+}
+
+func mergeZarfSBOM(allPackages []*Package, pkgIndex map[ID]*Package, mergedSBOM, s *sbom.SBOM, fmtID sbom.FormatID, entryName string, config ProviderConfig, applyChannel func(*distro.Distro)) ([]*Package, *sbom.SBOM) {
+	d, _ := distroFromSBOM(s, config, applyChannel)
+
+	var enhancers []Enhancer
+	if fmtID != syftjson.ID {
+		enhancers = purlEnhancers(applyChannel)
+	}
+
+	packages := FromCollection(s.Artifacts.Packages, s.Relationships, config.SynthesisConfig, enhancers...)
+	allPackages = mergePackagesFromSBOM(allPackages, pkgIndex, packages, d, zarfSBOMSourceID(s, entryName))
+	if mergedSBOM == nil {
+		mergedSBOM = s
+	} else {
+		mergeSBOM(mergedSBOM, s)
+	}
+	return allPackages, mergedSBOM
+}
+
+// readSBOMEntry reads and decodes a single SBOM entry from a Zarf package,
+// logging and returning ok=false if the entry should be skipped.
 func readSBOMEntry(sbomTar *tar.Reader, hdr *tar.Header) (s *sbom.SBOM, fmtID sbom.FormatID, ok bool) {
 	if hdr.Size > maxSBOMEntryBytes {
 		log.WithFields("entry", hdr.Name, "size", hdr.Size, "max", maxSBOMEntryBytes).Debug("skipping SBOM entry in Zarf package: exceeds max entry size")
