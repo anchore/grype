@@ -134,8 +134,9 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 			wantIgnoredMatches: []match.IgnoredMatch{{
 				Match: libCryptoCVE_2023_1255,
 				AppliedIgnoreRules: []match.IgnoreRule{{
-					Namespace: "vex",
-					VexStatus: string(status.Fixed),
+					Namespace:        "vex",
+					VexJustification: "Class with vulnerable code was removed before shipping.",
+					VexStatus:        string(status.Fixed),
 				}},
 			}},
 		},
@@ -158,9 +159,10 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 			wantIgnoredMatches: []match.IgnoredMatch{{
 				Match: libCryptoCVE_2023_1255,
 				AppliedIgnoreRules: []match.IgnoreRule{{
-					Namespace:     "vex",
-					Vulnerability: "CVE-2023-1255",
-					VexStatus:     string(status.Fixed),
+					Namespace:        "vex",
+					Vulnerability:    "CVE-2023-1255",
+					VexJustification: "Class with vulnerable code was removed before shipping.",
+					VexStatus:        string(status.Fixed),
 				}},
 			}},
 		},
