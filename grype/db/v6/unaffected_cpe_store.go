@@ -1,6 +1,8 @@
 package v6
 
 import (
+	"errors"
+
 	"gorm.io/gorm"
 
 	"github.com/anchore/syft/syft/cpe"
@@ -11,6 +13,7 @@ type UnaffectedCPEStoreWriter interface {
 }
 
 type UnaffectedCPEStoreReader interface {
+	// GetUnaffectedCPEs returns ErrLimitReached when the results fill the limit, along with the records found up to it
 	GetUnaffectedCPEs(cpe *cpe.Attributes, config *GetCPEOptions) ([]UnaffectedCPEHandle, error)
 }
 
@@ -39,7 +42,7 @@ func (s *unaffectedCPEStore) GetUnaffectedCPEs(cpe *cpe.Attributes, config *GetC
 		config,
 		"unaffected_cpe_handles",
 	)
-	if err != nil {
+	if err != nil && !errors.Is(err, ErrLimitReached) {
 		return nil, err
 	}
 
@@ -47,5 +50,6 @@ func (s *unaffectedCPEStore) GetUnaffectedCPEs(cpe *cpe.Attributes, config *GetC
 	for i, r := range results {
 		models[i] = *r
 	}
-	return models, nil
+	// the records found before the limit was reached are returned along with ErrLimitReached
+	return models, err
 }

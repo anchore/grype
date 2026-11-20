@@ -85,6 +85,7 @@ type Reader interface {
 	DBMetadataStoreReader
 	ProviderStoreReader
 	VulnerabilityStoreReader
+	VulnerabilityAliasStoreReader
 	VulnerabilityDecoratorStoreReader
 	OperatingSystemStoreReader
 	AffectedPackageStoreReader

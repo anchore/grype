@@ -1,12 +1,17 @@
 package v6
 
-import "gorm.io/gorm"
+import (
+	"errors"
+
+	"gorm.io/gorm"
+)
 
 type AffectedPackageStoreWriter interface {
 	AddAffectedPackages(packages ...*AffectedPackageHandle) error
 }
 
 type AffectedPackageStoreReader interface {
+	// GetAffectedPackages returns ErrLimitReached when the results fill the limit, along with the records found up to it
 	GetAffectedPackages(pkg *PackageSpecifier, config *GetPackageOptions) ([]AffectedPackageHandle, error)
 }
 
@@ -35,7 +40,7 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 		config,
 		"affected_package_handles",
 	)
-	if err != nil {
+	if err != nil && !errors.Is(err, ErrLimitReached) {
 		return nil, err
 	}
 
@@ -43,5 +48,6 @@ func (s *affectedPackageStore) GetAffectedPackages(pkg *PackageSpecifier, config
 	for i, r := range results {
 		models[i] = *r
 	}
-	return models, nil
+	// the records found before the limit was reached are returned along with ErrLimitReached
+	return models, err
 }

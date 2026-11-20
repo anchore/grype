@@ -138,3 +138,30 @@ func TestGetDate(t *testing.T) {
 func timePtr(t time.Time) *time.Time {
 	return &t
 }
+
+func TestRenderDBSearchVulnerabilitiesTableRows(t *testing.T) {
+	vuln := func(oss ...string) dbsearch.Vulnerability {
+		v := dbsearch.Vulnerability{
+			VulnerabilityInfo: dbsearch.VulnerabilityInfo{
+				VulnerabilityBlob: v6.VulnerabilityBlob{ID: "CVE-2004-1476"},
+				Provider:          "debian",
+				Severity:          "negligible",
+			},
+		}
+		for _, o := range oss {
+			v.OperatingSystems = append(v.OperatingSystems, dbsearch.OperatingSystem{Name: "debian", Version: o})
+		}
+		return v
+	}
+
+	// results for the same vulnerability and provider are merged into a single row, without repeated OS versions
+	rows := renderDBSearchVulnerabilitiesTableRows([]dbsearch.Vulnerability{
+		vuln("12", "10", "11"),
+		vuln("11", "12", "12", "13"),
+		vuln(),
+	})
+
+	require.Equal(t, [][]string{
+		{"CVE-2004-1476", "debian (10, 11, 12, 13)", "", "negligible", ""},
+	}, rows)
+}

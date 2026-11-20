@@ -3,6 +3,8 @@ package dbsearch
 import (
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 
 	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/internal/log"
@@ -22,6 +24,8 @@ type AffectedPackage struct {
 
 type AffectedPackageInfo struct {
 	// TODO: remove this when namespace is no longer used
+	// note: for unaffected records this is the unaffected handle converted to the affected handle type (they share an
+	// underlying type), so don't use the type of this field to tell affected and unaffected records apart
 	Model *v6.AffectedPackageHandle `json:"-"` // tracking package handle info is necessary for namespace lookup (note CPE handles are not tracked)
 
 	// OS identifies the operating system release that the affected package is released for
@@ -91,7 +95,27 @@ type AffectedPackagesOptions struct {
 	AllowBroadCPEMatching bool
 	RecordLimit           int
 	FixedStates           []string
+
+	// IncludeUnaffected also fetches unaffected package and CPE records. These are fetched after the affected records
+	// with the same per-query RecordLimit, and are skipped once the affected records reach the limit.
+	IncludeUnaffected bool
+
+	// IncludeAliases expands each named vulnerability to the vulnerabilities related to it through aliases before
+	// searching (see relatedVulnerabilityNames)
+	IncludeAliases bool
 }
+
+// recordSet is which kinds of package records a search fetches
+type recordSet int
+
+const (
+	// affectedRecords only fetches affected records, the default
+	affectedRecords recordSet = iota
+	// allRecords fetches affected records, then unaffected records
+	allRecords
+	// unaffectedRecords only fetches unaffected records, used when nothing but the not-affected state is asked for
+	unaffectedRecords
+)
 
 type affectedPackageWithDecorations struct {
 	v6.AffectedPackageHandle
@@ -103,6 +127,20 @@ func (a *affectedPackageWithDecorations) getCVEs() []string {
 		return nil
 	}
 	return getCVEs(a.Vulnerability)
+}
+
+func (a *affectedPackageWithDecorations) info() AffectedPackageInfo {
+	var detail v6.PackageBlob
+	if a.BlobValue != nil {
+		detail = *a.BlobValue
+	}
+	return AffectedPackageInfo{
+		Model:     &a.AffectedPackageHandle,
+		OS:        toOS(a.OperatingSystem),
+		Package:   toPackage(a.Package),
+		Namespace: v6.MimicV5Namespace(a.Vulnerability, &a.AffectedPackageHandle),
+		Detail:    detail,
+	}
 }
 
 type affectedCPEWithDecorations struct {
@@ -117,58 +155,24 @@ func (a *affectedCPEWithDecorations) getCVEs() []string {
 	return getCVEs(a.Vulnerability)
 }
 
-func newAffectedPackageRows(affectedPkgs []affectedPackageWithDecorations, affectedCPEs []affectedCPEWithDecorations) (rows []AffectedPackage) {
-	for i := range affectedPkgs {
-		pkg := affectedPkgs[i]
-		var detail v6.PackageBlob
-		if pkg.BlobValue != nil {
-			detail = *pkg.BlobValue
-		}
-		if pkg.Vulnerability == nil {
-			log.Errorf("affected package record missing vulnerability: %+v", pkg)
-			continue
-		}
-
-		rows = append(rows, AffectedPackage{
-			Vulnerability: newVulnerabilityInfo(*pkg.Vulnerability, pkg.vulnerabilityDecorations),
-			AffectedPackageInfo: AffectedPackageInfo{
-				Model:     &pkg.AffectedPackageHandle,
-				OS:        toOS(pkg.OperatingSystem),
-				Package:   toPackage(pkg.Package),
-				Namespace: v6.MimicV5Namespace(pkg.Vulnerability, &pkg.AffectedPackageHandle),
-				Detail:    detail,
-			},
-		})
+func (a *affectedCPEWithDecorations) info() AffectedPackageInfo {
+	var detail v6.PackageBlob
+	if a.BlobValue != nil {
+		detail = *a.BlobValue
 	}
 
-	for _, ac := range affectedCPEs {
-		var detail v6.PackageBlob
-		if ac.BlobValue != nil {
-			detail = *ac.BlobValue
-		}
-		if ac.Vulnerability == nil {
-			log.Errorf("affected CPE record missing vulnerability: %+v", ac)
-			continue
-		}
-
-		var c *CPE
-		if ac.CPE != nil {
-			cv := CPE(*ac.CPE)
-			c = &cv
-		}
-
-		rows = append(rows, AffectedPackage{
-			// tracking model information is not possible with CPE handles
-			Vulnerability: newVulnerabilityInfo(*ac.Vulnerability, ac.vulnerabilityDecorations),
-			AffectedPackageInfo: AffectedPackageInfo{
-				CPE:       c,
-				Namespace: v6.MimicV5Namespace(ac.Vulnerability, nil), // no affected package will default to NVD
-				Detail:    detail,
-			},
-		})
+	var c *CPE
+	if a.CPE != nil {
+		cv := CPE(*a.CPE)
+		c = &cv
 	}
 
-	return rows
+	// tracking model information is not possible with CPE handles
+	return AffectedPackageInfo{
+		CPE:       c,
+		Namespace: v6.MimicV5Namespace(a.Vulnerability, nil), // no affected package will default to NVD
+		Detail:    detail,
+	}
 }
 
 func toPackage(pkg *v6.Package) *Package {
@@ -192,50 +196,87 @@ func toOS(os *v6.OperatingSystem) *OperatingSystem {
 	}
 }
 
-func FindAffectedPackages(reader interface {
-	v6.AffectedPackageStoreReader
-	v6.AffectedCPEStoreReader
-	v6.VulnerabilityDecoratorStoreReader
-}, criteria AffectedPackagesOptions,
-) ([]AffectedPackage, error) {
-	allAffectedPkgs, allAffectedCPEs, err := findAffectedPackages(reader, criteria)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(criteria.FixedStates) > 0 {
-		allAffectedPkgs = filterByFixedStateForPackages(allAffectedPkgs, criteria.FixedStates)
-		allAffectedCPEs = filterByFixedStateForCPEs(allAffectedCPEs, criteria.FixedStates)
-	}
-
-	return newAffectedPackageRows(allAffectedPkgs, allAffectedCPEs), nil
+// packageRecords are the package and CPE records found by a search, unaffected records are converted to the
+// affected handle types but are kept separate from the affected records
+type packageRecords struct {
+	affectedPkgs   []affectedPackageWithDecorations
+	affectedCPEs   []affectedCPEWithDecorations
+	unaffectedPkgs []affectedPackageWithDecorations
+	unaffectedCPEs []affectedCPEWithDecorations
 }
 
-func findAffectedPackages(reader interface { //nolint:funlen,gocognit
+// decorate adds the KEV and EPSS decorations to every record, looking up each distinct set of CVEs once
+func (r *packageRecords) decorate(reader v6.VulnerabilityDecoratorStoreReader) {
+	// decorations only depend on the CVEs of the record, so that is the cache key
+	byCVEs := make(map[string]vulnerabilityDecorations)
+	decorations := func(cv canonicalVulnerability, current *vulnerabilityDecorations) {
+		key := strings.Join(cv.getCVEs(), ",")
+		if d, ok := byCVEs[key]; ok {
+			*current = d
+			return
+		}
+		decorateVulnerabilities(reader, cv)
+		byCVEs[key] = *current
+	}
+
+	for _, pkgs := range [][]affectedPackageWithDecorations{r.affectedPkgs, r.unaffectedPkgs} {
+		for i := range pkgs {
+			decorations(&pkgs[i], &pkgs[i].vulnerabilityDecorations)
+		}
+	}
+	for _, cpes := range [][]affectedCPEWithDecorations{r.affectedCPEs, r.unaffectedCPEs} {
+		for i := range cpes {
+			decorations(&cpes[i], &cpes[i].vulnerabilityDecorations)
+		}
+	}
+}
+
+// keepUnaffectedForAffectedVulnerabilities drops unaffected records for vulnerabilities without any affected records
+func (r *packageRecords) keepUnaffectedForAffectedVulnerabilities() {
+	// grouped the same way as matches, by the preloaded vulnerability
+	affected := make(map[v6.ID]bool)
+	for _, p := range r.affectedPkgs {
+		if p.Vulnerability != nil {
+			affected[p.Vulnerability.ID] = true
+		}
+	}
+	for _, c := range r.affectedCPEs {
+		if c.Vulnerability != nil {
+			affected[c.Vulnerability.ID] = true
+		}
+	}
+
+	r.unaffectedPkgs = slices.DeleteFunc(r.unaffectedPkgs, func(p affectedPackageWithDecorations) bool {
+		return p.Vulnerability == nil || !affected[p.Vulnerability.ID]
+	})
+	r.unaffectedCPEs = slices.DeleteFunc(r.unaffectedCPEs, func(c affectedCPEWithDecorations) bool {
+		return c.Vulnerability == nil || !affected[c.Vulnerability.ID]
+	})
+}
+
+// findAffectedPackages fetches the records in the given set, without decorations. Callers decorate once they have
+// filtered the records, so records that are dropped are never decorated.
+func findAffectedPackages(reader interface {
 	v6.AffectedPackageStoreReader
 	v6.AffectedCPEStoreReader
-	v6.VulnerabilityDecoratorStoreReader
-}, config AffectedPackagesOptions,
-) ([]affectedPackageWithDecorations, []affectedCPEWithDecorations, error) {
-	var allAffectedPkgs []affectedPackageWithDecorations
-	var allAffectedCPEs []affectedCPEWithDecorations
-
+	v6.UnaffectedPackageStoreReader
+	v6.UnaffectedCPEStoreReader
+}, config AffectedPackagesOptions, set recordSet,
+) (packageRecords, error) {
 	pkgSpecs := config.Package
 	cpeSpecs := config.CPE
-	osSpecs := config.OS
-	vulnSpecs := config.Vulnerability
 
 	if config.RecordLimit == 0 {
 		log.Warn("no record limit set! For queries with large result sets this may result in performance issues")
 	}
 
-	if len(vulnSpecs) == 0 && len(pkgSpecs) == 0 && len(cpeSpecs) == 0 {
-		return nil, nil, ErrNoSearchCriteria
+	if len(config.Vulnerability) == 0 && len(pkgSpecs) == 0 && len(cpeSpecs) == 0 {
+		return packageRecords{}, ErrNoSearchCriteria
 	}
 
 	// don't allow for searching by any package AND any CPE AND any vulnerability AND any OS. Since these searches
 	// are oriented by primarily package, we only want to have ANY package/CPE when there is a vulnerability or OS specified.
-	if len(vulnSpecs) > 0 || !osSpecs.IsAny() {
+	if len(config.Vulnerability) > 0 || !config.OS.IsAny() {
 		if len(pkgSpecs) == 0 {
 			pkgSpecs = []*v6.PackageSpecifier{v6.AnyPackageSpecified}
 		}
@@ -245,82 +286,141 @@ func findAffectedPackages(reader interface { //nolint:funlen,gocognit
 		}
 	}
 
-	// we have multiple return points that return actual values, using a defer to decorate any given results
-	// ensures that all paths are handled the same way.
-	defer func() {
-		for i := range allAffectedPkgs {
-			decorateVulnerabilities(reader, &allAffectedPkgs[i])
+	// the records found before the limit was reached are returned with the limit error, any other error drops them
+	partial := func(records packageRecords, err error) (packageRecords, error) {
+		if errors.Is(err, v6.ErrLimitReached) {
+			return records, err
 		}
+		return packageRecords{}, err
+	}
 
-		for i := range allAffectedCPEs {
-			decorateVulnerabilities(reader, &allAffectedCPEs[i])
+	var records packageRecords
+	var err error
+	if set != unaffectedRecords {
+		records.affectedPkgs, records.affectedCPEs, err = findRecords(affectedGetters(reader), config, pkgSpecs, cpeSpecs)
+		if err != nil {
+			// unaffected records come after affected records, so they are skipped once the limit is reached
+			return partial(records, err)
 		}
-	}()
+	}
 
-	for i := range pkgSpecs {
-		pkgSpec := pkgSpecs[i]
+	if set != affectedRecords {
+		records.unaffectedPkgs, records.unaffectedCPEs, err = findRecords(unaffectedGetters(reader), config, pkgSpecs, cpeSpecs)
+		if err != nil {
+			return partial(records, err)
+		}
+	}
 
-		log.WithFields("vuln", vulnSpecs, "pkg", pkgSpec, "os", osSpecs).Debug("searching for affected packages")
+	return records, nil
+}
 
-		affectedPkgs, err := reader.GetAffectedPackages(pkgSpec, &v6.GetPackageOptions{
+// recordGetters fetch one kind of package and CPE record, returned as the affected handle types
+type recordGetters struct {
+	// kind is "affected" or "unaffected", used in logs and errors
+	kind string
+	pkgs func(*v6.PackageSpecifier, *v6.GetPackageOptions) ([]v6.AffectedPackageHandle, error)
+	cpes func(*cpe.Attributes, *v6.GetCPEOptions) ([]v6.AffectedCPEHandle, error)
+}
+
+func affectedGetters(reader interface {
+	v6.AffectedPackageStoreReader
+	v6.AffectedCPEStoreReader
+}) recordGetters {
+	return recordGetters{kind: "affected", pkgs: reader.GetAffectedPackages, cpes: reader.GetAffectedCPEs}
+}
+
+// unaffectedGetters converts unaffected handles to the affected handle types, which share the same underlying types
+func unaffectedGetters(reader interface {
+	v6.UnaffectedPackageStoreReader
+	v6.UnaffectedCPEStoreReader
+}) recordGetters {
+	return recordGetters{
+		kind: "unaffected",
+		pkgs: func(pkg *v6.PackageSpecifier, opts *v6.GetPackageOptions) ([]v6.AffectedPackageHandle, error) {
+			found, err := reader.GetUnaffectedPackages(pkg, opts)
+			converted := make([]v6.AffectedPackageHandle, len(found))
+			for i := range found {
+				converted[i] = v6.AffectedPackageHandle(found[i])
+			}
+			return converted, err
+		},
+		cpes: func(c *cpe.Attributes, opts *v6.GetCPEOptions) ([]v6.AffectedCPEHandle, error) {
+			found, err := reader.GetUnaffectedCPEs(c, opts)
+			converted := make([]v6.AffectedCPEHandle, len(found))
+			for i := range found {
+				converted[i] = v6.AffectedCPEHandle(found[i])
+			}
+			return converted, err
+		},
+	}
+}
+
+// findRecords fetches one kind of package and CPE record. Each query gets the full record limit, like every other
+// db search query. The records found before an error are returned along with it.
+func findRecords(get recordGetters, config AffectedPackagesOptions, pkgSpecs, cpeSpecs v6.PackageSpecifiers) ([]affectedPackageWithDecorations, []affectedCPEWithDecorations, error) {
+	var pkgs []affectedPackageWithDecorations
+	var cpes []affectedCPEWithDecorations
+
+	for _, pkgSpec := range pkgSpecs {
+		log.WithFields("vulns", len(config.Vulnerability), "pkg", pkgSpec, "os", config.OS).Debugf("searching for %s packages", get.kind)
+
+		found, err := get.pkgs(pkgSpec, &v6.GetPackageOptions{
 			PreloadOS:             true,
 			PreloadPackage:        true,
 			PreloadPackageCPEs:    false,
 			PreloadVulnerability:  true,
 			PreloadBlob:           true,
-			OSs:                   osSpecs,
-			Vulnerabilities:       vulnSpecs,
+			OSs:                   config.OS,
+			Vulnerabilities:       config.Vulnerability,
 			AllowBroadCPEMatching: config.AllowBroadCPEMatching,
 			Limit:                 config.RecordLimit,
 		})
 
-		for i := range affectedPkgs {
-			allAffectedPkgs = append(allAffectedPkgs, affectedPackageWithDecorations{
-				AffectedPackageHandle: affectedPkgs[i],
-			})
+		for i := range found {
+			pkgs = append(pkgs, affectedPackageWithDecorations{AffectedPackageHandle: found[i]})
 		}
 
 		if err != nil {
 			if errors.Is(err, v6.ErrLimitReached) {
-				return allAffectedPkgs, allAffectedCPEs, err
+				return pkgs, cpes, err
 			}
-			return nil, nil, fmt.Errorf("unable to get affected packages for %s: %w", vulnSpecs, err)
+			return pkgs, cpes, fmt.Errorf("unable to get %s packages: %w", get.kind, err)
 		}
 	}
 
-	if osSpecs.IsAny() {
-		for i := range cpeSpecs {
-			cpeSpec := cpeSpecs[i]
-			var searchCPE *cpe.Attributes
-			if cpeSpec != nil {
-				searchCPE = cpeSpec.CPE
+	// CPE records have no OS, so they can't match an OS filter
+	if !config.OS.IsAny() {
+		return pkgs, cpes, nil
+	}
+
+	for _, cpeSpec := range cpeSpecs {
+		var searchCPE *cpe.Attributes
+		if cpeSpec != nil {
+			searchCPE = cpeSpec.CPE
+		}
+
+		log.WithFields("vulns", len(config.Vulnerability), "cpe", cpeSpec).Debugf("searching for %s cpes", get.kind)
+
+		found, err := get.cpes(searchCPE, &v6.GetCPEOptions{
+			PreloadCPE:            true,
+			PreloadVulnerability:  true,
+			PreloadBlob:           true,
+			Vulnerabilities:       config.Vulnerability,
+			AllowBroadCPEMatching: config.AllowBroadCPEMatching,
+			Limit:                 config.RecordLimit,
+		})
+
+		for i := range found {
+			cpes = append(cpes, affectedCPEWithDecorations{AffectedCPEHandle: found[i]})
+		}
+
+		if err != nil {
+			if errors.Is(err, v6.ErrLimitReached) {
+				return pkgs, cpes, err
 			}
-
-			log.WithFields("vuln", vulnSpecs, "cpe", cpeSpec).Debug("searching for affected packages")
-
-			affectedCPEs, err := reader.GetAffectedCPEs(searchCPE, &v6.GetCPEOptions{
-				PreloadCPE:            true,
-				PreloadVulnerability:  true,
-				PreloadBlob:           true,
-				Vulnerabilities:       vulnSpecs,
-				AllowBroadCPEMatching: config.AllowBroadCPEMatching,
-				Limit:                 config.RecordLimit,
-			})
-
-			for i := range affectedCPEs {
-				allAffectedCPEs = append(allAffectedCPEs, affectedCPEWithDecorations{
-					AffectedCPEHandle: affectedCPEs[i],
-				})
-			}
-
-			if err != nil {
-				if errors.Is(err, v6.ErrLimitReached) {
-					return allAffectedPkgs, allAffectedCPEs, err
-				}
-				return nil, nil, fmt.Errorf("unable to get affected cpes for %s: %w", vulnSpecs, err)
-			}
+			return pkgs, cpes, fmt.Errorf("unable to get %s cpes: %w", get.kind, err)
 		}
 	}
 
-	return allAffectedPkgs, allAffectedCPEs, nil
+	return pkgs, cpes, nil
 }

@@ -7,6 +7,10 @@ const (
 	fixStateNotFixed = "not-fixed"
 	fixStateWontFix  = "wont-fix"
 	fixStateUnknown  = "unknown"
+
+	// fixStateNotAffected selects unaffected records. It is a record type rather than a blob fix state (providers store
+	// unaffected ranges as not-affected or as fixed), so it is never derived from a package blob.
+	fixStateNotAffected = "not-affected"
 )
 
 // getFixStateFromPackageBlob determines the overall fix state for a package blob.
