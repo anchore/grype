@@ -631,6 +631,28 @@ func TestSet_ToMatches(t *testing.T) {
 			},
 		},
 		{
+			name: "results found through a related package are attributed to the target",
+			receiver: Set{
+				"vuln-1": []Result{
+					{
+						ID: "vuln-1",
+						Vulnerabilities: []vulnerability.Vulnerability{
+							{Reference: vulnerability.Reference{ID: "CVE-2021-1"}},
+						},
+						Details: match.Details{{Type: match.ExactIndirectMatch}},
+						Package: &pkg.Package{Name: "test-source", Version: "0.9.0", Type: syftPkg.DebPkg},
+					},
+				},
+			},
+			want: []match.Match{
+				{
+					Vulnerability: vulnerability.Vulnerability{Reference: vulnerability.Reference{ID: "CVE-2021-1"}},
+					Package:       testPkg,
+					Details:       match.Details{{Type: match.ExactIndirectMatch}},
+				},
+			},
+		},
+		{
 			name:     "empty set returns no matches",
 			receiver: Set{},
 			want:     []match.Match{},
@@ -639,7 +661,7 @@ func TestSet_ToMatches(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.receiver.ToMatches()
+			got := tt.receiver.ToMatches(testPkg)
 			opts := cmp.Options{
 				cmpopts.IgnoreUnexported(file.LocationSet{}),
 				cmpopts.EquateEmpty(),

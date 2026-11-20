@@ -1,7 +1,7 @@
 package result
 
 import (
-	"github.com/scylladb/go-set/strset"
+	"iter"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
@@ -22,32 +22,38 @@ type Result struct {
 	Vulnerabilities []vulnerability.Vulnerability
 
 	// Details is a set of match details that describe the search itself
-	Details []match.Detail
+	Details match.Details
 
-	// Package is the package that was used to search for vulnerabilities.
+	// Package is the package the search was for, at the version it compared against: the matched
+	// package, or a related one such as an upstream (see search.WithPackage). Matches are attributed
+	// separately (see Set.ToMatches).
 	Package *pkg.Package
+
+	Rank Rank
+}
+
+func (r Result) Derive() Result {
+	return Result{ID: r.ID, Package: r.Package, Rank: r.Rank}
 }
 
 type Set map[string][]Result
 
-// ToMatches converts the set into matches, one per finding.
+// ToMatches converts the set into matches against target, one per finding. A result's own Package is
+// the package its search was for, which may be a related package (e.g. an upstream) rather than target.
 //
 // Each record contributes a match carrying only the details that describe *that* record. Records
 // that turn out to be the same finding -- same vulnerability, same source, same package -- are then
 // folded together by match.Matches, which unions their fixed-in versions and details. Attaching the
 // whole set's details to every match instead would make each duplicate claim the others' evidence.
-func (s Set) ToMatches() []match.Match {
+func (s Set) ToMatches(target pkg.Package) []match.Match {
 	out := match.NewMatches()
 
 	for _, results := range s {
 		for _, r := range results {
-			if r.Package == nil {
-				continue // skip results without a package
-			}
 			for _, v := range r.Vulnerabilities {
 				out.Add(match.Match{
 					Vulnerability: v,
-					Package:       *r.Package,
+					Package:       target,
 					Details:       r.Details,
 				})
 			}
@@ -83,41 +89,63 @@ func (s Set) Vulnerabilities() []vulnerability.Vulnerability {
 // We want to be able to remove Entry A from set 1 because it has the same alias as Entry B in set 2.
 // This is because the vulnerability IDs are different, but they refer to the same underlying vulnerability.
 func (s Set) Remove(incoming Set) Set {
-	// collect all incoming identifiers into one unified set
-	incomingIdentifiers := strset.New()
-	for id, results := range incoming {
-		incomingIdentifiers.Add(getIdentity(id, results).List()...)
-	}
-
-	// keep only entries whose identities don't overlap with incoming
+	index := incoming.Index()
 	out := Set{}
 	for id, results := range s {
-		identity := getIdentity(id, results)
-		if strset.Intersection(identity, incomingIdentifiers).IsEmpty() {
+		if !index.Overlaps(results) {
 			out[id] = results
 		}
 	}
 	return out
 }
 
-func extractAliases(results []Result) *strset.Set {
-	aliases := strset.New()
-	for _, r := range results {
-		for _, v := range r.Vulnerabilities {
-			for _, a := range v.RelatedVulnerabilities {
-				aliases.Add(a.ID)
+// Index finds a set's records by ID or alias.
+type Index map[string][]*Result
+
+// Index maps each ID and alias in the set to the records carrying it. Build it once and reuse it for
+// every lookup against the set; it refers to the set's records, so the set must not change afterward.
+func (s Set) Index() Index {
+	index := Index{}
+	for _, results := range s {
+		for i := range results {
+			r := &results[i]
+			for identifier := range r.Identifiers() {
+				// a record's identifiers are visited together, so a repeat is the last record appended
+				if rs := index[identifier]; len(rs) == 0 || rs[len(rs)-1] != r {
+					index[identifier] = append(rs, r)
+				}
 			}
 		}
 	}
-	return aliases
+	return index
 }
 
-// getIdentity returns all identifiers (ID + aliases) for a vulnerability entry
-func getIdentity(id string, results []Result) *strset.Set {
-	identity := strset.New()
-	identity.Add(id)
-	identity.Add(extractAliases(results).List()...)
-	return identity
+// Overlaps reports whether an indexed record shares an ID or alias with one of results.
+func (x Index) Overlaps(results []Result) bool {
+	for _, r := range results {
+		for identifier := range r.Identifiers() {
+			if len(x[identifier]) > 0 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// Identifiers yields the record's ID and the aliases of its vulnerabilities. An identifier may repeat.
+func (r Result) Identifiers() iter.Seq[string] {
+	return func(yield func(string) bool) {
+		if !yield(r.ID) {
+			return
+		}
+		for _, v := range r.Vulnerabilities {
+			for _, alias := range v.RelatedVulnerabilities {
+				if !yield(alias.ID) {
+					return
+				}
+			}
+		}
+	}
 }
 
 func unionResults(existing, incoming []Result) (n []Result) {
@@ -182,44 +210,6 @@ func (s Set) ContainsAny(ids ...string) bool {
 	return false
 }
 
-// ContainsByIdentity checks if the set contains an entry with overlapping identity (ID or aliases)
-func (s Set) ContainsByIdentity(searchID string, searchResults []Result) bool {
-	searchIdentity := getIdentity(searchID, searchResults)
-
-	for id, results := range s {
-		identity := getIdentity(id, results)
-		if !strset.Intersection(identity, searchIdentity).IsEmpty() {
-			return true
-		}
-	}
-	return false
-}
-
-// Intersection returns entries that exist in both sets (by identity overlap)
-func (s Set) Intersection(other Set) Set {
-	otherIdentifiers := strset.New()
-	for id, results := range other {
-		otherIdentifiers.Add(getIdentity(id, results).List()...)
-	}
-
-	out := Set{}
-	for id, results := range s {
-		identity := getIdentity(id, results)
-		if !strset.Intersection(identity, otherIdentifiers).IsEmpty() {
-			out[id] = results
-		}
-	}
-	return out
-}
-
-// IdentitiesOverlap returns true if two results share any common identifiers, where identity
-// includes both the primary ID and any aliases (from RelatedVulnerabilities).
-func IdentitiesOverlap(existing Result, incoming Result) bool {
-	existingIdentity := getIdentity(existing.ID, []Result{existing})
-	incomingIdentity := getIdentity(incoming.ID, []Result{incoming})
-	return !strset.Intersection(existingIdentity, incomingIdentity).IsEmpty()
-}
-
 // Map returns a new Set with fn applied to a copy of every result. Because the copy is shallow, fn
 // must not mutate the elements of a slice field (e.g. Vulnerabilities, Details) in place — replace the
 // whole slice instead — otherwise it will corrupt the source set's shared backing arrays.
@@ -236,6 +226,7 @@ func (s Set) Map(fn func(r *Result)) Set {
 	return out
 }
 
+// Filter keeps the records matching every criteria. To split by version, use internal.SplitVulnerable.
 func (s Set) Filter(criteria ...vulnerability.Criteria) Set {
 	out := Set{}
 	for id, results := range s {
@@ -257,6 +248,7 @@ func (s Set) Filter(criteria ...vulnerability.Criteria) Set {
 				Vulnerabilities: vulns,
 				Details:         details,
 				Package:         result.Package,
+				Rank:            result.Rank,
 			})
 		}
 

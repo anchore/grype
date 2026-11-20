@@ -219,3 +219,32 @@ func TestDetailProvider_CPEDetail(t *testing.T) {
 		})
 	}
 }
+
+func Test_searchedPackage(t *testing.T) {
+	cataloged := pkg.Package{Name: "perl-Errno", Version: "1.28-419.el8_4.1"}
+	upstream := pkg.Package{Name: "perl", Version: "5.26.3-419.el8_4.1"}
+
+	tests := []struct {
+		name     string
+		criteria []vulnerability.Criteria
+		want     pkg.Package
+	}{
+		{
+			name:     "a search stating its package is for it, e.g. an upstream at its own version",
+			criteria: []vulnerability.Criteria{search.ByPackageName("perl"), search.BySourcePackage(), search.WithPackage(upstream)},
+			want:     upstream,
+		},
+		{
+			name:     "a search stating none is for the cataloged package",
+			criteria: []vulnerability.Criteria{search.ByPackageName("perl-Errno")},
+			want:     cataloged,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := provider{catalogedPkg: cataloged}
+			assert.Equal(t, tt.want, *p.searchedPackage(tt.criteria))
+		})
+	}
+}

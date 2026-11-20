@@ -534,6 +534,8 @@ func groupFixedIns(vuln unmarshal.OSVulnerability) map[groupIndex][]unmarshal.OS
 }
 
 func getPackageType(osName string) pkg.Type {
+	osName = strings.TrimPrefix(osName, "rapidfort-")
+
 	switch osName {
 	case "arch", "archlinux":
 		return pkg.AlpmPkg

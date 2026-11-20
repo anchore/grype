@@ -45,13 +45,13 @@ func DefaultFixChannels() FixChannels {
 	return []FixChannel{
 		{
 			Name:     "eus",
-			IDs:      []string{"rhel"},
+			IDs:      []string{rhelOSReleaseID},
 			Apply:    ChannelConditionallyEnabled,
 			Versions: version.MustGetConstraint(">= 8.0", version.SemanticFormat),
 		},
 		{
 			Name:  "esm",
-			IDs:   []string{"ubuntu"},
+			IDs:   []string{string(Ubuntu)},
 			Apply: ChannelConditionallyEnabled,
 			// nil is deliberate: esm-apps covers universe for the full support window (including in-support
 			// years), so there is no version gate like RHEL EUS. applyChannels already guards Versions != nil.

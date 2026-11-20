@@ -1,0 +1,7 @@
+# hand-written: the rapidfort feed (vunnel 2026-11-10) carries no not-affected ("0") records, so the
+# R12 shape (channel-less NAK beside an affected channel record) has no real record set to extract
+auto-generate: false
+extractions:
+    rapidfort:
+        - rapidfort-redhat:10/cve-2026-90002
+        - rapidfort-redhat:10+el9/cve-2026-90002

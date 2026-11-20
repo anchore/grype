@@ -1,8 +1,8 @@
 # see pr.yaml for how the setups are chosen
 schema: v1
 description: same as pr, with vulnerabilities through 2023
-candidate: {grype: ../bin/grype, db: "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.9_2026-10-01T00:39:44Z_1790836428.tar.zst@sha256:c0d0263192d91df04b242e9a91e34cb289118fb08f1ed56eb0239eb57d7a517f", config: ../.grype.yaml}
-reference: {grype: grype@latest, db: "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.9_2026-10-01T00:39:44Z_1790836428.tar.zst@sha256:c0d0263192d91df04b242e9a91e34cb289118fb08f1ed56eb0239eb57d7a517f", config: ../.grype.yaml}
+candidate: {grype: ../bin/grype, db: "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.10_2026-10-29T00:24:34Z_1793255014.tar.zst@sha256:a5ad3344d964e4d1472fa615b0e70f87c27cd21470fede2a8fbf6e4c6c32c907", config: ../.grype.yaml}
+reference: {grype: grype@latest, db: "https://grype.anchore.io/databases/v6/vulnerability-db_v6.1.10_2026-10-29T00:24:34Z_1793255014.tar.zst@sha256:a5ad3344d964e4d1472fa615b0e70f87c27cd21470fede2a8fbf6e4c6c32c907", config: ../.grype.yaml}
 undecided: pass
 vulnerabilities:
   maxYear: 2023

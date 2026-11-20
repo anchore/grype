@@ -52,7 +52,7 @@ func shouldUseUbuntuESMMatching(d *distro.Distro) bool {
 // Unlike RHEL EUS there is no cross-minor reachability problem: Ubuntu ESM is one line per LTS release and the
 // resolution search only pulls same-minor 'ubuntu:XX.YY' and 'ubuntu:XX.YY+esm' rows, so every '+esm' fix pulled
 // is reachable by construction.
-func ubuntuESMMatches(provider result.Provider, searchPkg pkg.Package, missingEpochStrategy version.MissingEpochStrategy, extra ...vulnerability.Criteria) ([]match.Match, []match.IgnoreFilter, error) {
+func ubuntuESMMatches(provider result.Provider, target, searchPkg pkg.Package, missingEpochStrategy version.MissingEpochStrategy, extra ...vulnerability.Criteria) ([]match.Match, []match.IgnoreFilter, error) {
 	distroWithoutESM := *searchPkg.Distro
 	distroWithoutESM.Channels = nil // clear the ESM channel so that we can search for the base distro
 
@@ -68,7 +68,8 @@ func ubuntuESMMatches(provider result.Provider, searchPkg pkg.Package, missingEp
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(distroWithoutESM), // e.g. ubuntu:16.04 (no ESM channel)
 		internal.OnlyQualifiedPackages(searchPkg),
-		internal.OnlyVulnerableVersions(pkgVersion),
+		search.WithPackage(searchPkg),
+		internal.OnlyVulnerableVersions(pkgVersion), //nolint:staticcheck
 	}
 	disclosureCriteria = append(disclosureCriteria, extra...)
 
@@ -86,6 +87,7 @@ func ubuntuESMMatches(provider result.Provider, searchPkg pkg.Package, missingEp
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(distroWithoutESM, *searchPkg.Distro), // e.g. ubuntu:16.04 || ubuntu:16.04+esm
 		internal.OnlyQualifiedPackages(searchPkg),
+		search.WithPackage(searchPkg),
 		// note: we do **not** apply any version criteria to the search as to raise up all possible fixes
 		// and combine within the collection. If we do filter on a fix version, it could result in
 		// false positives (missing ESM fixes that resolve a disclosure).
@@ -110,7 +112,7 @@ func ubuntuESMMatches(provider result.Provider, searchPkg pkg.Package, missingEp
 	//    final set of vulnerabilities is a fused set of disclosures and fixes together.
 	remaining = remaining.Merge(resolutions, mergeESMAdvisoriesIntoMainDisclosures(pkgVersion))
 
-	return remaining.ToMatches(), internal.OwnershipIgnores(searchPkg, IgnoreReasonDistroNotVulnerable, esmFixes.Vulnerabilities()...), nil
+	return remaining.ToMatches(target), internal.OwnershipIgnores(searchPkg, IgnoreReasonDistroNotVulnerable, esmFixes.Vulnerabilities()...), nil
 }
 
 // mergeESMAdvisoriesIntoMainDisclosures returns a function that filters disclosures based on the provided advisory

@@ -1,0 +1,18 @@
+{
+  "provider": "amazon",
+  "version": 1,
+  "processor": "vunnel@amazon-tomcat-streams",
+  "schema": {
+    "version": "1.0.3",
+    "url": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/provider-workspace-state/schema-1.0.3.json"
+  },
+  "urls": [
+    "https://alas.aws.amazon.com/AL2/alas.rss"
+  ],
+  "timestamp": "2026-06-01T00:00:00Z",
+  "listing": {
+    "path": "results/listing.xxh64",
+    "algorithm": "xxh64"
+  },
+  "store": "flat-file"
+}
