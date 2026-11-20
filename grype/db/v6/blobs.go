@@ -179,6 +179,11 @@ type PackageQualifiers struct {
 	// (from govulndb's ecosystem_specific.imports). When set, packages carrying binary symbol evidence only
 	// match if at least one of the listed symbols is present in the binary.
 	GoImports []GoImport `json:"go_imports,omitempty"`
+
+	// LightwellBaseVersion is the upstream version a Red Hat Lightwell remediated build line was
+	// backported from (e.g. "6.0.3" for 6.0.3.rhlw-00001). When set, only Lightwell builds on that
+	// base version line match this entry (NAK pattern).
+	LightwellBaseVersion *string `json:"lightwell_base_version,omitempty"`
 }
 
 // GoImport describes a single package within an affected Go module and the vulnerable symbols it contains.
