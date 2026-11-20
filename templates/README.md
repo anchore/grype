@@ -11,6 +11,7 @@ Current templates:
 ├── README.md
 ├── html.tmpl
 ├── junit.tmpl
+├── junit-azure-devops.tmpl
 ├── csv.tmpl
 └── table.tmpl
 </pre>
