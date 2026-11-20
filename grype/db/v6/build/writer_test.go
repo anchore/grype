@@ -626,7 +626,7 @@ func TestEnsureFixDates(t *testing.T) {
 				tt.wantErr = require.NoError
 			}
 
-			err := ensureFixDates(tt.row)
+			err := ensureFixDates(tt.row.BlobValue)
 			tt.wantErr(t, err)
 		})
 	}
@@ -635,42 +635,55 @@ func TestEnsureFixDates(t *testing.T) {
 func TestWrite_FailsOnMissingFixDate(t *testing.T) {
 	// test proves that Write() method errors out when fix date validation is enabled
 	// and a fix is marked as FixedStatus but lacks the required date information
-	w := &writer{
-		failOnMissingFixDate: true,
-		store:                nil, // intentionally nil - we should error before reaching store operations
-		severityCache:        make(map[string]db.Severity),
-	}
-
-	var vulnID db.ID = 123
-
-	entry := data.Entry{
-		DBSchemaVersion: db.ModelVersion,
-		Data: transformers.RelatedEntries{
-			VulnerabilityHandle: nil, // no vulnerability handle to avoid store operations
-			Related: []any{
-				db.AffectedPackageHandle{
-					VulnerabilityID: vulnID,
-					Package:         &db.Package{Name: "test-package"},
-					BlobValue: &db.PackageBlob{
-						Ranges: []db.Range{
-							{
-								Fix: &db.Fix{
-									Version: "1.2.3", // valid version triggers validation
-									State:   db.FixedStatus,
-									Detail:  nil, // missing fix detail should cause error
-								},
-							},
-						},
-					},
+	blob := &db.PackageBlob{
+		Ranges: []db.Range{
+			{
+				Fix: &db.Fix{
+					Version: "1.2.3", // valid version triggers validation
+					State:   db.FixedStatus,
+					Detail:  nil, // missing fix detail should cause error
 				},
 			},
 		},
 	}
+	pkg := &db.Package{Name: "test-package"}
 
-	err := w.Write(entry)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "unable to validate fix dates")
-	require.Contains(t, err.Error(), "missing fix date for version \"1.2.3\"")
+	tests := []struct {
+		name string
+		row  any
+	}{
+		{
+			name: "affected package",
+			row:  db.AffectedPackageHandle{VulnerabilityID: 123, Package: pkg, BlobValue: blob},
+		},
+		{
+			name: "unaffected package",
+			row:  db.UnaffectedPackageHandle{VulnerabilityID: 123, Package: pkg, BlobValue: blob},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := &writer{
+				failOnMissingFixDate: true,
+				store:                nil, // intentionally nil - we should error before reaching store operations
+				severityCache:        make(map[string]db.Severity),
+			}
+
+			entry := data.Entry{
+				DBSchemaVersion: db.ModelVersion,
+				Data: transformers.RelatedEntries{
+					VulnerabilityHandle: nil, // no vulnerability handle to avoid store operations
+					Related:             []any{tt.row},
+				},
+			}
+
+			err := w.Write(entry)
+			require.Error(t, err)
+			require.Contains(t, err.Error(), "unable to validate fix dates")
+			require.Contains(t, err.Error(), "missing fix date for version \"1.2.3\"")
+		})
+	}
 }
 
 func TestIsFixVersion(t *testing.T) {
