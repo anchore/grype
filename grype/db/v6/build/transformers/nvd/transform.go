@@ -120,6 +120,14 @@ func getAssigner(vuln unmarshal.NVDVulnerability) []string {
 }
 
 func getVulnStatus(vuln unmarshal.NVDVulnerability) db.VulnerabilityStatus {
+	for _, source := range vuln.CveTags {
+		for _, tag := range source.Tags {
+			if tag == "disputed" {
+				return db.VulnerabilityDisputed
+			}
+		}
+	}
+
 	if vuln.VulnStatus == nil {
 		return db.UnknownVulnerabilityStatus
 	}

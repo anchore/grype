@@ -1,6 +1,7 @@
 package nvd
 
 import (
+	"encoding/json"
 	"os"
 	"testing"
 	"time"
@@ -2564,6 +2565,48 @@ func loadFixture(t *testing.T, fixturePath string) []unmarshal.NVDVulnerability 
 
 func timeRef(ti time.Time) *time.Time {
 	return &ti
+}
+
+func TestGetVulnStatusFromCVETags(t *testing.T) {
+	tests := []struct {
+		name string
+		cve  string
+		want db.VulnerabilityStatus
+	}{
+		{
+			name: "disputed tag overrides deferred status",
+			cve:  `{"vulnStatus":"Deferred","cveTags":[{"sourceIdentifier":"cve@mitre.org","tags":["disputed"]}]}`,
+			want: db.VulnerabilityDisputed,
+		},
+		{
+			name: "disputed tag without status",
+			cve:  `{"cveTags":[{"tags":["disputed"]}]}`,
+			want: db.VulnerabilityDisputed,
+		},
+		{
+			name: "disputed tag in later source",
+			cve:  `{"vulnStatus":"Analyzed","cveTags":[{"tags":["unsupported-when-assigned"]},{"tags":["exclusively-hosted-service","disputed"]}]}`,
+			want: db.VulnerabilityDisputed,
+		},
+		{
+			name: "no tags preserves legacy disputed status",
+			cve:  `{"vulnStatus":"Disputed"}`,
+			want: db.VulnerabilityDisputed,
+		},
+		{
+			name: "unrelated tag leaves published status active",
+			cve:  `{"vulnStatus":"Published","cveTags":[{"tags":["exclusively-hosted-service"]}]}`,
+			want: db.VulnerabilityActive,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			var vuln unmarshal.NVDVulnerability
+			require.NoError(t, json.Unmarshal([]byte(test.cve), &vuln))
+			require.Equal(t, test.want, getVulnStatus(vuln))
+		})
+	}
 }
 
 func TestGetSSVC(t *testing.T) {
