@@ -1,13 +1,13 @@
 <?xml version="1.0" ?>
 <testsuites name="grype-junit">
 {{- $failures := len $.Matches }}
-    <testsuite tests="{{ $failures }}" failures="{{ $failures }}" name="{{ $.Distro.Name }}:{{ $.Distro.Version }}" errors="0" skipped="0">
+    <testsuite tests="{{ $failures }}" failures="{{ $failures }}" name="{{ html $.Distro.Name }}:{{ html $.Distro.Version }}" errors="0" skipped="0">
         <properties>
-            <property name="type" value="{{ $.Distro.Name }}"></property>
+            <property name="type" value="{{ html $.Distro.Name }}"></property>
         </properties>
         {{- range .Matches }}
-        <testcase classname="{{ .Artifact.Name }}-{{ .Artifact.Version }} ({{ .Artifact.Type }})" name="[{{ .Vulnerability.Severity }}] {{ .Vulnerability.ID }}">
-            <failure message="{{ .Artifact.Name }}: {{ .Vulnerability.ID }}" type="description">
+        <testcase classname="{{ html .Artifact.Name }}-{{ html .Artifact.Version }} ({{ html .Artifact.Type }})" name="[{{ html .Vulnerability.Severity }}] {{ html .Vulnerability.ID }}">
+            <failure message="{{ html .Artifact.Name }}: {{ html .Vulnerability.ID }}" type="description">
 <![CDATA[
 {{ html .Vulnerability.Description }}
 
