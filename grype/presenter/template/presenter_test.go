@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -66,7 +67,7 @@ func TestPresenter_JUnitTemplate_EscapesAttributes(t *testing.T) {
 	workingDirectory, err := os.Getwd()
 	require.NoError(t, err)
 
-	templateFilePath := path.Join(workingDirectory, "../../../templates/junit.tmpl")
+	templateFilePath := filepath.Join(workingDirectory, "..", "..", "..", "templates", "junit.tmpl")
 
 	// every string written into an XML attribute holds characters that must be escaped
 	value := `a&<"b`
