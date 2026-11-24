@@ -62,9 +62,10 @@ func Build(cfg BuildConfig) error {
 	}
 
 	var cnaIndex *nvd.Index
+	var nvdState provider.State
 	if cfg.ReconcileCNA {
 		var err error
-		cnaIndex, err = readCNAIndex(cfg.States)
+		cnaIndex, nvdState, err = readCNAIndex(cfg.States)
 		if err != nil {
 			return err
 		}
@@ -102,7 +103,7 @@ func Build(cfg BuildConfig) error {
 	}
 
 	if cnaIndex != nil {
-		if err := writeCVE5Only(cnaIndex, nvdConfig, cfg.States, writer); err != nil {
+		if err := writeCVE5Only(cnaIndex, nvdConfig, nvdState, writer); err != nil {
 			return err
 		}
 	}
@@ -142,17 +143,17 @@ func getProcessors(cfg BuildConfig, cnaIndex *nvd.Index) ([]data.Processor, nvd.
 
 // readCNAIndex indexes the `cve5` provider's records, after checking that the input is usable: `cve5` and `nvd` are
 // both present, `cve5` is not much older than `nvd`, and `cve5` holds records that decode.
-func readCNAIndex(states provider.States) (*nvd.Index, error) {
+func readCNAIndex(states provider.States) (*nvd.Index, provider.State, error) {
 	cve5, nvdState := findState(states, cve5Provider), findState(states, nvdProvider)
 	if cve5 == nil {
-		return nil, fmt.Errorf("CNA reconciliation is enabled but there is no %q provider input", cve5Provider)
+		return nil, provider.State{}, fmt.Errorf("CNA reconciliation is enabled but there is no %q provider input", cve5Provider)
 	}
 	if nvdState == nil {
-		return nil, fmt.Errorf("CNA reconciliation is enabled but there is no %q provider input", nvdProvider)
+		return nil, provider.State{}, fmt.Errorf("CNA reconciliation is enabled but there is no %q provider input", nvdProvider)
 	}
 
 	if nvdState.Timestamp.Sub(cve5.Timestamp) > maxCVE5Lag {
-		return nil, fmt.Errorf(
+		return nil, provider.State{}, fmt.Errorf(
 			"%q input is more than %s older than %q input: %q captured %s, %q captured %s",
 			cve5Provider, maxCVE5Lag, nvdProvider,
 			cve5Provider, cve5.Timestamp.Format(time.RFC3339),
@@ -162,24 +163,24 @@ func readCNAIndex(states provider.States) (*nvd.Index, error) {
 
 	openers, _, err := entry.Openers(cve5.Store, cve5.ResultPaths())
 	if err != nil {
-		return nil, fmt.Errorf("failed to open %q provider result files: %w", cve5Provider, err)
+		return nil, provider.State{}, fmt.Errorf("failed to open %q provider result files: %w", cve5Provider, err)
 	}
 
 	idx, err := nvd.NewIndex(openers)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %q provider records: %w", cve5Provider, err)
+		return nil, provider.State{}, fmt.Errorf("failed to read %q provider records: %w", cve5Provider, err)
 	}
 
 	if idx.Count() == 0 {
-		return nil, fmt.Errorf("%q input holds no records", cve5Provider)
+		return nil, provider.State{}, fmt.Errorf("%q input holds no records", cve5Provider)
 	}
 	// a schema change that breaks decoding would otherwise build a database with no CNA data
 	if idx.Decoded() == 0 {
-		return nil, fmt.Errorf("none of the %d %q records decode under a supported schema", idx.Count(), cve5Provider)
+		return nil, provider.State{}, fmt.Errorf("none of the %d %q records decode under a supported schema", idx.Count(), cve5Provider)
 	}
 
 	log.WithFields("records", idx.Count(), "decoded", idx.Decoded()).Debug("read CVE 5 records for CNA reconciliation")
-	return idx, nil
+	return idx, *nvdState, nil
 }
 
 func findState(states provider.States, name string) *provider.State {
@@ -192,14 +193,9 @@ func findState(states provider.States, name string) *provider.State {
 }
 
 // writeCVE5Only writes the CVEs that have a CVE 5 record and no NVD record, under the `nvd` provider.
-func writeCVE5Only(idx *nvd.Index, nvdConfig nvd.Config, states provider.States, writer data.Writer) error {
-	nvdState := findState(states, nvdProvider)
-	if nvdState == nil {
-		return fmt.Errorf("no %q provider input to write CVE 5 records under", nvdProvider)
-	}
-
+func writeCVE5Only(idx *nvd.Index, nvdConfig nvd.Config, nvdState provider.State, writer data.Writer) error {
 	for _, record := range idx.Leftovers() {
-		entries := nvd.TransformCVE5Only(nvdConfig, record, *nvdState)
+		entries := nvd.TransformCVE5Only(nvdConfig, record, nvdState)
 		if len(entries) == 0 {
 			continue
 		}
