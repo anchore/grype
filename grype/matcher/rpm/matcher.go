@@ -138,7 +138,7 @@ func (m *Matcher) matchAlmaLinux(vp vulnerability.Provider, p pkg.Package) ([]ma
 	addEpochIfApplicable(&binaryPkg)
 
 	// Call almaLinuxMatches with both the binary package and its upstreams
-	return almaLinuxMatchesWithUpstreams(provider, binaryPkg)
+	return almaLinuxMatchesWithUpstreams(provider, binaryPkg, internal.UpstreamPackages(vp, binaryPkg))
 }
 
 // matchPackage matches the given package against the vulnerability provider (direct match).
@@ -220,7 +220,7 @@ func (m *Matcher) matchUpstreamPackages(vp vulnerability.Provider, p pkg.Package
 	var matches []match.Match
 	var ignored []match.IgnoreFilter
 
-	for _, indirectPackage := range internal.UpstreamPackages(p) {
+	for _, indirectPackage := range internal.UpstreamPackages(vp, p) {
 		// An rpm's upstream is its source rpm, so the synthesized package is tagged "src".
 		// Searching by that architecture then matches it only against src (and unspecified)
 		// records and rejects binary-arch records — which is how we avoid matching a binary's

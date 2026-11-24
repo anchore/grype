@@ -90,7 +90,7 @@ func (m *Matcher) distroResults(vp vulnerability.Provider, p pkg.Package) (vulne
 		return nil, nil, err
 	}
 
-	for _, upstreamPkg := range internal.UpstreamPackages(p) {
+	for _, upstreamPkg := range internal.UpstreamPackages(vp, p) {
 		upstreamVulnerable, upstreamFixed, err := internal.FindResultsByDistro(vp, upstreamPkg, &p, m.Type(), nil)
 		if err != nil {
 			return nil, nil, err
@@ -123,7 +123,7 @@ func (m *Matcher) nakIgnores(vp vulnerability.Provider, p pkg.Package) ([]match.
 		return nil, err
 	}
 
-	for _, upstreamPkg := range internal.UpstreamPackages(p) {
+	for _, upstreamPkg := range internal.UpstreamPackages(vp, p) {
 		upstreamNaks, err := provider.FindResults(
 			search.ByDistro(*upstreamPkg.Distro),
 			search.ByPackageName(upstreamPkg.Name),

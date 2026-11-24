@@ -301,3 +301,28 @@ func TestCanonical(t *testing.T) {
 		})
 	}
 }
+
+func TestMatchesSource(t *testing.T) {
+	tests := []struct {
+		name    string
+		arch    string
+		aliases map[string]string
+		want    bool
+	}{
+		{name: "canonical token", arch: ArchSource, want: true},
+		{name: "case and whitespace", arch: " SRC ", want: true},
+		{name: "default alias", arch: "source", want: true},
+		{name: "unset", arch: "", want: true}, // unset WILL match a source arch
+		{name: "binary", arch: "amd64", want: false},
+		{name: "arch-independent", arch: "all", want: false},
+		{name: "binary with no arch specified", arch: ArchBinaryNoArchSpecified, want: false},
+		{name: "canonical token without the alias table", arch: ArchSource, aliases: map[string]string{}, want: true},
+		{name: "alias absent from the provided table", arch: "source", aliases: map[string]string{"x86_64": "amd64"}, want: false},
+		{name: "alias from the provided table", arch: "sources", aliases: map[string]string{"sources": ArchSource}, want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.want, Matches(ArchSource, tt.arch, tt.aliases))
+		})
+	}
+}

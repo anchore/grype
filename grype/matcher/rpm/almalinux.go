@@ -51,8 +51,10 @@ func markAsIndirectMatches(results result.Set) result.Set {
 // 3. Search for AlmaLinux unaffected records for the binary package and related packages
 // 4. Apply filtering logic to determine which disclosures are still vulnerable on AlmaLinux
 //
+// upstreams are binaryPkg's upstream (source) packages to search (see internal.UpstreamPackages).
+//
 //nolint:funlen
-func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Package, upstreams []pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	if strings.HasSuffix(binaryPkg.Name, "-debuginfo") || strings.HasSuffix(binaryPkg.Name, "-debugsource") {
 		return nil, nil, nil // almalinux explicitly never publishes advisories for RPMs that are only debug material
 	}
@@ -84,7 +86,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 	// even when the source package has a non-zero epoch. See the comment in matchUpstreamPackages
 	// in matcher.go for the full explanation of why this is necessary.
 	upstreamDisclosures := result.Set{}
-	for _, upstreamPkg := range internal.UpstreamPackages(binaryPkg) {
+	for _, upstreamPkg := range upstreams {
 		// Create a version object from the upstream package WITHOUT adding epoch
 		// This avoids false positives where binary package epochs differ from source package epochs
 		upstreamVersion := version.New(upstreamPkg.Version, pkg.VersionFormat(upstreamPkg))
@@ -135,7 +137,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 	// Step 4: Find AlmaLinux unaffected records for related packages (source/binary relationships)
 	// This handles cases where AlmaLinux publishes unaffected records for binary packages (e.g., python3-tkinter)
 	// but the disclosure is for the source package (e.g., python3)
-	relatedUnaffected := findRelatedUnaffectedPackages(provider, binaryPkg)
+	relatedUnaffected := findRelatedUnaffectedPackages(provider, binaryPkg, upstreams)
 
 	// Merge all unaffected results
 	allUnaffected := directUnaffected.Merge(relatedUnaffected)
@@ -152,10 +154,10 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 // findRelatedUnaffectedPackages searches for AlmaLinux unaffected records published under the
 // package's source rpm names. Each upstream (source) package is tagged "src", so a source that
 // shares the binary's name is still searched: step 3 searched that name with the binary's own arch.
-func findRelatedUnaffectedPackages(provider result.Provider, binaryPkg pkg.Package) result.Set {
+func findRelatedUnaffectedPackages(provider result.Provider, binaryPkg pkg.Package, upstreams []pkg.Package) result.Set {
 	allResults := make(result.Set)
 
-	for _, upstreamPkg := range internal.UpstreamPackages(binaryPkg) {
+	for _, upstreamPkg := range upstreams {
 		// Search for unaffected records using the source package name
 		relatedResults, err := provider.FindResults(
 			search.ByPackageName(upstreamPkg.Name),

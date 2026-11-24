@@ -8,6 +8,7 @@ import (
 	"github.com/anchore/grype/grype/internal/architecture"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/version"
+	"github.com/anchore/grype/grype/vulnerability"
 )
 
 // IsSameUpstream returns true when upstreamPkg is "the same" as p
@@ -22,10 +23,9 @@ func IsSameUpstream(upstreamPkg, p pkg.Package) bool {
 //   - a binary package only finds the records of its own name for its architecture, so a binary
 //     that records no upstreams is also searched as a source package of its own name, which it is
 //     built from (e.g. dpkg omits a Source that matches the binary).
-func UpstreamPackages(p pkg.Package) []pkg.Package {
-	// don't duplicate source searches. Only the canonical token is checked, not its spellings: those
-	// are the DB alias table's to decide, and a miss only costs a redundant own-source search.
-	if p.Arch == "" || p.Arch == architecture.ArchSource {
+func UpstreamPackages(vp vulnerability.Provider, p pkg.Package) []pkg.Package {
+	// don't duplicate searches that would match source arch:
+	if matchesSourceArch(vp, p.Arch) {
 		return slices.DeleteFunc(pkg.UpstreamPackages(p), func(u pkg.Package) bool { return IsSameUpstream(u, p) })
 	}
 	// if we have a binary architecture and no upstreams, include a source architecture search of the same-named package:
@@ -39,6 +39,16 @@ func UpstreamPackages(p pkg.Package) []pkg.Package {
 		}
 	}
 	return upstreams
+}
+
+// matchesSourceArch returns true when the provided arch, when canonicalized will match a source architecture,
+// this includes the empty arch, which matches anything
+func matchesSourceArch(vp vulnerability.Provider, arch string) bool {
+	var aliases map[string]string
+	if ap, _ := vp.(architecture.AliasProvider); ap != nil {
+		aliases = ap.ArchitectureAliases()
+	}
+	return architecture.Matches(architecture.ArchSource, arch, aliases)
 }
 
 // hasUpstreams indicates there are non-empty upstream records

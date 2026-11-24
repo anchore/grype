@@ -6,15 +6,25 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/vulnerability"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
+
+// aliasProvider is a vulnerability.Provider with its own architecture alias table.
+type aliasProvider struct {
+	vulnerability.Provider
+	aliases map[string]string
+}
+
+func (p aliasProvider) ArchitectureAliases() map[string]string { return p.aliases }
 
 func TestUpstreamPackages(t *testing.T) {
 	tests := []struct {
 		name      string
 		arch      string
 		upstreams []pkg.UpstreamPackage
-		want      []string // the names of the source packages searched, each tagged "src"
+		aliases   map[string]string // the provider's architecture alias table; nil uses the defaults
+		want      []string          // the names of the source packages searched, each tagged "src"
 	}{
 		{name: "binary with no upstream: its own name", arch: "amd64", want: []string{"openssl"}},
 		{name: "binary with only an unnamed upstream: its own name", arch: "amd64", upstreams: []pkg.UpstreamPackage{{Version: "1.0"}}, want: []string{"openssl"}},
@@ -25,15 +35,21 @@ func TestUpstreamPackages(t *testing.T) {
 		{name: "no arch with an upstream of its own name at another version: that upstream", upstreams: []pkg.UpstreamPackage{{Name: "openssl", Version: "3.0.6"}}, want: []string{"openssl"}},
 		{name: "no arch with an upstream of another name: that upstream", upstreams: []pkg.UpstreamPackage{{Name: "openssl-src"}}, want: []string{"openssl-src"}},
 		{name: "source package: none", arch: "src"},
-		{name: "source package, another spelling: searched as a binary", arch: "source", want: []string{"openssl"}},
+		{name: "source package, another spelling: none", arch: "source"},
+		{name: "source spelling the provider's table does not fold: searched as a binary", arch: "source", aliases: map[string]string{"x86_64": "amd64"}, want: []string{"openssl"}},
+		{name: "source spelling only the provider's table folds: none", arch: "sources", aliases: map[string]string{"sources": "src"}},
 		{name: "source package with an upstream of its own name: none", arch: "src", upstreams: []pkg.UpstreamPackage{{Name: "openssl"}}},
 		{name: "source package with an upstream of its own name at another version: that upstream", arch: "src", upstreams: []pkg.UpstreamPackage{{Name: "openssl", Version: "3.0.6"}}, want: []string{"openssl"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			var vp vulnerability.Provider
+			if tt.aliases != nil {
+				vp = aliasProvider{aliases: tt.aliases}
+			}
 			p := pkg.Package{Name: "openssl", Version: "3.0.7", Arch: tt.arch, Upstreams: tt.upstreams}
 			var names []string
-			for _, u := range UpstreamPackages(p) {
+			for _, u := range UpstreamPackages(vp, p) {
 				require.Equal(t, "src", u.Arch)
 				require.Empty(t, u.Upstreams)
 				names = append(names, u.Name)
@@ -69,7 +85,7 @@ func TestUpstreamPackages_InheritsEpoch(t *testing.T) {
 			if tt.upstream.Name != "" {
 				p.Upstreams = []pkg.UpstreamPackage{tt.upstream}
 			}
-			upstreams := UpstreamPackages(p)
+			upstreams := UpstreamPackages(nil, p)
 			require.Len(t, upstreams, 1)
 			require.Equal(t, tt.want, upstreams[0].Version)
 		})

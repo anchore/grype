@@ -40,6 +40,13 @@ var defaultAliases = map[string]string{
 	"loongarch64": "loong64",
 }
 
+// AliasProvider is an optional interface that vulnerability providers can implement
+// to expose the architecture alias table (alias spelling -> canonical token) their records are
+// matched with, so a caller can fold a package's architecture the same way the provider does.
+type AliasProvider interface {
+	ArchitectureAliases() map[string]string
+}
+
 // DefaultAliases returns the built-in architecture alias table (alias spelling -> canonical token).
 // It seeds the database's architecture_aliases table at build time and is the fallback for
 // databases that predate that table; a database's own table replaces it entirely.
