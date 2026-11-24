@@ -609,3 +609,34 @@ func TestMatcherRpm_SameNameSourceInheritsEpoch(t *testing.T) {
 		})
 	}
 }
+
+// TestMatcherRpm_SameNameSourceInheritsZeroEpoch verifies that a binary with no epoch (or an explicit
+// epoch 0) also pins its own-name source rpm search to epoch 0, as the binary search does. Otherwise
+// the "auto" strategy borrows the record's epoch and misses the vulnerability.
+func TestMatcherRpm_SameNameSourceInheritsZeroEpoch(t *testing.T) {
+	store := mock.VulnerabilityProvider(vulnerability.Vulnerability{
+		PackageName: "openssl",
+		Constraint:  version.MustGetConstraint("< 1:2.0.0-1.el9", version.RpmFormat),
+		Reference:   vulnerability.Reference{ID: "CVE-2014-fake-1", Namespace: "redhat:distro:redhat:9"},
+		Arch:        "src",
+	})
+	for _, pkgVersion := range []string{"3.0.7-27.el9", "0:3.0.7-27.el9"} {
+		for _, strategy := range []version.MissingEpochStrategy{version.MissingEpochStrategyZero, version.MissingEpochStrategyAuto} {
+			t.Run(pkgVersion+"/"+string(strategy), func(t *testing.T) {
+				p := pkg.Package{
+					ID:        pkg.ID("openssl"),
+					Name:      "openssl",
+					Version:   pkgVersion,
+					Type:      syftPkg.RpmPkg,
+					Arch:      "x86_64",
+					Distro:    distro.New(distro.RedHat, "9", ""),
+					Upstreams: []pkg.UpstreamPackage{{Name: "openssl", Version: "3.0.7-27.el9"}},
+				}
+				matcher := NewRpmMatcher(MatcherConfig{MissingEpochStrategy: strategy})
+				matches, _, err := matcher.Match(store, p)
+				require.NoError(t, err)
+				assert.Len(t, matches, 1)
+			})
+		}
+	}
+}
