@@ -340,6 +340,29 @@ func TestProjection_CPESource(t *testing.T) {
 		})
 	}
 
+	// each case makes one declared edit to a bound of an unmodified published record
+	for _, tt := range []struct {
+		name     string
+		cve      string
+		old, new string
+	}{
+		{"versionEndIncluding is an uppercase commit hash", "CVE-2026-97731", `"versionEndIncluding": "7aac2a2c5b7c882e68c1ce017d8256be2feea27f"`, `"versionEndIncluding": "7AAC2A2C5B7C882E68C1CE017D8256BE2FEEA27F"`},
+		{"versionEndExcluding is free text", "CVE-2025-48964", `"versionEndExcluding": "20250602"`, `"versionEndExcluding": "N/A"`},
+	} {
+		t.Run("CNA match dropped after an edit: "+tt.name, func(t *testing.T) {
+			edited := bytes.Replace(readCVE5Fixture(t, tt.cve), []byte(tt.old), []byte(tt.new), 1)
+			require.Contains(t, string(edited), tt.new)
+
+			idx, err := NewIndex(openers(cve5Envelope(t, "2026/"+strings.ToLower(tt.cve), edited)))
+			require.NoError(t, err)
+			p, ok := idx.Take(tt.cve)
+			require.True(t, ok)
+			require.Empty(t, p.ADPCPE)
+			require.NotEmpty(t, p.CNACPE)
+			require.Nil(t, criteria(p.CPESource()))
+		})
+	}
+
 	t.Run("an excluded assigner's CNA list is dropped but anchoreadp's is used", func(t *testing.T) {
 		cna, adp := []nvd.Configuration{{}}, []nvd.Configuration{{Nodes: []nvd.Node{{}}}}
 		require.Nil(t, Projection{Assigner: "Linux", CNACPE: cna}.CPESource())
@@ -760,6 +783,42 @@ func TestCNARanges_rules(t *testing.T) {
 			purl:  "pypi",
 			items: []unmarshal.CVE5Version{item("1.0", "2.0", ""), item("1.0", "", "foo")},
 			want:  []wantRange{{"pypi", ">= 1.0, < 2.0", "2.0"}},
+		},
+		{
+			name: "commit hash upper bound for maven",
+			purl: "maven",
+			items: []unmarshal.CVE5Version{
+				item("0", "8d48642b", ""),
+				item("1a2b3c4d", "8d48642b", ""),
+			},
+		},
+		{
+			name: "commit hash upper bound for npm",
+			purl: "npm",
+			items: []unmarshal.CVE5Version{
+				item("0", "8d48642b", ""),
+				item("1a2b3c4d", "8d48642b", ""),
+			},
+		},
+		{
+			name:  "uppercase commit hash upper bound",
+			purl:  "maven",
+			items: []unmarshal.CVE5Version{item("0", "8D48642B", "")},
+		},
+		{
+			name:  "lower bound equal to zero with no upper bound",
+			purl:  "npm",
+			items: []unmarshal.CVE5Version{item("0.0.0", "*", "")},
+		},
+		{
+			name:  "version holding a pipe",
+			purl:  "npm",
+			items: []unmarshal.CVE5Version{item("1.0||2.0", "", "")},
+		},
+		{
+			name:  "change at an inclusive upper bound",
+			purl:  "npm",
+			items: []unmarshal.CVE5Version{item("1.0.0", "", "1.2.0", unmarshal.CVE5Change{At: "1.2.0", Status: "unaffected"})},
 		},
 		{
 			name:  "versionType does not affect the mapping",
