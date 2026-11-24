@@ -103,7 +103,7 @@ func Build(cfg BuildConfig) error {
 	}
 
 	if cnaIndex != nil {
-		if err := writeCVE5Only(cnaIndex, nvdConfig, nvdState, writer); err != nil {
+		if err := cnaIndex.WriteLeftovers(nvdConfig, nvdState, writer); err != nil {
 			return err
 		}
 	}
@@ -171,15 +171,6 @@ func readCNAIndex(states provider.States) (*nvd.Index, provider.State, error) {
 		return nil, provider.State{}, fmt.Errorf("failed to read %q provider records: %w", cve5Provider, err)
 	}
 
-	if idx.Count() == 0 {
-		return nil, provider.State{}, fmt.Errorf("%q input holds no records", cve5Provider)
-	}
-	// a schema change that breaks decoding would otherwise build a database with no CNA data
-	if idx.Decoded() == 0 {
-		return nil, provider.State{}, fmt.Errorf("none of the %d %q records decode under a supported schema", idx.Count(), cve5Provider)
-	}
-
-	log.WithFields("records", idx.Count(), "decoded", idx.Decoded()).Debug("read CVE 5 records for CNA reconciliation")
 	return idx, *nvdState, nil
 }
 
@@ -187,20 +178,6 @@ func findState(states provider.States, name string) *provider.State {
 	for i := range states {
 		if states[i].Provider == name {
 			return &states[i]
-		}
-	}
-	return nil
-}
-
-// writeCVE5Only writes the CVEs that have a CVE 5 record and no NVD record, under the `nvd` provider.
-func writeCVE5Only(idx *nvd.Index, nvdConfig nvd.Config, nvdState provider.State, writer data.Writer) error {
-	for _, record := range idx.Leftovers() {
-		entries := nvd.TransformCVE5Only(nvdConfig, record, nvdState)
-		if len(entries) == 0 {
-			continue
-		}
-		if err := writer.Write(entries...); err != nil {
-			return fmt.Errorf("failed to write CVE 5 record %q to the DB: %w", record.ID, err)
 		}
 	}
 	return nil

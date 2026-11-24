@@ -97,7 +97,7 @@ func TestCVE5Record_AnchoreADP(t *testing.T) {
 		require.Equal(t, "CISA-ADP", r.Containers.Adp[0].ProviderMetadata.ShortName)
 		adp := r.AnchoreADP()
 		require.NotNil(t, adp)
-		require.Equal(t, AnchoreADPShortName, adp.ProviderMetadata.ShortName)
+		require.Equal(t, anchoreADPShortName, adp.ProviderMetadata.ShortName)
 
 		require.Len(t, adp.Affected, 2)
 		require.Equal(t, "pkg:maven/org.bouncycastle/bcprov-jdk18on", adp.Affected[0].PackageURL)

@@ -3214,9 +3214,9 @@ func TestTransform_withCNAIndexConsumesRecord(t *testing.T) {
 	_, err := Transformer(cfg)(vulns[0], inputProviderState("nvd"))
 	require.NoError(t, err)
 
-	left := cfg.CNA.Leftovers()
+	left := cfg.CNA.leftovers()
 	require.Len(t, left, 1)
-	require.Equal(t, "CVE-2026-59650", left[0].ID)
+	require.Equal(t, "CVE-2026-59650", left[0].id)
 }
 
 // a Config with only CNA set is not the zero value, so each unset field takes its default on its own
@@ -3232,10 +3232,10 @@ func TestTransformer_configWithOnlyCNA(t *testing.T) {
 	})
 	require.NotEmpty(t, entries)
 
-	left := cfg.CNA.Leftovers()
+	left := cfg.CNA.leftovers()
 	require.Len(t, left, 1)
 	require.NotPanics(t, func() {
-		require.NotEmpty(t, TransformCVE5Only(Config{CNA: cfg.CNA}, left[0], inputProviderState("nvd")))
+		require.NotEmpty(t, transformCVE5Only(Config{CNA: cfg.CNA}, left[0], inputProviderState("nvd")))
 	})
 }
 
@@ -3272,7 +3272,7 @@ func TestTransformCVE5Only(t *testing.T) {
 	state := inputProviderState("nvd")
 
 	t.Run("package rows from a CVE 5 record alone", func(t *testing.T) {
-		entries := TransformCVE5Only(cfg, project(loadCVE5Fixture(t, "CVE-2026-59650")), state)
+		entries := transformCVE5Only(cfg, project(loadCVE5Fixture(t, "CVE-2026-59650")), state)
 		vuln, cpes, pkgs := affectedRows(t, entries)
 
 		require.Equal(t, "CVE-2026-59650", vuln.Name)
@@ -3295,7 +3295,7 @@ func TestTransformCVE5Only(t *testing.T) {
 	})
 
 	t.Run("CPE rows from cpeApplicability", func(t *testing.T) {
-		_, cpes, pkgs := affectedRows(t, TransformCVE5Only(cfg, project(loadCVE5Fixture(t, "CVE-2026-85091")), state))
+		_, cpes, pkgs := affectedRows(t, transformCVE5Only(cfg, project(loadCVE5Fixture(t, "CVE-2026-85091")), state))
 		require.Equal(t, []string{
 			`cpe(ranges={ >= 1.3.1.2, <= 1.3.2} (<nil>), cves=CVE-2026-85091, cpe="cpe:2.3:a:zlib:zlib:*:*:*:*:*:*:*:*", vuln=0)`,
 		}, cpes)
@@ -3303,9 +3303,9 @@ func TestTransformCVE5Only(t *testing.T) {
 	})
 
 	t.Run("anchoreadp cpeApplicability and affected list from a published record", func(t *testing.T) {
-		p, ok := newTestIndex(t, "CVE-2026-92789").Take("CVE-2026-92789")
+		p, ok := newTestIndex(t, "CVE-2026-92789").take("CVE-2026-92789")
 		require.True(t, ok)
-		_, cpes, pkgs := affectedRows(t, TransformCVE5Only(cfg, p, state))
+		_, cpes, pkgs := affectedRows(t, transformCVE5Only(cfg, p, state))
 		require.Equal(t, []string{
 			`cpe(ranges={maven <= 7.1.4} (<nil>), cves=CVE-2026-92789, cpe="cpe:2.3:a:graylog:graylog:*:*:*:*:*:maven:*:*", vuln=0)`,
 			`cpe(ranges={maven <= 7.1.4} (<nil>), cves=CVE-2026-92789, cpe="cpe:2.3:a:org.graylog2:graylog2-server:*:*:*:*:*:maven:*:*", vuln=0)`,
@@ -3316,11 +3316,11 @@ func TestTransformCVE5Only(t *testing.T) {
 	})
 
 	t.Run("Linux kernel cpeApplicability alone yields no entry", func(t *testing.T) {
-		require.Empty(t, TransformCVE5Only(cfg, project(loadCVE5Fixture(t, "CVE-2026-31391")), state))
+		require.Empty(t, transformCVE5Only(cfg, project(loadCVE5Fixture(t, "CVE-2026-31391")), state))
 	})
 
 	t.Run("a record with no usable entries yields no entry", func(t *testing.T) {
-		require.Empty(t, TransformCVE5Only(cfg, project(loadCVE5Fixture(t, "CVE-2026-13500")), state))
-		require.Empty(t, TransformCVE5Only(cfg, project(loadCVE5Fixture(t, "CVE-2026-25904")), state), "the only item has no bound")
+		require.Empty(t, transformCVE5Only(cfg, project(loadCVE5Fixture(t, "CVE-2026-13500")), state))
+		require.Empty(t, transformCVE5Only(cfg, project(loadCVE5Fixture(t, "CVE-2026-25904")), state), "the only item has no bound")
 	})
 }

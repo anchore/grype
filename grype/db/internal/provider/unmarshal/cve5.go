@@ -26,9 +26,9 @@ type CVE5Containers struct {
 	Adp []CVE5ADPContainer `json:"adp"`
 }
 
-// AnchoreADPShortName is the `providerMetadata.shortName` of the ADP container that restates the CNA's affected
+// anchoreADPShortName is the `providerMetadata.shortName` of the ADP container that restates the CNA's affected
 // products with package URLs and structured ranges.
-const AnchoreADPShortName = "anchoreadp"
+const anchoreADPShortName = "anchoreadp"
 
 // CVE5ADPContainer decodes the parts of an ADP container that reconciliation reads, in the CNA's types. Other
 // ADP containers (CISA-ADP, CVE) decode with empty lists.
@@ -92,7 +92,7 @@ func (r CVE5Record) IsEmpty() bool {
 // AnchoreADP returns the first ADP container named `anchoreadp`, or nil. Its array index differs between records.
 func (r CVE5Record) AnchoreADP() *CVE5ADPContainer {
 	for i := range r.Containers.Adp {
-		if r.Containers.Adp[i].ProviderMetadata.ShortName == AnchoreADPShortName {
+		if r.Containers.Adp[i].ProviderMetadata.ShortName == anchoreADPShortName {
 			return &r.Containers.Adp[i]
 		}
 	}

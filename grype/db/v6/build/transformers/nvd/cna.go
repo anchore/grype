@@ -10,8 +10,10 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/anchore/grype/grype/db/data"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
 	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/nvd"
+	"github.com/anchore/grype/grype/db/provider"
 	"github.com/anchore/grype/grype/db/provider/entry"
 	db "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
@@ -31,58 +33,58 @@ func cpeApplicabilityUsable(assigner string) bool {
 	return !slices.Contains(excludedCPEAssigners, assigner)
 }
 
-// Projection is the part of a CVE 5 record that reconciliation reads. Affected is the `anchoreadp` container's
+// projection is the part of a CVE 5 record that reconciliation reads. affected is the `anchoreadp` container's
 // list when the record has one and the CNA's otherwise, and the two lists are never merged. Both
-// cpeApplicability values are kept because their precedence depends on the NVD record (see CPESource).
-type Projection struct {
-	ID            string
-	State         string
-	Assigner      string
-	DatePublished string
-	DateUpdated   string
-	Descriptions  []unmarshal.CVE5Description
-	References    []unmarshal.CVE5Reference
+// cpeApplicability values are kept because their precedence depends on the NVD record (see cpeSource).
+type projection struct {
+	id            string
+	state         string
+	assigner      string
+	datePublished string
+	dateUpdated   string
+	descriptions  []unmarshal.CVE5Description
+	references    []unmarshal.CVE5Reference
 
-	Affected []unmarshal.CVE5Affected
+	affected []unmarshal.CVE5Affected
 
-	CNACPE []nvd.Configuration
-	ADPCPE []nvd.Configuration
+	cnaCPE []nvd.Configuration
+	adpCPE []nvd.Configuration
 }
 
-func project(r unmarshal.CVE5Record) Projection {
+func project(r unmarshal.CVE5Record) projection {
 	cna := r.Containers.CNA
-	p := Projection{
-		ID:            r.CVEMetadata.CVEID,
-		State:         r.CVEMetadata.State,
-		Assigner:      r.CVEMetadata.AssignerShortName,
-		DatePublished: r.CVEMetadata.DatePublished,
-		DateUpdated:   r.CVEMetadata.DateUpdated,
-		Descriptions:  cna.Descriptions,
-		References:    cna.References,
-		Affected:      cna.Affected,
-		CNACPE:        cna.CPEApplicability,
+	p := projection{
+		id:            r.CVEMetadata.CVEID,
+		state:         r.CVEMetadata.State,
+		assigner:      r.CVEMetadata.AssignerShortName,
+		datePublished: r.CVEMetadata.DatePublished,
+		dateUpdated:   r.CVEMetadata.DateUpdated,
+		descriptions:  cna.Descriptions,
+		references:    cna.References,
+		affected:      cna.Affected,
+		cnaCPE:        cna.CPEApplicability,
 	}
 	if adp := r.AnchoreADP(); adp != nil {
-		p.ADPCPE = adp.CPEApplicability
+		p.adpCPE = adp.CPEApplicability
 		if len(adp.Affected) > 0 {
-			p.Affected = adp.Affected
+			p.affected = adp.Affected
 		}
 	}
 	return p
 }
 
-// CPESource returns the cpeApplicability that supplies CPE rows when the NVD record has no configurations: the
+// cpeSource returns the cpeApplicability that supplies CPE rows when the NVD record has no configurations: the
 // `anchoreadp` container's when it has one, else the CNA's unless its assigner is excluded. The CNA's matches that
 // state no version range or bound the range by a commit hash are dropped, since neither says which released
 // versions are affected.
-func (p Projection) CPESource() []nvd.Configuration {
-	if len(p.ADPCPE) > 0 {
-		return p.ADPCPE
+func (p projection) cpeSource() []nvd.Configuration {
+	if len(p.adpCPE) > 0 {
+		return p.adpCPE
 	}
-	if !cpeApplicabilityUsable(p.Assigner) {
+	if !cpeApplicabilityUsable(p.assigner) {
 		return nil
 	}
-	return filterCNAConfigurations(p.ID, p.CNACPE)
+	return filterCNAConfigurations(p.id, p.cnaCPE)
 }
 
 // commitHashBound is a git commit hash, which orders against no release version. A run of digits only is more
@@ -168,10 +170,12 @@ func cnaMatchDropReason(m nvd.CpeMatch) string {
 }
 
 // Index holds the CNA data of CVE 5 records, keyed by lowercased CVE ID, for the NVD transformer to look up. One
-// Index serves one sequential build: Take changes it and Leftovers depends on every prior Take, so it is not safe
+// Index serves one sequential build: take changes it and leftovers depends on every prior take, so it is not safe
 // for concurrent use.
 type Index struct {
-	records map[string]Projection
+	records map[string]projection
+	// count is the number of records read and decoded the number that decoded under a supported schema, whether or
+	// not they were kept
 	count   int
 	decoded int
 }
@@ -188,9 +192,10 @@ func cve5SchemaSupported(schemaURL string) bool {
 // cpeApplicability or the selected affected list has an entry with a packageURL or collectionURL, since nothing
 // else is read later.
 // A record that fails to decode or declares an unsupported schema is skipped with a warning and still counts as
-// read, but not as decoded.
+// read, but not as decoded. It is an error when no record was read, or when none decoded, since a schema change that
+// breaks decoding would otherwise build a database with no CNA data.
 func NewIndex(openers <-chan entry.Opener) (*Index, error) {
-	idx := &Index{records: make(map[string]Projection)}
+	idx := &Index{records: make(map[string]projection)}
 
 	for opener := range openers {
 		idx.count++
@@ -222,6 +227,14 @@ func NewIndex(openers <-chan entry.Opener) (*Index, error) {
 		}
 	}
 
+	if idx.count == 0 {
+		return nil, fmt.Errorf("no records to read")
+	}
+	if idx.decoded == 0 {
+		return nil, fmt.Errorf("none of the %d records decode under a supported schema", idx.count)
+	}
+
+	log.WithFields("records", idx.count, "decoded", idx.decoded).Debug("read CVE 5 records for CNA reconciliation")
 	return idx, nil
 }
 
@@ -241,11 +254,11 @@ func (i *Index) add(r unmarshal.CVE5Record) {
 	}
 }
 
-func (p Projection) hasData() bool {
-	if len(p.CNACPE) > 0 || len(p.ADPCPE) > 0 {
+func (p projection) hasData() bool {
+	if len(p.cnaCPE) > 0 || len(p.adpCPE) > 0 {
 		return true
 	}
-	for _, a := range p.Affected {
+	for _, a := range p.affected {
 		if a.PackageURL != "" || a.CollectionURL != "" {
 			return true
 		}
@@ -253,41 +266,46 @@ func (p Projection) hasData() bool {
 	return false
 }
 
-// Count is the number of records read, whether or not they decoded or were kept.
-func (i *Index) Count() int {
-	return i.count
-}
-
-// Decoded is the number of records read that decoded under a supported schema, whether or not they were kept.
-func (i *Index) Decoded() int {
-	return i.decoded
-}
-
-// Take returns the record for a CVE ID and removes it from the index, so neither Leftovers nor a later Take returns
+// take returns the record for a CVE ID and removes it from the index, so neither leftovers nor a later take returns
 // it and the index holds only what is still needed.
-func (i *Index) Take(id string) (Projection, bool) {
+func (i *Index) take(id string) (projection, bool) {
 	key := strings.ToLower(id)
 	r, ok := i.records[key]
 	delete(i.records, key)
 	return r, ok
 }
 
-// Leftovers returns the projections of published records that Take has not returned, sorted by CVE ID.
-func (i *Index) Leftovers() []Projection {
+// leftovers returns the projections of published records that take has not returned, sorted by CVE ID.
+func (i *Index) leftovers() []projection {
 	var keys []string
 	for key, r := range i.records {
-		if r.State != "PUBLISHED" {
+		if r.state != "PUBLISHED" {
 			continue
 		}
 		keys = append(keys, key)
 	}
 	sort.Strings(keys)
 
-	out := make([]Projection, 0, len(keys))
+	out := make([]projection, 0, len(keys))
 	for _, key := range keys {
 		out = append(out, i.records[key])
 	}
 	return out
+}
+
+// WriteLeftovers writes the CVEs that have a CVE 5 record and no NVD record, under the `nvd` provider. It writes only
+// what the transformer has not taken, so it runs after every NVD record has been transformed.
+func (i *Index) WriteLeftovers(cfg Config, state provider.State, w data.Writer) error {
+	for _, record := range i.leftovers() {
+		entries := transformCVE5Only(cfg, record, state)
+		if len(entries) == 0 {
+			continue
+		}
+		if err := w.Write(entries...); err != nil {
+			return fmt.Errorf("failed to write CVE 5 record %q to the DB: %w", record.id, err)
+		}
+	}
+	return nil
 }
 
 // cnaRegistryHosts maps a purl type to the registry hosts that identify it in a collectionURL. An entry with a
@@ -311,11 +329,11 @@ var cnaRegistryHosts = map[string][]string{
 // cnaPackageHandles returns one affected package handle for each affected[] entry that names a package in a
 // supported ecosystem and has at least one range that is no broader than the entry states. An entry that cannot be
 // used is skipped with a debug log, never an error.
-func cnaPackageHandles(p Projection) []db.AffectedPackageHandle {
-	cve := p.ID
+func cnaPackageHandles(p projection) []db.AffectedPackageHandle {
+	cve := p.id
 
 	var handles []db.AffectedPackageHandle
-	for _, a := range p.Affected {
+	for _, a := range p.affected {
 		purl, ok := cnaPackageIdentity(a)
 		if !ok {
 			continue
