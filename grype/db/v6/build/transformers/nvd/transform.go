@@ -38,11 +38,18 @@ func defaultConfig() Config {
 	}
 }
 
-// withDefaults gives each unset field its default. InferNVDFixVersions has no unset value, so it is used as given.
+// withDefaults gives a Config that is zero apart from CNA the full default, CNA kept, as a zero Config always got.
+// Any other Config only has a nil CPEParts defaulted, since a false InferNVDFixVersions there is the caller's choice.
 func (c Config) withDefaults() Config {
-	if c.CPEParts == nil {
+	cna := c.CNA
+	c.CNA = nil
+	switch {
+	case c == (Config{}):
+		c = defaultConfig()
+	case c.CPEParts == nil:
 		c.CPEParts = defaultConfig().CPEParts
 	}
+	c.CNA = cna
 	return c
 }
 

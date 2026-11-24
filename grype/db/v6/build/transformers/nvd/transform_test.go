@@ -3239,6 +3239,34 @@ func TestTransformer_configWithOnlyCNA(t *testing.T) {
 	})
 }
 
+// a Config that is zero apart from CNA keeps the full default, which infers fix versions
+func TestTransformer_zeroConfigInfersFixVersions(t *testing.T) {
+	for name, cfg := range map[string]Config{
+		"zero config":  {},
+		"only CNA set": {CNA: newTestIndex(t, "CVE-2026-59650")},
+	} {
+		t.Run(name, func(t *testing.T) {
+			// the NVD bc-java match is bounded only by versionEndExcluding 1.85, so its fix is inferred, never stated
+			vulns := loadFixture(t, "testdata/cna/nvd/CVE-2026-59650.json")
+			entries, err := Transformer(cfg)(vulns[0], inputProviderState("nvd"))
+			require.NoError(t, err)
+			require.Len(t, entries, 1)
+
+			fixes := map[string]string{}
+			for _, rel := range entries[0].Data.(transformers.RelatedEntries).Related {
+				if h, ok := rel.(db.AffectedCPEHandle); ok {
+					for _, r := range h.BlobValue.Ranges {
+						if r.Fix != nil {
+							fixes[r.Version.Constraint] = r.Fix.Version
+						}
+					}
+				}
+			}
+			require.Equal(t, "1.85", fixes["< 1.85"])
+		})
+	}
+}
+
 func TestTransformCVE5Only(t *testing.T) {
 	cfg := defaultConfig()
 	state := inputProviderState("nvd")
