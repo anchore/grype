@@ -159,7 +159,7 @@ func getQualifiers(group groupIndex) *db.PackageQualifiers {
 		RpmModularity: &module,
 	}
 	// an advisory scoped to one architecture only applies to packages of that arch (see
-	// pkg/qualifier/architecture); no arch applies to all
+	// search.ByArchitecture); no arch applies to all
 	if group.arch != "" {
 		arch := group.arch
 		qualifiers.Architecture = &arch
@@ -524,7 +524,7 @@ func groupFixedIns(vuln unmarshal.OSVulnerability) map[groupIndex][]unmarshal.OS
 			module:    mod,
 			format:    fixedIn.VersionFormat,
 			// arch splits a per-arch fix into its own affected package handle so the architecture
-			// qualifier can scope it; empty means the fix applies to all arches.
+			// search criteria can scope it; empty means the fix applies to all arches.
 			arch: arch,
 		}
 

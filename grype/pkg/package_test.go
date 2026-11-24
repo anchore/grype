@@ -25,6 +25,7 @@ func TestNew(t *testing.T) {
 		syftPkg   syftPkg.Package
 		metadata  any
 		upstreams []UpstreamPackage
+		arch      string
 	}{
 		{
 			name: "alpm package with source info",
@@ -39,6 +40,7 @@ func TestNew(t *testing.T) {
 					}},
 				},
 			},
+			arch: "arch-info",
 		},
 		{
 			name: "dpkg with source info",
@@ -69,6 +71,7 @@ func TestNew(t *testing.T) {
 					Version: "src-version-info",
 				},
 			},
+			arch: "arch-info",
 		},
 		{
 			name: "dpkg archive with source info",
@@ -99,6 +102,7 @@ func TestNew(t *testing.T) {
 					Version: "src-version-info",
 				},
 			},
+			arch: "arch-info",
 		},
 		{
 			name: "rpm archive with source info",
@@ -130,7 +134,6 @@ func TestNew(t *testing.T) {
 			},
 			metadata: RpmMetadata{
 				Epoch: intRef(30),
-				Arch:  "arch-info",
 			},
 			upstreams: []UpstreamPackage{
 				{
@@ -138,6 +141,7 @@ func TestNew(t *testing.T) {
 					Version: "3.26.0-6.el8",
 				},
 			},
+			arch: "arch-info",
 		},
 		{
 			name: "rpm db entry with source info",
@@ -169,7 +173,6 @@ func TestNew(t *testing.T) {
 			},
 			metadata: RpmMetadata{
 				Epoch: intRef(30),
-				Arch:  "arch-info",
 			},
 			upstreams: []UpstreamPackage{
 				{
@@ -177,6 +180,7 @@ func TestNew(t *testing.T) {
 					Version: "3.26.0-6.el8",
 				},
 			},
+			arch: "arch-info",
 		},
 		{
 			name: "rpm archive with source info that matches the package info",
@@ -186,8 +190,14 @@ func TestNew(t *testing.T) {
 					SourceRpm: "sqlite-3.26.0-6.el8.src.rpm",
 				},
 			},
-			// source matches the package name (so no upstream) and neither epoch nor
-			// modularity is set, so grype keeps nothing: metadata is nil, not an empty struct.
+			// a source sharing the package name is still an upstream (searched as "src"); neither
+			// epoch nor modularity is set, so metadata is nil, not an empty struct.
+			upstreams: []UpstreamPackage{
+				{
+					Name:    "sqlite",
+					Version: "3.26.0-6.el8",
+				},
+			},
 		},
 		{
 			name: "rpm archive with modularity label",
@@ -199,6 +209,12 @@ func TestNew(t *testing.T) {
 				},
 			},
 			metadata: RpmMetadata{ModularityLabel: strRef("abc:2")},
+			upstreams: []UpstreamPackage{
+				{
+					Name:    "sqlite",
+					Version: "3.26.0-6.el8",
+				},
+			},
 		},
 		{
 			name: "java pkg",
@@ -263,37 +279,24 @@ func TestNew(t *testing.T) {
 					InstalledSize: 1,
 				},
 			},
-			metadata: ApkMetadata{
-				Files: []ApkFileRecord{},
-				Arch:  "a",
-			},
 			upstreams: []UpstreamPackage{
 				{
 					Name: "libcurl",
 				},
 			},
+			arch: "a",
 		},
 		{
-			name: "apk with architecture only",
+			name: "apk with no files",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.ApkDBEntry{
+					Package:      "some-pkg",
+					Version:      "1.0.0",
 					Architecture: "amd64",
 				},
 			},
-			metadata: ApkMetadata{
-				Files: []ApkFileRecord{},
-				Arch:  "amd64",
-			},
-		},
-		{
-			name: "apk with no architecture or files",
-			syftPkg: syftPkg.Package{
-				Metadata: syftPkg.ApkDBEntry{
-					Package: "some-pkg",
-					Version: "1.0.0",
-				},
-			},
-			// neither architecture nor files: metadata is nil
+			// no files: metadata is nil (architecture is carried on the package)
+			arch: "amd64",
 		},
 		// the below packages are those that have no metadata or upstream info to parse out
 		{
@@ -383,6 +386,7 @@ func TestNew(t *testing.T) {
 				Metadata: syftPkg.GolangBinaryBuildinfoEntry{
 					BuildSettings:     syftPkg.KeyValues{},
 					GoCompiledVersion: "1.0.0",
+					Architecture:      "arm64",
 					H1Digest:          "a",
 					MainModule:        "myMainModule",
 				},
@@ -390,9 +394,11 @@ func TestNew(t *testing.T) {
 			metadata: GolangBinMetadata{
 				BuildSettings:     syftPkg.KeyValues{},
 				GoCompiledVersion: "1.0.0",
+				Architecture:      "arm64",
 				H1Digest:          "a",
 				MainModule:        "myMainModule",
 			},
+			arch: "arm64",
 		},
 		{
 			name: "golang-mod-metadata",
@@ -760,13 +766,15 @@ func TestNew(t *testing.T) {
 			name: "elf-binary-package",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.ELFBinaryPackageNoteJSONPayload{
-					Type:       "a",
-					Vendor:     "a",
-					System:     "a",
-					SourceRepo: "a",
-					Commit:     "a",
+					Type:         "a",
+					Vendor:       "a",
+					System:       "a",
+					SourceRepo:   "a",
+					Commit:       "a",
+					Architecture: "x86_64",
 				},
 			},
+			arch: "x86_64",
 		},
 		{
 			name: "php-pecl-entry",
@@ -869,10 +877,12 @@ func TestNew(t *testing.T) {
 			name: "bitnami-sbom-entry",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.BitnamiSBOMEntry{
-					Name:    "a",
-					Version: "1",
+					Name:         "a",
+					Version:      "1",
+					Architecture: "amd64",
 				},
 			},
+			arch: "amd64",
 		},
 		{
 			name: "terraform-lock-provider-entry",
@@ -925,8 +935,10 @@ func TestNew(t *testing.T) {
 					Build:       "py39h20b1b1c_0",
 					BuildNumber: 0,
 					Channel:     "conda-forge",
+					Arch:        "x86_64",
 				},
 			},
+			arch: "x86_64",
 		},
 		{
 			name: "golang source entry metadata",
@@ -946,6 +958,7 @@ func TestNew(t *testing.T) {
 				BuildTags:       "release",
 				CgoEnabled:      true,
 			},
+			arch: "amd64",
 		},
 		{
 			name: "snap-entry",
@@ -958,6 +971,7 @@ func TestNew(t *testing.T) {
 					Architecture: "amd64",
 				},
 			},
+			arch: "amd64",
 		},
 		{
 			name: "python-pdm-lock-entry",
@@ -987,6 +1001,7 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
+			// the model architecture ("arch") is not a CPU architecture, so the package has none
 			name: "gguf-file-header",
 			syftPkg: syftPkg.Package{
 				Metadata: syftPkg.GGUFFileHeader{
@@ -1103,6 +1118,41 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "metadata arch preferred over purl",
+			syftPkg: syftPkg.Package{
+				PURL:     "pkg:rpm/redhat/glibc@2.28-1.el8?arch=aarch64",
+				Metadata: syftPkg.RpmDBEntry{Arch: "x86_64"},
+			},
+			arch: "x86_64",
+		},
+		{
+			name: "arch falls back to purl when metadata has none",
+			syftPkg: syftPkg.Package{
+				PURL:     "pkg:deb/debian/libc6@2.36-9?arch=arm64&distro=debian-12",
+				Metadata: syftPkg.DpkgDBEntry{Package: "libc6"},
+			},
+			arch: "arm64",
+		},
+		{
+			name: "arch falls back to purl when there is no metadata",
+			syftPkg: syftPkg.Package{
+				PURL: "pkg:rpm/redhat/glibc@2.28-1.el8?arch=src",
+			},
+			arch: "src",
+		},
+		{
+			name: "purl without arch",
+			syftPkg: syftPkg.Package{
+				PURL: "pkg:npm/lodash@4.17.21",
+			},
+		},
+		{
+			name: "invalid purl",
+			syftPkg: syftPkg.Package{
+				PURL: "not-a-purl",
+			},
+		},
 	}
 
 	// capture each observed metadata type, we should see all of them relate to what syft provides by the end of testing
@@ -1115,6 +1165,7 @@ func TestNew(t *testing.T) {
 			p := New(test.syftPkg)
 			assert.Equal(t, test.metadata, p.Metadata, "unexpected metadata")
 			assert.Equal(t, test.upstreams, p.Upstreams, "unexpected upstream")
+			assert.Equal(t, test.arch, p.Arch, "unexpected arch")
 		})
 	}
 }

@@ -15,11 +15,10 @@ var oracle7 = distro.New(distro.OracleLinux, "7", "")
 // TestOraclePerArchFix_NoFalsePositiveOnPatchedArch is the end-to-end regression for the
 // ELSA-2022-4803 false positive. Oracle respun the aarch64 rsyslog at a higher revision
 // (.0.4) than the x86_64 build (.0.1); vunnel records that as two FixedIn entries with distinct
-// Arch, and the os transformer emits one affected package handle per arch carrying an
-// Architecture qualifier. So a patched x86_64 rsyslog (.0.1) must NOT be flagged by the aarch64
-// fix, while an aarch64 build at the same version still is (it's below the aarch64 fix). Before
-// arch was carried through to a qualifier, the higher .0.4 constraint falsely flagged the
-// patched x86_64 package.
+// Arch, and the os transformer emits one affected package handle per arch carrying that arch. So
+// a patched x86_64 rsyslog (.0.1) must NOT be flagged by the aarch64 fix, while an aarch64 build at
+// the same version still is (it's below the aarch64 fix). Before arch was carried through to the
+// DB, the higher .0.4 constraint falsely flagged the patched x86_64 package.
 func TestOraclePerArchFix_NoFalsePositiveOnPatchedArch(t *testing.T) {
 	dbtest.DBs(t, "oracle").
 		SelectOnly("ol:7/elsa-2022-4803").

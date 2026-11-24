@@ -11,20 +11,30 @@ import (
 )
 
 func TestMatcherDpkg_DirectMatch(t *testing.T) {
-	dbtest.SharedDBs(t, "all").
-		SelectOnly("debian:11/CVE-2024-0727").
-		Run(func(t *testing.T, db *dbtest.DB) {
-			matcher := Matcher{}
+	// openssl is built from the openssl source package, so dpkg records no Source for it. With no
+	// architecture it is only searched directly; with one, it is also searched as a source package of
+	// its own name, but only for records that specify an architecture. Either way the record, which
+	// has no architecture, is reported once, by the direct search.
+	for _, arch := range []string{"", "amd64"} {
+		t.Run("arch="+arch, func(t *testing.T) {
+			dbtest.SharedDBs(t, "all").
+				SelectOnly("debian:11/CVE-2024-0727").
+				Run(func(t *testing.T, db *dbtest.DB) {
+					matcher := Matcher{}
 
-			p := dbtest.NewPackage("openssl", "1.1.1k-1", syftPkg.DebPkg). // vulnerable (< 1.1.1w-0+deb11u2)
-											WithDistro(dbtest.Debian11).
-											Build()
+					p := dbtest.NewPackage("openssl", "1.1.1k-1", syftPkg.DebPkg). // vulnerable (< 1.1.1w-0+deb11u2)
+													WithArchitecture(arch).
+													WithDistro(dbtest.Debian11).
+													Build()
 
-			db.Match(t, &matcher, p).
-				SelectMatch("CVE-2024-0727").
-				SelectDetailByType(match.ExactDirectMatch).
-				AsDistroSearch()
+					db.Match(t, &matcher, p).
+						SelectMatch("CVE-2024-0727").
+						HasDetailCount(1).
+						SelectDetailByType(match.ExactDirectMatch).
+						AsDistroSearch()
+				})
 		})
+	}
 }
 
 func TestMatcherDpkg_DirectMatch_DHI(t *testing.T) {

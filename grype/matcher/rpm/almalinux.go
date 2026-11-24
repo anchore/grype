@@ -50,7 +50,11 @@ func markAsIndirectMatches(results result.Set) result.Set {
 // 2. Search for RHEL disclosures for all upstream (source) packages
 // 3. Search for AlmaLinux unaffected records for the binary package and related packages
 // 4. Apply filtering logic to determine which disclosures are still vulnerable on AlmaLinux
-func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+//
+// upstreams are binaryPkg's upstream (source) packages to search (see internal.UpstreamPackages).
+//
+//nolint:funlen
+func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Package, upstreams []pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	if strings.HasSuffix(binaryPkg.Name, "-debuginfo") || strings.HasSuffix(binaryPkg.Name, "-debugsource") {
 		return nil, nil, nil // almalinux explicitly never publishes advisories for RPMs that are only debug material
 	}
@@ -68,6 +72,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 		search.ByPackageName(binaryPkg.Name),
 		search.ByDistro(rhelCompatibleDistro),
 		internal.OnlyQualifiedPackages(binaryPkg),
+		search.ByArchitecture(binaryPkg.Arch),
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("matcher failed to fetch RHEL disclosures for AlmaLinux binary pkg=%q: %w", binaryPkg.Name, err)
@@ -81,7 +86,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 	// even when the source package has a non-zero epoch. See the comment in matchUpstreamPackages
 	// in matcher.go for the full explanation of why this is necessary.
 	upstreamDisclosures := result.Set{}
-	for _, upstreamPkg := range pkg.UpstreamPackages(binaryPkg) {
+	for _, upstreamPkg := range upstreams {
 		// Create a version object from the upstream package WITHOUT adding epoch
 		// This avoids false positives where binary package epochs differ from source package epochs
 		upstreamVersion := version.New(upstreamPkg.Version, pkg.VersionFormat(upstreamPkg))
@@ -90,6 +95,9 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 			search.ByPackageName(upstreamPkg.Name),
 			search.ByDistro(rhelCompatibleDistro),
 			internal.OnlyQualifiedPackages(upstreamPkg),
+			// the binary's own source only adds records that specify an architecture; step 1
+			// already found those that don't
+			search.ByArchitecture(upstreamPkg.Arch).WithRequired(internal.IsSameUpstream(upstreamPkg, binaryPkg)),
 		)
 		if err != nil {
 			log.WithFields("error", err, "upstreamPkg", upstreamPkg.Name, "binaryPkg", binaryPkg.Name).Debug("failed to fetch RHEL disclosures for upstream package")
@@ -117,6 +125,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 		search.ByPackageName(binaryPkg.Name),
 		search.ByExactDistro(*binaryPkg.Distro), // use exact AlmaLinux distro for unaffected lookup (no aliases)
 		internal.OnlyQualifiedPackages(binaryPkg),
+		search.ByArchitecture(binaryPkg.Arch),
 		search.ForUnaffected(),
 	)
 	if err != nil {
@@ -128,7 +137,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 	// Step 4: Find AlmaLinux unaffected records for related packages (source/binary relationships)
 	// This handles cases where AlmaLinux publishes unaffected records for binary packages (e.g., python3-tkinter)
 	// but the disclosure is for the source package (e.g., python3)
-	relatedUnaffected := findRelatedUnaffectedPackages(provider, binaryPkg)
+	relatedUnaffected := findRelatedUnaffectedPackages(provider, binaryPkg, upstreams)
 
 	// Merge all unaffected results
 	allUnaffected := directUnaffected.Merge(relatedUnaffected)
@@ -142,32 +151,30 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 	return updatedDisclosures.ToMatches(), ignored, nil
 }
 
-// findRelatedUnaffectedPackages searches for unaffected packages using source/binary RPM relationships
-func findRelatedUnaffectedPackages(provider result.Provider, searchPkg pkg.Package) result.Set {
+// findRelatedUnaffectedPackages searches for AlmaLinux unaffected records published under the
+// package's source rpm names. Each upstream (source) package is tagged "src", so a source that
+// shares the binary's name is still searched: step 3 searched that name with the binary's own arch.
+func findRelatedUnaffectedPackages(provider result.Provider, binaryPkg pkg.Package, upstreams []pkg.Package) result.Set {
 	allResults := make(result.Set)
 
-	// Get all related package names (source RPM, binary RPM patterns, etc.)
-	relatedNames := getRelatedPackageNames(searchPkg)
-
-	for _, relatedName := range relatedNames {
-		if relatedName == searchPkg.Name {
-			continue // skip the main package name as it's already searched
-		}
-
-		// Search for unaffected records using related package names
+	for _, upstreamPkg := range upstreams {
+		// Search for unaffected records using the source package name
 		relatedResults, err := provider.FindResults(
-			search.ByPackageName(relatedName),
-			search.ByExactDistro(*searchPkg.Distro), // use exact distro to avoid alias mapping
-			internal.OnlyQualifiedPackages(searchPkg),
+			search.ByPackageName(upstreamPkg.Name),
+			search.ByExactDistro(*upstreamPkg.Distro), // use exact distro to avoid alias mapping
+			internal.OnlyQualifiedPackages(upstreamPkg),
+			// the binary's own source only adds records that specify an architecture; step 3
+			// already found those that don't
+			search.ByArchitecture(upstreamPkg.Arch).WithRequired(internal.IsSameUpstream(upstreamPkg, binaryPkg)),
 			search.ForUnaffected(),
 		)
 		if err != nil {
-			log.WithFields("error", err, "relatedName", relatedName, "originalPkg", searchPkg.Name).Debug("failed to fetch related unaffected packages")
+			log.WithFields("error", err, "upstreamPkg", upstreamPkg.Name, "originalPkg", binaryPkg.Name).Debug("failed to fetch related unaffected packages")
 			continue
 		}
 
 		if len(relatedResults) > 0 {
-			log.WithFields("relatedName", relatedName, "originalPkg", searchPkg.Name, "foundUnaffected", len(relatedResults)).Trace("found unaffected records via package relationship")
+			log.WithFields("upstreamPkg", upstreamPkg.Name, "originalPkg", binaryPkg.Name, "foundUnaffected", len(relatedResults)).Trace("found unaffected records via source package")
 			// Merge results into our set
 			for key, results := range relatedResults {
 				allResults[key] = append(allResults[key], results...)
