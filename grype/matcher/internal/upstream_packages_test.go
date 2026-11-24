@@ -59,7 +59,8 @@ func TestUpstreamPackages_InheritsEpoch(t *testing.T) {
 		{name: "source rpm of another version: unknown epoch", pkgType: syftPkg.RpmPkg, pkgVersion: "2:3.0.6-1.el9", upstream: pkg.UpstreamPackage{Name: "openssl", Version: "3.0.7-27.el9"}, want: "3.0.7-27.el9"},
 		{name: "source rpm with its own epoch", pkgType: syftPkg.RpmPkg, pkgVersion: "2:3.0.7-27.el9", upstream: pkg.UpstreamPackage{Name: "openssl", Version: "1:3.0.7-27.el9"}, want: "1:3.0.7-27.el9"},
 		{name: "zero epoch is inherited", pkgType: syftPkg.RpmPkg, pkgVersion: "0:3.0.7-27.el9", upstream: pkg.UpstreamPackage{Name: "openssl", Version: "3.0.7-27.el9"}, want: "0:3.0.7-27.el9"},
-		{name: "no epoch is inherited as zero", pkgType: syftPkg.RpmPkg, pkgVersion: "3.0.7-27.el9", upstream: pkg.UpstreamPackage{Name: "openssl", Version: "3.0.7-27.el9"}, want: "0:3.0.7-27.el9"},
+		{name: "no epoch: left to the strategy", pkgType: syftPkg.RpmPkg, pkgVersion: "3.0.7-27.el9", upstream: pkg.UpstreamPackage{Name: "openssl", Version: "3.0.7-27.el9"}, want: "3.0.7-27.el9"},
+		{name: "synthesized source of its own name, no epoch: left to the strategy", pkgType: syftPkg.RpmPkg, pkgVersion: "3.0.7-27.el9", want: "3.0.7-27.el9"},
 		{name: "deb source version is explicit", pkgType: syftPkg.DebPkg, pkgVersion: "2:3.0.7-1", upstream: pkg.UpstreamPackage{Name: "openssl", Version: "3.0.7-1"}, want: "3.0.7-1"},
 	}
 	for _, tt := range tests {
