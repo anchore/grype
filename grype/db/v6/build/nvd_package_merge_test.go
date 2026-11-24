@@ -2,6 +2,8 @@ package v6
 
 import (
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -79,10 +81,20 @@ func readEnvelope(t *testing.T, providerName, id string) (*unmarshal.ItemsEnvelo
 // cnaProcessors are the processors a build with CNA reconciliation uses, with the CVE 5 records of the given CVEs indexed.
 func cnaProcessors(t *testing.T, cve5 ...string) []data.Processor {
 	t.Helper()
-	openers := make(chan entry.Opener, len(cve5))
+	var results [][]byte
 	for _, id := range cve5 {
 		_, contents := readEnvelope(t, "cve5", id)
-		openers <- bytesOpener{name: id, contents: contents}
+		results = append(results, contents)
+	}
+	return cnaProcessorsFor(t, results...)
+}
+
+// cnaProcessorsFor is cnaProcessors with the CVE 5 results given as envelope bytes.
+func cnaProcessorsFor(t *testing.T, results ...[]byte) []data.Processor {
+	t.Helper()
+	openers := make(chan entry.Opener, len(results))
+	for i, contents := range results {
+		openers <- bytesOpener{name: fmt.Sprintf("result-%d", i), contents: contents}
 	}
 	close(openers)
 
@@ -499,4 +511,43 @@ func TestNVDPackageMerge_severityBackfill(t *testing.T) {
 	require.Len(t, vulns, 1)
 	require.NotEmpty(t, vulns[0].BlobValue.Severities)
 	assert.Equal(t, nvdSeverity, vulns[0].BlobValue.Severities[0])
+}
+
+// no published CVE 5 record names a Swift package by purl, so the case adds one, as a declared edit, to the real
+// `anchoreadp` entry of CVE-2024-21631, which GHSA-r6r4-5pr8-gjcp aliases
+func TestNVDPackageMerge_swiftGHSA(t *testing.T) {
+	const (
+		cve   = "CVE-2024-21631"
+		ghsa  = "GHSA-r6r4-5pr8-gjcp"
+		vapor = "github.com/vapor/vapor"
+	)
+
+	_, contents := readEnvelope(t, "cve5", cve)
+	var envelope map[string]any
+	require.NoError(t, json.Unmarshal(contents, &envelope))
+	edited := false
+	for _, a := range envelope["item"].(map[string]any)["containers"].(map[string]any)["adp"].([]any) {
+		adp := a.(map[string]any)
+		if adp["providerMetadata"].(map[string]any)["shortName"] != "anchoreadp" {
+			continue
+		}
+		affected := adp["affected"].([]any)
+		require.Len(t, affected, 1)
+		affected[0].(map[string]any)["packageURL"] = "pkg:swift/" + vapor
+		edited = true
+	}
+	require.True(t, edited)
+	contents, err := json.Marshal(envelope)
+	require.NoError(t, err)
+
+	processors := cnaProcessorsFor(t, contents)
+	nvdEntry := transformResult(t, processors, "nvd", cve)
+	ghsaEntry := transformResult(t, processors, "github", ghsa)
+
+	require.Equal(t, []string{vapor}, packageNames(nvdEntry), "the CNA row is named by the repository path")
+	require.Equal(t, []string{vapor}, packageNames(ghsaEntry))
+
+	out := mergeFor(nvdEntry, ghsaEntry)
+	require.Len(t, out, 1)
+	assert.Empty(t, packageNames(out[0]), "the GHSA covers the CNA's Swift package")
 }

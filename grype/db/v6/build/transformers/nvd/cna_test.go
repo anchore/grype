@@ -635,9 +635,9 @@ func TestCNAPackageHandles_locator(t *testing.T) {
 			want: []wantPackage{{"python", "some-package", []wantRange{{"pypi", "< 2.0.0", "2.0.0"}}}},
 		},
 		{
-			name: "swift purl with no version",
+			name: "swift purl with no version is named by its repository path",
 			rec:  affected("pkg:swift/github.com/apple/swift-nio", "", ""),
-			want: []wantPackage{{"swift", "swift-nio", []wantRange{{"swift", "< 2.0.0", "2.0.0"}}}},
+			want: []wantPackage{{"swift", "github.com/apple/swift-nio", []wantRange{{"swift", "< 2.0.0", "2.0.0"}}}},
 		},
 		{
 			name: "pub purl",

@@ -24,7 +24,7 @@ func PackageNameFromPURL(purl *packageurl.PackageURL) string {
 	switch purl.Type {
 	case packageurl.TypeMaven:
 		return purl.Namespace + ":" + purl.Name
-	case packageurl.TypeNPM, packageurl.TypeGolang, packageurl.TypeComposer:
+	case packageurl.TypeNPM, packageurl.TypeGolang, packageurl.TypeComposer, packageurl.TypeSwift:
 		// For Go the namespace is not metadata, it is the leading part of the
 		// module path: pkg:golang/github.com/gin-gonic/gin splits into
 		// Namespace="github.com/gin-gonic" and Name="gin", and the module is
@@ -34,6 +34,9 @@ func PackageNameFromPURL(purl *packageurl.PackageURL) string {
 		//
 		// A Composer package is "vendor/name", the form the github transformer
 		// stores from the GHSA, and the vendor is the purl namespace.
+		//
+		// A Swift package is its repository path (github.com/apple/swift-nio),
+		// the form GHSA rows use; the bare name would match any fork.
 		return purl.Namespace + "/" + purl.Name
 	}
 	return purl.Name
