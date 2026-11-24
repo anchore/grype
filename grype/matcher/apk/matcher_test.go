@@ -804,6 +804,23 @@ func TestMatcherApk_ArchFilter_NoMatchWhenArchDisagrees(t *testing.T) {
 	})
 }
 
+// TestMatcherApk_ArchFilter_NoMatchThroughSiblingOrigin covers binary-keyed records: the x86_64
+// record names the langfuse-3-worker binary only. A subpackage built from it, on the same arch and at
+// a vulnerable version, searches langfuse-3-worker as its origin (a source package), so the record
+// must not reach it through that search.
+func TestMatcherApk_ArchFilter_NoMatchThroughSiblingOrigin(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		p := dbtest.NewPackage("langfuse-3-worker-doc", "3.152.0-r0", syftPkg.ApkPkg).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("x86_64").
+			WithUpstream("langfuse-3-worker", "3.152.0-r0"). // below the 3.153.0-r0 fix
+			Build()
+
+		db.Match(t, &matcher, p).IsEmpty()
+	})
+}
+
 // TestMatcherApk_NvdOnlyMatchGetsFixStripped pins the rule from #2162: grype-db infers
 // fixes from NVD end-of-range data and apk discards them, because an NVD "fix" is an
 // upstream release number and only the distro feed knows when an apk ships. Here NVD's
