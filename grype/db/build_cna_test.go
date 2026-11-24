@@ -253,6 +253,35 @@ func TestBuild_reconcileCNAInputChecks(t *testing.T) {
 		require.FileExists(t, filepath.Join(out, v6.VulnerabilityDBFileName))
 	})
 
+	writeCVE5Result := func(t *testing.T, inputDir, schema string, item []byte) {
+		t.Helper()
+		envelope, err := json.Marshal(map[string]any{"schema": schema, "identifier": "2026/cve-2026-85091", "item": json.RawMessage(item)})
+		require.NoError(t, err)
+		dir := filepath.Join(inputDir, "cve5", "results")
+		require.NoError(t, os.MkdirAll(dir, 0o755))
+		require.NoError(t, os.WriteFile(filepath.Join(dir, "CVE-2026-85091.json"), envelope, 0o600))
+	}
+
+	t.Run("cve5 with an unsupported schema", func(t *testing.T) {
+		in := writeCNAInputs(t, cnaRecord{"nvd", "CVE-2026-85091"})
+		item, err := os.ReadFile(filepath.Join(cnaTestdata, "cve5", "CVE-2026-85091.json"))
+		require.NoError(t, err)
+		writeCVE5Result(t, in, "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/cve5/schema-6.0.0.json", item)
+
+		out, err := buildErr(t, in, nil)
+		require.ErrorContains(t, err, "cve5")
+		require.NoFileExists(t, filepath.Join(out, v6.VulnerabilityDBFileName))
+	})
+
+	t.Run("cve5 records that do not decode", func(t *testing.T) {
+		in := writeCNAInputs(t, cnaRecord{"nvd", "CVE-2026-85091"})
+		writeCVE5Result(t, in, cve5Schema, []byte(`"a string, not a record"`))
+
+		out, err := buildErr(t, in, nil)
+		require.ErrorContains(t, err, "cve5")
+		require.NoFileExists(t, filepath.Join(out, v6.VulnerabilityDBFileName))
+	})
+
 	t.Run("schema 5", func(t *testing.T) {
 		in := standardCNAInputs(t)
 		_, err := buildErr(t, in, func(cfg *db.BuildConfig) { cfg.SchemaVersion = 5 })

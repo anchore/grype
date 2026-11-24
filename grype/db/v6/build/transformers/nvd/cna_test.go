@@ -175,7 +175,25 @@ func TestNewIndex_badRecordsAreSkippedAndCounted(t *testing.T) {
 	))
 	require.NoError(t, err)
 	require.Equal(t, 3, idx.Count())
+	require.Equal(t, 1, idx.Decoded())
 	require.Len(t, idx.Leftovers(), 1)
+}
+
+func TestNewIndex_unsupportedSchemaIsSkipped(t *testing.T) {
+	envelope := func(schema string) entry.Opener {
+		b, err := json.Marshal(map[string]any{"schema": schema, "identifier": "2026/cve-2026-85091", "item": json.RawMessage(readCVE5Fixture(t, "CVE-2026-85091"))})
+		require.NoError(t, err)
+		return bytesOpener{name: schema, contents: b}
+	}
+
+	idx, err := NewIndex(openers(
+		envelope("https://example.invalid/schema/vulnerability/cve5/schema-6.0.0.json"),
+		envelope("https://example.invalid/schema/vulnerability/nvd/schema-5.2.0.json"),
+	))
+	require.NoError(t, err)
+	require.Equal(t, 2, idx.Count())
+	require.Zero(t, idx.Decoded())
+	require.Empty(t, idx.Leftovers())
 }
 
 func TestNewIndex_openFailureIsAnError(t *testing.T) {

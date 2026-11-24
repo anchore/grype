@@ -172,12 +172,22 @@ type Index struct {
 	records  map[string]Projection
 	consumed map[string]struct{}
 	count    int
+	decoded  int
+}
+
+// cve5SchemaVersion is the schema file of a supported `cve5` result, major version 5, matched the way the
+// processors' IsSupported reads a schema URL.
+var cve5SchemaVersion = regexp.MustCompile(`schema[-_]5\.\d+\.\d+\.json`)
+
+func cve5SchemaSupported(schemaURL string) bool {
+	return strings.Contains(schemaURL, "/cve5/") && cve5SchemaVersion.MatchString(schemaURL)
 }
 
 // NewIndex reads every record from the `cve5` provider's openers. It keeps a record when either container has
 // cpeApplicability or the selected affected list has an entry with a packageURL or collectionURL, since nothing
 // else is read later.
-// A record that fails to decode is skipped with a warning and still counts as read.
+// A record that fails to decode or declares an unsupported schema is skipped with a warning and still counts as
+// read, but not as decoded.
 func NewIndex(openers <-chan entry.Opener) (*Index, error) {
 	idx := &Index{
 		records:  make(map[string]Projection),
@@ -197,12 +207,17 @@ func NewIndex(openers <-chan entry.Opener) (*Index, error) {
 			log.WithFields("record", opener.String(), "error", err).Warn("unable to decode CVE 5 record (skipping)")
 			continue
 		}
+		if !cve5SchemaSupported(envelope.Schema) {
+			log.WithFields("record", envelope.Identifier, "schema", envelope.Schema).Warn("unsupported CVE 5 record schema (skipping)")
+			continue
+		}
 
 		records, err := unmarshal.CVE5Entries(bytes.NewReader(envelope.Item))
 		if err != nil {
 			log.WithFields("record", envelope.Identifier, "error", err).Warn("unable to decode CVE 5 record (skipping)")
 			continue
 		}
+		idx.decoded++
 
 		for _, r := range records {
 			idx.add(r)
@@ -240,9 +255,14 @@ func (p Projection) hasData() bool {
 	return false
 }
 
-// Count is the number of records read, whether or not they were kept.
+// Count is the number of records read, whether or not they decoded or were kept.
 func (i *Index) Count() int {
 	return i.count
+}
+
+// Decoded is the number of records read that decoded under a supported schema, whether or not they were kept.
+func (i *Index) Decoded() int {
+	return i.decoded
 }
 
 // Take returns the record for a CVE ID and marks it consumed, so Leftovers no longer returns it.

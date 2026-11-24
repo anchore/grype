@@ -141,7 +141,7 @@ func getProcessors(cfg BuildConfig, cnaIndex *nvd.Index) ([]data.Processor, nvd.
 }
 
 // readCNAIndex indexes the `cve5` provider's records, after checking that the input is usable: `cve5` and `nvd` are
-// both present, `cve5` is not much older than `nvd`, and `cve5` holds records.
+// both present, `cve5` is not much older than `nvd`, and `cve5` holds records that decode.
 func readCNAIndex(states provider.States) (*nvd.Index, error) {
 	cve5, nvdState := findState(states, cve5Provider), findState(states, nvdProvider)
 	if cve5 == nil {
@@ -173,8 +173,12 @@ func readCNAIndex(states provider.States) (*nvd.Index, error) {
 	if idx.Count() == 0 {
 		return nil, fmt.Errorf("%q input holds no records", cve5Provider)
 	}
+	// a schema change that breaks decoding would otherwise build a database with no CNA data
+	if idx.Decoded() == 0 {
+		return nil, fmt.Errorf("none of the %d %q records decode under a supported schema", idx.Count(), cve5Provider)
+	}
 
-	log.WithFields("records", idx.Count()).Debug("read CVE 5 records for CNA reconciliation")
+	log.WithFields("records", idx.Count(), "decoded", idx.Decoded()).Debug("read CVE 5 records for CNA reconciliation")
 	return idx, nil
 }
 
