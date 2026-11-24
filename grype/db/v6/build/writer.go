@@ -33,10 +33,6 @@ type writer struct {
 	// govulndb_merge.go.
 	goMerge *goVulnDBMerger
 
-	// archTally enforces allowedArchitectures and summarizes package architectures at Close time.
-	archTally                    *architectureTally
-	allowUnexpectedArchitectures bool
-
 	// Two-tier batching: parent records (vulnerabilities + providers) and child records (related entries)
 	// This maintains FK integrity while maximizing batch sizes
 	parentBatchSize int
@@ -63,16 +59,7 @@ type Provider struct {
 type WriterOption func(*writerOptions)
 
 type writerOptions struct {
-	sqliteCacheSizeKiB           int
-	allowUnexpectedArchitectures bool
-}
-
-// WithAllowUnexpectedArchitectures logs package architectures outside allowedArchitectures instead of failing the
-// build at Close.
-func WithAllowUnexpectedArchitectures(allow bool) WriterOption {
-	return func(o *writerOptions) {
-		o.allowUnexpectedArchitectures = allow
-	}
+	sqliteCacheSizeKiB int
 }
 
 // WithSQLiteCacheSizeKiB sets the SQLite page cache size (in KiB) used while building the DB. Zero means use the
@@ -110,19 +97,17 @@ func NewWriter(directory string, states provider.States, failOnMissingFixDate bo
 	}
 
 	return &writer{
-		dbPath:                       cfg.DBFilePath(),
-		failOnMissingFixDate:         failOnMissingFixDate,
-		providerCache:                make(map[string]db.Provider),
-		store:                        s,
-		states:                       states,
-		severityCache:                make(map[string]db.Severity),
-		goMerge:                      newGoVulnDBMerger(),
-		archTally:                    newArchitectureTally(),
-		allowUnexpectedArchitectures: o.allowUnexpectedArchitectures,
-		parentBatchSize:              batchSize,
-		childBatchSize:               batchSize,
-		parentBuffer:                 make([]func() error, 0, batchSize),
-		childBuffer:                  make([]func() error, 0, batchSize),
+		dbPath:               cfg.DBFilePath(),
+		failOnMissingFixDate: failOnMissingFixDate,
+		providerCache:        make(map[string]db.Provider),
+		store:                s,
+		states:               states,
+		severityCache:        make(map[string]db.Severity),
+		goMerge:              newGoVulnDBMerger(),
+		parentBatchSize:      batchSize,
+		childBatchSize:       batchSize,
+		parentBuffer:         make([]func() error, 0, batchSize),
+		childBuffer:          make([]func() error, 0, batchSize),
 	}, nil
 }
 
@@ -266,8 +251,6 @@ func (w *writer) writeAffectedPackage(vulnHandle *db.VulnerabilityHandle, row db
 		}
 	}
 
-	w.archTally.record(vulnHandle, row.BlobValue)
-
 	// Add affected package to child batch - defer VulnerabilityID assignment until flush
 	pkgHandle := row
 	return w.addToChildBatch(func() error {
@@ -297,8 +280,6 @@ func (w *writer) writeAffectedCPE(vulnHandle *db.VulnerabilityHandle, row db.Aff
 }
 
 func (w *writer) writeUnaffectedPackage(vulnHandle *db.VulnerabilityHandle, row db.UnaffectedPackageHandle) error {
-	w.archTally.record(vulnHandle, row.BlobValue)
-
 	// Add unaffected package to child batch - defer VulnerabilityID assignment until flush
 	pkgHandle := row
 	return w.addToChildBatch(func() error {
@@ -519,13 +500,6 @@ func (w *writer) Close() error {
 
 	if err := w.store.Close(); err != nil {
 		return fmt.Errorf("unable to close store: %w", err)
-	}
-
-	if err := w.archTally.summarize(); err != nil {
-		if !w.allowUnexpectedArchitectures {
-			return err
-		}
-		log.WithFields("error", err).Warn("allowing unexpected package architectures")
 	}
 
 	log.WithFields(
