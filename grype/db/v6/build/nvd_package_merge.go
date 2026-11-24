@@ -2,6 +2,7 @@ package v6
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -10,14 +11,16 @@ import (
 )
 
 // this file drops the package rows an `nvd` entry gets from CNA data (and from the curated CPE mappings) when
-// another provider already has a row for the same package, so a CVE and a GHSA that alias it do not both report
-// the same package. GHSA records are the usual other side: they name the same packages and carry reviewed ranges.
+// an advisory provider (github, bitnami or govulndb) already has a row for the same package, so a CVE and a GHSA
+// that alias it do not both report the same package. GHSA records are the usual other side: they name the same
+// packages and carry reviewed ranges.
 //
 // the decision is made in Close, after every entry has been seen, so the result does not depend on the order in which
 // providers are processed:
-//   - observe records every non-nvd package handle as (CVE ID, package type, name), for each CVE ID the handle's
-//     vulnerability names or aliases. It runs before the govulndb merge holds Go entries, and unwraps the govulndb
-//     handle wrapper for the read only.
+//   - observe records each package handle with no operating system from those providers as (CVE ID, package type,
+//     name), for each CVE ID the handle's vulnerability names or aliases. A distro-scoped row or another provider's
+//     row (a VEX statement about one version, say) does not cover every release, so it is not recorded. It runs
+//     before the govulndb merge holds Go entries, and unwraps the govulndb handle wrapper for the read only.
 //   - hold keeps back every nvd entry that has package handles. The entry itself is held unchanged, so the govulndb
 //     merge still sees the entries it sees today.
 //   - reconcile removes the held entries' package handles that were observed, and records each drop on the
@@ -43,15 +46,18 @@ func newNVDPackageMerger() *nvdPackageMerger {
 	return &nvdPackageMerger{covered: make(map[nvdPackageKey]string)}
 }
 
+// nvdCoveringProviders are the providers whose unscoped package rows stand in for an nvd package row.
+var nvdCoveringProviders = []string{"github", "bitnami", "govulndb"}
+
 func isNVD(h *db.VulnerabilityHandle) bool {
 	return strings.EqualFold(h.ProviderID, "nvd")
 }
 
-// observe records the packages of a non-nvd entry. The entry is not changed.
+// observe records the unscoped packages of an entry from a covering provider. The entry is not changed.
 func (m *nvdPackageMerger) observe(entry transformers.RelatedEntries) {
 	h := entry.VulnerabilityHandle
 	// a withdrawn advisory never matches, so its rows cannot stand in for the CNA's (see goVulnDBMerger)
-	if h == nil || isNVD(h) || h.Status == db.VulnerabilityRejected {
+	if h == nil || !slices.Contains(nvdCoveringProviders, strings.ToLower(h.ProviderID)) || h.Status == db.VulnerabilityRejected {
 		return
 	}
 
@@ -65,7 +71,7 @@ func (m *nvdPackageMerger) observe(entry transformers.RelatedEntries) {
 		default:
 			continue
 		}
-		if aph.Package == nil {
+		if aph.Package == nil || aph.OperatingSystem != nil {
 			continue
 		}
 

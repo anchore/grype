@@ -247,6 +247,19 @@ func TestNVDPackageMerge_edits(t *testing.T) {
 			wantPackages: []string{bcFips, bcJdk18on, bcLts8on},
 		},
 		{
+			name: "a GHSA row scoped to an operating system does not cover",
+			edit: func(e transformers.RelatedEntries) transformers.RelatedEntries {
+				for i, rel := range e.Related {
+					if aph, ok := rel.(db.AffectedPackageHandle); ok {
+						aph.OperatingSystem = &db.OperatingSystem{Name: "debian", MajorVersion: "12"}
+						e.Related[i] = aph
+					}
+				}
+				return e
+			},
+			wantPackages: []string{bcFips, bcJdk18on, bcLts8on},
+		},
+		{
 			name: "a GHSA in another ecosystem does not cover",
 			edit: func(e transformers.RelatedEntries) transformers.RelatedEntries {
 				for i, rel := range e.Related {

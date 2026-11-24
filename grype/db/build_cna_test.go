@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -257,4 +258,101 @@ func TestBuild_reconcileCNAInputChecks(t *testing.T) {
 		_, err := buildErr(t, in, func(cfg *db.BuildConfig) { cfg.SchemaVersion = 5 })
 		require.ErrorContains(t, err, "schema")
 	})
+}
+
+// processorFixture reads a processor test fixture. An openvex fixture is a document, and the provider's result is
+// one of its statements, so the first statement is returned for it.
+func processorFixture(t *testing.T, fixture string) []byte {
+	t.Helper()
+	b, err := os.ReadFile(filepath.Join("processors", "testdata", fixture))
+	require.NoError(t, err)
+	if fixture != "openvex.json" {
+		return b
+	}
+	var doc struct {
+		Statements []json.RawMessage `json:"statements"`
+	}
+	require.NoError(t, json.Unmarshal(b, &doc))
+	require.NotEmpty(t, doc.Statements)
+	return doc.Statements[0]
+}
+
+// writeEditedInput writes a processor test fixture, with declared string replacements, as a provider's one result.
+func writeEditedInput(t *testing.T, inputDir, providerName, schema, fixture string, replacements ...string) {
+	t.Helper()
+	item := processorFixture(t, fixture)
+	r := strings.NewReplacer(replacements...)
+	edited := r.Replace(string(item))
+	for i := 1; i < len(replacements); i += 2 {
+		require.Contains(t, edited, replacements[i])
+	}
+
+	envelope, err := json.Marshal(map[string]any{
+		"schema":     schema,
+		"identifier": providerName + "-" + fixture,
+		"item":       json.RawMessage(edited),
+	})
+	require.NoError(t, err)
+	dir := filepath.Join(inputDir, providerName, "results")
+	require.NoError(t, os.MkdirAll(dir, 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, fixture), envelope, 0o600))
+}
+
+// only an unscoped package row from an advisory provider stands in for an nvd row; a distro's row or a VEX
+// statement about one version is not a second finding for the same package
+func TestBuild_reconcileCNAKeepsNVDRowsOtherProvidersDoNotCover(t *testing.T) {
+	const cve = "CVE-2026-41608"
+
+	tests := []struct {
+		name  string
+		input func(t *testing.T, inputDir string)
+	}{
+		{
+			name: "an OS-scoped row for the same package",
+			input: func(t *testing.T, inputDir string) {
+				writeEditedInput(t, inputDir, "hummingbird",
+					"https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/csaf-vex/schema-2.0.0.json",
+					"csaf-vex.json",
+					"CVE-2026-12345", cve,
+					"pkg:rpm/redhat/testpkg@1.2.3-1.hum1?arch=src", "pkg:pypi/thrift@0.24.0",
+				)
+			},
+		},
+		{
+			name: "an openvex affected statement for one version",
+			input: func(t *testing.T, inputDir string) {
+				writeEditedInput(t, inputDir, "openvex",
+					"https://github.com/openvex/spec/openvex_json_schema_0.2.0.json",
+					"openvex.json",
+					"CVE-2023-45803", cve,
+					"pkg:pypi/urllib3@1.26.16+cgr.1", "pkg:pypi/thrift@0.23.0",
+					`"status": "fixed"`, `"status": "affected"`,
+				)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			in := writeCNAInputs(t, cnaRecord{"nvd", cve}, cnaRecord{"cve5", cve})
+			tt.input(t, in)
+			out := newOutputDir(t)
+			testdb.BuildFromFlatFileDirWithConfig(t, cnaBuildTime, out, in, func(cfg *db.BuildConfig) {
+				cfg.ReconcileCNA = true
+			}, allResults)
+
+			pkgs, err := openBuilt(t, out).GetAffectedPackages(
+				&v6.PackageSpecifier{Name: "thrift", Ecosystem: "python"},
+				&v6.GetPackageOptions{PreloadVulnerability: true},
+			)
+			require.NoError(t, err)
+
+			byProvider := map[string][]string{}
+			for _, p := range pkgs {
+				byProvider[p.Vulnerability.ProviderID] = append(byProvider[p.Vulnerability.ProviderID], p.Vulnerability.Name)
+			}
+			require.Len(t, byProvider, 2, "the other provider's row is written too: %v", byProvider)
+			require.Equal(t, []string{cve}, byProvider["nvd"])
+		})
+	}
 }
