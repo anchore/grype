@@ -179,7 +179,7 @@ func TestBuild_reconcileCNAEndToEnd(t *testing.T) {
 		// the drops are recorded on the CVE
 		require.Len(t, vulns[0].BlobValue.Modifications, 1)
 		mod := vulns[0].BlobValue.Modifications[0]
-		assert.Equal(t, ghsaBouncy, mod.URL)
+		assert.Equal(t, "https://github.com/advisories/"+ghsaBouncy, mod.URL)
 		require.Len(t, mod.Changes, 3)
 		for _, name := range []string{"org.bouncycastle:bc-fips", jdk18on, "org.bouncycastle:bcprov-lts8on"} {
 			assert.Contains(t, strings.Join(mod.Changes, "\n"), name)

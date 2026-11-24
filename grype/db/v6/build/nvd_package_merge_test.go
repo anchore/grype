@@ -221,7 +221,7 @@ func TestNVDPackageMerge_realRecords(t *testing.T) {
 	// the drops are recorded on the vulnerability, one modification for the GHSA that displaced them
 	mods := out[0].VulnerabilityHandle.BlobValue.Modifications
 	require.Len(t, mods, 1)
-	assert.Equal(t, bcGHSA, mods[0].URL)
+	assert.Equal(t, "https://github.com/advisories/"+bcGHSA, mods[0].URL)
 	assert.ElementsMatch(t, []string{
 		"dropped java-archive:" + bcFips + ": covered by " + bcGHSA,
 		"dropped java-archive:" + bcJdk18on + ": covered by " + bcGHSA,
@@ -305,7 +305,7 @@ func TestNVDPackageMerge_edits(t *testing.T) {
 				return
 			}
 			require.Len(t, mods, 1)
-			assert.Equal(t, bcGHSA, mods[0].URL)
+			assert.Equal(t, "https://github.com/advisories/"+bcGHSA, mods[0].URL)
 			require.Len(t, mods[0].Changes, len(tt.wantDropped))
 			for i, name := range tt.wantDropped {
 				assert.Contains(t, mods[0].Changes[i], name)

@@ -160,6 +160,18 @@ func (m *nvdPackageMerger) dropCovered(entry *transformers.RelatedEntries) {
 	}
 	sort.Strings(byIDs)
 	for _, by := range byIDs {
-		handle.BlobValue.Modifications = append(handle.BlobValue.Modifications, db.Modification{URL: by, Changes: changesBy[by]})
+		handle.BlobValue.Modifications = append(handle.BlobValue.Modifications, db.Modification{URL: advisoryURL(by), Changes: changesBy[by]})
 	}
+}
+
+// advisoryURL returns the page of an advisory ID for the modification record. An ID in no known form (a bitnami
+// advisory, say) is returned as it is.
+func advisoryURL(id string) string {
+	switch {
+	case strings.HasPrefix(strings.ToUpper(id), "GHSA-"):
+		return "https://github.com/advisories/" + id
+	case strings.HasPrefix(strings.ToUpper(id), "GO-"):
+		return goVulnDBAdvisoryURL(id)
+	}
+	return id
 }
