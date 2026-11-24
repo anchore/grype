@@ -33,6 +33,9 @@ type writer struct {
 	// govulndb_merge.go.
 	goMerge *goVulnDBMerger
 
+	// archTally enforces allowedArchitectures and summarizes package architectures at Close time.
+	archTally *architectureTally
+
 	// Two-tier batching: parent records (vulnerabilities + providers) and child records (related entries)
 	// This maintains FK integrity while maximizing batch sizes
 	parentBatchSize int
@@ -104,6 +107,7 @@ func NewWriter(directory string, states provider.States, failOnMissingFixDate bo
 		states:               states,
 		severityCache:        make(map[string]db.Severity),
 		goMerge:              newGoVulnDBMerger(),
+		archTally:            newArchitectureTally(),
 		parentBatchSize:      batchSize,
 		childBatchSize:       batchSize,
 		parentBuffer:         make([]func() error, 0, batchSize),
@@ -251,6 +255,8 @@ func (w *writer) writeAffectedPackage(vulnHandle *db.VulnerabilityHandle, row db
 		}
 	}
 
+	w.archTally.record(vulnHandle, row.BlobValue)
+
 	// Add affected package to child batch - defer VulnerabilityID assignment until flush
 	pkgHandle := row
 	return w.addToChildBatch(func() error {
@@ -280,6 +286,8 @@ func (w *writer) writeAffectedCPE(vulnHandle *db.VulnerabilityHandle, row db.Aff
 }
 
 func (w *writer) writeUnaffectedPackage(vulnHandle *db.VulnerabilityHandle, row db.UnaffectedPackageHandle) error {
+	w.archTally.record(vulnHandle, row.BlobValue)
+
 	// Add unaffected package to child batch - defer VulnerabilityID assignment until flush
 	pkgHandle := row
 	return w.addToChildBatch(func() error {
@@ -500,6 +508,10 @@ func (w *writer) Close() error {
 
 	if err := w.store.Close(); err != nil {
 		return fmt.Errorf("unable to close store: %w", err)
+	}
+
+	if err := w.archTally.summarize(); err != nil {
+		return err
 	}
 
 	log.WithFields(
