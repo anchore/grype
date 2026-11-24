@@ -118,3 +118,23 @@ func TestWrite_FailsOnUnexpectedArchitecture(t *testing.T) {
 		assert.Contains(t, err.Error(), `provider "rhel" emitted architecture "x86_64" on 1 rows (e.g. CVE-2024-0001)`)
 	}
 }
+
+func TestWrite_AllowUnexpectedArchitectures(t *testing.T) {
+	w, err := NewWriter(t.TempDir(), provider.States{}, false, 0, WithAllowUnexpectedArchitectures(true))
+	require.NoError(t, err)
+
+	require.NoError(t, w.Write(data.Entry{
+		DBSchemaVersion: db.ModelVersion,
+		Data: transformers.RelatedEntries{
+			VulnerabilityHandle: &db.VulnerabilityHandle{
+				Name:       "CVE-2024-0001",
+				ProviderID: "rhel",
+				Provider:   &db.Provider{ID: "rhel", Version: "1"},
+				BlobValue:  &db.VulnerabilityBlob{ID: "CVE-2024-0001"},
+			},
+			Related: []any{db.AffectedPackageHandle{Package: &db.Package{Name: "openssl"}, BlobValue: archBlob("x86_64")}},
+		},
+	}))
+
+	require.NoError(t, w.Close())
+}

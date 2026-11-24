@@ -33,8 +33,11 @@ type BuildConfig struct {
 	InferNVDFixVersions  bool
 	Hydrate              bool
 	FailOnMissingFixDate bool // any fixes found without at least one available date will cause a build failure
-	BatchSize            int  // number of operations to batch before committing
-	SQLiteCacheSizeKiB   int  // SQLite page cache size (in KiB) used while writing the DB; zero means the built-in default (1 GiB)
+	// AllowUnexpectedArchitectures logs package architectures a provider is not expected to emit instead of failing the
+	// build (see allowedArchitectures in grype/db/v6/build)
+	AllowUnexpectedArchitectures bool
+	BatchSize                    int // number of operations to batch before committing
+	SQLiteCacheSizeKiB           int // SQLite page cache size (in KiB) used while writing the DB; zero means the built-in default (1 GiB)
 }
 
 func Build(cfg BuildConfig) error {
@@ -112,7 +115,10 @@ func getWriter(cfg BuildConfig) (data.Writer, error) {
 	case grypeDBv5.SchemaVersion:
 		return v5.NewWriter(cfg.Directory, cfg.Timestamp, cfg.States, batchSize, v5.WithSQLiteCacheSizeKiB(cfg.SQLiteCacheSizeKiB))
 	case grypeDBv6.ModelVersion:
-		return v6.NewWriter(cfg.Directory, cfg.States, cfg.FailOnMissingFixDate, batchSize, v6.WithSQLiteCacheSizeKiB(cfg.SQLiteCacheSizeKiB))
+		return v6.NewWriter(cfg.Directory, cfg.States, cfg.FailOnMissingFixDate, batchSize,
+			v6.WithSQLiteCacheSizeKiB(cfg.SQLiteCacheSizeKiB),
+			v6.WithAllowUnexpectedArchitectures(cfg.AllowUnexpectedArchitectures),
+		)
 	default:
 		return nil, fmt.Errorf("unable to create writer: unsupported schema version: %+v", cfg.SchemaVersion)
 	}
