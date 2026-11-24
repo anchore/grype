@@ -86,8 +86,24 @@ func (p Projection) CPESource() []nvd.Configuration {
 }
 
 // commitHashBound is a git commit hash, which orders against no release version. A run of digits only is more
-// likely a date or a version, so the all-digits case is excluded where the pattern is used.
-var commitHashBound = regexp.MustCompile(`^[0-9a-f]{7,40}$`)
+// likely a date or a version, so cnaBoundReason excludes the all-digits case.
+var commitHashBound = regexp.MustCompile(`(?i)^[0-9a-f]{7,40}$`)
+
+// cnaBoundReason is why a version bound from CNA data cannot be used, or empty when it can. Every bound on both the
+// package path and the CPE path goes through it, so neither path keeps a bound the other refuses. A whole "*" upper
+// bound and a placeholder lower bound are read by the caller and never reach this check.
+func cnaBoundReason(v string) string {
+	switch {
+	case commitHashBound.MatchString(v) && strings.Trim(v, "0123456789") != "":
+		return "version bound is a commit hash"
+	case strings.IndexFunc(v, unicode.IsSpace) >= 0 || strings.ContainsAny(v, "<>=,|*"):
+		return "version bound holds constraint syntax"
+	case strings.IndexFunc(v, unicode.IsDigit) < 0:
+		// free text such as "unspecified" or "N/A" names no version
+		return "version bound is free text"
+	}
+	return ""
+}
 
 // filterCNAConfigurations drops each vulnerable match that cnaMatchDropReason rejects, then each configuration
 // that lost a match and has no vulnerable match left. Configurations the filter does not touch are kept as is.
@@ -137,8 +153,8 @@ func cnaMatchDropReason(m nvd.CpeMatch) string {
 			continue
 		}
 		hasBound = true
-		if commitHashBound.MatchString(*b) && strings.Trim(*b, "0123456789") != "" {
-			return "version bound is a commit hash"
+		if reason := cnaBoundReason(*b); reason != "" {
+			return reason
 		}
 	}
 
@@ -411,11 +427,26 @@ func cnaRange(purlType string, item unmarshal.CVE5Version) (*db.Range, string) {
 		upper, inclusive = item.LessThanOrEqual, true
 	}
 
-	if lower == "" || cnaUnusableVersion(lower, false) || cnaUnusableVersion(upper, true) {
-		return nil, "version is a placeholder or free text"
+	if lower == "" {
+		return nil, "no version"
 	}
 
-	placeholder := lower == "0" || strings.EqualFold(lower, "n/a")
+	format := version.ParseFormat(purlType)
+	placeholder, reason := cnaLowerBound(lower, format)
+	if reason != "" {
+		return nil, reason
+	}
+	if upper != "" && upper != "*" {
+		if reason := cnaBoundReason(upper); reason != "" {
+			return nil, reason
+		}
+	}
+	for _, c := range item.Changes {
+		if reason := cnaBoundReason(c.At); reason != "" {
+			return nil, "change: " + reason
+		}
+	}
+
 	var constraint string
 	switch {
 	case placeholder && (upper == "" || upper == "*"):
@@ -434,9 +465,8 @@ func cnaRange(purlType string, item unmarshal.CVE5Version) (*db.Range, string) {
 		constraint = fmt.Sprintf(">= %s, < %s", lower, upper)
 	}
 
-	format := version.ParseFormat(purlType)
-
-	// a change inside the range makes the range cover versions the item does not mark affected
+	// a change inside the range makes the range cover versions the item does not mark affected. A change at an
+	// inclusive upper bound is inside it, since the range admits the bound itself
 	bound := upper
 	if bound == "" {
 		bound = lower
@@ -448,8 +478,8 @@ func cnaRange(purlType string, item unmarshal.CVE5Version) (*db.Range, string) {
 		if bound == "*" {
 			break
 		}
-		below, err := version.New(c.At, format).Compare(version.New(bound, format))
-		if err != nil || below < 0 {
+		cmp, err := version.New(c.At, format).Compare(version.New(bound, format))
+		if err != nil || cmp < 0 || (inclusive && cmp == 0) {
 			return nil, "change inside the range"
 		}
 	}
@@ -466,14 +496,16 @@ func cnaRange(purlType string, item unmarshal.CVE5Version) (*db.Range, string) {
 	return r, ""
 }
 
-// cnaUnusableVersion is true for a version holding constraint syntax, whitespace or an unspecified marker. A "*"
-// is allowed only as a whole upper bound.
-func cnaUnusableVersion(v string, upperBound bool) bool {
-	if v == "*" {
-		return !upperBound
+// cnaLowerBound reports whether a lower bound is a placeholder for "from the beginning", or why it cannot be used.
+// "0" and "n/a" are placeholders, and so is any usable bound that compares equal to 0 in the format, such as
+// "0.0.0", so that it maps the way "0" does.
+func cnaLowerBound(lower string, format version.Format) (bool, string) {
+	if lower == "0" || strings.EqualFold(lower, "n/a") {
+		return true, ""
 	}
-	return strings.IndexFunc(v, unicode.IsSpace) >= 0 ||
-		strings.ContainsAny(v, "<>=,*") ||
-		strings.EqualFold(v, "unspecified") ||
-		strings.EqualFold(v, "unknown")
+	if reason := cnaBoundReason(lower); reason != "" {
+		return false, reason
+	}
+	cmp, err := version.New(lower, format).Compare(version.New("0", format))
+	return err == nil && cmp == 0, ""
 }
