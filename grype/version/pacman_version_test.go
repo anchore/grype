@@ -119,6 +119,44 @@ func TestPacmanVersionCompare(t *testing.T) {
 			want:    -1,
 			wantErr: false,
 		},
+		// libalpm treats a missing epoch as 0, so an explicit epoch on one side
+		// takes precedence over the version (vercmp 4.34 1:001 = -1)
+		{
+			name: "vercmp example: missing epoch is lower than explicit epoch",
+			v1:   "4.34",
+			v2:   "1:001",
+			want: -1,
+		},
+		{
+			name: "libdwarf AVG-89: explicit epoch beats epochless date version",
+			v1:   "1:2.3.3-1",
+			v2:   "20161124-1",
+			want: 1,
+		},
+		{
+			name: "libdwarf AVG-332: explicit epoch beats epochless date version",
+			v1:   "1:2.3.3-1",
+			v2:   "20170709-1",
+			want: 1,
+		},
+		{
+			name: "explicit zero epoch equals missing epoch",
+			v1:   "0:2.3.3-1",
+			v2:   "2.3.3-1",
+			want: 0,
+		},
+		{
+			name: "explicit zero epoch still compares the version",
+			v1:   "0:2.3.3-1",
+			v2:   "20161124-1",
+			want: -1,
+		},
+		{
+			name: "same epoch on both sides compares the version",
+			v1:   "1:20161123-1",
+			v2:   "1:20161124-1",
+			want: -1,
+		},
 	}
 
 	for _, tt := range tests {

@@ -52,18 +52,17 @@ func (v pacmanVersion) Compare(other *Version) (int, error) {
 
 // Compare returns 0 if v == v2, -1 if v < v2, and +1 if v > v2.
 // Pacman uses a similar scheme to RPM: epoch:version-release
-// If epochs are NOT present and explicit in both versions then they are ignored for the comparison.
+// Like libalpm's alpm_pkg_vercmp, a missing epoch is treated as 0, so an explicit epoch on
+// only one side still takes precedence. Unlike the RPM comparator, there is no need to ignore
+// one-sided epochs here: both the Arch security tracker and pacman's local database record the
+// epoch whenever a package has one.
 func (v pacmanVersion) compare(v2 pacmanVersion) int {
 	if reflect.DeepEqual(v, v2) {
 		return 0
 	}
 
-	// Only compare epochs if both are present and explicit
-	if epochIsPresent(v.epoch) && epochIsPresent(v2.epoch) {
-		epochResult := compareEpochs(*v.epoch, *v2.epoch)
-		if epochResult != 0 {
-			return epochResult
-		}
+	if epochResult := compareEpochs(pacmanEpoch(v.epoch), pacmanEpoch(v2.epoch)); epochResult != 0 {
+		return epochResult
 	}
 
 	ret := comparePacmanVersions(v.version, v2.version)
@@ -72,6 +71,13 @@ func (v pacmanVersion) compare(v2 pacmanVersion) int {
 	}
 
 	return comparePacmanVersions(v.release, v2.release)
+}
+
+func pacmanEpoch(epoch *int) int {
+	if epoch == nil {
+		return 0
+	}
+	return *epoch
 }
 
 func (v pacmanVersion) String() string {
