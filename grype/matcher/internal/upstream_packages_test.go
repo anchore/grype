@@ -25,7 +25,7 @@ func TestUpstreamPackages(t *testing.T) {
 		{name: "no arch with an upstream of its own name at another version: that upstream", upstreams: []pkg.UpstreamPackage{{Name: "openssl", Version: "3.0.6"}}, want: []string{"openssl"}},
 		{name: "no arch with an upstream of another name: that upstream", upstreams: []pkg.UpstreamPackage{{Name: "openssl-src"}}, want: []string{"openssl-src"}},
 		{name: "source package: none", arch: "src"},
-		{name: "source package, another spelling: none", arch: "source"},
+		{name: "source package, another spelling: searched as a binary", arch: "source", want: []string{"openssl"}},
 		{name: "source package with an upstream of its own name: none", arch: "src", upstreams: []pkg.UpstreamPackage{{Name: "openssl"}}},
 		{name: "source package with an upstream of its own name at another version: that upstream", arch: "src", upstreams: []pkg.UpstreamPackage{{Name: "openssl", Version: "3.0.6"}}, want: []string{"openssl"}},
 	}

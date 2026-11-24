@@ -23,8 +23,9 @@ func IsSameUpstream(upstreamPkg, p pkg.Package) bool {
 //     that records no upstreams is also searched as a source package of its own name, which it is
 //     built from (e.g. dpkg omits a Source that matches the binary).
 func UpstreamPackages(p pkg.Package) []pkg.Package {
-	// don't duplicate source searches:
-	if p.Arch == "" || architecture.IsSource(p.Arch) {
+	// don't duplicate source searches. Only the canonical token is checked, not its spellings: those
+	// are the DB alias table's to decide, and a miss only costs a redundant own-source search.
+	if p.Arch == "" || p.Arch == architecture.ArchSource {
 		return slices.DeleteFunc(pkg.UpstreamPackages(p), func(u pkg.Package) bool { return IsSameUpstream(u, p) })
 	}
 	// if we have a binary architecture and no upstreams, include a source architecture search of the same-named package:

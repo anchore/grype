@@ -301,23 +301,3 @@ func TestCanonical(t *testing.T) {
 		})
 	}
 }
-
-func TestIsSource(t *testing.T) {
-	tests := []struct {
-		arch string
-		want bool
-	}{
-		{arch: ArchSource, want: true},
-		{arch: "SRC", want: true},
-		{arch: "source", want: true},
-		{arch: "", want: false},
-		{arch: "amd64", want: false},
-		{arch: "all", want: false},
-		{arch: ArchBinaryNoArchSpecified, want: false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.arch, func(t *testing.T) {
-			require.Equal(t, tt.want, IsSource(tt.arch))
-		})
-	}
-}

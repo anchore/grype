@@ -54,12 +54,6 @@ func DefaultAliases() map[string]string {
 	return defaultAliases
 }
 
-// IsSource reports whether arch names a source package, in any spelling the built-in aliases fold to
-// ArchSource.
-func IsSource(arch string) bool {
-	return canonical(arch, DefaultAliases()) == ArchSource
-}
-
 // Matches reports whether a package of architecture pkgArch falls under a vulnerability entry
 // scoped to recordArch. The rules are identical for affected and unaffected entries:
 //
