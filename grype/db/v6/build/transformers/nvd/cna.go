@@ -500,23 +500,12 @@ func cnaRange(purlType string, item unmarshal.CVE5Version) (*db.Range, string) {
 		constraint = fmt.Sprintf(">= %s, < %s", lower, upper)
 	}
 
-	// a change inside the range makes the range cover versions the item does not mark affected. A change at an
-	// inclusive upper bound is inside it, since the range admits the bound itself
 	bound := upper
 	if bound == "" {
 		bound = lower
 	}
-	if bound == "*" && len(item.Changes) > 0 {
-		return nil, "changes with no upper bound"
-	}
-	for _, c := range item.Changes {
-		if bound == "*" {
-			break
-		}
-		cmp, err := version.New(c.At, format).Compare(version.New(bound, format))
-		if err != nil || cmp < 0 || (inclusive && cmp == 0) {
-			return nil, "change inside the range"
-		}
+	if reason := cnaChangeInsideRange(item.Changes, bound, inclusive, format); reason != "" {
+		return nil, reason
 	}
 
 	v := db.Version{Type: purlType, Constraint: constraint}
@@ -529,6 +518,21 @@ func cnaRange(purlType string, item unmarshal.CVE5Version) (*db.Range, string) {
 		r.Fix = &db.Fix{Version: upper, State: db.FixedStatus}
 	}
 	return r, ""
+}
+
+// cnaChangeInsideRange reports why a change makes the range cover versions the item does not mark affected. A change
+// at an inclusive upper bound is inside it, since the range admits the bound itself.
+func cnaChangeInsideRange(changes []unmarshal.CVE5Change, bound string, inclusive bool, format version.Format) string {
+	if bound == "*" && len(changes) > 0 {
+		return "changes with no upper bound"
+	}
+	for _, c := range changes {
+		cmp, err := version.New(c.At, format).Compare(version.New(bound, format))
+		if err != nil || cmp < 0 || (inclusive && cmp == 0) {
+			return "change inside the range"
+		}
+	}
+	return ""
 }
 
 // cnaLowerBound reports whether a lower bound is a placeholder for "from the beginning", or why it cannot be used.
