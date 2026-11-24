@@ -167,7 +167,9 @@ func cnaMatchDropReason(m nvd.CpeMatch) string {
 	return ""
 }
 
-// Index holds the CNA data of CVE 5 records, keyed by lowercased CVE ID, for the NVD transformer to look up.
+// Index holds the CNA data of CVE 5 records, keyed by lowercased CVE ID, for the NVD transformer to look up. One
+// Index serves one sequential build: Take changes it and Leftovers depends on every prior Take, so it is not safe
+// for concurrent use.
 type Index struct {
 	records map[string]Projection
 	count   int

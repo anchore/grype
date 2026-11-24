@@ -4,7 +4,8 @@ import "github.com/anchore/packageurl-go"
 
 // PackageNameFromPURL reconstructs the package name in the form the rest
 // of the v6 build pipeline (and the matchers) expect for the package's
-// ecosystem. Most ecosystems are flat-namespaced and use purl.Name
+// ecosystem. It is used by the openvex transformer and by the CNA package
+// rows of the nvd transformer. Most ecosystems are flat-namespaced and use purl.Name
 // directly. Maven (java) packages are stored as "groupId:artifactId" by
 // the github advisory transformer, so we mirror that here; otherwise
 // the openvex unaffected handle and the github affected handle would
@@ -15,8 +16,9 @@ import "github.com/anchore/packageurl-go"
 // tripped by the packageurl library: purl.Namespace="@scope" and
 // purl.Name="name", and the github transformer stores the GHSA's
 // FixedIn name verbatim ("@scope/name"). Joining Namespace+"/"+Name
-// reproduces that string. Callers can extend this switch as more VEX
-// providers come online for additional ecosystems.
+// reproduces that string. The namespaced types are Maven, npm, Go, Composer
+// and Swift; any other type keeps just the name. Extend the switch when
+// another ecosystem needs its namespace.
 func PackageNameFromPURL(purl *packageurl.PackageURL) string {
 	if purl.Namespace == "" {
 		return purl.Name

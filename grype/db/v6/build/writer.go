@@ -33,7 +33,8 @@ type writer struct {
 	// govulndb_merge.go.
 	goMerge *goVulnDBMerger
 
-	// nvdMerge drops CNA package rows that another provider already covers. It is nil unless the build reconciles
+	// nvdMerge drops the package rows of `nvd` entries (from CNA data, and from the curated CPE mapping) that an
+	// unscoped github, bitnami or govulndb row for the same package covers. It is nil unless the build reconciles
 	// CNA data, and is reconciled before goMerge at Close. See nvd_package_merge.go.
 	nvdMerge *nvdPackageMerger
 

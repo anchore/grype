@@ -280,7 +280,7 @@ func tableRows(t *testing.T, dir string) map[string][]string {
 }
 
 func TestBuild_reconcileCNAOffIgnoresCVE5(t *testing.T) {
-	// the two builds write to separate directories, because the build is skipped when the output is newer than the input
+	// the two builds write to separate directories, because the build is skipped when the output is older than the input or missing
 	withCVE5 := tableRows(t, buildEndToEnd(t, copyEndToEndInputs(t), false))
 	withoutCVE5 := tableRows(t, buildEndToEnd(t, copyEndToEndInputs(t, "cve5"), false))
 

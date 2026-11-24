@@ -51,10 +51,10 @@ func BuildFromFlatFileDir(t *testing.T, buildTime time.Time, outputDir, inputDir
 }
 
 // BuildFromFlatFileDirWithConfig is BuildFromFlatFileDir with a function that edits the build config before the
-// build runs. A nil function leaves the config as BuildFromFlatFileDir builds it. A build error fails the test, so
-// a test of a build that is expected to fail uses FlatFileBuildConfig and db.Build directly.
+// build runs. A nil function leaves the config as BuildFromFlatFileDir builds it. A file include forces the build,
+// as the skip check applies only without one. A build error fails the test, so a test of a build that is expected to fail uses FlatFileBuildConfig and db.Build directly.
 func BuildFromFlatFileDirWithConfig(t *testing.T, buildTime time.Time, outputDir, inputDir string, edit func(*db.BuildConfig), fileIncludes ...string) {
-	// rebuild only if the cache is older than the results
+	// skip the build when the output is older than the input or missing, unless a file include forces it
 	if len(fileIncludes) == 0 && lastModifiedRecursive(t, outputDir).Before(lastModifiedRecursive(t, inputDir)) {
 		return
 	}
@@ -69,7 +69,8 @@ func BuildFromFlatFileDirWithConfig(t *testing.T, buildTime time.Time, outputDir
 }
 
 // FlatFileBuildConfig writes provider state for each provider directory in inputDir and returns the config to
-// build a database from them, without building it.
+// build a database from them, without building it. It is exported for the test of a build that is expected to fail,
+// which calls db.Build itself. It never skips the build; the skip check lives in BuildFromFlatFileDirWithConfig.
 //
 //nolint:funlen
 func FlatFileBuildConfig(t *testing.T, buildTime time.Time, outputDir, inputDir string, fileIncludes ...string) db.BuildConfig {
