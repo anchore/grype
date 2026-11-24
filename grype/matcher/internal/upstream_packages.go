@@ -56,7 +56,9 @@ func sameVersion(upstreamVersion, pkgVersion string) bool {
 	return u == v && (uEpoch == "" || pEpoch == "" || uEpoch == pEpoch)
 }
 
-// inheritEpoch gives the upstream version the same epoch as p
+// inheritEpoch gives the upstream version the same epoch as p. A same-name source rpm shares the
+// binary's epoch, and a binary with none is epoch 0 (see addEpochIfApplicable in the rpm matcher), so
+// that is pinned too rather than left for the "auto" strategy to borrow from the record.
 func inheritEpoch(upstreamPkg *pkg.Package, p pkg.Package) {
 	if pkg.VersionFormat(p) != version.RpmFormat {
 		return
@@ -70,8 +72,11 @@ func inheritEpoch(upstreamPkg *pkg.Package, p pkg.Package) {
 			epoch = strconv.Itoa(*meta.Epoch)
 		}
 	}
-	if epoch == "" || epoch == "0" || ver != upstreamPkg.Version {
+	if ver != upstreamPkg.Version {
 		return
+	}
+	if epoch == "" {
+		epoch = "0"
 	}
 	upstreamPkg.Version = epoch + ":" + ver
 }
