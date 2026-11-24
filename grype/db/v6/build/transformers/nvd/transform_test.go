@@ -3219,6 +3219,26 @@ func TestTransform_withCNAIndexConsumesRecord(t *testing.T) {
 	require.Equal(t, "CVE-2026-59650", left[0].ID)
 }
 
+// a Config with only CNA set is not the zero value, so each unset field takes its default on its own
+func TestTransformer_configWithOnlyCNA(t *testing.T) {
+	cfg := Config{CNA: newTestIndex(t, "CVE-2026-85091", "CVE-2026-59650")}
+
+	vulns := loadFixture(t, "testdata/cna/nvd/CVE-2026-85091.json")
+	var entries []data.Entry
+	require.NotPanics(t, func() {
+		var err error
+		entries, err = Transformer(cfg)(vulns[0], inputProviderState("nvd"))
+		require.NoError(t, err)
+	})
+	require.NotEmpty(t, entries)
+
+	left := cfg.CNA.Leftovers()
+	require.Len(t, left, 1)
+	require.NotPanics(t, func() {
+		require.NotEmpty(t, TransformCVE5Only(Config{CNA: cfg.CNA}, left[0], inputProviderState("nvd")))
+	})
+}
+
 func TestTransformCVE5Only(t *testing.T) {
 	cfg := defaultConfig()
 	state := inputProviderState("nvd")

@@ -231,8 +231,6 @@ func TestNVDPackageMerge_realRecords(t *testing.T) {
 
 // each case makes one declared edit to the real GHSA entry
 func TestNVDPackageMerge_edits(t *testing.T) {
-	processors := cnaProcessors(t, bcNVD)
-
 	tests := []struct {
 		name         string
 		edit         func(transformers.RelatedEntries) transformers.RelatedEntries
@@ -290,6 +288,8 @@ func TestNVDPackageMerge_edits(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// a new index per case: taking a CVE 5 record removes it
+			processors := cnaProcessors(t, bcNVD)
 			nvdEntry := transformResult(t, processors, "nvd", bcNVD)
 			ghsaEntry := transformResult(t, processors, "github", bcGHSA)
 
@@ -321,8 +321,8 @@ func TestNVDPackageMerge_independentOfOrder(t *testing.T) {
 
 	nvdFirst := mergeFor(nvdEntry, ghsaEntry)
 
-	// transform again: the merger changes the held entry
-	nvdEntry = transformResult(t, processors, "nvd", bcNVD)
+	// transform again with a new index: the merger changes the held entry, and taking a CVE 5 record removes it
+	nvdEntry = transformResult(t, cnaProcessors(t, bcNVD), "nvd", bcNVD)
 	nvdLast := mergeFor(ghsaEntry, nvdEntry)
 
 	require.Len(t, nvdFirst, 1)

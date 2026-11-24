@@ -140,9 +140,9 @@ func TestIndex_TakeIsCaseInsensitiveAndConsumes(t *testing.T) {
 	require.Len(t, left, 1)
 	require.Equal(t, "CVE-2026-59650", left[0].ID)
 
-	// taking again still returns the record, and it stays consumed
+	// a record is removed when taken, so taking it again returns nothing
 	_, ok = idx.Take("CVE-2026-85091")
-	require.True(t, ok)
+	require.False(t, ok)
 	require.Len(t, idx.Leftovers(), 1)
 }
 

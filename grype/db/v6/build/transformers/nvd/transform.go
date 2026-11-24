@@ -27,7 +27,7 @@ type Config struct {
 	CPEParts            *strset.Set
 	InferNVDFixVersions bool
 
-	// CNA, when set, supplies CVE 5 data that the transformer combines with each NVD record. It is a pointer so Config stays comparable.
+	// CNA, when set, supplies CVE 5 data that the transformer combines with each NVD record.
 	CNA *Index
 }
 
@@ -36,6 +36,14 @@ func defaultConfig() Config {
 		CPEParts:            strset.New("a", "h", "o"),
 		InferNVDFixVersions: true,
 	}
+}
+
+// withDefaults gives each unset field its default. InferNVDFixVersions has no unset value, so it is used as given.
+func (c Config) withDefaults() Config {
+	if c.CPEParts == nil {
+		c.CPEParts = defaultConfig().CPEParts
+	}
+	return c
 }
 
 func getVersionFormat(cpe cpe.Attributes, packageSpec *db.PackageSpecifier) string {
@@ -59,9 +67,7 @@ func getVersionFormat(cpe cpe.Attributes, packageSpec *db.PackageSpecifier) stri
 }
 
 func Transformer(cfg Config) data.NVDTransformerV2 {
-	if cfg == (Config{}) {
-		cfg = defaultConfig()
-	}
+	cfg = cfg.withDefaults()
 	return func(vulnerability unmarshal.NVDVulnerability, state provider.State) ([]data.Entry, error) {
 		return transform(cfg, vulnerability, state)
 	}
@@ -120,9 +126,7 @@ func transform(cfg Config, vulnerability unmarshal.NVDVulnerability, state provi
 // under the `nvd` provider, never `cve5`, with the status of an NVD record that has only been received and
 // without severities. It returns nothing when the record yields no CPE row and no package row.
 func TransformCVE5Only(cfg Config, p Projection, nvdState provider.State) []data.Entry {
-	if cfg == (Config{}) {
-		cfg = defaultConfig()
-	}
+	cfg = cfg.withDefaults()
 
 	id := p.ID
 	cpeHandles, packageHandles := affectedFromConfigurations(cfg, id, p.CPESource())

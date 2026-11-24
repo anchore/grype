@@ -169,10 +169,9 @@ func cnaMatchDropReason(m nvd.CpeMatch) string {
 
 // Index holds the CNA data of CVE 5 records, keyed by lowercased CVE ID, for the NVD transformer to look up.
 type Index struct {
-	records  map[string]Projection
-	consumed map[string]struct{}
-	count    int
-	decoded  int
+	records map[string]Projection
+	count   int
+	decoded int
 }
 
 // cve5SchemaVersion is the schema file of a supported `cve5` result, major version 5, matched the way the
@@ -189,10 +188,7 @@ func cve5SchemaSupported(schemaURL string) bool {
 // A record that fails to decode or declares an unsupported schema is skipped with a warning and still counts as
 // read, but not as decoded.
 func NewIndex(openers <-chan entry.Opener) (*Index, error) {
-	idx := &Index{
-		records:  make(map[string]Projection),
-		consumed: make(map[string]struct{}),
-	}
+	idx := &Index{records: make(map[string]Projection)}
 
 	for opener := range openers {
 		idx.count++
@@ -265,13 +261,12 @@ func (i *Index) Decoded() int {
 	return i.decoded
 }
 
-// Take returns the record for a CVE ID and marks it consumed, so Leftovers no longer returns it.
+// Take returns the record for a CVE ID and removes it from the index, so neither Leftovers nor a later Take returns
+// it and the index holds only what is still needed.
 func (i *Index) Take(id string) (Projection, bool) {
 	key := strings.ToLower(id)
 	r, ok := i.records[key]
-	if ok {
-		i.consumed[key] = struct{}{}
-	}
+	delete(i.records, key)
 	return r, ok
 }
 
@@ -279,7 +274,7 @@ func (i *Index) Take(id string) (Projection, bool) {
 func (i *Index) Leftovers() []Projection {
 	var keys []string
 	for key, r := range i.records {
-		if _, taken := i.consumed[key]; taken || r.State != "PUBLISHED" {
+		if r.State != "PUBLISHED" {
 			continue
 		}
 		keys = append(keys, key)
