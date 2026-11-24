@@ -180,9 +180,73 @@ func comparePacmanVersions(a, b string) int {
 		return 0
 	}
 
+	// libalpm's final showdown: a remaining alpha segment makes the version it
+	// belongs to older, but only when the tail starts with the letters
+	// themselves ("2.4.0rc4" sorts below "2.4.0", while "1.5.a" is still newer
+	// than "1.5" because its tail starts with a separator). Reference:
+	// libalpm's rpmvercmp in lib/libalpm/version.c:
+	//
+	//	if ( (!*one && !isalpha((int)*two)) || isalpha((int)*one) ) {
+	//		ret = -1;
+	//	} else {
+	//		ret = 1;
+	//	}
+	if la := pacmanLeftover(a, minSegs); len(segsa) > minSegs && pacmanStartsWithLetter(la) {
+		return -1
+	}
+	if lb := pacmanLeftover(b, minSegs); len(segsb) > minSegs && pacmanStartsWithLetter(lb) {
+		return 1
+	}
+
 	// whoever has the most segments wins
 	if len(segsa) > len(segsb) {
 		return 1
 	}
 	return -1
+}
+
+// pacmanLeftover returns the part of raw that begins after the first n
+// alphanum segments -- the segment classes of alphanumPattern: letter runs,
+// digit runs, and single '~' characters. The result includes any separator
+// characters, so callers can tell a tail like "rc4" (letters start
+// immediately) from one like ".a" (a separator comes first).
+func pacmanLeftover(raw string, n int) string {
+	i := 0
+	for s := 0; s < n && i < len(raw); s++ {
+		// skip the separators before the segment
+		for i < len(raw) && !isPacmanSegmentByte(raw[i]) {
+			i++
+		}
+		if i == len(raw) {
+			break
+		}
+		switch c := raw[i]; {
+		case c == '~':
+			i++
+		case c >= '0' && c <= '9':
+			for i < len(raw) && raw[i] >= '0' && raw[i] <= '9' {
+				i++
+			}
+		default:
+			for i < len(raw) && isPacmanLetterByte(raw[i]) {
+				i++
+			}
+		}
+	}
+	return raw[i:]
+}
+
+func isPacmanSegmentByte(c byte) bool {
+	return c == '~' || (c >= '0' && c <= '9') || isPacmanLetterByte(c)
+}
+
+func isPacmanLetterByte(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+}
+
+// pacmanStartsWithLetter reports whether the leftover tail of a version
+// begins with a letter (as opposed to a digit or a separator), which
+// libalpm's final showdown uses to make the shorter version the newer one.
+func pacmanStartsWithLetter(leftover string) bool {
+	return leftover != "" && isPacmanLetterByte(leftover[0])
 }
