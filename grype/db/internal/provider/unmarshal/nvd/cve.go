@@ -43,7 +43,8 @@ type Vulnerability struct {
 }
 
 type CveItem struct {
-	ID string `json:"id"`
+	ID      string   `json:"id"`
+	CveTags []CveTag `json:"cveTags,omitempty"`
 	// CisaActionDue         *string         `json:"cisaActionDue,omitempty"`
 	// CisaExploitAdd        *string         `json:"cisaExploitAdd,omitempty"`
 	// CisaRequiredAction    *string         `json:"cisaRequiredAction,omitempty"`
@@ -61,6 +62,11 @@ type CveItem struct {
 	// VendorComments        []VendorComment `json:"vendorComments,omitempty"`
 	VulnStatus *string    `json:"vulnStatus,omitempty"`
 	Weaknesses []Weakness `json:"weaknesses,omitempty"`
+}
+
+type CveTag struct {
+	SourceIdentifier string   `json:"sourceIdentifier,omitempty"`
+	Tags             []string `json:"tags,omitempty"`
 }
 
 type Configuration struct {
