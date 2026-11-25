@@ -176,12 +176,14 @@ func (c curator) Status() vulnerability.ProviderStatus {
 	}
 
 	validateErr = c.validateAge(d)
-	_, checksumErr := c.validateIntegrity(d)
-	if checksumErr != nil && c.config.ValidateChecksum {
-		if validateErr != nil {
-			validateErr = errors.Join(validateErr, checksumErr)
-		} else {
-			validateErr = checksumErr
+	// hashing the db file is expensive (it reads the whole file), so only do it when the result is used
+	if c.config.ValidateChecksum {
+		if _, checksumErr := c.validateIntegrity(d); checksumErr != nil {
+			if validateErr != nil {
+				validateErr = errors.Join(validateErr, checksumErr)
+			} else {
+				validateErr = checksumErr
+			}
 		}
 	}
 
