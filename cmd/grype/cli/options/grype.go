@@ -113,7 +113,7 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 
 	flags.StringVarP(&o.OutputTemplateFile,
 		"template", "t",
-		"specify the path to a Go template file (requires 'template' output to be selected)")
+		"specify a Go template file with at least one action (requires 'template' output)")
 
 	flags.StringVarP(&o.FailOn,
 		"fail-on", "f",
