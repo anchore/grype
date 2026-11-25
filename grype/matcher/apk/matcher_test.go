@@ -211,7 +211,7 @@ func TestMatcherApk_FixedVersionProducesIgnore_Wolfi(t *testing.T) {
 // TestMatcherApk_FixedVersionInUpstreamProducesIgnore verifies that when a
 // binary apk package's upstream is at or past the secdb fix, the
 // distro-fixed ignore is emitted against the binary package's ID
-// (catalogPkg) - not the synthetic upstream - so consumers can suppress
+// (target) - not the synthetic upstream - so consumers can suppress
 // language-ecosystem matches that overlap the binary by file ownership.
 func TestMatcherApk_FixedVersionInUpstreamProducesIgnore(t *testing.T) {
 	dbtest.DBs(t, "alpine318").
@@ -644,11 +644,12 @@ func TestMatcherApk_UpstreamCveDedupedByIntroducedZeroAlias(t *testing.T) {
 // TestMatcherApk_SelfUpstreamIsRecordedAsIndirect covers an apk whose origin package is itself but at
 // another version (e.g. from an SBOM's upstream qualifier). The origin is then searched in full at its
 // own version, and here only it is vulnerable: the binary is at the fixed version, so its own search
-// finds the record fixed. The upstream pass must record what it finds as an indirect match.
+// finds the record fixed. The upstream pass must record what it finds as an indirect match. A CVE that
+// matches is not also ignored as fixed (see internal.SplitVulnerable).
 //
 // The match-type is otherwise derived by comparing the searched name against the cataloged one, and
-// here they are equal, so nothing downstream can tell the two passes apart. The upstream pass has to
-// say so explicitly, which is why the package override and the detail-type rewrite belong together.
+// here they are equal. The upstream pass is searched by the source architecture, which is what records
+// it as indirect.
 func TestMatcherApk_SelfUpstreamIsRecordedAsIndirect(t *testing.T) {
 	dbtest.DBs(t, "alpine318").SelectOnly("3.18/CVE-2024-0727").Run(func(t *testing.T, db *dbtest.DB) {
 		matcher := Matcher{}
@@ -662,9 +663,7 @@ func TestMatcherApk_SelfUpstreamIsRecordedAsIndirect(t *testing.T) {
 		findings.SelectMatch("CVE-2024-0727").
 			HasDetailCount(1).
 			SelectDetailByType(match.ExactIndirectMatch).AsDistroSearch()
-		findings.Ignores().
-			SelectRelatedPackageIgnore(ignorereasons.DistroFixed, "CVE-2024-0727").
-			ForPackage(p.ID)
+		findings.Ignores().IsEmpty()
 	})
 }
 

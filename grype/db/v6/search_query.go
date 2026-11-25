@@ -154,6 +154,11 @@ func (b *searchQueryBuilder) handleCPE(c *search.CPECriteria) error {
 
 func (b *searchQueryBuilder) handleDistro(c *search.DistroCriteria) {
 	for _, d := range c.Distros {
+		if d.Name() == "" {
+			// an OS with no name is the rows of no OS, as when no distro is given
+			b.query.osSpecs = append(b.query.osSpecs, NoOSSpecified)
+			continue
+		}
 		releaseScoped := d.Type.IsReleaseScoped()
 		var foundChannels int
 		for _, channel := range d.Channels {

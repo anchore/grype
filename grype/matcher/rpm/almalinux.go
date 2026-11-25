@@ -54,7 +54,7 @@ func markAsIndirectMatches(results result.Set) result.Set {
 // upstreams are binaryPkg's upstream (source) packages to search (see internal.UpstreamPackages).
 //
 //nolint:funlen
-func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Package, upstreams []pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+func almaLinuxMatchesWithUpstreams(provider result.Provider, target, binaryPkg pkg.Package, upstreams []pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	if strings.HasSuffix(binaryPkg.Name, "-debuginfo") || strings.HasSuffix(binaryPkg.Name, "-debugsource") {
 		return nil, nil, nil // almalinux explicitly never publishes advisories for RPMs that are only debug material
 	}
@@ -78,12 +78,12 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 		return nil, nil, fmt.Errorf("matcher failed to fetch RHEL disclosures for AlmaLinux binary pkg=%q: %w", binaryPkg.Name, err)
 	}
 
-	binaryDisclosures := all.Filter(internal.OnlyVulnerableVersions(pkgVersion))
+	binaryDisclosures := all.Filter(internal.OnlyVulnerableVersions(pkgVersion)) //nolint:staticcheck
 	ignored = append(ignored, internal.OwnershipIgnores(binaryPkg, IgnoreReasonDistroFixed, all.Remove(binaryDisclosures).Vulnerabilities()...)...)
 
 	// Step 2: Find RHEL disclosures for upstream (source) packages (indirect match)
 	// Note: We do NOT add epochs to upstream package versions because sourceRPMs often omit epochs
-	// even when the source package has a non-zero epoch. See the comment in matchUpstreamPackages
+	// even when the source package has a non-zero epoch. See the comment on matchDistro
 	// in matcher.go for the full explanation of why this is necessary.
 	upstreamDisclosures := result.Set{}
 	for _, upstreamPkg := range upstreams {
@@ -104,7 +104,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 			continue
 		}
 
-		upstreamResults := all.Filter(internal.OnlyVulnerableVersions(upstreamVersion))
+		upstreamResults := all.Filter(internal.OnlyVulnerableVersions(upstreamVersion)) //nolint:staticcheck
 		ignored = append(ignored, internal.OwnershipIgnores(binaryPkg, IgnoreReasonDistroFixed, all.Remove(upstreamResults).Vulnerabilities()...)...)
 
 		// Mark these as indirect matches since they came from upstream package search
@@ -131,7 +131,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 	if err != nil {
 		log.WithFields("error", err, "distro", binaryPkg.Distro, "pkg", binaryPkg.Name).Debug("failed to fetch AlmaLinux unaffected packages")
 		// If we can't get unaffected data, return the original disclosures
-		return allDisclosures.ToMatches(), ignored, nil
+		return allDisclosures.ToMatches(target), ignored, nil
 	}
 
 	// Step 4: Find AlmaLinux unaffected records for related packages (source/binary relationships)
@@ -148,7 +148,7 @@ func almaLinuxMatchesWithUpstreams(provider result.Provider, binaryPkg pkg.Packa
 	// allUnaffected is not filtered by version constraint, but the correct set gets applied to updatedDisclosures
 	ignored = append(ignored, internal.OwnershipIgnores(binaryPkg, IgnoreReasonAlmaUnaffected, allUnaffected.Remove(updatedDisclosures).Vulnerabilities()...)...)
 
-	return updatedDisclosures.ToMatches(), ignored, nil
+	return updatedDisclosures.ToMatches(target), ignored, nil
 }
 
 // findRelatedUnaffectedPackages searches for AlmaLinux unaffected records published under the
@@ -199,11 +199,12 @@ func applyAlmaLinuxUnaffectedFiltering(disclosures result.Set, unaffectedResults
 
 	// Several AlmaLinux advisories can cover one disclosure. The package stops being affected at the
 	// lowest of their lower bounds, so that is the fix: apply only that record.
+	unaffected := unaffectedResults.Index()
 	out := make(result.Set, len(filtered))
 	for id, results := range filtered {
 		results = slices.Clone(results)
 		for i := range results {
-			if fix, vuln, ok := lowestAlmaLinuxFix(results[i], unaffectedResults); ok {
+			if fix, vuln, ok := lowestAlmaLinuxFix(results[i], unaffected); ok {
 				replaceWithAlmaLinuxFixInfo(&results[i], fix, vuln)
 			}
 		}
@@ -215,15 +216,13 @@ func applyAlmaLinuxUnaffectedFiltering(disclosures result.Set, unaffectedResults
 // lowestAlmaLinuxFix returns the lowest fix version, and the AlmaLinux vulnerability it came from, among
 // the unaffected records overlapping existing; equal versions are broken by advisory ID so the choice never
 // depends on map order.
-func lowestAlmaLinuxFix(existing result.Result, unaffected result.Set) (string, vulnerability.Vulnerability, bool) {
+func lowestAlmaLinuxFix(existing result.Result, unaffected result.Index) (string, vulnerability.Vulnerability, bool) {
 	var bestID, bestFix string
 	var bestVuln vulnerability.Vulnerability
 	var bestVersion *version.Version
-	for _, records := range unaffected {
-		for _, r := range records {
-			if !result.IdentitiesOverlap(existing, r) {
-				continue
-			}
+	for identifier := range existing.Identifiers() {
+		// a record carrying several of the identifiers is seen again, and loses the tie to itself
+		for _, r := range unaffected[identifier] {
 			for _, vuln := range r.Vulnerabilities {
 				fix := extractFixVersionFromConstraint(vuln.Constraint)
 				if fix == "" {

@@ -3,13 +3,13 @@ package rpm
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
@@ -63,35 +63,33 @@ func (m *Matcher) Type() match.MatcherType {
 	return match.RpmMatcher
 }
 
-//nolint:funlen
 func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	var matches []match.Match
 	var ignored []match.IgnoreFilter
 
-	// Handle AlmaLinux matching at the top level before the binary/upstream split
-	// AlmaLinux matching needs to handle both binary and upstream packages internally
-	if p.Distro != nil && shouldUseAlmaLinuxMatching(p.Distro) {
+	switch {
+	case shouldUseAlmaLinuxMatching(p.Distro):
 		almaMatches, ignores, err := m.matchAlmaLinux(vp, p)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to match AlmaLinux: %w", err)
 		}
 		matches = append(matches, almaMatches...)
 		ignored = append(ignored, ignores...)
-	} else {
-		// For non-AlmaLinux distros, use the standard binary/upstream split
-		exactMatches, ignores, err := m.matchPackage(vp, p)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
-		}
 
-		matches = append(matches, exactMatches...)
+	case shouldUseRedhatEUSMatching(p.Distro):
+		eusMatches, ignores, err := m.matchRedhatEUS(vp, p)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to match RedHat EUS: %w", err)
+		}
+		matches = append(matches, eusMatches...)
 		ignored = append(ignored, ignores...)
 
-		sourceMatches, ignores, err := m.matchUpstreamPackages(vp, p)
+	default:
+		distroMatches, ignores, err := m.matchDistro(vp, p)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to match by source indirection: %w", err)
+			return nil, nil, fmt.Errorf("failed to match by distro: %w", err)
 		}
-		matches = append(matches, sourceMatches...)
+		matches = append(matches, distroMatches...)
 		ignored = append(ignored, ignores...)
 	}
 
@@ -138,42 +136,66 @@ func (m *Matcher) matchAlmaLinux(vp vulnerability.Provider, p pkg.Package) ([]ma
 	addEpochIfApplicable(&binaryPkg)
 
 	// Call almaLinuxMatches with both the binary package and its upstreams
-	return almaLinuxMatchesWithUpstreams(provider, binaryPkg, internal.UpstreamPackages(vp, binaryPkg))
+	return almaLinuxMatchesWithUpstreams(provider, p, binaryPkg, internal.UpstreamPackages(vp, binaryPkg))
 }
 
-// matchPackage matches the given package against the vulnerability provider (direct match).
+// matchRedhatEUS searches the binary package and, as source packages, its upstreams.
 //
-// Regarding RPM epochs... we know that the package and vulnerability will have
-// well-specified epochs since both are sourced from either the RPM DB directly or
-// the upstream RedHat vulnerability data. Note: this is very much UNLIKE our
-// matching on a source package above where the epoch could be dropped in the
-// reference data. This means that any missing epoch CAN be assumed to be zero,
-// as it falls into the case of "the project elected to NOT have an epoch for the
+// Regarding RPM epochs for the binary package... we know that the package and vulnerability will
+// have well-specified epochs since both are sourced from either the RPM DB directly or the upstream
+// RedHat vulnerability data. Note: this is very much UNLIKE our matching on a source package below
+// where the epoch could be dropped in the reference data. This means that any missing epoch CAN be
+// assumed to be zero, as it falls into the case of "the project elected to NOT have an epoch for the
 // first version scheme" and not into any other case.
 //
-// For this reason match exactly on a package, we should be EXPLICIT about the
-// epoch (since downstream version comparison logic will strip the epoch during
-// comparison for the above-mentioned reasons --essentially for the source RPM
-// case). To do this, we fill in missing epoch values in the package versions with
-// an explicit 0.
-func (m *Matcher) matchPackage(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+// For this reason, to match exactly on a package we should be EXPLICIT about the epoch (since
+// downstream version comparison logic will strip the epoch during comparison for the
+// above-mentioned reasons -- essentially for the source RPM case). To do this, we fill in missing
+// epoch values in the package versions with an explicit 0, on a copy.
+func (m *Matcher) matchRedhatEUS(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	provider := result.NewProvider(vp, p, m.Type())
 
-	// we want to ensure that the version ALWAYS has an epoch specified... but at the same time we do not want to modify the
-	// original package that was passed in when making matches. This is why we create the provider with the original package
-	// then patch the epoch into the version of the package that we are searching with.
-	addEpochIfApplicable(&p)
+	binaryPkg := p
+	addEpochIfApplicable(&binaryPkg)
 
-	matches, ignores, err := m.findMatches(provider, p, false)
+	matches, ignored, err := m.eusMatches(provider, p, binaryPkg, false)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to find vulnerabilities by dpkg source indirection: %w", err)
+		return nil, nil, fmt.Errorf("failed to find vulnerabilities by exact package name: %w", err)
 	}
 
-	return matches, ignores, nil
+	for _, indirectPackage := range internal.UpstreamPackages(vp, p) {
+		// An rpm's upstream is its source rpm, so the synthesized package is tagged "src".
+		// Searching by that architecture then matches it only against src (and unspecified)
+		// records and rejects binary-arch records — which is how we avoid matching a binary's
+		// upstream against a sibling binary's vulnerability.
+		// p's own source only adds records that specify an architecture; p's own search already
+		// finds those that don't.
+		indirectMatches, ignores, err := m.eusMatches(provider, p, indirectPackage, internal.IsSameUpstream(indirectPackage, p))
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
+		}
+		matches = append(matches, indirectMatches...)
+		ignored = append(ignored, ignores...)
+	}
+
+	return matches, ignored, nil
 }
 
-// matchUpstreamPackages finds matches with a synthetic package based on the sourceRPM (indirect match).
+// eusMatches matches searchPkg; with requireArch set, it only matches records that specify an architecture.
+func (m *Matcher) eusMatches(provider result.Provider, target, searchPkg pkg.Package, requireArch bool) ([]match.Match, []match.IgnoreFilter, error) {
+	if searchPkg.Distro == nil {
+		return nil, nil, nil
+	}
+	if isUnknownVersion(searchPkg.Version) {
+		log.WithFields("package", searchPkg.Name).Trace("skipping package with unknown version")
+		return nil, nil, nil
+	}
+	return redhatEUSMatches(provider, target, searchPkg, m.cfg.MissingEpochStrategy, requireArch)
+}
 
+// matchDistro searches the binary package, with an explicit epoch (see matchRedhatEUS), and its
+// upstreams, without one, for the reasons below.
+//
 // Regarding RPM epoch and comparisons... RedHat is explicit that when an RPM
 // epoch is not specified that it should be assumed to be zero (see
 // https://github.com/rpm-software-management/rpm/issues/450). This comment from
@@ -214,90 +236,32 @@ func (m *Matcher) matchPackage(vp vulnerability.Provider, p pkg.Package) ([]matc
 // being compared (in our example, no perl epoch on one side means we should
 // really assume an epoch of 4 on the other side). This could still lead to
 // problems since an epoch delimits potentially non-comparable version lineages.
-func (m *Matcher) matchUpstreamPackages(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
-	provider := result.NewProvider(vp, p, m.Type())
-
-	var matches []match.Match
-	var ignored []match.IgnoreFilter
-
-	for _, indirectPackage := range internal.UpstreamPackages(vp, p) {
-		// An rpm's upstream is its source rpm, so the synthesized package is tagged "src".
-		// Searching by that architecture then matches it only against src (and unspecified)
-		// records and rejects binary-arch records — which is how we avoid matching a binary's
-		// upstream against a sibling binary's vulnerability.
-		// p's own source only adds records that specify an architecture; p's own search already
-		// finds those that don't.
-		indirectMatches, ignores, err := m.findMatches(provider, indirectPackage, internal.IsSameUpstream(indirectPackage, p))
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to find vulnerabilities for rpm upstream source package: %w", err)
-		}
-		matches = append(matches, indirectMatches...)
-		ignored = append(ignored, ignores...)
-	}
-
-	return matches, ignored, nil
-}
-
-// findMatches matches searchPkg; with requireArch set, it only matches records that specify an architecture.
-func (m *Matcher) findMatches(provider result.Provider, searchPkg pkg.Package, requireArch bool) ([]match.Match, []match.IgnoreFilter, error) {
-	if searchPkg.Distro == nil {
-		return nil, nil, nil
-	}
-	if isUnknownVersion(searchPkg.Version) {
-		log.WithFields("package", searchPkg.Name).Trace("skipping package with unknown version")
-		return nil, nil, nil
-	}
-
+func (m *Matcher) matchDistro(vp vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
+	searchPkg := p
 	switch {
-	case shouldUseRedhatEUSMatching(searchPkg.Distro):
-		return redhatEUSMatches(provider, searchPkg, m.cfg.MissingEpochStrategy, requireArch)
-	default:
-		return m.standardMatches(provider, searchPkg, requireArch)
-	}
-}
-
-func (m *Matcher) standardMatches(provider result.Provider, searchPkg pkg.Package, requireArch bool) ([]match.Match, []match.IgnoreFilter, error) {
-	// Create version with config embedded
-	pkgVersion := version.NewWithConfig(
-		searchPkg.Version,
-		pkg.VersionFormat(searchPkg),
-		version.ComparisonConfig{
-			MissingEpochStrategy: m.cfg.MissingEpochStrategy,
-		},
-	)
-
-	disclosureCriteria := []vulnerability.Criteria{
-		search.ByPackageName(searchPkg.Name),
-		search.ByDistro(*searchPkg.Distro),
-		internal.OnlyQualifiedPackages(searchPkg),
-		search.ByArchitecture(searchPkg.Arch).WithRequired(requireArch),
+	case searchPkg.Version == "":
+		// the distro search skips only "unknown" but not empty versions.
+		// the RPM matcher behavior is atypical and skips BOTH "unknown" and empty versions
+		searchPkg.Version = "unknown"
+	case !isUnknownVersion(searchPkg.Version):
+		// "0:unknown" would defeat the search's own unknown-version check
+		addEpochIfApplicable(&searchPkg)
 	}
 
-	all, err := provider.FindResults(disclosureCriteria...)
+	versionConfig := version.ComparisonConfig{
+		MissingEpochStrategy: m.cfg.MissingEpochStrategy,
+	}
+
+	// upstreams are searched without the explicit epoch, and like the package, skipped without a version
+	// (e.g. when neither the upstream nor the package specifies one)
+	upstreams := slices.DeleteFunc(internal.UpstreamPackages(vp, p), func(u pkg.Package) bool { return isUnknownVersion(u.Version) })
+
+	vulnerable, notVulnerable, err := internal.FindResultsByDistroAcrossUpstreams(vp, searchPkg, &p, upstreams, m.Type(), &versionConfig)
 	if err != nil {
-		return nil, nil, fmt.Errorf("matcher failed to fetch disclosures for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
+		return nil, nil, err
 	}
 
-	unaffectedCriteria := []vulnerability.Criteria{
-		search.ByPackageName(searchPkg.Name),
-		search.ByDistro(*searchPkg.Distro),
-		internal.OnlyQualifiedPackages(searchPkg),
-		search.ByArchitecture(searchPkg.Arch).WithRequired(requireArch),
-		internal.OnlyVulnerableVersions(pkgVersion),
-		search.ForUnaffected(),
-	}
-
-	unaffected, err := provider.FindResults(unaffectedCriteria...)
-	if err != nil {
-		return nil, nil, fmt.Errorf("matcher failed to fetch unaffected for distro=%q pkg=%q: %w", searchPkg.Distro, searchPkg.Name, err)
-	}
-
-	disclosures := all.Filter(internal.OnlyVulnerableVersions(pkgVersion))
-
-	// return all unaffected vulns for this version
-	unaffected = unaffected.Merge(all.Remove(disclosures))
-
-	return disclosures.ToMatches(), internal.OwnershipIgnores(searchPkg, IgnoreReasonDistroNotVulnerable, unaffected.Vulnerabilities()...), nil
+	return vulnerable.ToMatches(p), internal.OwnershipIgnores(p, IgnoreReasonDistroNotVulnerable, notVulnerable.Vulnerabilities()...), nil
 }
 
 func addEpochIfApplicable(p *pkg.Package) {

@@ -7,7 +7,13 @@ import (
 )
 
 // OnlyVulnerableVersions returns a criteria object that tests affected vulnerability ranges against the provided version
+//
+// Deprecated: use SplitVulnerable after selecting all vulnerability sets
 func OnlyVulnerableVersions(v *version.Version) vulnerability.Criteria {
+	return matchesVersionConstraints(v)
+}
+
+func matchesVersionConstraints(v *version.Version) vulnerability.Criteria {
 	if v == nil || v.Raw == "" {
 		// if no version is provided, match everything
 		return search.ByFunc(func(_ vulnerability.Vulnerability) (bool, string, error) {
