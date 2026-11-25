@@ -46,19 +46,39 @@ func CleanPath(path string) string {
 
 // BuildFromFlatFileDir builds a vulnerability database from a directory of vulnerability results
 // if fileIncludes is non-empty, only files matching the provided substrings or globs will be included
+func BuildFromFlatFileDir(t *testing.T, buildTime time.Time, outputDir, inputDir string, fileIncludes ...string) {
+	BuildFromFlatFileDirWithConfig(t, buildTime, outputDir, inputDir, nil, fileIncludes...)
+}
+
+// BuildFromFlatFileDirWithConfig is BuildFromFlatFileDir with a function that edits the build config before the
+// build runs. A nil function leaves the config as BuildFromFlatFileDir builds it. A file include forces the build,
+// as the skip check applies only without one. A build error fails the test, so a test of a build that is expected to fail uses FlatFileBuildConfig and db.Build directly.
+func BuildFromFlatFileDirWithConfig(t *testing.T, buildTime time.Time, outputDir, inputDir string, edit func(*db.BuildConfig), fileIncludes ...string) {
+	// skip the build when the output is older than the input or missing, unless a file include forces it
+	if len(fileIncludes) == 0 && lastModifiedRecursive(t, outputDir).Before(lastModifiedRecursive(t, inputDir)) {
+		return
+	}
+
+	cfg := FlatFileBuildConfig(t, buildTime, outputDir, inputDir, fileIncludes...)
+	if edit != nil {
+		edit(&cfg)
+	}
+
+	err := db.Build(cfg)
+	require.NoError(t, err)
+}
+
+// FlatFileBuildConfig writes provider state for each provider directory in inputDir and returns the config to
+// build a database from them, without building it. It is exported for the test of a build that is expected to fail,
+// which calls db.Build itself. It never skips the build; the skip check lives in BuildFromFlatFileDirWithConfig.
 //
 //nolint:funlen
-func BuildFromFlatFileDir(t *testing.T, buildTime time.Time, outputDir, inputDir string, fileIncludes ...string) {
+func FlatFileBuildConfig(t *testing.T, buildTime time.Time, outputDir, inputDir string, fileIncludes ...string) db.BuildConfig {
 	for i := range fileIncludes {
 		fileIncludes[i] = prepareFileInclude(fileIncludes[i])
 	}
 
 	var states provider.States
-
-	// rebuild only if the cache is older than the results
-	if len(fileIncludes) == 0 && lastModifiedRecursive(t, outputDir).Before(lastModifiedRecursive(t, inputDir)) {
-		return
-	}
 
 	include := func(string) bool { return true }
 	if len(fileIncludes) > 0 {
@@ -142,7 +162,7 @@ func BuildFromFlatFileDir(t *testing.T, buildTime time.Time, outputDir, inputDir
 		states = append(states, *state)
 	}
 
-	cfg := db.BuildConfig{
+	return db.BuildConfig{
 		SchemaVersion:        6,
 		Directory:            outputDir,
 		States:               states,
@@ -153,9 +173,6 @@ func BuildFromFlatFileDir(t *testing.T, buildTime time.Time, outputDir, inputDir
 		FailOnMissingFixDate: false,
 		BatchSize:            100,
 	}
-
-	err = db.Build(cfg)
-	require.NoError(t, err)
 }
 
 func prepareFileInclude(s string) string {

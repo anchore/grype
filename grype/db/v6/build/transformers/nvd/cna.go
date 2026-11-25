@@ -1,0 +1,550 @@
+package nvd
+
+import (
+	"bytes"
+	"fmt"
+	"net/url"
+	"regexp"
+	"slices"
+	"sort"
+	"strings"
+	"unicode"
+
+	"github.com/anchore/grype/grype/db/data"
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal"
+	"github.com/anchore/grype/grype/db/internal/provider/unmarshal/nvd"
+	"github.com/anchore/grype/grype/db/provider"
+	"github.com/anchore/grype/grype/db/provider/entry"
+	db "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/grype/db/v6/build/transformers/internal"
+	"github.com/anchore/grype/grype/db/v6/name"
+	"github.com/anchore/grype/grype/version"
+	"github.com/anchore/grype/internal/log"
+	"github.com/anchore/packageurl-go"
+	"github.com/anchore/syft/syft/cpe"
+	syftPkg "github.com/anchore/syft/syft/pkg"
+)
+
+// excludedCPEAssigners are CNAs whose cpeApplicability is not used for CPE rows. The Linux kernel CNA
+// publishes ranges that all start at the commit that introduced a bug, and they are broader than the real set.
+var excludedCPEAssigners = []string{"Linux"}
+
+func cpeApplicabilityUsable(assigner string) bool {
+	return !slices.Contains(excludedCPEAssigners, assigner)
+}
+
+// projection is the part of a CVE 5 record that reconciliation reads. affected is the `anchoreadp` container's
+// list when the record has one and the CNA's otherwise, and the two lists are never merged. Both
+// cpeApplicability values are kept because their precedence depends on the NVD record (see cpeSource).
+type projection struct {
+	id            string
+	state         string
+	assigner      string
+	datePublished string
+	dateUpdated   string
+	descriptions  []unmarshal.CVE5Description
+	references    []unmarshal.CVE5Reference
+
+	affected []unmarshal.CVE5Affected
+
+	cnaCPE []nvd.Configuration
+	adpCPE []nvd.Configuration
+}
+
+func project(r unmarshal.CVE5Record) projection {
+	cna := r.Containers.CNA
+	p := projection{
+		id:            r.CVEMetadata.CVEID,
+		state:         r.CVEMetadata.State,
+		assigner:      r.CVEMetadata.AssignerShortName,
+		datePublished: r.CVEMetadata.DatePublished,
+		dateUpdated:   r.CVEMetadata.DateUpdated,
+		descriptions:  cna.Descriptions,
+		references:    cna.References,
+		affected:      cna.Affected,
+		cnaCPE:        cna.CPEApplicability,
+	}
+	if adp := r.AnchoreADP(); adp != nil {
+		p.adpCPE = adp.CPEApplicability
+		if len(adp.Affected) > 0 {
+			p.affected = adp.Affected
+		}
+	}
+	return p
+}
+
+// cpeSource returns the cpeApplicability that supplies CPE rows when the NVD record has no configurations: the
+// `anchoreadp` container's when it has one, else the CNA's unless its assigner is excluded. The CNA's matches that
+// state no version range or bound the range by a commit hash are dropped, since neither says which released
+// versions are affected.
+func (p projection) cpeSource() []nvd.Configuration {
+	if len(p.adpCPE) > 0 {
+		return p.adpCPE
+	}
+	if !cpeApplicabilityUsable(p.assigner) {
+		return nil
+	}
+	return filterCNAConfigurations(p.id, p.cnaCPE)
+}
+
+// commitHashBound is a git commit hash, which orders against no release version. A run of digits only is more
+// likely a date or a version, so cnaBoundReason excludes the all-digits case.
+var commitHashBound = regexp.MustCompile(`(?i)^[0-9a-f]{7,40}$`)
+
+// cnaBoundReason is why a version bound from CNA data cannot be used, or empty when it can. Every bound on both the
+// package path and the CPE path goes through it, so neither path keeps a bound the other refuses. A whole "*" upper
+// bound and a placeholder lower bound are read by the caller and never reach this check.
+func cnaBoundReason(v string) string {
+	switch {
+	case commitHashBound.MatchString(v) && strings.Trim(v, "0123456789") != "":
+		return "version bound is a commit hash"
+	case strings.IndexFunc(v, unicode.IsSpace) >= 0 || strings.ContainsAny(v, "<>=,|*"):
+		return "version bound holds constraint syntax"
+	case strings.IndexFunc(v, unicode.IsDigit) < 0:
+		// free text such as "unspecified" or "N/A" names no version
+		return "version bound is free text"
+	}
+	return ""
+}
+
+// filterCNAConfigurations drops each vulnerable match that cnaMatchDropReason rejects, then each configuration
+// that lost a match and has no vulnerable match left. Configurations the filter does not touch are kept as is.
+func filterCNAConfigurations(cve string, cfgs []nvd.Configuration) []nvd.Configuration {
+	var out []nvd.Configuration
+	for _, cfg := range cfgs {
+		dropped := false
+		kept := cfg
+		kept.Nodes = nil
+		hasVulnerable := false
+		for _, node := range cfg.Nodes {
+			n := node
+			n.CpeMatch = nil
+			for _, m := range node.CpeMatch {
+				if reason := cnaMatchDropReason(m); reason != "" {
+					log.WithFields("cve", cve, "criteria", m.Criteria, "reason", reason).Debug("skipping CNA CPE match")
+					dropped = true
+					continue
+				}
+				hasVulnerable = hasVulnerable || m.Vulnerable
+				n.CpeMatch = append(n.CpeMatch, m)
+			}
+			if len(n.CpeMatch) > 0 {
+				kept.Nodes = append(kept.Nodes, n)
+			}
+		}
+		switch {
+		case !dropped:
+			out = append(out, cfg)
+		case hasVulnerable:
+			out = append(out, kept)
+		}
+	}
+	return out
+}
+
+// cnaMatchDropReason is why a vulnerable match cannot supply a CPE row, or empty when it can.
+func cnaMatchDropReason(m nvd.CpeMatch) string {
+	if !m.Vulnerable {
+		return ""
+	}
+
+	bounds := []*string{m.VersionStartIncluding, m.VersionStartExcluding, m.VersionEndIncluding, m.VersionEndExcluding}
+	hasBound := false
+	for _, b := range bounds {
+		if b == nil || *b == "" {
+			continue
+		}
+		hasBound = true
+		if reason := cnaBoundReason(*b); reason != "" {
+			return reason
+		}
+	}
+
+	if !hasBound {
+		// the parsed attributes hold the any-version wildcard "*" as an empty version
+		if attrs, err := cpe.NewAttributes(m.Criteria); err == nil && (attrs.Version == "" || attrs.Version == "-") {
+			return "no version range"
+		}
+	}
+	return ""
+}
+
+// Index holds the CNA data of CVE 5 records, keyed by lowercased CVE ID, for the NVD transformer to look up. One
+// Index serves one sequential build: take changes it and leftovers depends on every prior take, so it is not safe
+// for concurrent use.
+type Index struct {
+	records map[string]projection
+	// count is the number of records read and decoded the number that decoded under a supported schema, whether or
+	// not they were kept
+	count   int
+	decoded int
+}
+
+// cve5SchemaVersion is the schema file of a supported `cve5` result, major version 5, matched the way the
+// processors' IsSupported reads a schema URL.
+var cve5SchemaVersion = regexp.MustCompile(`schema[-_]5\.\d+\.\d+\.json`)
+
+func cve5SchemaSupported(schemaURL string) bool {
+	return strings.Contains(schemaURL, "/cve5/") && cve5SchemaVersion.MatchString(schemaURL)
+}
+
+// NewIndex reads every record from the `cve5` provider's openers. It keeps a record when either container has
+// cpeApplicability or the selected affected list has an entry with a packageURL or collectionURL, since nothing
+// else is read later.
+// A record that fails to decode or declares an unsupported schema is skipped with a warning and still counts as
+// read, but not as decoded. It is an error when no record was read, or when none decoded, since a schema change that
+// breaks decoding would otherwise build a database with no CNA data.
+func NewIndex(openers <-chan entry.Opener) (*Index, error) {
+	idx := &Index{records: make(map[string]projection)}
+
+	for opener := range openers {
+		idx.count++
+
+		f, err := opener.Open()
+		if err != nil {
+			return nil, fmt.Errorf("failed to open cache entry %q: %w", opener.String(), err)
+		}
+		envelope, err := unmarshal.Envelope(f)
+		_ = f.Close()
+		if err != nil {
+			log.WithFields("record", opener.String(), "error", err).Warn("unable to decode CVE 5 record (skipping)")
+			continue
+		}
+		if !cve5SchemaSupported(envelope.Schema) {
+			log.WithFields("record", envelope.Identifier, "schema", envelope.Schema).Warn("unsupported CVE 5 record schema (skipping)")
+			continue
+		}
+
+		records, err := unmarshal.CVE5Entries(bytes.NewReader(envelope.Item))
+		if err != nil {
+			log.WithFields("record", envelope.Identifier, "error", err).Warn("unable to decode CVE 5 record (skipping)")
+			continue
+		}
+		idx.decoded++
+
+		for _, r := range records {
+			idx.add(r)
+		}
+	}
+
+	if idx.count == 0 {
+		return nil, fmt.Errorf("no records to read")
+	}
+	if idx.decoded == 0 {
+		return nil, fmt.Errorf("none of the %d records decode under a supported schema", idx.count)
+	}
+
+	log.WithFields("records", idx.count, "decoded", idx.decoded).Debug("read CVE 5 records for CNA reconciliation")
+	return idx, nil
+}
+
+func (i *Index) add(r unmarshal.CVE5Record) {
+	key := strings.ToLower(r.CVEMetadata.CVEID)
+	if key == "" {
+		return
+	}
+
+	if _, exists := i.records[key]; exists {
+		log.WithFields("cve", r.CVEMetadata.CVEID).Warn("duplicate CVE 5 record (keeping the later one)")
+		delete(i.records, key)
+	}
+
+	if p := project(r); p.hasData() {
+		i.records[key] = p
+	}
+}
+
+func (p projection) hasData() bool {
+	if len(p.cnaCPE) > 0 || len(p.adpCPE) > 0 {
+		return true
+	}
+	for _, a := range p.affected {
+		if a.PackageURL != "" || a.CollectionURL != "" {
+			return true
+		}
+	}
+	return false
+}
+
+// take returns the record for a CVE ID and removes it from the index, so neither leftovers nor a later take returns
+// it and the index holds only what is still needed.
+func (i *Index) take(id string) (projection, bool) {
+	key := strings.ToLower(id)
+	r, ok := i.records[key]
+	delete(i.records, key)
+	return r, ok
+}
+
+// leftovers returns the projections of published records that take has not returned, sorted by CVE ID.
+func (i *Index) leftovers() []projection {
+	var keys []string
+	for key, r := range i.records {
+		if r.state != "PUBLISHED" {
+			continue
+		}
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	out := make([]projection, 0, len(keys))
+	for _, key := range keys {
+		out = append(out, i.records[key])
+	}
+	return out
+}
+
+// WriteLeftovers writes the CVEs that have a CVE 5 record and no NVD record, under the `nvd` provider. It writes only
+// what the transformer has not taken, so it runs after every NVD record has been transformed.
+func (i *Index) WriteLeftovers(cfg Config, state provider.State, w data.Writer) error {
+	for _, record := range i.leftovers() {
+		entries := transformCVE5Only(cfg, record, state)
+		if len(entries) == 0 {
+			continue
+		}
+		if err := w.Write(entries...); err != nil {
+			return fmt.Errorf("failed to write CVE 5 record %q to the DB: %w", record.id, err)
+		}
+	}
+	return nil
+}
+
+// cnaRegistryHosts maps a purl type to the registry hosts that identify it in a collectionURL. An entry with a
+// path (wordpress.org/plugins) also needs the URL path to start with it. This is the table in the
+// cna-reconciliation spec's supported-ecosystems requirement.
+var cnaRegistryHosts = map[string][]string{
+	packageurl.TypeMaven:    {"repo.maven.apache.org", "repo1.maven.org", "central.sonatype.com", "search.maven.org"},
+	packageurl.TypePyPi:     {"pypi.org", "pypi.python.org"},
+	packageurl.TypeNPM:      {"registry.npmjs.org", "www.npmjs.com", "npmjs.com"},
+	packageurl.TypeGolang:   {"pkg.go.dev", "proxy.golang.org"},
+	packageurl.TypeCargo:    {"crates.io"},
+	packageurl.TypeGem:      {"rubygems.org"},
+	packageurl.TypeComposer: {"packagist.org"},
+	packageurl.TypeNuget:    {"www.nuget.org", "nuget.org"},
+	packageurl.TypeHex:      {"hex.pm", "repo.hex.pm"},
+	packageurl.TypePub:      nil,
+	packageurl.TypeSwift:    nil,
+	"wordpress-plugin":      {"wordpress.org/plugins"},
+}
+
+// cnaPackageHandles returns one affected package handle for each affected[] entry that names a package in a
+// supported ecosystem and has at least one range that is no broader than the entry states. An entry that cannot be
+// used is skipped with a debug log, never an error.
+func cnaPackageHandles(p projection) []db.AffectedPackageHandle {
+	cve := p.id
+
+	var handles []db.AffectedPackageHandle
+	for _, a := range p.affected {
+		purl, ok := cnaPackageIdentity(a)
+		if !ok {
+			continue
+		}
+
+		if a.DefaultStatus == "affected" {
+			// the affected set is everything outside the unaffected items, which ranges from affected items cannot express
+			log.WithFields("cve", cve, "package", purl.Name).Debug("skipping CNA entry: defaultStatus is affected")
+			continue
+		}
+
+		ranges := cnaRanges(cve, purl.Type, a.Versions)
+		if len(ranges) == 0 {
+			log.WithFields("cve", cve, "package", purl.Name).Debug("skipping CNA entry: no usable range")
+			continue
+		}
+
+		pkgType := syftPkg.TypeByName(purl.Type)
+		handles = append(handles, db.AffectedPackageHandle{
+			Package: &db.Package{
+				Name:      name.Normalize(internal.PackageNameFromPURL(purl), pkgType),
+				Ecosystem: string(pkgType),
+			},
+			BlobValue: &db.PackageBlob{
+				CVEs:   []string{cve},
+				Ranges: ranges,
+			},
+		})
+	}
+	return handles
+}
+
+// cnaPackageIdentity finds the package an affected[] entry names. A purl whose type is supported wins over the
+// collectionURL and packageName. Otherwise a packageName on a supported registry host is used.
+func cnaPackageIdentity(a unmarshal.CVE5Affected) (*packageurl.PackageURL, bool) {
+	if a.PackageURL != "" {
+		purl, err := packageurl.FromString(a.PackageURL)
+		// a swift purl without a version is rejected by the parser, but its type and name are still set
+		if err != nil && purl.Type != packageurl.TypeSwift {
+			purl = packageurl.PackageURL{}
+		}
+		if _, supported := cnaRegistryHosts[purl.Type]; supported && purl.Name != "" {
+			// a maven purl without a group names no package a GitHub advisory could also name
+			if purl.Type == packageurl.TypeMaven && purl.Namespace == "" {
+				return nil, false
+			}
+			return &purl, true
+		}
+	}
+
+	if a.PackageName == "" {
+		return nil, false
+	}
+
+	purlType, ok := cnaTypeFromCollectionURL(a.CollectionURL)
+	if !ok {
+		return nil, false
+	}
+
+	purl := packageurl.PackageURL{Type: purlType, Name: a.PackageName}
+	if purlType == packageurl.TypeMaven {
+		group, artifact, found := strings.Cut(a.PackageName, ":")
+		if !found || group == "" || artifact == "" || strings.Contains(artifact, ":") {
+			return nil, false
+		}
+		purl.Namespace, purl.Name = group, artifact
+	}
+	return &purl, true
+}
+
+// cnaTypeFromCollectionURL matches a collectionURL to a purl type, ignoring scheme, host case and any path after
+// the host except where the table names one.
+func cnaTypeFromCollectionURL(collectionURL string) (string, bool) {
+	if collectionURL == "" {
+		return "", false
+	}
+	if !strings.Contains(collectionURL, "://") {
+		collectionURL = "https://" + collectionURL
+	}
+	u, err := url.Parse(collectionURL)
+	if err != nil {
+		return "", false
+	}
+
+	host := strings.ToLower(u.Hostname())
+	for purlType, hosts := range cnaRegistryHosts {
+		for _, h := range hosts {
+			h, pathPrefix, _ := strings.Cut(h, "/")
+			if host == h && (pathPrefix == "" || strings.HasPrefix(u.Path, "/"+pathPrefix)) {
+				return purlType, true
+			}
+		}
+	}
+	return "", false
+}
+
+// cnaRanges maps each version item to at most one range. See the cna-reconciliation spec's
+// ranges-no-broader-than-stated requirement: an item that cannot be expressed without admitting versions the
+// CNA did not mark affected is dropped, and the other items are kept.
+func cnaRanges(cve, purlType string, items []unmarshal.CVE5Version) []db.Range {
+	var ranges []db.Range
+	for _, item := range items {
+		r, reason := cnaRange(purlType, item)
+		if r == nil {
+			if reason != "" {
+				log.WithFields("cve", cve, "version", item.Version, "reason", reason).Debug("skipping CNA version item")
+			}
+			continue
+		}
+		ranges = append(ranges, *r)
+	}
+	return ranges
+}
+
+func cnaRange(purlType string, item unmarshal.CVE5Version) (*db.Range, string) {
+	if item.Status != "affected" {
+		return nil, ""
+	}
+
+	lower, upper := item.Version, item.LessThan
+	inclusive := false
+	switch {
+	case item.LessThan != "" && item.LessThanOrEqual != "":
+		return nil, "both lessThan and lessThanOrEqual are set"
+	case item.LessThanOrEqual != "":
+		upper, inclusive = item.LessThanOrEqual, true
+	}
+
+	if lower == "" {
+		return nil, "no version"
+	}
+
+	format := version.ParseFormat(purlType)
+	placeholder, reason := cnaLowerBound(lower, format)
+	if reason != "" {
+		return nil, reason
+	}
+	if upper != "" && upper != "*" {
+		if reason := cnaBoundReason(upper); reason != "" {
+			return nil, reason
+		}
+	}
+	for _, c := range item.Changes {
+		if reason := cnaBoundReason(c.At); reason != "" {
+			return nil, "change: " + reason
+		}
+	}
+
+	var constraint string
+	switch {
+	case placeholder && (upper == "" || upper == "*"):
+		return nil, "no bound on either side"
+	case placeholder && inclusive:
+		constraint = "<= " + upper
+	case placeholder:
+		constraint = "< " + upper
+	case upper == "*":
+		constraint = ">= " + lower
+	case upper == "":
+		constraint = "= " + lower
+	case inclusive:
+		constraint = fmt.Sprintf(">= %s, <= %s", lower, upper)
+	default:
+		constraint = fmt.Sprintf(">= %s, < %s", lower, upper)
+	}
+
+	bound := upper
+	if bound == "" {
+		bound = lower
+	}
+	if reason := cnaChangeInsideRange(item.Changes, bound, inclusive, format); reason != "" {
+		return nil, reason
+	}
+
+	v := db.Version{Type: purlType, Constraint: constraint}
+	if err := internal.ValidateAffectedVersion(v); err != nil {
+		return nil, fmt.Sprintf("constraint does not validate: %v", err)
+	}
+
+	r := &db.Range{Version: v}
+	if upper != "" && upper != "*" && !inclusive {
+		r.Fix = &db.Fix{Version: upper, State: db.FixedStatus}
+	}
+	return r, ""
+}
+
+// cnaChangeInsideRange reports why a change makes the range cover versions the item does not mark affected. A change
+// at an inclusive upper bound is inside it, since the range admits the bound itself.
+func cnaChangeInsideRange(changes []unmarshal.CVE5Change, bound string, inclusive bool, format version.Format) string {
+	if bound == "*" && len(changes) > 0 {
+		return "changes with no upper bound"
+	}
+	for _, c := range changes {
+		cmp, err := version.New(c.At, format).Compare(version.New(bound, format))
+		if err != nil || cmp < 0 || (inclusive && cmp == 0) {
+			return "change inside the range"
+		}
+	}
+	return ""
+}
+
+// cnaLowerBound reports whether a lower bound is a placeholder for "from the beginning", or why it cannot be used.
+// "0" and "n/a" are placeholders, and so is any usable bound that compares equal to 0 in the format, such as
+// "0.0.0", so that it maps the way "0" does.
+func cnaLowerBound(lower string, format version.Format) (bool, string) {
+	if lower == "0" || strings.EqualFold(lower, "n/a") {
+		return true, ""
+	}
+	if reason := cnaBoundReason(lower); reason != "" {
+		return false, reason
+	}
+	cmp, err := version.New(lower, format).Compare(version.New("0", format))
+	return err == nil && cmp == 0, ""
+}

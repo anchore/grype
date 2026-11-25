@@ -17,6 +17,7 @@ import (
 	v5 "github.com/anchore/grype/grype/db/v5/build"
 	grypeDBv6 "github.com/anchore/grype/grype/db/v6"
 	v6 "github.com/anchore/grype/grype/db/v6/build"
+	"github.com/anchore/grype/grype/db/v6/build/transformers/nvd"
 	"github.com/anchore/grype/internal/log"
 )
 
@@ -35,7 +36,19 @@ type BuildConfig struct {
 	FailOnMissingFixDate bool // any fixes found without at least one available date will cause a build failure
 	BatchSize            int  // number of operations to batch before committing
 	SQLiteCacheSizeKiB   int  // SQLite page cache size (in KiB) used while writing the DB; zero means the built-in default (1 GiB)
+
+	// ReconcileCNA combines each NVD record with the CNA data in the `cve5` provider's CVE 5 record. It is only
+	// supported for schema 6 and requires `cve5` and `nvd` provider states.
+	ReconcileCNA bool
 }
+
+const (
+	cve5Provider = "cve5"
+	nvdProvider  = "nvd"
+
+	// maxCVE5Lag is how much older the `cve5` input may be than the `nvd` input before reconciliation refuses it
+	maxCVE5Lag = 48 * time.Hour
+)
 
 func Build(cfg BuildConfig) error {
 	log.WithFields(
@@ -44,7 +57,21 @@ func Build(cfg BuildConfig) error {
 		"providers", cfg.States.Names()).
 		Info("building database")
 
-	processors, err := getProcessors(cfg)
+	if cfg.ReconcileCNA && cfg.SchemaVersion != grypeDBv6.ModelVersion {
+		return fmt.Errorf("CNA reconciliation is only supported for schema version %d, not %d", grypeDBv6.ModelVersion, cfg.SchemaVersion)
+	}
+
+	var cnaIndex *nvd.Index
+	var nvdState provider.State
+	if cfg.ReconcileCNA {
+		var err error
+		cnaIndex, nvdState, err = readCNAIndex(cfg.States)
+		if err != nil {
+			return err
+		}
+	}
+
+	processors, nvdConfig, err := getProcessors(cfg, cnaIndex)
 	if err != nil {
 		return err
 	}
@@ -56,6 +83,10 @@ func Build(cfg BuildConfig) error {
 
 	var openers []providerResults
 	for _, sd := range cfg.States {
+		if sd.Provider == cve5Provider {
+			// cve5 is never processed as a provider of its own: when reconciling, it was read above, and otherwise it is unused
+			continue
+		}
 		sdOpeners, count, err := entry.Openers(sd.Store, sd.ResultPaths())
 		if err != nil {
 			return fmt.Errorf("failed to open provider result files: %w", err)
@@ -69,6 +100,12 @@ func Build(cfg BuildConfig) error {
 
 	if err := build(openers, writer, processors...); err != nil {
 		return err
+	}
+
+	if cnaIndex != nil {
+		if err := cnaIndex.WriteLeftovers(nvdConfig, nvdState, writer); err != nil {
+			return err
+		}
 	}
 
 	if err := writer.Close(); err != nil {
@@ -90,15 +127,60 @@ type providerResults struct {
 	count    int64
 }
 
-func getProcessors(cfg BuildConfig) ([]data.Processor, error) {
+// getProcessors returns the processors for the schema, and for schema 6 the NVD transformer's config, which the
+// leftover CVE 5 records are written with.
+func getProcessors(cfg BuildConfig, cnaIndex *nvd.Index) ([]data.Processor, nvd.Config, error) {
 	switch cfg.SchemaVersion {
 	case grypeDBv5.SchemaVersion:
-		return v5.Processors(v5.NewConfig(v5.WithCPEParts(cfg.IncludeCPEParts), v5.WithInferNVDFixVersions(cfg.InferNVDFixVersions))), nil
+		return v5.Processors(v5.NewConfig(v5.WithCPEParts(cfg.IncludeCPEParts), v5.WithInferNVDFixVersions(cfg.InferNVDFixVersions))), nvd.Config{}, nil
 	case grypeDBv6.ModelVersion:
-		return v6.Processors(v6.NewConfig(v6.WithCPEParts(cfg.IncludeCPEParts), v6.WithInferNVDFixVersions(cfg.InferNVDFixVersions))), nil
+		v6Config := v6.NewConfig(v6.WithCPEParts(cfg.IncludeCPEParts), v6.WithInferNVDFixVersions(cfg.InferNVDFixVersions), v6.WithCNAIndex(cnaIndex))
+		return v6.Processors(v6Config), v6Config.NVD, nil
 	default:
-		return nil, fmt.Errorf("unable to create processor: unsupported schema version: %+v", cfg.SchemaVersion)
+		return nil, nvd.Config{}, fmt.Errorf("unable to create processor: unsupported schema version: %+v", cfg.SchemaVersion)
 	}
+}
+
+// readCNAIndex indexes the `cve5` provider's records, after checking that the input is usable: `cve5` and `nvd` are
+// both present, `cve5` is not much older than `nvd`, and `cve5` holds records that decode.
+func readCNAIndex(states provider.States) (*nvd.Index, provider.State, error) {
+	cve5, nvdState := findState(states, cve5Provider), findState(states, nvdProvider)
+	if cve5 == nil {
+		return nil, provider.State{}, fmt.Errorf("CNA reconciliation is enabled but there is no %q provider input", cve5Provider)
+	}
+	if nvdState == nil {
+		return nil, provider.State{}, fmt.Errorf("CNA reconciliation is enabled but there is no %q provider input", nvdProvider)
+	}
+
+	if nvdState.Timestamp.Sub(cve5.Timestamp) > maxCVE5Lag {
+		return nil, provider.State{}, fmt.Errorf(
+			"%q input is more than %s older than %q input: %q captured %s, %q captured %s",
+			cve5Provider, maxCVE5Lag, nvdProvider,
+			cve5Provider, cve5.Timestamp.Format(time.RFC3339),
+			nvdProvider, nvdState.Timestamp.Format(time.RFC3339),
+		)
+	}
+
+	openers, _, err := entry.Openers(cve5.Store, cve5.ResultPaths())
+	if err != nil {
+		return nil, provider.State{}, fmt.Errorf("failed to open %q provider result files: %w", cve5Provider, err)
+	}
+
+	idx, err := nvd.NewIndex(openers)
+	if err != nil {
+		return nil, provider.State{}, fmt.Errorf("failed to read %q provider records: %w", cve5Provider, err)
+	}
+
+	return idx, *nvdState, nil
+}
+
+func findState(states provider.States, name string) *provider.State {
+	for i := range states {
+		if states[i].Provider == name {
+			return &states[i]
+		}
+	}
+	return nil
 }
 
 func getWriter(cfg BuildConfig) (data.Writer, error) {
@@ -112,7 +194,11 @@ func getWriter(cfg BuildConfig) (data.Writer, error) {
 	case grypeDBv5.SchemaVersion:
 		return v5.NewWriter(cfg.Directory, cfg.Timestamp, cfg.States, batchSize, v5.WithSQLiteCacheSizeKiB(cfg.SQLiteCacheSizeKiB))
 	case grypeDBv6.ModelVersion:
-		return v6.NewWriter(cfg.Directory, cfg.States, cfg.FailOnMissingFixDate, batchSize, v6.WithSQLiteCacheSizeKiB(cfg.SQLiteCacheSizeKiB))
+		options := []v6.WriterOption{v6.WithSQLiteCacheSizeKiB(cfg.SQLiteCacheSizeKiB)}
+		if cfg.ReconcileCNA {
+			options = append(options, v6.WithNVDPackageMerge())
+		}
+		return v6.NewWriter(cfg.Directory, cfg.States, cfg.FailOnMissingFixDate, batchSize, options...)
 	default:
 		return nil, fmt.Errorf("unable to create writer: unsupported schema version: %+v", cfg.SchemaVersion)
 	}

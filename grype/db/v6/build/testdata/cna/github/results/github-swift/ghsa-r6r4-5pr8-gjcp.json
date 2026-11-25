@@ -1,0 +1,70 @@
+{
+  "identifier": "github:swift/ghsa-r6r4-5pr8-gjcp",
+  "item": {
+    "Advisory": {
+      "CVE": [
+        "CVE-2024-21631"
+      ],
+      "CVSS": {
+        "base_metrics": {
+          "base_score": 6.5,
+          "base_severity": "Medium",
+          "exploitability_score": 2.8,
+          "impact_score": 3.6
+        },
+        "status": "N/A",
+        "vector_string": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:N",
+        "version": "3.1"
+      },
+      "Classification": "GENERAL",
+      "FixedIn": [
+        {
+          "available": {
+            "date": "2024-02-09",
+            "kind": "first-observed"
+          },
+          "ecosystem": "swift",
+          "identifier": "4.90.0",
+          "name": "github.com/vapor/vapor",
+          "namespace": "github:swift",
+          "range": "\u003c= 4.89.3"
+        }
+      ],
+      "Metadata": {
+        "CVE": [
+          "CVE-2024-21631"
+        ]
+      },
+      "Severity": "Medium",
+      "Summary": "Vapor contains an integer overflow in URI leading to potential host spoofing",
+      "cvss_severities": [
+        {
+          "vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:N",
+          "version": "3.1"
+        }
+      ],
+      "ghsaId": "GHSA-r6r4-5pr8-gjcp",
+      "namespace": "github:swift",
+      "published": "2024-01-03T21:44:35Z",
+      "references": [
+        {
+          "url": "https://github.com/vapor/vapor/security/advisories/GHSA-r6r4-5pr8-gjcp"
+        },
+        {
+          "url": "https://nvd.nist.gov/vuln/detail/CVE-2024-21631"
+        },
+        {
+          "url": "https://github.com/vapor/vapor/commit/6db3d917b5ce5024a84eb265ef65691383305d70"
+        },
+        {
+          "url": "https://github.com/advisories/GHSA-r6r4-5pr8-gjcp"
+        }
+      ],
+      "updated": "2024-02-09T00:29:15Z",
+      "url": "https://github.com/advisories/GHSA-r6r4-5pr8-gjcp",
+      "withdrawn": null
+    },
+    "Vulnerability": {}
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/github-security-advisory/schema-1.0.3.json"
+}
