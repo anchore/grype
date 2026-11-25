@@ -51,4 +51,5 @@ var strategies = []Strategy{
 	rootioStrategy{},
 	chainguardStrategy{},
 	dhiStrategy{},
+	ocamlStrategy{},
 }

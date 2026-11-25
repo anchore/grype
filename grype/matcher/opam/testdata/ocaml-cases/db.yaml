@@ -1,0 +1,15 @@
+# hand-assembled cases for the opam matcher: records written by the vunnel "ocamlsec" provider (anchore/vunnel#1458),
+# which is not in a published vunnel cache yet, and the NVD record of CVE-2017-9772 (services.nvd.nist.gov,
+# 2026-11-19), wrapped like the vunnel nvd provider writes it
+auto-generate: false
+extractions:
+  ocamlsec:
+    # unchanged: ocaml {>= "4.04" & < "4.04.2"}, alias CVE-2017-9772
+    - osec-2017-01
+    # synthetic: marked as withdrawn
+    - osec-2026-05
+    # synthetic: the ocaml range replaced by a lone introduced:0 (no fix yet, every version affected)
+    - osec-2026-18
+  nvd:
+    # unchanged: cpe:2.3:a:ocaml:ocaml:4.04.0 and 4.04.1
+    - 2017/cve-2017-9772

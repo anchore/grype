@@ -29,6 +29,8 @@ func VersionFormat(p Package) version.Format {
 		return version.GolangFormat
 	case syftPkg.AlpmPkg:
 		return version.PacmanFormat
+	case syftPkg.OpamPkg:
+		return version.OpamFormat
 	}
 
 	if isJvmPackage(p) {

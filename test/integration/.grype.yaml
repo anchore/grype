@@ -20,6 +20,8 @@ match:
     using-cpes: true
   rust:
     using-cpes: true
+  opam:
+    using-cpes: true
   stock:
     using-cpes: true
 
