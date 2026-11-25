@@ -273,7 +273,9 @@ func findMatchingStatement(doc *openvex.VEX, vulnID string, products []string, s
 }
 
 // FilterMatches takes a set of scanning results and moves any results marked in
-// the VEX data as fixed or not_affected to the ignored list.
+// the VEX data with a filterable status to the ignored list. By default that is
+// fixed and not_affected; statuses listed via vex-add (affected,
+// under_investigation) are also filterable when present as ignore rules.
 func (ovm *Processor) FilterMatches(
 	docRaw any, ignoreRules []match.IgnoreRule, pkgContext *pkg.Context, matches *match.Matches, ignoredMatches []match.IgnoredMatch,
 ) (*match.Matches, []match.IgnoredMatch, error) {
@@ -285,6 +287,7 @@ func (ovm *Processor) FilterMatches(
 	remainingMatches := match.NewMatches()
 
 	products := productIdentifiersFromContext(pkgContext)
+	allowedStatuses := allowedFilterStatuses(ignoreRules)
 
 	// TODO(alex): should we apply the vex ignore rules to the already ignored matches?
 	// that way the end user sees all of the reasons a match was ignored in case multiple apply
@@ -301,14 +304,8 @@ func (ovm *Processor) FilterMatches(
 			continue
 		}
 
-		rule := matchingRule(ignoreRules, sorted[i], statement, vexStatus.IgnoreList())
+		rule := matchingRule(ignoreRules, sorted[i], statement, allowedStatuses)
 		if rule == nil {
-			remainingMatches.Add(sorted[i])
-			continue
-		}
-
-		// Filtering only applies to not_affected and fixed statuses
-		if statement.Status != openvex.StatusNotAffected && statement.Status != openvex.StatusFixed {
 			remainingMatches.Add(sorted[i])
 			continue
 		}
@@ -319,6 +316,29 @@ func (ovm *Processor) FilterMatches(
 		})
 	}
 	return &remainingMatches, ignoredMatches, nil
+}
+
+// allowedFilterStatuses returns IgnoreList plus any augment statuses the user
+// opted into via ignore rules (vex-add).
+func allowedFilterStatuses(ignoreRules []match.IgnoreRule) []vexStatus.Status {
+	optIn := make([]vexStatus.Status, 0, len(ignoreRules))
+	for _, r := range ignoreRules {
+		if r.VexStatus != "" {
+			optIn = append(optIn, vexStatus.Status(r.VexStatus))
+		}
+	}
+	return vexStatus.AllowedFilterStatuses(optIn)
+}
+
+// alreadyFilteredByVexStatus reports whether a match was already suppressed by
+// a VEX ignore rule for the given status, so AugmentMatches must not undo it.
+func alreadyFilteredByVexStatus(im match.IgnoredMatch, status string) bool {
+	for _, r := range im.AppliedIgnoreRules {
+		if r.Namespace == "vex" && r.VexStatus == status {
+			return true
+		}
+	}
+	return false
 }
 
 // matchingRule cycles through a set of ignore rules and returns the first
@@ -403,6 +423,14 @@ func (ovm *Processor) AugmentMatches(
 
 		// Only augment for affected or under_investigation statuses
 		if statement == nil || (statement.Status != openvex.StatusAffected && statement.Status != openvex.StatusUnderInvestigation) {
+			additionalIgnoredMatches = append(additionalIgnoredMatches, ignoredMatches[i])
+			continue
+		}
+
+		// Do not undo a FilterMatches suppression for the same VEX status.
+		// vex-add installs ignore rules for these statuses; Augment must leave
+		// those filtered matches ignored (see #3890).
+		if alreadyFilteredByVexStatus(ignoredMatches[i], string(statement.Status)) {
 			additionalIgnoredMatches = append(additionalIgnoredMatches, ignoredMatches[i])
 			continue
 		}

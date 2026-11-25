@@ -1,0 +1,24 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://openvex.dev/docs/public/vex-under-investigation-repro",
+  "author": "repro",
+  "version": 1,
+  "timestamp": "2026-11-06T00:00:00Z",
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2023-1255"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/alpine@sha256%3A124c7d2707904eea7431fffe91522a01e5a861a624ee31d03372cc1d138a3126",
+          "subcomponents": [
+            { "@id": "pkg:apk/alpine/libcrypto3@3.0.8-r3" }
+          ]
+        }
+      ],
+      "status": "under_investigation",
+      "timestamp": "2026-11-06T00:00:00Z"
+    }
+  ]
+}
