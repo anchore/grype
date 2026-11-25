@@ -80,6 +80,8 @@ cat ./sbom.json | grype
 > Check out the [Getting Started guide](https://oss.anchore.com/docs/guides/vulnerability/getting-started/) to explore all of the capabilities and features.
 >
 > Want to know all of the ins-and-outs of Grype? Check out the [CLI docs](https://oss.anchore.com/docs/reference/grype/cli/) and [configuration docs](https://oss.anchore.com/docs/reference/grype/configuration/).
+>
+> Editing a `.grype.yaml`? Point your editor at the [configuration JSON schema](schema/grype/config/json/README.md#editor-integration) for completion, documentation and validation.
 
 ## Contributing
 
