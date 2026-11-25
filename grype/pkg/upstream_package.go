@@ -1,8 +1,6 @@
 package pkg
 
 import (
-	"strings"
-
 	"github.com/scylladb/go-set/strset"
 
 	"github.com/anchore/grype/grype/internal/architecture"
@@ -33,24 +31,28 @@ func UpstreamPackages(p Package) (pkgs []Package) {
 		}
 		tmp.Upstreams = nil
 
-		// for each cpe, replace pkg name with origin and add to set
-		cpeStrings := strset.New()
+		// Edit vendor and product only when the field is exactly the package name.
+		// Replacing that name inside the formatted CPE also rewrites other
+		// fields, and a name like "c" breaks the "cpe:2.3:" prefix. The parse
+		// error used to be ignored, which appended an empty CPE.
+		seen := strset.New()
+		var updatedCPEs []cpe.CPE
 		for _, c := range tmp.CPEs {
 			if u.Version != "" {
 				c.Attributes.Version = u.Version
 			}
-
-			// use BindToFmtString because we search against unescaped CPE strings
-			updatedCPEString := strings.ReplaceAll(c.Attributes.BindToFmtString(), p.Name, u.Name)
-
-			cpeStrings.Add(updatedCPEString)
-		}
-
-		// with each entry in set, convert string to CPE and update the new CPEs
-		var updatedCPEs []cpe.CPE
-		for _, cpeString := range cpeStrings.List() {
-			updatedCPE, _ := cpe.New(cpeString, "")
-			updatedCPEs = append(updatedCPEs, updatedCPE)
+			if c.Attributes.Product == p.Name {
+				c.Attributes.Product = u.Name
+			}
+			if c.Attributes.Vendor == p.Name {
+				c.Attributes.Vendor = u.Name
+			}
+			formatted := c.Attributes.BindToFmtString()
+			if seen.Has(formatted) {
+				continue
+			}
+			seen.Add(formatted)
+			updatedCPEs = append(updatedCPEs, c)
 		}
 		tmp.CPEs = updatedCPEs
 
