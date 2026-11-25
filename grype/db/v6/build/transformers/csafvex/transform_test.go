@@ -316,6 +316,88 @@ func TestTransform_KnownAffected(t *testing.T) {
 	require.Equal(t, "otherpkg", aph.Package.Name)
 	require.Equal(t, "rpm", aph.Package.Ecosystem)
 	require.Equal(t, []string{"CVE-2026-99999"}, aph.BlobValue.CVEs)
+
+	// known_affected without any remediation is still "affected, no fix yet"
+	require.Len(t, aph.BlobValue.Ranges, 1)
+	require.Empty(t, aph.BlobValue.Ranges[0].Version.Constraint)
+	require.Equal(t, "rpm", aph.BlobValue.Ranges[0].Version.Type)
+	require.Equal(t, db.NotFixedStatus, aph.BlobValue.Ranges[0].Fix.State)
+}
+
+func TestTransform_KnownAffectedNoFixRemediations(t *testing.T) {
+	const (
+		src  = "hummingbird-1:testpkg-0:1.2.3-1.hum1.src"
+		bare = "hummingbird-1:otherpkg"
+	)
+	tests := []struct {
+		name         string
+		remediations []unmarshal.CSAFRemediation
+		want         db.FixStatus
+	}{
+		{
+			name: "none_available is not-fixed",
+			remediations: []unmarshal.CSAFRemediation{
+				{Category: "workaround", Details: "See the security bulletin.", ProductIDs: []string{src}},
+				{Category: "none_available", Details: "Affected", ProductIDs: []string{src}},
+			},
+			want: db.NotFixedStatus,
+		},
+		{
+			name: "no_fix_planned is wont-fix",
+			remediations: []unmarshal.CSAFRemediation{
+				{Category: "no_fix_planned", Details: "Will not fix", ProductIDs: []string{src}},
+			},
+			want: db.WontFixStatus,
+		},
+		{
+			name: "no_fix_planned wins over none_available regardless of order",
+			remediations: []unmarshal.CSAFRemediation{
+				{Category: "no_fix_planned", Details: "Will not fix", ProductIDs: []string{src}},
+				{Category: "none_available", Details: "Affected", ProductIDs: []string{src}},
+			},
+			want: db.WontFixStatus,
+		},
+		{
+			name: "remediation for a different product does not apply",
+			remediations: []unmarshal.CSAFRemediation{
+				{Category: "no_fix_planned", Details: "Will not fix", ProductIDs: []string{bare}},
+			},
+			want: db.NotFixedStatus,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			advisory := makeAdvisory([]unmarshal.CSAFVulnerability{
+				{
+					CVE: "CVE-2026-77777",
+					ProductStatus: &unmarshal.CSAFProductStatus{
+						KnownAffected: []string{src},
+					},
+					Remediations: tt.remediations,
+				},
+			}, hummingbirdProductTree())
+
+			got, err := Transform(advisory, inputProviderState())
+			require.NoError(t, err)
+			require.Len(t, got, 1)
+
+			e := got[0].Data.(transformers.RelatedEntries)
+			require.Len(t, e.Related, 1)
+
+			aph, ok := e.Related[0].(db.AffectedPackageHandle)
+			require.True(t, ok)
+			require.Equal(t, "testpkg", aph.Package.Name)
+			require.Equal(t, &db.OperatingSystem{Name: "hummingbird", LabelVersion: "rolling"}, aph.OperatingSystem)
+			require.Len(t, aph.BlobValue.Ranges, 1)
+
+			r := aph.BlobValue.Ranges[0]
+			// the purl version is the latest assessed (still affected) build, not a bound
+			require.Empty(t, r.Version.Constraint)
+			require.Equal(t, "rpm", r.Version.Type)
+			require.Equal(t, tt.want, r.Fix.State)
+			require.Empty(t, r.Fix.Version)
+		})
+	}
 }
 
 func TestTransform_NoVulnerabilities(t *testing.T) {
