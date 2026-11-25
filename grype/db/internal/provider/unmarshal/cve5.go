@@ -36,6 +36,8 @@ type CVE5ADPContainer struct {
 	ProviderMetadata CVE5ProviderMetadata `json:"providerMetadata"`
 	Affected         []CVE5Affected       `json:"affected"`
 	CPEApplicability []nvd.Configuration  `json:"cpeApplicability"`
+
+	ObservedFixDates []CVE5ObservedFixDate `json:"x_observedFixDates"`
 }
 
 type CVE5ProviderMetadata struct {
@@ -49,6 +51,22 @@ type CVE5CNAContainer struct {
 
 	// cpeApplicability shares NVD's configuration shape. CVE 5 omits matchCriteriaId, which decodes as empty.
 	CPEApplicability []nvd.Configuration `json:"cpeApplicability"`
+
+	ObservedFixDates []CVE5ObservedFixDate `json:"x_observedFixDates"`
+}
+
+// CVE5ObservedFixDate is one entry of the `x_observedFixDates` list the `cve5` provider adds to the container that
+// holds a bound. It names the bound by the locator of the entry that states it: criteria for a CPE match, otherwise
+// the packageURL as the affected entry states it, otherwise its collectionURL and packageName. A bound with no entry
+// is normal.
+type CVE5ObservedFixDate struct {
+	Criteria      string `json:"criteria"`
+	PackageURL    string `json:"packageURL"`
+	CollectionURL string `json:"collectionURL"`
+	PackageName   string `json:"packageName"`
+	FixVersion    string `json:"fixVersion"`
+	Date          string `json:"date"`
+	Kind          string `json:"kind"`
 }
 
 type CVE5Description struct {

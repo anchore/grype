@@ -80,6 +80,7 @@ func loadCVE5Fixture(t *testing.T, cve string) unmarshal.CVE5Record {
 func cnaOnly(r unmarshal.CVE5Record) projection {
 	p := project(r)
 	p.affected = r.Containers.CNA.Affected
+	p.affectedDates = r.Containers.CNA.ObservedFixDates
 	return p
 }
 
@@ -847,7 +848,7 @@ func TestCNARanges_rules(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var got []wantRange
-			for _, r := range cnaRanges("CVE-2026-00001", tt.purl, tt.items) {
+			for _, r := range cnaRanges("CVE-2026-00001", tt.purl, tt.items, nil) {
 				wr := wantRange{versionType: r.Version.Type, constraint: r.Version.Constraint}
 				if r.Fix != nil {
 					wr.fix = r.Fix.Version

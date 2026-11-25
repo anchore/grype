@@ -35,7 +35,9 @@ func cpeApplicabilityUsable(assigner string) bool {
 
 // projection is the part of a CVE 5 record that reconciliation reads. affected is the `anchoreadp` container's
 // list when the record has one and the CNA's otherwise, and the two lists are never merged. Both
-// cpeApplicability values are kept because their precedence depends on the NVD record (see cpeSource).
+// cpeApplicability values are kept because their precedence depends on the NVD record (see cpeSource). Each
+// container's x_observedFixDates entries are kept with it: the entries for a CPE row come from the container that
+// supplied its cpeApplicability, and the entries for a package row from the container that supplied the affected list.
 type projection struct {
 	id            string
 	state         string
@@ -49,6 +51,10 @@ type projection struct {
 
 	cnaCPE []nvd.Configuration
 	adpCPE []nvd.Configuration
+
+	affectedDates []unmarshal.CVE5ObservedFixDate
+	cnaDates      []unmarshal.CVE5ObservedFixDate
+	adpDates      []unmarshal.CVE5ObservedFixDate
 }
 
 func project(r unmarshal.CVE5Record) projection {
@@ -63,11 +69,16 @@ func project(r unmarshal.CVE5Record) projection {
 		references:    cna.References,
 		affected:      cna.Affected,
 		cnaCPE:        cna.CPEApplicability,
+
+		affectedDates: cna.ObservedFixDates,
+		cnaDates:      cna.ObservedFixDates,
 	}
 	if adp := r.AnchoreADP(); adp != nil {
 		p.adpCPE = adp.CPEApplicability
+		p.adpDates = adp.ObservedFixDates
 		if len(adp.Affected) > 0 {
 			p.affected = adp.Affected
+			p.affectedDates = adp.ObservedFixDates
 		}
 	}
 	return p
@@ -76,15 +87,74 @@ func project(r unmarshal.CVE5Record) projection {
 // cpeSource returns the cpeApplicability that supplies CPE rows when the NVD record has no configurations: the
 // `anchoreadp` container's when it has one, else the CNA's unless its assigner is excluded. The CNA's matches that
 // state no version range or bound the range by a commit hash are dropped, since neither says which released
-// versions are affected.
+// versions are affected. A match with a versionEndExcluding carries the date of the entry of its container's
+// x_observedFixDates that names its criteria and that bound, so the fix inferred from the bound is dated.
 func (p projection) cpeSource() []nvd.Configuration {
 	if len(p.adpCPE) > 0 {
-		return p.adpCPE
+		return withObservedFixDates(p.adpCPE, p.adpDates)
 	}
 	if !cpeApplicabilityUsable(p.assigner) {
 		return nil
 	}
-	return filterCNAConfigurations(p.id, p.cnaCPE)
+	return withObservedFixDates(filterCNAConfigurations(p.id, p.cnaCPE), p.cnaDates)
+}
+
+// withObservedFixDates returns cfgs with each vulnerable match's Fix set from the entry whose criteria and fixVersion
+// are the match's and its versionEndExcluding. A match with no entry keeps no Fix. cfgs is never modified, since the
+// index holds it for the NVD record that takes it.
+func withObservedFixDates(cfgs []nvd.Configuration, dates []unmarshal.CVE5ObservedFixDate) []nvd.Configuration {
+	if len(dates) == 0 {
+		return cfgs
+	}
+	out := slices.Clone(cfgs)
+	for i := range out {
+		out[i].Nodes = slices.Clone(out[i].Nodes)
+		for j := range out[i].Nodes {
+			out[i].Nodes[j].CpeMatch = slices.Clone(out[i].Nodes[j].CpeMatch)
+			for k := range out[i].Nodes[j].CpeMatch {
+				m := &out[i].Nodes[j].CpeMatch[k]
+				if !m.Vulnerable || m.VersionEndExcluding == nil {
+					continue
+				}
+				for _, d := range dates {
+					if d.Criteria == m.Criteria && d.FixVersion == *m.VersionEndExcluding {
+						m.Fix = &nvd.FixInfo{Version: d.FixVersion, Date: d.Date, Kind: d.Kind}
+						break
+					}
+				}
+			}
+		}
+	}
+	return out
+}
+
+// observedFixDatesFor returns the entries that name an affected entry, by its packageURL as stated or, when it has
+// none, by its collectionURL and packageName. An affected entry with neither has no entries.
+func observedFixDatesFor(a unmarshal.CVE5Affected, dates []unmarshal.CVE5ObservedFixDate) []unmarshal.CVE5ObservedFixDate {
+	var out []unmarshal.CVE5ObservedFixDate
+	for _, d := range dates {
+		switch {
+		case a.PackageURL != "":
+			if d.PackageURL == a.PackageURL {
+				out = append(out, d)
+			}
+		case a.PackageName != "":
+			if d.PackageURL == "" && d.CollectionURL == a.CollectionURL && d.PackageName == a.PackageName {
+				out = append(out, d)
+			}
+		}
+	}
+	return out
+}
+
+// observedFixDetail is the availability of the first entry for a fix version, or nil when there is none.
+func observedFixDetail(dates []unmarshal.CVE5ObservedFixDate, fixVersion string) *db.FixDetail {
+	for _, d := range dates {
+		if d.FixVersion == fixVersion {
+			return &db.FixDetail{Available: &db.FixAvailability{Date: internal.ParseTime(d.Date), Kind: d.Kind}}
+		}
+	}
+	return nil
 }
 
 // commitHashBound is a git commit hash, which orders against no release version. A run of digits only is more
@@ -345,7 +415,7 @@ func cnaPackageHandles(p projection) []db.AffectedPackageHandle {
 			continue
 		}
 
-		ranges := cnaRanges(cve, purl.Type, a.Versions)
+		ranges := cnaRanges(cve, purl.Type, a.Versions, observedFixDatesFor(a, p.affectedDates))
 		if len(ranges) == 0 {
 			log.WithFields("cve", cve, "package", purl.Name).Debug("skipping CNA entry: no usable range")
 			continue
@@ -432,11 +502,12 @@ func cnaTypeFromCollectionURL(collectionURL string) (string, bool) {
 
 // cnaRanges maps each version item to at most one range. See the cna-reconciliation spec's
 // ranges-no-broader-than-stated requirement: an item that cannot be expressed without admitting versions the
-// CNA did not mark affected is dropped, and the other items are kept.
-func cnaRanges(cve, purlType string, items []unmarshal.CVE5Version) []db.Range {
+// CNA did not mark affected is dropped, and the other items are kept. dates are the observed fix dates of the
+// affected entry the items belong to.
+func cnaRanges(cve, purlType string, items []unmarshal.CVE5Version, dates []unmarshal.CVE5ObservedFixDate) []db.Range {
 	var ranges []db.Range
 	for _, item := range items {
-		r, reason := cnaRange(purlType, item)
+		r, reason := cnaRange(purlType, item, dates)
 		if r == nil {
 			if reason != "" {
 				log.WithFields("cve", cve, "version", item.Version, "reason", reason).Debug("skipping CNA version item")
@@ -448,7 +519,7 @@ func cnaRanges(cve, purlType string, items []unmarshal.CVE5Version) []db.Range {
 	return ranges
 }
 
-func cnaRange(purlType string, item unmarshal.CVE5Version) (*db.Range, string) {
+func cnaRange(purlType string, item unmarshal.CVE5Version, dates []unmarshal.CVE5ObservedFixDate) (*db.Range, string) {
 	if item.Status != "affected" {
 		return nil, ""
 	}
@@ -515,7 +586,7 @@ func cnaRange(purlType string, item unmarshal.CVE5Version) (*db.Range, string) {
 
 	r := &db.Range{Version: v}
 	if upper != "" && upper != "*" && !inclusive {
-		r.Fix = &db.Fix{Version: upper, State: db.FixedStatus}
+		r.Fix = &db.Fix{Version: upper, State: db.FixedStatus, Detail: observedFixDetail(dates, upper)}
 	}
 	return r, ""
 }

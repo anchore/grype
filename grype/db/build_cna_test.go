@@ -385,3 +385,96 @@ func TestBuild_reconcileCNAKeepsNVDRowsOtherProvidersDoNotCover(t *testing.T) {
 		})
 	}
 }
+
+// addObservedFixDates makes a declared edit to a published CVE 5 result in inputDir: an `x_observedFixDates` list
+// is added to its CNA container. Published records carry no such list.
+func addObservedFixDates(t *testing.T, inputDir, cve string, entries ...map[string]any) {
+	t.Helper()
+	path := filepath.Join(inputDir, "cve5", "results", cve+".json")
+	b, err := os.ReadFile(path)
+	require.NoError(t, err)
+
+	var envelope map[string]any
+	require.NoError(t, json.Unmarshal(b, &envelope))
+	item := envelope["item"].(map[string]any)
+	item["containers"].(map[string]any)["cna"].(map[string]any)["x_observedFixDates"] = entries
+
+	b, err = json.Marshal(envelope)
+	require.NoError(t, err)
+	require.NoError(t, os.WriteFile(path, b, 0o600))
+}
+
+func TestBuild_reconcileCNAFixDates(t *testing.T) {
+	const (
+		bcprov     = "pkg:maven/org.bouncycastle/bcprov-jdk18on"
+		bcprovLTS  = "pkg:maven/org.bouncycastle/bcprov-lts8on"
+		craft      = "cpe:2.3:a:craftcms:craft_cms:*:*:*:*:*:*:*:*"
+		craftPURL  = "pkg:composer/craftcms/cms"
+		firstSeen  = "first-observed"
+		bcpDate    = "2026-08-01"
+		craftDate  = "2026-09-11"
+		missingMsg = `missing fix date for version "2.73.12"`
+	)
+
+	// the CNA bounds of the CVE 5 only records: bcprov 1.85, bcprov-lts8on 2.73.12, and craft_cms 5.10.6 and 4.18.2
+	// as both CPE bounds and composer package bounds
+	inputs := func(t *testing.T, withLTS bool) string {
+		in := writeCNAInputs(t,
+			cnaRecord{"nvd", "CVE-2026-85091"},
+			cnaRecord{"cve5", "CVE-2026-85091"},
+			cnaRecord{"cve5", "CVE-2026-59650"},
+			cnaRecord{"cve5", "CVE-2026-72778"},
+		)
+		entries := []map[string]any{{"packageURL": bcprov, "fixVersion": "1.85", "date": bcpDate, "kind": firstSeen}}
+		if withLTS {
+			entries = append(entries, map[string]any{"packageURL": bcprovLTS, "fixVersion": "2.73.12", "date": bcpDate, "kind": firstSeen})
+		}
+		addObservedFixDates(t, in, "CVE-2026-59650", entries...)
+		addObservedFixDates(t, in, "CVE-2026-72778",
+			map[string]any{"criteria": craft, "fixVersion": "5.10.6", "date": craftDate, "kind": firstSeen},
+			map[string]any{"criteria": craft, "fixVersion": "4.18.2", "date": craftDate, "kind": firstSeen},
+			map[string]any{"packageURL": craftPURL, "fixVersion": "5.10.6", "date": craftDate, "kind": firstSeen},
+			map[string]any{"packageURL": craftPURL, "fixVersion": "4.18.2", "date": craftDate, "kind": firstSeen},
+		)
+		return in
+	}
+
+	strictBuild := func(t *testing.T, in string) (string, error) {
+		out := newOutputDir(t)
+		cfg := testdb.FlatFileBuildConfig(t, cnaBuildTime, out, in)
+		cfg.ReconcileCNA = true
+		cfg.FailOnMissingFixDate = true
+		return out, db.Build(cfg)
+	}
+
+	t.Run("every CNA bound has an entry", func(t *testing.T) {
+		out, err := strictBuild(t, inputs(t, true))
+		require.NoError(t, err)
+
+		r := openBuilt(t, out)
+		pkgs, err := r.GetAffectedPackages(
+			&v6.PackageSpecifier{Name: "org.bouncycastle:bcprov-jdk18on", Ecosystem: "java-archive"},
+			&v6.GetPackageOptions{PreloadBlob: true},
+		)
+		require.NoError(t, err)
+		require.Len(t, pkgs, 1)
+		fix := pkgs[0].BlobValue.Ranges[0].Fix
+		require.Equal(t, "1.85", fix.Version)
+		require.Equal(t, firstSeen, fix.Detail.Available.Kind)
+		require.Equal(t, time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC), fix.Detail.Available.Date.UTC())
+
+		cpes, err := r.GetAffectedCPEs(&cpe.Attributes{Part: "a", Vendor: "craftcms", Product: "craft_cms"}, &v6.GetCPEOptions{PreloadBlob: true})
+		require.NoError(t, err)
+		require.Len(t, cpes, 1)
+		for _, rng := range cpes[0].BlobValue.Ranges {
+			require.NotNil(t, rng.Fix, rng.Version.Constraint)
+			require.NotNil(t, rng.Fix.Detail, rng.Version.Constraint)
+			require.Equal(t, time.Date(2026, 9, 11, 0, 0, 0, 0, time.UTC), rng.Fix.Detail.Available.Date.UTC())
+		}
+	})
+
+	t.Run("a CNA bound with no entry fails the build, naming the fix version", func(t *testing.T) {
+		_, err := strictBuild(t, inputs(t, false))
+		require.ErrorContains(t, err, missingMsg)
+	})
+}
