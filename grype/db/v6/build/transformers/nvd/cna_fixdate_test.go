@@ -203,4 +203,20 @@ func TestTransformCVE5Only_fixDates(t *testing.T) {
 			}, pkgs)
 		})
 	})
+
+	t.Run("an anchoreadp entry does not date a CNA CPE row", func(t *testing.T) {
+		// the anchoreadp container has affected[] but no cpeApplicability, so the CNA's supplies the CPE rows and only
+		// the CNA's own list may date them
+		rec := loadCVE5WithFixDates(t, "CVE-2026-40034", nil, []observedFixDate{
+			{
+				"criteria":   "cpe:2.3:a:gitoxidelabs:gitoxide:*:*:*:*:*:*:*:*",
+				"fixVersion": "0.5.21",
+				"date":       "2026-07-02",
+				"kind":       "first-observed",
+			},
+		})
+
+		cpes, _ := entryFixes(t, transformCVE5Only(cfg, project(rec), state))
+		require.Equal(t, []string{"< 0.5.21: fix 0.5.21, no date"}, cpes)
+	})
 }
