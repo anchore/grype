@@ -100,8 +100,8 @@ type searchParts struct {
 	all                                  []vulnerability.Criteria
 	nameAt, ecosystemAt, distroAt, cpeAt int
 
-	pkg      *pkg.Package // of the search.WithPackage criteria, which is kept
-	upstream bool         // a search.BySourcePackage criteria, which is kept
+	pkg  *pkg.Package                 // of the search.WithPackage criteria, which is kept
+	arch *search.ArchitectureCriteria // nil for a search by no architecture; kept
 }
 
 func splitSearch(cs []vulnerability.Criteria) searchParts {
@@ -126,8 +126,10 @@ func splitSearch(cs []vulnerability.Criteria) searchParts {
 			if sp.cpe == nil {
 				sp.cpe, sp.cpeAt = c, i
 			}
-		case *search.SourcePackageCriteria:
-			sp.upstream = true
+		case *search.ArchitectureCriteria:
+			if sp.arch == nil {
+				sp.arch = c
+			}
 		}
 	}
 	return sp
@@ -136,13 +138,16 @@ func splitSearch(cs []vulnerability.Criteria) searchParts {
 // subject returns what the search states about the package it searches for, else p. That is not
 // always the cataloged package: matchers search under other names and versions (upstreams, rootio
 // names, epoch-patched rpm versions). Only distro and CPE searches have an OS for rules to match; an
-// ecosystem search has none. A pattern on something the search does not state does not match. A
-// search is of an upstream when it is marked search.BySourcePackage, else of the package itself.
+// ecosystem search has none. A pattern on something the search does not state does not match. Its
+// architecture is the searched one (e.g. "src" for an upstream), else the package's.
 func (sp searchParts) subject(p pkg.Package) searchSubject {
 	if sp.pkg != nil {
 		p = *sp.pkg
 	}
-	s := searchSubject{name: p.Name, version: p.Version, upstream: sp.upstream}
+	s := searchSubject{name: p.Name, version: p.Version, arch: p.Arch}
+	if sp.arch != nil {
+		s.arch = sp.arch.Arch
+	}
 	if sp.distro != nil || sp.cpe != nil {
 		s.distro = p.Distro
 	}
@@ -296,7 +301,7 @@ func sameOS(a, b distro.Distro) bool {
 }
 
 // String describes the rows the search reads, for logging: its name (at the searched version) or CPE,
-// its ecosystem, its OS (name:version(label)+channels), and whether it is for an upstream.
+// its ecosystem, its OS (name:version(label)+channels), and its architecture.
 func (sp searchParts) String() string {
 	var sb strings.Builder
 	switch {
@@ -330,8 +335,8 @@ func (sp searchParts) String() string {
 			sb.WriteString("+" + strings.Join(d.Channels, ","))
 		}
 	}
-	if sp.upstream {
-		sb.WriteString(" (upstream)")
+	if sp.arch != nil && sp.arch.Arch != "" {
+		sb.WriteString(" [" + sp.arch.Arch + "]")
 	}
 	return sb.String()
 }

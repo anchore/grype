@@ -163,7 +163,7 @@ func shouldUseRedhatEUSMatching(d *distro.Distro) bool {
 // Any disclosure that does not apply to the original package version (e.g. a fix was found) at this point has been removed.
 //
 // The final step is to render the final matches from the merged collection.
-func redhatEUSMatches(provider result.Provider, target, searchPkg pkg.Package, missingEpochStrategy version.MissingEpochStrategy, extra ...vulnerability.Criteria) ([]match.Match, []match.IgnoreFilter, error) {
+func redhatEUSMatches(provider result.Provider, target, searchPkg pkg.Package, missingEpochStrategy version.MissingEpochStrategy, requireArch bool) ([]match.Match, []match.IgnoreFilter, error) {
 	distroWithoutEUS := *searchPkg.Distro
 	distroWithoutEUS.Channels = nil // clear the EUS channel so that we can search for the base distro
 
@@ -180,9 +180,9 @@ func redhatEUSMatches(provider result.Provider, target, searchPkg pkg.Package, m
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(distroWithoutEUS), // e.g.  >= 9.0 && < 10 (no EUS channel)
 		internal.OnlyQualifiedPackages(searchPkg),
+		search.ByArchitecture(searchPkg.Arch).WithRequired(requireArch),
 		internal.OnlyVulnerableVersions(pkgVersion), //nolint:staticcheck // if these records indicate the version of the package is not vulnerable, do not include them
 	}
-	disclosureCriteria = append(disclosureCriteria, extra...)
 
 	// find all disclosures for the package in the base distro (e.g. '>= 9.0 && < 10')
 	disclosures, err := provider.FindResults(disclosureCriteria...)
@@ -198,11 +198,11 @@ func redhatEUSMatches(provider result.Provider, target, searchPkg pkg.Package, m
 		search.ByPackageName(searchPkg.Name),
 		search.ByDistro(distroWithoutEUS, *searchPkg.Distro), // e.g.  (>= 9.0 && < 10) || 9.4+eus
 		internal.OnlyQualifiedPackages(searchPkg),
+		search.ByArchitecture(searchPkg.Arch).WithRequired(requireArch),
 		// note: we do **not** apply any version criteria to the search as to raise up all possible fixes
 		// and combine within the collection. If we do filter on a fix version, it could result in
 		// false positives (missing EUS fixes that resolve a disclosure).
 	}
-	resolutionCriteria = append(resolutionCriteria, extra...)
 
 	// find all base distro fixes (e.g. '>= 9.0 && < 10') and EUS fixes for the package in the specific minor version of the distro (e.g. '9.4+eus')
 	resolutions, err := provider.FindResults(resolutionCriteria...)

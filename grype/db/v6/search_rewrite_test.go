@@ -128,11 +128,11 @@ func TestSearchIndex_Rewrite_LogsRuledSearches(t *testing.T) { //nolint:funlen /
 		{
 			name:   "an upstream CPE search",
 			rules:  []SearchRule{{Action: SearchRuleReplace, MatchCPEProduct: "curl", ReplacementCPEVendor: "haxx"}},
-			search: []vulnerability.Criteria{search.ByCPE(cpe.Must("cpe:2.3:a:vendor:curl:1.0:*:*:*:*:*:*:*", "")), search.BySourcePackage(), search.WithPackage(p)},
+			search: []vulnerability.Criteria{search.ByCPE(cpe.Must("cpe:2.3:a:vendor:curl:1.0:*:*:*:*:*:*:*", "")), search.ByArchitecture("src"), search.WithPackage(p)},
 			want: []loggedEntry{
 				{msg: "search rule replaced search", fields: map[string]string{
-					"search": "cpe:2.3:a:vendor:curl:1.0:*:*:*:*:*:*:* in no OS (upstream)",
-					"new":    "cpe:2.3:a:haxx:curl:1.0:*:*:*:*:*:*:* in no OS (upstream)",
+					"search": "cpe:2.3:a:vendor:curl:1.0:*:*:*:*:*:*:* in no OS [src]",
+					"new":    "cpe:2.3:a:haxx:curl:1.0:*:*:*:*:*:*:* in no OS [src]",
 					"rule":   "replace match_cpe_product=curl replacement_cpe_vendor=haxx",
 				}},
 			},
@@ -159,8 +159,8 @@ func TestSearchRule_String(t *testing.T) {
 		},
 		{
 			// an empty, non-NULL replacement is a value (here, the rows of no OS)
-			row:  SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: "curl", MatchUpstreamSearch: ptr(false), ReplacementDistroName: ptr(""), Priority: -5},
-			want: `add match_distro_name=debian match_package_name=curl match_upstream_search=false replacement_distro_name="" priority=-5`,
+			row:  SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: "curl", ExcludeArchitecture: "src", ReplacementDistroName: ptr(""), Priority: -5},
+			want: `add match_distro_name=debian match_package_name=curl exclude_architecture=src replacement_distro_name="" priority=-5`,
 		},
 		{
 			row:  SearchRule{Action: SearchRuleReplace, MatchDistroName: "alpine", MatchEcosystem: "apk", ReplacementDistroVersion: ptr(""), ReplacementDistroLabelVersion: ptr("edge")},

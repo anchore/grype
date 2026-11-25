@@ -26,8 +26,8 @@ type searchIndex struct {
 }
 
 // newSearchIndex skips invalid rows with a debug log; GetSearchRules has already skipped them with a
-// warning.
-func newSearchIndex(rows []SearchRule) *searchIndex {
+// warning. Rules compare architectures through archAliases (nil for the built-in defaults).
+func newSearchIndex(rows []SearchRule, archAliases map[string]string) *searchIndex {
 	root := &searchIndex{}
 	for i, row := range rows {
 		r, err := compileSearchRule(row)
@@ -43,6 +43,7 @@ func newSearchIndex(rows []SearchRule) *searchIndex {
 		n = n.child(&n.byCPEVendor, r.keys.cpeVendor)
 		n = n.child(&n.byCPEProduct, r.keys.cpeProduct)
 		r.match.order = i // relative only, so a skipped row's gap is harmless
+		r.match.archAliases = archAliases
 
 		// descend the chain of the rule's patterns, reusing a node with the same pattern
 		matches, siblings := &n.matches, &n.remaining

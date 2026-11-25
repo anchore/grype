@@ -118,12 +118,13 @@ func TestFindResultsByDistroAcrossUpstreams_UnknownBinaryVersion(t *testing.T) {
 		},
 	}
 
-	vulnerable, _, err := FindResultsByDistroAcrossUpstreams(newMockProviderByDistro(), p, nil, match.PythonMatcher, nil)
+	vp := newMockProviderByDistro()
+	vulnerable, _, err := FindResultsByDistroAcrossUpstreams(vp, p, nil, UpstreamPackages(vp, p), match.PythonMatcher, nil)
 	require.NoError(t, err)
 	assert.Equal(t, []string{"CVE-2014-fake-1"}, idsOf(vulnerable))
 
 	p.Upstreams = nil
-	vulnerable, _, err = FindResultsByDistroAcrossUpstreams(newMockProviderByDistro(), p, nil, match.PythonMatcher, nil)
+	vulnerable, _, err = FindResultsByDistroAcrossUpstreams(vp, p, nil, UpstreamPackages(vp, p), match.PythonMatcher, nil)
 	require.NoError(t, err)
 	assert.Empty(t, idsOf(vulnerable))
 }

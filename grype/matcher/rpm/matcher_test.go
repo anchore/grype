@@ -4,10 +4,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/pkg"
+	"github.com/anchore/grype/grype/version"
+	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/grype/grype/vulnerability/mock"
 	"github.com/anchore/grype/internal/dbtest"
 	"github.com/anchore/syft/syft/artifact"
 	syftPkg "github.com/anchore/syft/syft/pkg"
@@ -22,7 +26,7 @@ func TestMatcherRpm_DirectMatch(t *testing.T) {
 			p := dbtest.NewPackage("openssl", "1:1.1.1b-1.el8", syftPkg.RpmPkg).
 				WithArchitecture("aarch64").
 				WithDistro(dbtest.RHEL8).
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(1)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(1)}).
 				Build()
 
 			db.Match(t, &matcher, p).
@@ -44,7 +48,7 @@ func TestMatcherRpm_IndirectMatchBySource(t *testing.T) {
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
 				WithUpstream("openssl", "1:1.1.1b-1.el8").
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(1)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(1)}).
 				Build()
 
 			db.Match(t, &matcher, p).
@@ -65,7 +69,7 @@ func TestMatcherRpm_FixedVersionNoMatch(t *testing.T) {
 			p := dbtest.NewPackage("openssl", "1:1.1.1c-2.el8", syftPkg.RpmPkg).
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(1)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(1)}).
 				Build()
 
 			db.Match(t, &matcher, p).Ignores().
@@ -83,8 +87,8 @@ func TestMatcherRpm_ModularityLabelMatchesVulnInSameModule(t *testing.T) {
 				WithArchitecture("aarch64").
 				WithDistro(dbtest.RHEL8).
 				WithMetadata(pkg.RpmMetadata{
-					Epoch:           intPtr(0),
-					ModularityLabel: strPtr("httpd:2.4:1234:5678"),
+					Epoch:           new(0),
+					ModularityLabel: new("httpd:2.4:1234:5678"),
 				}).
 				Build()
 
@@ -109,7 +113,7 @@ func TestMatcherRpm_PackageWithoutModularityLabelMatchesModuleVuln(t *testing.T)
 			p := dbtest.NewPackage("httpd", "0:2.4.37-30.module+el8.3.0+1.el8", syftPkg.RpmPkg).
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(0)}).
 				Build()
 
 			db.Match(t, &matcher, p).
@@ -129,8 +133,8 @@ func TestMatcherRpm_ModularityLabelMismatchSkipsVuln(t *testing.T) {
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
 				WithMetadata(pkg.RpmMetadata{
-					Epoch:           intPtr(0),
-					ModularityLabel: strPtr("httpd:2.6:1234:5678"),
+					Epoch:           new(0),
+					ModularityLabel: new("httpd:2.6:1234:5678"),
 				}).
 				Build()
 
@@ -176,7 +180,7 @@ func TestMatcherRpm_PackageEpochOnlyInMetadata(t *testing.T) {
 			p := dbtest.NewPackage("openssl", "1.1.1c-2.el8", syftPkg.RpmPkg).
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(0)}).
 				Build()
 
 			db.Match(t, &matcher, p).
@@ -198,7 +202,7 @@ func TestMatcherRpm_PackageHigherEpochNoMatch(t *testing.T) {
 			p := dbtest.NewPackage("openssl", "2:1.1.1b-1.el8", syftPkg.RpmPkg).
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(2)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(2)}).
 				Build()
 
 			// not vulnerable -> "Distro Not Vulnerable" ignore (no match)
@@ -223,7 +227,7 @@ func TestMatcherRpm_DistroNotVulnerableIgnore(t *testing.T) {
 				WithArchitecture("aarch64").
 				WithID(pkgID).
 				WithDistro(dbtest.RHEL8).
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(1)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(1)}).
 				Build()
 
 			findings := db.Match(t, &matcher, p)
@@ -249,7 +253,7 @@ func TestMatcherRpm_DistroNotVulnerableIgnoreViaUpstream(t *testing.T) {
 				WithID(pkgID).
 				WithDistro(dbtest.RHEL8).
 				WithUpstream("openssl", "1:1.1.1d-1.el8").
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(1)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(1)}).
 				Build()
 
 			findings := db.Match(t, &matcher, p)
@@ -352,7 +356,7 @@ func TestMatcherRpm_NoIgnoresWhenVulnerable(t *testing.T) {
 			p := dbtest.NewPackage("openssl", "1:1.1.1a-1.el8", syftPkg.RpmPkg).
 				WithArchitecture("x86_64").
 				WithDistro(dbtest.RHEL8).
-				WithMetadata(pkg.RpmMetadata{Epoch: intPtr(1)}).
+				WithMetadata(pkg.RpmMetadata{Epoch: new(1)}).
 				Build()
 
 			findings := db.Match(t, &matcher, p)
@@ -387,7 +391,7 @@ func Test_addEpochIfApplicable(t *testing.T) {
 			pkg: pkg.Package{
 				Version: "3.26.0-6.el8",
 				Metadata: pkg.RpmMetadata{
-					Epoch: intPtr(7),
+					Epoch: new(7),
 				},
 			},
 			expected: "7:3.26.0-6.el8",
@@ -572,6 +576,98 @@ func TestMatcherRpm_CPEMatchingWhenEnabled(t *testing.T) {
 					findings.IsEmpty()
 				}
 			})
+		})
+	}
+}
+
+// TestMatcherRpm_SameNameSourceInheritsEpoch verifies that the source rpm search for a binary built
+// from a source rpm of its own name uses the binary's epoch: source rpm file names omit the epoch, so
+// the source would otherwise be compared as though it had none. The record is for an earlier version
+// lineage (epoch 1) than the package's (epoch 2), so the package is not vulnerable.
+func TestMatcherRpm_SameNameSourceInheritsEpoch(t *testing.T) {
+	store := mock.VulnerabilityProvider(vulnerability.Vulnerability{
+		PackageName: "openssl",
+		Constraint:  version.MustGetConstraint("< 1:5.0.0-1.el9", version.RpmFormat),
+		Reference:   vulnerability.Reference{ID: "CVE-2014-fake-1", Namespace: "redhat:distro:redhat:9"},
+		Arch:        "src",
+	})
+	for _, strategy := range []version.MissingEpochStrategy{version.MissingEpochStrategyZero, version.MissingEpochStrategyAuto} {
+		t.Run(string(strategy), func(t *testing.T) {
+			p := pkg.Package{
+				ID:        pkg.ID("openssl"),
+				Name:      "openssl",
+				Version:   "2:3.0",
+				Type:      syftPkg.RpmPkg,
+				Arch:      "x86_64",
+				Distro:    distro.New(distro.RedHat, "9", ""),
+				Upstreams: []pkg.UpstreamPackage{{Name: "openssl", Version: "3.0"}},
+			}
+			matcher := NewRpmMatcher(MatcherConfig{MissingEpochStrategy: strategy})
+			matches, _, err := matcher.Match(store, p)
+			require.NoError(t, err)
+			assert.Empty(t, matches)
+		})
+	}
+}
+
+// TestMatcherRpm_SameNameSourceEpoch verifies same-name upstream epoch inheritance behavior:
+// explicit epoch is applied to epoch-less same-version
+// different upstream version uses strategy
+func TestMatcherRpm_SameNameSourceEpoch(t *testing.T) {
+	store := mock.VulnerabilityProvider(vulnerability.Vulnerability{
+		PackageName: "openssl",
+		Constraint:  version.MustGetConstraint("< 1:2.1", version.RpmFormat),
+		Reference:   vulnerability.Reference{ID: "CVE-2014-fake-1", Namespace: "redhat:distro:redhat:9"},
+		Arch:        "src",
+	})
+	tests := []struct {
+		pkgVersion      string
+		upstreamVersion string
+		strategy        version.MissingEpochStrategy
+		vulnerable      bool
+	}{
+		{pkgVersion: "2.0", upstreamVersion: "2.0", strategy: version.MissingEpochStrategyZero, vulnerable: true},
+		{pkgVersion: "2.0", upstreamVersion: "2.0", strategy: version.MissingEpochStrategyAuto, vulnerable: true},
+		{pkgVersion: "3.0", upstreamVersion: "3.0", strategy: version.MissingEpochStrategyZero, vulnerable: true},
+		{pkgVersion: "3.0", upstreamVersion: "3.0", strategy: version.MissingEpochStrategyAuto, vulnerable: false},
+		{pkgVersion: "0:3.0", upstreamVersion: "3.0", strategy: version.MissingEpochStrategyZero, vulnerable: true},
+		{pkgVersion: "0:3.0", upstreamVersion: "3.0", strategy: version.MissingEpochStrategyAuto, vulnerable: true},
+		{pkgVersion: "1:2.0", upstreamVersion: "2.0", strategy: version.MissingEpochStrategyZero, vulnerable: true},
+		{pkgVersion: "1:2.0", upstreamVersion: "2.0", strategy: version.MissingEpochStrategyAuto, vulnerable: true},
+		{pkgVersion: "1:3.0", upstreamVersion: "3.0", strategy: version.MissingEpochStrategyZero, vulnerable: false},
+		{pkgVersion: "1:3.0", upstreamVersion: "3.0", strategy: version.MissingEpochStrategyAuto, vulnerable: false},
+		{pkgVersion: "2:2.0", upstreamVersion: "2.0", strategy: version.MissingEpochStrategyZero, vulnerable: false},
+		{pkgVersion: "2:2.0", upstreamVersion: "2.0", strategy: version.MissingEpochStrategyAuto, vulnerable: false},
+		{pkgVersion: "2.1", upstreamVersion: "2.0", strategy: version.MissingEpochStrategyZero, vulnerable: true},
+		{pkgVersion: "2.1", upstreamVersion: "2.0", strategy: version.MissingEpochStrategyAuto, vulnerable: true},
+		{pkgVersion: "2:2.1", upstreamVersion: "2.0", strategy: version.MissingEpochStrategyZero, vulnerable: true},
+		{pkgVersion: "2:2.1", upstreamVersion: "2.0", strategy: version.MissingEpochStrategyAuto, vulnerable: true},
+		{pkgVersion: "0:2.1", upstreamVersion: "3.0", strategy: version.MissingEpochStrategyZero, vulnerable: true},
+		{pkgVersion: "0:2.1", upstreamVersion: "3.0", strategy: version.MissingEpochStrategyAuto, vulnerable: false},
+	}
+	for _, tt := range tests {
+		not := ""
+		if !tt.vulnerable {
+			not = "!"
+		}
+		t.Run(tt.pkgVersion+"/"+tt.upstreamVersion+"/"+string(tt.strategy)+"="+not+"<1:2.1", func(t *testing.T) {
+			p := pkg.Package{
+				ID:        pkg.ID("openssl"),
+				Name:      "openssl",
+				Version:   tt.pkgVersion,
+				Type:      syftPkg.RpmPkg,
+				Arch:      "x86_64",
+				Distro:    distro.New(distro.RedHat, "9", ""),
+				Upstreams: []pkg.UpstreamPackage{{Name: "openssl", Version: tt.upstreamVersion}},
+			}
+			matcher := NewRpmMatcher(MatcherConfig{MissingEpochStrategy: tt.strategy})
+			matches, _, err := matcher.Match(store, p)
+			require.NoError(t, err)
+			if tt.vulnerable {
+				assert.Len(t, matches, 1)
+			} else {
+				assert.Empty(t, matches)
+			}
 		})
 	}
 }

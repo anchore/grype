@@ -56,29 +56,33 @@ func TestResult_Derive_KeepsRank(t *testing.T) {
 	assert.Equal(t, Result{ID: "x", Rank: r.Rank}, r.Derive())
 }
 
-// A package that is its own upstream is searched under its own name, so only the search can say its
-// upstream records are indirect; their details and rank must say so too.
+// A package that is its own upstream is searched under its own name, so only the search's source
+// architecture can say its upstream records are indirect; their details and rank must say so too.
 func TestProvider_SourcePackageSearch(t *testing.T) {
 	d := distro.New(distro.Alpine, "3.18", "")
 	vuln := vulnerability.Vulnerability{
 		Reference:   vulnerability.Reference{ID: "CVE-2026-1", Namespace: "alpine:distro:alpine:3.18"},
 		PackageName: "busybox",
 	}
-	p := pkg.Package{Name: "busybox", Version: "1.36.1-r0", Type: syftPkg.ApkPkg, Distro: d}
 	other := vuln
 	other.PackageName = "other"
-	rp := NewProvider(mock.VulnerabilityProvider(vuln, other), p, match.ApkMatcher)
 
 	for _, tt := range []struct {
 		name     string
+		arch     string // of the cataloged package
 		criteria []vulnerability.Criteria
 		want     match.Type
 	}{
-		{name: "own name", criteria: []vulnerability.Criteria{search.ByPackageName("busybox")}, want: match.ExactDirectMatch},
-		{name: "own name, searched as an upstream", criteria: []vulnerability.Criteria{search.ByPackageName("busybox"), search.BySourcePackage()}, want: match.ExactIndirectMatch},
-		{name: "another name", criteria: []vulnerability.Criteria{search.ByPackageName("other")}, want: match.ExactIndirectMatch},
+		{name: "own name", arch: "x86_64", criteria: []vulnerability.Criteria{search.ByPackageName("busybox"), search.ByArchitecture("x86_64")}, want: match.ExactDirectMatch},
+		{name: "own name, searched as an upstream", arch: "x86_64", criteria: []vulnerability.Criteria{search.ByPackageName("busybox"), search.ByArchitecture("src")}, want: match.ExactDirectMatch},
+		{name: "own name, searched as an upstream by an alias", arch: "x86_64", criteria: []vulnerability.Criteria{search.ByPackageName("busybox"), search.ByArchitecture("source")}, want: match.ExactDirectMatch},
+		{name: "own name, no architecture", criteria: []vulnerability.Criteria{search.ByPackageName("busybox"), search.ByArchitecture("")}, want: match.ExactDirectMatch},
+		{name: "a source package searched as itself", arch: "src", criteria: []vulnerability.Criteria{search.ByPackageName("busybox"), search.ByArchitecture("src")}, want: match.ExactDirectMatch},
+		{name: "another name", arch: "x86_64", criteria: []vulnerability.Criteria{search.ByPackageName("other")}, want: match.ExactIndirectMatch},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
+			p := pkg.Package{Name: "busybox", Version: "1.36.1-r0", Type: syftPkg.ApkPkg, Distro: d, Arch: tt.arch}
+			rp := NewProvider(mock.VulnerabilityProvider(vuln, other), p, match.ApkMatcher)
 			got, err := rp.FindResults(append(tt.criteria, search.ByDistro(*d))...)
 			require.NoError(t, err)
 			require.Len(t, got["CVE-2026-1"], 1)

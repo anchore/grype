@@ -641,29 +641,54 @@ func TestMatcherApk_UpstreamCveDedupedByIntroducedZeroAlias(t *testing.T) {
 	})
 }
 
-// TestMatcherApk_SelfUpstreamIsRecordedAsIndirect covers an apk whose origin package is itself, which
-// is common (an apk that is its own origin still lists one). The distro feed is searched twice for
-// it, once directly and once as its own upstream, and the upstream pass must record what it finds as
-// an indirect match.
+// TestMatcherApk_SelfUpstreamIsRecordedAsIndirect covers an apk whose origin package is itself but at
+// another version (e.g. from an SBOM's upstream qualifier). The origin is then searched in full at its
+// own version, and here only it is vulnerable: the binary is at the fixed version, so its own search
+// finds the record fixed. The upstream pass must record what it finds as an indirect match. A CVE that
+// matches is not also ignored as fixed (see internal.SplitVulnerable).
 //
 // The match-type is otherwise derived by comparing the searched name against the cataloged one, and
-// here they are equal, so nothing downstream can tell the two passes apart. The upstream pass has to
-// say so explicitly, which is why the package override and the detail-type rewrite belong together.
+// here they are equal. The upstream pass is searched by the source architecture, which is what records
+// it as indirect.
 func TestMatcherApk_SelfUpstreamIsRecordedAsIndirect(t *testing.T) {
 	dbtest.DBs(t, "alpine318").SelectOnly("3.18/CVE-2024-0727").Run(func(t *testing.T, db *dbtest.DB) {
 		matcher := Matcher{}
-		p := dbtest.NewPackage("openssl", "3.1.4-r0", syftPkg.ApkPkg).
-			WithDistro(dbtest.Alpine318).
-			WithUpstream("openssl", "3.1.4-r0").
-			Build()
+		p := dbtest.NewPackage("openssl", "3.1.4-r5", syftPkg.ApkPkg). // fixed in 3.1.4-r5
+										WithDistro(dbtest.Alpine318).
+										WithArchitecture("amd64").
+										WithUpstream("openssl", "3.1.4-r0"). // vulnerable
+										Build()
 
-		finding := db.Match(t, &matcher, p).SelectMatch("CVE-2024-0727")
-
-		// the direct search finds it...
-		finding.SelectDetailByType(match.ExactDirectMatch).AsDistroSearch()
-		// ...and so does the pass over its own upstream, which must not look direct as well
-		finding.SelectDetailByType(match.ExactIndirectMatch).AsDistroSearch()
+		findings := db.Match(t, &matcher, p)
+		findings.SelectMatch("CVE-2024-0727").
+			HasDetailCount(1).
+			SelectDetailByType(match.ExactIndirectMatch).AsDistroSearch()
+		findings.Ignores().IsEmpty()
 	})
+}
+
+// TestMatcherApk_SelfUpstreamDoesNotRepeatDirectMatch covers an apk whose origin package is itself,
+// which is common (an apk that is its own origin still lists one). With no architecture it is only
+// searched directly, which finds every record of its name. With one, it is also searched as its own
+// upstream, but only for records that specify an architecture. Either way the record, which has no
+// architecture, is reported once, by the direct search.
+func TestMatcherApk_SelfUpstreamDoesNotRepeatDirectMatch(t *testing.T) {
+	for _, arch := range []string{"", "x86_64"} {
+		t.Run("arch="+arch, func(t *testing.T) {
+			dbtest.DBs(t, "alpine318").SelectOnly("3.18/CVE-2024-0727").Run(func(t *testing.T, db *dbtest.DB) {
+				matcher := Matcher{}
+				p := dbtest.NewPackage("openssl", "3.1.4-r0", syftPkg.ApkPkg).
+					WithArchitecture(arch).
+					WithDistro(dbtest.Alpine318).
+					WithUpstream("openssl", "3.1.4-r0").
+					Build()
+
+				db.Match(t, &matcher, p).SelectMatch("CVE-2024-0727").
+					HasDetailCount(1).
+					SelectDetailByType(match.ExactDirectMatch).AsDistroSearch()
+			})
+		})
+	}
 }
 
 // TestMatcherApk_NoDistroKeepsNvdFix covers an apk package with no distro, which happens for
@@ -695,23 +720,23 @@ func TestMatcherApk_NoDistroKeepsNvdFix(t *testing.T) {
 	})
 }
 
-// === architecture qualifier filtering (CG OSV records) ===
+// === architecture filtering (CG OSV records) ===
 //
 // The chainguard-rolling fixture has CGA-22hv-wp9q-4779, which emits
-// AffectedPackageHandles with an Architecture qualifier per row:
+// AffectedPackageHandles with an Architecture per row:
 //   - langfuse-3-worker      / Chainguard / arch=x86_64   / fixed:3.153.0-r0
 //   - langfuse-fips-3-worker / Chainguard / arch=x86_64   / fixed:3.152.0-r0
 //   - langfuse-3-worker      / Wolfi      / arch=aarch64  / fixed:3.153.0-r0
 //
-// These tests pin down architectureQualifier.Satisfied at the matcher level:
-// the qualifier filters vuln entries whose arch disagrees with the scanned
-// package, and is inert (passthrough) when the package has no arch. The
-// existing wolfi/alpine secdb tests don't exercise this path because the OS
-// transformer never emits Architecture qualifiers.
+// These tests pin down search.ByArchitecture at the matcher level: it
+// filters vuln entries whose arch disagrees with the scanned package, and
+// matches everything when the package has no arch. The existing wolfi/alpine
+// secdb tests don't exercise this path because the OS transformer never
+// emits an Architecture for them.
 
 // TestMatcherApk_ArchFilter_MatchWhenArchAgrees confirms the happy path:
-// arch on the package equals the qualifier's arch, so Satisfied returns
-// true and the vuln surfaces as a normal distro match.
+// arch on the package equals the entry's arch, so the vuln surfaces as a
+// normal distro match.
 func TestMatcherApk_ArchFilter_MatchWhenArchAgrees(t *testing.T) {
 	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
 		matcher := Matcher{}
@@ -731,7 +756,7 @@ func TestMatcherApk_ArchFilter_MatchWhenArchAgrees(t *testing.T) {
 
 // TestMatcherApk_ArchFilter_IgnoreWhenArchAgrees is the pair of
 // MatchWhenArchAgrees: same package, same arch, but a version past the
-// fix. The arch qualifier still passes so the fix path runs and emits
+// fix. The arch criteria still passes so the fix path runs and emits
 // one distro-fixed ignore per identifier (CGA id + aliases).
 // Cross-checks that arch filtering doesn't short-circuit the
 // fixed-version ignore emission.
@@ -762,7 +787,7 @@ func TestMatcherApk_ArchFilter_IgnoreWhenArchAgrees(t *testing.T) {
 
 // TestMatcherApk_ArchFilter_NoMatchWhenArchDisagrees is the load-bearing case:
 // the package's arch is aarch64 but the only Chainguard APH for this name has
-// arch=x86_64, so OnlyQualifiedPackages drops it before the version check ever
+// arch=x86_64, so the architecture search criteria drops it before the version check ever
 // runs. No match, no ignore (the vuln is filtered before reaching the fix
 // path that would emit a distro-fixed ignore).
 func TestMatcherApk_ArchFilter_NoMatchWhenArchDisagrees(t *testing.T) {
@@ -774,6 +799,23 @@ func TestMatcherApk_ArchFilter_NoMatchWhenArchDisagrees(t *testing.T) {
 			Build()
 
 		// no records match chainguard - aarch64
+		db.Match(t, &matcher, p).IsEmpty()
+	})
+}
+
+// TestMatcherApk_ArchFilter_NoMatchThroughSiblingOrigin covers binary-keyed records: the x86_64
+// record names the langfuse-3-worker binary only. A subpackage built from it, on the same arch and at
+// a vulnerable version, searches langfuse-3-worker as its origin (a source package), so the record
+// must not reach it through that search.
+func TestMatcherApk_ArchFilter_NoMatchThroughSiblingOrigin(t *testing.T) {
+	dbtest.DBs(t, "chainguard-rolling").Run(func(t *testing.T, db *dbtest.DB) {
+		matcher := Matcher{}
+		p := dbtest.NewPackage("langfuse-3-worker-doc", "3.152.0-r0", syftPkg.ApkPkg).
+			WithDistro(dbtest.ChainguardRolling).
+			WithArchitecture("x86_64").
+			WithUpstream("langfuse-3-worker", "3.152.0-r0"). // below the 3.153.0-r0 fix
+			Build()
+
 		db.Match(t, &matcher, p).IsEmpty()
 	})
 }
@@ -854,8 +896,8 @@ func TestMatcherApk_ArchFilter_WrongArchRowMustNotSuppressNvdMatch(t *testing.T)
 }
 
 // TestMatcherApk_ArchFilter_InertWhenPackageHasNoArch documents the
-// passthrough branch of Satisfied(p): if p.Arch == "" the qualifier is
-// treated as inert, preserving pre-change behavior for input paths that
+// passthrough branch of search.ByArchitecture: if p.Arch == "" any entry
+// arch matches, preserving pre-change behavior for input paths that
 // don't populate Arch. Without this branch every existing test using
 // WithDistro-but-not-WithArchitecture would regress against arch-tagged
 // providers like chainguard.
@@ -867,7 +909,7 @@ func TestMatcherApk_ArchFilter_InertWhenPackageHasNoArch(t *testing.T) {
 			// Architecture intentionally not set.
 			Build()
 
-		// package p is affected by this vulnerability because the qualifier is inert
+		// package p is affected by this vulnerability because any entry arch matches
 		// when the package has no arch
 		db.Match(t, &matcher, p).
 			SelectMatch("CGA-22hv-wp9q-4779").

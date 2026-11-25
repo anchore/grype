@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/internal/architecture"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/vulnerability"
@@ -40,10 +41,6 @@ func (o SearchRule) isOSLessSearch() bool {
 func (o SearchRule) String() string {
 	var sb strings.Builder
 	sb.WriteString(string(o.Action))
-	var upstream *string
-	if o.MatchUpstreamSearch != nil {
-		upstream = ptr(strconv.FormatBool(*o.MatchUpstreamSearch))
-	}
 	for _, c := range []struct {
 		column string
 		value  *string // nil for a column the rule does not set
@@ -60,7 +57,8 @@ func (o SearchRule) String() string {
 		{"exclude_cpe_vendor", setString(o.ExcludeCPEVendor)},
 		{"match_cpe_product", setString(o.MatchCPEProduct)},
 		{"exclude_cpe_product", setString(o.ExcludeCPEProduct)},
-		{"match_upstream_search", upstream},
+		{"match_architecture", setString(o.MatchArchitecture)},
+		{"exclude_architecture", setString(o.ExcludeArchitecture)},
 		{"replacement_channel", o.ReplacementChannel},
 		{"replacement_distro_name", o.ReplacementDistroName},
 		{"replacement_distro_version", o.ReplacementDistroVersion},
@@ -116,8 +114,8 @@ type searchSubject struct {
 	// of the searched CPE; empty for a search by no CPE
 	cpeVendor, cpeProduct string
 
-	// for one of the package's upstream (source) packages rather than the package itself
-	upstream bool
+	// the searched architecture (e.g. "src" for one of the package's upstream packages); empty for none
+	arch string
 }
 
 // matchType is which of the search's values a Match*/Exclude* column matches. A match captures the
@@ -207,6 +205,9 @@ type searchMatch struct {
 	order  int                    // read order, which decides search order
 	byRule vulnerability.Criteria // marks the searches the rule adds
 
+	// the architecture alias table the rule's architectures are compared through; nil for the defaults
+	archAliases map[string]string
+
 	channel            template
 	distroName         template
 	distroVersion      template
@@ -217,10 +218,16 @@ type searchMatch struct {
 	cpeProduct         template
 }
 
-// appliesTo is false for a rule limited to the other kind of search than s (see
-// SearchRule.MatchUpstreamSearch).
+// appliesTo is false for a rule limited to searches by other architectures than s's (see
+// SearchRule.MatchArchitecture and SearchRule.ExcludeArchitecture).
 func (m *searchMatch) appliesTo(s searchSubject) bool {
-	return m.row.MatchUpstreamSearch == nil || *m.row.MatchUpstreamSearch == s.upstream
+	if a := m.row.MatchArchitecture; a != "" && !architecture.Matches(s.arch, a, m.archAliases) {
+		return false
+	}
+	if a := m.row.ExcludeArchitecture; a != "" && architecture.Matches(s.arch, a, m.archAliases) {
+		return false
+	}
+	return true
 }
 
 // compiledRule is a rule as it is filed: under its exact values, then down a chain of its remaining

@@ -34,10 +34,9 @@ func MatchPackageByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upst
 // FindResultsByCPEs retrieves all vulnerabilities that match any of the provided package's CPEs as a
 // result.Set, so callers can reconcile them against other sources by vulnerability identity. Records
 // the CPE search finds but whose version is not affected are returned as "CPE not vulnerable" ignores.
-// Every search carries any extra criteria (e.g. search.BySourcePackage).
 //
 //nolint:funlen
-func FindResultsByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType, extra ...vulnerability.Criteria) (result.Set, []match.IgnoreFilter, error) {
+func FindResultsByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstreamMatcher match.MatcherType) (result.Set, []match.IgnoreFilter, error) {
 	provider := result.NewProvider(vulnProvider, p, upstreamMatcher)
 
 	affected := result.Set{}
@@ -84,13 +83,14 @@ func FindResultsByCPEs(vulnProvider vulnerability.Provider, p pkg.Package, upstr
 		searched.Version = searchVersion
 
 		// every record in the DB for this CPE, at any version
-		applicable, err := provider.FindAll(append([]vulnerability.Criteria{
+		applicable, err := provider.FindAll(
 			search.ByCPE(c),
 			OnlyVulnerableTargets(p),
 			OnlyQualifiedPackages(p),
+			search.ByArchitecture(p.Arch),
 			OnlyNonWithdrawnVulnerabilities(),
 			search.WithPackage(searched),
-		}, extra...)...)
+		)
 		if err != nil {
 			return nil, nil, fmt.Errorf("matcher failed to fetch by CPE pkg=%q: %w", p.Name, err)
 		}

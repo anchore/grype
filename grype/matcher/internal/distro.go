@@ -21,14 +21,14 @@ func FindResultsByDistro(provider vulnerability.Provider, p pkg.Package, matcher
 	return findResultsByDistro(provider, p, p, nil, matcherType, cfg)
 }
 
-// FindResultsByDistroAcrossUpstreams is FindResultsByDistro that also searches searchPkg's upstream
-// (source) packages in the same split, so a fix under the source name resolves a disclosure under
-// the binary name.
+// FindResultsByDistroAcrossUpstreams is FindResultsByDistro that also searches upstreams, the upstream
+// (source) packages of searchPkg (see UpstreamPackages), in the same split, so a fix under the source
+// name resolves a disclosure under the binary name.
 //
 // target is the package matches are attributed to when it differs from searchPkg (e.g. an rpm
 // searched with an explicit epoch); nil attributes them to searchPkg.
-func FindResultsByDistroAcrossUpstreams(provider vulnerability.Provider, searchPkg pkg.Package, target *pkg.Package, matcherType match.MatcherType, cfg *version.ComparisonConfig) (vulnerable, notVulnerable result.Set, err error) {
-	return findResultsByDistro(provider, searchPkg, matchPackage(searchPkg, target), pkg.UpstreamPackages(searchPkg), matcherType, cfg)
+func FindResultsByDistroAcrossUpstreams(provider vulnerability.Provider, searchPkg pkg.Package, target *pkg.Package, upstreams []pkg.Package, matcherType match.MatcherType, cfg *version.ComparisonConfig) (vulnerable, notVulnerable result.Set, err error) {
+	return findResultsByDistro(provider, searchPkg, matchPackage(searchPkg, target), upstreams, matcherType, cfg)
 }
 
 func findResultsByDistro(provider vulnerability.Provider, searchPkg, target pkg.Package, upstreams []pkg.Package, matcherType match.MatcherType, cfg *version.ComparisonConfig) (vulnerable, notVulnerable result.Set, err error) {
@@ -42,7 +42,7 @@ func findResultsByDistro(provider vulnerability.Provider, searchPkg, target pkg.
 	if isUnknownVersion(searchPkg.Version) {
 		log.WithFields("package", searchPkg.Name).Trace("skipping package with unknown version")
 	} else {
-		applicable, err = applicableForDistro(provider, rp, searchPkg)
+		applicable, err = applicableForDistro(provider, rp, searchPkg, search.ByArchitecture(searchPkg.Arch))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -53,8 +53,11 @@ func findResultsByDistro(provider vulnerability.Provider, searchPkg, target pkg.
 			continue
 		}
 
-		// indirect even when the upstream has the package's own name
-		found, err := applicableForDistro(provider, rp, upstreamPkg, search.BySourcePackage())
+		// indirect even when the upstream has the package's own name, as it is searched by the source
+		// architecture. The package's own source only adds records that specify an architecture: the
+		// package's own search already finds those that don't
+		archCriteria := search.ByArchitecture(upstreamPkg.Arch).WithRequired(IsSameUpstream(upstreamPkg, target))
+		found, err := applicableForDistro(provider, rp, upstreamPkg, archCriteria)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -65,20 +68,21 @@ func findResultsByDistro(provider vulnerability.Provider, searchPkg, target pkg.
 	return vulnerable, notVulnerable, nil
 }
 
-// applicableForDistro collects every record for each name the provider claims for searchPkg, with any
-// extra criteria (e.g. search.BySourcePackage).
-func applicableForDistro(provider vulnerability.Provider, rp result.Provider, searchPkg pkg.Package, extra ...vulnerability.Criteria) (result.Set, error) {
+// applicableForDistro collects every record for each name the provider claims for searchPkg, searched by
+// archCriteria.
+func applicableForDistro(provider vulnerability.Provider, rp result.Provider, searchPkg pkg.Package, archCriteria *search.ArchitectureCriteria) (result.Set, error) {
 	applicable := result.Set{}
 	for _, name := range provider.PackageSearchNames(searchPkg) {
 		searched := searchPkg
 		searched.Name = name
-		v, err := rp.FindAll(append([]vulnerability.Criteria{
+		v, err := rp.FindAll(
 			search.ByPackageName(name),
 			search.ByDistro(*searchPkg.Distro),
 			OnlyQualifiedPackages(searchPkg),
 			OnlyNonWithdrawnVulnerabilities(),
+			archCriteria,
 			search.WithPackage(searched),
-		}, extra...)...)
+		)
 		if err != nil {
 			return nil, fmt.Errorf("matcher failed to fetch distro=%q pkg=%q: %w", searchPkg.Distro, name, err)
 		}
@@ -105,7 +109,7 @@ func MatchPackageByDistro(provider vulnerability.Provider, p pkg.Package, matche
 
 // MatchPackageByDistroAcrossUpstreams is the []match.Match form of FindResultsByDistroAcrossUpstreams.
 func MatchPackageByDistroAcrossUpstreams(provider vulnerability.Provider, p pkg.Package, matcherType match.MatcherType, cfg *version.ComparisonConfig) ([]match.Match, []match.IgnoreFilter, error) {
-	vulnerable, notVulnerable, err := FindResultsByDistroAcrossUpstreams(provider, p, nil, matcherType, cfg)
+	vulnerable, notVulnerable, err := FindResultsByDistroAcrossUpstreams(provider, p, nil, UpstreamPackages(provider, p), matcherType, cfg)
 	if err != nil {
 		return nil, nil, err
 	}

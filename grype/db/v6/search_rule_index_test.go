@@ -29,7 +29,7 @@ type orderCaptures struct {
 func unsharedMatches(rows []SearchRule, s searchSubject) []orderCaptures {
 	var out []orderCaptures
 	for i, row := range rows {
-		for _, m := range newSearchIndex([]SearchRule{row}).matchingRules(s) {
+		for _, m := range newSearchIndex([]SearchRule{row}, nil).matchingRules(s) {
 			out = append(out, orderCaptures{i, m.captures})
 		}
 	}
@@ -61,7 +61,7 @@ func TestSearchIndex_MatchesUnshared(t *testing.T) { //nolint:funlen // one fixt
 		SearchRule{Action: SearchRuleDrop, MatchCPEVendor: "apache"},
 	)
 	requireAllValid(t, rows)
-	idx := newSearchIndex(rows)
+	idx := newSearchIndex(rows, nil)
 
 	debian := distro.New(distro.Debian, "11", "")
 	rfRedhat := distro.New(distro.RapidFortRedHat, "9", "")
@@ -149,10 +149,10 @@ func TestSearchIndex_SkipsRulesWithNoAction(t *testing.T) {
 	rf := distro.New(distro.RapidFortRedHat, "9", "")
 	s := searchSubject{name: "curl", ecosystem: "rpm", distro: rf}
 	rule := SearchRule{MatchDistroName: "rapidfort-redhat", MatchEcosystem: "rpm", ReplacementChannel: ptr("rf")}
-	assert.Empty(t, newSearchIndex([]SearchRule{rule}).matchingRules(s))
+	assert.Empty(t, newSearchIndex([]SearchRule{rule}, nil).matchingRules(s))
 
 	rule.Action = SearchRuleAdd
-	assert.Len(t, newSearchIndex([]SearchRule{rule}).matchingRules(s), 1)
+	assert.Len(t, newSearchIndex([]SearchRule{rule}, nil).matchingRules(s), 1)
 }
 
 func TestSearchIndex_SharesRegexMatches(t *testing.T) {
@@ -160,7 +160,7 @@ func TestSearchIndex_SharesRegexMatches(t *testing.T) {
 		{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageVersion: `.*\+rf.*`, ReplacementChannel: ptr("a")},
 		{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageVersion: `.*\+rf.*`, ExcludePackageName: "curl", ReplacementChannel: ptr("b")},
 		{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageVersion: `.*\+echo.*`, ReplacementChannel: ptr("c")},
-	})
+	}, nil)
 	debian := idx.byDistroName["debian"]
 	require.NotNil(t, debian)
 	assert.Equal(t, []patternNode{
@@ -239,7 +239,7 @@ func TestSearchIndex_ExactOrRegexPatterns(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			requireAllValid(t, []SearchRule{tt.row})
-			assert.Equal(t, tt.want, len(newSearchIndex([]SearchRule{tt.row}).matchingRules(tt.subject)) == 1)
+			assert.Equal(t, tt.want, len(newSearchIndex([]SearchRule{tt.row}, nil).matchingRules(tt.subject)) == 1)
 		})
 	}
 }
@@ -273,7 +273,7 @@ func (n *searchIndex) matchingRules(s searchSubject) []matchedRule {
 
 // An exact CPE vendor and product file a rule under both, so no regex runs for it.
 func TestSearchIndex_FilesExactCPE(t *testing.T) {
-	idx := newSearchIndex([]SearchRule{{Action: SearchRuleDrop, MatchCPEVendor: "Apache", MatchCPEProduct: "log4j"}})
+	idx := newSearchIndex([]SearchRule{{Action: SearchRuleDrop, MatchCPEVendor: "Apache", MatchCPEProduct: "log4j"}}, nil)
 	product := idx.byCPEVendor["apache"].byCPEProduct["log4j"]
 	require.NotNil(t, product)
 	assert.Empty(t, idx.remaining)

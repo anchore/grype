@@ -2,7 +2,6 @@ package matcher
 
 import (
 	"fmt"
-	"slices"
 	"strings"
 	"testing"
 
@@ -11,6 +10,7 @@ import (
 
 	v6 "github.com/anchore/grype/grype/db/v6"
 	"github.com/anchore/grype/grype/distro"
+	"github.com/anchore/grype/grype/internal/architecture"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/apk"
 	"github.com/anchore/grype/grype/matcher/dpkg"
@@ -57,9 +57,11 @@ func searchedName(cs []vulnerability.Criteria) string {
 	return ""
 }
 
-// Search rules tell an upstream search from a direct one by search.BySourcePackage, so every search a
-// matcher makes for one of the package's upstreams must carry it, and no search for the package itself.
+// Search rules tell an upstream search from a direct one by its architecture, so every search a matcher
+// makes for one of the package's upstreams must be by the source architecture, and every search for the
+// package itself by the package's own.
 func TestMatchers_MarkEveryUpstreamSearch(t *testing.T) {
+	const arch = "x86_64"
 	const binary, upstream = "bin", "src"
 
 	tests := []struct {
@@ -84,6 +86,7 @@ func TestMatchers_MarkEveryUpstreamSearch(t *testing.T) {
 				ID:        pkg.ID(binary),
 				Name:      binary,
 				Version:   tt.version,
+				Arch:      arch,
 				Type:      tt.pkgType,
 				Distro:    tt.distro,
 				Upstreams: []pkg.UpstreamPackage{{Name: upstream}},
@@ -103,12 +106,11 @@ func TestMatchers_MarkEveryUpstreamSearch(t *testing.T) {
 
 			var upstreamSearches int
 			for _, cs := range vp.searches {
-				marked := slices.ContainsFunc(cs, isSourcePackage)
 				switch searchedName(cs) {
 				case binary:
-					assert.False(t, marked, "a search for the package itself is not for an upstream: %s", summarize(cs))
+					assert.Equal(t, []string{arch}, searchedArchs(cs), "a search for the package itself is by its architecture: %s", summarize(cs))
 				case upstream:
-					assert.True(t, marked, "a search for an upstream must be marked as one: %s", summarize(cs))
+					assert.Equal(t, []string{architecture.ArchSource}, searchedArchs(cs), "a search for an upstream is by the source architecture: %s", summarize(cs))
 					upstreamSearches++
 				default:
 					t.Errorf("unexpected search: %s", summarize(cs))
@@ -119,9 +121,14 @@ func TestMatchers_MarkEveryUpstreamSearch(t *testing.T) {
 	}
 }
 
-func isSourcePackage(c vulnerability.Criteria) bool {
-	_, ok := c.(*search.SourcePackageCriteria)
-	return ok
+func searchedArchs(cs []vulnerability.Criteria) []string {
+	var out []string
+	for _, c := range cs {
+		if ac, ok := c.(*search.ArchitectureCriteria); ok {
+			out = append(out, ac.Arch)
+		}
+	}
+	return out
 }
 
 func summarize(cs []vulnerability.Criteria) string {

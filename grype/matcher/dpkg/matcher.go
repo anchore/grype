@@ -8,7 +8,6 @@ import (
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/matcher/internal/result"
 	"github.com/anchore/grype/grype/pkg"
-	"github.com/anchore/grype/grype/search"
 	"github.com/anchore/grype/grype/version"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
@@ -95,13 +94,13 @@ func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Ma
 func (m *Matcher) matchUbuntuESM(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
 	provider := result.NewProvider(store, p, m.Type())
 
-	matches, ignores, err := ubuntuESMMatches(provider, p, p, m.cfg.MissingEpochStrategy)
+	matches, ignores, err := ubuntuESMMatches(provider, p, p, m.cfg.MissingEpochStrategy, false)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to match by exact package name: %w", err)
 	}
 
-	for _, indirectPackage := range pkg.UpstreamPackages(p) {
-		indirectMatches, indirectIgnores, err := ubuntuESMMatches(provider, p, indirectPackage, m.cfg.MissingEpochStrategy, search.BySourcePackage())
+	for _, indirectPackage := range internal.UpstreamPackages(store, p) {
+		indirectMatches, indirectIgnores, err := ubuntuESMMatches(provider, p, indirectPackage, m.cfg.MissingEpochStrategy, internal.IsSameUpstream(indirectPackage, p))
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to find vulnerabilities for dpkg upstream source package: %w", err)
 		}

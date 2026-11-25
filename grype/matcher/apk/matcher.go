@@ -85,7 +85,7 @@ func (m *Matcher) Match(vp vulnerability.Provider, p pkg.Package) ([]match.Match
 // too. That is what makes it the right thing to reconcile other sources against.
 func (m *Matcher) distroResults(vp vulnerability.Provider, p pkg.Package) (vulnerable, allFixed result.Set, err error) {
 	// APK has no epochs, so no comparison config
-	return internal.FindResultsByDistroAcrossUpstreams(vp, p, nil, m.Type(), nil)
+	return internal.FindResultsByDistroAcrossUpstreams(vp, p, nil, internal.UpstreamPackages(vp, p), m.Type(), nil)
 }
 
 // nakIgnores collects explicit NAK ("< 0") entries for the package and its upstreams and returns them
@@ -101,20 +101,23 @@ func (m *Matcher) nakIgnores(vp vulnerability.Provider, p pkg.Package) ([]match.
 	naks, err := provider.FindResults(
 		search.ByDistro(*p.Distro),
 		search.ByPackageName(p.Name),
+		search.ByArchitecture(p.Arch),
 		nakConstraint,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
+	for _, upstreamPkg := range internal.UpstreamPackages(vp, p) {
 		if upstreamPkg.Distro == nil {
 			continue
 		}
 		upstreamNaks, err := provider.FindResults(
 			search.ByDistro(*upstreamPkg.Distro),
 			search.ByPackageName(upstreamPkg.Name),
-			search.BySourcePackage(),
+			// p's own source only adds records that specify an architecture; p's own search already
+			// finds those that don't
+			search.ByArchitecture(upstreamPkg.Arch).WithRequired(internal.IsSameUpstream(upstreamPkg, p)),
 			nakConstraint,
 			search.WithPackage(upstreamPkg),
 		)
@@ -137,7 +140,7 @@ func (m *Matcher) cpeResults(provider vulnerability.Provider, p pkg.Package) (re
 	}
 
 	for _, upstreamPkg := range pkg.UpstreamPackages(p) {
-		upstreamDisclosures, upstreamIgnores, err := m.cpeDisclosures(provider, upstreamPkg, search.BySourcePackage())
+		upstreamDisclosures, upstreamIgnores, err := m.cpeDisclosures(provider, upstreamPkg)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -148,8 +151,8 @@ func (m *Matcher) cpeResults(provider vulnerability.Provider, p pkg.Package) (re
 	return disclosures, ignores, nil
 }
 
-func (m *Matcher) cpeDisclosures(provider vulnerability.Provider, searchPkg pkg.Package, extra ...vulnerability.Criteria) (result.Set, []match.IgnoreFilter, error) {
-	cpeSet, ignores, err := internal.FindResultsByCPEs(provider, searchPkg, m.Type(), extra...)
+func (m *Matcher) cpeDisclosures(provider vulnerability.Provider, searchPkg pkg.Package) (result.Set, []match.IgnoreFilter, error) {
+	cpeSet, ignores, err := internal.FindResultsByCPEs(provider, searchPkg, m.Type())
 	if err != nil {
 		if !errors.Is(err, internal.ErrEmptyCPEMatch) {
 			return nil, nil, err

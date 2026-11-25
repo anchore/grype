@@ -228,7 +228,7 @@ func TestSearchRule_Validate(t *testing.T) { //nolint:funlen // one case per val
 		},
 		{
 			name: "an upstream search",
-			row:  SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchEcosystem: "deb", MatchUpstreamSearch: ptr(true), ReplacementChannel: ptr("rf")},
+			row:  SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchEcosystem: "deb", MatchArchitecture: "src", ReplacementChannel: ptr("rf")},
 		},
 		{
 			name: "a CPE substitution",
@@ -260,8 +260,8 @@ func TestSearchRule_Validate(t *testing.T) { //nolint:funlen // one case per val
 			wantErr: "names no group",
 		},
 		{
-			name:    "an upstream search alone does not scope a substitution",
-			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchUpstreamSearch: ptr(true), ReplacementChannel: ptr("rf")},
+			name:    "an architecture alone does not scope a substitution",
+			row:     SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchArchitecture: "src", ReplacementChannel: ptr("rf")},
 			wantErr: "must match an ecosystem, package name, package version or CPE",
 		},
 	}
@@ -417,7 +417,7 @@ func rulesProvider(rows ...SearchRule) vulnerabilityProvider {
 			panic(fmt.Sprintf("invalid fixture rule %+v: %v", r, err))
 		}
 	}
-	return vulnerabilityProvider{searchRules: newSearchIndex(rows)}
+	return vulnerabilityProvider{searchRules: newSearchIndex(rows, nil)}
 }
 
 func TestVulnerabilityProvider_SearchRewrites_KnownRules(t *testing.T) { //nolint:funlen // one case per built-in rule
@@ -1163,10 +1163,10 @@ func TestVulnerabilityProvider_SearchRewrites_Package(t *testing.T) { //nolint:f
 	})
 }
 
-func TestVulnerabilityProvider_SearchRewrites_KeepsSourcePackage(t *testing.T) {
+func TestVulnerabilityProvider_SearchRewrites_KeepsArchitecture(t *testing.T) {
 	deb := *distro.New(distro.Debian, "12", "")
 	vp := rulesProvider(SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: `rf-(?P<base>.+)`, ReplacementPackageName: "${base}"})
-	cs := []vulnerability.Criteria{search.ByPackageName("rf-curl"), search.BySourcePackage(), search.ByDistro(deb), search.WithPackage(searchOf("rf-curl", "1.0", deb))}
+	cs := []vulnerability.Criteria{search.ByPackageName("rf-curl"), search.ByArchitecture("src"), search.ByDistro(deb), search.WithPackage(searchOf("rf-curl", "1.0", deb))}
 
 	var names []string
 	for _, set := range rewrites(vp, pkg.Package{}, cs) {
@@ -1175,7 +1175,7 @@ func TestVulnerabilityProvider_SearchRewrites_KeepsSourcePackage(t *testing.T) {
 				names = append(names, nc.PackageName)
 			}
 		}
-		assert.Contains(t, set, search.BySourcePackage(), "every search is still for a source package")
+		assert.Contains(t, set, search.ByArchitecture("src"), "every search is still for a source package")
 	}
 	assert.ElementsMatch(t, []string{"rf-curl", "curl"}, names)
 }
@@ -1260,7 +1260,7 @@ func TestVulnerabilityProvider_SearchRewrites_CPE(t *testing.T) { //nolint:funle
 	t.Run("the rest of the search and of its CPE is kept", func(t *testing.T) {
 		vp := rulesProvider(SearchRule{Action: SearchRuleReplace, MatchCPEProduct: "curl", ReplacementCPEVendor: "haxx"})
 		p := searchOf("curl", "8.5.0", deb, debEco)
-		cs := []vulnerability.Criteria{search.ByCPE(cpe.Must("cpe:2.3:a:vendor:curl:8.5.0:*:*:*:*:*:*:*", "")), search.BySourcePackage(), search.WithPackage(p)}
+		cs := []vulnerability.Criteria{search.ByCPE(cpe.Must("cpe:2.3:a:vendor:curl:8.5.0:*:*:*:*:*:*:*", "")), search.ByArchitecture("src"), search.WithPackage(p)}
 
 		searches := rewrites(vp, pkg.Package{}, cs)
 		require.Len(t, searches, 1)
@@ -1271,41 +1271,69 @@ func TestVulnerabilityProvider_SearchRewrites_CPE(t *testing.T) { //nolint:funle
 			}
 		}
 		assert.Equal(t, []string{"cpe:2.3:a:haxx:curl:8.5.0:*:*:*:*:*:*:*"}, got)
-		assert.Contains(t, searches[0], search.BySourcePackage())
+		assert.Contains(t, searches[0], search.ByArchitecture("src"))
 		assert.Contains(t, searches[0], search.WithPackage(p))
 		assert.Equal(t, "cpe:2.3:a:vendor:curl:8.5.0:*:*:*:*:*:*:*", cs[0].(*search.CPECriteria).CPE.Attributes.String(), "the searched CPE is not changed")
 	})
 }
 
-func TestVulnerabilityProvider_SearchRewrites_UpstreamSearch(t *testing.T) {
+func TestVulnerabilityProvider_SearchRewrites_Architecture(t *testing.T) { //nolint:funlen // one case per architecture rule shape
 	deb := *distro.New(distro.Debian, "12", "")
 	const debNo = "debian@12+"
 	p := searchOf("curl", "1.0", deb)
-	direct := nameSearch(p)
-	upstream := append(nameSearch(p), search.BySourcePackage())
+	binary := append(nameSearch(p), search.ByArchitecture("amd64"))
+	upstream := append(nameSearch(p), search.ByArchitecture("src"))
+	noArch := nameSearch(p)
 
-	t.Run("true matches only a search for an upstream", func(t *testing.T) {
-		vp := rulesProvider(SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: "curl", MatchUpstreamSearch: ptr(true), ReplacementChannel: ptr("rf")})
-		notRewritten(t, vp, direct)
+	t.Run("match matches only a search by that architecture", func(t *testing.T) {
+		vp := rulesProvider(SearchRule{Action: SearchRuleAdd, MatchDistroName: "debian", MatchPackageName: "curl", MatchArchitecture: "src", ReplacementChannel: ptr("rf")})
+		notRewritten(t, vp, binary)
 		assert.ElementsMatch(t, []searched{own(debNo, "curl"), ruled(debNo+"rf", "curl", 0)}, searchesOf(rewrites(vp, pkg.Package{}, upstream)))
 	})
 
-	t.Run("false matches only a search for the package itself", func(t *testing.T) {
-		vp := rulesProvider(SearchRule{Action: SearchRuleDrop, MatchDistroName: "debian", MatchPackageName: "curl", MatchUpstreamSearch: ptr(false)})
-		assert.Empty(t, rewrites(vp, pkg.Package{}, direct))
+	t.Run("exclude matches only a search by another architecture", func(t *testing.T) {
+		vp := rulesProvider(SearchRule{Action: SearchRuleDrop, MatchDistroName: "debian", MatchPackageName: "curl", ExcludeArchitecture: "src"})
+		assert.Empty(t, rewrites(vp, pkg.Package{}, binary))
 		notRewritten(t, vp, upstream)
 	})
 
 	t.Run("unset matches either", func(t *testing.T) {
 		vp := rulesProvider(SearchRule{Action: SearchRuleDrop, MatchDistroName: "debian", MatchPackageName: "curl"})
-		assert.Empty(t, rewrites(vp, pkg.Package{}, direct))
+		assert.Empty(t, rewrites(vp, pkg.Package{}, binary))
 		assert.Empty(t, rewrites(vp, pkg.Package{}, upstream))
 	})
 
 	t.Run("a regex rule is limited too", func(t *testing.T) {
-		vp := rulesProvider(SearchRule{Action: SearchRuleDrop, MatchDistroName: "debian", MatchPackageName: "cu.*", MatchUpstreamSearch: ptr(true)})
-		notRewritten(t, vp, direct)
+		vp := rulesProvider(SearchRule{Action: SearchRuleDrop, MatchDistroName: "debian", MatchPackageName: "cu.*", MatchArchitecture: "src"})
+		notRewritten(t, vp, binary)
 		assert.Empty(t, rewrites(vp, pkg.Package{}, upstream))
+	})
+
+	t.Run("architectures are compared through the aliases", func(t *testing.T) {
+		vp := rulesProvider(SearchRule{Action: SearchRuleDrop, MatchDistroName: "debian", MatchPackageName: "curl", MatchArchitecture: "x86_64"})
+		assert.Empty(t, rewrites(vp, pkg.Package{}, binary))
+		notRewritten(t, vp, upstream)
+	})
+
+	t.Run("architectures are compared through the DB's aliases", func(t *testing.T) {
+		rule := SearchRule{Action: SearchRuleDrop, MatchDistroName: "debian", MatchPackageName: "curl", MatchArchitecture: "sauce"}
+		vp := vulnerabilityProvider{searchRules: newSearchIndex([]SearchRule{rule}, map[string]string{"sauce": "src"})}
+		notRewritten(t, vp, binary)
+		assert.Empty(t, rewrites(vp, pkg.Package{}, upstream))
+	})
+
+	t.Run("a search by no architecture matches any", func(t *testing.T) {
+		match := rulesProvider(SearchRule{Action: SearchRuleDrop, MatchDistroName: "debian", MatchPackageName: "curl", MatchArchitecture: "src"})
+		assert.Empty(t, rewrites(match, pkg.Package{}, noArch))
+		exclude := rulesProvider(SearchRule{Action: SearchRuleDrop, MatchDistroName: "debian", MatchPackageName: "curl", ExcludeArchitecture: "src"})
+		notRewritten(t, exclude, noArch)
+	})
+
+	t.Run("a search by no architecture is by the package's", func(t *testing.T) {
+		vp := rulesProvider(SearchRule{Action: SearchRuleDrop, MatchDistroName: "debian", MatchPackageName: "curl", ExcludeArchitecture: "src"})
+		bin := p
+		bin.Arch = "amd64"
+		assert.Empty(t, rewrites(vp, pkg.Package{}, nameSearch(bin)))
 	})
 }
 

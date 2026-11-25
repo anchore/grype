@@ -8,7 +8,7 @@ import (
 
 type ArchitectureAliasStoreReader interface {
 	// GetArchitectureAliases returns the architecture alias table (alias spelling -> canonical
-	// token), used by the architecture qualifier to fold dialect spellings at match time.
+	// token), used by architecture search criteria to fold dialect spellings at match time.
 	GetArchitectureAliases() (map[string]string, error)
 }
 
@@ -22,7 +22,7 @@ func newArchitectureAliasStore(db *gorm.DB) *architectureAliasStore {
 
 // GetArchitectureAliases returns the architecture alias table as a map of alias spelling to
 // canonical token. A database built before this table existed has no such table; that is not
-// an error — an empty map is returned, which the architecture qualifier reads as "fall back to
+// an error — an empty map is returned, which the vulnerability provider reads as "fall back to
 // the built-in default aliases".
 func (s *architectureAliasStore) GetArchitectureAliases() (map[string]string, error) {
 	if !s.db.Migrator().HasTable(&ArchitectureAlias{}) {

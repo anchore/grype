@@ -5,6 +5,7 @@ import (
 
 	"github.com/scylladb/go-set/strset"
 
+	"github.com/anchore/grype/grype/internal/architecture"
 	"github.com/anchore/syft/syft/cpe"
 )
 
@@ -23,6 +24,10 @@ func UpstreamPackages(p Package) (pkgs []Package) {
 		}
 
 		tmp.Name = u.Name
+
+		// we always consider upstreams to be "source packages"
+		tmp.Arch = architecture.ArchSource
+
 		if u.Version != "" {
 			tmp.Version = u.Version
 		}
@@ -49,21 +54,7 @@ func UpstreamPackages(p Package) (pkgs []Package) {
 		}
 		tmp.CPEs = updatedCPEs
 
-		setSrcArchOnUpstream(&tmp)
-
 		pkgs = append(pkgs, tmp)
 	}
 	return pkgs
-}
-
-func setSrcArchOnUpstream(upstream *Package) {
-	if upstream == nil {
-		return
-	}
-	// TODO: additional cases can be added here as their matching becomes dependent
-	// on architecture.
-	if r, ok := upstream.Metadata.(RpmMetadata); ok {
-		r.Arch = "src"
-		upstream.Metadata = r
-	}
 }

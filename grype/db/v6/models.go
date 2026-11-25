@@ -538,9 +538,9 @@ type PackageSpecifierOverride struct {
 
 // ArchitectureAlias folds an architecture spelling onto a canonical token shared by every
 // dialect spelling of the same CPU architecture (e.g. rpm "x86_64" and deb/OCI "amd64" both
-// fold to "amd64"). The architecture qualifier reads this table at match time so cross-dialect
+// fold to "amd64"). Architecture search criteria read this table at match time so cross-dialect
 // arch comparisons don't drop real matches; the data lives in the DB rather than the grype
-// binary so the folding can change without a release. See pkg/qualifier/architecture.
+// binary so the folding can change without a release. See search.ByArchitecture.
 type ArchitectureAlias struct {
 	// Alias is an architecture spelling as it may appear on a package or vulnerability entry
 	// (e.g. "x86_64"). Only non-canonical spellings are stored; a canonical token resolves to
@@ -707,9 +707,10 @@ func (os *OperatingSystemSpecifierOverride) BeforeCreate(_ *gorm.DB) (err error)
 // a CPE search under another CPE vendor and/or product), or drops it. For example, an rpm versioned
 // `...fc43` on rapidfort-redhat:9 searches the channel "fc43".
 //
-// Every Match*/Exclude* field is an anchored pattern, matched ignoring case: one without regex syntax
-// is compared whole, anything else is a regex. A rule must have an exact package name, distro name,
-// ecosystem, CPE vendor or CPE product; rules are indexed in memory by those five.
+// Every Match*/Exclude* field but the architecture ones is an anchored pattern, matched ignoring case:
+// one without regex syntax is compared whole, anything else is a regex. A rule must have an exact
+// package name, distro name, ecosystem, CPE vendor or CPE product; rules are indexed in memory by those
+// five.
 //
 // Replacements are templates: `${name}` references a named group of any match pattern or the matched
 // value of a Match* field the rule has (`${distro_name}`, `${distro_version}`, `${ecosystem}`,
@@ -756,10 +757,15 @@ type SearchRule struct {
 
 	ExcludeCPEProduct string `gorm:"column:exclude_cpe_product"`
 
-	// MatchUpstreamSearch limits the rule to searches for one of the package's upstream (source)
-	// packages (see search.SourcePackageCriteria) when true, and to searches for the package itself
-	// when false; NULL matches either.
-	MatchUpstreamSearch *bool `gorm:"column:match_upstream_search"`
+	// MatchArchitecture limits the rule to searches by an architecture it matches (see
+	// architecture.Matches), e.g. "src" for the searches of a package's upstream (source) packages. It is
+	// not a pattern. A search by no architecture matches any.
+	MatchArchitecture string `gorm:"column:match_architecture"`
+
+	// ExcludeArchitecture limits the rule to searches by an architecture it does not match (see
+	// architecture.Matches), e.g. "src" for the searches of the package itself. It is not a pattern. A
+	// search by no architecture matches any, so it is excluded.
+	ExcludeArchitecture string `gorm:"column:exclude_architecture"`
 
 	// ReplacementChannel is the channel of the searched OS to search, and requires an exact
 	// MatchDistroName. An empty expansion selects the channel-less rows.

@@ -152,7 +152,7 @@ func TestNewVulnerabilityProvider_SearchRuleDefaults(t *testing.T) { //nolint:fu
 			tt.setup(t, dir)
 
 			p := NewVulnerabilityProvider(setupReadOnlyTestStore(t, dir)).(*vulnerabilityProvider)
-			require.Equal(t, newSearchIndex(tt.want), p.searchRules)
+			require.Equal(t, newSearchIndex(tt.want, p.archAliases), p.searchRules)
 		})
 	}
 }

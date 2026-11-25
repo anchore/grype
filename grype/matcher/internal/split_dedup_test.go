@@ -64,8 +64,8 @@ func TestKeepMoreSpecificCandidates_PreservesNAKDroppedDetails(t *testing.T) {
 	assert.Contains(t, survivor.Details, nativeDetail, "the dropped native candidate's detail must be preserved as evidence")
 }
 
-// A self-origin upstream search (same name as the package) is an indirect search (see
-// search.BySourcePackage), so the package's own record calling the version fixed outranks it,
+// A self-origin upstream search (same name as the package) is an indirect search (it is by the source
+// architecture), so the package's own record calling the version fixed outranks it,
 // as it outranks any other indirect match in the same stream.
 func TestKeepMoreSpecificCandidates_SelfOriginUpstreamRanksBelowOwnRecord(t *testing.T) {
 	const id = "CVE-2026-2"

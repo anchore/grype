@@ -3,10 +3,12 @@ package result
 import (
 	"slices"
 	"sort"
+	"strings"
 
 	"github.com/facebookincubator/nvdtools/wfn"
 
 	v6 "github.com/anchore/grype/grype/db/v6"
+	"github.com/anchore/grype/grype/internal/architecture"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/matcher/internal/cpeversion"
 	"github.com/anchore/grype/grype/pkg"
@@ -30,13 +32,19 @@ type provider struct {
 	vulnProvider vulnerability.Provider
 	catalogedPkg pkg.Package // this is what is passed into the matcher
 	matcher      match.MatcherType
+	archAliases  map[string]string // the provider's architecture aliases; nil for the built-in defaults
 }
 
 func NewProvider(vp vulnerability.Provider, catalogedPkg pkg.Package, matcher match.MatcherType) Provider {
+	var archAliases map[string]string
+	if ap, ok := vp.(architecture.AliasProvider); ok {
+		archAliases = ap.ArchitectureAliases()
+	}
 	return provider{
 		vulnProvider: vp,
 		catalogedPkg: catalogedPkg,
 		matcher:      matcher,
+		archAliases:  archAliases,
 	}
 }
 
@@ -67,18 +75,20 @@ func (p provider) findInto(results Set, searchCriteria []vulnerability.Criteria)
 		return err
 	}
 
+	searchedPkg := p.searchedPackage(searchCriteria)
+	upstream := p.isUpstreamSearch(searchCriteria, searchedPkg)
 	for _, v := range vulns {
 		if v.ID == "" {
 			continue // skip vulnerabilities without an ID (should never happen)
 		}
 
-		details := detailProvider(p.matcher, p.catalogedPkg, searchCriteria, v)
+		details := detailProvider(p.matcher, p.catalogedPkg, searchCriteria, v, upstream)
 
 		newResult := Result{
 			ID:              v.ID,
 			Vulnerabilities: []vulnerability.Vulnerability{v},
 			Details:         details,
-			Package:         p.searchedPackage(searchCriteria),
+			Package:         searchedPkg,
 			Rank:            rankOf(searchCriteria, details),
 		}
 
@@ -110,9 +120,11 @@ func (p provider) FindAll(criteria ...vulnerability.Criteria) (Set, error) {
 	return affected.Merge(unaffected), nil
 }
 
-func detailProvider(matcher match.MatcherType, catalogedPkg pkg.Package, criteriaSet []vulnerability.Criteria, vuln vulnerability.Vulnerability) match.Details {
+// detailProvider describes how vuln was found by criteriaSet; upstream is set for a search of one of the
+// cataloged package's upstream (source) packages (see provider.isUpstreamSearch).
+func detailProvider(matcher match.MatcherType, catalogedPkg pkg.Package, criteriaSet []vulnerability.Criteria, vuln vulnerability.Vulnerability, upstream bool) match.Details {
 	cpeParams, distroParams, ecosystemParams, pkgParams := extractSearchParameters(criteriaSet, vuln, catalogedPkg)
-	distroMatchType := determineMatchType(catalogedPkg, pkgParams, slices.ContainsFunc(criteriaSet, isSourcePackage))
+	distroMatchType := determineMatchType(catalogedPkg, pkgParams, upstream)
 	applyPackageParamsToSearchParams(pkgParams, &distroParams, &ecosystemParams)
 	constraintStr := getConstraintString(vuln)
 	// the vulnerable Go symbols the package was found to use; empty for every non-Go match and for
@@ -202,9 +214,42 @@ func determineMatchType(catalogedPkg pkg.Package, pkgParams *match.PackageParame
 	return match.ExactDirectMatch
 }
 
-func isSourcePackage(c vulnerability.Criteria) bool {
-	_, ok := c.(*search.SourcePackageCriteria)
-	return ok
+// isUpstreamSearch is true for a search by the source architecture for a package other than the cataloged one:
+// one of another name, or, when the cataloged package is not itself a source package, of its name at another
+// version (see internal.IsSameUpstream).
+func (p provider) isUpstreamSearch(criteriaSet []vulnerability.Criteria, searchedPkg *pkg.Package) bool {
+	isSourceArch := slices.ContainsFunc(criteriaSet, func(c vulnerability.Criteria) bool {
+		ac, ok := c.(*search.ArchitectureCriteria)
+		return ok && p.isSourceArch(ac.Arch)
+	})
+	if !isSourceArch || searchedPkg == nil {
+		return false
+	}
+	// TODO: refactor internal.IsSameUpstream to avoid this duplication
+	if p.catalogedPkg.Name != searchedPkg.Name {
+		return true
+	}
+	if searchedPkg.Version == "" {
+		return false
+	}
+	splitEpoch := func(v string) (string, string) {
+		if e, r, ok := strings.Cut(v, ":"); ok {
+			return e, r
+		}
+		return "", v
+	}
+	sEpoch, sVersion := splitEpoch(searchedPkg.Version)
+	cEpoch, cVersion := splitEpoch(p.catalogedPkg.Version)
+	if sVersion != cVersion || sEpoch != "" && cEpoch != "" && sEpoch != cEpoch {
+		return !p.isSourceArch(p.catalogedPkg.Arch)
+	}
+	return false
+}
+
+// isSourceArch is true for an architecture naming a source package; an unset one, which matches any
+// architecture, does not.
+func (p provider) isSourceArch(arch string) bool {
+	return strings.TrimSpace(arch) != "" && architecture.Matches(architecture.ArchSource, arch, p.archAliases)
 }
 
 // applyPackageParamsToSearchParams applies discovered package parameters to search parameters

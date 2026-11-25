@@ -24,7 +24,7 @@ func amazonTomcat7Host(id pkg.ID) pkg.Package {
 		WithArchitecture("noarch").
 		WithDistro(distro.New(distro.AmazonLinux, "2", "")).
 		WithUpstream("tomcat", "7.0.76-10.amzn2.0.2").
-		WithMetadata(pkg.RpmMetadata{Epoch: intPtr(0)}).
+		WithMetadata(pkg.RpmMetadata{Epoch: new(0)}).
 		Build()
 }
 

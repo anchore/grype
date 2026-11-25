@@ -203,7 +203,7 @@ func TestDetailProvider_CPEDetail(t *testing.T) {
 			}
 			criteria := []vulnerability.Criteria{search.ByCPE(cpe.Must(tt.searchedCPE, cpe.DeclaredSource))}
 
-			details := detailProvider(match.StockMatcher, catalogedPkg, criteria, vuln)
+			details := detailProvider(match.StockMatcher, catalogedPkg, criteria, vuln, false)
 
 			require.Len(t, details, 1)
 			assert.Equal(t, match.CPEMatch, details[0].Type)
@@ -231,7 +231,7 @@ func Test_searchedPackage(t *testing.T) {
 	}{
 		{
 			name:     "a search stating its package is for it, e.g. an upstream at its own version",
-			criteria: []vulnerability.Criteria{search.ByPackageName("perl"), search.BySourcePackage(), search.WithPackage(upstream)},
+			criteria: []vulnerability.Criteria{search.ByPackageName("perl"), search.ByArchitecture("src"), search.WithPackage(upstream)},
 			want:     upstream,
 		},
 		{
