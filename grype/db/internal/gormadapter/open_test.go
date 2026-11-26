@@ -1,6 +1,8 @@
 package gormadapter
 
 import (
+	"context"
+	"database/sql"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -311,21 +313,48 @@ func TestOpen_CacheSizeKiB_Invalid(t *testing.T) {
 	}
 }
 
+// writeMarkerDB writes a DB at path holding a single marker row with the given value.
+func writeMarkerDB(t *testing.T, path, value string) {
+	t.Helper()
+	db, err := Open(path, WithTruncate(true, nil, nil))
+	require.NoError(t, err)
+	require.NoError(t, db.Exec("CREATE TABLE marker (value TEXT)").Error)
+	require.NoError(t, db.Exec("INSERT INTO marker (value) VALUES (?)", value).Error)
+	d, err := db.DB()
+	require.NoError(t, err)
+	require.NoError(t, d.Close())
+}
+
+func TestOpen_ReadOnlyPoolKeepsAnIdleConnectionPerCPU(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "test.db")
+	writeMarkerDB(t, path, "value")
+
+	db, err := Open(path)
+	require.NoError(t, err)
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sqlDB.Close() })
+
+	// hold one connection per CPU at once, as concurrent lookups do, then release them all
+	conns := make([]*sql.Conn, runtime.GOMAXPROCS(0))
+	for i := range conns {
+		conns[i], err = sqlDB.Conn(context.Background())
+		require.NoError(t, err)
+	}
+	for _, conn := range conns {
+		require.NoError(t, conn.Close())
+	}
+
+	stats := sqlDB.Stats()
+	require.Equal(t, len(conns), stats.Idle, "every released connection is kept for reuse")
+	require.Zero(t, stats.MaxIdleClosed)
+}
+
 func TestOpen_ReadOnlyConnectionsDoNotShareACache(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("replaces a file that is still open")
 	}
 
-	writeDB := func(t *testing.T, path, value string) {
-		t.Helper()
-		db, err := Open(path, WithTruncate(true, nil, nil))
-		require.NoError(t, err)
-		require.NoError(t, db.Exec("CREATE TABLE marker (value TEXT)").Error)
-		require.NoError(t, db.Exec("INSERT INTO marker (value) VALUES (?)", value).Error)
-		d, err := db.DB()
-		require.NoError(t, err)
-		require.NoError(t, d.Close())
-	}
 	openReader := func(t *testing.T, path string) func() string {
 		t.Helper()
 		db, err := Open(path)
@@ -344,13 +373,13 @@ func TestOpen_ReadOnlyConnectionsDoNotShareACache(t *testing.T) {
 
 	dir := t.TempDir()
 	path := filepath.Join(dir, "test.db")
-	writeDB(t, path, "previous")
+	writeMarkerDB(t, path, "previous")
 	previous := openReader(t, path)
 	require.Equal(t, "previous", previous())
 
 	// replace the file the way a DB update does, while a reader of the previous file is still open
 	next := filepath.Join(dir, "next.db")
-	writeDB(t, next, "current")
+	writeMarkerDB(t, next, "current")
 	require.NoError(t, os.Rename(next, path))
 
 	// readers sharing a cache (cache=shared) would see the previous file here, through the cache of the

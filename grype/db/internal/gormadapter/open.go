@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -201,6 +202,14 @@ func (c config) prepareDB(dbObj *gorm.DB) (*gorm.DB, error) {
 		if err := c.applyStatements(dbObj, writerStatements); err != nil {
 			return nil, fmt.Errorf("unable to apply DB writer statements: %w", err)
 		}
+	} else {
+		sqlDB, err := dbObj.DB()
+		if err != nil {
+			return nil, fmt.Errorf("unable to get DB connection pool: %w", err)
+		}
+		// database/sql keeps only 2 idle connections by default and closes the rest as queries finish, so
+		// concurrent lookups keep reopening connections, each with an empty page cache. Keep one per CPU.
+		sqlDB.SetMaxIdleConns(runtime.GOMAXPROCS(0))
 	}
 
 	if c.truncate && c.allowLargeMemoryFootprint {
