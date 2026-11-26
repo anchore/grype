@@ -75,7 +75,7 @@ func newStore(cfg Config, empty, writable bool) (*store, error) {
 
 	meta, err := metadataStore.GetDBMetadata()
 	if err != nil || meta == nil || meta.Model != ModelVersion {
-		// db.Close must be called, or we will get stale reads
+		// close the DB so it does not keep the file open
 		d, _ := db.DB()
 		if d != nil {
 			_ = d.Close()

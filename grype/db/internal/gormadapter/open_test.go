@@ -1,6 +1,8 @@
 package gormadapter
 
 import (
+	"context"
+	"database/sql"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -68,7 +70,7 @@ func TestConfigConnectionString(t *testing.T) {
 			name:            "read-only path",
 			path:            "test.db",
 			write:           false,
-			expectedConnStr: "file:test.db?cache=shared&immutable=1&mode=ro&cache=shared",
+			expectedConnStr: "file:test.db?immutable=1&mode=ro",
 		},
 		{
 			name:            "in-memory mode",
@@ -309,4 +311,80 @@ func TestOpen_CacheSizeKiB_Invalid(t *testing.T) {
 			require.Equal(t, "keep me", string(contents))
 		})
 	}
+}
+
+// writeMarkerDB writes a DB at path holding a single marker row with the given value.
+func writeMarkerDB(t *testing.T, path, value string) {
+	t.Helper()
+	db, err := Open(path, WithTruncate(true, nil, nil))
+	require.NoError(t, err)
+	require.NoError(t, db.Exec("CREATE TABLE marker (value TEXT)").Error)
+	require.NoError(t, db.Exec("INSERT INTO marker (value) VALUES (?)", value).Error)
+	d, err := db.DB()
+	require.NoError(t, err)
+	require.NoError(t, d.Close())
+}
+
+func TestOpen_ReadOnlyPoolKeepsAnIdleConnectionPerCPU(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "test.db")
+	writeMarkerDB(t, path, "value")
+
+	db, err := Open(path)
+	require.NoError(t, err)
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = sqlDB.Close() })
+
+	// hold one connection per CPU at once, as concurrent lookups do, then release them all
+	conns := make([]*sql.Conn, runtime.GOMAXPROCS(0))
+	for i := range conns {
+		conns[i], err = sqlDB.Conn(context.Background())
+		require.NoError(t, err)
+	}
+	for _, conn := range conns {
+		require.NoError(t, conn.Close())
+	}
+
+	stats := sqlDB.Stats()
+	require.Equal(t, len(conns), stats.Idle, "every released connection is kept for reuse")
+	require.Zero(t, stats.MaxIdleClosed)
+}
+
+func TestOpen_ReadOnlyConnectionsDoNotShareACache(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("replaces a file that is still open")
+	}
+
+	openReader := func(t *testing.T, path string) func() string {
+		t.Helper()
+		db, err := Open(path)
+		require.NoError(t, err)
+		t.Cleanup(func() {
+			if d, err := db.DB(); err == nil {
+				_ = d.Close()
+			}
+		})
+		return func() string {
+			var value string
+			require.NoError(t, db.Raw("SELECT value FROM marker").Scan(&value).Error)
+			return value
+		}
+	}
+
+	dir := t.TempDir()
+	path := filepath.Join(dir, "test.db")
+	writeMarkerDB(t, path, "previous")
+	previous := openReader(t, path)
+	require.Equal(t, "previous", previous())
+
+	// replace the file the way a DB update does, while a reader of the previous file is still open
+	next := filepath.Join(dir, "next.db")
+	writeMarkerDB(t, next, "current")
+	require.NoError(t, os.Rename(next, path))
+
+	// readers sharing a cache (cache=shared) would see the previous file here, through the cache of the
+	// reader that is still open; a shared cache also makes every reader of the path take turns on one lock
+	current := openReader(t, path)
+	require.Equal(t, "current", current())
+	require.Equal(t, "previous", previous(), "an open reader keeps reading the file it opened")
 }
