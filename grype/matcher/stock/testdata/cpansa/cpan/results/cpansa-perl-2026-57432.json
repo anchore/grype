@@ -1,0 +1,86 @@
+{
+  "identifier": "cpansa-perl-2026-57432",
+  "item": {
+    "affected": [
+      {
+        "package": {
+          "ecosystem": "CPAN",
+          "name": "perl"
+        },
+        "ranges": [
+          {
+            "database_specific": {
+              "anchore": {
+                "fixes": [
+                  {
+                    "date": "2026-07-13",
+                    "kind": "advisory",
+                    "version": "5.040005"
+                  },
+                  {
+                    "date": "2026-07-13",
+                    "kind": "advisory",
+                    "version": "5.042003"
+                  },
+                  {
+                    "date": "2026-07-13",
+                    "kind": "advisory",
+                    "version": "5.043011"
+                  }
+                ]
+              }
+            },
+            "events": [
+              {
+                "introduced": "0"
+              },
+              {
+                "fixed": "5.040005"
+              },
+              {
+                "introduced": "5.042000"
+              },
+              {
+                "fixed": "5.042003"
+              },
+              {
+                "introduced": "5.043001"
+              },
+              {
+                "fixed": "5.043011"
+              }
+            ],
+            "type": "ECOSYSTEM"
+          }
+        ]
+      }
+    ],
+    "aliases": [
+      "CVE-2026-57432"
+    ],
+    "database_specific": {
+      "cpansa_commit": "9d31c332f0ada976973c71b35385c0c2bc46fd83",
+      "cpansa_generated": "Mon Aug  3 11:45:47 2026"
+    },
+    "details": "Perl versions through 5.43.10 have an integer overflow in S_measure_struct leading to an out-of-bounds heap read in pack and unpack.  S_measure_struct adds each item's size times its repeat count to a running total with no overflow check, so a large repeat count in a pack or unpack template wraps the signed SSize_t total negative. The @, X, and x position codes then guard their moves with a signed length comparison that passes when the length is negative, advancing the buffer pointer out of bounds.  A template derived from untrusted input can read heap memory past the buffer and return it to the caller.",
+    "id": "CPANSA-perl-2026-57432",
+    "modified": "2026-08-03T11:45:47Z",
+    "published": "2026-07-13T00:00:00Z",
+    "references": [
+      {
+        "type": "WEB",
+        "url": "https://github.com/Perl/perl5/commit/40754edc72dd3e513d758153c0e2f0215897740e.patch"
+      },
+      {
+        "type": "WEB",
+        "url": "https://github.com/Perl/perl5/commit/5f7eb6bbbe0510964e3fb1d6bb691e5445913e55.patch"
+      },
+      {
+        "type": "WEB",
+        "url": "http://www.openwall.com/lists/oss-security/2026/07/13/6"
+      }
+    ],
+    "schema_version": "1.6.1"
+  },
+  "schema": "https://raw.githubusercontent.com/anchore/vunnel/main/schema/vulnerability/osv/schema-1.6.1.json"
+}
