@@ -44,6 +44,37 @@ func TestParseRangeUnit(t *testing.T) {
 			wantError: require.Error,
 		},
 		{
+			// https://github.com/anchore/grype/issues/3945
+			// unsupported prefixes must not be silently dropped when
+			// immediately followed by an operator
+			phrase:    "!= 1.0.0",
+			wantError: require.Error,
+		},
+		{
+			phrase:    "~> 1.2.0",
+			wantError: require.Error,
+		},
+		{
+			phrase:    "~= 1.2.0",
+			wantError: require.Error,
+		},
+		{
+			phrase:    "!> 1.0.0",
+			wantError: require.Error,
+		},
+		{
+			phrase:    "!< 1.0.0",
+			wantError: require.Error,
+		},
+		{
+			phrase:    "~ 1.2.0",
+			wantError: require.Error,
+		},
+		{
+			phrase:    "~~ 1.0.0",
+			wantError: require.Error,
+		},
+		{
 			phrase: `="something"`,
 			expected: &rangeUnit{
 				Operator: EQ,

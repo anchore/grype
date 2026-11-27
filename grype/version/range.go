@@ -29,7 +29,7 @@ func parseRange(phrase string) (*rangeUnit, error) {
 
 	prefix := match["prefix"]
 
-	if prefix != "" && opStr == "" {
+	if prefix != "" {
 		return nil, fmt.Errorf("constraint has an unprocessable prefix %q", prefix)
 	}
 
