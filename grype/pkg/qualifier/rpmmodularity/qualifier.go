@@ -58,5 +58,9 @@ func (r rpmModularity) Satisfied(p pkg.Package) (bool, error) {
 		return false, nil
 	}
 
-	return strings.HasPrefix(*m.ModularityLabel, r.module), nil
+	// The modularity label is "name:stream:version:context", while the qualifier holds "name:stream". Only match
+	// when the label is the module itself or continues with a ":" right after it, so that "virt:kvm_utils" does not
+	// match a package from the "virt:kvm_utils2" stream.
+	label := *m.ModularityLabel
+	return label == r.module || strings.HasPrefix(label, r.module+":"), nil
 }

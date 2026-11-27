@@ -94,6 +94,36 @@ func TestRpmModularity_Satisfied(t *testing.T) {
 			satisfied: false,
 		},
 		{
+			name:          "modularity label equals module",
+			rpmModularity: New("x:3"),
+			pkg: pkg.Package{
+				Distro: nil,
+				Metadata: pkg.RpmMetadata{
+					ModularityLabel: strRef("x:3"),
+				}},
+			satisfied: true,
+		},
+		{
+			name:          "modularity label from a stream that only shares the module as a prefix",
+			rpmModularity: New("virt:kvm_utils"),
+			pkg: pkg.Package{
+				Distro: nil,
+				Metadata: pkg.RpmMetadata{
+					ModularityLabel: strRef("virt:kvm_utils2:8100020240729141503:e155f54d"),
+				}},
+			satisfied: false,
+		},
+		{
+			name:          "oraclelinux modularity label from a stream that only shares the module as a prefix",
+			rpmModularity: New("go-toolset:ol8"),
+			pkg: pkg.Package{
+				Distro: oracle,
+				Metadata: pkg.RpmMetadata{
+					ModularityLabel: strRef("go-toolset:ol8addon:8070020221115194316:8eb6e2cd"),
+				}},
+			satisfied: false,
+		},
+		{
 			name:          "modularity label is positively blank",
 			rpmModularity: New(""),
 			pkg: pkg.Package{
