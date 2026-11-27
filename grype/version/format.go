@@ -22,6 +22,7 @@ const (
 	JVMFormat
 	BitnamiFormat
 	PacmanFormat
+	CpanFormat
 )
 
 type Format int
@@ -41,6 +42,7 @@ var formatStr = []string{
 	"JVM",
 	"Bitnami",
 	"Pacman",
+	"CPAN",
 }
 
 var Formats = []Format{
@@ -57,6 +59,7 @@ var Formats = []Format{
 	JVMFormat,
 	BitnamiFormat,
 	PacmanFormat,
+	CpanFormat,
 }
 
 func ParseFormat(userStr string) Format {
@@ -88,6 +91,9 @@ func ParseFormat(userStr string) Format {
 		return JVMFormat
 	case strings.ToLower(PacmanFormat.String()), "pacman", pkg.AlpmPkg.String():
 		return PacmanFormat
+	// "perl" is the language name that vulnerability data uses, "cpan" the package type
+	case strings.ToLower(CpanFormat.String()), "cpan", "perl":
+		return CpanFormat
 	}
 	return UnknownFormat
 }
