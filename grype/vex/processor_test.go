@@ -335,6 +335,92 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 				}},
 			}},
 		},
+		{
+			name: "csaf-demo1 - ignore by fixed status and matching package name",
+			options: ProcessorOptions{
+				Documents: []string{
+					"testdata/vex-docs/csaf-demo1.json",
+				},
+				IgnoreRules: []match.IgnoreRule{{
+					VexStatus: string(status.Fixed),
+					Package:   match.IgnoreRulePackage{Name: "libcrypto3"},
+				}},
+			},
+			args: args{
+				pkgContext: pkgContext,
+				matches:    getSubject(),
+			},
+			wantMatches: matchesRef(libCryptoCVE_2023_3817, libCryptoCVE_2023_2975),
+			wantIgnoredMatches: []match.IgnoredMatch{{
+				Match: libCryptoCVE_2023_1255,
+				AppliedIgnoreRules: []match.IgnoreRule{{
+					Namespace: "vex",
+					VexStatus: string(status.Fixed),
+					Package:   match.IgnoreRulePackage{Name: "libcrypto3"},
+				}},
+			}},
+		},
+		{
+			name: "csaf-demo1 - fixed status rule does not apply to other packages",
+			options: ProcessorOptions{
+				Documents: []string{
+					"testdata/vex-docs/csaf-demo1.json",
+				},
+				IgnoreRules: []match.IgnoreRule{{
+					VexStatus: string(status.Fixed),
+					Package:   match.IgnoreRulePackage{Name: "libfoo"},
+				}},
+			},
+			args: args{
+				pkgContext: pkgContext,
+				matches:    getSubject(),
+			},
+			wantMatches:        getSubject(),
+			wantIgnoredMatches: []match.IgnoredMatch{},
+		},
+		{
+			name: "openvex-demo1 - ignore by fixed status and matching package name",
+			options: ProcessorOptions{
+				Documents: []string{
+					"testdata/vex-docs/openvex-demo1.json",
+				},
+				IgnoreRules: []match.IgnoreRule{{
+					VexStatus: string(status.Fixed),
+					Package:   match.IgnoreRulePackage{Name: "libcrypto3"},
+				}},
+			},
+			args: args{
+				pkgContext: pkgContext,
+				matches:    getSubject(),
+			},
+			wantMatches: matchesRef(libCryptoCVE_2023_3817, libCryptoCVE_2023_2975),
+			wantIgnoredMatches: []match.IgnoredMatch{{
+				Match: libCryptoCVE_2023_1255,
+				AppliedIgnoreRules: []match.IgnoreRule{{
+					Namespace: "vex",
+					VexStatus: string(status.Fixed),
+					Package:   match.IgnoreRulePackage{Name: "libcrypto3"},
+				}},
+			}},
+		},
+		{
+			name: "openvex-demo1 - fixed status rule does not apply to other packages",
+			options: ProcessorOptions{
+				Documents: []string{
+					"testdata/vex-docs/openvex-demo1.json",
+				},
+				IgnoreRules: []match.IgnoreRule{{
+					VexStatus: string(status.Fixed),
+					Package:   match.IgnoreRulePackage{Name: "libfoo"},
+				}},
+			},
+			args: args{
+				pkgContext: pkgContext,
+				matches:    getSubject(),
+			},
+			wantMatches:        getSubject(),
+			wantIgnoredMatches: []match.IgnoredMatch{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
