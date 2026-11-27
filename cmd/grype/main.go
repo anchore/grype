@@ -6,6 +6,7 @@ import (
 	"github.com/anchore/clio"
 	"github.com/anchore/grype/cmd/grype/cli"
 	"github.com/anchore/grype/cmd/grype/internal"
+	_ "github.com/anchore/grype/cmd/grype/internal/termrender"
 )
 
 // applicationName is the non-capitalized name of the application (do not change this)
