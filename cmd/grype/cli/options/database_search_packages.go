@@ -62,7 +62,7 @@ func (o *DBSearchPackages) PostLoad() error {
 				log.Warnf("ignoring version and qualifiers for package URL %q", purl)
 			}
 
-			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: purl.Name, Ecosystem: purl.Type})
+			o.PkgSpecs = append(o.PkgSpecs, &v6.PackageSpecifier{Name: packageNameFromPURL(purl), Ecosystem: purl.Type})
 			o.CPESpecs = append(o.CPESpecs, &v6.PackageSpecifier{CPE: &cpe.Attributes{Part: "a", Product: purl.Name, TargetSW: purl.Type}})
 
 		default:
@@ -81,4 +81,35 @@ func (o *DBSearchPackages) PostLoad() error {
 	}
 
 	return nil
+}
+
+// packageNameFromPURL joins the PURL namespace back onto the name for the
+// ecosystems where the namespace is part of the package's identity in the DB,
+// and leaves it off everywhere else.
+//
+// Go modules are stored under their full module path and npm scopes under
+// "@scope/name", so without this a search for
+// "pkg:golang/github.com/gin-gonic/gin" looks up the bare name "gin" and never
+// matches. Maven is stored as "groupId:artifactId".
+//
+// For the distro ecosystems the namespace names the distro rather than the
+// package, which is why `db search --pkg 'pkg:rpm/redhat/openssl'` is
+// documented as equivalent to `--ecosystem rpm --pkg openssl`. Those keep the
+// bare name, as do any other types not listed here.
+//
+// The CPE specifier always keeps the bare name, since CPE product attributes
+// are not namespaced.
+func packageNameFromPURL(purl packageurl.PackageURL) string {
+	if purl.Namespace == "" {
+		return purl.Name
+	}
+
+	switch purl.Type {
+	case packageurl.TypeMaven:
+		return purl.Namespace + ":" + purl.Name
+	case packageurl.TypeGolang, packageurl.TypeNPM:
+		return purl.Namespace + "/" + purl.Name
+	}
+
+	return purl.Name
 }
