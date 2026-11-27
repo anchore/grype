@@ -335,6 +335,51 @@ func TestProcessor_ApplyVEX(t *testing.T) {
 				}},
 			}},
 		},
+		{
+			name: "csaf product groups - ignore by not_affected status and vulnerable_code_not_present justification",
+			options: ProcessorOptions{
+				Documents: []string{
+					"testdata/vex-docs/csaf-product-groups.json",
+				},
+				IgnoreRules: []match.IgnoreRule{{
+					VexStatus:        string(status.NotAffected),
+					VexJustification: "vulnerable_code_not_present",
+				}},
+			},
+			args: args{
+				pkgContext: pkgContext,
+				matches:    getSubject(),
+			},
+			wantMatches: matchesRef(libCryptoCVE_2023_1255, libCryptoCVE_2023_2975),
+			wantIgnoredMatches: []match.IgnoredMatch{{
+				Match: libCryptoCVE_2023_3817,
+				AppliedIgnoreRules: []match.IgnoreRule{{
+					Namespace:        "vex",
+					VexJustification: "vulnerable_code_not_present",
+					VexStatus:        "not_affected",
+				}},
+			}},
+		},
+		{
+			name: "csaf document that cannot be loaded is rejected",
+			options: ProcessorOptions{
+				Documents: []string{
+					"testdata/vex-docs/csaf-unparseable.json",
+				},
+			},
+			args: args{
+				pkgContext: pkgContext,
+				matches:    getSubject(),
+			},
+			wantMatches:        matchesRef(),
+			wantIgnoredMatches: []match.IgnoredMatch{},
+			wantErr: func(tt require.TestingT, err error, _ ...interface{}) {
+				// the OpenVEX processor would silently accept CSAF documents
+				// while being unable to match any of their statements
+				require.Error(tt, err)
+				assert.Contains(tt, err.Error(), "CSAF")
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
