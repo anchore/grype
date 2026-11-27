@@ -7,16 +7,31 @@ import (
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/log"
+	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
 // MatchPackageByEcosystemAndCPEs runs the ecosystem-by-name search (via
 // MatchPackageByLanguage, which handles the multi-name fanout and cross-name
 // NAK Remove internally) and, if enabled, the CPE search, then combines the
 // results.
+func hasLanguageEcosystem(p pkg.Package) bool {
+	return p.Language != "" && p.Language != syftPkg.UnknownLanguage
+}
+
 func MatchPackageByEcosystemAndCPEs(store vulnerability.Provider, p pkg.Package, matcher match.MatcherType, includeCPEs bool) ([]match.Match, []match.IgnoreFilter, error) {
-	matches, ignored, err := MatchPackageByLanguage(store, p, matcher)
-	if err != nil {
-		log.Debugf("could not match by package ecosystem (package=%+v): %v", p, err)
+	var matches []match.Match
+	var ignored []match.IgnoreFilter
+
+	// A CPE-only package (for example `grype cpes:` input) has a product
+	// name but no language or ecosystem. Looking that name up in GHSA
+	// language namespaces produces exact-direct-match findings against
+	// unrelated packages that happen to share it (GNU tar vs npm tar).
+	if hasLanguageEcosystem(p) {
+		var err error
+		matches, ignored, err = MatchPackageByLanguage(store, p, matcher)
+		if err != nil {
+			log.Debugf("could not match by package ecosystem (package=%+v): %v", p, err)
+		}
 	}
 
 	if includeCPEs {
