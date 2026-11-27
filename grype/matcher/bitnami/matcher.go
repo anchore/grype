@@ -5,6 +5,7 @@ import (
 	"github.com/anchore/grype/grype/matcher/internal"
 	"github.com/anchore/grype/grype/pkg"
 	"github.com/anchore/grype/grype/vulnerability"
+	"github.com/anchore/packageurl-go"
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
@@ -19,9 +20,11 @@ func (m *Matcher) Type() match.MatcherType {
 }
 
 func (m *Matcher) Match(store vulnerability.Provider, p pkg.Package) ([]match.Match, []match.IgnoreFilter, error) {
-	// Bitnami packages' metadata are built from the package URL which contains
-	// info such as the package name, version, revision, distro or architecture.
-	// ref: https://github.com/anchore/syft/blob/main/syft/pkg/bitnami.go#L3-L13
-	// ref: https://github.com/anchore/syft/blob/main/syft/pkg/cataloger/bitnami/package.go#L18-L45
-	return internal.MatchPackageByEcosystemPackageName(store, p, p.Name, m.Type())
+	// SPDX package names can be display names. Prefer the canonical Bitnami
+	// package name from the PURL when looking up vulnerability records.
+	name := p.Name
+	if parsed, err := packageurl.FromString(p.PURL); err == nil && parsed.Type == packageurl.TypeBitnami {
+		name = parsed.Name
+	}
+	return internal.MatchPackageByEcosystemPackageName(store, p, name, m.Type())
 }
