@@ -229,6 +229,7 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 		IgnoreRules:           opts.Ignore,
 		NormalizeByCVE:        opts.ByCVE,
 		FailSeverity:          opts.FailOnSeverity(),
+		FailRisk:              opts.FailOnRisk(),
 		Matchers:              getMatchers(opts),
 		VexProcessor:          vexProcessor,
 		Alerts: grype.AlertsConfig{
@@ -239,7 +240,7 @@ func runGrype(ctx context.Context, app clio.Application, opts *options.Grype, us
 
 	remainingMatches, ignoredMatches, err := vulnMatcher.FindMatchesContext(ctx, packages, pkgContext)
 	if err != nil {
-		if !errors.Is(err, grypeerr.ErrAboveSeverityThreshold) {
+		if !errors.Is(err, grypeerr.ErrAboveSeverityThreshold) && !errors.Is(err, grypeerr.ErrAboveRiskThreshold) {
 			return err
 		}
 		errs = appendErrors(errs, err)
