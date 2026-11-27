@@ -59,6 +59,11 @@ func TestJVMVersion_Constraint(t *testing.T) {
 		{version: "1.8.0_131", constraint: "> 1.8.0_131-ea", satisfied: true},
 		{version: "9.0.0-ea", constraint: "< 9.0.0", satisfied: true},
 		{version: "9.0.0-ea", constraint: "> 1.8.0_131", satisfied: true},
+		{version: "21.0.13-beta", constraint: "< 21.0.13", satisfied: true},
+		{version: "21.0.13-beta+1-ea", constraint: "< 21.0.13", satisfied: true},
+		{version: "21.0.13-beta+1-ea", constraint: "< 21.0.13.1", satisfied: true},
+		{version: "21.0.13-beta+1-ea", constraint: ">= 21.0.12", satisfied: true},
+		{version: "1.8.0_131-beta-b11", constraint: "< 1.8.0_131", satisfied: true},
 
 		// shorthand "u" update versions
 		{version: "6u141", constraint: "< 6u142", satisfied: true},
