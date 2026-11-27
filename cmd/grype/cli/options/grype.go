@@ -117,7 +117,7 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 
 	flags.StringVarP(&o.FailOn,
 		"fail-on", "f",
-		fmt.Sprintf("set the return code to 2 if a vulnerability is found with a severity >= the given severity, options=%v", vulnerability.AllSeverities()),
+		fmt.Sprintf("set the return code to 2 if a vulnerability is found with a severity >= the given severity (options=%v), or if any vulnerability has no VEX statement (no-vex-statement)", vulnerability.AllSeverities()),
 	)
 
 	flags.BoolVarP(&o.OnlyFixed,
@@ -169,10 +169,10 @@ func (o *Grype) AddFlags(flags clio.FlagSet) {
 func (o *Grype) PostLoad() error {
 	o.From = flatten(o.From)
 
-	if o.FailOn != "" {
+	if o.FailOn != "" && !o.FailOnNoVexStatement() {
 		failOnSeverity := *o.FailOnSeverity()
 		if failOnSeverity == vulnerability.UnknownSeverity {
-			return fmt.Errorf("bad --fail-on severity value '%s'", o.FailOn)
+			return fmt.Errorf("bad --fail-on value '%s': expected a severity (%v) or %s", o.FailOn, vulnerability.AllSeverities(), failOnNoVexStatement)
 		}
 	}
 	return nil
@@ -197,7 +197,8 @@ write output report to a file (default is to write to stdout)`)
 when using template as the output type, you must also provide a value for 'output-template-file'`)
 	descriptions.Add(&o.Pretty, `pretty-print output`)
 	descriptions.Add(&o.FailOn, `upon scanning, if a severity is found at or above the given severity then the return code will be 1
-default is unset which will skip this validation (options: negligible, low, medium, high, critical)`)
+default is unset which will skip this validation (options: negligible, low, medium, high, critical)
+no-vex-statement can be given instead of a severity to fail when any reported vulnerability has no VEX statement`)
 	descriptions.Add(&o.Ignore, `a list of vulnerability ignore rules; a match must meet ALL criteria specified in a rule to be ignored.
 This is the full set of supported rule fields:
   - vulnerability: CVE-2008-4318        # match by vulnerability ID (required if no other criteria are given)
@@ -226,6 +227,15 @@ VEX fields apply when Grype reads VEX data:
 func (o Grype) FailOnSeverity() *vulnerability.Severity {
 	severity := vulnerability.ParseSeverity(o.FailOn)
 	return &severity
+}
+
+// failOnNoVexStatement is the --fail-on value that fails the scan when a reported vulnerability has no VEX statement
+const failOnNoVexStatement = "no-vex-statement"
+
+// FailOnNoVexStatement indicates that --fail-on no-vex-statement was given: the return code is 2 when any
+// vulnerability remaining in the report has no statement in the provided VEX documents.
+func (o Grype) FailOnNoVexStatement() bool {
+	return strings.EqualFold(strings.TrimSpace(o.FailOn), failOnNoVexStatement)
 }
 
 // flatten takes a list of comma-separated entries and returns a flattened list of trimmed values (preserving order)
