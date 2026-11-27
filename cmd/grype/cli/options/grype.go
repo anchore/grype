@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/anchore/clio"
+	"github.com/anchore/grype/grype/distro"
 	"github.com/anchore/grype/grype/match"
 	"github.com/anchore/grype/grype/vulnerability"
 	"github.com/anchore/grype/internal/format"
@@ -175,6 +176,13 @@ func (o *Grype) PostLoad() error {
 			return fmt.Errorf("bad --fail-on severity value '%s'", o.FailOn)
 		}
 	}
+
+	if o.Distro != "" {
+		if _, err := distro.TypeFromDistroString(o.Distro); err != nil {
+			return fmt.Errorf("bad --distro value '%s': %w", o.Distro, err)
+		}
+	}
+
 	return nil
 }
 

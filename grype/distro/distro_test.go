@@ -885,6 +885,40 @@ func Test_NewFromRelease_shortVersionIDNoPanic(t *testing.T) {
 	}
 }
 
+func Test_TypeFromDistroString(t *testing.T) {
+	tests := []struct {
+		hint    string
+		want    Type
+		wantErr require.ErrorAssertionFunc
+	}{
+		{hint: "debian-11", want: Debian},
+		{hint: "Debian-11", want: Debian},
+		{hint: "debian:11", want: Debian},
+		{hint: "debian", want: Debian},
+		{hint: "amzn-2", want: AmazonLinux},
+		{hint: "ol-8", want: OracleLinux},
+		{hint: "rhel-9", want: RedHat},
+		{hint: "redhat-9", want: RedHat},
+		{hint: "opensuse-leap-15.5", want: OpenSuseLeap},
+		{hint: "windows", want: Windows},
+		// a typo must not resolve: the scan would match OS packages against a distribution that has
+		// no vulnerability data and report a clean result
+		{hint: "debin-11", wantErr: require.Error},
+		{hint: "debián-11", wantErr: require.Error},
+		{hint: "ubunt", wantErr: require.Error},
+	}
+	for _, tt := range tests {
+		t.Run(tt.hint, func(t *testing.T) {
+			if tt.wantErr == nil {
+				tt.wantErr = require.NoError
+			}
+			got, err := TypeFromDistroString(tt.hint)
+			tt.wantErr(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 // Test_NewFromNameVersion_channels covers the user-supplied distro string forms that reach this
 // constructor: the --distro flag, the purl "distro" qualifier, and grype db search --distro. A
 // channel suffix must survive regardless of whether the version part is a number or a codename.

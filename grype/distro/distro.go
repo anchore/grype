@@ -2,6 +2,7 @@ package distro
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -131,6 +132,60 @@ func ParseDistroString(s string) (name, version string) {
 	}
 
 	return strings.TrimSpace(s[:minIdx]), strings.TrimSpace(s[minIdx+len(foundSep):])
+}
+
+// TypeFromDistroString resolves a user supplied "--distro" value ("name<sep>version") to a known
+// distribution type. Callers should reject a hint that does not resolve: grype matches OS packages
+// against the requested distribution, so an unsupported name has no vulnerability data behind it and
+// silently produces an empty report (a typo in --distro looks like a clean scan).
+func TypeFromDistroString(hint string) (Type, error) {
+	name, _ := ParseDistroString(hint)
+	if t, ok := typeFromName(name); ok {
+		return t, nil
+	}
+	return "", fmt.Errorf("unknown distribution %q (supported: %s)", name, strings.Join(KnownNames(), ", "))
+}
+
+func typeFromName(name string) (Type, bool) {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return "", false
+	}
+	for _, candidate := range []string{name, strings.ToLower(name)} {
+		if t, ok := IDMapping[candidate]; ok {
+			return t, true
+		}
+		if t, ok := aliasTypes[candidate]; ok {
+			return t, true
+		}
+	}
+	lowered := Type(strings.ToLower(name))
+	for _, t := range All {
+		if t == lowered {
+			return t, true
+		}
+	}
+	return "", false
+}
+
+// KnownNames returns the sorted list of distribution ids accepted by TypeFromDistroString.
+func KnownNames() []string {
+	seen := map[string]struct{}{}
+	for id := range IDMapping {
+		seen[id] = struct{}{}
+	}
+	for id := range aliasTypes {
+		seen[id] = struct{}{}
+	}
+	for _, t := range All {
+		seen[string(t)] = struct{}{}
+	}
+	names := make([]string, 0, len(seen))
+	for id := range seen {
+		names = append(names, id)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // NewFromNameVersion creates a new Distro object derived from the provided name and version
