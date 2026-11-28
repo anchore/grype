@@ -7,7 +7,8 @@ import (
 	syftPkg "github.com/anchore/syft/syft/pkg"
 )
 
-// Package is meant to be only the fields that are needed when displaying a single pkg.Package object for the JSON presenter.
+// Package is the presenter view of a scanned package (Match.Artifact in templates).
+// Field names here are what template authors should use; json tags apply to -o json only.
 type Package struct {
 	ID           string              `json:"id"`
 	Name         string              `json:"name"`
