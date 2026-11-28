@@ -79,6 +79,83 @@ func TestUpstreamPackages(t *testing.T) {
 			},
 		},
 		{
+			name: "package name inside another field is not rewritten",
+			pkg: Package{
+				Name:    "git",
+				Version: "2.40.0-1",
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:a:git_project:git:2.40.0:*:*:*:*:*:*:*", ""),
+				},
+				Upstreams: []UpstreamPackage{
+					{
+						Name:    "git-src",
+						Version: "2.40.0",
+					},
+				},
+			},
+			expected: []Package{
+				{
+					Name:    "git-src",
+					Version: "2.40.0",
+					Arch:    "src",
+					CPEs: []cpe.CPE{
+						cpe.Must("cpe:2.3:a:git_project:git-src:2.40.0:*:*:*:*:*:*:*", ""),
+					},
+				},
+			},
+		},
+		{
+			name: "short package name does not blank the CPE",
+			pkg: Package{
+				Name:    "c",
+				Version: "1.0-1",
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:a:canonical:c:1.0:*:*:*:*:*:*:*", ""),
+				},
+				Upstreams: []UpstreamPackage{
+					{
+						Name:    "c-lang",
+						Version: "1.0",
+					},
+				},
+			},
+			expected: []Package{
+				{
+					Name:    "c-lang",
+					Version: "1.0",
+					Arch:    "src",
+					CPEs: []cpe.CPE{
+						cpe.Must("cpe:2.3:a:canonical:c-lang:1.0:*:*:*:*:*:*:*", ""),
+					},
+				},
+			},
+		},
+		{
+			name: "cpe for a different product is left alone",
+			pkg: Package{
+				Name:    "akhq-bin",
+				Version: "0.25.0-r0",
+				CPEs: []cpe.CPE{
+					cpe.Must("cpe:2.3:a:io.netty:netty-common:0.25.0-r0:*:*:*:*:maven:*:*", ""),
+				},
+				Upstreams: []UpstreamPackage{
+					{
+						Name: "akhq",
+					},
+				},
+			},
+			expected: []Package{
+				{
+					Name:    "akhq",
+					Version: "0.25.0-r0",
+					Arch:    "src",
+					CPEs: []cpe.CPE{
+						cpe.Must("cpe:2.3:a:io.netty:netty-common:0.25.0-r0:*:*:*:*:maven:*:*", ""),
+					},
+				},
+			},
+		},
+		{
 			name: "no upstream name results in no package",
 			pkg: Package{
 				Name:    "name",
