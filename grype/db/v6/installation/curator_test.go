@@ -578,6 +578,66 @@ func TestCurator_validateIntegrity(t *testing.T) {
 	})
 }
 
+// countingFs counts how often a single file is opened
+type countingFs struct {
+	afero.Fs
+	path  string
+	opens int
+}
+
+func (f *countingFs) Open(name string) (afero.File, error) {
+	if filepath.Clean(name) == f.path {
+		f.opens++
+	}
+	return f.Fs.Open(name)
+}
+
+func (f *countingFs) OpenFile(name string, flag int, perm os.FileMode) (afero.File, error) {
+	if filepath.Clean(name) == f.path {
+		f.opens++
+	}
+	return f.Fs.OpenFile(name, flag, perm)
+}
+
+func TestCurator_Status_ValidateChecksum(t *testing.T) {
+	tests := []struct {
+		name             string
+		validateChecksum bool
+		wantHashed       bool
+	}{
+		{name: "hashes the db when enabled", validateChecksum: true, wantHashed: true},
+		{name: "does not hash the db when disabled", validateChecksum: false, wantHashed: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := testConfig()
+			cfg.DBRootDir = t.TempDir()
+			cfg.ValidateAge = false
+			cfg.ValidateChecksum = tt.validateChecksum
+
+			require.NoError(t, os.MkdirAll(cfg.DBDirectoryPath(), 0755))
+			sw := setupTestDB(t, cfg.DBDirectoryPath())
+			require.NoError(t, sw.SetDBMetadata())
+			require.NoError(t, sw.Close())
+
+			digest, err := db.CalculateDBDigest(afero.NewOsFs(), cfg.DBFilePath())
+			require.NoError(t, err)
+			writeTestImportMetadata(t, afero.NewOsFs(), cfg.DBDirectoryPath(), digest)
+
+			ci, err := NewCurator(cfg, new(mockClient))
+			require.NoError(t, err)
+			c := ci.(curator)
+			fs := &countingFs{Fs: c.fs, path: filepath.Clean(cfg.DBFilePath())}
+			c.fs = fs
+
+			status := c.Status()
+			require.NoError(t, status.Error)
+			assert.Equal(t, tt.wantHashed, fs.opens > 0)
+		})
+	}
+}
+
 func TestReplaceDB(t *testing.T) {
 	cases := []struct {
 		name     string
